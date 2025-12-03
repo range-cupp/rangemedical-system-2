@@ -14,3 +14,21 @@ a {
 * {
   box-sizing: border-box;
 }
+/* Side Panel Animations */
+/* Add this to your global CSS file (styles/globals.css or pages/_app.js) */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { 
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to { 
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

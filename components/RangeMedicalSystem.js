@@ -409,7 +409,7 @@ const RangeMedicalSystem = () => {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase' }}>Active Protocols</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontSize: '1.5rem', fontWeight: 700' }}>
+                    <div style={{ fontFamily: 'Courier Prime', fontSize: '1.5rem', fontWeight: 700 }}>
                       {patient.protocols?.filter(p => p.status === 'active').length || 0}
                     </div>
                   </div>

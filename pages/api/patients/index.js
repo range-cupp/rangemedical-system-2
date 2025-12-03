@@ -41,6 +41,13 @@ export default async function handler(req, res) {
             .select('*')
             .eq('patient_id', patient.id)
             .order('measurement_date', { ascending: false });
+          
+          // Get intake forms
+const { data: intakes } = await supabase
+  .from('intakes')
+  .select('*')
+  .eq('patient_id', patient.id)
+  .order('submitted_at', { ascending: false});
 
           return {
             ...patient,

@@ -381,12 +381,6 @@ const RangeMedicalSystem = () => {
         <div style={{ fontSize: '1rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>
           Loading Range Medical System...
         </div>
-        <style>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
@@ -442,18 +436,6 @@ const RangeMedicalSystem = () => {
       color: '#000000',
       padding: '2rem'
     }}>
-      {/* All the styles and components from the previous version */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Courier+Prime:wght@400;700&display=swap');
-        
-        * { box-sizing: border-box; }
-        .card { background: #ffffff; border: 2px solid #000000; padding: 1.5rem; margin-bottom: 1.5rem; }
-        .btn { padding: 0.65rem 1.25rem; border: 2px solid #000000; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.8rem; background: #ffffff; color: #000000; transition: all 0.2s ease; }
-        .btn-primary { background: #000000; color: #ffffff; }
-        .btn-primary:hover { background: #ffffff; color: #000000; }
-        .btn:hover { background: #000000; color: #ffffff; }
-      `}</style>
-
       {/* Patient Detail View */}
       {selectedPatient && (
         <div>
@@ -1958,7 +1940,6 @@ const RangeMedicalSystem = () => {
       </>
       )}
     </div>
-  </div>
   );
 };
 

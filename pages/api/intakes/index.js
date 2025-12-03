@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb' // Allow larger payloads for base64 images
+      sizeLimit: '50mb' // Increased to handle large images
     }
   }
 };

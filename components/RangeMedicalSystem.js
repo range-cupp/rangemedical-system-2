@@ -14,6 +14,8 @@ const RangeMedicalSystem = () => {
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [showQuickAddPatient, setShowQuickAddPatient] = useState(false);
   const [addingPatient, setAddingPatient] = useState(false);
+  const [selectedIntake, setSelectedIntake] = useState(null);
+  const [showIntakePanel, setShowIntakePanel] = useState(false);
   
   // New protocol form state
   const [newProtocol, setNewProtocol] = useState({
@@ -103,6 +105,16 @@ const RangeMedicalSystem = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openIntakePanel = (intake) => {
+    setSelectedIntake(intake);
+    setShowIntakePanel(true);
+  };
+
+  const closeIntakePanel = () => {
+    setShowIntakePanel(false);
+    setTimeout(() => setSelectedIntake(null), 300);
   };
 
   const handleAddProtocol = async (e) => {
@@ -685,7 +697,25 @@ const RangeMedicalSystem = () => {
               </h3>
               <div style={{ display: 'grid', gap: '1rem' }}>
                 {selectedPatient.intakes.map((intake, index) => (
-                  <div key={intake.id || index} style={{ padding: '1.25rem', border: '2px solid #000000', background: '#ffffff' }}>
+                  <div 
+                    key={intake.id || index} 
+                    onClick={() => openIntakePanel(intake)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#f9f9f9';
+                      e.currentTarget.style.transform = 'translateX(4px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#ffffff';
+                      e.currentTarget.style.transform = 'translateX(0)';
+                    }}
+                    style={{ 
+                      padding: '1.25rem', 
+                      border: '2px solid #000000', 
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '1rem', textTransform: 'uppercase' }}>
@@ -695,155 +725,49 @@ const RangeMedicalSystem = () => {
                           Submitted: {new Date(intake.submitted_at).toLocaleDateString()}
                         </div>
                       </div>
-                      <div style={{ 
-                        padding: '0.35rem 0.75rem', 
-                        border: '2px solid #000000', 
-                        fontSize: '0.7rem', 
-                        fontWeight: 700, 
-                        textTransform: 'uppercase',
-                        background: '#000000',
-                        color: '#ffffff'
-                      }}>
-                        ✓ COMPLETED
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div style={{ 
+                          padding: '0.35rem 0.75rem', 
+                          border: '2px solid #000000', 
+                          fontSize: '0.7rem', 
+                          fontWeight: 700, 
+                          textTransform: 'uppercase',
+                          background: '#000000',
+                          color: '#ffffff'
+                        }}>
+                          ✓ COMPLETED
+                        </div>
+                        <ChevronRight size={20} style={{ color: '#666666' }} />
                       </div>
                     </div>
 
-                    {/* Health Concerns */}
+                    {/* Chief Complaint Preview */}
                     {intake.what_brings_you && (
                       <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
                         <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.35rem' }}>
                           Chief Complaint
                         </div>
-                        <div style={{ fontSize: '0.9rem' }}>{intake.what_brings_you}</div>
+                        <div style={{ fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {intake.what_brings_you}
+                        </div>
                       </div>
                     )}
 
-                    {/* Quick Info Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                    {/* Quick Info */}
+                    <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: '#666666', flexWrap: 'wrap' }}>
                       {intake.date_of_birth && (
-                        <div>
-                          <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
-                          <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '0.9rem' }}>
-                            {new Date(intake.date_of_birth).toLocaleDateString()}
-                          </div>
-                        </div>
+                        <span>DOB: {new Date(intake.date_of_birth).toLocaleDateString()}</span>
                       )}
                       {intake.gender && (
-                        <div>
-                          <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Gender</div>
-                          <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '0.9rem' }}>{intake.gender}</div>
-                        </div>
+                        <span>Gender: {intake.gender}</span>
                       )}
                       {intake.injured && (
-                        <div>
-                          <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Current Injury</div>
-                          <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '0.9rem', color: '#dc2626' }}>Yes</div>
-                        </div>
+                        <span style={{ color: '#dc2626', fontWeight: 600 }}>⚠️ Current Injury</span>
                       )}
                     </div>
 
-                    {/* Medical Conditions */}
-                    {intake.medical_conditions && Object.keys(intake.medical_conditions).length > 0 && (
-                      <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
-                          Medical History
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          {Object.entries(intake.medical_conditions).map(([condition, data]) => {
-                            if (data.response === 'Yes') {
-                              return (
-                                <span 
-                                  key={condition}
-                                  style={{ 
-                                    padding: '0.35rem 0.65rem', 
-                                    background: '#f5f5f5', 
-                                    border: '1px solid #e0e0e0',
-                                    fontSize: '0.8rem',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  {data.label}
-                                </span>
-                              );
-                            }
-                            return null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Medications & Allergies */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                      {intake.on_hrt && (
-                        <div style={{ padding: '0.75rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.35rem' }}>
-                            HRT Status
-                          </div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>Currently on HRT</div>
-                          {intake.hrt_details && (
-                            <div style={{ fontSize: '0.8rem', color: '#666666', marginTop: '0.25rem' }}>{intake.hrt_details}</div>
-                          )}
-                        </div>
-                      )}
-                      {intake.on_medications && intake.current_medications && (
-                        <div style={{ padding: '0.75rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.35rem' }}>
-                            Current Medications
-                          </div>
-                          <div style={{ fontSize: '0.85rem' }}>{intake.current_medications}</div>
-                        </div>
-                      )}
-                      {intake.has_allergies && intake.allergies && (
-                        <div style={{ padding: '0.75rem', background: '#fff5f5', border: '1px solid #fecaca' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#991b1b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.35rem' }}>
-                            ⚠️ Allergies
-                          </div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{intake.allergies}</div>
-                          {intake.allergy_reactions && (
-                            <div style={{ fontSize: '0.8rem', color: '#666666', marginTop: '0.25rem' }}>Reactions: {intake.allergy_reactions}</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Files */}
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', paddingTop: '1rem', borderTop: '1px solid #e0e0e0' }}>
-                      {intake.photo_id_url && (
-                        <a 
-                          href={intake.photo_id_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn"
-                          style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
-                        >
-                          <FileText size={14} />
-                          View Photo ID
-                        </a>
-                      )}
-                      {intake.signature_url && (
-                        <a 
-                          href={intake.signature_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn"
-                          style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
-                        >
-                          <FileText size={14} />
-                          View Signature
-                        </a>
-                      )}
-                      {intake.pdf_url && (
-                        <a 
-                          href={intake.pdf_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn btn-primary"
-                          style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
-                        >
-                          <FileText size={14} />
-                          Download PDF
-                        </a>
-                      )}
+                    <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#666666', fontStyle: 'italic' }}>
+                      Click to view full details →
                     </div>
                   </div>
                 ))}
@@ -851,6 +775,412 @@ const RangeMedicalSystem = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Intake Side Panel */}
+      {showIntakePanel && selectedIntake && (
+        <>
+          {/* Overlay */}
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 999,
+              animation: 'fadeIn 0.3s ease'
+            }}
+            onClick={closeIntakePanel}
+          />
+
+          {/* Side Panel */}
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: '600px',
+            maxWidth: '90vw',
+            background: '#ffffff',
+            zIndex: 1000,
+            boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.15)',
+            overflowY: 'auto',
+            animation: 'slideInRight 0.3s ease',
+            borderLeft: '4px solid #000000'
+          }}>
+            {/* Header */}
+            <div style={{
+              position: 'sticky',
+              top: 0,
+              background: '#000000',
+              color: '#ffffff',
+              padding: '1.5rem',
+              borderBottom: '2px solid #000000',
+              zIndex: 10
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Medical Intake Form
+                  </h2>
+                  <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.5rem' }}>
+                    Submitted: {new Date(selectedIntake.submitted_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <button
+                  onClick={closeIntakePanel}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: '2rem' }}>
+              {/* Personal Information */}
+              <section style={{ marginBottom: '2rem' }}>
+                <h3 style={{ 
+                  margin: '0 0 1rem 0', 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Personal Information
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Name</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      {selectedIntake.first_name} {selectedIntake.last_name}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      {new Date(selectedIntake.date_of_birth).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Gender</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      {selectedIntake.gender}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Email</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-word' }}>
+                      {selectedIntake.email}
+                    </div>
+                  </div>
+                  {selectedIntake.phone && (
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Phone</div>
+                      <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                        {selectedIntake.phone}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Address */}
+              {selectedIntake.street_address && (
+                <section style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ 
+                    margin: '0 0 1rem 0', 
+                    fontSize: '1rem', 
+                    fontWeight: 700, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '1px',
+                    borderBottom: '2px solid #000000',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Address
+                  </h3>
+                  <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
+                    {selectedIntake.street_address}<br />
+                    {selectedIntake.city}, {selectedIntake.state} {selectedIntake.postal_code}<br />
+                    {selectedIntake.country}
+                  </div>
+                </section>
+              )}
+
+              {/* Health Concerns */}
+              <section style={{ marginBottom: '2rem' }}>
+                <h3 style={{ 
+                  margin: '0 0 1rem 0', 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Health Concerns
+                </h3>
+                
+                {selectedIntake.what_brings_you && (
+                  <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      Chief Complaint
+                    </div>
+                    <div style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>{selectedIntake.what_brings_you}</div>
+                  </div>
+                )}
+
+                {selectedIntake.injured && (
+                  <div style={{ padding: '1rem', background: '#fff5f5', border: '2px solid #fecaca', marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#991b1b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      ⚠️ Current Injury
+                    </div>
+                    {selectedIntake.injury_description && (
+                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}><strong>Description:</strong> {selectedIntake.injury_description}</div>
+                    )}
+                    {selectedIntake.injury_location && (
+                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}><strong>Location:</strong> {selectedIntake.injury_location}</div>
+                    )}
+                    {selectedIntake.injury_date && (
+                      <div style={{ fontSize: '0.9rem' }}><strong>Date:</strong> {selectedIntake.injury_date}</div>
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {/* Medical History */}
+              {selectedIntake.medical_conditions && Object.keys(selectedIntake.medical_conditions).length > 0 && (
+                <section style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ 
+                    margin: '0 0 1rem 0', 
+                    fontSize: '1rem', 
+                    fontWeight: 700, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '1px',
+                    borderBottom: '2px solid #000000',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Medical History
+                  </h3>
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {Object.entries(selectedIntake.medical_conditions).map(([condition, data]) => (
+                      <div 
+                        key={condition}
+                        style={{ 
+                          padding: '0.75rem', 
+                          background: data.response === 'Yes' ? '#f9f9f9' : '#ffffff',
+                          border: '1px solid ' + (data.response === 'Yes' ? '#e0e0e0' : '#f5f5f5'),
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'start'
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                            {data.label}
+                          </div>
+                          {data.response === 'Yes' && (data.type || data.year) && (
+                            <div style={{ fontSize: '0.85rem', color: '#666666' }}>
+                              {data.type && <span>Type: {data.type}</span>}
+                              {data.type && data.year && <span> • </span>}
+                              {data.year && <span>Diagnosed: {data.year}</span>}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ 
+                          padding: '0.25rem 0.5rem', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 700,
+                          background: data.response === 'Yes' ? '#000000' : '#f5f5f5',
+                          color: data.response === 'Yes' ? '#ffffff' : '#666666'
+                        }}>
+                          {data.response}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Medications & HRT */}
+              <section style={{ marginBottom: '2rem' }}>
+                <h3 style={{ 
+                  margin: '0 0 1rem 0', 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Medications & Therapies
+                </h3>
+                
+                {selectedIntake.on_hrt && (
+                  <div style={{ padding: '1rem', background: '#dbeafe', border: '2px solid #3b82f6', marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#1e40af', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      HRT Status
+                    </div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.25rem' }}>Currently on HRT</div>
+                    {selectedIntake.hrt_details && (
+                      <div style={{ fontSize: '0.85rem', color: '#1e40af' }}>{selectedIntake.hrt_details}</div>
+                    )}
+                  </div>
+                )}
+
+                {selectedIntake.on_medications && selectedIntake.current_medications && (
+                  <div style={{ padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0', marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      Current Medications
+                    </div>
+                    <div style={{ fontSize: '0.9rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                      {selectedIntake.current_medications}
+                    </div>
+                    {selectedIntake.medication_notes && (
+                      <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e0e0e0' }}>
+                        <strong>Notes:</strong> {selectedIntake.medication_notes}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!selectedIntake.on_hrt && !selectedIntake.on_medications && (
+                  <div style={{ fontSize: '0.9rem', color: '#666666', fontStyle: 'italic' }}>
+                    No current medications or hormone therapy
+                  </div>
+                )}
+              </section>
+
+              {/* Allergies */}
+              {selectedIntake.has_allergies && selectedIntake.allergies && (
+                <section style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ 
+                    margin: '0 0 1rem 0', 
+                    fontSize: '1rem', 
+                    fontWeight: 700, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '1px',
+                    borderBottom: '2px solid #000000',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Allergies
+                  </h3>
+                  <div style={{ padding: '1rem', background: '#fff5f5', border: '2px solid #fecaca' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#991b1b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      ⚠️ Allergy Alert
+                    </div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      {selectedIntake.allergies}
+                    </div>
+                    {selectedIntake.allergy_reactions && (
+                      <div style={{ fontSize: '0.85rem', color: '#991b1b' }}>
+                        <strong>Reactions:</strong> {selectedIntake.allergy_reactions}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* Guardian Info */}
+              {selectedIntake.guardian_name && (
+                <section style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ 
+                    margin: '0 0 1rem 0', 
+                    fontSize: '1rem', 
+                    fontWeight: 700, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '1px',
+                    borderBottom: '2px solid #000000',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Guardian Information
+                  </h3>
+                  <div style={{ fontSize: '0.9rem' }}>
+                    <strong>Parent/Guardian:</strong> {selectedIntake.guardian_name}
+                  </div>
+                </section>
+              )}
+
+              {/* Files */}
+              <section style={{ marginBottom: '2rem' }}>
+                <h3 style={{ 
+                  margin: '0 0 1rem 0', 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Documents
+                </h3>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {selectedIntake.photo_id_url && (
+                    <a 
+                      href={selectedIntake.photo_id_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn"
+                      style={{ fontSize: '0.875rem', padding: '0.75rem 1rem' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <FileText size={16} />
+                      View Photo ID
+                    </a>
+                  )}
+                  {selectedIntake.signature_url && (
+                    <a 
+                      href={selectedIntake.signature_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn"
+                      style={{ fontSize: '0.875rem', padding: '0.75rem 1rem' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <FileText size={16} />
+                      View Signature
+                    </a>
+                  )}
+                  {selectedIntake.pdf_url && (
+                    <a 
+                      href={selectedIntake.pdf_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn btn-primary"
+                      style={{ fontSize: '0.875rem', padding: '0.75rem 1rem' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <FileText size={16} />
+                      Download PDF
+                    </a>
+                  )}
+                </div>
+              </section>
+
+              {/* Consent */}
+              {selectedIntake.consent_given && (
+                <section>
+                  <div style={{ padding: '1rem', background: '#f0fdf4', border: '1px solid #86efac', fontSize: '0.85rem', color: '#166534' }}>
+                    ✓ Patient consent obtained electronically on {new Date(selectedIntake.submitted_at).toLocaleDateString()}
+                  </div>
+                </section>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       {/* Add Patient Modal */}
@@ -1628,6 +1958,25 @@ const RangeMedicalSystem = () => {
       </>
       )}
     </div>
+    
+    <style>{`
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      @keyframes slideInRight {
+        from { 
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to { 
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+    `}</style>
+  </div>
   );
 };
 

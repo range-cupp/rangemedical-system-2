@@ -307,6 +307,35 @@ const RangeMedicalSystem = () => {
 
     try {
       setSubmitting(true);
+      
+      // Optimistic update - update UI immediately
+      if (selectedPatient) {
+        const updatedProtocols = selectedPatient.protocols.map(p => 
+          p.id === editingProtocolId ? {
+            ...p,
+            name: newProtocol.name,
+            type: newProtocol.type,
+            startDate: newProtocol.start_date,
+            duration: newProtocol.duration,
+            status: newProtocol.status,
+            price: newProtocol.price,
+            dosing: newProtocol.dosing,
+            injectionSchedule: newProtocol.injection_schedule,
+            nextLabDate: newProtocol.next_lab_date,
+            notes: newProtocol.notes
+          } : p
+        );
+        
+        setSelectedPatient({
+          ...selectedPatient,
+          protocols: updatedProtocols
+        });
+      }
+
+      closeModal();
+      alert('Protocol updated successfully!');
+
+      // API call in background
       const response = await fetch('/api/protocols', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -316,18 +345,13 @@ const RangeMedicalSystem = () => {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to update protocol');
-
-      await fetchPatients();
-
-      closeModal();
-      alert('Protocol updated successfully!');
-      
-      if (selectedPatient) {
-        fetchPatients();
+      if (!response.ok) {
+        // If API fails, revert and refetch
+        alert('Failed to sync with server, refreshing...');
+        await fetchPatients();
+        throw new Error('Failed to update protocol');
       }
     } catch (err) {
-      alert('Error updating protocol: ' + err.message);
       console.error('Error:', err);
     } finally {
       setSubmitting(false);
@@ -340,22 +364,31 @@ const RangeMedicalSystem = () => {
     }
 
     try {
+      // Optimistic update - remove from UI immediately
+      if (selectedPatient) {
+        const updatedProtocols = selectedPatient.protocols.filter(p => p.id !== protocolId);
+        setSelectedPatient({
+          ...selectedPatient,
+          protocols: updatedProtocols
+        });
+      }
+
+      alert('Protocol deleted successfully!');
+
+      // API call in background
       const response = await fetch('/api/protocols', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: protocolId })
       });
 
-      if (!response.ok) throw new Error('Failed to delete protocol');
-
-      alert('Protocol deleted successfully!');
-      await fetchPatients();
-      
-      if (selectedPatient) {
-        fetchPatients();
+      if (!response.ok) {
+        // If API fails, refetch to restore
+        alert('Failed to sync with server, refreshing...');
+        await fetchPatients();
+        throw new Error('Failed to delete protocol');
       }
     } catch (err) {
-      alert('Error deleting protocol: ' + err.message);
       console.error('Error:', err);
     }
   };
@@ -396,10 +429,10 @@ const RangeMedicalSystem = () => {
         notes: ''
       });
       
-      setShowAddModal(false);
+      closeModal();
       alert('Protocol added successfully!');
       
-      // If viewing a patient, refresh their data
+      // Refresh in background
       if (selectedPatient) {
         fetchPatients();
       }

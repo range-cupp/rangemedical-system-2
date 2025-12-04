@@ -76,12 +76,20 @@ function parseIntakeText(text) {
       cancer: text.includes('Cancer: Yes')
     };
 
-    // Medications
+    // Medications & Allergies
     data.medications = {
       on_hrt: text.includes('On HRT: Yes'),
       on_other_medications: text.includes('On Other Medications: Yes'),
       has_allergies: text.includes('Has Allergies: Yes')
     };
+
+    // Extract allergy details if they have allergies
+    if (data.medications.has_allergies) {
+      const allergiesMatch = text.match(/Allergies:\s*([^\n]+)/);
+      if (allergiesMatch) {
+        data.medications.allergies = allergiesMatch[1].trim();
+      }
+    }
 
     // Consent
     data.consent_given = text.includes('Consent Given: Yes');
@@ -214,6 +222,7 @@ export default async function handler(req, res) {
       on_hrt: extracted.medications.on_hrt || false,
       on_other_medications: extracted.medications.on_other_medications || false,
       has_allergies: extracted.medications.has_allergies || false,
+      allergies: extracted.medications.allergies || null,
       
       consent_given: extracted.consent_given || false,
       submitted_at: extracted.submitted_at || new Date().toISOString()

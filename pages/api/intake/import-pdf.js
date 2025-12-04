@@ -45,10 +45,10 @@ function parseIntakeText(text) {
       }
     }
 
-    // Extract health info
-    const concernsMatch = text.match(/What Brings You In:\s*([^\n]+(?:\n(?!Currently)[^\n]+)*)/);
+    // Extract health info - FIXED to stop at "Currently Injured:"
+    const concernsMatch = text.match(/What Brings You In:\s*(.+?)(?=\s*Currently Injured:)/s);
     if (concernsMatch) {
-      data.health.what_brings_you_in = concernsMatch[1].trim().replace(/\n/g, ' ');
+      data.health.what_brings_you_in = concernsMatch[1].trim().replace(/\s+/g, ' ');
     }
 
     data.health.currently_injured = text.includes('Currently Injured: Yes');
@@ -95,10 +95,12 @@ function parseIntakeText(text) {
     data.consent_given = text.includes('Consent Given: Yes');
 
     // Submission date
-    const submittedMatch = text.match(/Submitted:\s*(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}:\d{2}:\d{2})/);
+    const submittedMatch = text.match(/Submitted:\s*(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}:\d{2}:\d{2})/);
     if (submittedMatch) {
       const [_, month, day, year, time] = submittedMatch;
-      data.submitted_at = `${year}-${month}-${day}T${time}`;
+      const paddedMonth = month.padStart(2, '0');
+      const paddedDay = day.padStart(2, '0');
+      data.submitted_at = `${year}-${paddedMonth}-${paddedDay}T${time}`;
     }
 
   } catch (error) {

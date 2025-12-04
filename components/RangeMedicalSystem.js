@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, TrendingUp, Users, DollarSign, AlertCircle, Activity, Syringe, Droplet, Sun, Wind, FileText, Bell, ChevronRight, X, Loader } from 'lucide-react';
+import { Plus, Search, Calendar, TrendingUp, Users, DollarSign, AlertCircle, Activity, Syringe, Droplet, Sun, Wind, FileText, Bell, ChevronRight, X, Loader, Trash2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseClient = createClient(
@@ -693,6 +693,80 @@ const RangeMedicalSystem = () => {
     }
   };
 
+  const handleDeletePatient = async (patientId) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to DELETE ${patient.name}?\n\n` +
+      `This will permanently delete:\n` +
+      `- Patient record\n` +
+      `- All protocols (${patient.protocols?.length || 0})\n` +
+      `- All intake forms\n` +
+      `- All documents\n` +
+      `- All consent forms\n\n` +
+      `THIS CANNOT BE UNDONE!`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/patients/${patientId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete patient');
+      }
+
+      // Refresh patients list
+      await fetchPatients();
+      
+      // Close patient view if this patient was selected
+      if (selectedPatient?.id === patientId) {
+        setSelectedPatient(null);
+      }
+
+      alert('Patient deleted successfully');
+    } catch (err) {
+      alert('Error deleting patient: ' + err.message);
+      console.error('Error:', err);
+    }
+  };
+
+  const handleDeleteIntake = async (intakeId) => {
+    const confirmed = confirm(
+      'Are you sure you want to delete this intake form?\n\n' +
+      'This cannot be undone!'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/intakes/${intakeId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete intake');
+      }
+
+      // Refresh patients list
+      await fetchPatients();
+      
+      // Close intake panel
+      setShowIntakePanel(false);
+      setSelectedIntake(null);
+
+      alert('Intake form deleted successfully');
+    } catch (err) {
+      alert('Error deleting intake: ' + err.message);
+      console.error('Error:', err);
+    }
+  };
+
   // Calculate alerts
   const getAlerts = () => {
     const alerts = [];
@@ -927,7 +1001,7 @@ const RangeMedicalSystem = () => {
           {/* Patient Header */}
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
                   {selectedPatient.name}
                 </h2>
@@ -936,7 +1010,7 @@ const RangeMedicalSystem = () => {
                   {selectedPatient.phone && <div style={{ fontSize: '0.9rem', color: '#666666' }}>{selectedPatient.phone}</div>}
                   {selectedPatient.dateOfBirth && (
                     <div style={{ fontSize: '0.85rem', color: '#666666' }}>
-                      DOB: {new Date(selectedPatient.dateOfBirth).toLocaleDateString()}
+                      DOB: {new Date(selectedPatient.dateOfBirth).toLocaleDateString('en-US')}
                     </div>
                   )}
                   {(selectedPatient.address || selectedPatient.city || selectedPatient.state || selectedPatient.zip_code) && (
@@ -972,6 +1046,28 @@ const RangeMedicalSystem = () => {
                   </div>
                 </div>
               </div>
+            </div>
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => handleDeletePatient(selectedPatient.id)}
+                style={{
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: '2px solid #dc2626',
+                  padding: '0.75rem 1.5rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <Trash2 size={16} />
+                Delete Patient
+              </button>
             </div>
           </div>
 
@@ -1068,7 +1164,7 @@ const RangeMedicalSystem = () => {
                           <div>
                             <div style={{ color: '#666666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Start Date</div>
                             <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>
-                              {new Date(protocol.startDate).toLocaleDateString()}
+                              {new Date(protocol.startDate).toLocaleDateString('en-US')}
                             </div>
                           </div>
                         )}
@@ -1100,7 +1196,7 @@ const RangeMedicalSystem = () => {
                           <div>
                             <div style={{ color: '#666666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Next Lab</div>
                             <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>
-                              {new Date(protocol.nextLabDate).toLocaleDateString()}
+                              {new Date(protocol.nextLabDate).toLocaleDateString('en-US')}
                             </div>
                           </div>
                         )}
@@ -1169,7 +1265,7 @@ const RangeMedicalSystem = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                       <div style={{ fontWeight: 700, textTransform: 'uppercase' }}>{lab.type}</div>
                       <div style={{ fontFamily: 'Courier Prime', fontSize: '0.9rem' }}>
-                        {new Date(lab.date).toLocaleDateString()}
+                        {new Date(lab.date).toLocaleDateString('en-US')}
                       </div>
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#666666' }}>
@@ -1192,7 +1288,7 @@ const RangeMedicalSystem = () => {
                   <div key={index} style={{ padding: '1rem', border: '2px solid #000000' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                       <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>
-                        {new Date(measurement.date).toLocaleDateString()}
+                        {new Date(measurement.date).toLocaleDateString('en-US')}
                       </div>
                       <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem' }}>
                         {measurement.weight && (
@@ -1251,7 +1347,7 @@ const RangeMedicalSystem = () => {
                           Medical Intake Form
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.25rem' }}>
-                          Submitted: {new Date(intake.submitted_at).toLocaleDateString()}
+                          Submitted: {new Date(intake.submitted_at).toLocaleDateString('en-US')}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -1285,7 +1381,7 @@ const RangeMedicalSystem = () => {
                     {/* Quick Info */}
                     <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: '#666666', flexWrap: 'wrap' }}>
                       {intake.date_of_birth && (
-                        <span>DOB: {new Date(intake.date_of_birth).toLocaleDateString()}</span>
+                        <span>DOB: {new Date(intake.date_of_birth).toLocaleDateString('en-US')}</span>
                       )}
                       {intake.gender && (
                         <span>Gender: {intake.gender}</span>
@@ -1427,7 +1523,7 @@ const RangeMedicalSystem = () => {
                       </div>
                       
                       <div style={{ fontSize: '0.75rem', color: '#666666', marginBottom: '0.5rem' }}>
-                        Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()} {new Date(doc.uploaded_at).toLocaleTimeString()}
+                        Uploaded: {new Date(doc.uploaded_at).toLocaleDateString('en-US')} {new Date(doc.uploaded_at).toLocaleTimeString()}
                       </div>
 
                       {doc.notes && (
@@ -1509,7 +1605,7 @@ const RangeMedicalSystem = () => {
                           {consent.consent_type || 'Consent Form'}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.25rem' }}>
-                          Signed: {new Date(consent.submitted_at).toLocaleDateString()}
+                          Signed: {new Date(consent.submitted_at).toLocaleDateString('en-US')}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -1530,10 +1626,10 @@ const RangeMedicalSystem = () => {
 
                     <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: '#666666', flexWrap: 'wrap' }}>
                       {consent.date_of_birth && (
-                        <span>DOB: {new Date(consent.date_of_birth).toLocaleDateString()}</span>
+                        <span>DOB: {new Date(consent.date_of_birth).toLocaleDateString('en-US')}</span>
                       )}
                       {consent.consent_date && (
-                        <span>Date: {new Date(consent.consent_date).toLocaleDateString()}</span>
+                        <span>Date: {new Date(consent.consent_date).toLocaleDateString('en-US')}</span>
                       )}
                     </div>
 
@@ -1598,24 +1694,46 @@ const RangeMedicalSystem = () => {
                     Medical Intake Form
                   </h2>
                   <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.5rem' }}>
-                    Submitted: {new Date(selectedIntake.submitted_at).toLocaleDateString()}
+                    Submitted: {new Date(selectedIntake.submitted_at).toLocaleDateString('en-US')}
                   </div>
                 </div>
-                <button
-                  onClick={closeIntakePanel}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    padding: '0.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <X size={24} />
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => handleDeleteIntake(selectedIntake.id)}
+                    style={{
+                      background: '#dc2626',
+                      border: '2px solid #ffffff',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      padding: '0.5rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                  <button
+                    onClick={closeIntakePanel}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      padding: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1645,7 +1763,7 @@ const RangeMedicalSystem = () => {
                     <div>
                       <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
                       <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
-                        {new Date(selectedIntake.date_of_birth).toLocaleDateString()}
+                        {new Date(selectedIntake.date_of_birth).toLocaleDateString('en-US')}
                       </div>
                     </div>
                   )}
@@ -1923,7 +2041,7 @@ const RangeMedicalSystem = () => {
               {selectedIntake.consent_given && (
                 <section>
                   <div style={{ padding: '1rem', background: '#f0fdf4', border: '1px solid #86efac', fontSize: '0.85rem', color: '#166534' }}>
-                    ✓ Patient consent obtained electronically on {new Date(selectedIntake.submitted_at).toLocaleDateString()}
+                    ✓ Patient consent obtained electronically on {new Date(selectedIntake.submitted_at).toLocaleDateString('en-US')}
                   </div>
                 </section>
               )}
@@ -1981,7 +2099,7 @@ const RangeMedicalSystem = () => {
                     {selectedConsent.consent_type || 'Consent Form'}
                   </h2>
                   <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.5rem' }}>
-                    Signed: {new Date(selectedConsent.submitted_at).toLocaleDateString()}
+                    Signed: {new Date(selectedConsent.submitted_at).toLocaleDateString('en-US')}
                   </div>
                 </div>
                 <button
@@ -2027,7 +2145,7 @@ const RangeMedicalSystem = () => {
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
                     <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
-                      {new Date(selectedConsent.date_of_birth).toLocaleDateString()}
+                      {new Date(selectedConsent.date_of_birth).toLocaleDateString('en-US')}
                     </div>
                   </div>
                   <div>
@@ -2080,7 +2198,7 @@ const RangeMedicalSystem = () => {
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Consent Date</div>
                     <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
-                      {new Date(selectedConsent.consent_date).toLocaleDateString()}
+                      {new Date(selectedConsent.consent_date).toLocaleDateString('en-US')}
                     </div>
                   </div>
                 </div>
@@ -2119,7 +2237,7 @@ const RangeMedicalSystem = () => {
               {/* Submission Info */}
               <section>
                 <div style={{ padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0', fontSize: '0.85rem', color: '#666666' }}>
-                  <strong>Submitted:</strong> {new Date(selectedConsent.submitted_at).toLocaleDateString()} at {new Date(selectedConsent.submitted_at).toLocaleTimeString()}
+                  <strong>Submitted:</strong> {new Date(selectedConsent.submitted_at).toLocaleDateString('en-US')} at {new Date(selectedConsent.submitted_at).toLocaleTimeString()}
                 </div>
               </section>
             </div>

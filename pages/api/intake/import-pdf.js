@@ -76,30 +76,29 @@ function parseIntakeText(text) {
       cancer: text.includes('Cancer: Yes')
     };
 
-    // Medications & Allergies - MORE ROBUST DETECTION
-    // Check for "Has Allergies: Yes" with flexible whitespace
+    // Medications & Allergies - SUPER PRECISE EXTRACTION
+    data.medications.on_hrt = text.includes('On HRT: Yes');
+    data.medications.on_other_medications = text.includes('On Other Medications: Yes');
+    
+    // Check if has allergies
     const hasAllergiesMatch = text.match(/Has\s+Allergies:\s*Yes/i);
     data.medications.has_allergies = !!hasAllergiesMatch;
     
-    // Extract allergy details - try multiple patterns
+    // Extract ONLY the allergy details line (not "Yes")
     if (data.medications.has_allergies) {
-      // Try pattern: "Allergies: [details]"
-      let allergiesMatch = text.match(/Allergies:\s*([^\n]+)/);
-      if (allergiesMatch && allergiesMatch[1].trim() && !allergiesMatch[1].includes('PHOTO')) {
-        data.medications.allergies = allergiesMatch[1].trim();
-      } else {
-        // Try alternate pattern after "Has Allergies: Yes"
-        const allergiesSection = text.match(/Has\s+Allergies:\s*Yes\s*Allergies:\s*([^\n]+)/i);
-        if (allergiesSection) {
-          data.medications.allergies = allergiesSection[1].trim();
+      // Look for line that starts with "Allergies:" followed by actual details
+      // This regex specifically looks for "Allergies: [something that's NOT 'Yes']"
+      const allergiesMatch = text.match(/(?:^|\n)\s*Allergies:\s*([^\n]+)/m);
+      if (allergiesMatch) {
+        const allergyText = allergiesMatch[1].trim();
+        // Make sure we didn't just capture "Yes" - we want the actual allergy details
+        if (allergyText && allergyText.toLowerCase() !== 'yes' && !allergyText.includes('PHOTO')) {
+          data.medications.allergies = allergyText;
         }
       }
     } else {
       data.medications.allergies = null;
     }
-
-    data.medications.on_hrt = text.includes('On HRT: Yes');
-    data.medications.on_other_medications = text.includes('On Other Medications: Yes');
 
     // Consent
     data.consent_given = text.includes('Consent Given: Yes');

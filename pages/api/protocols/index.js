@@ -1,54 +1,59 @@
-import { supabase } from '../../../lib/supabase';
+// pages/api/protocols.js
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
+  if (req.method === 'POST') {
+    try {
+      const protocolData = req.body;
+
+      // Convert empty strings to null for date fields
+      const cleanedData = {
+        ...protocolData,
+        start_date: protocolData.start_date || null,
+        next_lab_date: protocolData.next_lab_date || null,
+        duration: protocolData.duration || null,
+        dosing: protocolData.dosing || null,
+        injection_schedule: protocolData.injection_schedule || null,
+        notes: protocolData.notes || null
+      };
+
+      const { data, error } = await supabase
+        .from('protocols')
+        .insert([cleanedData])
+        .select();
+
+      if (error) {
+        console.error('Database error:', error);
+        return res.status(500).json({ error: error.message });
+      }
+
+      return res.status(200).json({ success: true, data });
+    } catch (error) {
+      console.error('Server error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
   if (req.method === 'GET') {
     try {
       const { data, error } = await supabase
         .from('protocols')
-        .select('*, patients(name, email)')
-        .order('start_date', { ascending: false });
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      res.status(200).json(data);
+      return res.status(200).json(data);
     } catch (error) {
-      console.error('Error fetching protocols:', error);
-      res.status(500).json({ error: error.message });
+      console.error('Error:', error);
+      return res.status(500).json({ error: error.message });
     }
-  } else if (req.method === 'POST') {
-    try {
-      const protocolData = req.body;
-
-      const { data, error } = await supabase
-        .from('protocols')
-        .insert([protocolData])
-        .select();
-
-      if (error) throw error;
-
-      res.status(201).json(data[0]);
-    } catch (error) {
-      console.error('Error creating protocol:', error);
-      res.status(500).json({ error: error.message });
-    }
-  } else if (req.method === 'PUT') {
-    try {
-      const { id, ...updates } = req.body;
-
-      const { data, error } = await supabase
-        .from('protocols')
-        .update(updates)
-        .eq('id', id)
-        .select();
-
-      if (error) throw error;
-
-      res.status(200).json(data[0]);
-    } catch (error) {
-      console.error('Error updating protocol:', error);
-      res.status(500).json({ error: error.message });
-    }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
   }
+
+  return res.status(405).json({ error: 'Method not allowed' });
 }

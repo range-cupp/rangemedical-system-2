@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, TrendingUp, Users, DollarSign, AlertCircle, Activity, Syringe, Droplet, Sun, Wind, FileText, Bell, ChevronRight, X, Loader } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseClient = createClient(
+  'https://teivfptpozltpqwahgdl.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
+);
 
 const RangeMedicalSystem = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -16,6 +22,10 @@ const RangeMedicalSystem = () => {
   const [addingPatient, setAddingPatient] = useState(false);
   const [selectedIntake, setSelectedIntake] = useState(null);
   const [showIntakePanel, setShowIntakePanel] = useState(false);
+  const [medicalDocuments, setMedicalDocuments] = useState([]);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
+  const [documentNotes, setDocumentNotes] = useState('');
   
   // New protocol form state
   const [newProtocol, setNewProtocol] = useState({
@@ -44,6 +54,12 @@ const RangeMedicalSystem = () => {
   useEffect(() => {
     fetchPatients();
   }, []);
+
+  useEffect(() => {
+    if (selectedPatient) {
+      fetchMedicalDocuments(selectedPatient.id);
+    }
+  }, [selectedPatient]);
 
   const fetchPatients = async () => {
     try {
@@ -115,6 +131,103 @@ const RangeMedicalSystem = () => {
   const closeIntakePanel = () => {
     setShowIntakePanel(false);
     setTimeout(() => setSelectedIntake(null), 300);
+  };
+
+  const fetchMedicalDocuments = async (patientId) => {
+    try {
+      const response = await fetch(`/api/medical-documents?patient_id=${patientId}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setMedicalDocuments(result.documents);
+      }
+    } catch (error) {
+      console.error('Error fetching medical documents:', error);
+    }
+  };
+
+  const uploadDocumentToStorage = async (file) => {
+    try {
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `doc-${timestamp}-${randomStr}.${fileExtension}`;
+      const filePath = `medical-records/${fileName}`;
+
+      console.log('Uploading file to:', filePath);
+
+      const { data, error } = await supabaseClient.storage
+        .from('medical-documents')
+        .upload(filePath, file);
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      const { data: urlData } = supabaseClient.storage
+        .from('medical-documents')
+        .getPublicUrl(filePath);
+
+      console.log('File uploaded successfully:', urlData.publicUrl);
+      return urlData.publicUrl;
+
+    } catch (error) {
+      console.error('Error uploading to storage:', error);
+      throw error;
+    }
+  };
+
+  const handleDocumentUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a PDF file');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    try {
+      setUploadingDocument(true);
+
+      const documentUrl = await uploadDocumentToStorage(file);
+
+      const response = await fetch('/api/medical-documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: selectedPatient.id,
+          document_name: file.name,
+          document_url: documentUrl,
+          document_type: 'Medical Record',
+          notes: documentNotes || null,
+          uploaded_by: 'Staff'
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Document uploaded successfully!');
+        setDocumentNotes('');
+        setShowDocumentUpload(false);
+        fetchMedicalDocuments(selectedPatient.id);
+        e.target.value = '';
+      } else {
+        alert('Failed to save document: ' + result.error);
+      }
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload document. Please try again.');
+    } finally {
+      setUploadingDocument(false);
+    }
   };
 
   const handleAddProtocol = async (e) => {
@@ -756,6 +869,179 @@ const RangeMedicalSystem = () => {
               </div>
             </div>
           )}
+
+          {/* Medical Documents Section */}
+          <div className="card" style={{ marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Medical Documents
+              </h3>
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowDocumentUpload(!showDocumentUpload)}
+                style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
+              >
+                <Plus size={14} />
+                Upload Document
+              </button>
+            </div>
+
+            {showDocumentUpload && (
+              <div style={{ 
+                padding: '1.25rem', 
+                background: '#f9f9f9', 
+                border: '2px solid #000000', 
+                marginBottom: '1.5rem' 
+              }}>
+                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', fontWeight: 700 }}>
+                  Upload Medical Document
+                </h4>
+                
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600, 
+                    textTransform: 'uppercase', 
+                    marginBottom: '0.5rem' 
+                  }}>
+                    Document Notes (Optional)
+                  </label>
+                  <textarea
+                    value={documentNotes}
+                    onChange={(e) => setDocumentNotes(e.target.value)}
+                    placeholder="Add notes about this document (e.g., 'Lab results from 2023', 'Previous X-ray')"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #000000',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      resize: 'vertical',
+                      minHeight: '80px'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600, 
+                    textTransform: 'uppercase', 
+                    marginBottom: '0.5rem' 
+                  }}>
+                    Select PDF File
+                  </label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleDocumentUpload}
+                    disabled={uploadingDocument}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #000000',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      cursor: uploadingDocument ? 'not-allowed' : 'pointer'
+                    }}
+                  />
+                </div>
+
+                {uploadingDocument && (
+                  <div style={{ 
+                    padding: '0.75rem', 
+                    background: '#dbeafe', 
+                    border: '1px solid #3b82f6',
+                    fontSize: '0.85rem',
+                    fontWeight: 600
+                  }}>
+                    <Loader size={14} style={{ animation: 'spin 1s linear infinite', display: 'inline', marginRight: '0.5rem' }} />
+                    Uploading document...
+                  </div>
+                )}
+
+                <div style={{ fontSize: '0.75rem', color: '#666666', marginTop: '0.75rem' }}>
+                  • PDF files only<br />
+                  • Maximum file size: 10MB<br />
+                  • Document will be associated with this patient
+                </div>
+              </div>
+            )}
+
+            {medicalDocuments.length > 0 ? (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {medicalDocuments.map((doc) => (
+                  <div 
+                    key={doc.id}
+                    style={{ 
+                      padding: '1.25rem', 
+                      border: '2px solid #000000', 
+                      background: '#ffffff',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'start'
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <FileText size={20} />
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                          {doc.document_name}
+                        </div>
+                      </div>
+                      
+                      <div style={{ fontSize: '0.75rem', color: '#666666', marginBottom: '0.5rem' }}>
+                        Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()} {new Date(doc.uploaded_at).toLocaleTimeString()}
+                      </div>
+
+                      {doc.notes && (
+                        <div style={{ 
+                          fontSize: '0.85rem', 
+                          color: '#444444',
+                          marginTop: '0.5rem',
+                          padding: '0.5rem',
+                          background: '#f9f9f9',
+                          border: '1px solid #e0e0e0'
+                        }}>
+                          <strong>Notes:</strong> {doc.notes}
+                        </div>
+                      )}
+
+                      {doc.uploaded_by && (
+                        <div style={{ fontSize: '0.75rem', color: '#666666', marginTop: '0.5rem' }}>
+                          Uploaded by: {doc.uploaded_by}
+                        </div>
+                      )}
+                    </div>
+
+                    <a
+                      href={doc.document_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-primary"
+                      style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem', marginLeft: '1rem' }}
+                    >
+                      <FileText size={14} />
+                      View PDF
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ 
+                padding: '2rem', 
+                textAlign: 'center', 
+                color: '#666666', 
+                fontSize: '0.9rem',
+                fontStyle: 'italic'
+              }}>
+                No medical documents uploaded yet.
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 

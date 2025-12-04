@@ -76,20 +76,30 @@ function parseIntakeText(text) {
       cancer: text.includes('Cancer: Yes')
     };
 
-    // Medications & Allergies
-    data.medications = {
-      on_hrt: text.includes('On HRT: Yes'),
-      on_other_medications: text.includes('On Other Medications: Yes'),
-      has_allergies: text.includes('Has Allergies: Yes')
-    };
-
-    // Extract allergy details if they have allergies
+    // Medications & Allergies - MORE ROBUST DETECTION
+    // Check for "Has Allergies: Yes" with flexible whitespace
+    const hasAllergiesMatch = text.match(/Has\s+Allergies:\s*Yes/i);
+    data.medications.has_allergies = !!hasAllergiesMatch;
+    
+    // Extract allergy details - try multiple patterns
     if (data.medications.has_allergies) {
-      const allergiesMatch = text.match(/Allergies:\s*([^\n]+)/);
-      if (allergiesMatch) {
+      // Try pattern: "Allergies: [details]"
+      let allergiesMatch = text.match(/Allergies:\s*([^\n]+)/);
+      if (allergiesMatch && allergiesMatch[1].trim() && !allergiesMatch[1].includes('PHOTO')) {
         data.medications.allergies = allergiesMatch[1].trim();
+      } else {
+        // Try alternate pattern after "Has Allergies: Yes"
+        const allergiesSection = text.match(/Has\s+Allergies:\s*Yes\s*Allergies:\s*([^\n]+)/i);
+        if (allergiesSection) {
+          data.medications.allergies = allergiesSection[1].trim();
+        }
       }
+    } else {
+      data.medications.allergies = null;
     }
+
+    data.medications.on_hrt = text.includes('On HRT: Yes');
+    data.medications.on_other_medications = text.includes('On Other Medications: Yes');
 
     // Consent
     data.consent_given = text.includes('Consent Given: Yes');

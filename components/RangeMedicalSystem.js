@@ -26,6 +26,9 @@ const RangeMedicalSystem = () => {
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [documentNotes, setDocumentNotes] = useState('');
+  const [consentForms, setConsentForms] = useState([]);
+  const [selectedConsent, setSelectedConsent] = useState(null);
+  const [showConsentPanel, setShowConsentPanel] = useState(false);
   
   // New protocol form state
   const [newProtocol, setNewProtocol] = useState({
@@ -58,6 +61,7 @@ const RangeMedicalSystem = () => {
   useEffect(() => {
     if (selectedPatient) {
       fetchMedicalDocuments(selectedPatient.id);
+      fetchConsentForms(selectedPatient.id);
     }
   }, [selectedPatient]);
 
@@ -230,6 +234,29 @@ const RangeMedicalSystem = () => {
     }
   };
 
+  const fetchConsentForms = async (patientId) => {
+    try {
+      const response = await fetch(`/api/consent-forms?patient_id=${patientId}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setConsentForms(result.consents);
+      }
+    } catch (error) {
+      console.error('Error fetching consent forms:', error);
+    }
+  };
+
+  const openConsentPanel = (consent) => {
+    setSelectedConsent(consent);
+    setShowConsentPanel(true);
+  };
+
+  const closeConsentPanel = () => {
+    setShowConsentPanel(false);
+    setTimeout(() => setSelectedConsent(null), 300);
+  };
+
   const handleAddProtocol = async (e) => {
     e.preventDefault();
     
@@ -268,6 +295,11 @@ const RangeMedicalSystem = () => {
       
       setShowAddModal(false);
       alert('Protocol added successfully!');
+      
+      // If viewing a patient, refresh their data
+      if (selectedPatient) {
+        fetchPatients();
+      }
     } catch (err) {
       alert('Error adding protocol: ' + err.message);
       console.error('Error:', err);
@@ -602,9 +634,25 @@ const RangeMedicalSystem = () => {
 
           {/* Protocols Section */}
           <div className="card">
-            <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Treatment Protocols
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Treatment Protocols
+              </h3>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setNewProtocol({
+                    ...newProtocol,
+                    patient_id: selectedPatient.id
+                  });
+                  setShowAddModal(true);
+                }}
+                style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
+              >
+                <Plus size={14} />
+                Add Protocol
+              </button>
+            </div>
             
             {selectedPatient.protocols && selectedPatient.protocols.length > 0 ? (
               <div style={{ display: 'grid', gap: '1rem' }}>
@@ -1042,6 +1090,76 @@ const RangeMedicalSystem = () => {
             )}
           </div>
 
+          {/* Consent Forms Section */}
+          {consentForms.length > 0 && (
+            <div className="card" style={{ marginTop: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Consent Forms
+              </h3>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {consentForms.map((consent, index) => (
+                  <div 
+                    key={consent.id || index}
+                    onClick={() => openConsentPanel(consent)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#f9f9f9';
+                      e.currentTarget.style.transform = 'translateX(4px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#ffffff';
+                      e.currentTarget.style.transform = 'translateX(0)';
+                    }}
+                    style={{ 
+                      padding: '1.25rem', 
+                      border: '2px solid #000000', 
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', textTransform: 'uppercase' }}>
+                          {consent.consent_type || 'Consent Form'}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.25rem' }}>
+                          Signed: {new Date(consent.submitted_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div style={{ 
+                          padding: '0.35rem 0.75rem', 
+                          border: '2px solid #000000', 
+                          fontSize: '0.7rem', 
+                          fontWeight: 700, 
+                          textTransform: 'uppercase',
+                          background: '#000000',
+                          color: '#ffffff'
+                        }}>
+                          ✓ SIGNED
+                        </div>
+                        <ChevronRight size={20} style={{ color: '#666666' }} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: '#666666', flexWrap: 'wrap' }}>
+                      {consent.date_of_birth && (
+                        <span>DOB: {new Date(consent.date_of_birth).toLocaleDateString()}</span>
+                      )}
+                      {consent.consent_date && (
+                        <span>Date: {new Date(consent.consent_date).toLocaleDateString()}</span>
+                      )}
+                    </div>
+
+                    <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#666666', fontStyle: 'italic' }}>
+                      Click to view full details →
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
@@ -1446,6 +1564,201 @@ const RangeMedicalSystem = () => {
                   </div>
                 </section>
               )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Consent Side Panel */}
+      {showConsentPanel && selectedConsent && (
+        <>
+          {/* Overlay */}
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 999,
+              animation: 'fadeIn 0.3s ease'
+            }}
+            onClick={closeConsentPanel}
+          />
+
+          {/* Side Panel */}
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: '600px',
+            maxWidth: '90vw',
+            background: '#ffffff',
+            zIndex: 1000,
+            boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.15)',
+            overflowY: 'auto',
+            animation: 'slideInRight 0.3s ease',
+            borderLeft: '4px solid #000000'
+          }}>
+            {/* Header */}
+            <div style={{
+              position: 'sticky',
+              top: 0,
+              background: '#000000',
+              color: '#ffffff',
+              padding: '1.5rem',
+              borderBottom: '2px solid #000000',
+              zIndex: 10
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {selectedConsent.consent_type || 'Consent Form'}
+                  </h2>
+                  <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.5rem' }}>
+                    Signed: {new Date(selectedConsent.submitted_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <button
+                  onClick={closeConsentPanel}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: '2rem' }}>
+              {/* Patient Information */}
+              <section style={{ marginBottom: '2rem' }}>
+                <h3 style={{ 
+                  margin: '0 0 1rem 0', 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Patient Information
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Name</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      {selectedConsent.first_name} {selectedConsent.last_name}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      {new Date(selectedConsent.date_of_birth).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Email</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-word' }}>
+                      {selectedConsent.email}
+                    </div>
+                  </div>
+                  {selectedConsent.phone && (
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Phone</div>
+                      <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                        {selectedConsent.phone}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Consent Details */}
+              <section style={{ marginBottom: '2rem' }}>
+                <h3 style={{ 
+                  margin: '0 0 1rem 0', 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Consent Details
+                </h3>
+                
+                <div style={{ padding: '1rem', background: '#f0fdf4', border: '2px solid #86efac', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#166534', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
+                    ✓ Consent Status
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#166534' }}>
+                    Patient consent obtained electronically
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Consent Type</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      {selectedConsent.consent_type || 'Blood Draw'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Consent Date</div>
+                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      {new Date(selectedConsent.consent_date).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Signature */}
+              <section style={{ marginBottom: '2rem' }}>
+                <h3 style={{ 
+                  margin: '0 0 1rem 0', 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Digital Signature
+                </h3>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {selectedConsent.signature_url && (
+                    <a 
+                      href={selectedConsent.signature_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn"
+                      style={{ fontSize: '0.875rem', padding: '0.75rem 1rem' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <FileText size={16} />
+                      View Signature
+                    </a>
+                  )}
+                </div>
+              </section>
+
+              {/* Submission Info */}
+              <section>
+                <div style={{ padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0', fontSize: '0.85rem', color: '#666666' }}>
+                  <strong>Submitted:</strong> {new Date(selectedConsent.submitted_at).toLocaleDateString()} at {new Date(selectedConsent.submitted_at).toLocaleTimeString()}
+                </div>
+              </section>
             </div>
           </div>
         </>

@@ -1878,6 +1878,16 @@ const RangeMedicalSystem = () => {
                       {selectedIntake.has_allergies ? 'YES' : 'NO'}
                     </span>
                   </div>
+                  {selectedIntake.has_allergies && selectedIntake.allergies && (
+                    <div style={{ padding: '1rem', background: '#fff5f5', border: '2px solid #fecaca', borderTop: 'none' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#991b1b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
+                        ⚠️ ALLERGY DETAILS
+                      </div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#991b1b' }}>
+                        {selectedIntake.allergies}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
 

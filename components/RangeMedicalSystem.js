@@ -780,8 +780,17 @@ const RangeMedicalSystem = () => {
                   setIsEditMode(false);
                   setEditingProtocolId(null);
                   setNewProtocol({
-                    ...newProtocol,
-                    patient_id: selectedPatient.id
+                    patient_id: selectedPatient.id,
+                    type: 'peptide',
+                    name: '',
+                    start_date: new Date().toISOString().split('T')[0], // Always TODAY!
+                    duration: '',
+                    status: 'active',
+                    price: '',
+                    dosing: '',
+                    injection_schedule: '',
+                    next_lab_date: '',
+                    notes: ''
                   });
                   setShowAddModal(true);
                 }}
@@ -2552,7 +2561,24 @@ const RangeMedicalSystem = () => {
               <Plus size={16} />
               Add Patient
             </button>
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            <button className="btn btn-primary" onClick={() => {
+              setIsEditMode(false);
+              setEditingProtocolId(null);
+              setNewProtocol({
+                patient_id: '',
+                type: 'peptide',
+                name: '',
+                start_date: new Date().toISOString().split('T')[0], // Always TODAY!
+                duration: '',
+                status: 'active',
+                price: '',
+                dosing: '',
+                injection_schedule: '',
+                next_lab_date: '',
+                notes: ''
+              });
+              setShowAddModal(true);
+            }}>
               <Plus size={16} />
               Add Protocol
             </button>

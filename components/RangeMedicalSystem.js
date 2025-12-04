@@ -11,6 +11,8 @@ const RangeMedicalSystem = () => {
   const [activeView, setActiveView] = useState('dashboard');
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingProtocolId, setEditingProtocolId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProtocol, setFilterProtocol] = useState('all');
   const [patients, setPatients] = useState([]);
@@ -255,6 +257,107 @@ const RangeMedicalSystem = () => {
   const closeConsentPanel = () => {
     setShowConsentPanel(false);
     setTimeout(() => setSelectedConsent(null), 300);
+  };
+
+  const closeModal = () => {
+    setShowAddModal(false);
+    setIsEditMode(false);
+    setEditingProtocolId(null);
+    setNewProtocol({
+      patient_id: '',
+      type: 'peptide',
+      name: '',
+      start_date: new Date().toISOString().split('T')[0],
+      duration: '',
+      status: 'active',
+      price: '',
+      dosing: '',
+      injection_schedule: '',
+      next_lab_date: '',
+      notes: ''
+    });
+  };
+
+  const handleEditProtocol = (protocol) => {
+    setIsEditMode(true);
+    setEditingProtocolId(protocol.id);
+    setNewProtocol({
+      patient_id: protocol.patient_id,
+      type: protocol.type,
+      name: protocol.name,
+      start_date: protocol.startDate || '',
+      duration: protocol.duration || '',
+      status: protocol.status,
+      price: protocol.price || '',
+      dosing: protocol.dosing || '',
+      injection_schedule: protocol.injectionSchedule || '',
+      next_lab_date: protocol.nextLabDate || '',
+      notes: protocol.notes || ''
+    });
+    setShowAddModal(true);
+  };
+
+  const handleUpdateProtocol = async (e) => {
+    e.preventDefault();
+    
+    if (!newProtocol.name || !newProtocol.price) {
+      alert('Please fill in required fields: Protocol Name and Price');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await fetch('/api/protocols', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingProtocolId,
+          ...newProtocol
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to update protocol');
+
+      await fetchPatients();
+
+      closeModal();
+      alert('Protocol updated successfully!');
+      
+      if (selectedPatient) {
+        fetchPatients();
+      }
+    } catch (err) {
+      alert('Error updating protocol: ' + err.message);
+      console.error('Error:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteProtocol = async (protocolId) => {
+    if (!confirm('Are you sure you want to delete this protocol? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/protocols', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: protocolId })
+      });
+
+      if (!response.ok) throw new Error('Failed to delete protocol');
+
+      alert('Protocol deleted successfully!');
+      await fetchPatients();
+      
+      if (selectedPatient) {
+        fetchPatients();
+      }
+    } catch (err) {
+      alert('Error deleting protocol: ' + err.message);
+      console.error('Error:', err);
+    }
   };
 
   const handleAddProtocol = async (e) => {
@@ -641,6 +744,8 @@ const RangeMedicalSystem = () => {
               <button
                 className="btn btn-primary"
                 onClick={() => {
+                  setIsEditMode(false);
+                  setEditingProtocolId(null);
                   setNewProtocol({
                     ...newProtocol,
                     patient_id: selectedPatient.id
@@ -760,6 +865,38 @@ const RangeMedicalSystem = () => {
                           <div style={{ fontSize: '0.85rem' }}>{protocol.notes}</div>
                         </div>
                       )}
+
+                      {/* Edit and Delete Buttons */}
+                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0' }}>
+                        <button
+                          onClick={() => handleEditProtocol(protocol)}
+                          className="btn"
+                          style={{ 
+                            fontSize: '0.75rem', 
+                            padding: '0.5rem 1rem',
+                            background: '#ffffff',
+                            color: '#000000',
+                            border: '2px solid #000000',
+                            flex: 1
+                          }}
+                        >
+                          Edit Protocol
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProtocol(protocol.id)}
+                          className="btn"
+                          style={{ 
+                            fontSize: '0.75rem', 
+                            padding: '0.5rem 1rem',
+                            background: '#dc2626',
+                            color: '#ffffff',
+                            border: '2px solid #dc2626',
+                            flex: 1
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1942,17 +2079,17 @@ const RangeMedicalSystem = () => {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Add New Protocol
+                {isEditMode ? 'Edit Protocol' : 'Add New Protocol'}
               </h2>
               <button 
-                onClick={() => setShowAddModal(false)}
+                onClick={closeModal}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}
               >
                 <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleAddProtocol}>
+            <form onSubmit={isEditMode ? handleUpdateProtocol : handleAddProtocol}>
               {/* Patient Selection */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -2319,7 +2456,7 @@ const RangeMedicalSystem = () => {
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={closeModal}
                   className="btn"
                   disabled={submitting}
                 >
@@ -2330,7 +2467,7 @@ const RangeMedicalSystem = () => {
                   className="btn btn-primary"
                   disabled={submitting}
                 >
-                  {submitting ? 'Adding...' : 'Add Protocol'}
+                  {submitting ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Protocol' : 'Add Protocol')}
                 </button>
               </div>
             </form>

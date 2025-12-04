@@ -62,7 +62,7 @@ function parseIntakeText(text) {
     const injuryDateMatch = text.match(/When It Occurred:\s*([^\n]+)/);
     if (injuryDateMatch) data.health.injury_when_occurred = injuryDateMatch[1].trim();
 
-    // Medical history (check for Yes)
+    // Medical history
     data.medical_history = {
       high_blood_pressure: text.includes('High Blood Pressure') && text.includes(': Yes'),
       high_cholesterol: text.includes('High Cholesterol: Yes'),
@@ -119,18 +119,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Could not extract email from PDF' });
     }
 
+    if (!extracted.personal.name) {
+      return res.status(400).json({ error: 'Could not extract name from PDF' });
+    }
+
     // Check if patient exists
-    const { data: existingPatient } = await supabase
+    const { data: existingPatient, error: findError } = await supabase
       .from('patients')
       .select('id, name, email')
       .eq('email', extracted.personal.email)
-      .single();
+      .maybeSingle();
 
     let patientId;
+    let isNewPatient = false;
 
     if (existingPatient) {
-      // Update patient
-      await supabase
+      // Update existing patient
+      const { error: updateError } = await supabase
         .from('patients')
         .update({
           name: extracted.personal.name || existingPatient.name,
@@ -143,10 +148,15 @@ export default async function handler(req, res) {
         })
         .eq('id', existingPatient.id);
 
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw new Error('Failed to update patient: ' + updateError.message);
+      }
+
       patientId = existingPatient.id;
     } else {
-      // Create patient
-      const { data: newPatient } = await supabase
+      // Create new patient
+      const { data: newPatient, error: createError } = await supabase
         .from('patients')
         .insert([{
           name: extracted.personal.name,
@@ -161,7 +171,17 @@ export default async function handler(req, res) {
         .select()
         .single();
 
+      if (createError) {
+        console.error('Create error:', createError);
+        throw new Error('Failed to create patient: ' + createError.message);
+      }
+
+      if (!newPatient || !newPatient.id) {
+        throw new Error('Patient created but no ID returned');
+      }
+
       patientId = newPatient.id;
+      isNewPatient = true;
     }
 
     // Create intake record
@@ -199,25 +219,31 @@ export default async function handler(req, res) {
       submitted_at: extracted.submitted_at || new Date().toISOString()
     };
 
-    const { data: intake } = await supabase
+    const { data: intake, error: intakeError } = await supabase
       .from('intakes')
       .insert([intakeData])
       .select()
       .single();
 
+    if (intakeError) {
+      console.error('Intake error:', intakeError);
+      throw new Error('Failed to create intake: ' + intakeError.message);
+    }
+
     return res.status(200).json({
       success: true,
-      message: existingPatient ? 'Patient updated and intake created' : 'New patient and intake created',
+      message: isNewPatient ? 'New patient and intake created' : 'Patient updated and intake created',
       patient_id: patientId,
       intake_id: intake.id,
-      extracted_data: extracted
+      patient_name: extracted.personal.name,
+      patient_email: extracted.personal.email
     });
 
   } catch (error) {
     console.error('Import error:', error);
     return res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: error.message || 'Unknown error occurred'
     });
   }
 }

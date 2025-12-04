@@ -28,6 +28,7 @@ const RangeMedicalSystem = () => {
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [documentNotes, setDocumentNotes] = useState('');
+  const [documentType, setDocumentType] = useState('Blood Draw Consent');
   const [consentForms, setConsentForms] = useState([]);
   const [selectedConsent, setSelectedConsent] = useState(null);
   const [showConsentPanel, setShowConsentPanel] = useState(false);
@@ -197,8 +198,9 @@ const RangeMedicalSystem = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf') {
-      alert('Please upload a PDF file');
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please upload a PDF or image file (JPG, PNG, GIF, WEBP)');
       return;
     }
 
@@ -219,7 +221,7 @@ const RangeMedicalSystem = () => {
           patient_id: selectedPatient.id,
           document_name: file.name,
           document_url: documentUrl,
-          document_type: 'Medical Record',
+          document_type: documentType,
           notes: documentNotes || null,
           uploaded_by: 'Staff'
         })
@@ -230,6 +232,7 @@ const RangeMedicalSystem = () => {
       if (result.success) {
         alert('Document uploaded successfully!');
         setDocumentNotes('');
+        setDocumentType('Blood Draw Consent');
         setShowDocumentUpload(false);
         fetchMedicalDocuments(selectedPatient.id);
         e.target.value = '';
@@ -1435,6 +1438,43 @@ const RangeMedicalSystem = () => {
                     textTransform: 'uppercase', 
                     marginBottom: '0.5rem' 
                   }}>
+                    Document Type
+                  </label>
+                  <select
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #000000',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      background: '#ffffff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="Blood Draw Consent">Blood Draw Consent</option>
+                    <option value="Peptide Consent">Peptide Consent</option>
+                    <option value="HRT Consent">HRT Consent</option>
+                    <option value="IV & Injection Consent">IV & Injection Consent</option>
+                    <option value="Weight Loss Consent">Weight Loss Consent</option>
+                    <option value="HBOT Consent">HBOT Consent</option>
+                    <option value="Red Light Therapy Consent">Red Light Therapy Consent</option>
+                    <option value="PRP Consent">PRP Consent</option>
+                    <option value="Intake Form">Intake Form</option>
+                    <option value="Lab Results">Lab Results</option>
+                    <option value="Other Medical Document">Other Medical Document</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600, 
+                    textTransform: 'uppercase', 
+                    marginBottom: '0.5rem' 
+                  }}>
                     Document Notes (Optional)
                   </label>
                   <textarea
@@ -1461,11 +1501,11 @@ const RangeMedicalSystem = () => {
                     textTransform: 'uppercase', 
                     marginBottom: '0.5rem' 
                   }}>
-                    Select PDF File
+                    Select File (PDF or Image)
                   </label>
                   <input
                     type="file"
-                    accept="application/pdf"
+                    accept="application/pdf,image/*"
                     onChange={handleDocumentUpload}
                     disabled={uploadingDocument}
                     style={{

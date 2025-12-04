@@ -1,162 +1,224 @@
-import { supabase } from '../../../lib/supabase';
+// pages/api/intake/import-pdf.js
+import { createClient } from '@supabase/supabase-js';
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb' // Much smaller now since we only receive URLs
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// Parse the text content extracted from PDF
+function parseIntakeText(text) {
+  const data = {
+    personal: {},
+    address: {},
+    health: {},
+    medical_history: {},
+    medications: {},
+    submitted_at: null
+  };
+
+  try {
+    // Personal info
+    const nameMatch = text.match(/Name:\s*([^\n]+)/);
+    if (nameMatch) data.personal.name = nameMatch[1].trim();
+
+    const dobMatch = text.match(/Date of Birth:\s*(\d{4}-\d{2}-\d{2})/);
+    if (dobMatch) data.personal.date_of_birth = dobMatch[1];
+
+    const emailMatch = text.match(/Email:\s*([^\n]+)/);
+    if (emailMatch) data.personal.email = emailMatch[1].trim().toLowerCase();
+
+    const phoneMatch = text.match(/Phone:\s*([^\n]+)/);
+    if (phoneMatch) data.personal.phone = phoneMatch[1].trim();
+
+    // Address - matches the pattern from the PDF
+    const addressMatch = text.match(/ADDRESS\s*\n([^\n]+)\n([^\n]+),\s*([A-Z]{2})\s*(\d{5})/);
+    if (addressMatch) {
+      data.address.address = addressMatch[1].trim();
+      data.address.city = addressMatch[2].trim();
+      data.address.state = addressMatch[3];
+      data.address.zip_code = addressMatch[4];
     }
+
+    // Health concerns
+    const concernsMatch = text.match(/What Brings You In:\s*([^\n]+(?:\n(?!Currently)[^\n]+)*)/);
+    if (concernsMatch) {
+      data.health.what_brings_you_in = concernsMatch[1].trim().replace(/\n/g, ' ');
+    }
+
+    data.health.currently_injured = /Currently Injured:\s*Yes/i.test(text);
+    
+    const injuryDescMatch = text.match(/Injury Description:\s*([^\n]+)/);
+    if (injuryDescMatch) data.health.injury_description = injuryDescMatch[1].trim();
+
+    const injuryLocMatch = text.match(/Injury Location:\s*([^\n]+)/);
+    if (injuryLocMatch) data.health.injury_location = injuryLocMatch[1].trim();
+
+    const injuryDateMatch = text.match(/When It Occurred:\s*([^\n]+)/);
+    if (injuryDateMatch) data.health.injury_when_occurred = injuryDateMatch[1].trim();
+
+    // Medical history
+    data.medical_history = {
+      high_blood_pressure: /High Blood Pressure.*:\s*Yes/i.test(text),
+      high_cholesterol: /High Cholesterol:\s*Yes/i.test(text),
+      heart_disease: /Heart Disease:\s*Yes/i.test(text),
+      diabetes: /Diabetes:\s*Yes/i.test(text),
+      thyroid_disorder: /Thyroid Disorder:\s*Yes/i.test(text),
+      depression_anxiety: /Depression.*Anxiety:\s*Yes/i.test(text),
+      kidney_disease: /Kidney Disease:\s*Yes/i.test(text),
+      liver_disease: /Liver Disease:\s*Yes/i.test(text),
+      autoimmune_disorder: /Autoimmune Disorder:\s*Yes/i.test(text),
+      cancer: /Cancer:\s*Yes/i.test(text)
+    };
+
+    // Medications
+    data.medications = {
+      on_hrt: /On HRT:\s*Yes/i.test(text),
+      on_other_medications: /On Other Medications:\s*Yes/i.test(text),
+      has_allergies: /Has Allergies:\s*Yes/i.test(text)
+    };
+
+    // Submission date
+    const submittedMatch = text.match(/Submitted:\s*(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}:\d{2}:\d{2})/);
+    if (submittedMatch) {
+      const [_, month, day, year, time] = submittedMatch;
+      data.submitted_at = `${year}-${month}-${day}T${time}`;
+    }
+
+    data.consent_given = /Consent Given:\s*Yes/i.test(text);
+
+  } catch (error) {
+    console.error('Error parsing text:', error);
   }
-};
+
+  return data;
+}
 
 export default async function handler(req, res) {
-  // CORS HEADERS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  // Handle OPTIONS request (preflight)
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const formData = req.body;
-    console.log('Received intake form submission');
+    const { pdfText, pdfBase64, filename } = req.body;
 
-    // ============================================
-    // 1. GET FILE URLS (already uploaded from browser)
-    // ============================================
-    
-    const photoIdUrl = formData.photoIdUrl || null;
-    const signatureUrl = formData.signatureUrl || null;
-    
-    console.log('Photo ID URL:', photoIdUrl);
-    console.log('Signature URL:', signatureUrl);
-
-    // ============================================
-    // 2. FIND OR CREATE PATIENT
-    // ============================================
-
-    let patientId = null;
-
-    // Try to find patient by email
-    if (formData.email) {
-      const { data: existingPatients, error: searchError } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('email', formData.email.toLowerCase().trim())
-        .limit(1);
-
-      if (!searchError && existingPatients && existingPatients.length > 0) {
-        patientId = existingPatients[0].id;
-        console.log('Found existing patient:', patientId);
-      }
+    if (!pdfText) {
+      return res.status(400).json({ error: 'PDF text content required' });
     }
 
-    // If no patient found by email, try by phone
-    if (!patientId && formData.phone) {
-      const { data: existingPatients, error: searchError } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('phone', formData.phone.trim())
-        .limit(1);
+    // Parse the text content
+    const extracted = parseIntakeText(pdfText);
 
-      if (!searchError && existingPatients && existingPatients.length > 0) {
-        patientId = existingPatients[0].id;
-        console.log('Found existing patient by phone:', patientId);
-      }
+    if (!extracted.personal.email) {
+      return res.status(400).json({ 
+        error: 'Could not extract email from PDF. Please check the format.' 
+      });
     }
 
-    // Create new patient if not found
-    if (!patientId) {
-      const newPatient = {
-        name: `${formData.firstName} ${formData.lastName}`,
-        email: formData.email?.toLowerCase().trim() || null,
-        phone: formData.phone?.trim() || null,
-        date_of_birth: formData.dateOfBirth || null
-      };
+    // Check if patient exists
+    const { data: existingPatient } = await supabase
+      .from('patients')
+      .select('id, name, email')
+      .eq('email', extracted.personal.email)
+      .single();
 
-      const { data: createdPatient, error: createError } = await supabase
+    let patientId;
+
+    if (existingPatient) {
+      // Update existing patient
+      const { data: updatedPatient, error: updateError } = await supabase
         .from('patients')
-        .insert([newPatient])
+        .update({
+          name: extracted.personal.name || existingPatient.name,
+          phone: extracted.personal.phone || null,
+          date_of_birth: extracted.personal.date_of_birth || null,
+          address: extracted.address.address || null,
+          city: extracted.address.city || null,
+          state: extracted.address.state || null,
+          zip_code: extracted.address.zip_code || null
+        })
+        .eq('id', existingPatient.id)
         .select()
         .single();
 
-      if (createError) {
-        console.error('Error creating patient:', createError);
-        throw createError;
-      }
+      if (updateError) throw updateError;
+      patientId = existingPatient.id;
 
-      patientId = createdPatient.id;
-      console.log('Created new patient:', patientId);
+    } else {
+      // Create new patient
+      const { data: newPatient, error: createError } = await supabase
+        .from('patients')
+        .insert([{
+          name: extracted.personal.name,
+          email: extracted.personal.email,
+          phone: extracted.personal.phone || null,
+          date_of_birth: extracted.personal.date_of_birth || null,
+          address: extracted.address.address || null,
+          city: extracted.address.city || null,
+          state: extracted.address.state || null,
+          zip_code: extracted.address.zip_code || null
+        }])
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      patientId = newPatient.id;
     }
 
-    // ============================================
-    // 3. CREATE INTAKE RECORD
-    // ============================================
+    // Upload PDF to storage if provided
+    let pdfUrl = null;
+    if (pdfBase64 && filename) {
+      const buffer = Buffer.from(pdfBase64, 'base64');
+      const filePath = `intake-pdfs/${patientId}/${Date.now()}_${filename}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('intake-files')
+        .upload(filePath, buffer, {
+          contentType: 'application/pdf',
+          upsert: false
+        });
 
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage
+          .from('intake-files')
+          .getPublicUrl(filePath);
+        pdfUrl = urlData.publicUrl;
+      }
+    }
+
+    // Create intake record
     const intakeData = {
       patient_id: patientId,
+      first_name: extracted.personal.name?.split(' ')[0] || '',
+      last_name: extracted.personal.name?.split(' ').slice(1).join(' ') || '',
+      email: extracted.personal.email,
+      phone: extracted.personal.phone || '',
+      date_of_birth: extracted.personal.date_of_birth || null,
       
-      // Personal Information
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-      email: formData.email?.toLowerCase().trim() || null,
-      phone: formData.phone?.trim() || null,
-      date_of_birth: formData.dateOfBirth || null,
-      gender: formData.gender || null,
+      what_brings_you_in: extracted.health.what_brings_you_in || '',
+      currently_injured: extracted.health.currently_injured || false,
+      injury_description: extracted.health.injury_description || null,
+      injury_location: extracted.health.injury_location || null,
+      injury_when_occurred: extracted.health.injury_when_occurred || null,
       
-      // Address
-      street_address: formData.streetAddress || null,
-      city: formData.city || null,
-      state: formData.state || null,
-      country: formData.country || null,
-      postal_code: formData.postalCode || null,
+      high_blood_pressure: extracted.medical_history.high_blood_pressure || false,
+      high_cholesterol: extracted.medical_history.high_cholesterol || false,
+      heart_disease: extracted.medical_history.heart_disease || false,
+      diabetes: extracted.medical_history.diabetes || false,
+      thyroid_disorder: extracted.medical_history.thyroid_disorder || false,
+      depression_anxiety: extracted.medical_history.depression_anxiety || false,
+      kidney_disease: extracted.medical_history.kidney_disease || false,
+      liver_disease: extracted.medical_history.liver_disease || false,
+      autoimmune_disorder: extracted.medical_history.autoimmune_disorder || false,
+      cancer: extracted.medical_history.cancer || false,
       
-      // Health Concerns
-      what_brings_you: formData.whatBringsYou || null,
-      injured: formData.injured === 'Yes',
-      injury_description: formData.injuryDescription || null,
-      injury_location: formData.injuryLocation || null,
-      injury_date: formData.injuryDate || null,
+      on_hrt: extracted.medications.on_hrt || false,
+      on_other_medications: extracted.medications.on_other_medications || false,
+      has_allergies: extracted.medications.has_allergies || false,
       
-      // Medical History (store as JSONB)
-      medical_conditions: formData.medicalHistory || {},
-      
-      // Medications & HRT
-      on_hrt: formData.onHRT === 'Yes',
-      hrt_details: formData.hrtDetails || null,
-      on_medications: formData.onMedications === 'Yes',
-      current_medications: formData.currentMedications || null,
-      medication_notes: formData.medicationNotes || null,
-      
-      // Allergies
-      has_allergies: formData.hasAllergies === 'Yes',
-      allergies: formData.allergies || null,
-      allergy_reactions: formData.allergyReactions || null,
-      
-      // Guardian
-      guardian_name: formData.guardianName || null,
-      
-      // File URLs (already uploaded to Storage)
-      photo_id_url: photoIdUrl,
-      signature_url: signatureUrl,
-      pdf_url: null, // PDF generation handled client-side
-      
-      // Consent
-      consent_given: formData.consent === 'Yes',
-      
-      // Metadata
-      submitted_at: formData.submissionDate ? new Date(formData.submissionDate) : new Date()
+      consent_given: extracted.consent_given || false,
+      pdf_url: pdfUrl,
+      submitted_at: extracted.submitted_at || new Date().toISOString()
     };
 
     const { data: intake, error: intakeError } = await supabase
@@ -165,32 +227,21 @@ export default async function handler(req, res) {
       .select()
       .single();
 
-    if (intakeError) {
-      console.error('Error creating intake:', intakeError);
-      throw intakeError;
-    }
+    if (intakeError) throw intakeError;
 
-    console.log('Intake form saved successfully:', intake.id);
-
-    // ============================================
-    // 4. RETURN SUCCESS
-    // ============================================
-
-    res.status(201).json({
+    return res.status(200).json({
       success: true,
-      message: 'Intake form submitted successfully',
-      intakeId: intake.id,
-      patientId: patientId,
-      photoIdUrl: photoIdUrl,
-      signatureUrl: signatureUrl
+      message: existingPatient ? 'Patient updated and intake created' : 'New patient and intake created',
+      patient_id: patientId,
+      intake_id: intake.id,
+      extracted_data: extracted
     });
 
   } catch (error) {
-    console.error('Error processing intake form:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to process intake form',
-      details: error.message 
+    console.error('Import error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message 
     });
   }
 }

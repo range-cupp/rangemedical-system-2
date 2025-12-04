@@ -1641,18 +1641,14 @@ const RangeMedicalSystem = () => {
                       {selectedIntake.first_name} {selectedIntake.last_name}
                     </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
-                      {new Date(selectedIntake.date_of_birth).toLocaleDateString()}
+                  {selectedIntake.date_of_birth && (
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
+                      <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                        {new Date(selectedIntake.date_of_birth).toLocaleDateString()}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Gender</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
-                      {selectedIntake.gender}
-                    </div>
-                  </div>
+                  )}
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Email</div>
                     <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-word' }}>
@@ -1670,71 +1666,8 @@ const RangeMedicalSystem = () => {
                 </div>
               </section>
 
-              {/* Address */}
-              {selectedIntake.street_address && (
-                <section style={{ marginBottom: '2rem' }}>
-                  <h3 style={{ 
-                    margin: '0 0 1rem 0', 
-                    fontSize: '1rem', 
-                    fontWeight: 700, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '1px',
-                    borderBottom: '2px solid #000000',
-                    paddingBottom: '0.5rem'
-                  }}>
-                    Address
-                  </h3>
-                  <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
-                    {selectedIntake.street_address}<br />
-                    {selectedIntake.city}, {selectedIntake.state} {selectedIntake.postal_code}<br />
-                    {selectedIntake.country}
-                  </div>
-                </section>
-              )}
-
               {/* Health Concerns */}
-              <section style={{ marginBottom: '2rem' }}>
-                <h3 style={{ 
-                  margin: '0 0 1rem 0', 
-                  fontSize: '1rem', 
-                  fontWeight: 700, 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '1px',
-                  borderBottom: '2px solid #000000',
-                  paddingBottom: '0.5rem'
-                }}>
-                  Health Concerns
-                </h3>
-                
-                {selectedIntake.what_brings_you && (
-                  <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      Chief Complaint
-                    </div>
-                    <div style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>{selectedIntake.what_brings_you}</div>
-                  </div>
-                )}
-
-                {selectedIntake.injured && (
-                  <div style={{ padding: '1rem', background: '#fff5f5', border: '2px solid #fecaca', marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#991b1b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      ⚠️ Current Injury
-                    </div>
-                    {selectedIntake.injury_description && (
-                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}><strong>Description:</strong> {selectedIntake.injury_description}</div>
-                    )}
-                    {selectedIntake.injury_location && (
-                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}><strong>Location:</strong> {selectedIntake.injury_location}</div>
-                    )}
-                    {selectedIntake.injury_date && (
-                      <div style={{ fontSize: '0.9rem' }}><strong>Date:</strong> {selectedIntake.injury_date}</div>
-                    )}
-                  </div>
-                )}
-              </section>
-
-              {/* Medical History */}
-              {selectedIntake.medical_conditions && Object.keys(selectedIntake.medical_conditions).length > 0 && (
+              {selectedIntake.what_brings_you_in && (
                 <section style={{ marginBottom: '2rem' }}>
                   <h3 style={{ 
                     margin: '0 0 1rem 0', 
@@ -1745,99 +1678,19 @@ const RangeMedicalSystem = () => {
                     borderBottom: '2px solid #000000',
                     paddingBottom: '0.5rem'
                   }}>
-                    Medical History
+                    Health Concerns & Symptoms
                   </h3>
-                  <div style={{ display: 'grid', gap: '0.75rem' }}>
-                    {Object.entries(selectedIntake.medical_conditions).map(([condition, data]) => (
-                      <div 
-                        key={condition}
-                        style={{ 
-                          padding: '0.75rem', 
-                          background: data.response === 'Yes' ? '#f9f9f9' : '#ffffff',
-                          border: '1px solid ' + (data.response === 'Yes' ? '#e0e0e0' : '#f5f5f5'),
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'start'
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-                            {data.label}
-                          </div>
-                          {data.response === 'Yes' && (data.type || data.year) && (
-                            <div style={{ fontSize: '0.85rem', color: '#666666' }}>
-                              {data.type && <span>Type: {data.type}</span>}
-                              {data.type && data.year && <span> • </span>}
-                              {data.year && <span>Diagnosed: {data.year}</span>}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ 
-                          padding: '0.25rem 0.5rem', 
-                          fontSize: '0.75rem', 
-                          fontWeight: 700,
-                          background: data.response === 'Yes' ? '#000000' : '#f5f5f5',
-                          color: data.response === 'Yes' ? '#ffffff' : '#666666'
-                        }}>
-                          {data.response}
-                        </div>
-                      </div>
-                    ))}
+                  <div style={{ padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      What Brings You In
+                    </div>
+                    <div style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>{selectedIntake.what_brings_you_in}</div>
                   </div>
                 </section>
               )}
 
-              {/* Medications & HRT */}
-              <section style={{ marginBottom: '2rem' }}>
-                <h3 style={{ 
-                  margin: '0 0 1rem 0', 
-                  fontSize: '1rem', 
-                  fontWeight: 700, 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '1px',
-                  borderBottom: '2px solid #000000',
-                  paddingBottom: '0.5rem'
-                }}>
-                  Medications & Therapies
-                </h3>
-                
-                {selectedIntake.on_hrt && (
-                  <div style={{ padding: '1rem', background: '#dbeafe', border: '2px solid #3b82f6', marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#1e40af', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      HRT Status
-                    </div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.25rem' }}>Currently on HRT</div>
-                    {selectedIntake.hrt_details && (
-                      <div style={{ fontSize: '0.85rem', color: '#1e40af' }}>{selectedIntake.hrt_details}</div>
-                    )}
-                  </div>
-                )}
-
-                {selectedIntake.on_medications && selectedIntake.current_medications && (
-                  <div style={{ padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0', marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      Current Medications
-                    </div>
-                    <div style={{ fontSize: '0.9rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-                      {selectedIntake.current_medications}
-                    </div>
-                    {selectedIntake.medication_notes && (
-                      <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e0e0e0' }}>
-                        <strong>Notes:</strong> {selectedIntake.medication_notes}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {!selectedIntake.on_hrt && !selectedIntake.on_medications && (
-                  <div style={{ fontSize: '0.9rem', color: '#666666', fontStyle: 'italic' }}>
-                    No current medications or hormone therapy
-                  </div>
-                )}
-              </section>
-
-              {/* Allergies */}
-              {selectedIntake.has_allergies && selectedIntake.allergies && (
+              {/* Injury Information */}
+              {selectedIntake.currently_injured && (
                 <section style={{ marginBottom: '2rem' }}>
                   <h3 style={{ 
                     margin: '0 0 1rem 0', 
@@ -1848,45 +1701,32 @@ const RangeMedicalSystem = () => {
                     borderBottom: '2px solid #000000',
                     paddingBottom: '0.5rem'
                   }}>
-                    Allergies
+                    Current Injury
                   </h3>
                   <div style={{ padding: '1rem', background: '#fff5f5', border: '2px solid #fecaca' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#991b1b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      ⚠️ Allergy Alert
+                    <div style={{ fontSize: '0.75rem', color: '#991b1b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.75rem' }}>
+                      ⚠️ ACTIVE INJURY
                     </div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      {selectedIntake.allergies}
-                    </div>
-                    {selectedIntake.allergy_reactions && (
-                      <div style={{ fontSize: '0.85rem', color: '#991b1b' }}>
-                        <strong>Reactions:</strong> {selectedIntake.allergy_reactions}
+                    {selectedIntake.injury_description && (
+                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                        <strong>Description:</strong> {selectedIntake.injury_description}
+                      </div>
+                    )}
+                    {selectedIntake.injury_location && (
+                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                        <strong>Location:</strong> {selectedIntake.injury_location}
+                      </div>
+                    )}
+                    {selectedIntake.injury_when_occurred && (
+                      <div style={{ fontSize: '0.9rem' }}>
+                        <strong>When It Occurred:</strong> {selectedIntake.injury_when_occurred}
                       </div>
                     )}
                   </div>
                 </section>
               )}
 
-              {/* Guardian Info */}
-              {selectedIntake.guardian_name && (
-                <section style={{ marginBottom: '2rem' }}>
-                  <h3 style={{ 
-                    margin: '0 0 1rem 0', 
-                    fontSize: '1rem', 
-                    fontWeight: 700, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '1px',
-                    borderBottom: '2px solid #000000',
-                    paddingBottom: '0.5rem'
-                  }}>
-                    Guardian Information
-                  </h3>
-                  <div style={{ fontSize: '0.9rem' }}>
-                    <strong>Parent/Guardian:</strong> {selectedIntake.guardian_name}
-                  </div>
-                </section>
-              )}
-
-              {/* Files */}
+              {/* Medical History */}
               <section style={{ marginBottom: '2rem' }}>
                 <h3 style={{ 
                   margin: '0 0 1rem 0', 
@@ -1897,50 +1737,177 @@ const RangeMedicalSystem = () => {
                   borderBottom: '2px solid #000000',
                   paddingBottom: '0.5rem'
                 }}>
-                  Documents
+                  Medical History
                 </h3>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  {selectedIntake.photo_id_url && (
-                    <a 
-                      href={selectedIntake.photo_id_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="btn"
-                      style={{ fontSize: '0.875rem', padding: '0.75rem 1rem' }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <FileText size={16} />
-                      View Photo ID
-                    </a>
-                  )}
-                  {selectedIntake.signature_url && (
-                    <a 
-                      href={selectedIntake.signature_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="btn"
-                      style={{ fontSize: '0.875rem', padding: '0.75rem 1rem' }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <FileText size={16} />
-                      View Signature
-                    </a>
-                  )}
-                  {selectedIntake.pdf_url && (
-                    <a 
-                      href={selectedIntake.pdf_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="btn btn-primary"
-                      style={{ fontSize: '0.875rem', padding: '0.75rem 1rem' }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <FileText size={16} />
-                      Download PDF
-                    </a>
-                  )}
+                
+                {/* Cardiovascular */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', color: '#666666' }}>
+                    Cardiovascular Conditions
+                  </div>
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.high_blood_pressure ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.high_blood_pressure ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>High Blood Pressure</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.high_blood_pressure ? '#000' : '#e0e0e0', color: selectedIntake.high_blood_pressure ? '#fff' : '#666' }}>
+                        {selectedIntake.high_blood_pressure ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.high_cholesterol ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.high_cholesterol ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>High Cholesterol</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.high_cholesterol ? '#000' : '#e0e0e0', color: selectedIntake.high_cholesterol ? '#fff' : '#666' }}>
+                        {selectedIntake.high_cholesterol ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.heart_disease ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.heart_disease ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>Heart Disease</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.heart_disease ? '#000' : '#e0e0e0', color: selectedIntake.heart_disease ? '#fff' : '#666' }}>
+                        {selectedIntake.heart_disease ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metabolic & Endocrine */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', color: '#666666' }}>
+                    Metabolic & Endocrine Conditions
+                  </div>
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.diabetes ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.diabetes ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>Diabetes</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.diabetes ? '#000' : '#e0e0e0', color: selectedIntake.diabetes ? '#fff' : '#666' }}>
+                        {selectedIntake.diabetes ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.thyroid_disorder ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.thyroid_disorder ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>Thyroid Disorder</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.thyroid_disorder ? '#000' : '#e0e0e0', color: selectedIntake.thyroid_disorder ? '#fff' : '#666' }}>
+                        {selectedIntake.thyroid_disorder ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mental Health */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', color: '#666666' }}>
+                    Mental Health Conditions
+                  </div>
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.depression_anxiety ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.depression_anxiety ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>Depression / Anxiety</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.depression_anxiety ? '#000' : '#e0e0e0', color: selectedIntake.depression_anxiety ? '#fff' : '#666' }}>
+                        {selectedIntake.depression_anxiety ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Organ Health */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', color: '#666666' }}>
+                    Organ Health Conditions
+                  </div>
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.kidney_disease ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.kidney_disease ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>Kidney Disease</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.kidney_disease ? '#000' : '#e0e0e0', color: selectedIntake.kidney_disease ? '#fff' : '#666' }}>
+                        {selectedIntake.kidney_disease ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.liver_disease ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.liver_disease ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>Liver Disease</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.liver_disease ? '#000' : '#e0e0e0', color: selectedIntake.liver_disease ? '#fff' : '#666' }}>
+                        {selectedIntake.liver_disease ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Immune System & Cancer */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', color: '#666666' }}>
+                    Immune System & Cancer
+                  </div>
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.autoimmune_disorder ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.autoimmune_disorder ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>Autoimmune Disorder</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.autoimmune_disorder ? '#000' : '#e0e0e0', color: selectedIntake.autoimmune_disorder ? '#fff' : '#666' }}>
+                        {selectedIntake.autoimmune_disorder ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.cancer ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.cancer ? '#fbbf24' : '#e0e0e0') }}>
+                      <span style={{ fontSize: '0.9rem' }}>Cancer</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.cancer ? '#000' : '#e0e0e0', color: selectedIntake.cancer ? '#fff' : '#666' }}>
+                        {selectedIntake.cancer ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </section>
+
+              {/* Medications & Allergies */}
+              <section style={{ marginBottom: '2rem' }}>
+                <h3 style={{ 
+                  margin: '0 0 1rem 0', 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Medications & Allergies
+                </h3>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.on_hrt ? '#dbeafe' : '#f9f9f9', border: '1px solid ' + (selectedIntake.on_hrt ? '#3b82f6' : '#e0e0e0') }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>On HRT</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.on_hrt ? '#3b82f6' : '#e0e0e0', color: selectedIntake.on_hrt ? '#fff' : '#666' }}>
+                      {selectedIntake.on_hrt ? 'YES' : 'NO'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.on_other_medications ? '#dbeafe' : '#f9f9f9', border: '1px solid ' + (selectedIntake.on_other_medications ? '#3b82f6' : '#e0e0e0') }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>On Other Medications</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.on_other_medications ? '#3b82f6' : '#e0e0e0', color: selectedIntake.on_other_medications ? '#fff' : '#666' }}>
+                      {selectedIntake.on_other_medications ? 'YES' : 'NO'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.has_allergies ? '#fff5f5' : '#f9f9f9', border: '1px solid ' + (selectedIntake.has_allergies ? '#fecaca' : '#e0e0e0') }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Has Allergies</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.has_allergies ? '#dc2626' : '#e0e0e0', color: selectedIntake.has_allergies ? '#fff' : '#666' }}>
+                      {selectedIntake.has_allergies ? 'YES' : 'NO'}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Documents */}
+              {selectedIntake.pdf_url && (
+                <section style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ 
+                    margin: '0 0 1rem 0', 
+                    fontSize: '1rem', 
+                    fontWeight: 700, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '1px',
+                    borderBottom: '2px solid #000000',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Documents
+                  </h3>
+                  <a 
+                    href={selectedIntake.pdf_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                    style={{ fontSize: '0.875rem', padding: '0.75rem 1rem' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FileText size={16} />
+                    Download Original PDF
+                  </a>
+                </section>
+              )}
 
               {/* Consent */}
               {selectedIntake.consent_given && (

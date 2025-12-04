@@ -236,7 +236,8 @@ export default async function handler(req, res) {
       patient_id: patientId,
       intake_id: intake.id,
       patient_name: extracted.personal.name,
-      patient_email: extracted.personal.email
+      patient_email: extracted.personal.email,
+      extracted_data: extracted
     });
 
   } catch (error) {

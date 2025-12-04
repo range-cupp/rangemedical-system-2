@@ -558,12 +558,27 @@ const RangeMedicalSystem = () => {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = '';
 
-      // Extract text from all pages
+      // Extract text from all pages with better formatting
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
-        fullText += pageText + '\n';
+        
+        // Build text with proper line breaks
+        let lastY = null;
+        const pageText = textContent.items.map(item => {
+          const currentY = item.transform[5];
+          let text = item.str;
+          
+          // Add line break if Y position changed significantly (new line)
+          if (lastY !== null && Math.abs(currentY - lastY) > 5) {
+            text = '\n' + text;
+          }
+          
+          lastY = currentY;
+          return text;
+        }).join(' ');
+        
+        fullText += pageText + '\n\n';
       }
 
       // Show preview

@@ -6,17 +6,24 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Helper function to ensure date is stored as DATE only (no timezone conversion)
+function formatDateForDB(dateString) {
+  if (!dateString) return null;
+  // Remove any time component and return just YYYY-MM-DD
+  return dateString.split('T')[0];
+}
+
 export default async function handler(req, res) {
   // POST - Create new protocol
   if (req.method === 'POST') {
     try {
       const protocolData = req.body;
 
-      // Convert empty strings to null for date fields
+      // Format dates to ensure they're stored as DATE type (no timezone conversion)
       const cleanedData = {
         ...protocolData,
-        start_date: protocolData.start_date || null,
-        next_lab_date: protocolData.next_lab_date || null,
+        start_date: formatDateForDB(protocolData.start_date),
+        next_lab_date: formatDateForDB(protocolData.next_lab_date),
         duration: protocolData.duration || null,
         dosing: protocolData.dosing || null,
         injection_schedule: protocolData.injection_schedule || null,
@@ -66,11 +73,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Protocol ID is required' });
       }
 
-      // Convert empty strings to null for date fields
+      // Format dates to ensure they're stored as DATE type (no timezone conversion)
       const cleanedData = {
         ...protocolData,
-        start_date: protocolData.start_date || null,
-        next_lab_date: protocolData.next_lab_date || null,
+        start_date: formatDateForDB(protocolData.start_date),
+        next_lab_date: formatDateForDB(protocolData.next_lab_date),
         duration: protocolData.duration || null,
         dosing: protocolData.dosing || null,
         injection_schedule: protocolData.injection_schedule || null,

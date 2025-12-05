@@ -2317,6 +2317,7 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Heart Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.heart_disease ? '#000' : '#e0e0e0', color: selectedIntake.heart_disease ? '#fff' : '#666' }}>
                         {selectedIntake.heart_disease ? 'YES' : 'NO'}
+                        {selectedIntake.heart_disease && selectedIntake.heart_disease_type && ` - ${selectedIntake.heart_disease_type}`}
                         {selectedIntake.heart_disease && selectedIntake.heart_disease_year && ` (${selectedIntake.heart_disease_year})`}
                       </span>
                     </div>
@@ -2333,6 +2334,7 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Diabetes</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.diabetes ? '#000' : '#e0e0e0', color: selectedIntake.diabetes ? '#fff' : '#666' }}>
                         {selectedIntake.diabetes ? 'YES' : 'NO'}
+                        {selectedIntake.diabetes && selectedIntake.diabetes_type && ` - ${selectedIntake.diabetes_type}`}
                         {selectedIntake.diabetes && selectedIntake.diabetes_year && ` (${selectedIntake.diabetes_year})`}
                       </span>
                     </div>
@@ -2340,6 +2342,7 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Thyroid Disorder</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.thyroid_disorder ? '#000' : '#e0e0e0', color: selectedIntake.thyroid_disorder ? '#fff' : '#666' }}>
                         {selectedIntake.thyroid_disorder ? 'YES' : 'NO'}
+                        {selectedIntake.thyroid_disorder && selectedIntake.thyroid_disorder_type && ` - ${selectedIntake.thyroid_disorder_type}`}
                         {selectedIntake.thyroid_disorder && selectedIntake.thyroid_disorder_year && ` (${selectedIntake.thyroid_disorder_year})`}
                       </span>
                     </div>
@@ -2372,6 +2375,7 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Kidney Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.kidney_disease ? '#000' : '#e0e0e0', color: selectedIntake.kidney_disease ? '#fff' : '#666' }}>
                         {selectedIntake.kidney_disease ? 'YES' : 'NO'}
+                        {selectedIntake.kidney_disease && selectedIntake.kidney_disease_type && ` - ${selectedIntake.kidney_disease_type}`}
                         {selectedIntake.kidney_disease && selectedIntake.kidney_disease_year && ` (${selectedIntake.kidney_disease_year})`}
                       </span>
                     </div>
@@ -2379,6 +2383,7 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Liver Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.liver_disease ? '#000' : '#e0e0e0', color: selectedIntake.liver_disease ? '#fff' : '#666' }}>
                         {selectedIntake.liver_disease ? 'YES' : 'NO'}
+                        {selectedIntake.liver_disease && selectedIntake.liver_disease_type && ` - ${selectedIntake.liver_disease_type}`}
                         {selectedIntake.liver_disease && selectedIntake.liver_disease_year && ` (${selectedIntake.liver_disease_year})`}
                       </span>
                     </div>
@@ -2395,6 +2400,7 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Autoimmune Disorder</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.autoimmune_disorder ? '#000' : '#e0e0e0', color: selectedIntake.autoimmune_disorder ? '#fff' : '#666' }}>
                         {selectedIntake.autoimmune_disorder ? 'YES' : 'NO'}
+                        {selectedIntake.autoimmune_disorder && selectedIntake.autoimmune_disorder_type && ` - ${selectedIntake.autoimmune_disorder_type}`}
                         {selectedIntake.autoimmune_disorder && selectedIntake.autoimmune_disorder_year && ` (${selectedIntake.autoimmune_disorder_year})`}
                       </span>
                     </div>
@@ -2402,6 +2408,7 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Cancer</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.cancer ? '#000' : '#e0e0e0', color: selectedIntake.cancer ? '#fff' : '#666' }}>
                         {selectedIntake.cancer ? 'YES' : 'NO'}
+                        {selectedIntake.cancer && selectedIntake.cancer_type && ` - ${selectedIntake.cancer_type}`}
                         {selectedIntake.cancer && selectedIntake.cancer_year && ` (${selectedIntake.cancer_year})`}
                       </span>
                     </div>

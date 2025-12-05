@@ -30,7 +30,7 @@ const RangeMedicalSystem = () => {
   const [documentNotes, setDocumentNotes] = useState('');
   const [documentType, setDocumentType] = useState('Blood Draw Consent');
   const [labProvider, setLabProvider] = useState('Primex');
-  const [labTestType, setLabTestType] = useState('CBC');
+  const [labTestType, setLabTestType] = useState('Male Elite');
   const [labTestDate, setLabTestDate] = useState(new Date().toISOString().split('T')[0]);
   const [labNotes, setLabNotes] = useState('');
   const [uploadingLab, setUploadingLab] = useState(false);
@@ -317,7 +317,7 @@ const RangeMedicalSystem = () => {
         body: JSON.stringify({
           patient_id: selectedPatient.id,
           lab_provider: labProvider,
-          test_type: labTestType,
+          panel_type: labTestType,
           test_date: labTestDate,
           lab_url: labUrl,
           notes: labNotes || null
@@ -1925,7 +1925,12 @@ const RangeMedicalSystem = () => {
                 </button>
                 <button
                   className="btn btn-primary"
-                  onClick={() => setShowLabUpload(!showLabUpload)}
+                  onClick={() => {
+                    setLabTestType(selectedPatient.gender === 'Female' ? 'Female Elite' : 'Male Elite');
+                    setLabProvider('Primex');
+                    setLabTestDate(new Date().toISOString().split('T')[0]);
+                    setShowLabUpload(!showLabUpload);
+                  }}
                   style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
                 >
                   <Plus size={14} />
@@ -1983,7 +1988,7 @@ const RangeMedicalSystem = () => {
                       textTransform: 'uppercase', 
                       marginBottom: '0.5rem' 
                     }}>
-                      Test Type
+                      Panel Type
                     </label>
                     <select
                       value={labTestType}
@@ -1998,17 +2003,10 @@ const RangeMedicalSystem = () => {
                         cursor: 'pointer'
                       }}
                     >
-                      <option value="CBC">CBC (Complete Blood Count)</option>
-                      <option value="CMP">CMP (Comprehensive Metabolic Panel)</option>
-                      <option value="Hormone Panel">Hormone Panel</option>
-                      <option value="Lipid Panel">Lipid Panel</option>
-                      <option value="Thyroid Panel">Thyroid Panel</option>
-                      <option value="Vitamin Panel">Vitamin Panel</option>
-                      <option value="Testosterone">Testosterone</option>
-                      <option value="Estrogen">Estrogen</option>
-                      <option value="HbA1c">HbA1c (Diabetes)</option>
-                      <option value="PSA">PSA (Prostate)</option>
-                      <option value="Other">Other</option>
+                      <option value="Male Initial">Male Initial</option>
+                      <option value="Male Elite">Male Elite</option>
+                      <option value="Female Initial">Female Initial</option>
+                      <option value="Female Elite">Female Elite</option>
                     </select>
                   </div>
                 </div>

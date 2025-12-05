@@ -381,8 +381,19 @@ const RangeMedicalSystem = () => {
   };
 
   const handleLabResultSubmit = async () => {
-    if (!labResultData.panel_type || !labResultData.test_date) {
-      alert('Please select panel type and test date');
+    // Validate required fields
+    if (!selectedPatient?.id) {
+      alert('Error: No patient selected');
+      return;
+    }
+    
+    if (!labResultData.panel_type) {
+      alert('Please select a panel type');
+      return;
+    }
+    
+    if (!labResultData.test_date) {
+      alert('Please select a test date');
       return;
     }
 
@@ -395,14 +406,23 @@ const RangeMedicalSystem = () => {
         }
       });
 
+      // Add patient_id
       cleanedData.patient_id = selectedPatient.id;
 
+      // For updates, include the lab ID
       const method = editingLabResult ? 'PUT' : 'POST';
       const url = '/api/labs';
       
       if (editingLabResult) {
         cleanedData.id = editingLabResult.id;
       }
+
+      console.log('Submitting lab data:', {
+        patient_id: cleanedData.patient_id,
+        panel_type: cleanedData.panel_type,
+        test_date: cleanedData.test_date,
+        method
+      });
 
       const response = await fetch(url, {
         method,

@@ -14,7 +14,7 @@
     <!-- Signature Pad -->
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     
-    <!-- Supabase JS for direct file uploads -->
+    <!-- Supabase for file storage -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- Google Fonts -->
@@ -1253,31 +1253,21 @@
     
     <script>
         // ============================================
-        // SUPABASE CONFIGURATION
-        // ============================================
-        
-        const SUPABASE_CONFIG = {
-            url: 'https://teivfptpozltpqwahgdl.supabase.co',
-            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
-        };
-        
-        // Initialize Supabase client
-        const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-        
-        // ============================================
         // CONFIGURATION - YOUR EMAILJS SETTINGS
         // ============================================
         
         const CONFIG = {
-            // API endpoint - using relative URL (no CORS issues!)
-            apiEndpoint: '/api/intakes',
-            
             // EmailJS Configuration
             emailjs: {
                 publicKey: 'ZeNFfwJ37Uhd6E1vp',
                 serviceId: 'service_pyl6wra',
                 templateId: 'template_3pfsl9b'
+            },
+            
+            // Supabase Configuration (for PDF storage)
+            supabase: {
+                url: 'https://teivfptpozltpqwahgdl.supabase.co',
+                anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
             },
             
             // Email recipient for completed forms
@@ -1425,120 +1415,6 @@
                 preview.classList.remove('visible');
             }
         });
-        
-        // ============================================
-        // SUPABASE STORAGE FILE UPLOADS
-        // ============================================
-        
-        let uploadedPhotoIdUrl = null;
-        let uploadedSignatureUrl = null;
-        
-        // Generic file upload function
-        async function uploadFileToStorage(file, folder, filePrefix) {
-            try {
-                // Create unique filename
-                const timestamp = Date.now();
-                const randomStr = Math.random().toString(36).substring(7);
-                const extension = file.name.split('.').pop();
-                const fileName = `${folder}/${filePrefix}-${timestamp}-${randomStr}.${extension}`;
-                
-                console.log(`Uploading file to: ${fileName}`);
-                
-                // Upload to Supabase Storage
-                const { data, error } = await supabaseClient.storage
-                    .from('intake-files')
-                    .upload(fileName, file, {
-                        cacheControl: '3600',
-                        upsert: false
-                    });
-                
-                if (error) {
-                    console.error('Upload error:', error);
-                    throw error;
-                }
-                
-                // Get public URL
-                const { data: { publicUrl } } = supabaseClient.storage
-                    .from('intake-files')
-                    .getPublicUrl(fileName);
-                
-                console.log(`File uploaded successfully: ${publicUrl}`);
-                return publicUrl;
-                
-            } catch (error) {
-                console.error('Error uploading file:', error);
-                alert('Error uploading file: ' + error.message);
-                throw error;
-            }
-        }
-        
-        // Upload photo ID when selected
-        document.getElementById('photoId').addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            const preview = document.getElementById('idPreview');
-            const previewImg = document.getElementById('idPreviewImg');
-            const fileName = document.getElementById('idFileName');
-            
-            if (file) {
-                // Show preview
-                preview.classList.add('visible');
-                fileName.textContent = file.name + ' (Uploading...)';
-                
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        previewImg.src = e.target.result;
-                        previewImg.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    previewImg.style.display = 'none';
-                }
-                
-                // Upload to Supabase Storage
-                try {
-                    uploadedPhotoIdUrl = await uploadFileToStorage(file, 'photo-ids', 'id');
-                    fileName.textContent = file.name + ' ✓ Uploaded';
-                    fileName.style.color = '#16a34a';
-                    console.log('Photo ID uploaded:', uploadedPhotoIdUrl);
-                } catch (error) {
-                    fileName.textContent = file.name + ' ✗ Upload failed';
-                    fileName.style.color = '#dc2626';
-                    uploadedPhotoIdUrl = null;
-                }
-            } else {
-                preview.classList.remove('visible');
-                uploadedPhotoIdUrl = null;
-            }
-        });
-        
-        // Upload signature to storage
-        async function uploadSignature() {
-            if (signaturePad.isEmpty()) {
-                return null;
-            }
-            
-            try {
-                // Convert signature to blob
-                const dataUrl = signaturePad.toDataURL('image/png');
-                const response = await fetch(dataUrl);
-                const blob = await response.blob();
-                
-                // Create file from blob
-                const timestamp = Date.now();
-                const randomStr = Math.random().toString(36).substring(7);
-                const file = new File([blob], `signature-${timestamp}-${randomStr}.png`, { type: 'image/png' });
-                
-                // Upload to storage
-                const url = await uploadFileToStorage(file, 'signatures', 'sig');
-                console.log('Signature uploaded:', url);
-                return url;
-                
-            } catch (error) {
-                console.error('Error uploading signature:', error);
-                return null;
-            }
-        }
         
         // ============================================
         // PHONE NUMBER FORMATTING
@@ -1762,7 +1638,7 @@
             
             const conditions = conditionsList.length > 0 ? conditionsList.join('; ') : 'None';
             
-            // Get photo ID as base64 (for PDF/email) - we also have the URL from upload
+            // Get photo ID as base64
             let photoIdBase64 = null;
             const photoIdInput = document.getElementById('photoId');
             if (photoIdInput.files && photoIdInput.files[0]) {
@@ -1814,17 +1690,15 @@
                 // Guardian
                 guardianName: getValue('guardianName'),
                 
-                // Photo ID (base64 for PDF/email, URL for database)
+                // Photo ID
                 photoId: photoIdBase64,
-                photoIdUrl: uploadedPhotoIdUrl,
                 
                 // Consent
                 consent: getRadio('consent'),
                 
                 // Metadata
                 submissionDate: new Date().toLocaleString(),
-                signature: signaturePad.toDataURL(),
-                signatureUrl: uploadedSignatureUrl // Will be set before submission
+                signature: signaturePad.toDataURL()
             };
         }
         
@@ -2197,34 +2071,94 @@
         }
         
         // ============================================
-        // SUBMIT TO DATABASE
+        // SUPABASE INITIALIZATION
         // ============================================
         
-        async function submitToDatabase(formData) {
-            console.log('Submitting to database...');
-            
+        const supabaseClient = supabase.createClient(
+            CONFIG.supabase.url,
+            CONFIG.supabase.anonKey
+        );
+        
+        // ============================================
+        // UPLOAD PDF TO SUPABASE STORAGE
+        // ============================================
+        
+        async function uploadPDFToStorage(pdfBlob, formData) {
             try {
-                const response = await fetch(CONFIG.apiEndpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
+                const timestamp = Date.now();
+                const fileName = `intake-${formData.firstName}-${formData.lastName}-${timestamp}.pdf`;
+                const filePath = `medical-intake/${fileName}`;
                 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || errorData.details || 'Database submission failed');
+                console.log('Uploading PDF to Supabase:', filePath);
+                
+                const { data, error } = await supabaseClient.storage
+                    .from('medical-records')
+                    .upload(filePath, pdfBlob, {
+                        contentType: 'application/pdf',
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                
+                if (error) {
+                    console.error('Supabase upload error:', error);
+                    throw error;
                 }
                 
+                // Get public URL
+                const { data: { publicUrl } } = supabaseClient.storage
+                    .from('medical-records')
+                    .getPublicUrl(filePath);
+                
+                console.log('PDF uploaded successfully:', publicUrl);
+                return publicUrl;
+            } catch (error) {
+                console.error('Error uploading PDF:', error);
+                throw error;
+            }
+        }
+        
+        // ============================================
+        // SEND DATA TO GOHIGHLEVEL
+        // ============================================
+        
+        async function sendToGoHighLevel(formData, pdfUrl) {
+            try {
+                console.log('Sending data to GoHighLevel...');
+                
+                const response = await fetch('/api/intake-to-ghl', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        email: formData.email,
+                        phone: formData.phone,
+                        dateOfBirth: formData.dob,
+                        address: formData.address,
+                        city: formData.city,
+                        state: formData.state,
+                        zipCode: formData.zip,
+                        country: 'US',
+                        pdfUrl: pdfUrl
+                    })
+                });
+                
                 const result = await response.json();
-                console.log('Database submission successful:', result);
+                
+                if (result.success) {
+                    console.log('✅ Successfully sent to GoHighLevel');
+                    console.log('Contact ID:', result.contactId);
+                } else {
+                    console.error('❌ Failed to send to GoHighLevel:', result.error);
+                }
+                
                 return result;
             } catch (error) {
-                console.error('Database submission error:', error);
-                // Don't throw - continue with email even if database fails
-                console.warn('Continuing with email notification despite database error');
-                return null;
+                console.error('Error sending to GoHighLevel:', error);
+                // Don't throw - we don't want to fail the whole submission if GHL fails
+                return { success: false, error: error.message };
             }
         }
         
@@ -2474,30 +2408,10 @@ PDF intake form is attached to this email.
             showStatus('Submitting your form...', 'loading');
             
             try {
-                // Upload signature to storage first
-                showStatus('Uploading signature...', 'loading');
-                uploadedSignatureUrl = await uploadSignature();
-                console.log('Signature uploaded:', uploadedSignatureUrl);
-                
                 // Collect form data
                 showStatus('Collecting form data...', 'loading');
                 const formData = await collectFormData();
                 console.log('Form data collected:', formData);
-                
-                // Submit to database (with URLs, not base64 files)
-                showStatus('Saving to Range Medical system...', 'loading');
-                try {
-                    const dbData = {...formData};
-                    // Remove base64 data (too large), keep URLs
-                    delete dbData.photoId;
-                    delete dbData.signature;
-                    // URLs are already in dbData (photoIdUrl, signatureUrl)
-                    await submitToDatabase(dbData);
-                    console.log('Database submission successful');
-                } catch (dbError) {
-                    console.warn('Database submission failed, continuing with email:', dbError);
-                    // Continue even if database fails - email is backup
-                }
                 
                 // Generate PDF
                 showStatus('Generating PDF...', 'loading');
@@ -2511,13 +2425,34 @@ PDF intake form is attached to this email.
                 }
                 
                 // Send email notification to Range Medical with PDF attachment
-                showStatus('Sending email notification...', 'loading');
+                showStatus('Sending to Range Medical...', 'loading');
                 try {
                     await sendEmail(formData, pdfBlob);
                     console.log('Email sent successfully');
                 } catch (emailError) {
                     console.error('Email sending failed:', emailError);
                     throw new Error('Email sending failed: ' + (emailError.message || emailError));
+                }
+                
+                // Upload PDF to Supabase and send to GoHighLevel
+                showStatus('Uploading PDF and syncing to GoHighLevel...', 'loading');
+                let pdfUrl = null;
+                try {
+                    // Upload PDF to Supabase
+                    pdfUrl = await uploadPDFToStorage(pdfBlob, formData);
+                    console.log('PDF uploaded to storage:', pdfUrl);
+                    
+                    // Send to GoHighLevel
+                    const ghlResult = await sendToGoHighLevel(formData, pdfUrl);
+                    if (ghlResult.success) {
+                        console.log('✅ GoHighLevel sync successful');
+                    } else {
+                        console.warn('⚠️ GoHighLevel sync failed (non-critical):', ghlResult.error);
+                    }
+                } catch (storageError) {
+                    // Don't fail the whole submission if storage/GHL fails
+                    console.error('Storage/GHL error (non-critical):', storageError);
+                    console.warn('⚠️ Continuing despite storage/GHL error');
                 }
                 
                 // Show thank you page

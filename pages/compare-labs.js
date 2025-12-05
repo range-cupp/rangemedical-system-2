@@ -1,4 +1,13 @@
 // pages/compare-labs.js
+/*
+ * Lab Comparison Page - Styled to match Range Medical intake form
+ * 
+ * IMPORTANT: Add this to pages/_app.js or pages/_document.js:
+ * <link rel="preconnect" href="https://fonts.googleapis.com">
+ * <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ * <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+ */
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
@@ -72,7 +81,7 @@ export default function CompareLabs() {
   const getValueColor = (val1, val2) => {
     if (val1 === null || val2 === null) return '#666666';
     if (val1 === val2) return '#666666';
-    if (val1 > val2) return '#10b981'; // Green for increase
+    if (val1 > val2) return '#16a34a'; // Green for increase
     return '#ef4444'; // Red for decrease
   };
 
@@ -204,37 +213,46 @@ export default function CompareLabs() {
 
   return (
     <div style={{ 
-      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
       padding: '2rem',
       maxWidth: '1600px',
-      margin: '0 auto'
+      margin: '0 auto',
+      background: '#f5f5f5',
+      minHeight: '100vh'
     }}>
       {/* Header */}
       <div style={{ 
         marginBottom: '2rem',
-        paddingBottom: '1rem',
-        borderBottom: '3px solid #000000'
+        paddingBottom: '1.5rem',
+        borderBottom: '2px solid #000000'
       }}>
         <h1 style={{ 
           fontSize: '2rem', 
           fontWeight: 700, 
-          margin: '0 0 0.5rem 0',
-          textTransform: 'uppercase'
+          margin: '0 0 1rem 0',
+          textTransform: 'uppercase',
+          letterSpacing: '0.15em',
+          color: '#000000'
         }}>
           Lab Comparison
         </h1>
         <button
           onClick={() => window.close()}
           style={{
-            padding: '0.5rem 1rem',
+            padding: '0.75rem 1.5rem',
             background: '#000000',
             color: '#ffffff',
-            border: 'none',
+            border: '2px solid #000000',
             cursor: 'pointer',
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: '0.9rem',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            fontFamily: 'inherit',
+            transition: 'all 0.2s ease'
           }}
+          onMouseEnter={(e) => e.target.style.background = '#262626'}
+          onMouseLeave={(e) => e.target.style.background = '#000000'}
         >
           Close Window
         </button>
@@ -257,11 +275,11 @@ export default function CompareLabs() {
               fontSize: '1.5rem', 
               fontWeight: 700,
               marginBottom: '0.5rem',
-              color: idx === 0 ? '#3b82f6' : '#10b981'
+              color: idx === 0 ? '#3b82f6' : '#16a34a'
             }}>
               Lab {idx + 1}
             </div>
-            <div style={{ fontSize: '0.9rem', color: '#666' }}>
+            <div style={{ fontSize: '0.9rem', color: '#404040' }}>
               <div><strong>Date:</strong> {formatDate(lab.test_date)}</div>
               <div><strong>Panel:</strong> {lab.panel_type}</div>
               <div><strong>Provider:</strong> {lab.lab_provider || 'N/A'}</div>
@@ -306,7 +324,7 @@ export default function CompareLabs() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     background: '#f9f9f9',
-                    color: '#666'
+                    color: '#404040'
                   }}>
                     No PDF available
                   </div>
@@ -362,7 +380,7 @@ export default function CompareLabs() {
                       textAlign: 'left',
                       borderBottom: '2px solid #000000',
                       fontWeight: 700,
-                      fontSize: '0.85rem',
+                      fontSize: '0.8125rem', letterSpacing: '0.05em',
                       textTransform: 'uppercase'
                     }}>
                       Biomarker
@@ -373,7 +391,7 @@ export default function CompareLabs() {
                       borderBottom: '2px solid #000000',
                       borderLeft: '1px solid #d1d5db',
                       fontWeight: 700,
-                      fontSize: '0.85rem',
+                      fontSize: '0.8125rem', letterSpacing: '0.05em',
                       color: '#3b82f6'
                     }}>
                       Lab 1
@@ -384,8 +402,8 @@ export default function CompareLabs() {
                       borderBottom: '2px solid #000000',
                       borderLeft: '1px solid #d1d5db',
                       fontWeight: 700,
-                      fontSize: '0.85rem',
-                      color: '#10b981'
+                      fontSize: '0.8125rem', letterSpacing: '0.05em',
+                      color: '#16a34a'
                     }}>
                       Lab 2
                     </th>
@@ -395,7 +413,7 @@ export default function CompareLabs() {
                       borderBottom: '2px solid #000000',
                       borderLeft: '1px solid #d1d5db',
                       fontWeight: 700,
-                      fontSize: '0.85rem'
+                      fontSize: '0.8125rem', letterSpacing: '0.05em'
                     }}>
                       Change
                     </th>
@@ -414,7 +432,7 @@ export default function CompareLabs() {
                       : null;
 
                     const changeColor = change !== null
-                      ? (change > 0 ? '#10b981' : change < 0 ? '#ef4444' : '#666666')
+                      ? (change > 0 ? '#16a34a' : change < 0 ? '#ef4444' : '#666666')
                       : '#666666';
 
                     return (
@@ -425,8 +443,8 @@ export default function CompareLabs() {
                           {biomarker.label}
                           <span style={{ 
                             marginLeft: '0.5rem', 
-                            color: '#666', 
-                            fontSize: '0.85rem' 
+                            color: '#404040', 
+                            fontSize: '0.8125rem', letterSpacing: '0.05em' 
                           }}>
                             ({biomarker.unit})
                           </span>
@@ -436,7 +454,7 @@ export default function CompareLabs() {
                           textAlign: 'center',
                           borderLeft: '1px solid #e5e7eb',
                           fontWeight: 600,
-                          color: val1 !== null ? '#3b82f6' : '#666'
+                          color: val1 !== null ? '#3b82f6' : '#404040'
                         }}>
                           {formatValue(val1)}
                         </td>
@@ -445,7 +463,7 @@ export default function CompareLabs() {
                           textAlign: 'center',
                           borderLeft: '1px solid #e5e7eb',
                           fontWeight: 600,
-                          color: val2 !== null ? '#10b981' : '#666'
+                          color: val2 !== null ? '#16a34a' : '#404040'
                         }}>
                           {formatValue(val2)}
                         </td>

@@ -37,6 +37,27 @@ const RangeMedicalSystem = () => {
   const [showLabUpload, setShowLabUpload] = useState(false);
   const [labs, setLabs] = useState([]);
   const [selectedLabsForCompare, setSelectedLabsForCompare] = useState([]);
+  
+  // Comprehensive lab result tracking
+  const [showLabResultEntry, setShowLabResultEntry] = useState(false);
+  const [editingLabResult, setEditingLabResult] = useState(null);
+  const [labResultData, setLabResultData] = useState({});
+  const [referenceRanges, setReferenceRanges] = useState({});
+  const [expandedLabSections, setExpandedLabSections] = useState({
+    hormones: true, // Start with hormones expanded
+    thyroid: false,
+    bloodsugar: false,
+    lipids: false,
+    vitamins: false,
+    inflammation: false,
+    liver: false,
+    kidney: false,
+    electrolytes: false,
+    cbc: false,
+    iron: false,
+    prostate: false
+  });
+  
   const [consentForms, setConsentForms] = useState([]);
   const [selectedConsent, setSelectedConsent] = useState(null);
   const [showConsentPanel, setShowConsentPanel] = useState(false);
@@ -83,6 +104,7 @@ const RangeMedicalSystem = () => {
       fetchMedicalDocuments(selectedPatient.id);
       fetchConsentForms(selectedPatient.id);
       fetchLabs(selectedPatient.id);
+      fetchReferenceRanges(selectedPatient.gender || 'Male');
     }
   }, [selectedPatient]);
 
@@ -333,6 +355,161 @@ const RangeMedicalSystem = () => {
       }
       setSelectedLabsForCompare([...selectedLabsForCompare, labId]);
     }
+  };
+
+  // COMPREHENSIVE LAB RESULT TRACKING FUNCTIONS
+  
+  const fetchReferenceRanges = async (gender) => {
+    try {
+      const response = await fetch(`/api/labs/reference-ranges?gender=${gender}`);
+      const result = await response.json();
+      if (result.success) {
+        setReferenceRanges(result.ranges || {});
+      }
+    } catch (error) {
+      console.error('Error fetching reference ranges:', error);
+    }
+  };
+
+  const initializeLabResultForm = (panelType) => {
+    setLabResultData({
+      panel_type: panelType,
+      lab_provider: 'Primex',
+      test_date: new Date().toISOString().split('T')[0],
+      notes: ''
+    });
+  };
+
+  const handleLabResultSubmit = async () => {
+    if (!labResultData.panel_type || !labResultData.test_date) {
+      alert('Please select panel type and test date');
+      return;
+    }
+
+    try {
+      // Convert empty strings to null
+      const cleanedData = { ...labResultData };
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === '') {
+          cleanedData[key] = null;
+        }
+      });
+
+      cleanedData.patient_id = selectedPatient.id;
+
+      const method = editingLabResult ? 'PUT' : 'POST';
+      const url = '/api/labs';
+      
+      if (editingLabResult) {
+        cleanedData.id = editingLabResult.id;
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanedData)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(editingLabResult ? 'Lab results updated successfully!' : 'Lab results saved successfully!');
+        setShowLabResultEntry(false);
+        setEditingLabResult(null);
+        fetchLabs(selectedPatient.id);
+      } else {
+        alert('Failed to save lab results: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Lab result submit error:', error);
+      alert('Failed to save lab results. Please try again.');
+    }
+  };
+
+  const handleEditLabResult = (lab) => {
+    setEditingLabResult(lab);
+    setLabResultData(lab);
+    setShowLabResultEntry(true);
+  };
+
+  const handleDeleteLabResult = async (labId) => {
+    if (!confirm('Are you sure you want to delete this lab result?')) return;
+
+    try {
+      const response = await fetch(`/api/labs?id=${labId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Lab result deleted successfully!');
+        fetchLabs(selectedPatient.id);
+      } else {
+        alert('Failed to delete lab result: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Lab result delete error:', error);
+      alert('Failed to delete lab result. Please try again.');
+    }
+  };
+
+  const getValueStatus = (biomarker, value, gender) => {
+    if (!value || !referenceRanges[biomarker]) return null;
+
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return null;
+
+    const range = referenceRanges[biomarker];
+    
+    // Check if value is in gender-specific or "Both" category
+    if (range.gender !== 'Both' && range.gender !== gender) {
+      return null;
+    }
+
+    return getStatusFromRange(numValue, range);
+  };
+
+  const getStatusFromRange = (value, range) => {
+    // Critical: outside normal range
+    if (value < range.min_value || value > range.max_value) {
+      return {
+        status: 'critical',
+        color: '#dc2626',
+        bgColor: '#fee2e2',
+        label: value < range.min_value ? 'Low' : 'High',
+        icon: '🔴'
+      };
+    }
+
+    // Suboptimal: in normal range but outside optimal range
+    if (range.optimal_min && range.optimal_max) {
+      if (value < range.optimal_min || value > range.optimal_max) {
+        return {
+          status: 'suboptimal',
+          color: '#ca8a04',
+          bgColor: '#fef3c7',
+          label: value < range.optimal_min ? 'Below Optimal' : 'Above Optimal',
+          icon: '🟡'
+        };
+      }
+    }
+
+    // Optimal
+    return {
+      status: 'optimal',
+      color: '#16a34a',
+      bgColor: '#dcfce7',
+      label: 'Optimal',
+      icon: '🟢'
+    };
+  };
+
+  const toggleLabSection = (section) => {
+    setExpandedLabSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   const fetchConsentForms = async (patientId) => {
@@ -1717,11 +1894,22 @@ const RangeMedicalSystem = () => {
                 )}
                 <button
                   className="btn btn-primary"
+                  onClick={() => {
+                    initializeLabResultForm(selectedPatient.gender === 'Female' ? 'Female Elite' : 'Male Elite');
+                    setShowLabResultEntry(true);
+                  }}
+                  style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
+                >
+                  <Plus size={14} />
+                  Enter Lab Values
+                </button>
+                <button
+                  className="btn btn-primary"
                   onClick={() => setShowLabUpload(!showLabUpload)}
                   style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
                 >
                   <Plus size={14} />
-                  Upload Lab
+                  Upload Lab PDF
                 </button>
               </div>
             </div>
@@ -1887,6 +2075,1222 @@ const RangeMedicalSystem = () => {
                     Uploading lab...
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* COMPREHENSIVE LAB ENTRY MODAL */}
+            {showLabResultEntry && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+                padding: '2rem'
+              }}>
+                <div style={{
+                  background: '#ffffff',
+                  width: '100%',
+                  maxWidth: '1200px',
+                  maxHeight: '90vh',
+                  overflow: 'auto',
+                  border: '3px solid #000000',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+                }}>
+                  {/* Modal Header */}
+                  <div style={{
+                    padding: '1.5rem',
+                    borderBottom: '2px solid #000000',
+                    background: '#000000',
+                    color: '#ffffff',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                        {editingLabResult ? 'Edit Lab Results' : 'Enter Lab Results'}
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setShowLabResultEntry(false);
+                          setEditingLabResult(null);
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          fontSize: '1.5rem',
+                          lineHeight: 1
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Modal Body */}
+                  <div style={{ padding: '2rem' }}>
+                    {/* Panel Selection and Metadata */}
+                    <div style={{
+                      background: '#f9f9f9',
+                      border: '2px solid #000000',
+                      padding: '1.5rem',
+                      marginBottom: '2rem'
+                    }}>
+                      <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                        Lab Information
+                      </h4>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                            Panel Type *
+                          </label>
+                          <select
+                            value={labResultData.panel_type || ''}
+                            onChange={(e) => setLabResultData({ ...labResultData, panel_type: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '0.75rem',
+                              border: '2px solid #000000',
+                              fontSize: '0.9rem',
+                              fontFamily: 'inherit',
+                              background: '#ffffff'
+                            }}
+                          >
+                            <option value="Male Initial">Male Initial</option>
+                            <option value="Male Elite">Male Elite</option>
+                            <option value="Female Initial">Female Initial</option>
+                            <option value="Female Elite">Female Elite</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                            Lab Provider
+                          </label>
+                          <select
+                            value={labResultData.lab_provider || 'Primex'}
+                            onChange={(e) => setLabResultData({ ...labResultData, lab_provider: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '0.75rem',
+                              border: '2px solid #000000',
+                              fontSize: '0.9rem',
+                              fontFamily: 'inherit',
+                              background: '#ffffff'
+                            }}
+                          >
+                            <option value="Primex">Primex</option>
+                            <option value="Access Med Labs">Access Med Labs</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                            Test Date *
+                          </label>
+                          <input
+                            type="date"
+                            value={labResultData.test_date || ''}
+                            onChange={(e) => setLabResultData({ ...labResultData, test_date: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '0.75rem',
+                              border: '2px solid #000000',
+                              fontSize: '0.9rem',
+                              fontFamily: 'inherit'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                          Notes
+                        </label>
+                        <textarea
+                          value={labResultData.notes || ''}
+                          onChange={(e) => setLabResultData({ ...labResultData, notes: e.target.value })}
+                          placeholder="Add any notes about this lab test..."
+                          rows={2}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            border: '2px solid #000000',
+                            fontSize: '0.9rem',
+                            fontFamily: 'inherit',
+                            resize: 'vertical'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1.5rem', fontStyle: 'italic' }}>
+                      💡 Enter only the values you have. Leave fields blank if not tested. Click section headers to expand/collapse.
+                    </div>
+                    {/* HORMONES SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('hormones')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>💪 HORMONES</span>
+                        <span>{expandedLabSections['hormones'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['hormones'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {/* Helper function for rendering biomarker input */}
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          paddingRight: status ? '2.5rem' : '0.75rem',
+                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: status ? status.bgColor : '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                      {status && (
+                                        <span style={{
+                                          position: 'absolute',
+                                          right: '0.75rem',
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          fontSize: '1.25rem'
+                                        }} title={status.label}>
+                                          {status.icon}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('total_testosterone', 'Total Testosterone', 'ng/dL')}
+                                  {renderBiomarker('free_testosterone', 'Free Testosterone', 'pg/mL')}
+                                  {renderBiomarker('shbg', 'SHBG', 'nmol/L')}
+                                  {renderBiomarker('estradiol', 'Estradiol', 'pg/mL')}
+                                  {(labResultData.panel_type?.includes('Female') || selectedPatient?.gender === 'Female') && renderBiomarker('progesterone', 'Progesterone', 'ng/mL')}
+                                  {labResultData.panel_type?.includes('Elite') && (
+                                    <>
+                                      {renderBiomarker('dhea_s', 'DHEA-S', 'μg/dL')}
+                                      {renderBiomarker('fsh', 'FSH', 'mIU/mL')}
+                                      {renderBiomarker('lh', 'LH', 'mIU/mL')}
+                                      {renderBiomarker('igf_1', 'IGF-1', 'ng/mL')}
+                                      {renderBiomarker('cortisol', 'Cortisol', 'μg/dL')}
+                                      {labResultData.panel_type === 'Female Elite' && renderBiomarker('dht', 'DHT', 'ng/dL')}
+                                    </>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* THYROID SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('thyroid')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>🦋 THYROID</span>
+                        <span>{expandedLabSections['thyroid'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['thyroid'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          paddingRight: status ? '2.5rem' : '0.75rem',
+                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: status ? status.bgColor : '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                      {status && (
+                                        <span style={{
+                                          position: 'absolute',
+                                          right: '0.75rem',
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          fontSize: '1.25rem'
+                                        }} title={status.label}>
+                                          {status.icon}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('tsh', 'TSH', 'uIU/mL')}
+                                  {renderBiomarker('free_t3', 'Free T3', 'pg/mL')}
+                                  {renderBiomarker('free_t4', 'Free T4', 'ng/dL')}
+                                  {renderBiomarker('tpo_antibody', 'TPO Antibody', 'IU/mL')}
+                                  {labResultData.panel_type?.includes('Elite') && renderBiomarker('thyroglobulin_antibody', 'Thyroglobulin Antibody', 'IU/mL')}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* BLOOD SUGAR SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('bloodsugar')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>🍬 BLOOD SUGAR & METABOLISM</span>
+                        <span>{expandedLabSections['bloodsugar'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['bloodsugar'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          paddingRight: status ? '2.5rem' : '0.75rem',
+                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: status ? status.bgColor : '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                      {status && (
+                                        <span style={{
+                                          position: 'absolute',
+                                          right: '0.75rem',
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          fontSize: '1.25rem'
+                                        }} title={status.label}>
+                                          {status.icon}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('glucose', 'Glucose', 'mg/dL')}
+                                  {renderBiomarker('fasting_insulin', 'Fasting Insulin', 'uIU/mL')}
+                                  {renderBiomarker('hemoglobin_a1c', 'Hemoglobin A1C', '%')}
+                                  {labResultData.panel_type?.includes('Elite') && renderBiomarker('uric_acid', 'Uric Acid', 'mg/dL')}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* LIPIDS SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('lipids')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>❤️ LIPIDS & HEART HEALTH</span>
+                        <span>{expandedLabSections['lipids'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['lipids'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          paddingRight: status ? '2.5rem' : '0.75rem',
+                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: status ? status.bgColor : '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                      {status && (
+                                        <span style={{
+                                          position: 'absolute',
+                                          right: '0.75rem',
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          fontSize: '1.25rem'
+                                        }} title={status.label}>
+                                          {status.icon}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('total_cholesterol', 'Total Cholesterol', 'mg/dL')}
+                                  {renderBiomarker('ldl_cholesterol', 'LDL Cholesterol', 'mg/dL')}
+                                  {renderBiomarker('hdl_cholesterol', 'HDL Cholesterol', 'mg/dL')}
+                                  {renderBiomarker('triglycerides', 'Triglycerides', 'mg/dL')}
+                                  {renderBiomarker('vldl_cholesterol', 'VLDL Cholesterol', 'mg/dL')}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* VITAMINS SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('vitamins')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>🌟 VITAMINS & MINERALS</span>
+                        <span>{expandedLabSections['vitamins'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['vitamins'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          paddingRight: status ? '2.5rem' : '0.75rem',
+                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: status ? status.bgColor : '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                      {status && (
+                                        <span style={{
+                                          position: 'absolute',
+                                          right: '0.75rem',
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          fontSize: '1.25rem'
+                                        }} title={status.label}>
+                                          {status.icon}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('vitamin_d', 'Vitamin D', 'ng/mL')}
+                                  {labResultData.panel_type?.includes('Elite') && (
+                                    <>
+                                      {renderBiomarker('vitamin_b12', 'Vitamin B12', 'pg/mL')}
+                                      {renderBiomarker('folate', 'Folate', 'ng/mL')}
+                                      {renderBiomarker('magnesium', 'Magnesium', 'mg/dL')}
+                                    </>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* INFLAMMATION SECTION (Elite only) */}
+                    {labResultData.panel_type?.includes('Elite') && (
+                      <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                        <div
+                          onClick={() => toggleLabSection('inflammation')}
+                          style={{
+                            padding: '1rem',
+                            background: '#000000',
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          <span>🔥 INFLAMMATION MARKERS</span>
+                          <span>{expandedLabSections['inflammation'] ? '▼' : '▶'}</span>
+                        </div>
+                        {expandedLabSections['inflammation'] && (
+                          <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                              {(() => {
+                                const renderBiomarker = (name, label, unit) => {
+                                  const value = labResultData[name];
+                                  const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                  
+                                  return (
+                                    <div key={name}>
+                                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                        {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                      </label>
+                                      <div style={{ position: 'relative' }}>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={value || ''}
+                                          onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                          style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            paddingRight: status ? '2.5rem' : '0.75rem',
+                                            border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                            fontSize: '0.9rem',
+                                            fontFamily: 'inherit',
+                                            background: status ? status.bgColor : '#ffffff'
+                                          }}
+                                          placeholder="--"
+                                        />
+                                        {status && (
+                                          <span style={{
+                                            position: 'absolute',
+                                            right: '0.75rem',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            fontSize: '1.25rem'
+                                          }} title={status.label}>
+                                            {status.icon}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                };
+
+                                return (
+                                  <>
+                                    {renderBiomarker('crp_hs', 'CRP-HS', 'mg/L')}
+                                    {renderBiomarker('esr', 'ESR', 'mm/hr')}
+                                    {renderBiomarker('homocysteine', 'Homocysteine', 'μmol/L')}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* LIVER SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('liver')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>🫀 LIVER FUNCTION</span>
+                        <span>{expandedLabSections['liver'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['liver'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          paddingRight: status ? '2.5rem' : '0.75rem',
+                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: status ? status.bgColor : '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                      {status && (
+                                        <span style={{
+                                          position: 'absolute',
+                                          right: '0.75rem',
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          fontSize: '1.25rem'
+                                        }} title={status.label}>
+                                          {status.icon}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('alt', 'ALT', 'U/L')}
+                                  {renderBiomarker('ast', 'AST', 'U/L')}
+                                  {renderBiomarker('alkaline_phosphatase', 'Alkaline Phosphatase', 'U/L')}
+                                  {renderBiomarker('total_bilirubin', 'Total Bilirubin', 'mg/dL')}
+                                  {renderBiomarker('albumin', 'Albumin', 'g/dL')}
+                                  {renderBiomarker('total_protein', 'Total Protein', 'g/dL')}
+                                  {labResultData.panel_type?.includes('Elite') && renderBiomarker('ggt', 'GGT', 'U/L')}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* KIDNEY SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('kidney')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>🫘 KIDNEY FUNCTION</span>
+                        <span>{expandedLabSections['kidney'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['kidney'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          paddingRight: status ? '2.5rem' : '0.75rem',
+                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: status ? status.bgColor : '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                      {status && (
+                                        <span style={{
+                                          position: 'absolute',
+                                          right: '0.75rem',
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          fontSize: '1.25rem'
+                                        }} title={status.label}>
+                                          {status.icon}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('creatinine', 'Creatinine', 'mg/dL')}
+                                  {renderBiomarker('bun', 'BUN', 'mg/dL')}
+                                  {renderBiomarker('egfr', 'eGFR', 'mL/min/1.73')}
+                                  {renderBiomarker('bun_creatinine_ratio', 'BUN/Creatinine Ratio', '')}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ELECTROLYTES SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('electrolytes')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>⚡ ELECTROLYTES</span>
+                        <span>{expandedLabSections['electrolytes'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['electrolytes'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={value || ''}
+                                      onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                      style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #d1d5db',
+                                        fontSize: '0.9rem',
+                                        fontFamily: 'inherit',
+                                        background: '#ffffff'
+                                      }}
+                                      placeholder="--"
+                                    />
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('sodium', 'Sodium', 'mmol/L')}
+                                  {renderBiomarker('potassium', 'Potassium', 'mmol/L')}
+                                  {renderBiomarker('chloride', 'Chloride', 'mmol/L')}
+                                  {renderBiomarker('co2', 'CO2', 'mmol/L')}
+                                  {renderBiomarker('calcium', 'Calcium', 'mg/dL')}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CBC SECTION */}
+                    <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                      <div
+                        onClick={() => toggleLabSection('cbc')}
+                        style={{
+                          padding: '1rem',
+                          background: '#000000',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <span>🩸 COMPLETE BLOOD COUNT (CBC)</span>
+                        <span>{expandedLabSections['cbc'] ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedLabSections['cbc'] && (
+                        <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {(() => {
+                              const renderBiomarker = (name, label, unit) => {
+                                const value = labResultData[name];
+                                const status = value ? getValueStatus(name, value, selectedPatient?.gender || 'Male') : null;
+                                
+                                return (
+                                  <div key={name}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                      {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          paddingRight: status ? '2.5rem' : '0.75rem',
+                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: status ? status.bgColor : '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                      {status && (
+                                        <span style={{
+                                          position: 'absolute',
+                                          right: '0.75rem',
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          fontSize: '1.25rem'
+                                        }} title={status.label}>
+                                          {status.icon}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderBiomarker('wbc', 'WBC', 'K/uL')}
+                                  {renderBiomarker('rbc', 'RBC', 'M/uL')}
+                                  {renderBiomarker('hemoglobin', 'Hemoglobin', 'g/dL')}
+                                  {renderBiomarker('hematocrit', 'Hematocrit', '%')}
+                                  {renderBiomarker('mcv', 'MCV', 'fL')}
+                                  {renderBiomarker('mch', 'MCH', 'pg')}
+                                  {renderBiomarker('mchc', 'MCHC', 'g/dL')}
+                                  {renderBiomarker('rdw', 'RDW', '%')}
+                                  {renderBiomarker('platelets', 'Platelets', 'K/uL')}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* IRON SECTION (Elite only) */}
+                    {labResultData.panel_type?.includes('Elite') && (
+                      <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                        <div
+                          onClick={() => toggleLabSection('iron')}
+                          style={{
+                            padding: '1rem',
+                            background: '#000000',
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          <span>🔩 IRON STUDIES</span>
+                          <span>{expandedLabSections['iron'] ? '▼' : '▶'}</span>
+                        </div>
+                        {expandedLabSections['iron'] && (
+                          <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                              {(() => {
+                                const renderBiomarker = (name, label, unit) => {
+                                  const value = labResultData[name];
+                                  
+                                  return (
+                                    <div key={name}>
+                                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                        {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                      </label>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={value || ''}
+                                        onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                        style={{
+                                          width: '100%',
+                                          padding: '0.75rem',
+                                          border: '2px solid #d1d5db',
+                                          fontSize: '0.9rem',
+                                          fontFamily: 'inherit',
+                                          background: '#ffffff'
+                                        }}
+                                        placeholder="--"
+                                      />
+                                    </div>
+                                  );
+                                };
+
+                                return (
+                                  <>
+                                    {renderBiomarker('iron', 'Iron', 'μg/dL')}
+                                    {renderBiomarker('tibc', 'TIBC', 'μg/dL')}
+                                    {renderBiomarker('iron_saturation', 'Iron Saturation', '%')}
+                                    {renderBiomarker('ferritin', 'Ferritin', 'ng/mL')}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* PROSTATE SECTION (Male only) */}
+                    {(labResultData.panel_type?.includes('Male') || selectedPatient?.gender === 'Male') && (
+                      <div style={{ marginBottom: '1.5rem', border: '2px solid #000000' }}>
+                        <div
+                          onClick={() => toggleLabSection('prostate')}
+                          style={{
+                            padding: '1rem',
+                            background: '#000000',
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          <span>🔬 PROSTATE HEALTH</span>
+                          <span>{expandedLabSections['prostate'] ? '▼' : '▶'}</span>
+                        </div>
+                        {expandedLabSections['prostate'] && (
+                          <div style={{ padding: '1.5rem', background: '#ffffff' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                              {(() => {
+                                const renderBiomarker = (name, label, unit) => {
+                                  const value = labResultData[name];
+                                  const status = value ? getValueStatus(name, value, 'Male') : null;
+                                  
+                                  return (
+                                    <div key={name}>
+                                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#333' }}>
+                                        {label} {unit && <span style={{ color: '#666', fontWeight: 400 }}>({unit})</span>}
+                                      </label>
+                                      <div style={{ position: 'relative' }}>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={value || ''}
+                                          onChange={(e) => setLabResultData({ ...labResultData, [name]: e.target.value })}
+                                          style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            paddingRight: status ? '2.5rem' : '0.75rem',
+                                            border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                            fontSize: '0.9rem',
+                                            fontFamily: 'inherit',
+                                            background: status ? status.bgColor : '#ffffff'
+                                          }}
+                                          placeholder="--"
+                                        />
+                                        {status && (
+                                          <span style={{
+                                            position: 'absolute',
+                                            right: '0.75rem',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            fontSize: '1.25rem'
+                                          }} title={status.label}>
+                                            {status.icon}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                };
+
+                                return (
+                                  <>
+                                    {renderBiomarker('psa_total', 'PSA Total', 'ng/mL')}
+                                    {labResultData.panel_type?.includes('Elite') && renderBiomarker('psa_free', 'PSA Free', 'ng/mL')}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+
+                  {/* Modal Footer with Save/Cancel */}
+                  <div style={{
+                    padding: '1.5rem',
+                    borderTop: '2px solid #000000',
+                    background: '#f9f9f9',
+                    display: 'flex',
+                    gap: '1rem',
+                    justifyContent: 'flex-end',
+                    position: 'sticky',
+                    bottom: 0
+                  }}>
+                    <button
+                      onClick={() => {
+                        setShowLabResultEntry(false);
+                        setEditingLabResult(null);
+                      }}
+                      className="btn"
+                      style={{
+                        background: '#ffffff',
+                        border: '2px solid #000000',
+                        color: '#000000',
+                        padding: '0.75rem 1.5rem',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleLabResultSubmit}
+                      className="btn btn-primary"
+                      style={{
+                        padding: '0.75rem 2rem',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      {editingLabResult ? 'Update Lab Results' : 'Save Lab Results'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
+                  </div>
+
+                  {/* Modal Footer with Save/Cancel */}
+                  <div style={{
+                    padding: '1.5rem',
+                    borderTop: '2px solid #000000',
+                    background: '#f9f9f9',
+                    display: 'flex',
+                    gap: '1rem',
+                    justifyContent: 'flex-end',
+                    position: 'sticky',
+                    bottom: 0
+                  }}>
+                    <button
+                      onClick={() => {
+                        setShowLabResultEntry(false);
+                        setEditingLabResult(null);
+                      }}
+                      className="btn"
+                      style={{
+                        background: '#ffffff',
+                        border: '2px solid #000000',
+                        color: '#000000',
+                        padding: '0.75rem 1.5rem',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleLabResultSubmit}
+                      className="btn btn-primary"
+                      style={{
+                        padding: '0.75rem 2rem',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      {editingLabResult ? 'Update Lab Results' : 'Save Lab Results'}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

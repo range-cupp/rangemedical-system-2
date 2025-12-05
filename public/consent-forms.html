@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consent Forms | Range Medical</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            color: #262626;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 2px solid #000000;
+            padding: 1.5rem 2rem;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #000000;
+            margin: 0;
+        }
+        
+        .header p {
+            margin: 0.25rem 0 0 0;
+            color: #737373;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .back-btn {
+            padding: 0.75rem 1.5rem;
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #000000;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        
+        .back-btn:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+        
+        .main {
+            padding: 3rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .page-title {
+            margin-bottom: 2.5rem;
+        }
+        
+        .page-title h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            color: #000000;
+        }
+        
+        .page-title p {
+            color: #737373;
+            font-size: 0.9375rem;
+        }
+        
+        .forms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .form-card {
+            background: #ffffff;
+            border: 2px solid #000000;
+            padding: 2rem;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: all 0.2s ease;
+        }
+        
+        .form-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        .form-icon {
+            font-size: 3rem;
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            color: #000000;
+            line-height: 1.3;
+        }
+        
+        .form-description {
+            color: #737373;
+            font-size: 0.9375rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-badge {
+            display: inline-block;
+            padding: 0.375rem 1rem;
+            background: #f0fdf4;
+            border: 1.5px solid #16a34a;
+            color: #16a34a;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #000000;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 1rem;
+        }
+        
+        .instructions {
+            background: #ffffff;
+            border: 2px solid #e5e5e5;
+            padding: 2rem;
+        }
+        
+        .instructions h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.25rem;
+            color: #000000;
+        }
+        
+        .instruction-list {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .instruction-item {
+            display: flex;
+            gap: 1rem;
+            align-items: start;
+        }
+        
+        .instruction-number {
+            background: #000000;
+            color: #ffffff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .instruction-text {
+            color: #737373;
+            font-size: 0.9375rem;
+        }
+        
+        .instruction-text strong {
+            color: #000000;
+        }
+        
+        @media (max-width: 768px) {
+            .forms-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <h1>RANGE MEDICAL</h1>
+                <p>Consent Forms Management</p>
+            </div>
+            <a href="/" class="back-btn">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        <!-- Page Title -->
+        <div class="page-title">
+            <h2>CONSENT FORMS</h2>
+            <p>Patient consent and intake forms for Range Medical. Click any form to open it in a new tab.</p>
+        </div>
+
+        <!-- Forms Grid -->
+        <div class="forms-grid">
+            <!-- Peptide Consent -->
+            <a href="https://range-medical.com/peptide-therapy-consent-page" target="_blank" rel="noopener noreferrer" class="form-card">
+                <div class="form-icon">💉</div>
+                <h3 class="form-title">Peptide Therapy & Injection Consent</h3>
+                <p class="form-description">Patient consent form for peptide therapy treatments</p>
+                <div class="form-badge">ACTIVE</div>
+                <div class="form-link">
+                    <span>Open Form</span>
+                    <span>→</span>
+                </div>
+            </a>
+
+            <!-- Medical Intake -->
+            <a href="https://rangemedical-system-2.vercel.app/intake.html" target="_blank" rel="noopener noreferrer" class="form-card">
+                <div class="form-icon">📄</div>
+                <h3 class="form-title">Medical Intake Form</h3>
+                <p class="form-description">New patient medical history and intake questionnaire</p>
+                <div class="form-badge">ACTIVE</div>
+                <div class="form-link">
+                    <span>Open Form</span>
+                    <span>→</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions">
+            <h4>📋 Instructions for Staff</h4>
+            <div class="instruction-list">
+                <div class="instruction-item">
+                    <div class="instruction-number">1</div>
+                    <p class="instruction-text">
+                        <strong>Access Forms:</strong> Click any form card above to open it in a new tab
+                    </p>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-number">2</div>
+                    <p class="instruction-text">
+                        <strong>Share with Patients:</strong> Copy the form URL from your browser and send it directly to patients via email or text
+                    </p>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-number">3</div>
+                    <p class="instruction-text">
+                        <strong>Automatic Syncing:</strong> All form submissions automatically sync to GoHighLevel and the Range Medical database
+                    </p>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-number">4</div>
+                    <p class="instruction-text">
+                        <strong>Document Storage:</strong> PDFs are automatically emailed to cupp@range-medical.com and stored in Supabase for permanent access
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+```
+
+---
+
+### **Step 3: Paste the Code**
+
+Paste all the code above into the GitHub file editor.
+
+### **Step 4: Commit**
+
+- Commit message: `Add consent forms page`
+- Click: **Commit new file**
+
+---
+
+## **✅ HOW TO ACCESS IT:**
+
+After you commit, wait 30 seconds, then go to:
+```
+https://rangemedical-system-2.vercel.app/consent-forms.html

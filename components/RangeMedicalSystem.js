@@ -2303,18 +2303,21 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>High Blood Pressure</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.high_blood_pressure ? '#000' : '#e0e0e0', color: selectedIntake.high_blood_pressure ? '#fff' : '#666' }}>
                         {selectedIntake.high_blood_pressure ? 'YES' : 'NO'}
+                        {selectedIntake.high_blood_pressure && selectedIntake.high_blood_pressure_year && ` (${selectedIntake.high_blood_pressure_year})`}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.high_cholesterol ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.high_cholesterol ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>High Cholesterol</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.high_cholesterol ? '#000' : '#e0e0e0', color: selectedIntake.high_cholesterol ? '#fff' : '#666' }}>
                         {selectedIntake.high_cholesterol ? 'YES' : 'NO'}
+                        {selectedIntake.high_cholesterol && selectedIntake.high_cholesterol_year && ` (${selectedIntake.high_cholesterol_year})`}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.heart_disease ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.heart_disease ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Heart Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.heart_disease ? '#000' : '#e0e0e0', color: selectedIntake.heart_disease ? '#fff' : '#666' }}>
                         {selectedIntake.heart_disease ? 'YES' : 'NO'}
+                        {selectedIntake.heart_disease && selectedIntake.heart_disease_year && ` (${selectedIntake.heart_disease_year})`}
                       </span>
                     </div>
                   </div>
@@ -2330,12 +2333,14 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Diabetes</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.diabetes ? '#000' : '#e0e0e0', color: selectedIntake.diabetes ? '#fff' : '#666' }}>
                         {selectedIntake.diabetes ? 'YES' : 'NO'}
+                        {selectedIntake.diabetes && selectedIntake.diabetes_year && ` (${selectedIntake.diabetes_year})`}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.thyroid_disorder ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.thyroid_disorder ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Thyroid Disorder</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.thyroid_disorder ? '#000' : '#e0e0e0', color: selectedIntake.thyroid_disorder ? '#fff' : '#666' }}>
                         {selectedIntake.thyroid_disorder ? 'YES' : 'NO'}
+                        {selectedIntake.thyroid_disorder && selectedIntake.thyroid_disorder_year && ` (${selectedIntake.thyroid_disorder_year})`}
                       </span>
                     </div>
                   </div>
@@ -2351,6 +2356,7 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Depression / Anxiety</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.depression_anxiety ? '#000' : '#e0e0e0', color: selectedIntake.depression_anxiety ? '#fff' : '#666' }}>
                         {selectedIntake.depression_anxiety ? 'YES' : 'NO'}
+                        {selectedIntake.depression_anxiety && selectedIntake.depression_anxiety_year && ` (${selectedIntake.depression_anxiety_year})`}
                       </span>
                     </div>
                   </div>
@@ -2366,12 +2372,14 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Kidney Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.kidney_disease ? '#000' : '#e0e0e0', color: selectedIntake.kidney_disease ? '#fff' : '#666' }}>
                         {selectedIntake.kidney_disease ? 'YES' : 'NO'}
+                        {selectedIntake.kidney_disease && selectedIntake.kidney_disease_year && ` (${selectedIntake.kidney_disease_year})`}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.liver_disease ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.liver_disease ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Liver Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.liver_disease ? '#000' : '#e0e0e0', color: selectedIntake.liver_disease ? '#fff' : '#666' }}>
                         {selectedIntake.liver_disease ? 'YES' : 'NO'}
+                        {selectedIntake.liver_disease && selectedIntake.liver_disease_year && ` (${selectedIntake.liver_disease_year})`}
                       </span>
                     </div>
                   </div>
@@ -2387,12 +2395,14 @@ const RangeMedicalSystem = () => {
                       <span style={{ fontSize: '0.9rem' }}>Autoimmune Disorder</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.autoimmune_disorder ? '#000' : '#e0e0e0', color: selectedIntake.autoimmune_disorder ? '#fff' : '#666' }}>
                         {selectedIntake.autoimmune_disorder ? 'YES' : 'NO'}
+                        {selectedIntake.autoimmune_disorder && selectedIntake.autoimmune_disorder_year && ` (${selectedIntake.autoimmune_disorder_year})`}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.cancer ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.cancer ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Cancer</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.cancer ? '#000' : '#e0e0e0', color: selectedIntake.cancer ? '#fff' : '#666' }}>
                         {selectedIntake.cancer ? 'YES' : 'NO'}
+                        {selectedIntake.cancer && selectedIntake.cancer_year && ` (${selectedIntake.cancer_year})`}
                       </span>
                     </div>
                   </div>

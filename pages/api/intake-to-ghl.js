@@ -1,5 +1,5 @@
 // pages/api/intake-to-ghl.js
-// Webhook to send medical intake form data to GoHighLevel
+// Webhook to send medical intake form data to GoHighLevel API v2.0
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,17 +9,11 @@ export default async function handler(req, res) {
   try {
     const intakeData = req.body;
     
-    // GoHighLevel API Configuration
-    const GHL_API_KEY = process.env.GHL_API_KEY; // Add to Vercel env vars
-    const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID; // Add to Vercel env vars
+    // GoHighLevel API v2.0 Configuration
+    const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-e2ba8047-4b3a-48ba-b105-dc67e936d71b';
+    const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
     
-    if (!GHL_API_KEY || !GHL_LOCATION_ID) {
-      console.error('Missing GoHighLevel API credentials');
-      return res.status(500).json({ 
-        success: false, 
-        error: 'GoHighLevel API not configured' 
-      });
-    }
+    console.log('Processing intake form for GoHighLevel...');
 
     // Extract demographic data
     const contactData = {
@@ -34,12 +28,9 @@ export default async function handler(req, res) {
       postalCode: intakeData.zipCode || intakeData.zip || intakeData.postal_code || '',
       country: intakeData.country || 'US',
       locationId: GHL_LOCATION_ID,
-      customFields: [
-        {
-          key: 'medical_intake_form',
-          field_value: 'Complete'
-        }
-      ]
+      customField: {
+        medical_intake_form: 'Complete'
+      }
     };
 
     console.log('Creating/updating contact in GoHighLevel:', {
@@ -47,8 +38,8 @@ export default async function handler(req, res) {
       name: `${contactData.firstName} ${contactData.lastName}`
     });
 
-    // Step 1: Create or update contact in GoHighLevel
-    const contactResponse = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
+    // Step 1: Create or update contact in GoHighLevel (API v2.0)
+    const contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${GHL_API_KEY}`,
@@ -68,8 +59,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const contact = await contactResponse.json();
-    const contactId = contact.contact?.id;
+    const contactResult = await contactResponse.json();
+    const contactId = contactResult.contact?.id;
 
     console.log('Contact created/updated:', contactId);
 
@@ -79,36 +70,55 @@ export default async function handler(req, res) {
       
       console.log('Uploading PDF to GoHighLevel:', pdfUrl);
 
-      // Download the PDF
-      const pdfResponse = await fetch(pdfUrl);
-      const pdfBuffer = await pdfResponse.arrayBuffer();
-      const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
+      try {
+        // Upload file to contact using API v2.0
+        const uploadResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/files/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fileUrl: pdfUrl,
+            fileName: `Medical_Intake_${contactData.firstName}_${contactData.lastName}.pdf`
+          })
+        });
 
-      // Upload to GoHighLevel
-      const uploadResponse = await fetch(`https://rest.gohighlevel.com/v1/contacts/${contactId}/files`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
-        },
-        body: JSON.stringify({
-          fileUrl: pdfUrl,
-          fileName: `Medical_Intake_${contactData.firstName}_${contactData.lastName}.pdf`
-        })
-      });
-
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('PDF upload failed:', errorText);
-        // Don't fail the whole request if PDF upload fails
-      } else {
-        console.log('PDF uploaded successfully');
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.error('PDF upload failed:', errorText);
+          // Don't fail the whole request if PDF upload fails
+        } else {
+          console.log('PDF uploaded successfully');
+        }
+      } catch (uploadError) {
+        console.error('PDF upload error:', uploadError);
+        // Continue even if upload fails
       }
     }
 
-    // Step 3: Mark custom field as complete (already done in contact creation)
-    console.log('Custom field "Medical Intake Form" marked as Complete');
+    // Step 3: Update custom field to mark as complete
+    try {
+      const updateResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          customField: {
+            medical_intake_form: 'Complete'
+          }
+        })
+      });
+
+      if (updateResponse.ok) {
+        console.log('Custom field "Medical Intake Form" marked as Complete');
+      }
+    } catch (updateError) {
+      console.error('Custom field update error:', updateError);
+      // Continue even if custom field update fails
+    }
 
     return res.status(200).json({ 
       success: true, 

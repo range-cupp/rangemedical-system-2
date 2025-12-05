@@ -1,11 +1,19 @@
 // pages/api/intake-to-ghl.js
-// Webhook to send medical intake form data to GoHighLevel API v2.0
-// Enhanced: Creates contact, updates custom field, uploads PDF to documents
+// Fault-tolerant webhook: Creates contact, then tries custom field + PDF
+// Returns success even if custom field or PDF upload fail
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const results = {
+    contactCreated: false,
+    contactId: null,
+    customFieldUpdated: false,
+    pdfUploaded: false,
+    errors: []
+  };
 
   try {
     const intakeData = req.body;
@@ -17,7 +25,9 @@ export default async function handler(req, res) {
     console.log('=== GoHighLevel Integration Start ===');
     console.log('Processing intake for:', intakeData.email);
 
-    // Step 1: Create contact
+    // ============================================================
+    // STEP 1: CREATE CONTACT (CRITICAL - Must succeed)
+    // ============================================================
     const contactData = {
       firstName: intakeData.firstName || '',
       lastName: intakeData.lastName || '',
@@ -55,12 +65,18 @@ export default async function handler(req, res) {
 
     const result = await contactResponse.json();
     const contactId = result.contact?.id || result.id;
+    
+    results.contactCreated = true;
+    results.contactId = contactId;
     console.log('✅ Contact created:', contactId);
 
-    // Step 2: Update custom field "Medical Intake Form" to "Complete"
+    // ============================================================
+    // STEP 2: UPDATE CUSTOM FIELD (Non-critical - log if fails)
+    // ============================================================
     if (contactId) {
-      console.log('Step 2: Updating custom field...');
+      console.log('\nStep 2: Updating custom field...');
       try {
+        // Try format 1: customFields array
         const updateResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
           method: 'PUT',
           headers: {
@@ -78,12 +94,15 @@ export default async function handler(req, res) {
           })
         });
 
+        const updateText = await updateResponse.text();
+        console.log('Custom field update response:', updateResponse.status, updateText);
+
         if (updateResponse.ok) {
-          console.log('✅ Custom field "Medical Intake Form" marked as Complete');
+          results.customFieldUpdated = true;
+          console.log('✅ Custom field updated (format 1)');
         } else {
-          const updateError = await updateResponse.text();
-          console.warn('⚠️ Could not update custom field:', updateError);
-          // Try alternative format
+          // Try format 2: customField object
+          console.log('Trying alternative custom field format...');
           const altResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
             method: 'PUT',
             headers: {
@@ -97,54 +116,59 @@ export default async function handler(req, res) {
               }
             })
           });
+          
           if (altResponse.ok) {
-            console.log('✅ Custom field updated (alternative format)');
+            results.customFieldUpdated = true;
+            console.log('✅ Custom field updated (format 2)');
+          } else {
+            const altText = await altResponse.text();
+            console.warn('⚠️ Custom field update failed:', altText);
+            results.errors.push(`Custom field: ${altText}`);
           }
         }
       } catch (updateError) {
-        console.warn('⚠️ Custom field update error:', updateError.message);
+        console.warn('⚠️ Custom field error:', updateError.message);
+        results.errors.push(`Custom field: ${updateError.message}`);
       }
     }
 
-    // Step 3: Upload PDF to GoHighLevel documents
+    // ============================================================
+    // STEP 3: UPLOAD PDF (Non-critical - log if fails)
+    // ============================================================
     if (intakeData.pdfUrl && contactId) {
-      console.log('Step 3: Uploading PDF to documents...');
+      console.log('\nStep 3: Uploading PDF to documents...');
       console.log('PDF URL:', intakeData.pdfUrl);
       
       try {
-        // First, download the PDF from Supabase
-        const pdfResponse = await fetch(intakeData.pdfUrl);
-        if (!pdfResponse.ok) {
-          throw new Error('Failed to fetch PDF from Supabase');
-        }
-        
-        const pdfBuffer = await pdfResponse.arrayBuffer();
-        const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
-        
-        console.log('PDF downloaded, size:', pdfBuffer.byteLength, 'bytes');
-        
-        // Upload to GoHighLevel using the opportunities file upload endpoint
-        // (contacts file upload might not be available in all API versions)
-        const fileName = `Medical_Intake_${intakeData.firstName}_${intakeData.lastName}_${Date.now()}.pdf`;
-        
-        // Try method 1: Direct file upload
-        const uploadResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/bulk/files`, {
+        // Method 1: Upload by URL
+        console.log('Trying method 1: File URL upload...');
+        const uploadResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/files`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${GHL_API_KEY}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            fileName: fileName,
-            fileUrl: intakeData.pdfUrl
+            fileUrl: intakeData.pdfUrl,
+            fileName: `Medical_Intake_${intakeData.firstName}_${intakeData.lastName}.pdf`
           })
         });
 
+        const uploadText = await uploadResponse.text();
+        console.log('Upload response:', uploadResponse.status, uploadText);
+
         if (uploadResponse.ok) {
-          console.log('✅ PDF uploaded to documents (method 1)');
+          results.pdfUploaded = true;
+          console.log('✅ PDF uploaded (method 1)');
         } else {
-          // Try method 2: Upload as base64
-          const base64Response = await fetch(`https://services.leadconnectorhq.com/medias/upload-file`, {
+          // Method 2: Download PDF and upload as base64
+          console.log('Trying method 2: Base64 upload...');
+          
+          const pdfResponse = await fetch(intakeData.pdfUrl);
+          const pdfBuffer = await pdfResponse.arrayBuffer();
+          const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
+          
+          const base64Response = await fetch('https://services.leadconnectorhq.com/medias/upload-file', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${GHL_API_KEY}`,
@@ -154,17 +178,21 @@ export default async function handler(req, res) {
               locationId: GHL_LOCATION_ID,
               contactId: contactId,
               fileData: pdfBase64,
-              fileName: fileName,
+              fileName: `Medical_Intake_${intakeData.firstName}_${intakeData.lastName}.pdf`,
               hosted: true
             })
           });
 
+          const base64Text = await base64Response.text();
+          console.log('Base64 upload response:', base64Response.status, base64Text);
+
           if (base64Response.ok) {
-            console.log('✅ PDF uploaded to documents (method 2)');
+            results.pdfUploaded = true;
+            console.log('✅ PDF uploaded (method 2)');
           } else {
-            // Fallback: Add as note with link
-            console.log('⚠️ Direct upload failed, adding as note with link');
-            await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
+            // Method 3: Add as note
+            console.log('Trying method 3: Add as note...');
+            const noteResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${GHL_API_KEY}`,
@@ -175,28 +203,46 @@ export default async function handler(req, res) {
                 userId: contactId
               })
             });
-            console.log('✅ PDF link added as note');
+
+            if (noteResponse.ok) {
+              results.pdfUploaded = true; // Link added as note
+              console.log('✅ PDF link added as note (method 3)');
+            } else {
+              const noteText = await noteResponse.text();
+              console.warn('⚠️ All PDF upload methods failed');
+              results.errors.push(`PDF upload: ${noteText}`);
+            }
           }
         }
       } catch (uploadError) {
-        console.error('⚠️ PDF upload error:', uploadError.message);
-        // Even if upload fails, continue - contact was created successfully
+        console.warn('⚠️ PDF upload error:', uploadError.message);
+        results.errors.push(`PDF upload: ${uploadError.message}`);
       }
     }
 
-    console.log('=== GoHighLevel Integration Complete ===');
+    console.log('\n=== GoHighLevel Integration Complete ===');
+    console.log('Results:', JSON.stringify(results, null, 2));
 
+    // Return success if contact was created, even if other steps failed
     return res.status(200).json({ 
-      success: true, 
-      contactId,
-      message: 'Contact created, custom field updated, and PDF uploaded to GoHighLevel'
+      success: true,
+      contactId: results.contactId,
+      contactCreated: results.contactCreated,
+      customFieldUpdated: results.customFieldUpdated,
+      pdfUploaded: results.pdfUploaded,
+      errors: results.errors,
+      message: results.contactCreated 
+        ? 'Contact created successfully. Check errors array for any optional step failures.'
+        : 'Failed to create contact'
     });
 
   } catch (error) {
     console.error('❌ Unexpected error:', error);
+    console.error('Stack:', error.stack);
     return res.status(500).json({ 
       success: false, 
-      error: error.message
+      error: error.message,
+      results: results
     });
   }
 }

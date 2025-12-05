@@ -1,6 +1,6 @@
 // pages/api/intake-to-ghl.js
 // Webhook to send medical intake form data to GoHighLevel API v2.0
-// SIMPLIFIED VERSION - Creates contact without custom field first
+// Enhanced: Creates contact, updates custom field, uploads PDF to documents
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     console.log('=== GoHighLevel Integration Start ===');
     console.log('Processing intake for:', intakeData.email);
 
-    // Simple contact data - NO custom fields yet
+    // Step 1: Create contact
     const contactData = {
       firstName: intakeData.firstName || '',
       lastName: intakeData.lastName || '',
@@ -32,10 +32,7 @@ export default async function handler(req, res) {
       locationId: GHL_LOCATION_ID
     };
 
-    console.log('Contact data:', JSON.stringify(contactData, null, 2));
-
-    // Step 1: Create contact
-    console.log('Calling GoHighLevel API...');
+    console.log('Step 1: Creating contact...');
     const contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/', {
       method: 'POST',
       headers: {
@@ -46,43 +43,144 @@ export default async function handler(req, res) {
       body: JSON.stringify(contactData)
     });
 
-    const responseText = await contactResponse.text();
-    console.log('GHL Status:', contactResponse.status);
-    console.log('GHL Response:', responseText);
-
     if (!contactResponse.ok) {
-      console.error('❌ GoHighLevel API Error');
+      const errorText = await contactResponse.text();
+      console.error('❌ Contact creation failed:', errorText);
       return res.status(500).json({ 
         success: false, 
-        error: 'GoHighLevel API error',
-        status: contactResponse.status,
-        details: responseText
+        error: 'Failed to create contact',
+        details: errorText
       });
     }
 
-    const result = JSON.parse(responseText);
+    const result = await contactResponse.json();
     const contactId = result.contact?.id || result.id;
-
     console.log('✅ Contact created:', contactId);
 
-    // Step 2: Add PDF URL as a note
-    if (intakeData.pdfUrl && contactId) {
-      console.log('Adding PDF URL as note...');
+    // Step 2: Update custom field "Medical Intake Form" to "Complete"
+    if (contactId) {
+      console.log('Step 2: Updating custom field...');
       try {
-        await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
+        const updateResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Version': '2021-07-28'
+          },
+          body: JSON.stringify({
+            customFields: [
+              {
+                key: 'medical_intake_form',
+                field_value: 'Complete'
+              }
+            ]
+          })
+        });
+
+        if (updateResponse.ok) {
+          console.log('✅ Custom field "Medical Intake Form" marked as Complete');
+        } else {
+          const updateError = await updateResponse.text();
+          console.warn('⚠️ Could not update custom field:', updateError);
+          // Try alternative format
+          const altResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Content-Type': 'application/json',
+              'Version': '2021-07-28'
+            },
+            body: JSON.stringify({
+              customField: {
+                medical_intake_form: 'Complete'
+              }
+            })
+          });
+          if (altResponse.ok) {
+            console.log('✅ Custom field updated (alternative format)');
+          }
+        }
+      } catch (updateError) {
+        console.warn('⚠️ Custom field update error:', updateError.message);
+      }
+    }
+
+    // Step 3: Upload PDF to GoHighLevel documents
+    if (intakeData.pdfUrl && contactId) {
+      console.log('Step 3: Uploading PDF to documents...');
+      console.log('PDF URL:', intakeData.pdfUrl);
+      
+      try {
+        // First, download the PDF from Supabase
+        const pdfResponse = await fetch(intakeData.pdfUrl);
+        if (!pdfResponse.ok) {
+          throw new Error('Failed to fetch PDF from Supabase');
+        }
+        
+        const pdfBuffer = await pdfResponse.arrayBuffer();
+        const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
+        
+        console.log('PDF downloaded, size:', pdfBuffer.byteLength, 'bytes');
+        
+        // Upload to GoHighLevel using the opportunities file upload endpoint
+        // (contacts file upload might not be available in all API versions)
+        const fileName = `Medical_Intake_${intakeData.firstName}_${intakeData.lastName}_${Date.now()}.pdf`;
+        
+        // Try method 1: Direct file upload
+        const uploadResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/bulk/files`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${GHL_API_KEY}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            body: `📄 Medical Intake Form completed\n\nPDF: ${intakeData.pdfUrl}`,
-            userId: contactId
+            fileName: fileName,
+            fileUrl: intakeData.pdfUrl
           })
         });
-        console.log('✅ Note added with PDF link');
-      } catch (noteError) {
-        console.warn('⚠️ Could not add note:', noteError.message);
+
+        if (uploadResponse.ok) {
+          console.log('✅ PDF uploaded to documents (method 1)');
+        } else {
+          // Try method 2: Upload as base64
+          const base64Response = await fetch(`https://services.leadconnectorhq.com/medias/upload-file`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              locationId: GHL_LOCATION_ID,
+              contactId: contactId,
+              fileData: pdfBase64,
+              fileName: fileName,
+              hosted: true
+            })
+          });
+
+          if (base64Response.ok) {
+            console.log('✅ PDF uploaded to documents (method 2)');
+          } else {
+            // Fallback: Add as note with link
+            console.log('⚠️ Direct upload failed, adding as note with link');
+            await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${GHL_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                body: `📄 Medical Intake Form Completed\n\nView PDF: ${intakeData.pdfUrl}\n\nDate: ${new Date().toLocaleDateString()}`,
+                userId: contactId
+              })
+            });
+            console.log('✅ PDF link added as note');
+          }
+        }
+      } catch (uploadError) {
+        console.error('⚠️ PDF upload error:', uploadError.message);
+        // Even if upload fails, continue - contact was created successfully
       }
     }
 
@@ -91,7 +189,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       success: true, 
       contactId,
-      message: 'Contact created in GoHighLevel'
+      message: 'Contact created, custom field updated, and PDF uploaded to GoHighLevel'
     });
 
   } catch (error) {

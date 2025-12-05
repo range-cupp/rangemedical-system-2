@@ -3245,55 +3245,6 @@ const RangeMedicalSystem = () => {
               </div>
             )}
 
-
-                  </div>
-
-                  {/* Modal Footer with Save/Cancel */}
-                  <div style={{
-                    padding: '1.5rem',
-                    borderTop: '2px solid #000000',
-                    background: '#f9f9f9',
-                    display: 'flex',
-                    gap: '1rem',
-                    justifyContent: 'flex-end',
-                    position: 'sticky',
-                    bottom: 0
-                  }}>
-                    <button
-                      onClick={() => {
-                        setShowLabResultEntry(false);
-                        setEditingLabResult(null);
-                      }}
-                      className="btn"
-                      style={{
-                        background: '#ffffff',
-                        border: '2px solid #000000',
-                        color: '#000000',
-                        padding: '0.75rem 1.5rem',
-                        fontSize: '0.9rem',
-                        fontWeight: 700,
-                        textTransform: 'uppercase'
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleLabResultSubmit}
-                      className="btn btn-primary"
-                      style={{
-                        padding: '0.75rem 2rem',
-                        fontSize: '0.9rem',
-                        fontWeight: 700,
-                        textTransform: 'uppercase'
-                      }}
-                    >
-                      {editingLabResult ? 'Update Lab Results' : 'Save Lab Results'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {labs.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {/* Timeline header */}

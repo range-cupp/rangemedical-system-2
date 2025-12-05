@@ -66,13 +66,13 @@ export default async function handler(req, res) {
             'Version': '2021-07-28'
           },
           body: JSON.stringify({
-            customFields: [{ key: 'peptide_consent', field_value: 'Signed' }]
+            customFields: [{ key: 'peptide_consent', field_value: 'Complete' }]
           })
         });
         
         if (updateResponse.ok) {
           results.customFieldUpdated = true;
-          console.log('✅ Custom field "peptide_consent" marked as Signed');
+          console.log('✅ Custom field "peptide_consent" marked as Complete');
         }
       } catch (e) {
         console.warn('⚠️ Custom field update failed:', e.message);

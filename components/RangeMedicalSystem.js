@@ -1,3 +1,12 @@
+/*
+ * Range Medical System - Styled to match intake form
+ * 
+ * IMPORTANT: Add this to pages/_app.js or pages/_document.js:
+ * <link rel="preconnect" href="https://fonts.googleapis.com">
+ * <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ * <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, TrendingUp, Users, DollarSign, AlertCircle, Activity, Syringe, Droplet, Sun, Wind, FileText, Bell, ChevronRight, X, Loader, Trash2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
@@ -1267,9 +1276,9 @@ const RangeMedicalSystem = () => {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: '#ffffff',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      color: '#000000',
+      background: '#f5f5f5',
+      fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+      color: '#171717',
       padding: '2rem'
     }}>
       {/* Patient Detail View */}
@@ -1320,7 +1329,7 @@ const RangeMedicalSystem = () => {
                   <div style={{ fontSize: '0.7rem', color: '#666666', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>
                     Active Protocols
                   </div>
-                  <div style={{ fontFamily: 'Courier Prime', fontSize: '1.75rem', fontWeight: 700 }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: '1.75rem', fontWeight: 700 }}>
                     {selectedPatient.protocols?.filter(p => p.status === 'active').length || 0}
                   </div>
                 </div>
@@ -1328,7 +1337,7 @@ const RangeMedicalSystem = () => {
                   <div style={{ fontSize: '0.7rem', color: '#666666', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>
                     Total Protocols
                   </div>
-                  <div style={{ fontFamily: 'Courier Prime', fontSize: '1.75rem', fontWeight: 700 }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: '1.75rem', fontWeight: 700 }}>
                     {selectedPatient.protocols?.length || 0}
                   </div>
                 </div>
@@ -1361,7 +1370,7 @@ const RangeMedicalSystem = () => {
           {/* Protocols Section */}
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', letterSpacing: '1px' }}>
                 Treatment Protocols
               </h3>
               <button
@@ -1450,7 +1459,7 @@ const RangeMedicalSystem = () => {
                         {protocol.startDate && (
                           <div>
                             <div style={{ color: '#666666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Start Date</div>
-                            <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>
+                            <div style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>
                               {new Date(protocol.startDate).toLocaleDateString('en-US')}
                             </div>
                           </div>
@@ -1458,31 +1467,31 @@ const RangeMedicalSystem = () => {
                         {protocol.duration && (
                           <div>
                             <div style={{ color: '#666666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Duration</div>
-                            <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>{protocol.duration} days</div>
+                            <div style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>{protocol.duration} days</div>
                           </div>
                         )}
                         {protocol.price && (
                           <div>
                             <div style={{ color: '#666666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Price</div>
-                            <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>${protocol.price}</div>
+                            <div style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>${protocol.price}</div>
                           </div>
                         )}
                         {protocol.dosing && (
                           <div>
                             <div style={{ color: '#666666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Dosing</div>
-                            <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>{protocol.dosing}</div>
+                            <div style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>{protocol.dosing}</div>
                           </div>
                         )}
                         {protocol.injectionSchedule && (
                           <div>
                             <div style={{ color: '#666666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Schedule</div>
-                            <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>{protocol.injectionSchedule}</div>
+                            <div style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>{protocol.injectionSchedule}</div>
                           </div>
                         )}
                         {protocol.nextLabDate && (
                           <div>
                             <div style={{ color: '#666666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Next Lab</div>
-                            <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>
+                            <div style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>
                               {new Date(protocol.nextLabDate).toLocaleDateString('en-US')}
                             </div>
                           </div>
@@ -1490,7 +1499,7 @@ const RangeMedicalSystem = () => {
                       </div>
 
                       {protocol.notes && (
-                        <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
+                        <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#fafafa', border: '1px solid #e0e0e0' }}>
                           <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.35rem' }}>
                             Notes
                           </div>
@@ -1543,7 +1552,7 @@ const RangeMedicalSystem = () => {
           {/* Labs Section */}
           {selectedPatient.labs && selectedPatient.labs.length > 0 && (
             <div className="card" style={{ marginTop: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', letterSpacing: '1px' }}>
                 Lab Results
               </h3>
               <div style={{ display: 'grid', gap: '1rem' }}>
@@ -1551,7 +1560,7 @@ const RangeMedicalSystem = () => {
                   <div key={index} style={{ padding: '1rem', border: '2px solid #000000' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                       <div style={{ fontWeight: 700, textTransform: 'uppercase' }}>{lab.type}</div>
-                      <div style={{ fontFamily: 'Courier Prime', fontSize: '0.9rem' }}>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: '0.9rem' }}>
                         {new Date(lab.date).toLocaleDateString('en-US')}
                       </div>
                     </div>
@@ -1567,30 +1576,30 @@ const RangeMedicalSystem = () => {
           {/* Measurements Section */}
           {selectedPatient.measurements && selectedPatient.measurements.length > 0 && (
             <div className="card" style={{ marginTop: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', letterSpacing: '1px' }}>
                 Body Measurements
               </h3>
               <div style={{ display: 'grid', gap: '1rem' }}>
                 {selectedPatient.measurements.slice(0, 5).map((measurement, index) => (
                   <div key={index} style={{ padding: '1rem', border: '2px solid #000000' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                      <div style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>
+                      <div style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>
                         {new Date(measurement.date).toLocaleDateString('en-US')}
                       </div>
                       <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem' }}>
                         {measurement.weight && (
                           <div>
-                            <span style={{ color: '#666666' }}>Weight:</span> <span style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>{measurement.weight} lbs</span>
+                            <span style={{ color: '#666666' }}>Weight:</span> <span style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>{measurement.weight} lbs</span>
                           </div>
                         )}
                         {measurement.bodyFat && (
                           <div>
-                            <span style={{ color: '#666666' }}>Body Fat:</span> <span style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>{measurement.bodyFat}%</span>
+                            <span style={{ color: '#666666' }}>Body Fat:</span> <span style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>{measurement.bodyFat}%</span>
                           </div>
                         )}
                         {measurement.waist && (
                           <div>
-                            <span style={{ color: '#666666' }}>Waist:</span> <span style={{ fontFamily: 'Courier Prime', fontWeight: 700 }}>{measurement.waist}"</span>
+                            <span style={{ color: '#666666' }}>Waist:</span> <span style={{ fontFamily: 'DM Sans', fontWeight: 700 }}>{measurement.waist}"</span>
                           </div>
                         )}
                       </div>
@@ -1604,7 +1613,7 @@ const RangeMedicalSystem = () => {
           {/* Intake Forms Section */}
           {selectedPatient.intakes && selectedPatient.intakes.length > 0 && (
             <div className="card" style={{ marginTop: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', letterSpacing: '1px' }}>
                 Medical Intake Forms
               </h3>
               <div style={{ display: 'grid', gap: '1rem' }}>
@@ -1613,7 +1622,7 @@ const RangeMedicalSystem = () => {
                     key={intake.id || index} 
                     onClick={() => openIntakePanel(intake)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#f9f9f9';
+                      e.currentTarget.style.background = '#fafafa';
                       e.currentTarget.style.transform = 'translateX(4px)';
                     }}
                     onMouseLeave={(e) => {
@@ -1655,7 +1664,7 @@ const RangeMedicalSystem = () => {
 
                     {/* Chief Complaint Preview */}
                     {intake.what_brings_you && (
-                      <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
+                      <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#fafafa', border: '1px solid #e0e0e0' }}>
                         <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.35rem' }}>
                           Chief Complaint
                         </div>
@@ -1690,7 +1699,7 @@ const RangeMedicalSystem = () => {
           {/* Medical Documents Section */}
           <div className="card" style={{ marginTop: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', letterSpacing: '1px' }}>
                 Medical Documents
               </h3>
               <button
@@ -1706,7 +1715,7 @@ const RangeMedicalSystem = () => {
             {showDocumentUpload && (
               <div style={{ 
                 padding: '1.25rem', 
-                background: '#f9f9f9', 
+                background: '#fafafa', 
                 border: '2px solid #000000', 
                 marginBottom: '1.5rem' 
               }}>
@@ -1856,7 +1865,7 @@ const RangeMedicalSystem = () => {
                           color: '#444444',
                           marginTop: '0.5rem',
                           padding: '0.5rem',
-                          background: '#f9f9f9',
+                          background: '#fafafa',
                           border: '1px solid #e0e0e0'
                         }}>
                           <strong>Notes:</strong> {doc.notes}
@@ -1899,7 +1908,7 @@ const RangeMedicalSystem = () => {
           {/* Labs Section */}
           <div className="card" style={{ marginTop: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', letterSpacing: '1px' }}>
                 Laboratory Results
               </h3>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -1942,7 +1951,7 @@ const RangeMedicalSystem = () => {
             {showLabUpload && (
               <div style={{ 
                 padding: '1.25rem', 
-                background: '#f9f9f9', 
+                background: '#fafafa', 
                 border: '2px solid #000000', 
                 marginBottom: '1.5rem' 
               }}>
@@ -2157,7 +2166,7 @@ const RangeMedicalSystem = () => {
                   <div style={{ padding: '2rem' }}>
                     {/* Panel Selection and Metadata */}
                     <div style={{
-                      background: '#f9f9f9',
+                      background: '#fafafa',
                       border: '2px solid #000000',
                       padding: '1.5rem',
                       marginBottom: '2rem'
@@ -2168,7 +2177,7 @@ const RangeMedicalSystem = () => {
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                          <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#404040' }}>
                             Panel Type *
                           </label>
                           <select
@@ -2176,11 +2185,19 @@ const RangeMedicalSystem = () => {
                             onChange={(e) => setLabResultData({ ...labResultData, panel_type: e.target.value })}
                             style={{
                               width: '100%',
-                              padding: '0.75rem',
-                              border: '2px solid #000000',
-                              fontSize: '0.9rem',
+                              padding: '0.75rem 1rem',
+                              border: '1.5px solid #d4d4d4',
+                              fontSize: '1rem',
                               fontFamily: 'inherit',
                               background: '#ffffff'
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#000000';
+                              e.target.style.boxShadow = '0 0 0 3px rgba(0, 0, 0, 0.1)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = '#d4d4d4';
+                              e.target.style.boxShadow = 'none';
                             }}
                           >
                             <option value="Male Initial">Male Initial</option>
@@ -2191,7 +2208,7 @@ const RangeMedicalSystem = () => {
                         </div>
 
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                          <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#404040' }}>
                             Lab Provider
                           </label>
                           <select
@@ -2213,7 +2230,7 @@ const RangeMedicalSystem = () => {
                         </div>
 
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                          <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#404040' }}>
                             Test Date *
                           </label>
                           <input
@@ -2232,7 +2249,7 @@ const RangeMedicalSystem = () => {
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                        <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#404040' }}>
                           Notes
                         </label>
                         <textarea
@@ -2299,7 +2316,7 @@ const RangeMedicalSystem = () => {
                                           width: '100%',
                                           padding: '0.75rem',
                                           paddingRight: status ? '2.5rem' : '0.75rem',
-                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: status ? status.bgColor : '#ffffff'
@@ -2390,7 +2407,7 @@ const RangeMedicalSystem = () => {
                                           width: '100%',
                                           padding: '0.75rem',
                                           paddingRight: status ? '2.5rem' : '0.75rem',
-                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: status ? status.bgColor : '#ffffff'
@@ -2471,7 +2488,7 @@ const RangeMedicalSystem = () => {
                                           width: '100%',
                                           padding: '0.75rem',
                                           paddingRight: status ? '2.5rem' : '0.75rem',
-                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: status ? status.bgColor : '#ffffff'
@@ -2551,7 +2568,7 @@ const RangeMedicalSystem = () => {
                                           width: '100%',
                                           padding: '0.75rem',
                                           paddingRight: status ? '2.5rem' : '0.75rem',
-                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: status ? status.bgColor : '#ffffff'
@@ -2632,7 +2649,7 @@ const RangeMedicalSystem = () => {
                                           width: '100%',
                                           padding: '0.75rem',
                                           paddingRight: status ? '2.5rem' : '0.75rem',
-                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: status ? status.bgColor : '#ffffff'
@@ -2717,7 +2734,7 @@ const RangeMedicalSystem = () => {
                                             width: '100%',
                                             padding: '0.75rem',
                                             paddingRight: status ? '2.5rem' : '0.75rem',
-                                            border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                            border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                             fontSize: '0.9rem',
                                             fontFamily: 'inherit',
                                             background: status ? status.bgColor : '#ffffff'
@@ -2797,7 +2814,7 @@ const RangeMedicalSystem = () => {
                                           width: '100%',
                                           padding: '0.75rem',
                                           paddingRight: status ? '2.5rem' : '0.75rem',
-                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: status ? status.bgColor : '#ffffff'
@@ -2880,7 +2897,7 @@ const RangeMedicalSystem = () => {
                                           width: '100%',
                                           padding: '0.75rem',
                                           paddingRight: status ? '2.5rem' : '0.75rem',
-                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: status ? status.bgColor : '#ffffff'
@@ -2957,7 +2974,7 @@ const RangeMedicalSystem = () => {
                                       style={{
                                         width: '100%',
                                         padding: '0.75rem',
-                                        border: '2px solid #d1d5db',
+                                        border: '2px solid #d4d4d4',
                                         fontSize: '0.9rem',
                                         fontFamily: 'inherit',
                                         background: '#ffffff'
@@ -3026,7 +3043,7 @@ const RangeMedicalSystem = () => {
                                           width: '100%',
                                           padding: '0.75rem',
                                           paddingRight: status ? '2.5rem' : '0.75rem',
-                                          border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                          border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: status ? status.bgColor : '#ffffff'
@@ -3109,7 +3126,7 @@ const RangeMedicalSystem = () => {
                                         style={{
                                           width: '100%',
                                           padding: '0.75rem',
-                                          border: '2px solid #d1d5db',
+                                          border: '2px solid #d4d4d4',
                                           fontSize: '0.9rem',
                                           fontFamily: 'inherit',
                                           background: '#ffffff'
@@ -3179,7 +3196,7 @@ const RangeMedicalSystem = () => {
                                             width: '100%',
                                             padding: '0.75rem',
                                             paddingRight: status ? '2.5rem' : '0.75rem',
-                                            border: `2px solid ${status ? status.color : '#d1d5db'}`,
+                                            border: `2px solid ${status ? status.color : '#d4d4d4'}`,
                                             fontSize: '0.9rem',
                                             fontFamily: 'inherit',
                                             background: status ? status.bgColor : '#ffffff'
@@ -3221,7 +3238,7 @@ const RangeMedicalSystem = () => {
                   <div style={{
                     padding: '1.5rem',
                     borderTop: '2px solid #000000',
-                    background: '#f9f9f9',
+                    background: '#fafafa',
                     display: 'flex',
                     gap: '1rem',
                     justifyContent: 'flex-end',
@@ -3296,7 +3313,7 @@ const RangeMedicalSystem = () => {
                           <div style={{ 
                             fontSize: '0.95rem', 
                             fontWeight: 700,
-                            fontFamily: 'Courier Prime'
+                            fontFamily: 'DM Sans'
                           }}>
                             {new Date(lab.test_date).toLocaleDateString('en-US')}
                           </div>
@@ -3383,7 +3400,7 @@ const RangeMedicalSystem = () => {
           {/* Consent Forms Section */}
           {consentForms.length > 0 && (
             <div className="card" style={{ marginTop: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', letterSpacing: '1px' }}>
                 Consent Forms
               </h3>
               <div style={{ display: 'grid', gap: '1rem' }}>
@@ -3392,7 +3409,7 @@ const RangeMedicalSystem = () => {
                     key={consent.id || index}
                     onClick={() => openConsentPanel(consent)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#f9f9f9';
+                      e.currentTarget.style.background = '#fafafa';
                       e.currentTarget.style.transform = 'translateX(4px)';
                     }}
                     onMouseLeave={(e) => {
@@ -3563,28 +3580,28 @@ const RangeMedicalSystem = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Name</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
                       {selectedIntake.first_name} {selectedIntake.last_name}
                     </div>
                   </div>
                   {selectedIntake.date_of_birth && (
                     <div>
                       <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
-                      <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
                         {new Date(selectedIntake.date_of_birth).toLocaleDateString('en-US')}
                       </div>
                     </div>
                   )}
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Email</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-word' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-word' }}>
                       {selectedIntake.email}
                     </div>
                   </div>
                   {selectedIntake.phone && (
                     <div>
                       <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Phone</div>
-                      <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
                         {selectedIntake.phone}
                       </div>
                     </div>
@@ -3606,7 +3623,7 @@ const RangeMedicalSystem = () => {
                   }}>
                     Health Concerns & Symptoms
                   </h3>
-                  <div style={{ padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
+                  <div style={{ padding: '1rem', background: '#fafafa', border: '1px solid #e0e0e0' }}>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>
                       What Brings You In
                     </div>
@@ -3672,21 +3689,21 @@ const RangeMedicalSystem = () => {
                     Cardiovascular Conditions
                   </div>
                   <div style={{ display: 'grid', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.high_blood_pressure ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.high_blood_pressure ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.high_blood_pressure ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.high_blood_pressure ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>High Blood Pressure</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.high_blood_pressure ? '#000' : '#e0e0e0', color: selectedIntake.high_blood_pressure ? '#fff' : '#666' }}>
                         {selectedIntake.high_blood_pressure ? 'YES' : 'NO'}
                         {selectedIntake.high_blood_pressure && selectedIntake.high_blood_pressure_year && ` (${selectedIntake.high_blood_pressure_year})`}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.high_cholesterol ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.high_cholesterol ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.high_cholesterol ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.high_cholesterol ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>High Cholesterol</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.high_cholesterol ? '#000' : '#e0e0e0', color: selectedIntake.high_cholesterol ? '#fff' : '#666' }}>
                         {selectedIntake.high_cholesterol ? 'YES' : 'NO'}
                         {selectedIntake.high_cholesterol && selectedIntake.high_cholesterol_year && ` (${selectedIntake.high_cholesterol_year})`}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.heart_disease ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.heart_disease ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.heart_disease ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.heart_disease ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Heart Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.heart_disease ? '#000' : '#e0e0e0', color: selectedIntake.heart_disease ? '#fff' : '#666' }}>
                         {selectedIntake.heart_disease ? 'YES' : 'NO'}
@@ -3703,7 +3720,7 @@ const RangeMedicalSystem = () => {
                     Metabolic & Endocrine Conditions
                   </div>
                   <div style={{ display: 'grid', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.diabetes ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.diabetes ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.diabetes ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.diabetes ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Diabetes</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.diabetes ? '#000' : '#e0e0e0', color: selectedIntake.diabetes ? '#fff' : '#666' }}>
                         {selectedIntake.diabetes ? 'YES' : 'NO'}
@@ -3711,7 +3728,7 @@ const RangeMedicalSystem = () => {
                         {selectedIntake.diabetes && selectedIntake.diabetes_year && ` (${selectedIntake.diabetes_year})`}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.thyroid_disorder ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.thyroid_disorder ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.thyroid_disorder ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.thyroid_disorder ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Thyroid Disorder</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.thyroid_disorder ? '#000' : '#e0e0e0', color: selectedIntake.thyroid_disorder ? '#fff' : '#666' }}>
                         {selectedIntake.thyroid_disorder ? 'YES' : 'NO'}
@@ -3728,7 +3745,7 @@ const RangeMedicalSystem = () => {
                     Mental Health Conditions
                   </div>
                   <div style={{ display: 'grid', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.depression_anxiety ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.depression_anxiety ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.depression_anxiety ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.depression_anxiety ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Depression / Anxiety</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.depression_anxiety ? '#000' : '#e0e0e0', color: selectedIntake.depression_anxiety ? '#fff' : '#666' }}>
                         {selectedIntake.depression_anxiety ? 'YES' : 'NO'}
@@ -3744,7 +3761,7 @@ const RangeMedicalSystem = () => {
                     Organ Health Conditions
                   </div>
                   <div style={{ display: 'grid', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.kidney_disease ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.kidney_disease ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.kidney_disease ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.kidney_disease ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Kidney Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.kidney_disease ? '#000' : '#e0e0e0', color: selectedIntake.kidney_disease ? '#fff' : '#666' }}>
                         {selectedIntake.kidney_disease ? 'YES' : 'NO'}
@@ -3752,7 +3769,7 @@ const RangeMedicalSystem = () => {
                         {selectedIntake.kidney_disease && selectedIntake.kidney_disease_year && ` (${selectedIntake.kidney_disease_year})`}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.liver_disease ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.liver_disease ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.liver_disease ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.liver_disease ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Liver Disease</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.liver_disease ? '#000' : '#e0e0e0', color: selectedIntake.liver_disease ? '#fff' : '#666' }}>
                         {selectedIntake.liver_disease ? 'YES' : 'NO'}
@@ -3769,7 +3786,7 @@ const RangeMedicalSystem = () => {
                     Immune System & Cancer
                   </div>
                   <div style={{ display: 'grid', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.autoimmune_disorder ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.autoimmune_disorder ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.autoimmune_disorder ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.autoimmune_disorder ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Autoimmune Disorder</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.autoimmune_disorder ? '#000' : '#e0e0e0', color: selectedIntake.autoimmune_disorder ? '#fff' : '#666' }}>
                         {selectedIntake.autoimmune_disorder ? 'YES' : 'NO'}
@@ -3777,7 +3794,7 @@ const RangeMedicalSystem = () => {
                         {selectedIntake.autoimmune_disorder && selectedIntake.autoimmune_disorder_year && ` (${selectedIntake.autoimmune_disorder_year})`}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.cancer ? '#fef3c7' : '#f9f9f9', border: '1px solid ' + (selectedIntake.cancer ? '#fbbf24' : '#e0e0e0') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: selectedIntake.cancer ? '#fef3c7' : '#fafafa', border: '1px solid ' + (selectedIntake.cancer ? '#fbbf24' : '#e0e0e0') }}>
                       <span style={{ fontSize: '0.9rem' }}>Cancer</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.cancer ? '#000' : '#e0e0e0', color: selectedIntake.cancer ? '#fff' : '#666' }}>
                         {selectedIntake.cancer ? 'YES' : 'NO'}
@@ -3803,19 +3820,19 @@ const RangeMedicalSystem = () => {
                   Medications & Allergies
                 </h3>
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.on_hrt ? '#dbeafe' : '#f9f9f9', border: '1px solid ' + (selectedIntake.on_hrt ? '#3b82f6' : '#e0e0e0') }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.on_hrt ? '#dbeafe' : '#fafafa', border: '1px solid ' + (selectedIntake.on_hrt ? '#3b82f6' : '#e0e0e0') }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>On HRT</span>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.on_hrt ? '#3b82f6' : '#e0e0e0', color: selectedIntake.on_hrt ? '#fff' : '#666' }}>
                       {selectedIntake.on_hrt ? 'YES' : 'NO'}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.on_other_medications ? '#dbeafe' : '#f9f9f9', border: '1px solid ' + (selectedIntake.on_other_medications ? '#3b82f6' : '#e0e0e0') }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.on_other_medications ? '#dbeafe' : '#fafafa', border: '1px solid ' + (selectedIntake.on_other_medications ? '#3b82f6' : '#e0e0e0') }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>On Other Medications</span>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.on_other_medications ? '#3b82f6' : '#e0e0e0', color: selectedIntake.on_other_medications ? '#fff' : '#666' }}>
                       {selectedIntake.on_other_medications ? 'YES' : 'NO'}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.has_allergies ? '#fff5f5' : '#f9f9f9', border: '1px solid ' + (selectedIntake.has_allergies ? '#fecaca' : '#e0e0e0') }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: selectedIntake.has_allergies ? '#fff5f5' : '#fafafa', border: '1px solid ' + (selectedIntake.has_allergies ? '#fecaca' : '#e0e0e0') }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Has Allergies</span>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.125rem 0.5rem', background: selectedIntake.has_allergies ? '#dc2626' : '#e0e0e0', color: selectedIntake.has_allergies ? '#fff' : '#666' }}>
                       {selectedIntake.has_allergies ? 'YES' : 'NO'}
@@ -3963,26 +3980,26 @@ const RangeMedicalSystem = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Name</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
                       {selectedConsent.first_name} {selectedConsent.last_name}
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
                       {new Date(selectedConsent.date_of_birth).toLocaleDateString('en-US')}
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Email</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-word' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-word' }}>
                       {selectedConsent.email}
                     </div>
                   </div>
                   {selectedConsent.phone && (
                     <div>
                       <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Phone</div>
-                      <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                      <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
                         {selectedConsent.phone}
                       </div>
                     </div>
@@ -4016,13 +4033,13 @@ const RangeMedicalSystem = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Consent Type</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
                       {selectedConsent.consent_type || 'Blood Draw'}
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Consent Date</div>
-                    <div style={{ fontFamily: 'Courier Prime', fontWeight: 700, fontSize: '1rem' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
                       {new Date(selectedConsent.consent_date).toLocaleDateString('en-US')}
                     </div>
                   </div>
@@ -4061,7 +4078,7 @@ const RangeMedicalSystem = () => {
 
               {/* Submission Info */}
               <section>
-                <div style={{ padding: '1rem', background: '#f9f9f9', border: '1px solid #e0e0e0', fontSize: '0.85rem', color: '#666666' }}>
+                <div style={{ padding: '1rem', background: '#fafafa', border: '1px solid #e0e0e0', fontSize: '0.85rem', color: '#666666' }}>
                   <strong>Submitted:</strong> {new Date(selectedConsent.submitted_at).toLocaleDateString('en-US')} at {new Date(selectedConsent.submitted_at).toLocaleTimeString()}
                 </div>
               </section>
@@ -4380,10 +4397,10 @@ const RangeMedicalSystem = () => {
                   marginBottom: '1.5rem', 
                   padding: '1.5rem', 
                   border: '2px solid #000000', 
-                  background: '#f9f9f9' 
+                  background: '#fafafa' 
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                       Quick Add Patient
                     </h3>
                     <button
@@ -4822,28 +4839,28 @@ const RangeMedicalSystem = () => {
           <div style={{ fontSize: '0.7rem', color: '#666666', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '0.5rem' }}>
             Total Active Protocols
           </div>
-          <div style={{ fontFamily: 'Courier Prime', fontSize: '2rem', fontWeight: 700 }}>{protocolStats.total}</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: '2rem', fontWeight: 700 }}>{protocolStats.total}</div>
         </div>
         
         <div className="card">
           <div style={{ fontSize: '0.7rem', color: '#666666', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '0.5rem' }}>
             Active Patients
           </div>
-          <div style={{ fontFamily: 'Courier Prime', fontSize: '2rem', fontWeight: 700 }}>{patients.length}</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: '2rem', fontWeight: 700 }}>{patients.length}</div>
         </div>
         
         <div className="card">
           <div style={{ fontSize: '0.7rem', color: '#666666', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '0.5rem' }}>
             Pending Alerts
           </div>
-          <div style={{ fontFamily: 'Courier Prime', fontSize: '2rem', fontWeight: 700 }}>{alerts.length}</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: '2rem', fontWeight: 700 }}>{alerts.length}</div>
         </div>
         
         <div className="card">
           <div style={{ fontSize: '0.7rem', color: '#666666', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '0.5rem' }}>
             Total Revenue
           </div>
-          <div style={{ fontFamily: 'Courier Prime', fontSize: '2rem', fontWeight: 700 }}>${revenueData.total.toLocaleString()}</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: '2rem', fontWeight: 700 }}>${revenueData.total.toLocaleString()}</div>
         </div>
       </div>
 
@@ -4924,18 +4941,19 @@ const RangeMedicalSystem = () => {
               </div>
             )}
             <div style={{ display: 'grid', gap: '1rem' }}>
-              {filteredPatients.map(patient => (
+              {filteredPatients.map((patient, index) => (
                 <div 
                   key={patient.id} 
                   onClick={() => setSelectedPatient(patient)}
                   style={{ 
-                    padding: '1rem', 
+                    padding: '1.5rem', 
                     border: '2px solid #000000',
+                    background: index % 2 === 0 ? '#ffffff' : '#fafafa',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#f5f5f5'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                     <div>
@@ -4947,7 +4965,7 @@ const RangeMedicalSystem = () => {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase' }}>Active Protocols</div>
-                      <div style={{ fontFamily: 'Courier Prime', fontSize: '1.5rem', fontWeight: 700 }}>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: '1.5rem', fontWeight: 700 }}>
                         {patient.protocols?.filter(p => p.status === 'active').length || 0}
                       </div>
                     </div>

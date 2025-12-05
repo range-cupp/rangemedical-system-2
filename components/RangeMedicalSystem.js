@@ -29,6 +29,14 @@ const RangeMedicalSystem = () => {
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [documentNotes, setDocumentNotes] = useState('');
   const [documentType, setDocumentType] = useState('Blood Draw Consent');
+  const [labProvider, setLabProvider] = useState('Primex');
+  const [labTestType, setLabTestType] = useState('CBC');
+  const [labTestDate, setLabTestDate] = useState(new Date().toISOString().split('T')[0]);
+  const [labNotes, setLabNotes] = useState('');
+  const [uploadingLab, setUploadingLab] = useState(false);
+  const [showLabUpload, setShowLabUpload] = useState(false);
+  const [labs, setLabs] = useState([]);
+  const [selectedLabsForCompare, setSelectedLabsForCompare] = useState([]);
   const [consentForms, setConsentForms] = useState([]);
   const [selectedConsent, setSelectedConsent] = useState(null);
   const [showConsentPanel, setShowConsentPanel] = useState(false);
@@ -74,6 +82,7 @@ const RangeMedicalSystem = () => {
     if (selectedPatient) {
       fetchMedicalDocuments(selectedPatient.id);
       fetchConsentForms(selectedPatient.id);
+      fetchLabs(selectedPatient.id);
     }
   }, [selectedPatient]);
 
@@ -245,6 +254,84 @@ const RangeMedicalSystem = () => {
       alert('Failed to upload document. Please try again.');
     } finally {
       setUploadingDocument(false);
+    }
+  };
+
+  // Lab functions
+  const fetchLabs = async (patientId) => {
+    try {
+      const response = await fetch(`/api/labs?patient_id=${patientId}`);
+      const result = await response.json();
+      if (result.success) {
+        setLabs(result.labs || []);
+      }
+    } catch (error) {
+      console.error('Error fetching labs:', error);
+    }
+  };
+
+  const handleLabUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a PDF file');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    try {
+      setUploadingLab(true);
+
+      const labUrl = await uploadDocumentToStorage(file);
+
+      const response = await fetch('/api/labs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: selectedPatient.id,
+          lab_provider: labProvider,
+          test_type: labTestType,
+          test_date: labTestDate,
+          lab_url: labUrl,
+          notes: labNotes || null
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Lab uploaded successfully!');
+        setLabNotes('');
+        setLabTestDate(new Date().toISOString().split('T')[0]);
+        setShowLabUpload(false);
+        fetchLabs(selectedPatient.id);
+        e.target.value = '';
+      } else {
+        alert('Failed to save lab: ' + result.error);
+      }
+
+    } catch (error) {
+      console.error('Lab upload error:', error);
+      alert('Failed to upload lab. Please try again.');
+    } finally {
+      setUploadingLab(false);
+    }
+  };
+
+  const toggleLabForCompare = (labId) => {
+    if (selectedLabsForCompare.includes(labId)) {
+      setSelectedLabsForCompare(selectedLabsForCompare.filter(id => id !== labId));
+    } else {
+      if (selectedLabsForCompare.length >= 2) {
+        alert('You can only compare 2 labs at a time');
+        return;
+      }
+      setSelectedLabsForCompare([...selectedLabsForCompare, labId]);
     }
   };
 
@@ -1608,6 +1695,314 @@ const RangeMedicalSystem = () => {
                 fontStyle: 'italic'
               }}>
                 No medical documents uploaded yet.
+              </div>
+            )}
+          </div>
+
+          {/* Labs Section */}
+          <div className="card" style={{ marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Laboratory Results
+              </h3>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                {selectedLabsForCompare.length === 2 && (
+                  <button
+                    className="btn"
+                    onClick={() => window.open(`/compare-labs?ids=${selectedLabsForCompare.join(',')}`, '_blank')}
+                    style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem', background: '#10b981', border: '2px solid #10b981' }}
+                  >
+                    Compare Selected ({selectedLabsForCompare.length})
+                  </button>
+                )}
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowLabUpload(!showLabUpload)}
+                  style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
+                >
+                  <Plus size={14} />
+                  Upload Lab
+                </button>
+              </div>
+            </div>
+
+            {showLabUpload && (
+              <div style={{ 
+                padding: '1.25rem', 
+                background: '#f9f9f9', 
+                border: '2px solid #000000', 
+                marginBottom: '1.5rem' 
+              }}>
+                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', fontWeight: 700 }}>
+                  Upload Laboratory Result
+                </h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      fontSize: '0.75rem', 
+                      fontWeight: 600, 
+                      textTransform: 'uppercase', 
+                      marginBottom: '0.5rem' 
+                    }}>
+                      Lab Provider
+                    </label>
+                    <select
+                      value={labProvider}
+                      onChange={(e) => setLabProvider(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '2px solid #000000',
+                        fontFamily: 'inherit',
+                        fontSize: '0.9rem',
+                        background: '#ffffff',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="Primex">Primex</option>
+                      <option value="Access Med Labs">Access Med Labs</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      fontSize: '0.75rem', 
+                      fontWeight: 600, 
+                      textTransform: 'uppercase', 
+                      marginBottom: '0.5rem' 
+                    }}>
+                      Test Type
+                    </label>
+                    <select
+                      value={labTestType}
+                      onChange={(e) => setLabTestType(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '2px solid #000000',
+                        fontFamily: 'inherit',
+                        fontSize: '0.9rem',
+                        background: '#ffffff',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="CBC">CBC (Complete Blood Count)</option>
+                      <option value="CMP">CMP (Comprehensive Metabolic Panel)</option>
+                      <option value="Hormone Panel">Hormone Panel</option>
+                      <option value="Lipid Panel">Lipid Panel</option>
+                      <option value="Thyroid Panel">Thyroid Panel</option>
+                      <option value="Vitamin Panel">Vitamin Panel</option>
+                      <option value="Testosterone">Testosterone</option>
+                      <option value="Estrogen">Estrogen</option>
+                      <option value="HbA1c">HbA1c (Diabetes)</option>
+                      <option value="PSA">PSA (Prostate)</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600, 
+                    textTransform: 'uppercase', 
+                    marginBottom: '0.5rem' 
+                  }}>
+                    Test Date
+                  </label>
+                  <input
+                    type="date"
+                    value={labTestDate}
+                    onChange={(e) => setLabTestDate(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #000000',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600, 
+                    textTransform: 'uppercase', 
+                    marginBottom: '0.5rem' 
+                  }}>
+                    Notes (Optional)
+                  </label>
+                  <textarea
+                    value={labNotes}
+                    onChange={(e) => setLabNotes(e.target.value)}
+                    placeholder="Add notes about this lab result (e.g., 'Fasting', 'Follow-up test')"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #000000',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      resize: 'vertical',
+                      minHeight: '80px'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600, 
+                    textTransform: 'uppercase', 
+                    marginBottom: '0.5rem' 
+                  }}>
+                    Select PDF File
+                  </label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleLabUpload}
+                    disabled={uploadingLab}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #000000',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      cursor: uploadingLab ? 'not-allowed' : 'pointer'
+                    }}
+                  />
+                </div>
+
+                {uploadingLab && (
+                  <div style={{ textAlign: 'center', color: '#666666', fontSize: '0.9rem' }}>
+                    <Loader className="spin" size={16} style={{ display: 'inline-block', marginRight: '0.5rem' }} />
+                    Uploading lab...
+                  </div>
+                )}
+              </div>
+            )}
+
+            {labs.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Timeline header */}
+                <div style={{ 
+                  fontSize: '0.85rem', 
+                  color: '#666666', 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  borderBottom: '2px solid #e0e0e0',
+                  paddingBottom: '0.5rem'
+                }}>
+                  Lab Timeline ({labs.length} results)
+                </div>
+
+                {labs.sort((a, b) => new Date(b.test_date) - new Date(a.test_date)).map((lab) => (
+                  <div 
+                    key={lab.id}
+                    style={{ 
+                      padding: '1rem',
+                      border: selectedLabsForCompare.includes(lab.id) ? '3px solid #10b981' : '2px solid #e0e0e0',
+                      background: selectedLabsForCompare.includes(lab.id) ? '#f0fdf4' : '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onClick={() => toggleLabForCompare(lab.id)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                          <div style={{ 
+                            fontSize: '0.95rem', 
+                            fontWeight: 700,
+                            fontFamily: 'Courier Prime'
+                          }}>
+                            {new Date(lab.test_date).toLocaleDateString('en-US')}
+                          </div>
+                          <div style={{ 
+                            fontSize: '0.75rem', 
+                            fontWeight: 700,
+                            padding: '0.25rem 0.5rem',
+                            background: lab.lab_provider === 'Primex' ? '#dbeafe' : '#fef3c7',
+                            color: lab.lab_provider === 'Primex' ? '#1e40af' : '#92400e',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {lab.lab_provider}
+                          </div>
+                          <div style={{ 
+                            fontSize: '0.8rem', 
+                            fontWeight: 600,
+                            color: '#666666'
+                          }}>
+                            {lab.test_type}
+                          </div>
+                        </div>
+                        {lab.notes && (
+                          <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.25rem' }}>
+                            📝 {lab.notes}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {selectedLabsForCompare.includes(lab.id) && (
+                          <div style={{ 
+                            fontSize: '0.7rem', 
+                            fontWeight: 700,
+                            padding: '0.25rem 0.5rem',
+                            background: '#10b981',
+                            color: '#ffffff',
+                            borderRadius: '4px'
+                          }}>
+                            SELECTED
+                          </div>
+                        )}
+                        <a
+                          href={lab.lab_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            padding: '0.5rem 0.75rem',
+                            background: '#000000',
+                            color: '#ffffff',
+                            textDecoration: 'none',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          <FileText size={12} style={{ marginRight: '0.25rem' }} />
+                          View PDF
+                        </a>
+                      </div>
+                    </div>
+                    {selectedLabsForCompare.length < 2 && (
+                      <div style={{ fontSize: '0.75rem', color: '#666666', fontStyle: 'italic' }}>
+                        Click to {selectedLabsForCompare.includes(lab.id) ? 'deselect' : 'select'} for comparison
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ 
+                padding: '2rem', 
+                textAlign: 'center', 
+                color: '#999999',
+                fontSize: '0.9rem',
+                fontStyle: 'italic'
+              }}>
+                No lab results uploaded yet.
               </div>
             )}
           </div>

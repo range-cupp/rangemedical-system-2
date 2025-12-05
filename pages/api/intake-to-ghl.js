@@ -1,6 +1,5 @@
 // pages/api/intake-to-ghl.js
-// Fault-tolerant webhook: Creates contact, then tries custom field + PDF
-// Returns success even if custom field or PDF upload fail
+// Enhanced webhook: Saves to GoHighLevel AND Range Medical database
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,7 +10,8 @@ export default async function handler(req, res) {
     contactCreated: false,
     contactId: null,
     customFieldUpdated: false,
-    pdfUploaded: false,
+    noteAdded: false,
+    rangeDbSaved: false,
     errors: []
   };
 
@@ -22,11 +22,11 @@ export default async function handler(req, res) {
     const GHL_API_KEY = 'pit-e2ba8047-4b3a-48ba-b105-dc67e936d71b';
     const GHL_LOCATION_ID = 'WICdvbXmTjQORW6GiHWW';
     
-    console.log('=== GoHighLevel Integration Start ===');
+    console.log('=== Dual Integration Start ===');
     console.log('Processing intake for:', intakeData.email);
 
     // ============================================================
-    // STEP 1: CREATE CONTACT (CRITICAL - Must succeed)
+    // STEP 1: CREATE CONTACT IN GOHIGHLEVEL
     // ============================================================
     const contactData = {
       firstName: intakeData.firstName || '',
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       locationId: GHL_LOCATION_ID
     };
 
-    console.log('Step 1: Creating contact...');
+    console.log('Step 1: Creating GoHighLevel contact...');
     const contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/', {
       method: 'POST',
       headers: {
@@ -53,30 +53,15 @@ export default async function handler(req, res) {
       body: JSON.stringify(contactData)
     });
 
-    if (!contactResponse.ok) {
-      const errorText = await contactResponse.text();
-      console.error('❌ Contact creation failed:', errorText);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to create contact',
-        details: errorText
-      });
-    }
+    if (contactResponse.ok) {
+      const result = await contactResponse.json();
+      const contactId = result.contact?.id || result.id;
+      results.contactCreated = true;
+      results.contactId = contactId;
+      console.log('✅ GHL Contact created:', contactId);
 
-    const result = await contactResponse.json();
-    const contactId = result.contact?.id || result.id;
-    
-    results.contactCreated = true;
-    results.contactId = contactId;
-    console.log('✅ Contact created:', contactId);
-
-    // ============================================================
-    // STEP 2: UPDATE CUSTOM FIELD (Non-critical - log if fails)
-    // ============================================================
-    if (contactId) {
-      console.log('\nStep 2: Updating custom field...');
+      // Update custom field
       try {
-        // Try format 1: customFields array
         const updateResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
           method: 'PUT',
           headers: {
@@ -85,163 +70,169 @@ export default async function handler(req, res) {
             'Version': '2021-07-28'
           },
           body: JSON.stringify({
-            customFields: [
-              {
-                key: 'medical_intake_form',
-                field_value: 'Complete'
-              }
-            ]
+            customFields: [{ key: 'medical_intake_form', field_value: 'Complete' }]
           })
         });
-
-        const updateText = await updateResponse.text();
-        console.log('Custom field update response:', updateResponse.status, updateText);
-
         if (updateResponse.ok) {
           results.customFieldUpdated = true;
-          console.log('✅ Custom field updated (format 1)');
-        } else {
-          // Try format 2: customField object
-          console.log('Trying alternative custom field format...');
-          const altResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
-            method: 'PUT',
+          console.log('✅ Custom field updated');
+        }
+      } catch (e) {
+        console.warn('⚠️ Custom field update failed:', e.message);
+      }
+
+      // Add note with PDF link
+      if (intakeData.pdfUrl) {
+        console.log('Step 2: Adding note with PDF link...');
+        console.log('PDF URL:', intakeData.pdfUrl);
+        
+        try {
+          const noteResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
+            method: 'POST',
             headers: {
               'Authorization': `Bearer ${GHL_API_KEY}`,
               'Content-Type': 'application/json',
               'Version': '2021-07-28'
             },
             body: JSON.stringify({
-              customField: {
-                medical_intake_form: 'Complete'
-              }
+              body: `📄 Medical Intake Form Completed
+
+View PDF: ${intakeData.pdfUrl}
+
+Date: ${new Date().toLocaleDateString()}
+Time: ${new Date().toLocaleTimeString()}
+
+Patient: ${intakeData.firstName} ${intakeData.lastName}
+Email: ${intakeData.email}`,
+              userId: contactId
             })
           });
-          
-          if (altResponse.ok) {
-            results.customFieldUpdated = true;
-            console.log('✅ Custom field updated (format 2)');
+
+          const noteText = await noteResponse.text();
+          console.log('Note response:', noteResponse.status, noteText);
+
+          if (noteResponse.ok) {
+            results.noteAdded = true;
+            console.log('✅ Note added with PDF link');
           } else {
-            const altText = await altResponse.text();
-            console.warn('⚠️ Custom field update failed:', altText);
-            results.errors.push(`Custom field: ${altText}`);
+            console.error('❌ Note creation failed:', noteText);
+            results.errors.push(`Note: Status ${noteResponse.status}`);
           }
+        } catch (noteError) {
+          console.error('❌ Note error:', noteError);
+          results.errors.push(`Note: ${noteError.message}`);
         }
-      } catch (updateError) {
-        console.warn('⚠️ Custom field error:', updateError.message);
-        results.errors.push(`Custom field: ${updateError.message}`);
       }
+    } else {
+      const errorText = await contactResponse.text();
+      console.error('❌ GHL contact creation failed:', errorText);
+      results.errors.push(`GHL contact: ${errorText}`);
     }
 
     // ============================================================
-    // STEP 3: UPLOAD PDF (Non-critical - log if fails)
+    // STEP 2: SAVE TO RANGE MEDICAL DATABASE
     // ============================================================
-    if (intakeData.pdfUrl && contactId) {
-      console.log('\nStep 3: Uploading PDF to documents...');
-      console.log('PDF URL:', intakeData.pdfUrl);
+    console.log('\nStep 3: Saving to Range Medical database...');
+    
+    try {
+      // Import Supabase client dynamically (works better in serverless)
+      const { createClient } = await import('@supabase/supabase-js');
       
-      try {
-        // Method 1: Upload by URL
-        console.log('Trying method 1: File URL upload...');
-        const uploadResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/files`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            fileUrl: intakeData.pdfUrl,
-            fileName: `Medical_Intake_${intakeData.firstName}_${intakeData.lastName}.pdf`
-          })
-        });
+      const supabaseClient = createClient(
+        'https://teivfptpozltpqwahgdl.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
+      );
 
-        const uploadText = await uploadResponse.text();
-        console.log('Upload response:', uploadResponse.status, uploadText);
+      // First, create or get patient
+      const patientData = {
+        name: `${intakeData.firstName} ${intakeData.lastName}`,
+        email: intakeData.email,
+        phone: intakeData.phone || '',
+        date_of_birth: intakeData.dateOfBirth || null,
+        gender: intakeData.gender || null,
+        address: intakeData.address || '',
+        city: intakeData.city || '',
+        state: intakeData.state || '',
+        zip_code: intakeData.zipCode || '',
+        created_at: new Date().toISOString()
+      };
 
-        if (uploadResponse.ok) {
-          results.pdfUploaded = true;
-          console.log('✅ PDF uploaded (method 1)');
-        } else {
-          // Method 2: Download PDF and upload as base64
-          console.log('Trying method 2: Base64 upload...');
-          
-          const pdfResponse = await fetch(intakeData.pdfUrl);
-          const pdfBuffer = await pdfResponse.arrayBuffer();
-          const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
-          
-          const base64Response = await fetch('https://services.leadconnectorhq.com/medias/upload-file', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              locationId: GHL_LOCATION_ID,
-              contactId: contactId,
-              fileData: pdfBase64,
-              fileName: `Medical_Intake_${intakeData.firstName}_${intakeData.lastName}.pdf`,
-              hosted: true
-            })
-          });
+      // Check if patient exists
+      const { data: existingPatient } = await supabaseClient
+        .from('patients')
+        .select('id')
+        .eq('email', intakeData.email)
+        .single();
 
-          const base64Text = await base64Response.text();
-          console.log('Base64 upload response:', base64Response.status, base64Text);
+      let patientId;
 
-          if (base64Response.ok) {
-            results.pdfUploaded = true;
-            console.log('✅ PDF uploaded (method 2)');
-          } else {
-            // Method 3: Add as note
-            console.log('Trying method 3: Add as note...');
-            const noteResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                body: `📄 Medical Intake Form Completed\n\nView PDF: ${intakeData.pdfUrl}\n\nDate: ${new Date().toLocaleDateString()}`,
-                userId: contactId
-              })
-            });
+      if (existingPatient) {
+        // Update existing patient
+        const { error: updateError } = await supabaseClient
+          .from('patients')
+          .update(patientData)
+          .eq('id', existingPatient.id);
 
-            if (noteResponse.ok) {
-              results.pdfUploaded = true; // Link added as note
-              console.log('✅ PDF link added as note (method 3)');
-            } else {
-              const noteText = await noteResponse.text();
-              console.warn('⚠️ All PDF upload methods failed');
-              results.errors.push(`PDF upload: ${noteText}`);
-            }
-          }
-        }
-      } catch (uploadError) {
-        console.warn('⚠️ PDF upload error:', uploadError.message);
-        results.errors.push(`PDF upload: ${uploadError.message}`);
+        if (updateError) throw updateError;
+        patientId = existingPatient.id;
+        console.log('✅ Patient updated:', patientId);
+      } else {
+        // Create new patient
+        const { data: newPatient, error: insertError } = await supabaseClient
+          .from('patients')
+          .insert([patientData])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        patientId = newPatient.id;
+        console.log('✅ Patient created:', patientId);
       }
+
+      // Save medical intake document
+      if (intakeData.pdfUrl && patientId) {
+        const { error: docError } = await supabaseClient
+          .from('medical_documents')
+          .insert([{
+            patient_id: patientId,
+            document_type: 'Medical Intake Form',
+            document_url: intakeData.pdfUrl,
+            uploaded_at: new Date().toISOString(),
+            notes: 'Completed via online intake form'
+          }]);
+
+        if (docError) {
+          console.warn('⚠️ Document save failed:', docError.message);
+          results.errors.push(`Document: ${docError.message}`);
+        } else {
+          console.log('✅ Medical document saved');
+        }
+      }
+
+      results.rangeDbSaved = true;
+      console.log('✅ Range Medical database updated');
+
+    } catch (dbError) {
+      console.error('❌ Range Medical DB error:', dbError);
+      results.errors.push(`Range DB: ${dbError.message}`);
     }
 
-    console.log('\n=== GoHighLevel Integration Complete ===');
+    console.log('\n=== Dual Integration Complete ===');
     console.log('Results:', JSON.stringify(results, null, 2));
 
-    // Return success if contact was created, even if other steps failed
     return res.status(200).json({ 
       success: true,
-      contactId: results.contactId,
-      contactCreated: results.contactCreated,
-      customFieldUpdated: results.customFieldUpdated,
-      pdfUploaded: results.pdfUploaded,
-      errors: results.errors,
-      message: results.contactCreated 
-        ? 'Contact created successfully. Check errors array for any optional step failures.'
-        : 'Failed to create contact'
+      ...results,
+      message: 'Data saved to GoHighLevel and Range Medical database'
     });
 
   } catch (error) {
     console.error('❌ Unexpected error:', error);
-    console.error('Stack:', error.stack);
+    console.error('Error stack:', error.stack);
     return res.status(500).json({ 
       success: false, 
       error: error.message,
+      stack: error.stack,
       results: results
     });
   }

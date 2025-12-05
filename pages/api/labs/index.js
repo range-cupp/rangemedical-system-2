@@ -41,8 +41,21 @@ export default async function handler(req, res) {
     try {
       const labData = req.body;
 
-      if (!labData.patient_id || !labData.test_date || !labData.panel_type) {
-        return res.status(400).json({ error: 'Missing required fields' });
+      // Check for required fields
+      const missingFields = [];
+      if (!labData.patient_id) missingFields.push('patient_id');
+      if (!labData.test_date) missingFields.push('test_date');
+      if (!labData.panel_type) missingFields.push('panel_type');
+
+      if (missingFields.length > 0) {
+        return res.status(400).json({ 
+          error: `Missing required fields: ${missingFields.join(', ')}`,
+          received: {
+            patient_id: labData.patient_id,
+            test_date: labData.test_date,
+            panel_type: labData.panel_type
+          }
+        });
       }
 
       const { data: lab, error } = await supabase

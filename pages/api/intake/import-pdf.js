@@ -6,6 +6,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Helper function to extract year from text like "Yes [2020]"
+function extractYear(text, conditionName) {
+  const regex = new RegExp(conditionName + '.*?:\\s*Yes\\s*\\[(\\d{4})\\]', 'i');
+  const match = text.match(regex);
+  return match ? match[1] : null;
+}
+
 // Parse text extracted from PDF
 function parseIntakeText(text) {
   const data = {
@@ -45,7 +52,7 @@ function parseIntakeText(text) {
       }
     }
 
-    // Extract health info - FIXED to stop at "Currently Injured:"
+    // Extract health info
     const concernsMatch = text.match(/What Brings You In:\s*(.+?)(?=\s*Currently Injured:)/s);
     if (concernsMatch) {
       data.health.what_brings_you_in = concernsMatch[1].trim().replace(/\s+/g, ' ');
@@ -62,36 +69,50 @@ function parseIntakeText(text) {
     const injuryDateMatch = text.match(/When It Occurred:\s*([^\n]+)/);
     if (injuryDateMatch) data.health.injury_when_occurred = injuryDateMatch[1].trim();
 
-    // Medical history
+    // Medical history - WITH YEARS
     data.medical_history = {
       high_blood_pressure: text.includes('High Blood Pressure') && text.includes(': Yes'),
+      high_blood_pressure_year: extractYear(text, 'High Blood Pressure'),
+      
       high_cholesterol: text.includes('High Cholesterol: Yes'),
+      high_cholesterol_year: extractYear(text, 'High Cholesterol'),
+      
       heart_disease: text.includes('Heart Disease: Yes'),
+      heart_disease_year: extractYear(text, 'Heart Disease'),
+      
       diabetes: text.includes('Diabetes: Yes'),
+      diabetes_year: extractYear(text, 'Diabetes'),
+      
       thyroid_disorder: text.includes('Thyroid Disorder: Yes'),
+      thyroid_disorder_year: extractYear(text, 'Thyroid Disorder'),
+      
       depression_anxiety: text.includes('Depression / Anxiety: Yes'),
+      depression_anxiety_year: extractYear(text, 'Depression / Anxiety'),
+      
       kidney_disease: text.includes('Kidney Disease: Yes'),
+      kidney_disease_year: extractYear(text, 'Kidney Disease'),
+      
       liver_disease: text.includes('Liver Disease: Yes'),
+      liver_disease_year: extractYear(text, 'Liver Disease'),
+      
       autoimmune_disorder: text.includes('Autoimmune Disorder: Yes'),
-      cancer: text.includes('Cancer: Yes')
+      autoimmune_disorder_year: extractYear(text, 'Autoimmune Disorder'),
+      
+      cancer: text.includes('Cancer: Yes'),
+      cancer_year: extractYear(text, 'Cancer')
     };
 
-    // Medications & Allergies - SUPER PRECISE EXTRACTION
+    // Medications & Allergies
     data.medications.on_hrt = text.includes('On HRT: Yes');
     data.medications.on_other_medications = text.includes('On Other Medications: Yes');
     
-    // Check if has allergies
     const hasAllergiesMatch = text.match(/Has\s+Allergies:\s*Yes/i);
     data.medications.has_allergies = !!hasAllergiesMatch;
     
-    // Extract ONLY the allergy details line (not "Yes")
     if (data.medications.has_allergies) {
-      // Look for line that starts with "Allergies:" followed by actual details
-      // This regex specifically looks for "Allergies: [something that's NOT 'Yes']"
       const allergiesMatch = text.match(/(?:^|\n)\s*Allergies:\s*([^\n]+)/m);
       if (allergiesMatch) {
         const allergyText = allergiesMatch[1].trim();
-        // Make sure we didn't just capture "Yes" - we want the actual allergy details
         if (allergyText && allergyText.toLowerCase() !== 'yes' && !allergyText.includes('PHOTO')) {
           data.medications.allergies = allergyText;
         }
@@ -131,7 +152,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'PDF text required' });
     }
 
-    // Parse the text
     const extracted = parseIntakeText(pdfText);
 
     if (!extracted.personal.email) {
@@ -142,7 +162,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Could not extract name from PDF' });
     }
 
-    // Check if patient exists
     const { data: existingPatient, error: findError } = await supabase
       .from('patients')
       .select('id, name, email')
@@ -153,7 +172,6 @@ export default async function handler(req, res) {
     let isNewPatient = false;
 
     if (existingPatient) {
-      // Update existing patient
       const { error: updateError } = await supabase
         .from('patients')
         .update({
@@ -174,7 +192,6 @@ export default async function handler(req, res) {
 
       patientId = existingPatient.id;
     } else {
-      // Create new patient
       const { data: newPatient, error: createError } = await supabase
         .from('patients')
         .insert([{
@@ -203,7 +220,6 @@ export default async function handler(req, res) {
       isNewPatient = true;
     }
 
-    // Create intake record
     const nameParts = (extracted.personal.name || '').split(' ');
     const intakeData = {
       patient_id: patientId,
@@ -220,15 +236,25 @@ export default async function handler(req, res) {
       injury_when_occurred: extracted.health.injury_when_occurred || null,
       
       high_blood_pressure: extracted.medical_history.high_blood_pressure || false,
+      high_blood_pressure_year: extracted.medical_history.high_blood_pressure_year || null,
       high_cholesterol: extracted.medical_history.high_cholesterol || false,
+      high_cholesterol_year: extracted.medical_history.high_cholesterol_year || null,
       heart_disease: extracted.medical_history.heart_disease || false,
+      heart_disease_year: extracted.medical_history.heart_disease_year || null,
       diabetes: extracted.medical_history.diabetes || false,
+      diabetes_year: extracted.medical_history.diabetes_year || null,
       thyroid_disorder: extracted.medical_history.thyroid_disorder || false,
+      thyroid_disorder_year: extracted.medical_history.thyroid_disorder_year || null,
       depression_anxiety: extracted.medical_history.depression_anxiety || false,
+      depression_anxiety_year: extracted.medical_history.depression_anxiety_year || null,
       kidney_disease: extracted.medical_history.kidney_disease || false,
+      kidney_disease_year: extracted.medical_history.kidney_disease_year || null,
       liver_disease: extracted.medical_history.liver_disease || false,
+      liver_disease_year: extracted.medical_history.liver_disease_year || null,
       autoimmune_disorder: extracted.medical_history.autoimmune_disorder || false,
+      autoimmune_disorder_year: extracted.medical_history.autoimmune_disorder_year || null,
       cancer: extracted.medical_history.cancer || false,
+      cancer_year: extracted.medical_history.cancer_year || null,
       
       on_hrt: extracted.medications.on_hrt || false,
       on_other_medications: extracted.medications.on_other_medications || false,

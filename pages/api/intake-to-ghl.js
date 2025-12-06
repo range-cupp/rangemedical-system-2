@@ -1,239 +1,229 @@
 // pages/api/intake-to-ghl.js
-// Enhanced webhook: Saves to GoHighLevel AND Range Medical database
+// Webhook to send medical intake form data to GoHighLevel
 
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const results = {
-    contactCreated: false,
-    contactId: null,
-    customFieldUpdated: false,
-    noteAdded: false,
-    rangeDbSaved: false,
-    errors: []
-  };
-
   try {
     const intakeData = req.body;
     
-    // GoHighLevel API v2.0 Configuration
-    const GHL_API_KEY = 'pit-e2ba8047-4b3a-48ba-b105-dc67e936d71b';
-    const GHL_LOCATION_ID = 'WICdvbXmTjQORW6GiHWW';
-    
-    console.log('=== Dual Integration Start ===');
-    console.log('Processing intake for:', intakeData.email);
+    console.log('📥 Received intake data:', {
+      name: `${intakeData.firstName} ${intakeData.lastName}`,
+      email: intakeData.email,
+      phone: intakeData.phone
+    });
 
-    // ============================================================
-    // STEP 1: CREATE CONTACT IN GOHIGHLEVEL
-    // ============================================================
+    // GoHighLevel API Configuration
+    const GHL_API_KEY = process.env.GHL_API_KEY;
+    const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
+
+    if (!GHL_API_KEY || !GHL_LOCATION_ID) {
+      console.error('❌ Missing GoHighLevel API credentials');
+      return res.status(500).json({
+        success: false,
+        error: 'GoHighLevel API not configured. Add GHL_API_KEY and GHL_LOCATION_ID to environment variables.'
+      });
+    }
+
+    // Format phone number for GHL (should be +1XXXXXXXXXX)
+    let formattedPhone = intakeData.phone || '';
+    formattedPhone = formattedPhone.replace(/\D/g, ''); // Remove non-digits
+    if (formattedPhone.length === 10) {
+      formattedPhone = '+1' + formattedPhone;
+    } else if (formattedPhone.length === 11 && formattedPhone.startsWith('1')) {
+      formattedPhone = '+' + formattedPhone;
+    }
+
+    // Build contact data for GoHighLevel
     const contactData = {
       firstName: intakeData.firstName || '',
       lastName: intakeData.lastName || '',
       email: intakeData.email || '',
-      phone: intakeData.phone || '',
+      phone: formattedPhone,
       dateOfBirth: intakeData.dateOfBirth || '',
-      address1: intakeData.address || '',
+      address1: intakeData.streetAddress || intakeData.address || '',
       city: intakeData.city || '',
       state: intakeData.state || '',
-      postalCode: intakeData.zipCode || '',
-      country: 'US',
-      locationId: GHL_LOCATION_ID
+      postalCode: intakeData.postalCode || intakeData.zipCode || '',
+      country: intakeData.country || 'US',
+      locationId: GHL_LOCATION_ID,
+      source: 'Medical Intake Form',
+      tags: ['intake-form-completed'],
+      customFields: [
+        {
+          key: 'medical_intake_form',
+          field_value: 'Complete'
+        }
+      ]
     };
 
-    console.log('Step 1: Creating GoHighLevel contact...');
-    const contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      body: JSON.stringify(contactData)
+    console.log('📤 Sending to GoHighLevel:', {
+      name: `${contactData.firstName} ${contactData.lastName}`,
+      email: contactData.email,
+      locationId: GHL_LOCATION_ID
     });
 
-    if (contactResponse.ok) {
-      const result = await contactResponse.json();
-      const contactId = result.contact?.id || result.id;
-      results.contactCreated = true;
-      results.contactId = contactId;
-      console.log('✅ GHL Contact created:', contactId);
+    // Step 1: Search for existing contact by email
+    let contactId = null;
+    
+    try {
+      const searchResponse = await fetch(
+        `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(contactData.email)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      // Update custom field
-      try {
-        const updateResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+      if (searchResponse.ok) {
+        const searchResult = await searchResponse.json();
+        if (searchResult.contact && searchResult.contact.id) {
+          contactId = searchResult.contact.id;
+          console.log('✅ Found existing contact:', contactId);
+        }
+      }
+    } catch (searchError) {
+      console.log('⚠️ Contact search failed, will create new:', searchError.message);
+    }
+
+    // Step 2: Create or Update contact
+    let contactResponse;
+    
+    if (contactId) {
+      // Update existing contact
+      console.log('📝 Updating existing contact...');
+      contactResponse = await fetch(
+        `https://services.leadconnectorhq.com/contacts/${contactId}`,
+        {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Content-Type': 'application/json',
-            'Version': '2021-07-28'
+            'Version': '2021-07-28',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            customFields: [{ key: 'medical_intake_form', field_value: 'Complete' }]
+            firstName: contactData.firstName,
+            lastName: contactData.lastName,
+            phone: contactData.phone,
+            dateOfBirth: contactData.dateOfBirth,
+            address1: contactData.address1,
+            city: contactData.city,
+            state: contactData.state,
+            postalCode: contactData.postalCode,
+            country: contactData.country,
+            customFields: contactData.customFields,
+            tags: contactData.tags
           })
-        });
-        if (updateResponse.ok) {
-          results.customFieldUpdated = true;
-          console.log('✅ Custom field updated');
         }
-      } catch (e) {
-        console.warn('⚠️ Custom field update failed:', e.message);
-      }
+      );
+    } else {
+      // Create new contact
+      console.log('📝 Creating new contact...');
+      contactResponse = await fetch(
+        'https://services.leadconnectorhq.com/contacts/',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(contactData)
+        }
+      );
+    }
 
-      // Add note with PDF link
-      if (intakeData.pdfUrl) {
-        console.log('Step 2: Adding note with PDF link...');
-        console.log('PDF URL:', intakeData.pdfUrl);
+    if (!contactResponse.ok) {
+      const errorText = await contactResponse.text();
+      console.error('❌ GHL API error:', contactResponse.status, errorText);
+      throw new Error(`GoHighLevel API error: ${contactResponse.status} - ${errorText}`);
+    }
+
+    const contactResult = await contactResponse.json();
+    contactId = contactId || contactResult.contact?.id;
+
+    console.log('✅ Contact saved:', contactId);
+
+    // Step 3: If we have a PDF URL, add it to contact notes
+    if (intakeData.pdfUrl && contactId) {
+      try {
+        console.log('📎 Adding PDF link to contact notes...');
         
-        try {
-          const noteResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
+        await fetch(
+          `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
+          {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Content-Type': 'application/json',
-              'Version': '2021-07-28'
+              'Version': '2021-07-28',
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              body: `📄 Medical Intake Form Completed
-
-View PDF: ${intakeData.pdfUrl}
-
-Date: ${new Date().toLocaleDateString()}
-Time: ${new Date().toLocaleTimeString()}
-
-Patient: ${intakeData.firstName} ${intakeData.lastName}
-Email: ${intakeData.email}`,
-              userId: contactId
+              body: `📋 Medical Intake Form Submitted\n\nPDF Document: ${intakeData.pdfUrl}\n\nSubmitted: ${new Date().toLocaleString()}`
             })
-          });
-
-          const noteText = await noteResponse.text();
-          console.log('Note response:', noteResponse.status, noteText);
-
-          if (noteResponse.ok) {
-            results.noteAdded = true;
-            console.log('✅ Note added with PDF link');
-          } else {
-            console.error('❌ Note creation failed:', noteText);
-            results.errors.push(`Note: Status ${noteResponse.status}`);
           }
-        } catch (noteError) {
-          console.error('❌ Note error:', noteError);
-          results.errors.push(`Note: ${noteError.message}`);
-        }
+        );
+        
+        console.log('✅ Note added with PDF link');
+      } catch (noteError) {
+        console.warn('⚠️ Could not add note:', noteError.message);
       }
-    } else {
-      const errorText = await contactResponse.text();
-      console.error('❌ GHL contact creation failed:', errorText);
-      results.errors.push(`GHL contact: ${errorText}`);
     }
 
-    // ============================================================
-    // STEP 2: SAVE TO RANGE MEDICAL DATABASE
-    // ============================================================
-    console.log('\nStep 3: Saving to Range Medical database...');
-    
-    try {
-      // Import Supabase client dynamically (works better in serverless)
-      const { createClient } = await import('@supabase/supabase-js');
-      
-      const supabaseClient = createClient(
-        'https://teivfptpozltpqwahgdl.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
-      );
-
-      // First, create or get patient
-      const patientData = {
-        name: `${intakeData.firstName} ${intakeData.lastName}`,
-        email: intakeData.email,
-        phone: intakeData.phone || '',
-        date_of_birth: intakeData.dateOfBirth || null,
-        gender: intakeData.gender || null,
-        address: intakeData.address || '',
-        city: intakeData.city || '',
-        state: intakeData.state || '',
-        zip_code: intakeData.zipCode || '',
-        created_at: new Date().toISOString()
-      };
-
-      // Check if patient exists
-      const { data: existingPatient } = await supabaseClient
-        .from('patients')
-        .select('id')
-        .eq('email', intakeData.email)
-        .single();
-
-      let patientId;
-
-      if (existingPatient) {
-        // Update existing patient
-        const { error: updateError } = await supabaseClient
-          .from('patients')
-          .update(patientData)
-          .eq('id', existingPatient.id);
-
-        if (updateError) throw updateError;
-        patientId = existingPatient.id;
-        console.log('✅ Patient updated:', patientId);
-      } else {
-        // Create new patient
-        const { data: newPatient, error: insertError } = await supabaseClient
-          .from('patients')
-          .insert([patientData])
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        patientId = newPatient.id;
-        console.log('✅ Patient created:', patientId);
+    // Step 4: Add tag to trigger workflow (optional)
+    if (contactId) {
+      try {
+        await fetch(
+          `https://services.leadconnectorhq.com/contacts/${contactId}/tags`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              tags: ['intake-form-completed', 'new-patient']
+            })
+          }
+        );
+        console.log('✅ Tags added');
+      } catch (tagError) {
+        console.warn('⚠️ Could not add tags:', tagError.message);
       }
-
-      // Save medical intake document
-      if (intakeData.pdfUrl && patientId) {
-        const { error: docError } = await supabaseClient
-          .from('medical_documents')
-          .insert([{
-            patient_id: patientId,
-            document_type: 'Medical Intake Form',
-            document_url: intakeData.pdfUrl,
-            uploaded_at: new Date().toISOString(),
-            notes: 'Completed via online intake form'
-          }]);
-
-        if (docError) {
-          console.warn('⚠️ Document save failed:', docError.message);
-          results.errors.push(`Document: ${docError.message}`);
-        } else {
-          console.log('✅ Medical document saved');
-        }
-      }
-
-      results.rangeDbSaved = true;
-      console.log('✅ Range Medical database updated');
-
-    } catch (dbError) {
-      console.error('❌ Range Medical DB error:', dbError);
-      results.errors.push(`Range DB: ${dbError.message}`);
     }
 
-    console.log('\n=== Dual Integration Complete ===');
-    console.log('Results:', JSON.stringify(results, null, 2));
-
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      ...results,
-      message: 'Data saved to GoHighLevel and Range Medical database'
+      message: contactId ? 'Contact updated in GoHighLevel' : 'Contact created in GoHighLevel',
+      contactId: contactId,
+      data: {
+        name: `${contactData.firstName} ${contactData.lastName}`,
+        email: contactData.email,
+        customFieldUpdated: 'medical_intake_form = Complete'
+      }
     });
 
   } catch (error) {
-    console.error('❌ Unexpected error:', error);
-    console.error('Error stack:', error.stack);
-    return res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      stack: error.stack,
-      results: results
+    console.error('❌ Intake to GHL error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Unknown error occurred'
     });
   }
 }

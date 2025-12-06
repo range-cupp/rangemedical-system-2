@@ -1,6 +1,5 @@
-// /pages/api/intake-to-ghl.js
-// Syncs intake form data to GoHighLevel CRM
-// Includes Photo ID link in the contact note
+// /pages/api/consent-to-ghl.js
+// Syncs consent form data to GoHighLevel CRM
 
 export default async function handler(req, res) {
   // CORS headers
@@ -18,18 +17,26 @@ export default async function handler(req, res) {
 
   try {
     const {
+      // Patient info
       firstName,
       lastName,
       email,
       phone,
       dateOfBirth,
-      streetAddress,
-      city,
-      state,
-      postalCode,
-      country,
+      
+      // Consent details
+      consentType,
+      consentDate,
+      
+      // GHL custom field to mark complete
+      customFieldKey,
+      customFieldValue,
+      
+      // Tags to add
+      tags,
+      
+      // Document URLs
       pdfUrl,
-      photoIdUrl,
       signatureUrl
     } = req.body;
 
@@ -73,21 +80,19 @@ export default async function handler(req, res) {
       firstName,
       lastName,
       email,
-      phone: formattedPhone,
-      address1: streetAddress || '',
-      city: city || '',
-      state: state || '',
-      postalCode: postalCode || '',
-      country: country || 'US',
-      source: 'Website Intake Form',
-      tags: ['intake-form-completed', 'new-patient'],
-      customFields: [
-        {
-          key: 'medical_intake_form',
-          field_value: 'Complete'
-        }
-      ]
+      phone: formattedPhone || undefined,
+      source: 'Website Consent Form',
+      tags: tags || [`${consentType}-signed`],
+      customFields: []
     };
+
+    // Add custom field if provided
+    if (customFieldKey) {
+      contactData.customFields.push({
+        key: customFieldKey,
+        field_value: customFieldValue || 'Complete'
+      });
+    }
 
     // Add date of birth if provided
     if (dateOfBirth) {
@@ -141,28 +146,31 @@ export default async function handler(req, res) {
 
     contactId = contactResult.contact?.id || contactId;
 
-    // Build the note with all document links
-    let noteBody = `📋 MEDICAL INTAKE FORM SUBMITTED\n`;
+    // Format consent type for display
+    const consentTypeDisplay = consentType
+      ? consentType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      : 'Consent';
+
+    // Build note with document links
+    let noteBody = `📋 ${consentTypeDisplay.toUpperCase()} FORM SIGNED\n`;
     noteBody += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     noteBody += `Patient: ${firstName} ${lastName}\n`;
     noteBody += `Email: ${email}\n`;
     if (formattedPhone) noteBody += `Phone: ${formattedPhone}\n`;
-    if (dateOfBirth) noteBody += `DOB: ${dateOfBirth}\n`;
+    if (consentDate) noteBody += `Consent Date: ${consentDate}\n`;
     noteBody += `\n`;
     
-    noteBody += `📄 DOCUMENTS:\n`;
-    noteBody += `─────────────────────────────\n`;
-    
-    if (pdfUrl) {
-      noteBody += `📑 Intake Form PDF:\n${pdfUrl}\n\n`;
-    }
-    
-    if (photoIdUrl) {
-      noteBody += `🪪 Photo ID:\n${photoIdUrl}\n\n`;
-    }
-    
-    if (signatureUrl) {
-      noteBody += `✍️ Signature:\n${signatureUrl}\n\n`;
+    if (pdfUrl || signatureUrl) {
+      noteBody += `📄 DOCUMENTS:\n`;
+      noteBody += `─────────────────────────────\n`;
+      
+      if (pdfUrl) {
+        noteBody += `📑 Signed ${consentTypeDisplay} PDF:\n${pdfUrl}\n\n`;
+      }
+      
+      if (signatureUrl) {
+        noteBody += `✍️ Signature:\n${signatureUrl}\n\n`;
+      }
     }
     
     noteBody += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -185,9 +193,9 @@ export default async function handler(req, res) {
         });
 
         if (!noteResponse.ok) {
-          console.warn('Failed to add note, but contact was created/updated');
+          console.warn('Failed to add note, but contact was updated');
         } else {
-          console.log('Note added successfully with document links');
+          console.log('Note added successfully');
         }
       } catch (noteError) {
         console.warn('Note error:', noteError.message);
@@ -202,7 +210,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('GHL API Error:', error);
+    console.error('GHL Consent API Error:', error);
     return res.status(500).json({ 
       success: false, 
       error: error.message 

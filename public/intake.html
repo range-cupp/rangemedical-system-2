@@ -2097,10 +2097,10 @@
                         // Guardian
                         guardianName: formData.guardianName,
                         
-                        // Files
-                        photoId: formData.photoId,
-                        signature: formData.signature,
-                        pdfUrl: pdfUrl,
+                        // Files - only send URLs, not base64 (too large)
+photoId: null,
+signature: null,
+pdfUrl: pdfUrl,
                         
                         // Consent
                         consent: formData.consent

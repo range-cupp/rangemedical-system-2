@@ -1,8 +1,9 @@
-// pages/api/intake-to-ghl.js
-// Webhook to send medical intake form data to GoHighLevel
+// /pages/api/intake-to-ghl.js
+// Syncs intake form data to GoHighLevel CRM
+// Includes Photo ID link in the contact note
 
 export default async function handler(req, res) {
-  // Set CORS headers
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -16,50 +17,70 @@ export default async function handler(req, res) {
   }
 
   try {
-    const intakeData = req.body;
-    
-    console.log('📥 Received intake data:', {
-      name: `${intakeData.firstName} ${intakeData.lastName}`,
-      email: intakeData.email,
-      phone: intakeData.phone
-    });
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      dateOfBirth,
+      streetAddress,
+      city,
+      state,
+      postalCode,
+      country,
+      pdfUrl,
+      photoIdUrl,
+      signatureUrl
+    } = req.body;
 
-    // GoHighLevel API Configuration
-    const GHL_API_KEY = process.env.GHL_API_KEY;
-    const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
-
-    if (!GHL_API_KEY || !GHL_LOCATION_ID) {
-      console.error('❌ Missing GoHighLevel API credentials');
-      return res.status(500).json({
-        success: false,
-        error: 'GoHighLevel API not configured. Add GHL_API_KEY and GHL_LOCATION_ID to environment variables.'
+    // Validate required fields
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: email, firstName, lastName' 
       });
     }
 
-    // Format phone number for GHL (should be +1XXXXXXXXXX)
-    let formattedPhone = intakeData.phone || '';
-    formattedPhone = formattedPhone.replace(/\D/g, ''); // Remove non-digits
+    const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
+    const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+
+    // Format phone for GHL (+1XXXXXXXXXX)
+    let formattedPhone = phone ? phone.replace(/\D/g, '') : '';
     if (formattedPhone.length === 10) {
       formattedPhone = '+1' + formattedPhone;
     } else if (formattedPhone.length === 11 && formattedPhone.startsWith('1')) {
       formattedPhone = '+' + formattedPhone;
     }
 
-    // Build contact data for GoHighLevel
+    // Search for existing contact by email
+    const searchUrl = `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`;
+    
+    const searchResponse = await fetch(searchUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Version': '2021-07-28',
+        'Accept': 'application/json'
+      }
+    });
+
+    const searchData = await searchResponse.json();
+    let contactId = searchData.contact?.id;
+    let isNewContact = !contactId;
+
+    // Prepare contact data
     const contactData = {
-      firstName: intakeData.firstName || '',
-      lastName: intakeData.lastName || '',
-      email: intakeData.email || '',
+      firstName,
+      lastName,
+      email,
       phone: formattedPhone,
-      dateOfBirth: intakeData.dateOfBirth || '',
-      address1: intakeData.streetAddress || intakeData.address || '',
-      city: intakeData.city || '',
-      state: intakeData.state || '',
-      postalCode: intakeData.postalCode || intakeData.zipCode || '',
-      country: intakeData.country || 'US',
-      locationId: GHL_LOCATION_ID,
-      source: 'Medical Intake Form',
-      tags: ['intake-form-completed'],
+      address1: streetAddress || '',
+      city: city || '',
+      state: state || '',
+      postalCode: postalCode || '',
+      country: country || 'US',
+      source: 'Website Intake Form',
+      tags: ['intake-form-completed', 'new-patient'],
       customFields: [
         {
           key: 'medical_intake_form',
@@ -68,162 +89,123 @@ export default async function handler(req, res) {
       ]
     };
 
-    console.log('📤 Sending to GoHighLevel:', {
-      name: `${contactData.firstName} ${contactData.lastName}`,
-      email: contactData.email,
-      locationId: GHL_LOCATION_ID
-    });
-
-    // Step 1: Search for existing contact by email
-    let contactId = null;
-    
-    try {
-      const searchResponse = await fetch(
-        `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(contactData.email)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-07-28',
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (searchResponse.ok) {
-        const searchResult = await searchResponse.json();
-        if (searchResult.contact && searchResult.contact.id) {
-          contactId = searchResult.contact.id;
-          console.log('✅ Found existing contact:', contactId);
-        }
-      }
-    } catch (searchError) {
-      console.log('⚠️ Contact search failed, will create new:', searchError.message);
+    // Add date of birth if provided
+    if (dateOfBirth) {
+      contactData.dateOfBirth = dateOfBirth;
     }
 
-    // Step 2: Create or Update contact
     let contactResponse;
-    
+
     if (contactId) {
       // Update existing contact
-      console.log('📝 Updating existing contact...');
-      contactResponse = await fetch(
-        `https://services.leadconnectorhq.com/contacts/${contactId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-07-28',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            firstName: contactData.firstName,
-            lastName: contactData.lastName,
-            phone: contactData.phone,
-            dateOfBirth: contactData.dateOfBirth,
-            address1: contactData.address1,
-            city: contactData.city,
-            state: contactData.state,
-            postalCode: contactData.postalCode,
-            country: contactData.country,
-            customFields: contactData.customFields,
-            tags: contactData.tags
-          })
-        }
-      );
+      console.log('Updating existing GHL contact:', contactId);
+      
+      contactResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(contactData)
+      });
     } else {
       // Create new contact
-      console.log('📝 Creating new contact...');
-      contactResponse = await fetch(
-        'https://services.leadconnectorhq.com/contacts/',
-        {
+      console.log('Creating new GHL contact');
+      
+      contactData.locationId = GHL_LOCATION_ID;
+      
+      contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(contactData)
+      });
+    }
+
+    const contactResult = await contactResponse.json();
+    
+    if (!contactResponse.ok) {
+      console.error('GHL contact error:', contactResult);
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Failed to create/update contact',
+        details: contactResult 
+      });
+    }
+
+    contactId = contactResult.contact?.id || contactId;
+
+    // Build the note with all document links
+    let noteBody = `📋 MEDICAL INTAKE FORM SUBMITTED\n`;
+    noteBody += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    noteBody += `Patient: ${firstName} ${lastName}\n`;
+    noteBody += `Email: ${email}\n`;
+    if (formattedPhone) noteBody += `Phone: ${formattedPhone}\n`;
+    if (dateOfBirth) noteBody += `DOB: ${dateOfBirth}\n`;
+    noteBody += `\n`;
+    
+    noteBody += `📄 DOCUMENTS:\n`;
+    noteBody += `─────────────────────────────\n`;
+    
+    if (pdfUrl) {
+      noteBody += `📑 Intake Form PDF:\n${pdfUrl}\n\n`;
+    }
+    
+    if (photoIdUrl) {
+      noteBody += `🪪 Photo ID:\n${photoIdUrl}\n\n`;
+    }
+    
+    if (signatureUrl) {
+      noteBody += `✍️ Signature:\n${signatureUrl}\n\n`;
+    }
+    
+    noteBody += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    noteBody += `Submitted: ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PT`;
+
+    // Add note to contact
+    if (contactId) {
+      try {
+        const noteResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${GHL_API_KEY}`,
             'Version': '2021-07-28',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
-          body: JSON.stringify(contactData)
+          body: JSON.stringify({
+            body: noteBody
+          })
+        });
+
+        if (!noteResponse.ok) {
+          console.warn('Failed to add note, but contact was created/updated');
+        } else {
+          console.log('Note added successfully with document links');
         }
-      );
-    }
-
-    if (!contactResponse.ok) {
-      const errorText = await contactResponse.text();
-      console.error('❌ GHL API error:', contactResponse.status, errorText);
-      throw new Error(`GoHighLevel API error: ${contactResponse.status} - ${errorText}`);
-    }
-
-    const contactResult = await contactResponse.json();
-    contactId = contactId || contactResult.contact?.id;
-
-    console.log('✅ Contact saved:', contactId);
-
-    // Step 3: If we have a PDF URL, add it to contact notes
-    if (intakeData.pdfUrl && contactId) {
-      try {
-        console.log('📎 Adding PDF link to contact notes...');
-        
-        await fetch(
-          `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-07-28',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              body: `📋 Medical Intake Form Submitted\n\nPDF Document: ${intakeData.pdfUrl}\n\nSubmitted: ${new Date().toLocaleString()}`
-            })
-          }
-        );
-        
-        console.log('✅ Note added with PDF link');
       } catch (noteError) {
-        console.warn('⚠️ Could not add note:', noteError.message);
-      }
-    }
-
-    // Step 4: Add tag to trigger workflow (optional)
-    if (contactId) {
-      try {
-        await fetch(
-          `https://services.leadconnectorhq.com/contacts/${contactId}/tags`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-07-28',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              tags: ['intake-form-completed', 'new-patient']
-            })
-          }
-        );
-        console.log('✅ Tags added');
-      } catch (tagError) {
-        console.warn('⚠️ Could not add tags:', tagError.message);
+        console.warn('Note error:', noteError.message);
       }
     }
 
     return res.status(200).json({
       success: true,
-      message: contactId ? 'Contact updated in GoHighLevel' : 'Contact created in GoHighLevel',
-      contactId: contactId,
-      data: {
-        name: `${contactData.firstName} ${contactData.lastName}`,
-        email: contactData.email,
-        customFieldUpdated: 'medical_intake_form = Complete'
-      }
+      contactId,
+      isNewContact,
+      message: isNewContact ? 'Contact created successfully' : 'Contact updated successfully'
     });
 
   } catch (error) {
-    console.error('❌ Intake to GHL error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Unknown error occurred'
+    console.error('GHL API Error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message 
     });
   }
 }

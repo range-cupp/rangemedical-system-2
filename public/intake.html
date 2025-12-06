@@ -1253,7 +1253,7 @@
     
     <script>
         // ============================================
-        // CONFIGURATION - YOUR EMAILJS SETTINGS
+        // CONFIGURATION - YOUR SETTINGS
         // ============================================
         
         const CONFIG = {
@@ -1268,6 +1268,12 @@
             supabase: {
                 url: 'https://teivfptpozltpqwahgdl.supabase.co',
                 anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
+            },
+            
+            // API Endpoints (your Vercel app)
+            api: {
+                intakes: 'https://rangemedical-system-2.vercel.app/api/intakes',
+                ghl: 'https://rangemedical-system-2.vercel.app/api/intake-to-ghl'
             },
             
             // Email recipient for completed forms
@@ -1316,7 +1322,6 @@
         // Medical condition radio buttons - show/hide details
         document.querySelectorAll('.condition-radio').forEach(radio => {
             radio.addEventListener('change', function() {
-                // Get the condition name from the radio button name attribute
                 const conditionName = this.name;
                 const detailsEl = document.getElementById(conditionName + '-details');
                 
@@ -1325,7 +1330,6 @@
                         detailsEl.style.display = 'block';
                     } else {
                         detailsEl.style.display = 'none';
-                        // Clear the fields when No is selected
                         detailsEl.querySelectorAll('input, textarea').forEach(input => {
                             input.value = '';
                         });
@@ -1342,7 +1346,6 @@
                     field.classList.add('visible');
                 } else {
                     field.classList.remove('visible');
-                    // Clear the fields when No is selected
                     document.getElementById('injuryDescription').value = '';
                     document.getElementById('injuryLocation').value = '';
                     document.getElementById('injuryDate').value = '';
@@ -1600,7 +1603,7 @@
                 'cancer': 'Cancer'
             };
             
-            // Collect individual condition responses (all Yes/No answers)
+            // Collect individual condition responses
             const medicalHistory = {};
             conditionNames.forEach(conditionName => {
                 const response = getRadio(conditionName);
@@ -1620,7 +1623,6 @@
                         medicalHistory[conditionName].year = yearEl.value;
                     }
                     
-                    // Also build the summary string
                     let conditionInfo = conditionLabels[conditionName];
                     if (typeEl && typeEl.value) {
                         conditionInfo += ` (Type: ${typeEl.value}`;
@@ -1673,9 +1675,9 @@
                 injuryLocation: getValue('injuryLocation'),
                 injuryDate: getValue('injuryDate'),
                 
-                // Medical History - now includes detailed info
+                // Medical History
                 conditions: conditions,
-                medicalHistory: medicalHistory, // Individual responses
+                medicalHistory: medicalHistory,
                 
                 // Medications & Allergies
                 onHRT: getRadio('onHRT'),
@@ -1707,7 +1709,6 @@
         // ============================================
         
         async function generatePDF(formData) {
-            // Access jsPDF - handle different loading methods
             let jsPDF;
             if (window.jspdf && window.jspdf.jsPDF) {
                 jsPDF = window.jspdf.jsPDF;
@@ -1717,32 +1718,21 @@
                 throw new Error('jsPDF library not loaded');
             }
             
-            // Create compressed PDF
-            const doc = new jsPDF({
-                compress: true
-            });
+            const doc = new jsPDF({ compress: true });
             
             let yPos = 20;
             const leftMargin = 20;
             const pageWidth = doc.internal.pageSize.getWidth();
             const contentWidth = pageWidth - 40;
             
-            // Helper function to add text and move position
             function addText(text, fontSize = 11, isBold = false) {
                 doc.setFontSize(fontSize);
                 doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-                
-                // Handle long text with word wrap
                 const safeText = String(text || '');
                 const lines = doc.splitTextToSize(safeText, contentWidth);
                 doc.text(lines, leftMargin, yPos);
                 yPos += (lines.length * fontSize * 0.4) + 2;
-                
-                // Check if we need a new page
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
+                if (yPos > 270) { doc.addPage(); yPos = 20; }
             }
             
             function addLabelValue(label, value) {
@@ -1750,17 +1740,12 @@
                 doc.setFont('helvetica', 'bold');
                 doc.text(label, leftMargin, yPos);
                 doc.setFont('helvetica', 'normal');
-                
                 const labelWidth = doc.getTextWidth(label) + 2;
                 const safeValue = String(value || 'N/A');
                 const valueLines = doc.splitTextToSize(safeValue, contentWidth - labelWidth - 10);
                 doc.text(valueLines, leftMargin + labelWidth, yPos);
                 yPos += (valueLines.length * 5) + 3;
-                
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
+                if (yPos > 270) { doc.addPage(); yPos = 20; }
             }
             
             function addSectionHeader(text) {
@@ -1776,34 +1761,28 @@
             
             function addSpace(space = 5) {
                 yPos += space;
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
+                if (yPos > 270) { doc.addPage(); yPos = 20; }
             }
             
-            // === HEADER ===
+            // Header
             doc.setFontSize(22);
             doc.setFont('helvetica', 'bold');
             doc.text('RANGE MEDICAL', pageWidth / 2, yPos, { align: 'center' });
             yPos += 8;
-            
             doc.setFontSize(14);
             doc.setFont('helvetica', 'normal');
             doc.text('New Patient Medical Intake Form', pageWidth / 2, yPos, { align: 'center' });
             yPos += 6;
-            
             doc.setFontSize(10);
             doc.setTextColor(100);
             doc.text('Submitted: ' + formData.submissionDate, pageWidth / 2, yPos, { align: 'center' });
             doc.setTextColor(0);
             yPos += 5;
-            
             doc.setLineWidth(1);
             doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
             yPos += 10;
             
-            // === PERSONAL INFORMATION ===
+            // Personal Information
             addSectionHeader('PERSONAL INFORMATION');
             addLabelValue('Name: ', formData.firstName + ' ' + formData.lastName);
             addLabelValue('Gender: ', formData.gender);
@@ -1811,17 +1790,16 @@
             addLabelValue('Email: ', formData.email);
             addLabelValue('Phone: ', formData.phone);
             
-            // === ADDRESS ===
+            // Address
             addSectionHeader('ADDRESS');
             addText(formData.streetAddress);
             addText(formData.city + ', ' + formData.state + ' ' + formData.postalCode);
             addText(formData.country);
             
-            // === HEALTH CONCERNS ===
+            // Health Concerns
             addSectionHeader('HEALTH CONCERNS & SYMPTOMS');
             addLabelValue('What Brings You In: ', formData.whatBringsYou);
             addLabelValue('Currently Injured: ', formData.injured);
-            
             if (formData.injured === 'Yes') {
                 addLabelValue('Injury Description: ', formData.injuryDescription);
                 addLabelValue('Injury Location: ', formData.injuryLocation);
@@ -1830,14 +1808,11 @@
                 }
             }
             
-            // === MEDICAL HISTORY ===
+            // Medical History
             addSectionHeader('MEDICAL HISTORY');
-            
-            // Show all conditions organized by category
             if (formData.medicalHistory) {
                 const mh = formData.medicalHistory;
                 
-                // Cardiovascular
                 addText('CARDIOVASCULAR CONDITIONS:', 11, true);
                 ['hypertension', 'highCholesterol', 'heartDisease'].forEach(condition => {
                     if (mh[condition]) {
@@ -1849,9 +1824,8 @@
                         addText(text, 10);
                     }
                 });
-                addText('', 10); // spacing
+                addText('', 10);
                 
-                // Metabolic & Endocrine
                 addText('METABOLIC & ENDOCRINE CONDITIONS:', 11, true);
                 ['diabetes', 'thyroid'].forEach(condition => {
                     if (mh[condition]) {
@@ -1863,9 +1837,8 @@
                         addText(text, 10);
                     }
                 });
-                addText('', 10); // spacing
+                addText('', 10);
                 
-                // Mental Health
                 addText('MENTAL HEALTH CONDITIONS:', 11, true);
                 if (mh['depression']) {
                     let text = `  ${mh['depression'].label}: ${mh['depression'].response}`;
@@ -1874,9 +1847,8 @@
                     }
                     addText(text, 10);
                 }
-                addText('', 10); // spacing
+                addText('', 10);
                 
-                // Organ Health
                 addText('ORGAN HEALTH CONDITIONS:', 11, true);
                 ['kidney', 'liver'].forEach(condition => {
                     if (mh[condition]) {
@@ -1888,9 +1860,8 @@
                         addText(text, 10);
                     }
                 });
-                addText('', 10); // spacing
+                addText('', 10);
                 
-                // Immune System & Cancer
                 addText('IMMUNE SYSTEM & CANCER:', 11, true);
                 ['autoimmune', 'cancer'].forEach(condition => {
                     if (mh[condition]) {
@@ -1903,32 +1874,24 @@
                     }
                 });
             } else {
-                // Fallback to old format if medicalHistory not available
                 addLabelValue('Diagnosed Conditions: ', formData.conditions);
             }
+            addText('', 10);
             
-            addText('', 10); // spacing
-            
-            // === MEDICATIONS & ALLERGIES ===
+            // Medications & Allergies
             addSectionHeader('MEDICATIONS & ALLERGIES');
-            
-            // HRT Section
             addLabelValue('On HRT: ', formData.onHRT || 'Not specified');
             if (formData.onHRT === 'Yes' && formData.hrtDetails) {
                 addLabelValue('HRT Details: ', formData.hrtDetails);
             }
-            
             addLabelValue('On Other Medications: ', formData.onMedications);
-            
             if (formData.onMedications === 'Yes') {
                 addLabelValue('Current Medications: ', formData.currentMedications);
                 if (formData.medicationNotes) {
                     addLabelValue('Medication Notes: ', formData.medicationNotes);
                 }
             }
-            
             addLabelValue('Has Allergies: ', formData.hasAllergies);
-            
             if (formData.hasAllergies === 'Yes') {
                 addLabelValue('Allergies: ', formData.allergies);
                 if (formData.allergyReactions) {
@@ -1936,129 +1899,94 @@
                 }
             }
             
-            // === GUARDIAN INFO ===
+            // Guardian Info
             if (formData.guardianName) {
                 addSectionHeader('GUARDIAN INFORMATION');
                 addLabelValue('Parent/Guardian Name: ', formData.guardianName);
             }
             
-            // === PHOTO ID ===
+            // Photo ID
             if (formData.photoId) {
                 addSectionHeader('PHOTO IDENTIFICATION');
-                
                 try {
-                    // Compress the ID image
                     const img = new Image();
                     await new Promise((resolve, reject) => {
                         img.onload = resolve;
                         img.onerror = reject;
                         img.src = formData.photoId;
                     });
-                    
-                    // Calculate dimensions to fit in PDF (max width 150mm, max height 80mm)
                     const maxWidth = 150;
                     const maxHeight = 80;
                     let width = img.width;
                     let height = img.height;
-                    
-                    // Scale down to fit
-                    if (width > maxWidth) {
-                        height = height * (maxWidth / width);
-                        width = maxWidth;
-                    }
-                    if (height > maxHeight) {
-                        width = width * (maxHeight / height);
-                        height = maxHeight;
-                    }
-                    
-                    // Create compressed version
+                    if (width > maxWidth) { height = height * (maxWidth / width); width = maxWidth; }
+                    if (height > maxHeight) { width = width * (maxHeight / height); height = maxHeight; }
                     const canvas = document.createElement('canvas');
-                    canvas.width = width * 2; // Higher res for quality
+                    canvas.width = width * 2;
                     canvas.height = height * 2;
                     const ctx = canvas.getContext('2d');
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
                     const compressedId = canvas.toDataURL('image/jpeg', 0.6);
-                    
-                    // Check if we need a new page
-                    if (yPos + height > 270) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    
+                    if (yPos + height > 270) { doc.addPage(); yPos = 20; }
                     doc.addImage(compressedId, 'JPEG', leftMargin, yPos, width * 0.5, height * 0.5);
                     yPos += (height * 0.5) + 10;
                 } catch (e) {
-                    console.log('ID image error:', e);
                     doc.setFont('helvetica', 'italic');
                     doc.text('[Photo ID uploaded but could not be rendered]', leftMargin, yPos);
                     yPos += 8;
                 }
             }
             
-            // === CONSENT ===
+            // Consent & Signature
             addSectionHeader('CONSENT & SIGNATURE');
-            
             doc.setFontSize(9);
             doc.setFont('helvetica', 'italic');
             const consentText = 'I consent to evaluation and wellness services provided by Range Medical staff under the supervision of the medical director. I understand some therapies may be used off-label and that individual results can vary. I authorize Range Medical to contact me via the methods provided above. I acknowledge responsibility for payment for services rendered and have reviewed any posted cancellation/no-show policies.';
             const consentLines = doc.splitTextToSize(consentText, contentWidth);
             doc.text(consentLines, leftMargin, yPos);
             yPos += (consentLines.length * 4) + 5;
-            
             doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
             addLabelValue('Consent Given: ', formData.consent);
-            
             addSpace(3);
             doc.setFont('helvetica', 'bold');
             doc.text('Patient/Guardian Signature:', leftMargin, yPos);
             yPos += 5;
             
-            // Add signature image - compress it to reduce size
             if (formData.signature && formData.signature.startsWith('data:image')) {
                 try {
-                    // Compress signature by creating smaller canvas
                     const img = new Image();
                     await new Promise((resolve, reject) => {
                         img.onload = resolve;
                         img.onerror = reject;
                         img.src = formData.signature;
                     });
-                    
-                    // Create smaller canvas for signature
                     const canvas = document.createElement('canvas');
                     const maxWidth = 200;
                     const scale = maxWidth / img.width;
                     canvas.width = maxWidth;
                     canvas.height = img.height * scale;
-                    
                     const ctx = canvas.getContext('2d');
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    // Get compressed image as JPEG with lower quality
                     const compressedSignature = canvas.toDataURL('image/jpeg', 0.5);
-                    
                     doc.addImage(compressedSignature, 'JPEG', leftMargin, yPos, 50, 15);
                     yPos += 20;
                 } catch (e) {
-                    console.log('Signature compression error:', e);
                     doc.setFont('helvetica', 'italic');
                     doc.text('[Signature captured electronically]', leftMargin, yPos);
                     yPos += 8;
                 }
             }
             
-            // === FOOTER ===
+            // Footer
             addSpace(10);
             doc.setLineWidth(1);
             doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
             yPos += 8;
-            
             doc.setFontSize(9);
             doc.setTextColor(100);
             doc.setFont('helvetica', 'normal');
@@ -2066,7 +1994,6 @@
             yPos += 5;
             doc.text('© 2025 Range Medical. All rights reserved. | Confidential Patient Information', pageWidth / 2, yPos, { align: 'center' });
             
-            // Return as blob
             return doc.output('blob');
         }
         
@@ -2104,7 +2031,6 @@
                     throw error;
                 }
                 
-                // Get public URL
                 const { data: { publicUrl } } = supabaseClient.storage
                     .from('medical-documents')
                     .getPublicUrl(filePath);
@@ -2118,31 +2044,118 @@
         }
         
         // ============================================
-        // SEND DATA TO GOHIGHLEVEL
+        // SAVE TO DATABASE (Creates patient + intake)
         // ============================================
         
-        async function sendToGoHighLevel(formData, pdfUrl) {
+        async function saveToDatabase(formData, pdfUrl) {
             try {
-                console.log('Sending data to GoHighLevel...');
+                console.log('💾 Saving intake to database...');
                 
-                const response = await fetch('/api/intake-to-ghl', {
+                const response = await fetch(CONFIG.api.intakes, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-    firstName: formData.firstName,
-    lastName: formData.lastName,
-    email: formData.email,
-    phone: formData.phone,
-    dateOfBirth: formData.dateOfBirth,  // ✅ FIXED
-    streetAddress: formData.streetAddress, // ✅ FIXED
-    city: formData.city,
-    state: formData.state,
-    postalCode: formData.postalCode,    // ✅ FIXED
-    country: formData.country || 'US',
-    pdfUrl: pdfUrl
-})
+                        // Personal info
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        email: formData.email,
+                        phone: formData.phone,
+                        dateOfBirth: formData.dateOfBirth,
+                        gender: formData.gender,
+                        
+                        // Address
+                        streetAddress: formData.streetAddress,
+                        city: formData.city,
+                        state: formData.state,
+                        country: formData.country,
+                        postalCode: formData.postalCode,
+                        
+                        // Health concerns
+                        whatBringsYou: formData.whatBringsYou,
+                        injured: formData.injured,
+                        injuryDescription: formData.injuryDescription,
+                        injuryLocation: formData.injuryLocation,
+                        injuryDate: formData.injuryDate,
+                        
+                        // Medical history
+                        medicalHistory: formData.medicalHistory,
+                        
+                        // Medications & HRT
+                        onHRT: formData.onHRT,
+                        hrtDetails: formData.hrtDetails,
+                        onMedications: formData.onMedications,
+                        currentMedications: formData.currentMedications,
+                        medicationNotes: formData.medicationNotes,
+                        
+                        // Allergies
+                        hasAllergies: formData.hasAllergies,
+                        allergies: formData.allergies,
+                        allergyReactions: formData.allergyReactions,
+                        
+                        // Guardian
+                        guardianName: formData.guardianName,
+                        
+                        // Files
+                        photoId: formData.photoId,
+                        signature: formData.signature,
+                        pdfUrl: pdfUrl,
+                        
+                        // Consent
+                        consent: formData.consent
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ Saved to database!');
+                    console.log('   Patient ID:', result.patientId);
+                    console.log('   Intake ID:', result.intakeId);
+                    console.log('   New patient:', result.isNewPatient);
+                } else {
+                    console.error('❌ Database save failed:', result.error);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('❌ Error saving to database:', error);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // ============================================
+        // SEND DATA TO GOHIGHLEVEL
+        // ============================================
+        
+        async function sendToGoHighLevel(formData, pdfUrl) {
+            try {
+                console.log('📤 Sending data to GoHighLevel...');
+                
+                const response = await fetch(CONFIG.api.ghl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        // Personal info - CORRECT field mappings
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        email: formData.email,
+                        phone: formData.phone,
+                        dateOfBirth: formData.dateOfBirth,
+                        
+                        // Address - CORRECT field mappings
+                        streetAddress: formData.streetAddress,
+                        city: formData.city,
+                        state: formData.state,
+                        postalCode: formData.postalCode,
+                        country: formData.country || 'US',
+                        
+                        // PDF URL
+                        pdfUrl: pdfUrl
+                    })
                 });
                 
                 const result = await response.json();
@@ -2157,7 +2170,6 @@
                 return result;
             } catch (error) {
                 console.error('Error sending to GoHighLevel:', error);
-                // Don't throw - we don't want to fail the whole submission if GHL fails
                 return { success: false, error: error.message };
             }
         }
@@ -2167,17 +2179,14 @@
         // ============================================
         
         async function sendEmail(formData, pdfBlob) {
-            // Initialize EmailJS
             emailjs.init(CONFIG.emailjs.publicKey);
             
-            // Convert PDF blob to base64
             const base64PDF = await new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result.split(',')[1]);
                 reader.readAsDataURL(pdfBlob);
             });
             
-            // Build comprehensive message with all form data
             let messageBody = `
 NEW PATIENT INTAKE FORM SUBMISSION
 ==================================
@@ -2213,13 +2222,10 @@ When It Occurred: ${formData.injuryDate || 'Not specified'}`;
 MEDICAL HISTORY
 ---------------`;
 
-            // Show all conditions organized by category
             if (formData.medicalHistory) {
                 const mh = formData.medicalHistory;
                 
-                messageBody += `
-
-❤️ CARDIOVASCULAR CONDITIONS:`;
+                messageBody += `\n\n❤️ CARDIOVASCULAR CONDITIONS:`;
                 ['hypertension', 'highCholesterol', 'heartDisease'].forEach(condition => {
                     if (mh[condition]) {
                         let text = `${mh[condition].label}: ${mh[condition].response}`;
@@ -2227,14 +2233,11 @@ MEDICAL HISTORY
                             if (mh[condition].type) text += ` (Type: ${mh[condition].type})`;
                             if (mh[condition].year) text += ` [Diagnosed: ${mh[condition].year}]`;
                         }
-                        messageBody += `
-  • ${text}`;
+                        messageBody += `\n  • ${text}`;
                     }
                 });
                 
-                messageBody += `
-
-⚡ METABOLIC & ENDOCRINE CONDITIONS:`;
+                messageBody += `\n\n⚡ METABOLIC & ENDOCRINE CONDITIONS:`;
                 ['diabetes', 'thyroid'].forEach(condition => {
                     if (mh[condition]) {
                         let text = `${mh[condition].label}: ${mh[condition].response}`;
@@ -2242,26 +2245,20 @@ MEDICAL HISTORY
                             if (mh[condition].type) text += ` (Type: ${mh[condition].type})`;
                             if (mh[condition].year) text += ` [Diagnosed: ${mh[condition].year}]`;
                         }
-                        messageBody += `
-  • ${text}`;
+                        messageBody += `\n  • ${text}`;
                     }
                 });
                 
-                messageBody += `
-
-🧠 MENTAL HEALTH CONDITIONS:`;
+                messageBody += `\n\n🧠 MENTAL HEALTH CONDITIONS:`;
                 if (mh['depression']) {
                     let text = `${mh['depression'].label}: ${mh['depression'].response}`;
                     if (mh['depression'].response === 'Yes' && mh['depression'].year) {
                         text += ` [Diagnosed: ${mh['depression'].year}]`;
                     }
-                    messageBody += `
-  • ${text}`;
+                    messageBody += `\n  • ${text}`;
                 }
                 
-                messageBody += `
-
-🫁 ORGAN HEALTH CONDITIONS:`;
+                messageBody += `\n\n🫁 ORGAN HEALTH CONDITIONS:`;
                 ['kidney', 'liver'].forEach(condition => {
                     if (mh[condition]) {
                         let text = `${mh[condition].label}: ${mh[condition].response}`;
@@ -2269,14 +2266,11 @@ MEDICAL HISTORY
                             if (mh[condition].type) text += ` (Type: ${mh[condition].type})`;
                             if (mh[condition].year) text += ` [Diagnosed: ${mh[condition].year}]`;
                         }
-                        messageBody += `
-  • ${text}`;
+                        messageBody += `\n  • ${text}`;
                     }
                 });
                 
-                messageBody += `
-
-🛡️ IMMUNE SYSTEM & CANCER:`;
+                messageBody += `\n\n🛡️ IMMUNE SYSTEM & CANCER:`;
                 ['autoimmune', 'cancer'].forEach(condition => {
                     if (mh[condition]) {
                         let text = `${mh[condition].label}: ${mh[condition].response}`;
@@ -2284,14 +2278,11 @@ MEDICAL HISTORY
                             if (mh[condition].type) text += ` (Type: ${mh[condition].type})`;
                             if (mh[condition].year) text += ` [Diagnosed: ${mh[condition].year}]`;
                         }
-                        messageBody += `
-  • ${text}`;
+                        messageBody += `\n  • ${text}`;
                     }
                 });
             } else {
-                // Fallback to old format
-                messageBody += `
-Diagnosed Conditions: ${formData.conditions}`;
+                messageBody += `\nDiagnosed Conditions: ${formData.conditions}`;
             }
 
             messageBody += `
@@ -2301,31 +2292,24 @@ MEDICATIONS & ALLERGIES
 On HRT: ${formData.onHRT || 'Not specified'}`;
 
             if (formData.onHRT === 'Yes' && formData.hrtDetails) {
-                messageBody += `
-HRT Details: ${formData.hrtDetails}`;
+                messageBody += `\nHRT Details: ${formData.hrtDetails}`;
             }
 
-            messageBody += `
-On Other Medications: ${formData.onMedications}`;
+            messageBody += `\nOn Other Medications: ${formData.onMedications}`;
 
             if (formData.onMedications === 'Yes') {
-                messageBody += `
-Current Medications: ${formData.currentMedications}`;
+                messageBody += `\nCurrent Medications: ${formData.currentMedications}`;
                 if (formData.medicationNotes) {
-                    messageBody += `
-Medication Notes: ${formData.medicationNotes}`;
+                    messageBody += `\nMedication Notes: ${formData.medicationNotes}`;
                 }
             }
 
-            messageBody += `
-Has Allergies: ${formData.hasAllergies}`;
+            messageBody += `\nHas Allergies: ${formData.hasAllergies}`;
 
             if (formData.hasAllergies === 'Yes') {
-                messageBody += `
-Allergies: ${formData.allergies}`;
+                messageBody += `\nAllergies: ${formData.allergies}`;
                 if (formData.allergyReactions) {
-                    messageBody += `
-Allergy Reactions: ${formData.allergyReactions}`;
+                    messageBody += `\nAllergy Reactions: ${formData.allergyReactions}`;
                 }
             }
 
@@ -2350,7 +2334,6 @@ Submitted: ${formData.submissionDate}
 PDF intake form is attached to this email.
 `;
             
-            // Send email with PDF attachment
             const templateParams = {
                 to_email: CONFIG.recipientEmail,
                 from_name: `${formData.firstName} ${formData.lastName}`,
@@ -2359,14 +2342,11 @@ PDF intake form is attached to this email.
                 patient_phone: formData.phone,
                 submission_date: formData.submissionDate,
                 message: messageBody,
-                // PDF attachment
                 content: base64PDF,
                 filename: `RangeMedical_Intake_${formData.lastName}_${formData.firstName}.pdf`
             };
             
-            console.log('Sending email with params:', Object.keys(templateParams));
-            console.log('PDF base64 length:', base64PDF.length);
-            console.log('Estimated PDF size:', Math.round(base64PDF.length * 0.75 / 1024), 'KB');
+            console.log('Sending email...');
             
             try {
                 const response = await emailjs.send(
@@ -2377,8 +2357,7 @@ PDF intake form is attached to this email.
                 console.log('EmailJS response:', response);
                 return response;
             } catch (emailError) {
-                console.error('EmailJS error object:', emailError);
-                // Extract meaningful error message
+                console.error('EmailJS error:', emailError);
                 const errorMsg = emailError.text || emailError.message || JSON.stringify(emailError);
                 throw new Error(errorMsg);
             }
@@ -2391,10 +2370,8 @@ PDF intake form is attached to this email.
         document.getElementById('intakeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Validate
             if (!validateForm()) {
                 showStatus('Please fill in all required fields correctly.', 'error');
-                // Scroll to first error
                 const firstError = document.querySelector('.field-error.visible');
                 if (firstError) {
                     firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2411,20 +2388,20 @@ PDF intake form is attached to this email.
                 // Collect form data
                 showStatus('Collecting form data...', 'loading');
                 const formData = await collectFormData();
-                console.log('Form data collected:', formData);
+                console.log('Form data collected');
                 
                 // Generate PDF
                 showStatus('Generating PDF...', 'loading');
                 let pdfBlob;
                 try {
                     pdfBlob = await generatePDF(formData);
-                    console.log('PDF generated:', pdfBlob);
+                    console.log('PDF generated');
                 } catch (pdfError) {
                     console.error('PDF generation failed:', pdfError);
                     throw new Error('PDF generation failed: ' + (pdfError.message || pdfError));
                 }
                 
-                // Send email notification to Range Medical with PDF attachment
+                // Send email notification
                 showStatus('Sending to Range Medical...', 'loading');
                 try {
                     await sendEmail(formData, pdfBlob);
@@ -2434,15 +2411,25 @@ PDF intake form is attached to this email.
                     throw new Error('Email sending failed: ' + (emailError.message || emailError));
                 }
                 
-                // Upload PDF to Supabase and send to GoHighLevel
-                showStatus('Uploading PDF and syncing to GoHighLevel...', 'loading');
+                // Upload PDF, save to database, and sync to GHL
+                showStatus('Saving your information...', 'loading');
                 let pdfUrl = null;
                 try {
-                    // Upload PDF to Supabase
+                    // Upload PDF to Supabase storage
                     pdfUrl = await uploadPDFToStorage(pdfBlob, formData);
                     console.log('PDF uploaded to storage:', pdfUrl);
                     
+                    // Save to database (creates patient + intake record)
+                    showStatus('Creating your patient record...', 'loading');
+                    const dbResult = await saveToDatabase(formData, pdfUrl);
+                    if (dbResult.success) {
+                        console.log('✅ Database save successful');
+                    } else {
+                        console.warn('⚠️ Database save failed (non-critical):', dbResult.error);
+                    }
+                    
                     // Send to GoHighLevel
+                    showStatus('Syncing to system...', 'loading');
                     const ghlResult = await sendToGoHighLevel(formData, pdfUrl);
                     if (ghlResult.success) {
                         console.log('✅ GoHighLevel sync successful');
@@ -2450,9 +2437,8 @@ PDF intake form is attached to this email.
                         console.warn('⚠️ GoHighLevel sync failed (non-critical):', ghlResult.error);
                     }
                 } catch (storageError) {
-                    // Don't fail the whole submission if storage/GHL fails
-                    console.error('Storage/GHL error (non-critical):', storageError);
-                    console.warn('⚠️ Continuing despite storage/GHL error');
+                    console.error('Storage/DB/GHL error (non-critical):', storageError);
+                    console.warn('⚠️ Continuing despite error');
                 }
                 
                 // Show thank you page
@@ -2460,7 +2446,6 @@ PDF intake form is attached to this email.
                 
             } catch (error) {
                 console.error('Submission error:', error);
-                console.error('Error details:', error.message, error.stack);
                 showStatus('Error: ' + (error.message || 'Unknown error occurred'), 'error');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit Intake Form';
@@ -2468,7 +2453,6 @@ PDF intake form is attached to this email.
         });
         
         function showThankYouPage(formData) {
-            // Replace form with thank you message
             const container = document.querySelector('.container');
             container.innerHTML = `
                 <div class="thank-you-page">
@@ -2492,7 +2476,6 @@ PDF intake form is attached to this email.
                 </div>
             `;
             
-            // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         

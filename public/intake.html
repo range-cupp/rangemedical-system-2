@@ -2131,18 +2131,18 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        firstName: formData.firstName,
-                        lastName: formData.lastName,
-                        email: formData.email,
-                        phone: formData.phone,
-                        dateOfBirth: formData.dob,
-                        address: formData.address,
-                        city: formData.city,
-                        state: formData.state,
-                        zipCode: formData.zip,
-                        country: 'US',
-                        pdfUrl: pdfUrl
-                    })
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    email: formData.email,
+    phone: formData.phone,
+    dateOfBirth: formData.dateOfBirth,  // ✅ FIXED
+    streetAddress: formData.streetAddress, // ✅ FIXED
+    city: formData.city,
+    state: formData.state,
+    postalCode: formData.postalCode,    // ✅ FIXED
+    country: formData.country || 'US',
+    pdfUrl: pdfUrl
+})
                 });
                 
                 const result = await response.json();

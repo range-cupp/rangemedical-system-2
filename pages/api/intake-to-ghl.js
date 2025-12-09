@@ -1,5 +1,5 @@
-// /pages/api/consent-to-ghl.js
-// Syncs consent form data to GoHighLevel CRM
+// /pages/api/intake-to-ghl.js
+// Syncs medical intake form data to GoHighLevel CRM
 
 export default async function handler(req, res) {
   // CORS headers
@@ -24,19 +24,16 @@ export default async function handler(req, res) {
       phone,
       dateOfBirth,
       
-      // Consent details
-      consentType,
-      consentDate,
-      
-      // GHL custom field to mark complete
-      customFieldKey,
-      customFieldValue,
-      
-      // Tags to add
-      tags,
+      // Address
+      streetAddress,
+      city,
+      state,
+      postalCode,
+      country,
       
       // Document URLs
       pdfUrl,
+      photoIdUrl,
       signatureUrl
     } = req.body;
 
@@ -81,18 +78,20 @@ export default async function handler(req, res) {
       lastName,
       email,
       phone: formattedPhone || undefined,
-      source: 'Website Consent Form',
-      tags: tags || [`${consentType}-signed`],
-      customFields: []
+      address1: streetAddress || undefined,
+      city: city || undefined,
+      state: state || undefined,
+      postalCode: postalCode || undefined,
+      country: country || 'US',
+      source: 'Website Medical Intake',
+      tags: ['intake-submitted', 'new-patient'],
+      customFields: [
+        {
+          key: 'medical_intake',
+          field_value: 'Complete'
+        }
+      ]
     };
-
-    // Add custom field if provided
-    if (customFieldKey) {
-      contactData.customFields.push({
-        key: customFieldKey,
-        field_value: customFieldValue || 'Complete'
-      });
-    }
 
     // Add date of birth if provided
     if (dateOfBirth) {
@@ -146,26 +145,34 @@ export default async function handler(req, res) {
 
     contactId = contactResult.contact?.id || contactId;
 
-    // Format consent type for display
-    const consentTypeDisplay = consentType
-      ? consentType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      : 'Consent';
-
-    // Build note with document links
-    let noteBody = `📋 ${consentTypeDisplay.toUpperCase()} FORM SIGNED\n`;
+    // Build note with document links - INTAKE FORMAT
+    let noteBody = `📋 MEDICAL INTAKE FORM SUBMITTED\n`;
     noteBody += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     noteBody += `Patient: ${firstName} ${lastName}\n`;
     noteBody += `Email: ${email}\n`;
     if (formattedPhone) noteBody += `Phone: ${formattedPhone}\n`;
-    if (consentDate) noteBody += `Consent Date: ${consentDate}\n`;
+    if (dateOfBirth) noteBody += `DOB: ${dateOfBirth}\n`;
     noteBody += `\n`;
     
-    if (pdfUrl || signatureUrl) {
+    if (streetAddress || city || state) {
+      noteBody += `📍 ADDRESS:\n`;
+      if (streetAddress) noteBody += `${streetAddress}\n`;
+      if (city || state || postalCode) {
+        noteBody += `${city || ''}, ${state || ''} ${postalCode || ''}\n`;
+      }
+      noteBody += `\n`;
+    }
+    
+    if (pdfUrl || photoIdUrl || signatureUrl) {
       noteBody += `📄 DOCUMENTS:\n`;
       noteBody += `─────────────────────────────\n`;
       
       if (pdfUrl) {
-        noteBody += `📑 Signed ${consentTypeDisplay} PDF:\n${pdfUrl}\n\n`;
+        noteBody += `📑 Complete Medical Intake PDF:\n${pdfUrl}\n\n`;
+      }
+      
+      if (photoIdUrl) {
+        noteBody += `🪪 Photo ID:\n${photoIdUrl}\n\n`;
       }
       
       if (signatureUrl) {
@@ -210,7 +217,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('GHL Consent API Error:', error);
+    console.error('GHL Intake API Error:', error);
     return res.status(500).json({ 
       success: false, 
       error: error.message 

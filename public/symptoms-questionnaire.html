@@ -1008,6 +1008,11 @@
         let selectedGender = null;
         let signaturePad = null;
         
+        // Disable all symptom inputs initially (they'll be enabled when gender is selected)
+        document.querySelectorAll('#maleSymptoms input[type="radio"], #femaleSymptoms input[type="radio"]').forEach(input => {
+            input.disabled = true;
+        });
+        
         // Gender selection handler
         document.querySelectorAll('input[name="gender"]').forEach(radio => {
             radio.addEventListener('change', function() {
@@ -1020,24 +1025,24 @@
                 document.getElementById('maleSymptoms').classList.remove('active');
                 document.getElementById('femaleSymptoms').classList.remove('active');
                 
-                // Show the appropriate symptoms section and manage required attributes
+                // Show the appropriate symptoms section and disable the other
                 if (selectedGender === 'male') {
                     document.getElementById('maleSymptoms').classList.add('active');
-                    // Enable required on male, disable on female
+                    // Enable male inputs, disable female inputs
                     document.querySelectorAll('#maleSymptoms input[type="radio"]').forEach(input => {
-                        input.setAttribute('required', 'required');
+                        input.disabled = false;
                     });
                     document.querySelectorAll('#femaleSymptoms input[type="radio"]').forEach(input => {
-                        input.removeAttribute('required');
+                        input.disabled = true;
                     });
                 } else {
                     document.getElementById('femaleSymptoms').classList.add('active');
-                    // Enable required on female, disable on male
+                    // Enable female inputs, disable male inputs
                     document.querySelectorAll('#femaleSymptoms input[type="radio"]').forEach(input => {
-                        input.setAttribute('required', 'required');
+                        input.disabled = false;
                     });
                     document.querySelectorAll('#maleSymptoms input[type="radio"]').forEach(input => {
-                        input.removeAttribute('required');
+                        input.disabled = true;
                     });
                 }
                 

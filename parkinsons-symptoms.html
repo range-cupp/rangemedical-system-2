@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parkinson's Symptom Assessment | Range Medical</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            color: #1a1a2e;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header img {
+            height: 60px;
+            width: auto;
+            margin-bottom: 1.5rem;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #6c757d;
+            font-size: 1rem;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: #e9ecef;
+            border-radius: 100px;
+            height: 8px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #1a1a1a, #404040);
+            height: 100%;
+            border-radius: 100px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Card */
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Gender Selection */
+        .gender-section {
+            text-align: center;
+        }
+
+        .gender-section h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .gender-section p {
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+            font-size: 0.9375rem;
+        }
+
+        .gender-options {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .gender-btn {
+            flex: 1;
+            max-width: 200px;
+            padding: 1.5rem 2rem;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .gender-btn:hover {
+            border-color: #1a1a1a;
+            background: #f8f8f8;
+        }
+
+        .gender-btn.selected {
+            border-color: #1a1a1a;
+            background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
+        }
+
+        .gender-btn .icon {
+            margin-bottom: 0.75rem;
+        }
+
+        .gender-btn .icon svg {
+            width: 56px;
+            height: 56px;
+            stroke: #404040;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .gender-btn:hover .icon svg,
+        .gender-btn.selected .icon svg {
+            stroke: #1a1a1a;
+        }
+
+        .gender-btn .label {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        /* Question Sections */
+        .question-section {
+            display: none;
+        }
+
+        .question-section.active {
+            display: block;
+        }
+
+        .section-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #1a1a1a, #404040);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 0.25rem;
+        }
+
+        .section-header p {
+            color: #6c757d;
+            font-size: 0.9375rem;
+        }
+
+        /* Question */
+        .question {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .question:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .question-label {
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+
+        .question-help {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Rating Scale */
+        .rating-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .rating-scale {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .rating-btn {
+            width: 44px;
+            height: 44px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: #ffffff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: #6c757d;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rating-btn:hover {
+            border-color: #1a1a1a;
+            color: #1a1a1a;
+        }
+
+        .rating-btn.selected {
+            background: linear-gradient(135deg, #1a1a1a, #404040);
+            border-color: #1a1a1a;
+            color: white;
+        }
+
+        .rating-btn.na {
+            width: auto;
+            padding: 0 1rem;
+            font-size: 0.8125rem;
+        }
+
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #6c757d;
+            padding: 0 0.25rem;
+        }
+
+        /* Navigation */
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1a1a1a, #404040);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Results */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .score-card {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .score-value {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            line-height: 1;
+        }
+
+        .score-label {
+            color: #6c757d;
+            font-size: 0.9375rem;
+            margin-top: 0.5rem;
+        }
+
+        .score-interpretation {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .score-interpretation p {
+            color: #495057;
+            font-size: 0.9375rem;
+        }
+
+        .category-scores {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .category-score {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .category-value {
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: #fff8e6;
+            border-left: 4px solid #ffc107;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box p {
+            color: #664d03;
+            font-size: 0.9375rem;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e9ecef;
+            border-top-color: #1a1a1a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .gender-options {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .gender-btn {
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .rating-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 0.875rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Form Inputs */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #1a1a2e;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group .required {
+            color: #dc2626;
+        }
+
+        .form-group input {
+            padding: 0.875rem 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1a1a1a;
+        }
+
+        .form-group input::placeholder {
+            color: #adb5bd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" alt="Range Medical">
+            <h1>Parkinson's Symptom Assessment</h1>
+            <p>Track your symptoms to measure your progress with exosome therapy</p>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="progress-text" id="progressText">Step 1 of 5</div>
+
+        <!-- Patient Information -->
+        <div class="card" id="patientInfoSection">
+            <div class="section-header">
+                <span class="section-badge">Patient Information</span>
+                <h2>Let's Get Started</h2>
+                <p>Please enter your information so we can track your progress.</p>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="firstName">First Name <span class="required">*</span></label>
+                    <input type="text" id="firstName" name="firstName" required placeholder="Enter your first name">
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name <span class="required">*</span></label>
+                    <input type="text" id="lastName" name="lastName" required placeholder="Enter your last name">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone <span class="required">*</span></label>
+                    <input type="tel" id="phone" name="phone" required placeholder="(555) 555-5555">
+                </div>
+                <div class="form-group">
+                    <label for="dateOfBirth">Date of Birth <span class="required">*</span></label>
+                    <input type="date" id="dateOfBirth" name="dateOfBirth" required>
+                </div>
+                <div class="form-group">
+                    <label for="assessmentDate">Assessment Date</label>
+                    <input type="date" id="assessmentDate" name="assessmentDate">
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="btn btn-primary" onclick="validatePatientInfo()" style="flex: 1;">Continue</button>
+            </div>
+        </div>
+
+        <!-- Gender Selection -->
+        <div class="card" id="genderSection" style="display: none;">
+            <div class="gender-section">
+                <h2>Welcome to Your Assessment</h2>
+                <p>First, let us personalize your experience. Please select your gender.</p>
+                <div class="gender-options">
+                    <button class="gender-btn" data-gender="male" onclick="selectGender('male')">
+                        <div class="icon">
+                            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Head -->
+                                <circle cx="32" cy="14" r="10"/>
+                                <!-- Body -->
+                                <path d="M32 26 L32 42"/>
+                                <!-- Arms -->
+                                <path d="M32 30 L18 38"/>
+                                <path d="M32 30 L46 38"/>
+                                <!-- Legs -->
+                                <path d="M32 42 L22 58"/>
+                                <path d="M32 42 L42 58"/>
+                            </svg>
+                        </div>
+                        <div class="label">Male</div>
+                    </button>
+                    <button class="gender-btn" data-gender="female" onclick="selectGender('female')">
+                        <div class="icon">
+                            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Head -->
+                                <circle cx="32" cy="14" r="10"/>
+                                <!-- Body/Torso -->
+                                <path d="M32 26 L32 34"/>
+                                <!-- Arms -->
+                                <path d="M32 28 L18 36"/>
+                                <path d="M32 28 L46 36"/>
+                                <!-- Dress/Skirt shape -->
+                                <path d="M24 34 L32 34 L40 34 L46 58 L18 58 Z" fill="none"/>
+                            </svg>
+                        </div>
+                        <div class="label">Female</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Motor Symptoms Section 1 -->
+        <div class="card question-section" id="section1">
+            <div class="section-header">
+                <span class="section-badge">Motor Symptoms</span>
+                <h2>Movement & Physical Function</h2>
+                <p>Rate how these symptoms have affected you over the past week.</p>
+            </div>
+
+            <div class="question" data-question="tremor">
+                <div class="question-label">Tremor / Shaking</div>
+                <div class="question-help">Involuntary shaking in hands, arms, legs, jaw, or head at rest</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>No tremor</span>
+                        <span>Severe tremor</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="stiffness">
+                <div class="question-label">Muscle Stiffness / Rigidity</div>
+                <div class="question-help">Tightness or resistance in muscles, difficulty with smooth movements</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>No stiffness</span>
+                        <span>Very stiff</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="slowness">
+                <div class="question-label">Slowness of Movement</div>
+                <div class="question-help">Taking longer to complete physical tasks, reduced speed of actions</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Normal speed</span>
+                        <span>Very slow</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="balance">
+                <div class="question-label">Balance & Stability</div>
+                <div class="question-help">Feeling unsteady, difficulty maintaining balance, fear of falling</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Excellent balance</span>
+                        <span>Very unsteady</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="goBack()">Back</button>
+                <button class="btn btn-primary" onclick="nextSection()" id="nextBtn1">Continue</button>
+            </div>
+        </div>
+
+        <!-- Motor Symptoms Section 2 -->
+        <div class="card question-section" id="section2">
+            <div class="section-header">
+                <span class="section-badge">Motor Symptoms</span>
+                <h2>Walking & Fine Motor Skills</h2>
+                <p>Rate how these symptoms have affected you over the past week.</p>
+            </div>
+
+            <div class="question" data-question="walking">
+                <div class="question-label">Walking Difficulty</div>
+                <div class="question-help">Shuffling steps, short stride, difficulty starting to walk, freezing</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Walk normally</span>
+                        <span>Severe difficulty</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="freezing">
+                <div class="question-label">Freezing Episodes</div>
+                <div class="question-help">Sudden inability to move, feeling "stuck" especially when starting to walk or turning</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>No freezing</span>
+                        <span>Frequent freezing</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="fine_motor">
+                <div class="question-label">Fine Motor Control</div>
+                <div class="question-help">Difficulty with writing, buttoning clothes, using utensils, handling small objects</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Full control</span>
+                        <span>Severe difficulty</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="posture">
+                <div class="question-label">Posture Changes</div>
+                <div class="question-help">Stooped or hunched posture, leaning to one side</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Normal posture</span>
+                        <span>Very stooped</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="goBack()">Back</button>
+                <button class="btn btn-primary" onclick="nextSection()">Continue</button>
+            </div>
+        </div>
+
+        <!-- Non-Motor Section 1: Cognitive & Mood -->
+        <div class="card question-section" id="section3">
+            <div class="section-header">
+                <span class="section-badge">Non-Motor Symptoms</span>
+                <h2>Cognitive Function & Mood</h2>
+                <p>Rate how these symptoms have affected you over the past week.</p>
+            </div>
+
+            <div class="question" data-question="mental_clarity">
+                <div class="question-label">Mental Clarity / Thinking</div>
+                <div class="question-help">Difficulty concentrating, brain fog, slower thinking</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Clear thinking</span>
+                        <span>Very foggy</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="memory">
+                <div class="question-label">Memory</div>
+                <div class="question-help">Forgetting recent events, difficulty recalling names or words</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Sharp memory</span>
+                        <span>Significant issues</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="depression">
+                <div class="question-label">Mood / Depression</div>
+                <div class="question-help">Feeling sad, hopeless, loss of interest in activities</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Good mood</span>
+                        <span>Very depressed</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="anxiety">
+                <div class="question-label">Anxiety / Worry</div>
+                <div class="question-help">Feeling nervous, restless, excessive worry</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Calm</span>
+                        <span>Very anxious</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="apathy">
+                <div class="question-label">Apathy / Motivation</div>
+                <div class="question-help">Lack of interest, reduced motivation, feeling indifferent</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Motivated</span>
+                        <span>No motivation</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="goBack()">Back</button>
+                <button class="btn btn-primary" onclick="nextSection()">Continue</button>
+            </div>
+        </div>
+
+        <!-- Non-Motor Section 2: Sleep, Energy, Other -->
+        <div class="card question-section" id="section4">
+            <div class="section-header">
+                <span class="section-badge">Non-Motor Symptoms</span>
+                <h2>Sleep, Energy & Other Functions</h2>
+                <p>Rate how these symptoms have affected you over the past week.</p>
+            </div>
+
+            <div class="question" data-question="sleep_quality">
+                <div class="question-label">Sleep Quality</div>
+                <div class="question-help">Difficulty falling asleep, staying asleep, restless sleep, vivid dreams</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Sleep well</span>
+                        <span>Severe issues</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="fatigue">
+                <div class="question-label">Fatigue / Energy Level</div>
+                <div class="question-help">Feeling tired, low energy, exhaustion even after rest</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Good energy</span>
+                        <span>Exhausted</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="speech">
+                <div class="question-label">Speech Clarity</div>
+                <div class="question-help">Soft voice, slurred speech, mumbling, difficulty being understood</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Clear speech</span>
+                        <span>Very difficult</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="swallowing">
+                <div class="question-label">Swallowing Difficulty</div>
+                <div class="question-help">Trouble swallowing food or liquids, choking, drooling</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>No difficulty</span>
+                        <span>Severe difficulty</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="constipation">
+                <div class="question-label">Constipation / Digestive Issues</div>
+                <div class="question-help">Difficulty with bowel movements, bloating, digestive discomfort</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Normal function</span>
+                        <span>Severe issues</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="pain">
+                <div class="question-label">Pain Level</div>
+                <div class="question-help">Muscle pain, joint pain, cramping, general discomfort</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>No pain</span>
+                        <span>Severe pain</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="daily_activities">
+                <div class="question-label">Daily Activities Independence</div>
+                <div class="question-help">Ability to perform daily tasks like dressing, bathing, eating without help</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Fully independent</span>
+                        <span>Need full assistance</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question" data-question="quality_of_life">
+                <div class="question-label">Overall Quality of Life</div>
+                <div class="question-help">How would you rate your overall well-being and quality of life?</div>
+                <div class="rating-container">
+                    <div class="rating-scale">
+                        <button class="rating-btn" data-value="0">0</button>
+                        <button class="rating-btn" data-value="1">1</button>
+                        <button class="rating-btn" data-value="2">2</button>
+                        <button class="rating-btn" data-value="3">3</button>
+                        <button class="rating-btn" data-value="4">4</button>
+                        <button class="rating-btn" data-value="5">5</button>
+                        <button class="rating-btn" data-value="6">6</button>
+                        <button class="rating-btn" data-value="7">7</button>
+                        <button class="rating-btn" data-value="8">8</button>
+                        <button class="rating-btn" data-value="9">9</button>
+                        <button class="rating-btn" data-value="10">10</button>
+                        <button class="rating-btn na" data-value="NA">N/A</button>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Excellent</span>
+                        <span>Very poor</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="goBack()">Back</button>
+                <button class="btn btn-primary" onclick="submitAssessment()">Submit Assessment</button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="card loading" id="loadingSection">
+            <div class="spinner"></div>
+            <p>Saving your assessment...</p>
+        </div>
+
+        <!-- Results -->
+        <div class="card results-section" id="resultsSection">
+            <div class="section-header">
+                <span class="section-badge">Assessment Complete</span>
+                <h2>Your Symptom Assessment Results</h2>
+            </div>
+
+            <div class="score-card">
+                <div class="score-value" id="totalScore">--</div>
+                <div class="score-label">Total Symptom Score</div>
+                <div class="score-interpretation">
+                    <p id="scoreInterpretation">Lower scores indicate fewer/milder symptoms. Track your progress over time to see improvement.</p>
+                </div>
+            </div>
+
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Category Breakdown</h3>
+            <div class="category-scores">
+                <div class="category-score">
+                    <span class="category-name">Motor Symptoms</span>
+                    <span class="category-value" id="motorScore">--</span>
+                </div>
+                <div class="category-score">
+                    <span class="category-name">Cognitive & Mood</span>
+                    <span class="category-value" id="cognitiveScore">--</span>
+                </div>
+                <div class="category-score">
+                    <span class="category-name">Sleep, Energy & Function</span>
+                    <span class="category-value" id="functionScore">--</span>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <p><strong>What's Next?</strong> Your results have been saved. Your provider will review your symptom profile and discuss your exosome therapy progress at your next appointment.</p>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="btn btn-primary" onclick="window.location.href='/'">Return Home</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentSection = 0;
+        let selectedGender = null;
+        const totalSections = 6;
+        const responses = {};
+        let patientInfo = {};
+
+        // Supabase config
+        const SUPABASE_URL = 'https://teivfptpozltpqwahgdl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI5MTI0NzYsImV4cCI6MjA0ODQ4ODQ3Nn0.bCSpX4WjqdNcjCE3kiSXCpv2jDjbEkUqFqKiA0wvGM';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupRatingButtons();
+            updateProgress();
+            
+            // Set default assessment date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('assessmentDate').value = today;
+        });
+
+        function setupRatingButtons() {
+            document.querySelectorAll('.question').forEach(question => {
+                const questionId = question.dataset.question;
+                question.querySelectorAll('.rating-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        // Remove selected from siblings
+                        question.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+                        // Add selected to clicked
+                        btn.classList.add('selected');
+                        // Store response
+                        responses[questionId] = btn.dataset.value;
+                    });
+                });
+            });
+        }
+
+        function validatePatientInfo() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const dateOfBirth = document.getElementById('dateOfBirth').value;
+
+            if (!firstName || !lastName || !email || !phone || !dateOfBirth) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+
+            // Store patient info
+            patientInfo = {
+                firstName,
+                lastName,
+                email,
+                phone,
+                dateOfBirth,
+                assessmentDate: document.getElementById('assessmentDate').value || new Date().toISOString().split('T')[0]
+            };
+
+            // Hide patient info, show gender selection
+            document.getElementById('patientInfoSection').style.display = 'none';
+            document.getElementById('genderSection').style.display = 'block';
+            currentSection = 1;
+            updateProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function selectGender(gender) {
+            selectedGender = gender;
+            document.querySelectorAll('.gender-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.gender === gender);
+            });
+            
+            // Auto-advance after brief delay
+            setTimeout(() => {
+                nextSection();
+            }, 300);
+        }
+
+        function updateProgress() {
+            const progress = ((currentSection) / totalSections) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            document.getElementById('progressText').textContent = `Step ${currentSection + 1} of ${totalSections}`;
+        }
+
+        function nextSection() {
+            // Validate current section
+            if (currentSection === 1 && !selectedGender) {
+                alert('Please select your gender to continue.');
+                return;
+            }
+
+            // Hide current section
+            if (currentSection === 0) {
+                document.getElementById('patientInfoSection').style.display = 'none';
+            } else if (currentSection === 1) {
+                document.getElementById('genderSection').style.display = 'none';
+            } else {
+                document.getElementById(`section${currentSection - 1}`).classList.remove('active');
+            }
+
+            // Move to next
+            currentSection++;
+            updateProgress();
+
+            // Show next section
+            if (currentSection === 1) {
+                document.getElementById('genderSection').style.display = 'block';
+            } else if (currentSection <= 5) {
+                document.getElementById(`section${currentSection - 1}`).classList.add('active');
+            }
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function goBack() {
+            if (currentSection === 1) {
+                // Go back to patient info
+                document.getElementById('genderSection').style.display = 'none';
+                document.getElementById('patientInfoSection').style.display = 'block';
+                currentSection = 0;
+            } else if (currentSection === 2) {
+                // Go back to gender selection
+                document.getElementById(`section${currentSection - 1}`).classList.remove('active');
+                document.getElementById('genderSection').style.display = 'block';
+                currentSection = 1;
+            } else {
+                // Go back to previous section
+                document.getElementById(`section${currentSection - 1}`).classList.remove('active');
+                currentSection--;
+                document.getElementById(`section${currentSection - 1}`).classList.add('active');
+            }
+            updateProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function submitAssessment() {
+            // Show loading
+            document.getElementById('section4').classList.remove('active');
+            document.getElementById('loadingSection').classList.add('active');
+
+            // Calculate scores
+            const motorSymptoms = ['tremor', 'stiffness', 'slowness', 'balance', 'walking', 'freezing', 'fine_motor', 'posture'];
+            const cognitiveSymptoms = ['mental_clarity', 'memory', 'depression', 'anxiety', 'apathy'];
+            const functionSymptoms = ['sleep_quality', 'fatigue', 'speech', 'swallowing', 'constipation', 'pain', 'daily_activities', 'quality_of_life'];
+
+            const calculateCategoryScore = (symptoms) => {
+                let total = 0;
+                let count = 0;
+                symptoms.forEach(s => {
+                    if (responses[s] && responses[s] !== 'NA') {
+                        total += parseInt(responses[s]);
+                        count++;
+                    }
+                });
+                return count > 0 ? (total / count).toFixed(1) : 'N/A';
+            };
+
+            const motorScore = calculateCategoryScore(motorSymptoms);
+            const cognitiveScore = calculateCategoryScore(cognitiveSymptoms);
+            const functionScore = calculateCategoryScore(functionSymptoms);
+
+            // Calculate total
+            let totalPoints = 0;
+            let totalCount = 0;
+            Object.values(responses).forEach(val => {
+                if (val && val !== 'NA') {
+                    totalPoints += parseInt(val);
+                    totalCount++;
+                }
+            });
+            const totalScore = totalCount > 0 ? Math.round(totalPoints / totalCount * 10) : 0;
+
+            // Prepare data for Supabase
+            const assessmentData = {
+                first_name: patientInfo.firstName,
+                last_name: patientInfo.lastName,
+                email: patientInfo.email,
+                phone: patientInfo.phone,
+                date_of_birth: patientInfo.dateOfBirth,
+                assessment_date: patientInfo.assessmentDate,
+                gender: selectedGender,
+                assessment_type: 'parkinsons',
+                treatment_type: 'exosome_iv',
+                responses: responses,
+                scores: {
+                    total: totalScore,
+                    motor: motorScore,
+                    cognitive: cognitiveScore,
+                    function: functionScore
+                },
+                created_at: new Date().toISOString()
+            };
+
+            // Save to Supabase
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/symptom_assessments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(assessmentData)
+                });
+
+                if (!response.ok) {
+                    console.error('Failed to save assessment:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error saving assessment:', error);
+            }
+
+            // Send to GHL via API endpoint
+            try {
+                const ghlData = {
+                    firstName: patientInfo.firstName,
+                    lastName: patientInfo.lastName,
+                    email: patientInfo.email,
+                    phone: patientInfo.phone,
+                    dateOfBirth: patientInfo.dateOfBirth,
+                    assessmentDate: patientInfo.assessmentDate,
+                    gender: selectedGender,
+                    assessmentType: 'parkinsons',
+                    treatmentType: 'exosome_iv',
+                    scores: {
+                        total: totalScore,
+                        motor: motorScore,
+                        cognitive: cognitiveScore,
+                        function: functionScore
+                    },
+                    responses: responses
+                };
+
+                const ghlResponse = await fetch('/api/parkinsons-to-ghl', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(ghlData)
+                });
+
+                if (!ghlResponse.ok) {
+                    console.error('Failed to sync with GHL:', await ghlResponse.text());
+                } else {
+                    console.log('✅ Synced with GoHighLevel');
+                }
+            } catch (error) {
+                console.error('Error syncing with GHL:', error);
+            }
+
+            // Hide loading, show results
+            setTimeout(() => {
+                document.getElementById('loadingSection').classList.remove('active');
+                document.getElementById('resultsSection').classList.add('active');
+                
+                // Update results display
+                document.getElementById('totalScore').textContent = totalScore;
+                document.getElementById('motorScore').textContent = motorScore;
+                document.getElementById('cognitiveScore').textContent = cognitiveScore;
+                document.getElementById('functionScore').textContent = functionScore;
+
+                // Update interpretation based on score
+                let interpretation = '';
+                if (totalScore <= 30) {
+                    interpretation = 'Your symptom severity is in the mild range. Continue tracking to monitor your progress with exosome therapy.';
+                } else if (totalScore <= 60) {
+                    interpretation = 'Your symptom severity is in the moderate range. Regular tracking will help measure improvement from your exosome therapy.';
+                } else {
+                    interpretation = 'Your symptom severity is in the higher range. Exosome therapy aims to support regeneration and reduce symptoms over time.';
+                }
+                document.getElementById('scoreInterpretation').textContent = interpretation;
+
+                updateProgress();
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

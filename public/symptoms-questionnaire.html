@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symptoms Questionnaire - Range Medical</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            background: #ffffff;
+            border-bottom: 3px solid #000;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            height: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #000;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .required {
+            color: #dc3545;
+        }
+        
+        /* Gender Picker */
+        .gender-picker {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .gender-option {
+            flex: 1;
+            max-width: 200px;
+        }
+        
+        .gender-option input {
+            display: none;
+        }
+        
+        .gender-option label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            border: 3px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fff;
+        }
+        
+        .gender-option label:hover {
+            border-color: #999;
+        }
+        
+        .gender-option input:checked + label {
+            border-color: #000;
+            background: #f8f8f8;
+        }
+        
+        .gender-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        .gender-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        /* Symptoms Section */
+        .symptoms-section {
+            display: none;
+        }
+        
+        .symptoms-section.active {
+            display: block;
+        }
+        
+        .symptom-item {
+            padding: 20px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .symptom-item:last-child {
+            border-bottom: none;
+        }
+        
+        .symptom-label {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .scale-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .scale-option {
+            flex: 0 0 auto;
+        }
+        
+        .scale-option input {
+            display: none;
+        }
+        
+        .scale-option label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            height: 44px;
+            padding: 0 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            background: #fff;
+        }
+        
+        .scale-option label:hover {
+            border-color: #999;
+            background: #f8f8f8;
+        }
+        
+        .scale-option input:checked + label {
+            background: #000;
+            color: #fff;
+            border-color: #000;
+        }
+        
+        /* NA option styling */
+        .scale-option.na-option label {
+            background: #f0f0f0;
+            min-width: 50px;
+        }
+        
+        .scale-option.na-option input:checked + label {
+            background: #666;
+            border-color: #666;
+        }
+        
+        /* Severity colors when selected */
+        .scale-option.mild input:checked + label {
+            background: #28a745;
+            border-color: #28a745;
+        }
+        
+        .scale-option.moderate input:checked + label {
+            background: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+        
+        .scale-option.severe input:checked + label {
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        .scale-legend {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 8px;
+            padding: 0 5px;
+        }
+        
+        .instructions-box {
+            background: #f8f9fa;
+            border-left: 4px solid #000;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .instructions-box h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+        
+        .instructions-box ul {
+            margin-left: 20px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        
+        .instructions-box li {
+            margin-bottom: 5px;
+        }
+        
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 20px;
+        }
+        
+        .submit-btn:hover {
+            background: #333;
+            transform: translateY(-1px);
+        }
+        
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            margin-bottom: 30px;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #000;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 8px;
+        }
+        
+        /* Hidden sections */
+        .questionnaire-content {
+            display: none;
+        }
+        
+        .questionnaire-content.active {
+            display: block;
+        }
+        
+        /* Category header */
+        .category-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            margin: 25px -30px 15px -30px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #555;
+            border-left: 4px solid #000;
+        }
+        
+        .category-header:first-of-type {
+            margin-top: 0;
+        }
+        
+        /* Signature */
+        .signature-pad-container {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .signature-pad {
+            width: 100%;
+            height: 150px;
+            background: #fafafa;
+            cursor: crosshair;
+        }
+        
+        .signature-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .clear-btn {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        
+        .clear-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        /* Success Message */
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 60px 30px;
+        }
+        
+        .success-message.active {
+            display: block;
+        }
+        
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #28a745;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+        }
+        
+        .success-message h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .success-message p {
+            color: #666;
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" alt="Range Medical" class="logo">
+        <h1>Symptoms Questionnaire</h1>
+        <p>Track your symptoms to help us optimize your treatment</p>
+    </div>
+
+    <div class="container">
+        <!-- Gender Selection -->
+        <div class="card" id="genderCard">
+            <div class="card-title">Select Your Questionnaire</div>
+            <p style="text-align: center; color: #666; margin-bottom: 20px;">Please select to see the appropriate symptoms questionnaire</p>
+            
+            <div class="gender-picker">
+                <div class="gender-option">
+                    <input type="radio" name="gender" id="genderMale" value="male">
+                    <label for="genderMale">
+                        <span class="gender-icon">♂</span>
+                        <span class="gender-label">Male</span>
+                    </label>
+                </div>
+                <div class="gender-option">
+                    <input type="radio" name="gender" id="genderFemale" value="female">
+                    <label for="genderFemale">
+                        <span class="gender-icon">♀</span>
+                        <span class="gender-label">Female</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Questionnaire (hidden until gender selected) -->
+        <form id="symptomsForm" class="questionnaire-content">
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text"><span id="progressCount">0</span> of <span id="totalSymptoms">0</span> symptoms rated</div>
+            </div>
+
+            <!-- Patient Information -->
+            <div class="card">
+                <div class="card-title">Patient Information</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>First Name <span class="required">*</span></label>
+                        <input type="text" name="firstName" id="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name <span class="required">*</span></label>
+                        <input type="text" name="lastName" id="lastName" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date of Birth <span class="required">*</span></label>
+                        <input type="date" name="dateOfBirth" id="dateOfBirth" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Assessment Date</label>
+                        <input type="date" name="assessmentDate" id="assessmentDate">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email <span class="required">*</span></label>
+                        <input type="email" name="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="phone" id="phone">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="card">
+                <div class="card-title">Instructions</div>
+                <div class="instructions-box">
+                    <h3>For each symptom, select the severity that best applies to you:</h3>
+                    <ul>
+                        <li><strong>NA</strong> = Not Applicable / Don't experience this</li>
+                        <li><strong>1–5</strong> = Mild symptoms</li>
+                        <li><strong>6</strong> = Moderate symptoms</li>
+                        <li><strong>7–10</strong> = Severe symptoms</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Male Symptoms -->
+            <div class="card symptoms-section" id="maleSymptoms">
+                <div class="card-title">Male Symptoms Assessment</div>
+                
+                <div class="category-header">Sleep & Energy</div>
+                
+                <div class="symptom-item" data-symptom="sleep_disruption">
+                    <span class="symptom-label">Sleep Disruption</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_sleep_disruption" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_sleep_disruption" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_sleep_disruption" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_sleep_disruption" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_sleep_disruption" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_sleep_disruption" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_sleep_disruption" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_sleep_disruption" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_sleep_disruption" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_sleep_disruption" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_sleep_disruption" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="fatigue">
+                    <span class="symptom-label">Fatigue</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_fatigue" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_fatigue" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_fatigue" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_fatigue" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_fatigue" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_fatigue" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_fatigue" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_fatigue" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_fatigue" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_fatigue" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_fatigue" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="category-header">Mood & Mental</div>
+                
+                <div class="symptom-item" data-symptom="irritability">
+                    <span class="symptom-label">Irritability</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_irritability" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_irritability" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_irritability" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_irritability" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_irritability" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_irritability" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_irritability" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_irritability" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_irritability" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_irritability" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_irritability" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="depression">
+                    <span class="symptom-label">Depression</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_depression" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_depression" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_depression" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_depression" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_depression" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_depression" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_depression" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_depression" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_depression" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_depression" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_depression" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="decreased_motivation">
+                    <span class="symptom-label">Decreased Motivation</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_decreased_motivation" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_motivation" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_motivation" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_motivation" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_motivation" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_motivation" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_decreased_motivation" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_motivation" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_motivation" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_motivation" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_motivation" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="decreased_self_confidence">
+                    <span class="symptom-label">Decreased Self Confidence</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_decreased_self_confidence" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_self_confidence" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_self_confidence" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_self_confidence" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_self_confidence" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_self_confidence" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_decreased_self_confidence" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_self_confidence" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_self_confidence" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_self_confidence" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_self_confidence" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="loss_of_recent_memory">
+                    <span class="symptom-label">Loss of Recent Memory</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_loss_of_recent_memory" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_loss_of_recent_memory" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_loss_of_recent_memory" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_loss_of_recent_memory" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_loss_of_recent_memory" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_loss_of_recent_memory" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_loss_of_recent_memory" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_loss_of_recent_memory" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_loss_of_recent_memory" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_loss_of_recent_memory" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_loss_of_recent_memory" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="category-header">Sexual Health</div>
+                
+                <div class="symptom-item" data-symptom="decreased_sex_drive">
+                    <span class="symptom-label">Decreased Sex Drive</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_decreased_sex_drive" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_sex_drive" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_sex_drive" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_sex_drive" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_sex_drive" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_sex_drive" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_decreased_sex_drive" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_sex_drive" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_sex_drive" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_sex_drive" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_sex_drive" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="harder_to_reach_climax">
+                    <span class="symptom-label">Harder to Reach Climax</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_harder_to_reach_climax" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_harder_to_reach_climax" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_harder_to_reach_climax" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_harder_to_reach_climax" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_harder_to_reach_climax" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_harder_to_reach_climax" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_harder_to_reach_climax" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_harder_to_reach_climax" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_harder_to_reach_climax" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_harder_to_reach_climax" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_harder_to_reach_climax" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="decreased_morning_erections">
+                    <span class="symptom-label">Decreased Morning Erections</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_decreased_morning_erections" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_morning_erections" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_morning_erections" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_morning_erections" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_morning_erections" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_decreased_morning_erections" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_decreased_morning_erections" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_morning_erections" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_morning_erections" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_morning_erections" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_decreased_morning_erections" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="reduced_testicular_size">
+                    <span class="symptom-label">Reduced Testicular Size</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_reduced_testicular_size" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_reduced_testicular_size" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_reduced_testicular_size" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_reduced_testicular_size" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_reduced_testicular_size" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_reduced_testicular_size" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_reduced_testicular_size" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_reduced_testicular_size" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_reduced_testicular_size" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_reduced_testicular_size" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_reduced_testicular_size" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="breast_development">
+                    <span class="symptom-label">Breast Development</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_breast_development" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_breast_development" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_breast_development" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_breast_development" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_breast_development" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_breast_development" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_breast_development" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_breast_development" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_breast_development" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_breast_development" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_breast_development" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="category-header">Body Composition</div>
+                
+                <div class="symptom-item" data-symptom="weight_gain">
+                    <span class="symptom-label">Weight Gain</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_weight_gain" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_weight_gain" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_weight_gain" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_weight_gain" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_weight_gain" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_weight_gain" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_weight_gain" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_weight_gain" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_weight_gain" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_weight_gain" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_weight_gain" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="abdominal_fat">
+                    <span class="symptom-label">Abdominal Fat</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_abdominal_fat" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_abdominal_fat" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_abdominal_fat" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_abdominal_fat" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_abdominal_fat" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_abdominal_fat" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_abdominal_fat" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_abdominal_fat" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_abdominal_fat" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_abdominal_fat" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_abdominal_fat" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="muscle_atrophy">
+                    <span class="symptom-label">Muscle Atrophy</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_muscle_atrophy" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_muscle_atrophy" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_muscle_atrophy" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_muscle_atrophy" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_muscle_atrophy" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_muscle_atrophy" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_muscle_atrophy" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_muscle_atrophy" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_muscle_atrophy" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_muscle_atrophy" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_muscle_atrophy" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="category-header">Physical Symptoms</div>
+                
+                <div class="symptom-item" data-symptom="dry_skin">
+                    <span class="symptom-label">Dry Skin</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_dry_skin" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_dry_skin" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_dry_skin" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_dry_skin" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_dry_skin" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_dry_skin" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_dry_skin" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_dry_skin" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_dry_skin" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_dry_skin" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_dry_skin" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="arthritis">
+                    <span class="symptom-label">Arthritis</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_arthritis" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_arthritis" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_arthritis" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_arthritis" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_arthritis" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_arthritis" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_arthritis" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_arthritis" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_arthritis" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_arthritis" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_arthritis" value="10"><label>10</label></div>
+                    </div>
+                </div>
+                
+                <div class="symptom-item" data-symptom="hair_loss">
+                    <span class="symptom-label">Hair Loss</span>
+                    <div class="scale-options">
+                        <div class="scale-option na-option"><input type="radio" name="m_hair_loss" value="NA"><label>NA</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_hair_loss" value="1"><label>1</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_hair_loss" value="2"><label>2</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_hair_loss" value="3"><label>3</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_hair_loss" value="4"><label>4</label></div>
+                        <div class="scale-option mild"><input type="radio" name="m_hair_loss" value="5"><label>5</label></div>
+                        <div class="scale-option moderate"><input type="radio" name="m_hair_loss" value="6"><label>6</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_hair_loss" value="7"><label>7</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_hair_loss" value="8"><label>8</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_hair_loss" value="9"><label>9</label></div>
+                        <div class="scale-option severe"><input type="radio" name="m_hair_loss" value="10"><label>10</label></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Female Symptoms -->
+            <div class="card symptoms-section" id="femaleSymptoms">
+                <div class="card-title">Female Symptoms Assessment</div>
+                
+                <div class="category-header">Sleep & Energy</div>
+                
+                <div class="symptom-item"><span class="symptom-label">Sleep Disruption</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_sleep_disruption" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_sleep_disruption" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_sleep_disruption" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_sleep_disruption" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_sleep_disruption" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_sleep_disruption" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_sleep_disruption" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_sleep_disruption" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_sleep_disruption" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_sleep_disruption" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_sleep_disruption" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Fatigue</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_fatigue" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_fatigue" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_fatigue" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_fatigue" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_fatigue" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_fatigue" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_fatigue" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_fatigue" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_fatigue" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_fatigue" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_fatigue" value="10"><label>10</label></div></div></div>
+                
+                <div class="category-header">Mood & Mental</div>
+                
+                <div class="symptom-item"><span class="symptom-label">Irritability</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_irritability" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_irritability" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_irritability" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_irritability" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_irritability" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_irritability" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_irritability" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_irritability" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_irritability" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_irritability" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_irritability" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Nervousness</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_nervousness" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_nervousness" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_nervousness" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_nervousness" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_nervousness" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_nervousness" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_nervousness" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_nervousness" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_nervousness" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_nervousness" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_nervousness" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Mood Swings</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_mood_swings" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_mood_swings" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_mood_swings" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_mood_swings" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_mood_swings" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_mood_swings" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_mood_swings" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_mood_swings" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_mood_swings" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_mood_swings" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_mood_swings" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Depression</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_depression" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_depression" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_depression" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_depression" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_depression" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_depression" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_depression" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_depression" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_depression" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_depression" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_depression" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Decreased Motivation</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_decreased_motivation" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_motivation" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_motivation" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_motivation" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_motivation" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_motivation" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_decreased_motivation" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_motivation" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_motivation" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_motivation" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_motivation" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Decreased Self-Confidence</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_decreased_self_confidence" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_self_confidence" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_self_confidence" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_self_confidence" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_self_confidence" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_self_confidence" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_decreased_self_confidence" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_self_confidence" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_self_confidence" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_self_confidence" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_self_confidence" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Loss of Recent Memory</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_loss_of_recent_memory" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_loss_of_recent_memory" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_loss_of_recent_memory" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_loss_of_recent_memory" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_loss_of_recent_memory" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_loss_of_recent_memory" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_loss_of_recent_memory" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_loss_of_recent_memory" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_loss_of_recent_memory" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_loss_of_recent_memory" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_loss_of_recent_memory" value="10"><label>10</label></div></div></div>
+                
+                <div class="category-header">Menopause & Hormonal</div>
+                
+                <div class="symptom-item"><span class="symptom-label">Hot Flashes</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_hot_flashes" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_hot_flashes" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_hot_flashes" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_hot_flashes" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_hot_flashes" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_hot_flashes" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_hot_flashes" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_hot_flashes" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_hot_flashes" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_hot_flashes" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_hot_flashes" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Night Sweats</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_night_sweats" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_night_sweats" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_night_sweats" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_night_sweats" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_night_sweats" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_night_sweats" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_night_sweats" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_night_sweats" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_night_sweats" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_night_sweats" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_night_sweats" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Cramps</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_cramps" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_cramps" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_cramps" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_cramps" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_cramps" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_cramps" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_cramps" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_cramps" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_cramps" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_cramps" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_cramps" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Breakthrough Bleeding</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_breakthrough_bleeding" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_breakthrough_bleeding" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_breakthrough_bleeding" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_breakthrough_bleeding" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_breakthrough_bleeding" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_breakthrough_bleeding" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_breakthrough_bleeding" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_breakthrough_bleeding" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_breakthrough_bleeding" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_breakthrough_bleeding" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_breakthrough_bleeding" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Breast Tenderness</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_breast_tenderness" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_breast_tenderness" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_breast_tenderness" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_breast_tenderness" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_breast_tenderness" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_breast_tenderness" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_breast_tenderness" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_breast_tenderness" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_breast_tenderness" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_breast_tenderness" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_breast_tenderness" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Fluid Retention</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_fluid_retention" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_fluid_retention" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_fluid_retention" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_fluid_retention" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_fluid_retention" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_fluid_retention" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_fluid_retention" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_fluid_retention" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_fluid_retention" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_fluid_retention" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_fluid_retention" value="10"><label>10</label></div></div></div>
+                
+                <div class="category-header">Sexual Health</div>
+                
+                <div class="symptom-item"><span class="symptom-label">Decreased Sex Drive</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_decreased_sex_drive" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_sex_drive" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_sex_drive" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_sex_drive" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_sex_drive" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_decreased_sex_drive" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_decreased_sex_drive" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_sex_drive" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_sex_drive" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_sex_drive" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_decreased_sex_drive" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Harder to Reach Climax</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_harder_to_reach_climax" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_harder_to_reach_climax" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_harder_to_reach_climax" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_harder_to_reach_climax" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_harder_to_reach_climax" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_harder_to_reach_climax" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_harder_to_reach_climax" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_harder_to_reach_climax" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_harder_to_reach_climax" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_harder_to_reach_climax" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_harder_to_reach_climax" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Vaginal Dryness</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_vaginal_dryness" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_vaginal_dryness" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_vaginal_dryness" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_vaginal_dryness" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_vaginal_dryness" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_vaginal_dryness" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_vaginal_dryness" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_vaginal_dryness" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_vaginal_dryness" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_vaginal_dryness" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_vaginal_dryness" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Painful Intercourse</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_painful_intercourse" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_painful_intercourse" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_painful_intercourse" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_painful_intercourse" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_painful_intercourse" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_painful_intercourse" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_painful_intercourse" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_painful_intercourse" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_painful_intercourse" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_painful_intercourse" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_painful_intercourse" value="10"><label>10</label></div></div></div>
+                
+                <div class="category-header">Body & Physical</div>
+                
+                <div class="symptom-item"><span class="symptom-label">Weight Gain</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_weight_gain" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_weight_gain" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_weight_gain" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_weight_gain" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_weight_gain" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_weight_gain" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_weight_gain" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_weight_gain" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_weight_gain" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_weight_gain" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_weight_gain" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Headaches</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_headaches" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_headaches" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_headaches" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_headaches" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_headaches" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_headaches" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_headaches" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_headaches" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_headaches" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_headaches" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_headaches" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Dry Skin</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_dry_skin" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_dry_skin" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_dry_skin" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_dry_skin" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_dry_skin" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_dry_skin" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_dry_skin" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_dry_skin" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_dry_skin" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_dry_skin" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_dry_skin" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Arthritis</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_arthritis" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_arthritis" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_arthritis" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_arthritis" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_arthritis" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_arthritis" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_arthritis" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_arthritis" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_arthritis" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_arthritis" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_arthritis" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Hair Loss</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_hair_loss" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_hair_loss" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_hair_loss" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_hair_loss" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_hair_loss" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_hair_loss" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_hair_loss" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_hair_loss" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_hair_loss" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_hair_loss" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_hair_loss" value="10"><label>10</label></div></div></div>
+                
+                <div class="symptom-item"><span class="symptom-label">Urinary Incontinence</span><div class="scale-options"><div class="scale-option na-option"><input type="radio" name="f_urinary_incontinence" value="NA"><label>NA</label></div><div class="scale-option mild"><input type="radio" name="f_urinary_incontinence" value="1"><label>1</label></div><div class="scale-option mild"><input type="radio" name="f_urinary_incontinence" value="2"><label>2</label></div><div class="scale-option mild"><input type="radio" name="f_urinary_incontinence" value="3"><label>3</label></div><div class="scale-option mild"><input type="radio" name="f_urinary_incontinence" value="4"><label>4</label></div><div class="scale-option mild"><input type="radio" name="f_urinary_incontinence" value="5"><label>5</label></div><div class="scale-option moderate"><input type="radio" name="f_urinary_incontinence" value="6"><label>6</label></div><div class="scale-option severe"><input type="radio" name="f_urinary_incontinence" value="7"><label>7</label></div><div class="scale-option severe"><input type="radio" name="f_urinary_incontinence" value="8"><label>8</label></div><div class="scale-option severe"><input type="radio" name="f_urinary_incontinence" value="9"><label>9</label></div><div class="scale-option severe"><input type="radio" name="f_urinary_incontinence" value="10"><label>10</label></div></div></div>
+            </div>
+
+            <!-- Additional Notes -->
+            <div class="card" id="notesCard" style="display: none;">
+                <div class="card-title">Additional Notes</div>
+                <div class="form-group">
+                    <label>Is there anything else you'd like us to know?</label>
+                    <textarea name="additionalNotes" id="additionalNotes" rows="4" placeholder="Enter any additional information about your symptoms or concerns..."></textarea>
+                </div>
+            </div>
+
+            <!-- Patient Acknowledgment -->
+            <div class="card" id="signatureCard" style="display: none;">
+                <div class="card-title">Patient Acknowledgment</div>
+                <p style="margin-bottom: 20px; color: #555;">I certify that the information provided above is accurate and complete to the best of my knowledge.</p>
+                
+                <div class="form-group">
+                    <label>Signature <span class="required">*</span></label>
+                    <div class="signature-pad-container">
+                        <canvas id="signaturePad" class="signature-pad"></canvas>
+                    </div>
+                    <div class="signature-actions">
+                        <button type="button" class="clear-btn" onclick="clearSignature()">Clear Signature</button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>Submit Questionnaire</button>
+            </div>
+        </form>
+
+        <!-- Success Message -->
+        <div class="card success-message" id="successMessage">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h2>Questionnaire Submitted!</h2>
+            <p>Thank you for completing the Symptoms Questionnaire.</p>
+            <p style="margin-top: 10px;">Your provider will review your responses.</p>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Submitting your questionnaire...</div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'https://rangemedical-system-2.vercel.app';
+        
+        // Set today's date as default
+        document.getElementById('assessmentDate').valueAsDate = new Date();
+        
+        let selectedGender = null;
+        let signaturePad = null;
+        
+        // Gender selection handler
+        document.querySelectorAll('input[name="gender"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                selectedGender = this.value;
+                
+                // Show the questionnaire content
+                document.getElementById('symptomsForm').classList.add('active');
+                
+                // Hide both symptom sections first
+                document.getElementById('maleSymptoms').classList.remove('active');
+                document.getElementById('femaleSymptoms').classList.remove('active');
+                
+                // Show the appropriate symptoms section
+                if (selectedGender === 'male') {
+                    document.getElementById('maleSymptoms').classList.add('active');
+                } else {
+                    document.getElementById('femaleSymptoms').classList.add('active');
+                }
+                
+                // Show notes and signature cards
+                document.getElementById('notesCard').style.display = 'block';
+                document.getElementById('signatureCard').style.display = 'block';
+                
+                // Initialize progress tracking
+                updateProgress();
+                
+                // Initialize signature pad
+                initSignaturePad();
+                
+                // Scroll to form
+                document.getElementById('symptomsForm').scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+        
+        // Initialize signature pad
+        function initSignaturePad() {
+            const canvas = document.getElementById('signaturePad');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = 150;
+            
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            function getCoords(e) {
+                const rect = canvas.getBoundingClientRect();
+                if (e.touches) {
+                    return {
+                        x: e.touches[0].clientX - rect.left,
+                        y: e.touches[0].clientY - rect.top
+                    };
+                }
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+            
+            function startDrawing(e) {
+                isDrawing = true;
+                const coords = getCoords(e);
+                lastX = coords.x;
+                lastY = coords.y;
+            }
+            
+            function draw(e) {
+                if (!isDrawing) return;
+                e.preventDefault();
+                
+                const coords = getCoords(e);
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(coords.x, coords.y);
+                ctx.stroke();
+                lastX = coords.x;
+                lastY = coords.y;
+                
+                checkSignature();
+            }
+            
+            function stopDrawing() {
+                isDrawing = false;
+            }
+            
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
+            
+            signaturePad = { canvas, ctx };
+        }
+        
+        function clearSignature() {
+            if (signaturePad) {
+                signaturePad.ctx.clearRect(0, 0, signaturePad.canvas.width, signaturePad.canvas.height);
+                checkSignature();
+            }
+        }
+        
+        function checkSignature() {
+            if (!signaturePad) return;
+            
+            const canvas = signaturePad.canvas;
+            const ctx = signaturePad.ctx;
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            
+            let hasContent = false;
+            for (let i = 3; i < pixels.length; i += 4) {
+                if (pixels[i] > 0) {
+                    hasContent = true;
+                    break;
+                }
+            }
+            
+            document.getElementById('submitBtn').disabled = !hasContent;
+        }
+        
+        // Progress tracking
+        function updateProgress() {
+            const activeSection = selectedGender === 'male' ? 'maleSymptoms' : 'femaleSymptoms';
+            const symptomItems = document.querySelectorAll(`#${activeSection} .symptom-item`);
+            const totalSymptoms = symptomItems.length;
+            let completedSymptoms = 0;
+            
+            symptomItems.forEach(item => {
+                const radios = item.querySelectorAll('input[type="radio"]');
+                radios.forEach(radio => {
+                    if (radio.checked) {
+                        completedSymptoms++;
+                    }
+                });
+            });
+            
+            document.getElementById('totalSymptoms').textContent = totalSymptoms;
+            document.getElementById('progressCount').textContent = completedSymptoms;
+            
+            const percentage = (completedSymptoms / totalSymptoms) * 100;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+        }
+        
+        // Listen for symptom changes
+        document.querySelectorAll('.symptom-item input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', updateProgress);
+        });
+        
+        // Collect form data
+        function collectFormData() {
+            const formData = {
+                gender: selectedGender,
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                dateOfBirth: document.getElementById('dateOfBirth').value,
+                assessmentDate: document.getElementById('assessmentDate').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                additionalNotes: document.getElementById('additionalNotes').value,
+                symptoms: {},
+                signatureData: signaturePad.canvas.toDataURL('image/png')
+            };
+            
+            // Collect symptoms based on gender
+            const prefix = selectedGender === 'male' ? 'm_' : 'f_';
+            const activeSection = selectedGender === 'male' ? 'maleSymptoms' : 'femaleSymptoms';
+            
+            document.querySelectorAll(`#${activeSection} input[type="radio"]:checked`).forEach(radio => {
+                const symptomName = radio.name.replace(prefix, '');
+                formData.symptoms[symptomName] = radio.value;
+            });
+            
+            return formData;
+        }
+        
+        // Build GHL note text
+        function buildNoteText(formData) {
+            const genderLabel = formData.gender === 'male' ? 'MALE' : 'FEMALE';
+            let note = `📋 ${genderLabel} SYMPTOMS QUESTIONNAIRE\n`;
+            note += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            note += `Patient: ${formData.firstName} ${formData.lastName}\n`;
+            note += `Email: ${formData.email}\n`;
+            if (formData.phone) note += `Phone: ${formData.phone}\n`;
+            note += `DOB: ${formData.dateOfBirth}\n`;
+            note += `Assessment Date: ${formData.assessmentDate}\n\n`;
+            
+            note += `📊 SYMPTOM SCORES:\n`;
+            note += `─────────────────────────────\n`;
+            
+            // Format symptom names nicely
+            const formatSymptom = (key) => {
+                return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            };
+            
+            // Categorize symptoms for the note
+            const severeSymptoms = [];
+            const moderateSymptoms = [];
+            const mildSymptoms = [];
+            const naSymptoms = [];
+            
+            for (const [symptom, value] of Object.entries(formData.symptoms)) {
+                const formatted = `${formatSymptom(symptom)}: ${value}`;
+                if (value === 'NA') {
+                    naSymptoms.push(formatted);
+                } else {
+                    const numVal = parseInt(value);
+                    if (numVal >= 7) {
+                        severeSymptoms.push(formatted);
+                    } else if (numVal === 6) {
+                        moderateSymptoms.push(formatted);
+                    } else {
+                        mildSymptoms.push(formatted);
+                    }
+                }
+            }
+            
+            if (severeSymptoms.length > 0) {
+                note += `\n🔴 SEVERE (7-10):\n`;
+                severeSymptoms.forEach(s => note += `  • ${s}\n`);
+            }
+            
+            if (moderateSymptoms.length > 0) {
+                note += `\n🟡 MODERATE (6):\n`;
+                moderateSymptoms.forEach(s => note += `  • ${s}\n`);
+            }
+            
+            if (mildSymptoms.length > 0) {
+                note += `\n🟢 MILD (1-5):\n`;
+                mildSymptoms.forEach(s => note += `  • ${s}\n`);
+            }
+            
+            if (naSymptoms.length > 0) {
+                note += `\n⚪ NOT APPLICABLE:\n`;
+                naSymptoms.forEach(s => note += `  • ${s}\n`);
+            }
+            
+            if (formData.additionalNotes) {
+                note += `\n📝 ADDITIONAL NOTES:\n`;
+                note += `${formData.additionalNotes}\n`;
+            }
+            
+            note += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            note += `Submitted: ${new Date().toLocaleString()}`;
+            
+            return note;
+        }
+        
+        // Form submission
+        document.getElementById('symptomsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show loading
+            document.getElementById('loadingOverlay').classList.add('active');
+            
+            try {
+                const formData = collectFormData();
+                const noteText = buildNoteText(formData);
+                
+                // Send to API
+                const response = await fetch(`${API_BASE_URL}/api/symptoms-questionnaire`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ...formData,
+                        noteText: noteText
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('Submission result:', result);
+                
+                // Hide loading and show success
+                document.getElementById('loadingOverlay').classList.remove('active');
+                document.getElementById('symptomsForm').style.display = 'none';
+                document.getElementById('genderCard').style.display = 'none';
+                document.getElementById('successMessage').classList.add('active');
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('Submission error:', error);
+                document.getElementById('loadingOverlay').classList.remove('active');
+                alert('There was an error submitting your questionnaire. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

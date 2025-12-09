@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       tags: ['intake-submitted', 'new-patient'],
       customFields: [
         {
-          key: 'medical_intake',
+          key: 'medical_intake_form',
           field_value: 'Complete'
         }
       ]

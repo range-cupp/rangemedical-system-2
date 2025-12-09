@@ -156,6 +156,7 @@
                     <div style="background-color:#ede9fe;border-left:4px solid #8b5cf6;padding:1rem;margin-bottom:1.5rem;border-radius:4px">
                         <h3 style="margin:0 0 1rem 0;font-size:.875rem;font-weight:700;text-transform:uppercase;color:#5b21b6">🧠 Mental Health</h3>
                         <div class="condition-item"><label><strong>Depression / Anxiety</strong> <span class="required">*</span></label><div class="radio-group" style="margin-bottom:.5rem"><div class="radio-item"><input type="radio" id="depression_yes" name="depression" value="Yes" required class="condition-radio"><label for="depression_yes">Yes</label></div><div class="radio-item"><input type="radio" id="depression_no" name="depression" value="No" class="condition-radio"><label for="depression_no">No</label></div></div><div class="condition-details" id="depression-details"><div class="form-group"><label for="depression-year">Year Diagnosed</label><input type="text" id="depression-year" name="depressionYear" placeholder="e.g., 2020"></div></div></div>
+                        <div class="condition-item"><label><strong>Eating Disorder</strong> <span class="required">*</span></label><div class="radio-group" style="margin-bottom:.5rem"><div class="radio-item"><input type="radio" id="eatingDisorder_yes" name="eatingDisorder" value="Yes" required class="condition-radio"><label for="eatingDisorder_yes">Yes</label></div><div class="radio-item"><input type="radio" id="eatingDisorder_no" name="eatingDisorder" value="No" class="condition-radio"><label for="eatingDisorder_no">No</label></div></div><div class="condition-details" id="eatingDisorder-details"><div class="form-row" style="margin-bottom:0"><div class="form-group"><label for="eatingDisorder-type">Type</label><input type="text" id="eatingDisorder-type" name="eatingDisorderType" placeholder="e.g., Anorexia, Bulimia, BED"></div><div class="form-group"><label for="eatingDisorder-year">Year</label><input type="text" id="eatingDisorder-year" name="eatingDisorderYear" placeholder="e.g., 2020"></div></div></div></div>
                     </div>
                     
                     <!-- Organ Health -->
@@ -537,7 +538,7 @@ async function collectFormData() {
     const getValue = (id) => document.getElementById(id)?.value || '';
     const getRadio = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
     
-    const conditionNames = ['hypertension', 'highCholesterol', 'heartDisease', 'diabetes', 'thyroid', 'depression', 'kidney', 'liver', 'autoimmune', 'cancer'];
+    const conditionNames = ['hypertension', 'highCholesterol', 'heartDisease', 'diabetes', 'thyroid', 'depression', 'eatingDisorder', 'kidney', 'liver', 'autoimmune', 'cancer'];
     const conditionLabels = {
         'hypertension': 'High Blood Pressure',
         'highCholesterol': 'High Cholesterol',
@@ -545,6 +546,7 @@ async function collectFormData() {
         'diabetes': 'Diabetes',
         'thyroid': 'Thyroid Disorder',
         'depression': 'Depression/Anxiety',
+        'eatingDisorder': 'Eating Disorder',
         'kidney': 'Kidney Disease',
         'liver': 'Liver Disease',
         'autoimmune': 'Autoimmune Disorder',

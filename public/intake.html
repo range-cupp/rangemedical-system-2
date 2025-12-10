@@ -103,6 +103,9 @@
                         <div class="form-group"><label for="lastName">Legal Last Name <span class="required">*</span></label><input type="text" id="lastName" name="lastName" placeholder="As shown on government ID" required><span class="field-error" id="lastNameError">Legal last name is required</span></div>
                     </div>
                     <div class="form-row">
+                        <div class="form-group"><label for="preferredName">Preferred Name</label><input type="text" id="preferredName" name="preferredName" placeholder="What would you like us to call you?"></div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group"><label for="gender">Gender <span class="required">*</span></label><select id="gender" name="gender" required><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Non-binary">Non-binary</option><option value="Prefer not to say">Prefer not to say</option><option value="Other">Other</option></select><span class="field-error" id="genderError">Gender is required</span></div>
                         <div class="form-group"><label for="dob">Date of Birth <span class="required">*</span></label><input type="date" id="dob" name="dob" required><span class="field-error" id="dobError">Date of birth is required</span></div>
                     </div>
@@ -570,6 +573,7 @@ async function collectFormData() {
     return {
         firstName: getValue('firstName'),
         lastName: getValue('lastName'),
+        preferredName: getValue('preferredName'),
         gender: getValue('gender'),
         dateOfBirth: getValue('dob'),
         email: getValue('email'),
@@ -672,6 +676,7 @@ async function generatePDF(formData) {
     // Personal Info
     addSection('PERSONAL INFORMATION');
     addLabelValue('Legal Name: ', formData.firstName + ' ' + formData.lastName);
+    if (formData.preferredName) addLabelValue('Preferred Name: ', formData.preferredName);
     addLabelValue('Gender: ', formData.gender);
     addLabelValue('DOB: ', formData.dateOfBirth);
     addLabelValue('Email: ', formData.email);
@@ -780,6 +785,7 @@ async function saveToDatabase(formData, urls) {
             body: JSON.stringify({
                 firstName: formData.firstName,
                 lastName: formData.lastName,
+                preferredName: formData.preferredName,
                 email: formData.email,
                 phone: formData.phone,
                 dateOfBirth: formData.dateOfBirth,
@@ -994,10 +1000,11 @@ document.getElementById('intakeForm').addEventListener('submit', async function(
 });
 
 function showThankYouPage(formData) {
+    const displayName = formData.preferredName || formData.firstName;
     document.querySelector('.container').innerHTML = `
         <div class="thank-you-page">
             <div class="thank-you-icon">✓</div>
-            <h1>Thank You, ${formData.firstName}!</h1>
+            <h1>Thank You, ${displayName}!</h1>
             <p class="thank-you-subtitle">Your intake form has been successfully submitted.</p>
             <div class="thank-you-details">
                 <p>We've received your information and our team will review it before your appointment.</p>

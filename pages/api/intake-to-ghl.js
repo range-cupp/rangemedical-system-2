@@ -20,6 +20,7 @@ export default async function handler(req, res) {
       // Patient info
       firstName,
       lastName,
+      preferredName,
       email,
       phone,
       dateOfBirth,
@@ -59,6 +60,8 @@ export default async function handler(req, res) {
     // Search for existing contact by email
     const searchUrl = `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`;
     
+    console.log('Searching for existing contact:', email);
+    
     const searchResponse = await fetch(searchUrl, {
       method: 'GET',
       headers: {
@@ -69,31 +72,28 @@ export default async function handler(req, res) {
     });
 
     const searchData = await searchResponse.json();
+    console.log('Search result:', JSON.stringify(searchData));
+    
     let contactId = searchData.contact?.id;
     let isNewContact = !contactId;
 
-    // Prepare contact data
+    // Prepare contact data - keeping it simple to avoid GHL rejections
     const contactData = {
       firstName,
       lastName,
       email,
-      phone: formattedPhone || undefined,
-      address1: streetAddress || undefined,
-      city: city || undefined,
-      state: state || undefined,
-      postalCode: postalCode || undefined,
-      country: country || 'US',
-      source: 'Website Medical Intake',
-      tags: ['intake-submitted', 'new-patient'],
-      customFields: [
-        {
-          key: 'medical_intake_form',
-          field_value: 'Complete'
-        }
-      ]
+      source: 'Website Medical Intake'
     };
 
-    // Add date of birth if provided
+    // Only add optional fields if they have values
+    if (formattedPhone) contactData.phone = formattedPhone;
+    if (streetAddress) contactData.address1 = streetAddress;
+    if (city) contactData.city = city;
+    if (state) contactData.state = state;
+    if (postalCode) contactData.postalCode = postalCode;
+    if (country) contactData.country = country;
+    
+    // Format DOB for GHL (YYYY-MM-DD)
     if (dateOfBirth) {
       contactData.dateOfBirth = dateOfBirth;
     }
@@ -103,6 +103,7 @@ export default async function handler(req, res) {
     if (contactId) {
       // Update existing contact
       console.log('Updating existing GHL contact:', contactId);
+      console.log('Update payload:', JSON.stringify(contactData));
       
       contactResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
         method: 'PUT',
@@ -120,6 +121,8 @@ export default async function handler(req, res) {
       
       contactData.locationId = GHL_LOCATION_ID;
       
+      console.log('Create payload:', JSON.stringify(contactData));
+      
       contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/', {
         method: 'POST',
         headers: {
@@ -133,22 +136,45 @@ export default async function handler(req, res) {
     }
 
     const contactResult = await contactResponse.json();
+    console.log('GHL response status:', contactResponse.status);
+    console.log('GHL response:', JSON.stringify(contactResult));
     
     if (!contactResponse.ok) {
       console.error('GHL contact error:', contactResult);
       return res.status(400).json({ 
         success: false, 
         error: 'Failed to create/update contact',
-        details: contactResult 
+        details: contactResult,
+        statusCode: contactResponse.status
       });
     }
 
     contactId = contactResult.contact?.id || contactId;
 
-    // Build note with document links - INTAKE FORMAT
+    // Try to add tags separately (won't fail the whole request if it doesn't work)
+    try {
+      await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/tags`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          tags: ['intake-submitted']
+        })
+      });
+      console.log('Tags added');
+    } catch (tagError) {
+      console.warn('Could not add tags (non-critical):', tagError.message);
+    }
+
+    // Build note with document links
     let noteBody = `📋 MEDICAL INTAKE FORM SUBMITTED\n`;
     noteBody += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     noteBody += `Patient: ${firstName} ${lastName}\n`;
+    if (preferredName) noteBody += `Preferred Name: ${preferredName}\n`;
     noteBody += `Email: ${email}\n`;
     if (formattedPhone) noteBody += `Phone: ${formattedPhone}\n`;
     if (dateOfBirth) noteBody += `DOB: ${dateOfBirth}\n`;
@@ -199,8 +225,11 @@ export default async function handler(req, res) {
           })
         });
 
+        const noteResult = await noteResponse.json();
+        console.log('Note response:', noteResponse.status, JSON.stringify(noteResult));
+
         if (!noteResponse.ok) {
-          console.warn('Failed to add note, but contact was updated');
+          console.warn('Failed to add note:', noteResult);
         } else {
           console.log('Note added successfully');
         }

@@ -17,28 +17,22 @@ export default async function handler(req, res) {
 
   try {
     const {
-      // Patient info
       firstName,
       lastName,
       preferredName,
       email,
       phone,
       dateOfBirth,
-      
-      // Address
       streetAddress,
       city,
       state,
       postalCode,
       country,
-      
-      // Document URLs
       pdfUrl,
       photoIdUrl,
       signatureUrl
     } = req.body;
 
-    // Validate required fields
     if (!email || !firstName || !lastName) {
       return res.status(400).json({ 
         success: false, 
@@ -57,27 +51,85 @@ export default async function handler(req, res) {
       formattedPhone = '+' + formattedPhone;
     }
 
-    // Search for existing contact by email
-    const searchUrl = `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`;
-    
-    console.log('Searching for existing contact:', email);
-    
-    const searchResponse = await fetch(searchUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Version': '2021-07-28',
-        'Accept': 'application/json'
+    // ============================================
+    // STEP 1: Search for existing contact
+    // ============================================
+    let contactId = null;
+    let isNewContact = true;
+
+    try {
+      // Try the duplicate search endpoint first
+      const searchUrl = `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`;
+      
+      console.log('Searching for existing contact:', email);
+      
+      const searchResponse = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Accept': 'application/json'
+        }
+      });
+
+      const searchData = await searchResponse.json();
+      console.log('Duplicate search response:', JSON.stringify(searchData));
+      
+      // Check various response formats GHL might use
+      if (searchData.contact?.id) {
+        contactId = searchData.contact.id;
+        console.log('Found contact via .contact.id:', contactId);
+      } else if (searchData.contacts && searchData.contacts.length > 0) {
+        contactId = searchData.contacts[0].id;
+        console.log('Found contact via .contacts[0].id:', contactId);
+      } else if (searchData.id) {
+        contactId = searchData.id;
+        console.log('Found contact via .id:', contactId);
       }
-    });
+    } catch (searchError) {
+      console.log('Duplicate search failed, will try to create:', searchError.message);
+    }
 
-    const searchData = await searchResponse.json();
-    console.log('Search result:', JSON.stringify(searchData));
-    
-    let contactId = searchData.contact?.id;
-    let isNewContact = !contactId;
+    // If duplicate search didn't find it, try lookup by email
+    if (!contactId) {
+      try {
+        const lookupUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(email)}`;
+        
+        console.log('Trying contact lookup by email...');
+        
+        const lookupResponse = await fetch(lookupUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Accept': 'application/json'
+          }
+        });
 
-    // Prepare contact data - keeping it simple to avoid GHL rejections
+        const lookupData = await lookupResponse.json();
+        console.log('Lookup response:', JSON.stringify(lookupData));
+        
+        if (lookupData.contacts && lookupData.contacts.length > 0) {
+          // Find exact email match
+          const exactMatch = lookupData.contacts.find(c => 
+            c.email?.toLowerCase() === email.toLowerCase()
+          );
+          if (exactMatch) {
+            contactId = exactMatch.id;
+            console.log('Found contact via lookup:', contactId);
+          }
+        }
+      } catch (lookupError) {
+        console.log('Lookup failed:', lookupError.message);
+      }
+    }
+
+    isNewContact = !contactId;
+    console.log('Is new contact:', isNewContact, 'Contact ID:', contactId);
+
+    // ============================================
+    // STEP 2: Create or Update contact
+    // ============================================
     const contactData = {
       firstName,
       lastName,
@@ -85,25 +137,20 @@ export default async function handler(req, res) {
       source: 'Website Medical Intake'
     };
 
-    // Only add optional fields if they have values
     if (formattedPhone) contactData.phone = formattedPhone;
     if (streetAddress) contactData.address1 = streetAddress;
     if (city) contactData.city = city;
     if (state) contactData.state = state;
     if (postalCode) contactData.postalCode = postalCode;
     if (country) contactData.country = country;
-    
-    // Format DOB for GHL (YYYY-MM-DD)
-    if (dateOfBirth) {
-      contactData.dateOfBirth = dateOfBirth;
-    }
+    if (dateOfBirth) contactData.dateOfBirth = dateOfBirth;
 
     let contactResponse;
+    let contactResult;
 
     if (contactId) {
-      // Update existing contact
-      console.log('Updating existing GHL contact:', contactId);
-      console.log('Update payload:', JSON.stringify(contactData));
+      // UPDATE existing contact
+      console.log('Updating existing contact:', contactId);
       
       contactResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
         method: 'PUT',
@@ -115,13 +162,14 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify(contactData)
       });
+      
+      contactResult = await contactResponse.json();
+      console.log('Update response:', contactResponse.status, JSON.stringify(contactResult));
+      
     } else {
-      // Create new contact
-      console.log('Creating new GHL contact');
-      
+      // CREATE new contact
+      console.log('Creating new contact');
       contactData.locationId = GHL_LOCATION_ID;
-      
-      console.log('Create payload:', JSON.stringify(contactData));
       
       contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/', {
         method: 'POST',
@@ -133,11 +181,42 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify(contactData)
       });
+      
+      contactResult = await contactResponse.json();
+      console.log('Create response:', contactResponse.status, JSON.stringify(contactResult));
+      
+      // If we get duplicate error, extract the contact ID and update instead
+      if (!contactResponse.ok && contactResult.message?.includes('duplicated')) {
+        console.log('Duplicate detected, extracting contact info...');
+        
+        // Try to get contact ID from error response meta
+        if (contactResult.meta?.contactId) {
+          contactId = contactResult.meta.contactId;
+        } else if (contactResult.meta?.id) {
+          contactId = contactResult.meta.id;
+        }
+        
+        // If we got an ID from the error, try updating
+        if (contactId) {
+          console.log('Retrying as update with ID:', contactId);
+          
+          contactResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(contactData)
+          });
+          
+          contactResult = await contactResponse.json();
+          isNewContact = false;
+          console.log('Retry update response:', contactResponse.status, JSON.stringify(contactResult));
+        }
+      }
     }
-
-    const contactResult = await contactResponse.json();
-    console.log('GHL response status:', contactResponse.status);
-    console.log('GHL response:', JSON.stringify(contactResult));
     
     if (!contactResponse.ok) {
       console.error('GHL contact error:', contactResult);
@@ -151,7 +230,9 @@ export default async function handler(req, res) {
 
     contactId = contactResult.contact?.id || contactId;
 
-    // Try to add tags separately (won't fail the whole request if it doesn't work)
+    // ============================================
+    // STEP 3: Add tags (non-blocking)
+    // ============================================
     try {
       await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/tags`, {
         method: 'POST',
@@ -167,10 +248,12 @@ export default async function handler(req, res) {
       });
       console.log('Tags added');
     } catch (tagError) {
-      console.warn('Could not add tags (non-critical):', tagError.message);
+      console.warn('Could not add tags:', tagError.message);
     }
 
-    // Build note with document links
+    // ============================================
+    // STEP 4: Add note with documents
+    // ============================================
     let noteBody = `📋 MEDICAL INTAKE FORM SUBMITTED\n`;
     noteBody += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     noteBody += `Patient: ${firstName} ${lastName}\n`;
@@ -192,24 +275,14 @@ export default async function handler(req, res) {
     if (pdfUrl || photoIdUrl || signatureUrl) {
       noteBody += `📄 DOCUMENTS:\n`;
       noteBody += `─────────────────────────────\n`;
-      
-      if (pdfUrl) {
-        noteBody += `📑 Complete Medical Intake PDF:\n${pdfUrl}\n\n`;
-      }
-      
-      if (photoIdUrl) {
-        noteBody += `🪪 Photo ID:\n${photoIdUrl}\n\n`;
-      }
-      
-      if (signatureUrl) {
-        noteBody += `✍️ Signature:\n${signatureUrl}\n\n`;
-      }
+      if (pdfUrl) noteBody += `📑 Complete Medical Intake PDF:\n${pdfUrl}\n\n`;
+      if (photoIdUrl) noteBody += `🪪 Photo ID:\n${photoIdUrl}\n\n`;
+      if (signatureUrl) noteBody += `✍️ Signature:\n${signatureUrl}\n\n`;
     }
     
     noteBody += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     noteBody += `Submitted: ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PT`;
 
-    // Add note to contact
     if (contactId) {
       try {
         const noteResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
@@ -220,13 +293,11 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({
-            body: noteBody
-          })
+          body: JSON.stringify({ body: noteBody })
         });
 
         const noteResult = await noteResponse.json();
-        console.log('Note response:', noteResponse.status, JSON.stringify(noteResult));
+        console.log('Note response:', noteResponse.status);
 
         if (!noteResponse.ok) {
           console.warn('Failed to add note:', noteResult);

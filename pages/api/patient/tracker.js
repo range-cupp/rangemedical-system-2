@@ -194,7 +194,7 @@ export default async function handler(req, res) {
 function generateDosingInstructions(protocol) {
   const peptide = protocol.primary_peptide || 'your peptide';
   const secondary = protocol.secondary_peptide;
-  const dose = protocol.dose_amount || 'as prescribed';
+  const dose = protocol.dose_amount || 'as directed';
   const frequency = protocol.dose_frequency || '1x daily';
   const route = protocol.peptide_route || 'SC';
   const duration = protocol.duration_days;
@@ -219,31 +219,31 @@ function generateDosingInstructions(protocol) {
   };
 
   let instructions = `
-📋 YOUR PROTOCOL INSTRUCTIONS
+YOUR PROTOCOL INSTRUCTIONS
 
-💊 PEPTIDE${secondary ? 'S' : ''}
+PEPTIDE${secondary ? 'S' : ''}
 ${peptide}${secondary ? ` + ${secondary}` : ''}
 
-💉 DOSAGE
+DOSAGE
 ${dose} — ${frequency}
 
-📅 DURATION
+DURATION
 ${duration} days
 
-🎯 HOW TO INJECT
+HOW TO INJECT
 ${routeInstructions[route] || routeInstructions['SC']}
 
-⏰ TIMING
+TIMING
 ${frequency.includes('AM') ? 'Take in the morning' : 
   frequency.includes('PM') || frequency.includes('bedtime') ? 'Take in the evening/before bed' : 
   'Take at the same time each day for consistency'}
 
-${goal ? `\n💡 TIP\n${goalTips[goal] || ''}` : ''}
+${goal ? `\nTIP\n${goalTips[goal] || ''}` : ''}
 
-📞 QUESTIONS?
-Text or call Range Medical: (949) 891-5683
+QUESTIONS?
+Text or call Range Medical: (949) 997-3988
 
-⚠️ STORAGE
+STORAGE
 Keep refrigerated (36-46°F). Do not freeze. Protect from light.
 `.trim();
 

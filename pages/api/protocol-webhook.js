@@ -1,4 +1,4 @@
-// /pages/api/protocol-webhook.js
+\// /pages/api/protocol-webhook.js
 // Webhook handler: GHL Payment → Supabase Protocol Tracker → GHL Contact Update
 // Range Medical Protocol Tracking System
 
@@ -20,48 +20,62 @@ const GHL_API_BASE = 'https://services.leadconnectorhq.com';
 // Maps GHL product names to protocol types
 // Uses lowercase keys for case-insensitive matching
 // =====================================================
+
+// New 4-SKU Architecture:
+// 1. Peptide Recovery Jumpstart – 10 Day ($297)
+// 2. Peptide Month Program – 30 Day ($697)
+// 3. Peptide Maintenance – 4-Week Refill ($297)
+// 4. Peptide Injection – In-Clinic ($89)
+
 const PROGRAM_MAPPING = {
-  // Exact matches (canonical SKUs) - normalized to lowercase, hyphens standardized
-  'peptide recovery protocol - 10-day intensive': {
-    type: 'recovery_10day',
+  // === NEW SKUs ===
+  // Jumpstart 10-Day
+  'peptide recovery jumpstart - 10 day': {
+    type: 'jumpstart_10day',
     duration: 10,
-    category: 'recovery'
+    category: 'jumpstart'
   },
-  'peptide recovery protocol – 10-day intensive': {
-    type: 'recovery_10day',
+  'peptide recovery jumpstart – 10 day': {
+    type: 'jumpstart_10day',
     duration: 10,
-    category: 'recovery'
+    category: 'jumpstart'
   },
-  'peptide recovery protocol - 30-day program': {
-    type: 'recovery_30day',
+  
+  // Month Program 30-Day
+  'peptide month program - 30 day': {
+    type: 'month_30day',
     duration: 30,
-    category: 'recovery'
+    category: 'month'
   },
-  'peptide recovery protocol – 30-day program': {
-    type: 'recovery_30day',
+  'peptide month program – 30 day': {
+    type: 'month_30day',
     duration: 30,
-    category: 'recovery'
+    category: 'month'
   },
-  'peptide metabolic protocol - 30-day program': {
-    type: 'metabolic_30day',
-    duration: 30,
-    category: 'metabolic'
+  
+  // Maintenance 4-Week Refill
+  'peptide maintenance - 4-week refill': {
+    type: 'maintenance_28day',
+    duration: 28,
+    category: 'maintenance'
   },
-  'peptide metabolic protocol – 30-day program': {
-    type: 'metabolic_30day',
-    duration: 30,
-    category: 'metabolic'
+  'peptide maintenance – 4-week refill': {
+    type: 'maintenance_28day',
+    duration: 28,
+    category: 'maintenance'
   },
-  'peptide longevity protocol - 30-day program': {
-    type: 'longevity_30day',
-    duration: 30,
-    category: 'longevity'
+  'peptide maintenance - 4 week refill': {
+    type: 'maintenance_28day',
+    duration: 28,
+    category: 'maintenance'
   },
-  'peptide longevity protocol – 30-day program': {
-    type: 'longevity_30day',
-    duration: 30,
-    category: 'longevity'
+  'peptide maintenance – 4 week refill': {
+    type: 'maintenance_28day',
+    duration: 28,
+    category: 'maintenance'
   },
+  
+  // In-Clinic Injection
   'peptide injection - in-clinic': {
     type: 'injection_clinic',
     duration: 1,
@@ -71,6 +85,48 @@ const PROGRAM_MAPPING = {
     type: 'injection_clinic',
     duration: 1,
     category: 'clinic'
+  },
+
+  // === LEGACY SKUs (for backwards compatibility) ===
+  'peptide recovery protocol - 10-day intensive': {
+    type: 'jumpstart_10day',
+    duration: 10,
+    category: 'jumpstart'
+  },
+  'peptide recovery protocol – 10-day intensive': {
+    type: 'jumpstart_10day',
+    duration: 10,
+    category: 'jumpstart'
+  },
+  'peptide recovery protocol - 30-day program': {
+    type: 'month_30day',
+    duration: 30,
+    category: 'month'
+  },
+  'peptide recovery protocol – 30-day program': {
+    type: 'month_30day',
+    duration: 30,
+    category: 'month'
+  },
+  'peptide metabolic protocol - 30-day program': {
+    type: 'month_30day',
+    duration: 30,
+    category: 'month'
+  },
+  'peptide metabolic protocol – 30-day program': {
+    type: 'month_30day',
+    duration: 30,
+    category: 'month'
+  },
+  'peptide longevity protocol - 30-day program': {
+    type: 'month_30day',
+    duration: 30,
+    category: 'month'
+  },
+  'peptide longevity protocol – 30-day program': {
+    type: 'month_30day',
+    duration: 30,
+    category: 'month'
   }
 };
 
@@ -85,21 +141,17 @@ function normalizeProductName(name) {
 
 // Pattern matching for legacy/variant product names
 const PROGRAM_PATTERNS = [
-  // Recovery patterns
-  { pattern: /10.?day.*(?:bpc|tb|recovery|repair|wolverine|kpv|mgf)/i, type: 'recovery_10day', duration: 10 },
-  { pattern: /(?:bpc|tb|recovery|repair|wolverine|kpv|mgf).*10.?day/i, type: 'recovery_10day', duration: 10 },
-  { pattern: /30.?day.*(?:bpc|tb|recovery|repair|kpv)/i, type: 'recovery_30day', duration: 30 },
-  { pattern: /(?:bpc|tb|recovery|repair|kpv).*30.?day/i, type: 'recovery_30day', duration: 30 },
+  // Jumpstart / 10-day patterns
+  { pattern: /10.?day.*(?:bpc|tb|recovery|repair|wolverine|kpv|mgf|jumpstart)/i, type: 'jumpstart_10day', duration: 10 },
+  { pattern: /(?:bpc|tb|recovery|repair|wolverine|kpv|mgf|jumpstart).*10.?day/i, type: 'jumpstart_10day', duration: 10 },
   
-  // Metabolic patterns
-  { pattern: /30.?day.*(?:aod|mots|metabolic|weight|skinny|tesa.*ipa)/i, type: 'metabolic_30day', duration: 30 },
-  { pattern: /(?:aod|mots|metabolic|weight|skinny).*30.?day/i, type: 'metabolic_30day', duration: 30 },
-  { pattern: /20.?day.*mots/i, type: 'metabolic_30day', duration: 20 },
+  // Month Program / 30-day patterns (all goals map to same SKU)
+  { pattern: /30.?day.*(?:bpc|tb|recovery|repair|kpv|metabolic|aod|mots|longevity|glow|aesthetic|month)/i, type: 'month_30day', duration: 30 },
+  { pattern: /(?:bpc|tb|recovery|repair|kpv|metabolic|aod|mots|longevity|glow|aesthetic|month).*30.?day/i, type: 'month_30day', duration: 30 },
+  { pattern: /peptide\s*month/i, type: 'month_30day', duration: 30 },
   
-  // Longevity patterns
-  { pattern: /30.?day.*(?:epitalon|ta-?1|ghk|longevity|glow)/i, type: 'longevity_30day', duration: 30 },
-  { pattern: /(?:epitalon|ta-?1|ghk|longevity).*30.?day/i, type: 'longevity_30day', duration: 30 },
-  { pattern: /10.?day.*epitalon/i, type: 'longevity_30day', duration: 10 },
+  // Maintenance / Refill patterns
+  { pattern: /maintenance|refill|4.?week|28.?day|follow.?on/i, type: 'maintenance_28day', duration: 28 },
   
   // In-clinic patterns
   { pattern: /(?:injection|in.?clinic|single.*(?:injection|shot))/i, type: 'injection_clinic', duration: 1 },

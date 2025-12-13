@@ -20,6 +20,20 @@ export default function ProtocolDashboard() {
   const [error, setError] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
   const [contactFilter, setContactFilter] = useState(null);
+  
+  // Edit modal state
+  const [editingProtocol, setEditingProtocol] = useState(null);
+  const [peptideList, setPeptideList] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    primary_peptide: '',
+    secondary_peptide: '',
+    dose_amount: '',
+    dose_frequency: '',
+    peptide_route: 'SC',
+    special_instructions: '',
+    status: 'active'
+  });
 
   // Check localStorage on mount
   useEffect(() => {
@@ -44,6 +58,7 @@ export default function ProtocolDashboard() {
     if (isAuthenticated && password) {
       fetchStats();
       fetchMilestones();
+      fetchPeptideList();
       if (contactFilter) {
         fetchProtocolsByContact(contactFilter);
       } else {
@@ -51,6 +66,20 @@ export default function ProtocolDashboard() {
       }
     }
   }, [isAuthenticated, activeTab, password, contactFilter]);
+
+  const fetchPeptideList = async () => {
+    try {
+      const res = await fetch('/api/admin/protocols?view=peptides', {
+        headers: { 'Authorization': `Bearer ${password}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPeptideList(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch peptides:', err);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -179,6 +208,84 @@ export default function ProtocolDashboard() {
     setActiveTab('active');
     router.push('/admin/protocols', undefined, { shallow: true });
   };
+
+  // Edit modal handlers
+  const openEditModal = (protocol) => {
+    setEditingProtocol(protocol);
+    setEditForm({
+      primary_peptide: protocol.primary_peptide || '',
+      secondary_peptide: protocol.secondary_peptide || '',
+      dose_amount: protocol.dose_amount || '',
+      dose_frequency: protocol.dose_frequency || '',
+      peptide_route: protocol.peptide_route || 'SC',
+      special_instructions: protocol.special_instructions || '',
+      status: protocol.status || 'active'
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingProtocol(null);
+    setEditForm({
+      primary_peptide: '',
+      secondary_peptide: '',
+      dose_amount: '',
+      dose_frequency: '',
+      peptide_route: 'SC',
+      special_instructions: '',
+      status: 'active'
+    });
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const saveProtocol = async () => {
+    if (!editingProtocol) return;
+    
+    setSaving(true);
+    setError('');
+    
+    try {
+      const res = await fetch('/api/admin/protocols', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${password}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: editingProtocol.id,
+          ghl_contact_id: editingProtocol.ghl_contact_id,
+          ...editForm
+        })
+      });
+      
+      if (res.ok) {
+        // Refresh data
+        if (contactFilter) {
+          fetchProtocolsByContact(contactFilter);
+        } else {
+          fetchProtocols(activeTab);
+        }
+        fetchStats();
+        closeEditModal();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to save');
+      }
+    } catch (err) {
+      setError('Network error');
+    }
+    
+    setSaving(false);
+  };
+
+  // Group peptides by category for dropdown
+  const peptidesByCategory = peptideList.reduce((acc, p) => {
+    if (!acc[p.category]) acc[p.category] = [];
+    acc[p.category].push(p);
+    return acc;
+  }, {});
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -370,12 +477,12 @@ export default function ProtocolDashboard() {
                 <th style={styles.th}>Patient</th>
                 <th style={styles.th}>Program</th>
                 <th style={styles.th}>Peptides</th>
+                <th style={styles.th}>Dose</th>
                 <th style={styles.th}>Start</th>
                 <th style={styles.th}>End</th>
                 <th style={styles.th}>Days Left</th>
                 <th style={styles.th}>Status</th>
-                <th style={styles.th}>Paid</th>
-                <th style={styles.th}>GHL</th>
+                <th style={styles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -395,9 +502,19 @@ export default function ProtocolDashboard() {
                       <div style={styles.programType}>{p.duration_days} days</div>
                     </td>
                     <td style={styles.td}>
-                      <div>{p.primary_peptide || '-'}</div>
+                      <div>{p.primary_peptide || <span style={styles.notSet}>Not set</span>}</div>
                       {p.secondary_peptide && (
                         <div style={styles.secondaryPeptide}>{p.secondary_peptide}</div>
+                      )}
+                    </td>
+                    <td style={styles.td}>
+                      {p.dose_amount ? (
+                        <>
+                          <div>{p.dose_amount}</div>
+                          <div style={styles.doseFrequency}>{p.dose_frequency}</div>
+                        </>
+                      ) : (
+                        <span style={styles.notSet}>Not set</span>
                       )}
                     </td>
                     <td style={styles.td}>{formatDate(p.start_date)}</td>
@@ -420,24 +537,171 @@ export default function ProtocolDashboard() {
                         {p.status?.replace('_', ' ')}
                       </span>
                     </td>
-                    <td style={styles.td}>{formatCurrency(p.amount_paid)}</td>
                     <td style={styles.td}>
-                      {p.ghl_contact_id && (
-                        <a
-                          href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${p.ghl_contact_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={styles.ghlLink}
+                      <div style={styles.actionButtons}>
+                        <button
+                          onClick={() => openEditModal(p)}
+                          style={styles.editButton}
                         >
-                          Open →
-                        </a>
-                      )}
+                          Edit
+                        </button>
+                        {p.ghl_contact_id && (
+                          <a
+                            href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${p.ghl_contact_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={styles.ghlLink}
+                          >
+                            GHL
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Edit Protocol Modal */}
+      {editingProtocol && (
+        <div style={styles.modalOverlay} onClick={closeEditModal}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Edit Protocol</h2>
+              <button onClick={closeEditModal} style={styles.modalClose}>✕</button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <div style={styles.modalPatientInfo}>
+                <strong>{editingProtocol.patient_name}</strong>
+                <span>{editingProtocol.program_name}</span>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Primary Peptide *</label>
+                <select
+                  value={editForm.primary_peptide}
+                  onChange={(e) => handleEditChange('primary_peptide', e.target.value)}
+                  style={styles.select}
+                >
+                  <option value="">Select peptide...</option>
+                  {Object.entries(peptidesByCategory).map(([category, peptides]) => (
+                    <optgroup key={category} label={category.replace('_', ' ').toUpperCase()}>
+                      {peptides.map((p) => (
+                        <option key={p.id} value={p.name}>{p.name}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Secondary Peptide (optional)</label>
+                <select
+                  value={editForm.secondary_peptide}
+                  onChange={(e) => handleEditChange('secondary_peptide', e.target.value)}
+                  style={styles.select}
+                >
+                  <option value="">None</option>
+                  {Object.entries(peptidesByCategory).map(([category, peptides]) => (
+                    <optgroup key={category} label={category.replace('_', ' ').toUpperCase()}>
+                      {peptides.map((p) => (
+                        <option key={p.id} value={p.name}>{p.name}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+
+              <div style={styles.formRow}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Dose</label>
+                  <input
+                    type="text"
+                    value={editForm.dose_amount}
+                    onChange={(e) => handleEditChange('dose_amount', e.target.value)}
+                    placeholder="e.g., 500mcg"
+                    style={styles.input}
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Frequency</label>
+                  <select
+                    value={editForm.dose_frequency}
+                    onChange={(e) => handleEditChange('dose_frequency', e.target.value)}
+                    style={styles.select}
+                  >
+                    <option value="">Select...</option>
+                    <option value="1x daily">1x daily</option>
+                    <option value="2x daily">2x daily</option>
+                    <option value="1x daily (AM)">1x daily (AM)</option>
+                    <option value="1x daily (PM)">1x daily (PM)</option>
+                    <option value="1x daily (bedtime)">1x daily (bedtime)</option>
+                    <option value="Every other day">Every other day</option>
+                    <option value="2x weekly">2x weekly</option>
+                    <option value="3x weekly">3x weekly</option>
+                    <option value="1x weekly">1x weekly</option>
+                    <option value="As needed">As needed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={styles.formRow}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Route</label>
+                  <select
+                    value={editForm.peptide_route}
+                    onChange={(e) => handleEditChange('peptide_route', e.target.value)}
+                    style={styles.select}
+                  >
+                    <option value="SC">SC (Subcutaneous)</option>
+                    <option value="IM">IM (Intramuscular)</option>
+                    <option value="IV">IV (Intravenous)</option>
+                    <option value="Intranasal">Intranasal</option>
+                    <option value="Oral">Oral</option>
+                    <option value="Topical">Topical</option>
+                  </select>
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => handleEditChange('status', e.target.value)}
+                    style={styles.select}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="ready_refill">Ready for Refill</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Special Instructions</label>
+                <textarea
+                  value={editForm.special_instructions}
+                  onChange={(e) => handleEditChange('special_instructions', e.target.value)}
+                  placeholder="Any special instructions for this protocol..."
+                  style={styles.textarea}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button onClick={closeEditModal} style={styles.cancelButton}>
+                Cancel
+              </button>
+              <button onClick={saveProtocol} style={styles.saveButton} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -743,8 +1007,161 @@ const styles = {
   ghlLink: {
     color: '#3b82f6',
     textDecoration: 'none',
+    fontSize: '12px',
+    fontWeight: '500',
+    padding: '4px 8px',
+    border: '1px solid #3b82f6',
+    borderRadius: '4px'
+  },
+  notSet: {
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    fontSize: '13px'
+  },
+  doseFrequency: {
+    fontSize: '12px',
+    color: '#6b7280'
+  },
+  actionButtons: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  editButton: {
+    backgroundColor: '#1a365d',
+    color: 'white',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+
+  // Modal styles
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    width: '100%',
+    maxWidth: '500px',
+    maxHeight: '90vh',
+    overflow: 'auto',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  modalTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#1a365d'
+  },
+  modalClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '20px',
+    color: '#6b7280',
+    cursor: 'pointer',
+    padding: '4px'
+  },
+  modalBody: {
+    padding: '24px'
+  },
+  modalPatientInfo: {
+    backgroundColor: '#f3f4f6',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    padding: '16px 24px',
+    borderTop: '1px solid #e5e7eb',
+    backgroundColor: '#f9fafb'
+  },
+  formGroup: {
+    marginBottom: '16px',
+    flex: 1
+  },
+  formRow: {
+    display: 'flex',
+    gap: '16px'
+  },
+  label: {
+    display: 'block',
     fontSize: '13px',
-    fontWeight: '500'
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '6px'
+  },
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '14px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    boxSizing: 'border-box'
+  },
+  select: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '14px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    boxSizing: 'border-box',
+    backgroundColor: 'white'
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '14px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    boxSizing: 'border-box',
+    resize: 'vertical',
+    fontFamily: 'inherit'
+  },
+  cancelButton: {
+    padding: '10px 20px',
+    fontSize: '14px',
+    fontWeight: '500',
+    backgroundColor: 'white',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    cursor: 'pointer'
+  },
+  saveButton: {
+    padding: '10px 20px',
+    fontSize: '14px',
+    fontWeight: '500',
+    backgroundColor: '#1a365d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer'
   },
   error: {
     backgroundColor: '#fee2e2',

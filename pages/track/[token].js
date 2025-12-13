@@ -196,7 +196,7 @@ export default function PatientTracker() {
       {/* Footer */}
       <div style={styles.footer}>
         <p>Questions? Text us anytime</p>
-        <a href="sms:+19498915683" style={styles.phoneLink}>(949) 891-5683</a>
+        <a href="sms:+19499973988" style={styles.phoneLink}>(949) 997-3988</a>
       </div>
     </div>
   );
@@ -205,7 +205,7 @@ export default function PatientTracker() {
 const styles = {
   container: {
     minHeight: '100vh',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     paddingBottom: '100px'
   },
@@ -215,7 +215,7 @@ const styles = {
     alignItems: 'center',
     height: '100vh',
     fontSize: '18px',
-    color: '#64748b'
+    color: '#666666'
   },
   errorContainer: {
     display: 'flex',
@@ -228,16 +228,16 @@ const styles = {
   },
   errorMessage: {
     fontSize: '18px',
-    color: '#ef4444',
+    color: '#000000',
     marginTop: '20px'
   },
   errorHelp: {
     fontSize: '14px',
-    color: '#64748b',
+    color: '#666666',
     marginTop: '10px'
   },
   header: {
-    backgroundColor: '#1a365d',
+    backgroundColor: '#000000',
     color: 'white',
     padding: '20px',
     paddingTop: '40px'
@@ -254,11 +254,11 @@ const styles = {
     marginTop: '10px'
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: '#f9f9f9',
     margin: '20px',
-    borderRadius: '16px',
+    borderRadius: '12px',
     padding: '20px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+    border: '1px solid #e5e5e5'
   },
   cardHeader: {
     marginBottom: '20px'
@@ -266,11 +266,11 @@ const styles = {
   protocolName: {
     fontSize: '18px',
     fontWeight: '600',
-    color: '#1a365d'
+    color: '#000000'
   },
   peptides: {
     fontSize: '14px',
-    color: '#64748b',
+    color: '#666666',
     marginTop: '4px'
   },
   statsRow: {
@@ -284,17 +284,17 @@ const styles = {
   statValue: {
     fontSize: '28px',
     fontWeight: '700',
-    color: '#1a365d'
+    color: '#000000'
   },
   statLabel: {
     fontSize: '12px',
-    color: '#64748b',
+    color: '#666666',
     textTransform: 'uppercase',
     letterSpacing: '1px'
   },
   progressContainer: {
     height: '8px',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#e5e5e5',
     borderRadius: '4px',
     overflow: 'hidden'
   },
@@ -311,32 +311,32 @@ const styles = {
     padding: '14px',
     fontSize: '16px',
     fontWeight: '600',
-    color: '#1a365d',
-    backgroundColor: 'white',
-    border: '2px solid #1a365d',
-    borderRadius: '12px',
+    color: '#000000',
+    backgroundColor: '#ffffff',
+    border: '2px solid #000000',
+    borderRadius: '8px',
     cursor: 'pointer',
     textAlign: 'center'
   },
   instructionsPanel: {
-    backgroundColor: 'white',
+    backgroundColor: '#f9f9f9',
     margin: '20px',
     marginTop: '12px',
-    borderRadius: '12px',
+    borderRadius: '8px',
     padding: '20px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+    border: '1px solid #e5e5e5'
   },
   instructionsText: {
     fontSize: '14px',
     lineHeight: '1.6',
-    color: '#334155',
+    color: '#333333',
     whiteSpace: 'pre-wrap',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     margin: 0
   },
   sectionTitle: {
     fontSize: '14px',
-    color: '#64748b',
+    color: '#666666',
     textAlign: 'center',
     margin: '24px 20px 16px'
   },
@@ -352,9 +352,9 @@ const styles = {
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white',
-    border: '2px solid #e2e8f0',
-    borderRadius: '12px',
+    backgroundColor: '#ffffff',
+    border: '2px solid #e5e5e5',
+    borderRadius: '8px',
     cursor: 'pointer',
     position: 'relative',
     transition: 'all 0.2s ease'
@@ -365,9 +365,9 @@ const styles = {
     color: 'white'
   },
   dayCurrent: {
-    borderColor: '#1a365d',
+    borderColor: '#000000',
     borderWidth: '3px',
-    boxShadow: '0 0 0 3px rgba(26, 54, 93, 0.2)'
+    boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.1)'
   },
   dayFuture: {
     opacity: 0.5
@@ -393,7 +393,7 @@ const styles = {
     bottom: '4px',
     fontSize: '7px',
     fontWeight: '700',
-    color: '#1a365d',
+    color: '#000000',
     letterSpacing: '0.5px'
   },
   completedMessage: {
@@ -404,16 +404,16 @@ const styles = {
     margin: '24px 20px',
     padding: '16px',
     backgroundColor: '#ecfdf5',
-    borderRadius: '12px'
+    borderRadius: '8px'
   },
   footer: {
     textAlign: 'center',
     padding: '30px 20px',
-    color: '#64748b',
+    color: '#666666',
     fontSize: '14px'
   },
   phoneLink: {
-    color: '#1a365d',
+    color: '#000000',
     fontWeight: '600',
     fontSize: '18px',
     textDecoration: 'none'

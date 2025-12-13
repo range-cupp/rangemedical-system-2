@@ -18,35 +18,70 @@ const GHL_API_BASE = 'https://services.leadconnectorhq.com';
 // =====================================================
 // PROGRAM MAPPING
 // Maps GHL product names to protocol types
+// Uses lowercase keys for case-insensitive matching
 // =====================================================
 const PROGRAM_MAPPING = {
-  // Exact matches (canonical SKUs)
-  'Peptide Recovery Protocol – 10-Day Intensive': {
+  // Exact matches (canonical SKUs) - normalized to lowercase, hyphens standardized
+  'peptide recovery protocol - 10-day intensive': {
     type: 'recovery_10day',
     duration: 10,
     category: 'recovery'
   },
-  'Peptide Recovery Protocol – 30-Day Program': {
+  'peptide recovery protocol – 10-day intensive': {
+    type: 'recovery_10day',
+    duration: 10,
+    category: 'recovery'
+  },
+  'peptide recovery protocol - 30-day program': {
     type: 'recovery_30day',
     duration: 30,
     category: 'recovery'
   },
-  'Peptide Metabolic Protocol – 30-Day Program': {
+  'peptide recovery protocol – 30-day program': {
+    type: 'recovery_30day',
+    duration: 30,
+    category: 'recovery'
+  },
+  'peptide metabolic protocol - 30-day program': {
     type: 'metabolic_30day',
     duration: 30,
     category: 'metabolic'
   },
-  'Peptide Longevity Protocol – 30-Day Program': {
+  'peptide metabolic protocol – 30-day program': {
+    type: 'metabolic_30day',
+    duration: 30,
+    category: 'metabolic'
+  },
+  'peptide longevity protocol - 30-day program': {
     type: 'longevity_30day',
     duration: 30,
     category: 'longevity'
   },
-  'Peptide Injection – In-Clinic': {
+  'peptide longevity protocol – 30-day program': {
+    type: 'longevity_30day',
+    duration: 30,
+    category: 'longevity'
+  },
+  'peptide injection - in-clinic': {
+    type: 'injection_clinic',
+    duration: 1,
+    category: 'clinic'
+  },
+  'peptide injection – in-clinic': {
     type: 'injection_clinic',
     duration: 1,
     category: 'clinic'
   }
 };
+
+// Helper to normalize product names for matching
+function normalizeProductName(name) {
+  return name
+    .toLowerCase()
+    .replace(/–/g, '-')  // en-dash to hyphen
+    .replace(/—/g, '-')  // em-dash to hyphen
+    .trim();
+}
 
 // Pattern matching for legacy/variant product names
 const PROGRAM_PATTERNS = [
@@ -79,10 +114,13 @@ const PROGRAM_PATTERNS = [
  * Parse product name to determine protocol type and duration
  */
 function parseProductToProtocol(productName) {
-  // Check exact matches first
-  if (PROGRAM_MAPPING[productName]) {
+  if (!productName) return null;
+  
+  // Normalize and check exact matches first
+  const normalized = normalizeProductName(productName);
+  if (PROGRAM_MAPPING[normalized]) {
     return {
-      ...PROGRAM_MAPPING[productName],
+      ...PROGRAM_MAPPING[normalized],
       programName: productName
     };
   }
@@ -248,40 +286,55 @@ export default async function handler(req, res) {
     // =========================================
     // PAYMENT RECEIVED WEBHOOK
     // =========================================
-    if (webhookType === 'PaymentReceived' || webhookType === 'payment.received' || payload.payment) {
-      const payment = payload.payment || payload;
-      const contact = payload.contact || {};
+    if (webhookType === 'PaymentReceived' || webhookType === 'payment.received' || payload.payment || payload.invoice || payload.amount) {
+      const payment = payload.payment || payload.invoice || payload;
+      const contact = payload.contact || payload.payment?.customer || payload;
       
-      // Extract data
-      const contactId = contact.id || payment.contactId || payload.contactId;
-      const productName = payment.productName || payment.product?.name || payload.productName || '';
-      const amount = payment.amount || payment.total || 0;
-      const paymentId = payment.id || payload.paymentId;
+      // Extract data - try multiple possible field locations
+      const contactId = contact.id || contact.contact_id || contact.contactId || 
+                       payload.contact_id || payload.contactId || payload.id;
       
-      // Get contact details if not in payload
-      let contactName = contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
-      let contactEmail = contact.email;
-      let contactPhone = contact.phone;
+      // Get product name from line_items (where GHL actually puts it)
+      const lineItems = payment.line_items || payment.lineItems || [];
+      const firstLineItem = lineItems[0] || {};
       
-      if (!contactName && contactId) {
-        // Fetch contact from GHL
-        try {
-          const contactRes = await fetch(`${GHL_API_BASE}/contacts/${contactId}`, {
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-07-28'
-            }
-          });
-          if (contactRes.ok) {
-            const contactData = await contactRes.json();
-            contactName = contactData.contact?.name || `${contactData.contact?.firstName || ''} ${contactData.contact?.lastName || ''}`.trim();
-            contactEmail = contactData.contact?.email;
-            contactPhone = contactData.contact?.phone;
-          }
-        } catch (e) {
-          console.error('Failed to fetch contact:', e);
-        }
-      }
+      // Try many possible locations for product name
+      const productName = firstLineItem.title ||
+                         firstLineItem.name ||
+                         firstLineItem.product_name ||
+                         payment.productName || 
+                         payment.product_name ||
+                         payment.product?.name ||
+                         payment.name ||
+                         payment.title ||
+                         payload.productName ||
+                         payload.product_name ||
+                         payload.product?.name ||
+                         payload.name ||
+                         payload.title ||
+                         payload.invoice?.name ||
+                         payload.invoice?.title ||
+                         '';
+      
+      const amount = payment.total_amount || payment.amount || payment.total || payload.amount || payload.total || 0;
+      const paymentId = payment.transaction_id || payment.id || payment.payment_id || payload.payment_id || payload.id;
+      
+      console.log('💰 Payment data extracted:', {
+        contactId,
+        productName,
+        amount,
+        paymentId
+      });
+      
+      // Get contact details from payload
+      const customer = payment.customer || {};
+      let contactName = customer.name || customer.full_name || 
+                       `${customer.first_name || ''} ${customer.last_name || ''}`.trim() ||
+                       payload.full_name || payload.first_name || 'Unknown';
+      let contactEmail = customer.email || payload.email;
+      let contactPhone = customer.phone || payload.phone;
+      
+      console.log('👤 Contact extracted:', { contactId, contactName, contactEmail });
       
       // Parse product to protocol
       const protocolInfo = parseProductToProtocol(productName);

@@ -290,6 +290,16 @@ export default function ProtocolDashboard() {
     return acc;
   }, {});
 
+  // Copy tracker link to clipboard
+  const copyTrackerLink = (token) => {
+    const link = `https://rangemedical-system-2.vercel.app/track/${token}`;
+    navigator.clipboard.writeText(link).then(() => {
+      alert('Tracker link copied! You can paste it into a text message.');
+    }).catch(() => {
+      prompt('Copy this link:', link);
+    });
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('en-US', { 
@@ -493,7 +503,7 @@ export default function ProtocolDashboard() {
                 <th style={styles.th}>Peptides</th>
                 <th style={styles.th}>Start</th>
                 <th style={styles.th}>End</th>
-                <th style={styles.th}>Days Left</th>
+                <th style={styles.th}>Progress</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Paid</th>
                 <th style={styles.th}>Actions</th>
@@ -536,13 +546,21 @@ export default function ProtocolDashboard() {
                     <td style={styles.td}>{formatDate(p.start_date)}</td>
                     <td style={styles.td}>{formatDate(p.end_date)}</td>
                     <td style={styles.td}>
-                      {p.status === 'active' && p.days_remaining !== null ? (
-                        <span style={{
-                          ...styles.daysRemaining,
-                          backgroundColor: getDaysRemainingColor(p.days_remaining)
-                        }}>
-                          {p.days_remaining}
-                        </span>
+                      {p.status === 'active' ? (
+                        <div style={styles.progressCell}>
+                          <div style={styles.progressText}>
+                            {p.injections_completed || 0}/{p.duration_days}
+                          </div>
+                          <div style={styles.miniProgressBar}>
+                            <div style={{
+                              ...styles.miniProgressFill,
+                              width: `${Math.min(100, ((p.injections_completed || 0) / p.duration_days) * 100)}%`
+                            }} />
+                          </div>
+                          {p.days_remaining !== null && (
+                            <div style={styles.daysLeft}>{p.days_remaining}d left</div>
+                          )}
+                        </div>
                       ) : '-'}
                     </td>
                     <td style={styles.td}>
@@ -562,6 +580,15 @@ export default function ProtocolDashboard() {
                         >
                           Edit
                         </button>
+                        {p.access_token && (
+                          <button
+                            onClick={() => copyTrackerLink(p.access_token)}
+                            style={styles.trackerButton}
+                            title="Copy tracker link"
+                          >
+                            📱
+                          </button>
+                        )}
                         {p.ghl_contact_id && (
                           <a
                             href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${p.ghl_contact_id}`}
@@ -1044,6 +1071,43 @@ const styles = {
     padding: '40px',
     textAlign: 'center',
     color: '#6b7280'
+  },
+  trackerButton: {
+    backgroundColor: '#f0fdf4',
+    color: '#166534',
+    border: '1px solid #86efac',
+    padding: '6px 10px',
+    borderRadius: '4px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  progressCell: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '4px'
+  },
+  progressText: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#1a365d'
+  },
+  miniProgressBar: {
+    width: '60px',
+    height: '6px',
+    backgroundColor: '#e2e8f0',
+    borderRadius: '3px',
+    overflow: 'hidden'
+  },
+  miniProgressFill: {
+    height: '100%',
+    backgroundColor: '#10b981',
+    borderRadius: '3px',
+    transition: 'width 0.3s ease'
+  },
+  daysLeft: {
+    fontSize: '10px',
+    color: '#64748b'
   },
   ghlLink: {
     color: '#3b82f6',

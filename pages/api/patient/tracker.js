@@ -212,7 +212,7 @@ function generateDosingInstructions(protocol) {
 
   // Goal-specific tips
   const goalTips = {
-    'recovery': 'For best results, stay hydrated and avoid intense exercise on injection days. BPC-157 and TB-500 work synergistically to accelerate tissue repair.',
+    'recovery': 'For best results, stay hydrated. BPC-157 and TB-500 work synergistically to accelerate tissue repair.',
     'metabolic': 'Take your injection in the morning on an empty stomach for optimal metabolic effects. Light fasting can enhance results.',
     'longevity': 'Consistency is key for longevity peptides. Take at the same time each day, preferably in the evening.',
     'aesthetic': 'GHK-Cu supports collagen production. Stay well-hydrated and protect your skin from sun exposure.'

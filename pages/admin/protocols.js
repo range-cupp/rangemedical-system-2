@@ -14,28 +14,48 @@ export default function ProtocolDashboard() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
+  const [authChecked, setAuthChecked] = useState(false);
 
-  const storedAuth = typeof window !== 'undefined' ? localStorage.getItem('range_admin_auth') : null;
-
+  // Check localStorage on mount
   useEffect(() => {
+    const storedAuth = localStorage.getItem('range_admin_auth');
     if (storedAuth) {
-      setIsAuthenticated(true);
       setPassword(storedAuth);
+      setIsAuthenticated(true);
     }
+    setAuthChecked(true);
   }, []);
 
+  // Fetch data when authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && password) {
       fetchStats();
       fetchMilestones();
       fetchProtocols(activeTab);
     }
-  }, [isAuthenticated, activeTab]);
+  }, [isAuthenticated, activeTab, password]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    localStorage.setItem('range_admin_auth', password);
-    setIsAuthenticated(true);
+    setError('');
+    setLoading(true);
+    
+    // Test the password against the API
+    try {
+      const res = await fetch('/api/admin/protocols?view=stats', {
+        headers: { 'Authorization': `Bearer ${password}` }
+      });
+      
+      if (res.ok) {
+        localStorage.setItem('range_admin_auth', password);
+        setIsAuthenticated(true);
+      } else {
+        setError('Invalid password');
+      }
+    } catch (err) {
+      setError('Connection error');
+    }
+    setLoading(false);
   };
 
   const handleLogout = () => {
@@ -144,6 +164,20 @@ export default function ProtocolDashboard() {
     return '#10b981';
   };
 
+  // Loading state while checking auth
+  if (!authChecked) {
+    return (
+      <div style={styles.loginContainer}>
+        <Head>
+          <title>Protocol Dashboard - Range Medical</title>
+        </Head>
+        <div style={styles.loginBox}>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Login screen
   if (!isAuthenticated) {
     return (
@@ -154,6 +188,7 @@ export default function ProtocolDashboard() {
         <div style={styles.loginBox}>
           <h1 style={styles.loginTitle}>Range Medical</h1>
           <p style={styles.loginSubtitle}>Protocol Dashboard</p>
+          {error && <p style={styles.loginError}>{error}</p>}
           <form onSubmit={handleLogin}>
             <input
               type="password"
@@ -161,9 +196,10 @@ export default function ProtocolDashboard() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={styles.loginInput}
+              disabled={loading}
             />
-            <button type="submit" style={styles.loginButton}>
-              Login
+            <button type="submit" style={styles.loginButton} disabled={loading}>
+              {loading ? 'Checking...' : 'Login'}
             </button>
           </form>
         </div>
@@ -381,6 +417,14 @@ const styles = {
     border: 'none',
     borderRadius: '8px',
     cursor: 'pointer'
+  },
+  loginError: {
+    color: '#dc2626',
+    backgroundColor: '#fee2e2',
+    padding: '10px',
+    borderRadius: '6px',
+    marginBottom: '16px',
+    fontSize: '14px'
   },
 
   // Main container

@@ -369,7 +369,23 @@ export default async function handler(req, res) {
                          payload.invoice?.title ||
                          '';
       
-      const amount = payment.total_amount || payment.amount || payment.total || payload.amount || payload.total || 0;
+      const rawAmount = payment.total_amount || payment.amount || payment.total || payload.amount || payload.total || 0;
+      
+      // Determine if amount is in cents or dollars
+      // If amount > 1000, assume cents (e.g., 45000 = $450.00)
+      // If amount <= 1000, assume dollars (e.g., 450 = $450.00)
+      // Also check if it's a string with decimal point
+      let amount;
+      if (typeof rawAmount === 'string' && rawAmount.includes('.')) {
+        // Already in dollars with decimal (e.g., "450.00")
+        amount = parseFloat(rawAmount);
+      } else if (rawAmount > 1000) {
+        // Likely cents, convert to dollars
+        amount = rawAmount / 100;
+      } else {
+        // Already in dollars
+        amount = parseFloat(rawAmount);
+      }
       const paymentId = payment.transaction_id || payment.id || payment.payment_id || payload.payment_id || payload.id;
       
       console.log('💰 Payment data extracted:', {
@@ -398,7 +414,7 @@ export default async function handler(req, res) {
         
         // Still add a note to GHL
         if (contactId) {
-          await addGHLNote(contactId, `💳 Payment received: $${(amount / 100).toFixed(2)} for ${productName}`);
+          await addGHLNote(contactId, `💳 Payment received: $${amount.toFixed(2)} for ${productName}`);
         }
         
         return res.status(200).json({ 
@@ -432,7 +448,7 @@ export default async function handler(req, res) {
           start_date: startDate,
           status: 'active',
           ghl_payment_id: paymentId,
-          amount_paid: amount / 100, // Convert cents to dollars
+          amount_paid: amount, // Already in dollars
           payment_date: new Date().toISOString()
         })
         .select()
@@ -473,7 +489,7 @@ Start: ${startDate}
 End: ${endDate}
 ${peptideTools.primary ? `Primary Tool: ${peptideTools.primary}` : ''}
 ${peptideTools.secondary ? `Secondary Tool: ${peptideTools.secondary}` : ''}
-Amount: $${(amount / 100).toFixed(2)}
+Amount: $${amount.toFixed(2)}
 ━━━━━━━━━━━━━━━━━━━━━`;
         
         await addGHLNote(contactId, noteBody);

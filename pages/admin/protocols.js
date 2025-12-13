@@ -710,6 +710,7 @@ export default function ProtocolDashboard() {
                     <option value="1x daily (AM)">1x daily (AM)</option>
                     <option value="1x daily (PM)">1x daily (PM)</option>
                     <option value="1x daily (bedtime)">1x daily (bedtime)</option>
+                    <option value="5 days on / 2 days off">5 days on / 2 days off</option>
                     <option value="Every other day">Every other day</option>
                     <option value="2x weekly">2x weekly</option>
                     <option value="3x weekly">3x weekly</option>

@@ -26,6 +26,7 @@ export default function ProtocolDashboard() {
   const [peptideList, setPeptideList] = useState([]);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
+    goal: '',
     primary_peptide: '',
     secondary_peptide: '',
     dose_amount: '',
@@ -213,6 +214,7 @@ export default function ProtocolDashboard() {
   const openEditModal = (protocol) => {
     setEditingProtocol(protocol);
     setEditForm({
+      goal: protocol.goal || '',
       primary_peptide: protocol.primary_peptide || '',
       secondary_peptide: protocol.secondary_peptide || '',
       dose_amount: protocol.dose_amount || '',
@@ -226,6 +228,7 @@ export default function ProtocolDashboard() {
   const closeEditModal = () => {
     setEditingProtocol(null);
     setEditForm({
+      goal: '',
       primary_peptide: '',
       secondary_peptide: '',
       dose_amount: '',
@@ -319,6 +322,16 @@ export default function ProtocolDashboard() {
     if (days <= 3) return '#ef4444';
     if (days <= 7) return '#f59e0b';
     return '#10b981';
+  };
+
+  const getGoalColor = (goal) => {
+    switch (goal) {
+      case 'recovery': return '#3b82f6';    // blue
+      case 'metabolic': return '#f59e0b';   // amber
+      case 'longevity': return '#8b5cf6';   // purple
+      case 'aesthetic': return '#ec4899';   // pink
+      default: return '#6b7280';
+    }
   };
 
   // Loading state while checking auth
@@ -476,10 +489,9 @@ export default function ProtocolDashboard() {
               <tr>
                 <th style={styles.th}>Patient</th>
                 <th style={styles.th}>Program</th>
+                <th style={styles.th}>Goal</th>
                 <th style={styles.th}>Peptides</th>
                 <th style={styles.th}>Dose</th>
-                <th style={styles.th}>Start</th>
-                <th style={styles.th}>End</th>
                 <th style={styles.th}>Days Left</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Actions</th>
@@ -488,7 +500,7 @@ export default function ProtocolDashboard() {
             <tbody>
               {protocols.length === 0 ? (
                 <tr>
-                  <td colSpan="9" style={styles.emptyState}>No protocols found</td>
+                  <td colSpan="8" style={styles.emptyState}>No protocols found</td>
                 </tr>
               ) : (
                 protocols.map((p) => (
@@ -500,6 +512,18 @@ export default function ProtocolDashboard() {
                     <td style={styles.td}>
                       <div style={styles.programName}>{p.program_name}</div>
                       <div style={styles.programType}>{p.duration_days} days</div>
+                    </td>
+                    <td style={styles.td}>
+                      {p.goal ? (
+                        <span style={{
+                          ...styles.goalBadge,
+                          backgroundColor: getGoalColor(p.goal)
+                        }}>
+                          {p.goal}
+                        </span>
+                      ) : (
+                        <span style={styles.notSet}>Not set</span>
+                      )}
                     </td>
                     <td style={styles.td}>
                       <div>{p.primary_peptide || <span style={styles.notSet}>Not set</span>}</div>
@@ -517,8 +541,6 @@ export default function ProtocolDashboard() {
                         <span style={styles.notSet}>Not set</span>
                       )}
                     </td>
-                    <td style={styles.td}>{formatDate(p.start_date)}</td>
-                    <td style={styles.td}>{formatDate(p.end_date)}</td>
                     <td style={styles.td}>
                       {p.status === 'active' && p.days_remaining !== null ? (
                         <span style={{
@@ -578,6 +600,21 @@ export default function ProtocolDashboard() {
               <div style={styles.modalPatientInfo}>
                 <strong>{editingProtocol.patient_name}</strong>
                 <span>{editingProtocol.program_name}</span>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Goal *</label>
+                <select
+                  value={editForm.goal}
+                  onChange={(e) => handleEditChange('goal', e.target.value)}
+                  style={styles.select}
+                >
+                  <option value="">Select goal...</option>
+                  <option value="recovery">Recovery – Tissue repair, injury, post-op</option>
+                  <option value="metabolic">Metabolic – Weight loss, body comp, energy</option>
+                  <option value="longevity">Longevity – Anti-aging, immune, cellular health</option>
+                  <option value="aesthetic">Aesthetic – Skin, hair, glow</option>
+                </select>
               </div>
 
               <div style={styles.formGroup}>
@@ -997,6 +1034,15 @@ const styles = {
     color: 'white',
     fontWeight: '500',
     fontSize: '12px',
+    textTransform: 'capitalize'
+  },
+  goalBadge: {
+    display: 'inline-block',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    color: 'white',
+    fontWeight: '500',
+    fontSize: '11px',
     textTransform: 'capitalize'
   },
   emptyState: {

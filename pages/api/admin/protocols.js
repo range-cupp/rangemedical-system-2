@@ -147,7 +147,7 @@ export default async function handler(req, res) {
           .from('protocols')
           .select('*')
           .eq('ghl_contact_id', contactId)
-          .order('created_at', { ascending: false }));
+          .order('start_date', { ascending: false }));
         break;
 
       case 'active':
@@ -187,7 +187,7 @@ export default async function handler(req, res) {
           .from('protocols')
           .select('*')
           .eq('status', 'completed')
-          .order('end_date', { ascending: false })
+          .order('start_date', { ascending: false })
           .limit(50));
         break;
 
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
           .from('protocols')
           .select('*')
           .or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%`)
-          .order('created_at', { ascending: false })
+          .order('start_date', { ascending: false })
           .limit(50));
         break;
 
@@ -241,7 +241,7 @@ export default async function handler(req, res) {
         ({ data, error } = await supabase
           .from('protocols')
           .select('*')
-          .order('created_at', { ascending: false })
+          .order('start_date', { ascending: false })
           .limit(100));
     }
 

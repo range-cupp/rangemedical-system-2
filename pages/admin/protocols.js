@@ -491,7 +491,8 @@ export default function ProtocolDashboard() {
                 <th style={styles.th}>Program</th>
                 <th style={styles.th}>Goal</th>
                 <th style={styles.th}>Peptides</th>
-                <th style={styles.th}>Dose</th>
+                <th style={styles.th}>Start</th>
+                <th style={styles.th}>End</th>
                 <th style={styles.th}>Days Left</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Actions</th>
@@ -500,7 +501,7 @@ export default function ProtocolDashboard() {
             <tbody>
               {protocols.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={styles.emptyState}>No protocols found</td>
+                  <td colSpan="9" style={styles.emptyState}>No protocols found</td>
                 </tr>
               ) : (
                 protocols.map((p) => (
@@ -531,16 +532,8 @@ export default function ProtocolDashboard() {
                         <div style={styles.secondaryPeptide}>{p.secondary_peptide}</div>
                       )}
                     </td>
-                    <td style={styles.td}>
-                      {p.dose_amount ? (
-                        <>
-                          <div>{p.dose_amount}</div>
-                          <div style={styles.doseFrequency}>{p.dose_frequency}</div>
-                        </>
-                      ) : (
-                        <span style={styles.notSet}>Not set</span>
-                      )}
-                    </td>
+                    <td style={styles.td}>{formatDate(p.start_date)}</td>
+                    <td style={styles.td}>{formatDate(p.end_date)}</td>
                     <td style={styles.td}>
                       {p.status === 'active' && p.days_remaining !== null ? (
                         <span style={{

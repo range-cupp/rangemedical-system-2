@@ -21,12 +21,24 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { view, search } = req.query;
+  const { view, search, contactId } = req.query;
 
   try {
     let data, error;
 
     switch (view) {
+      case 'contact':
+        // Protocols for a specific contact
+        if (!contactId) {
+          return res.status(400).json({ error: 'Contact ID required' });
+        }
+        ({ data, error } = await supabase
+          .from('protocols')
+          .select('*')
+          .eq('ghl_contact_id', contactId)
+          .order('created_at', { ascending: false }));
+        break;
+
       case 'active':
         // Active protocols with days remaining
         ({ data, error } = await supabase

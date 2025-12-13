@@ -217,7 +217,8 @@ async function updateGHLContact(contactId, protocolData) {
           { key: 'protocol_end_date', value: protocolData.endDate },
           { key: 'protocol_days_remaining', value: protocolData.daysRemaining?.toString() },
           { key: 'primary_peptide', value: protocolData.primaryPeptide },
-          { key: 'secondary_peptide', value: protocolData.secondaryPeptide }
+          { key: 'secondary_peptide', value: protocolData.secondaryPeptide },
+          { key: 'protocol_dashboard_link', value: protocolData.dashboardLink }
         ].filter(f => f.value) // Remove empty fields
       })
     });
@@ -398,6 +399,8 @@ export default async function handler(req, res) {
       
       // Update GHL contact with protocol info
       if (contactId) {
+        const dashboardUrl = `https://rangemedical-system-2.vercel.app/admin/protocols?contact=${contactId}`;
+        
         await updateGHLContact(contactId, {
           programName: protocolInfo.programName,
           status: 'Active',
@@ -405,7 +408,8 @@ export default async function handler(req, res) {
           endDate,
           daysRemaining: protocolInfo.duration,
           primaryPeptide: peptideTools.primary,
-          secondaryPeptide: peptideTools.secondary
+          secondaryPeptide: peptideTools.secondary,
+          dashboardLink: dashboardUrl
         });
         
         // Add note

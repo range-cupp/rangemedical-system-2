@@ -8,6 +8,93 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
+const GHL_API_BASE = 'https://services.leadconnectorhq.com';
+
+// Update GHL contact custom fields
+async function updateGHLContact(contactId, fields) {
+  try {
+    const response = await fetch(`${GHL_API_BASE}/contacts/${contactId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      body: JSON.stringify({
+        customFields: Object.entries(fields)
+          .filter(([_, value]) => value !== undefined && value !== null)
+          .map(([key, value]) => ({ key, value: value?.toString() || '' }))
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('GHL update error:', error);
+    return false;
+  }
+}
+
+// Handle PUT request to update protocol
+async function handleUpdate(req, res) {
+  const {
+    id,
+    ghl_contact_id,
+    primary_peptide,
+    secondary_peptide,
+    dose_amount,
+    dose_frequency,
+    peptide_route,
+    special_instructions,
+    status
+  } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Protocol ID required' });
+  }
+
+  try {
+    // Update in Supabase
+    const { data, error } = await supabase
+      .from('protocols')
+      .update({
+        primary_peptide,
+        secondary_peptide,
+        dose_amount,
+        dose_frequency,
+        peptide_route,
+        special_instructions,
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase update error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Sync to GHL contact
+    if (ghl_contact_id) {
+      await updateGHLContact(ghl_contact_id, {
+        primary_peptide: primary_peptide || '',
+        secondary_peptide: secondary_peptide || '',
+        protocol_status: status === 'active' ? 'Active' : 
+                        status === 'completed' ? 'Completed' :
+                        status === 'ready_refill' ? 'Ready for Refill' :
+                        status === 'pending' ? 'Pending' : 'Cancelled'
+      });
+    }
+
+    return res.status(200).json({ success: true, protocol: data });
+
+  } catch (error) {
+    console.error('Update error:', error);
+    return res.status(500).json({ error: 'Failed to update protocol' });
+  }
+}
+
 export default async function handler(req, res) {
   // Simple auth check
   const authHeader = req.headers.authorization;
@@ -15,6 +102,11 @@ export default async function handler(req, res) {
   
   if (authHeader !== `Bearer ${adminPassword}`) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Handle PUT for updates
+  if (req.method === 'PUT') {
+    return handleUpdate(req, res);
   }
 
   if (req.method !== 'GET') {
@@ -27,6 +119,20 @@ export default async function handler(req, res) {
     let data, error;
 
     switch (view) {
+      case 'peptides':
+        // Get peptide list for dropdowns
+        ({ data, error } = await supabase
+          .from('peptide_tools')
+          .select('id, name, category, default_dose, default_frequency')
+          .eq('is_active', true)
+          .order('category')
+          .order('name'));
+        
+        if (error) {
+          return res.status(500).json({ error: error.message });
+        }
+        return res.status(200).json(data);
+
       case 'contact':
         // Protocols for a specific contact
         if (!contactId) {

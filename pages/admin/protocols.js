@@ -3,8 +3,12 @@
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
 export default function ProtocolDashboard() {
+  const router = useRouter();
+  const { contact } = router.query; // Get contact ID from URL if present
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('active');
@@ -15,6 +19,7 @@ export default function ProtocolDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
+  const [contactFilter, setContactFilter] = useState(null);
 
   // Check localStorage on mount
   useEffect(() => {
@@ -26,14 +31,26 @@ export default function ProtocolDashboard() {
     setAuthChecked(true);
   }, []);
 
+  // Set contact filter from URL
+  useEffect(() => {
+    if (contact) {
+      setContactFilter(contact);
+      setActiveTab('contact');
+    }
+  }, [contact]);
+
   // Fetch data when authenticated
   useEffect(() => {
     if (isAuthenticated && password) {
       fetchStats();
       fetchMilestones();
-      fetchProtocols(activeTab);
+      if (contactFilter) {
+        fetchProtocolsByContact(contactFilter);
+      } else {
+        fetchProtocols(activeTab);
+      }
     }
-  }, [isAuthenticated, activeTab, password]);
+  }, [isAuthenticated, activeTab, password, contactFilter]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -125,9 +142,42 @@ export default function ProtocolDashboard() {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setContactFilter(null);
       setActiveTab('search');
       fetchProtocols('search', searchQuery);
     }
+  };
+
+  const fetchProtocolsByContact = async (contactId) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/protocols?view=contact&contactId=${encodeURIComponent(contactId)}`, {
+        headers: { 'Authorization': `Bearer ${password}` }
+      });
+      
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        localStorage.removeItem('range_admin_auth');
+        return;
+      }
+      
+      const data = await res.json();
+      if (res.ok) {
+        setProtocols(data);
+      } else {
+        setError(data.error || 'Failed to fetch');
+      }
+    } catch (err) {
+      setError('Network error');
+    }
+    setLoading(false);
+  };
+
+  const clearContactFilter = () => {
+    setContactFilter(null);
+    setActiveTab('active');
+    router.push('/admin/protocols', undefined, { shallow: true });
   };
 
   const formatDate = (dateString) => {
@@ -255,8 +305,8 @@ export default function ProtocolDashboard() {
         </div>
       </div>
 
-      {/* Today's Milestones */}
-      {milestones.length > 0 && (
+      {/* Today's Milestones - hide when viewing specific contact */}
+      {!contactFilter && milestones.length > 0 && (
         <div style={styles.milestonesSection}>
           <h2 style={styles.sectionTitle}>📋 Today's Tasks ({milestones.length})</h2>
           <div style={styles.milestonesList}>
@@ -270,28 +320,40 @@ export default function ProtocolDashboard() {
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={styles.tabs}>
-        {[
-          { id: 'active', label: 'Active', count: stats.active },
-          { id: 'ending-soon', label: 'Ending Soon' },
-          { id: 'refill', label: 'Ready for Refill', count: stats.readyForRefill },
-          { id: 'completed', label: 'Completed' },
-          { id: 'all', label: 'All' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}
-            style={{
-              ...styles.tab,
-              ...(activeTab === tab.id ? styles.tabActive : {})
-            }}
-          >
-            {tab.label}
-            {tab.count > 0 && <span style={styles.tabBadge}>{tab.count}</span>}
+      {/* Contact Filter Banner */}
+      {contactFilter && protocols.length > 0 && (
+        <div style={styles.contactBanner}>
+          <span>Viewing protocols for: <strong>{protocols[0]?.patient_name || 'Contact'}</strong></span>
+          <button onClick={clearContactFilter} style={styles.clearFilterButton}>
+            ✕ Clear Filter
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Tabs - hide when viewing specific contact */}
+      {!contactFilter && (
+        <div style={styles.tabs}>
+          {[
+            { id: 'active', label: 'Active', count: stats.active },
+            { id: 'ending-soon', label: 'Ending Soon' },
+            { id: 'refill', label: 'Ready for Refill', count: stats.readyForRefill },
+            { id: 'completed', label: 'Completed' },
+            { id: 'all', label: 'All' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}
+              style={{
+                ...styles.tab,
+                ...(activeTab === tab.id ? styles.tabActive : {})
+              }}
+            >
+              {tab.label}
+              {tab.count > 0 && <span style={styles.tabBadge}>{tab.count}</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Error */}
       {error && <div style={styles.error}>{error}</div>}
@@ -313,12 +375,13 @@ export default function ProtocolDashboard() {
                 <th style={styles.th}>Days Left</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Paid</th>
+                <th style={styles.th}>GHL</th>
               </tr>
             </thead>
             <tbody>
               {protocols.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={styles.emptyState}>No protocols found</td>
+                  <td colSpan="9" style={styles.emptyState}>No protocols found</td>
                 </tr>
               ) : (
                 protocols.map((p) => (
@@ -358,6 +421,18 @@ export default function ProtocolDashboard() {
                       </span>
                     </td>
                     <td style={styles.td}>{formatCurrency(p.amount_paid)}</td>
+                    <td style={styles.td}>
+                      {p.ghl_contact_id && (
+                        <a
+                          href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${p.ghl_contact_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={styles.ghlLink}
+                        >
+                          Open →
+                        </a>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
@@ -551,6 +626,25 @@ const styles = {
     marginBottom: '20px',
     flexWrap: 'wrap'
   },
+  contactBanner: {
+    backgroundColor: '#dbeafe',
+    color: '#1e40af',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  clearFilterButton: {
+    backgroundColor: 'transparent',
+    color: '#1e40af',
+    border: '1px solid #1e40af',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px'
+  },
   tab: {
     padding: '10px 20px',
     fontSize: '14px',
@@ -645,6 +739,12 @@ const styles = {
     padding: '40px',
     textAlign: 'center',
     color: '#6b7280'
+  },
+  ghlLink: {
+    color: '#3b82f6',
+    textDecoration: 'none',
+    fontSize: '13px',
+    fontWeight: '500'
   },
   error: {
     backgroundColor: '#fee2e2',

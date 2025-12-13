@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/process-milestones",
-      "schedule": "0 15 * * *"
+      "path": "/api/cron/injection-reminders",
+      "schedule": "30 2 * * *"
     }
   ]
 }

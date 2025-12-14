@@ -76,7 +76,117 @@ export default function PatientTracker() {
     if (!peptideName) return null;
     const name = peptideName.toLowerCase();
 
-    // BPC-157
+    // ============================================
+    // BLENDS FIRST (check before individual peptides)
+    // ============================================
+
+    // Wolverine Blend (BPC + TB) - check before BPC or TB individually
+    if (name.includes('wolverine') || (name.includes('bpc') && name.includes('tb'))) {
+      return {
+        name: 'Wolverine Blend (BPC-157 + TB-500)',
+        what: 'This blend has two healing peptides: BPC-157 and TB-500. They work as a team.',
+        how: 'BPC-157 helps repair tissue. TB-500 helps cells grow and move where needed. Together they give your body more tools to heal.',
+        benefits: [
+          'Faster recovery from workouts',
+          'Helps heal muscles and tendons',
+          'Supports joint health',
+          'May reduce discomfort from injuries'
+        ],
+        tip: 'Take this blend any time of day. It works with or without food.',
+        note: 'Results vary. Popular with active people who want to recover faster.'
+      };
+    }
+
+    // KLOW blend - check before GLOW, GHK, KPV, BPC, TB
+    if (name.includes('klow')) {
+      return {
+        name: 'KLOW Blend (GHK-Cu + KPV + BPC-157 + TB-500)',
+        what: 'KLOW has GHK-Cu, KPV, BPC-157, and TB-500. It supports skin health and calming.',
+        how: 'Each peptide works on a different part of skin health. Together they support repair, calming, and collagen.',
+        benefits: [
+          'Supports skin health and repair',
+          'Helps calm skin irritation',
+          'Supports collagen production',
+          'Promotes overall healing'
+        ],
+        tip: 'Take any time of day. Stay hydrated for best results.',
+        note: 'Results vary from person to person.'
+      };
+    }
+
+    // GLOW blend - check before GHK, BPC, TB
+    if (name.includes('glow')) {
+      return {
+        name: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)',
+        what: 'GLOW combines GHK-Cu with BPC-157 and TB-500. It supports your skin from the inside.',
+        how: 'GHK-Cu helps skin make collagen. BPC-157 and TB-500 help skin heal. Together they support a healthy glow.',
+        benefits: [
+          'Supports skin health',
+          'Helps with skin firmness',
+          'May improve skin texture',
+          'Supports overall healing'
+        ],
+        tip: 'Take any time of day. Drink plenty of water and protect skin from sun.',
+        note: 'Results vary from person to person.'
+      };
+    }
+
+    // CJC/Ipamorelin blend - check before CJC or Ipamorelin individually
+    if ((name.includes('cjc') && name.includes('ipamorelin')) || name.includes('cjc/ipa') || name.includes('cjc-ipa')) {
+      return {
+        name: 'CJC-1295 / Ipamorelin',
+        what: 'This blend has two peptides: CJC-1295 and Ipamorelin. They work as a team.',
+        how: 'CJC-1295 extends growth hormone release. Ipamorelin triggers the release gently. Together they are stronger than either alone.',
+        benefits: [
+          'Stronger growth hormone release',
+          'Supports deep sleep',
+          'Helps with recovery',
+          'Gentle with few side effects'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after. This works best with your natural sleep cycle.',
+        note: 'Results vary. This is one of the most popular GH combinations.'
+      };
+    }
+
+    // Tesamorelin/Ipamorelin blend - check before individual
+    if (name.includes('tesamorelin') && name.includes('ipamorelin')) {
+      return {
+        name: 'Tesamorelin / Ipamorelin',
+        what: 'This combines Tesamorelin and Ipamorelin. Together they strongly support growth hormone.',
+        how: 'Both peptides signal growth hormone release. Tesamorelin is especially good for belly fat.',
+        benefits: [
+          'Strong growth hormone support',
+          'May help reduce belly fat',
+          'Supports sleep and recovery',
+          'Supports body composition'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
+        note: 'Results vary. May take 2-3 months for body changes.'
+      };
+    }
+
+    // Sermorelin/Ipamorelin blend - check before individual
+    if (name.includes('sermorelin') && name.includes('ipamorelin')) {
+      return {
+        name: 'Sermorelin / Ipamorelin',
+        what: 'This blend combines Sermorelin and Ipamorelin for growth hormone support.',
+        how: 'Both peptides work together to signal your body to make more growth hormone naturally.',
+        benefits: [
+          'Supports natural growth hormone',
+          'May improve sleep',
+          'Supports recovery',
+          'Gentle with few side effects'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
+        note: 'Results vary. Better sleep often noticed first.'
+      };
+    }
+
+    // ============================================
+    // INDIVIDUAL PEPTIDES (after blends)
+    // ============================================
+
+    // BPC-157 (alone)
     if (name.includes('bpc')) {
       return {
         name: 'BPC-157',
@@ -93,10 +203,10 @@ export default function PatientTracker() {
       };
     }
 
-    // TB-500 / Thymosin Beta-4
-    if (name.includes('tb-500') || name.includes('tb500') || (name.includes('thymosin') && name.includes('beta'))) {
+    // TB-500 / Thymosin Beta-4 (alone)
+    if (name.includes('tb-500') || name.includes('tb500') || name.includes('tb 500') || (name.includes('thymosin') && name.includes('beta'))) {
       return {
-        name: 'TB-500',
+        name: 'TB-500 (Thymosin Beta-4)',
         what: 'TB-500 is a healing peptide. Your body makes a protein like this called Thymosin Beta-4.',
         how: 'TB-500 helps new blood vessels form. It helps cells move to where they need to go. This speeds up healing.',
         benefits: [
@@ -110,27 +220,10 @@ export default function PatientTracker() {
       };
     }
 
-    // Wolverine Blend (BPC + TB)
-    if (name.includes('wolverine')) {
+    // GHK-Cu (alone, not in blends)
+    if (name.includes('ghk')) {
       return {
-        name: 'Wolverine Blend',
-        what: 'This blend has two healing peptides: BPC-157 and TB-500. They work as a team.',
-        how: 'BPC-157 helps repair tissue. TB-500 helps cells grow and move where needed. Together they give your body more tools to heal.',
-        benefits: [
-          'Faster recovery from workouts',
-          'Helps heal muscles and tendons',
-          'Supports joint health',
-          'May reduce discomfort from injuries'
-        ],
-        tip: 'Take this blend any time of day. It works with or without food.',
-        note: 'Results vary. Popular with active people who want to recover faster.'
-      };
-    }
-
-    // GHK-Cu (but not GLOW or KLOW blends)
-    if (name.includes('ghk') && !name.includes('glow') && !name.includes('klow')) {
-      return {
-        name: 'GHK-Cu',
+        name: 'GHK-Cu (Copper Peptide)',
         what: 'GHK-Cu is a peptide with copper. Your body makes this naturally but makes less as you age.',
         how: 'GHK-Cu tells your skin to make more collagen. Collagen keeps skin firm and smooth.',
         benefits: [
@@ -144,42 +237,8 @@ export default function PatientTracker() {
       };
     }
 
-    // GLOW blend
-    if (name.includes('glow')) {
-      return {
-        name: 'GLOW Blend',
-        what: 'GLOW combines GHK-Cu with BPC-157 and TB-500. It supports your skin from the inside.',
-        how: 'GHK-Cu helps skin make collagen. BPC-157 and TB-500 help skin heal. Together they support a healthy glow.',
-        benefits: [
-          'Supports skin health',
-          'Helps with skin firmness',
-          'May improve skin texture',
-          'Supports overall healing'
-        ],
-        tip: 'Take any time of day. Drink plenty of water and protect skin from sun.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // KLOW blend
-    if (name.includes('klow')) {
-      return {
-        name: 'KLOW Blend',
-        what: 'KLOW has GHK-Cu, KPV, BPC-157, and TB-500. It supports skin health and calming.',
-        how: 'Each peptide works on a different part of skin health. Together they support repair, calming, and collagen.',
-        benefits: [
-          'Supports skin health and repair',
-          'Helps calm skin irritation',
-          'Supports collagen production',
-          'Promotes overall healing'
-        ],
-        tip: 'Take any time of day. Stay hydrated for best results.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // KPV
-    if (name.includes('kpv') && !name.includes('klow')) {
+    // KPV (alone)
+    if (name.includes('kpv')) {
       return {
         name: 'KPV',
         what: 'KPV is a small peptide made of three amino acids. It comes from a hormone that calms inflammation.',
@@ -416,11 +475,28 @@ export default function PatientTracker() {
       };
     }
 
-    // CJC-1295 (alone, no DAC)
-    if (name.includes('cjc') && !name.includes('ipamorelin') && !name.includes('dac')) {
+    // CJC-1295 with DAC
+    if (name.includes('cjc') && name.includes('dac') && !name.includes('no dac') && !name.includes('without')) {
       return {
-        name: 'CJC-1295',
-        what: 'CJC-1295 is a growth hormone releasing peptide. It causes a burst of growth hormone.',
+        name: 'CJC-1295 with DAC',
+        what: 'CJC-1295 with DAC is a long-acting growth hormone peptide. DAC makes it last longer in your body.',
+        how: 'This peptide raises growth hormone steadily over days instead of short pulses. One injection works for about a week.',
+        benefits: [
+          'Raises growth hormone steadily',
+          'Only needs to be taken 1-2 times per week',
+          'Supports body composition over time',
+          'More convenient dosing'
+        ],
+        tip: 'Take 1-2 times per week. Can be taken any time. Do not eat for 1 hour before.',
+        note: 'Results vary. The steady release is different from natural pulsing.'
+      };
+    }
+
+    // CJC-1295 no DAC (alone)
+    if (name.includes('cjc') && !name.includes('ipamorelin')) {
+      return {
+        name: 'CJC-1295 (no DAC)',
+        what: 'CJC-1295 without DAC is a growth hormone releasing peptide. It causes a burst of growth hormone.',
         how: 'This peptide signals your pituitary gland to release growth hormone in a pulse, similar to your natural pattern.',
         benefits: [
           'Supports natural growth hormone pulses',
@@ -430,57 +506,6 @@ export default function PatientTracker() {
         ],
         tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after.',
         note: 'Results vary. Often combined with Ipamorelin.'
-      };
-    }
-
-    // CJC/Ipamorelin blend
-    if ((name.includes('cjc') && name.includes('ipamorelin')) || name.includes('cjc/ipa')) {
-      return {
-        name: 'CJC-1295 / Ipamorelin',
-        what: 'This blend has two peptides: CJC-1295 and Ipamorelin. They work as a team.',
-        how: 'CJC-1295 extends growth hormone release. Ipamorelin triggers the release gently. Together they are stronger than either alone.',
-        benefits: [
-          'Stronger growth hormone release',
-          'Supports deep sleep',
-          'Helps with recovery',
-          'Gentle with few side effects'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after. This works best with your natural sleep cycle.',
-        note: 'Results vary. This is one of the most popular GH combinations.'
-      };
-    }
-
-    // Tesamorelin/Ipamorelin blend
-    if (name.includes('tesamorelin') && name.includes('ipamorelin')) {
-      return {
-        name: 'Tesamorelin / Ipamorelin',
-        what: 'This blend combines Tesamorelin and Ipamorelin. Together they strongly support growth hormone.',
-        how: 'Both peptides signal growth hormone release. Tesamorelin is especially good for belly fat.',
-        benefits: [
-          'Strong growth hormone support',
-          'May help reduce belly fat',
-          'Supports sleep and recovery',
-          'Supports body composition'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
-        note: 'Results vary. May take 2-3 months for body changes.'
-      };
-    }
-
-    // Sermorelin/Ipamorelin blend
-    if (name.includes('sermorelin') && name.includes('ipamorelin')) {
-      return {
-        name: 'Sermorelin / Ipamorelin',
-        what: 'This blend combines Sermorelin and Ipamorelin for growth hormone support.',
-        how: 'Both peptides work together to signal your body to make more growth hormone naturally.',
-        benefits: [
-          'Supports natural growth hormone',
-          'May improve sleep',
-          'Supports recovery',
-          'Gentle with few side effects'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
-        note: 'Results vary. Better sleep often noticed first.'
       };
     }
 

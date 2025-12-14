@@ -6,17 +6,27 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   const { token } = req.query;
-  if (!token) return res.status(400).json({ error: 'Token required' });
+
+  if (!token) {
+    return res.status(400).json({ error: 'Token required' });
+  }
 
   try {
+    // Look up patient by token
     const { data: patientToken, error: tokenError } = await supabase
       .from('patient_access_tokens')
       .select('*')
@@ -27,11 +37,13 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Invalid or expired link' });
     }
 
+    // Update last accessed
     await supabase
       .from('patient_access_tokens')
       .update({ last_accessed_at: new Date().toISOString() })
       .eq('id', patientToken.id);
 
+    // Get all protocols for this contact
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select('*')
@@ -43,16 +55,22 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to load protocols' });
     }
 
+    // Get injection logs for all protocols
     const protocolIds = protocols.map(p => p.id);
+    
     let injectionLogs = [];
     if (protocolIds.length > 0) {
-      const { data: logs } = await supabase
+      const { data: logs, error: logsError } = await supabase
         .from('injection_logs')
         .select('*')
         .in('protocol_id', protocolIds);
-      injectionLogs = logs || [];
+      
+      if (!logsError) {
+        injectionLogs = logs || [];
+      }
     }
 
+    // Get peptide tools for category info
     const peptideNames = protocols.map(p => p.primary_peptide).filter(Boolean);
     let peptideTools = [];
     if (peptideNames.length > 0) {
@@ -63,13 +81,17 @@ export default async function handler(req, res) {
       peptideTools = tools || [];
     }
 
+    // Build response with days for each protocol
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
     const protocolsWithDays = protocols.map(protocol => {
+      // Find category from peptide tools
       const peptideTool = peptideTools.find(t => t.name === protocol.primary_peptide);
       const category = peptideTool?.category || null;
+      
+      // Build days array
       const startDate = new Date(protocol.start_date);
       const days = [];
       
@@ -78,7 +100,11 @@ export default async function handler(req, res) {
         dayDate.setDate(startDate.getDate() + i);
         const dayNumber = i + 1;
         const dateStr = dayDate.toISOString().split('T')[0];
-        const log = injectionLogs.find(l => l.protocol_id === protocol.id && l.day_number === dayNumber);
+        
+        // Check if completed
+        const log = injectionLogs.find(l => 
+          l.protocol_id === protocol.id && l.day_number === dayNumber
+        );
         
         days.push({
           day: dayNumber,
@@ -90,7 +116,12 @@ export default async function handler(req, res) {
         });
       }
 
-      return { ...protocol, category, days, tracker_token: protocol.tracker_token };
+      return {
+        ...protocol,
+        category,
+        days,
+        access_token: protocol.access_token // Include for toggling
+      };
     });
 
     return res.status(200).json({

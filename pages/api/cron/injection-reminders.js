@@ -24,7 +24,9 @@ export default async function handler(req, res) {
   console.log('Starting injection reminder job...');
 
   try {
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's date in PST timezone
+    const now = new Date();
+    const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD format
     
     // 1. Get active protocols where today is within the protocol dates AND reminders enabled
     const { data: activeProtocols, error: protocolError } = await supabase

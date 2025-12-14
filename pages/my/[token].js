@@ -11,6 +11,7 @@ export default function PatientDashboard() {
   const [error, setError] = useState('');
   const [expandedProtocol, setExpandedProtocol] = useState(null);
   const [saving, setSaving] = useState(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -40,7 +41,6 @@ export default function PatientDashboard() {
     setSaving(`${protocolId}-${day}`);
     
     try {
-      // Find the protocol's individual token
       const protocol = data.protocols.find(p => p.id === protocolId);
       if (!protocol?.access_token) {
         setSaving(null);
@@ -54,7 +54,7 @@ export default function PatientDashboard() {
       });
 
       if (res.ok) {
-        fetchDashboard(); // Refresh data
+        fetchDashboard();
       }
     } catch (err) {
       console.error('Toggle error:', err);
@@ -63,7 +63,6 @@ export default function PatientDashboard() {
     setSaving(null);
   };
 
-  // Get goal display info
   const getGoalInfo = (goal, category) => {
     const goalMap = {
       'hrt': { icon: '💉', label: 'HRT', color: '#3b82f6' },
@@ -78,24 +77,13 @@ export default function PatientDashboard() {
       'specialty': { icon: '⭐', label: 'SPECIALTY', color: '#71717a' }
     };
     
-    // Check category for IV/Injection/Labs
-    if (category === 'IV Therapy' || category === 'IV Add-On') {
-      return goalMap['iv_therapy'];
-    }
-    if (category === 'Injection') {
-      return { icon: '💉', label: 'INJECTION', color: '#0ea5e9' };
-    }
-    if (category === 'Labs') {
-      return { icon: '🧪', label: 'LABS', color: '#84cc16' };
-    }
-    if (category === 'HRT') {
-      return goalMap['hrt'];
-    }
-    
+    if (category === 'IV Therapy' || category === 'IV Add-On') return goalMap['iv_therapy'];
+    if (category === 'Injection') return { icon: '💉', label: 'INJECTION', color: '#0ea5e9' };
+    if (category === 'Labs') return { icon: '🧪', label: 'LABS', color: '#84cc16' };
+    if (category === 'HRT') return goalMap['hrt'];
     return goalMap[goal] || { icon: '🧬', label: 'PEPTIDE', color: '#000000' };
   };
 
-  // Check if a day is an off day
   const isOffDay = (dayNumber, frequency, startDate) => {
     if (!frequency) return false;
     
@@ -103,113 +91,79 @@ export default function PatientDashboard() {
       const dayInCycle = ((dayNumber - 1) % 7) + 1;
       return dayInCycle === 6 || dayInCycle === 7;
     }
-    
-    if (frequency === '1x weekly') {
-      return ((dayNumber - 1) % 7) !== 0;
-    }
-    
+    if (frequency === '1x weekly') return ((dayNumber - 1) % 7) !== 0;
     if (frequency === '2x weekly (Mon/Thu)') {
       if (startDate) {
         const start = new Date(startDate);
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + dayNumber - 1);
-        const dayOfWeek = currentDate.getDay();
-        return dayOfWeek !== 1 && dayOfWeek !== 4;
+        const curr = new Date(start);
+        curr.setDate(start.getDate() + dayNumber - 1);
+        const dow = curr.getDay();
+        return dow !== 1 && dow !== 4;
       }
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 1 && dayInCycle !== 4;
+      const d = ((dayNumber - 1) % 7) + 1;
+      return d !== 1 && d !== 4;
     }
-    
     if (frequency === '2x weekly (Tue/Fri)') {
       if (startDate) {
         const start = new Date(startDate);
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + dayNumber - 1);
-        const dayOfWeek = currentDate.getDay();
-        return dayOfWeek !== 2 && dayOfWeek !== 5;
+        const curr = new Date(start);
+        curr.setDate(start.getDate() + dayNumber - 1);
+        const dow = curr.getDay();
+        return dow !== 2 && dow !== 5;
       }
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 2 && dayInCycle !== 5;
+      const d = ((dayNumber - 1) % 7) + 1;
+      return d !== 2 && d !== 5;
     }
-    
     if (frequency === '2x weekly' || frequency.includes('2x weekly (any')) {
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 1 && dayInCycle !== 4;
+      const d = ((dayNumber - 1) % 7) + 1;
+      return d !== 1 && d !== 4;
     }
-    
     if (frequency === '3x weekly (Mon/Wed/Fri)') {
       if (startDate) {
         const start = new Date(startDate);
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + dayNumber - 1);
-        const dayOfWeek = currentDate.getDay();
-        return dayOfWeek !== 1 && dayOfWeek !== 3 && dayOfWeek !== 5;
+        const curr = new Date(start);
+        curr.setDate(start.getDate() + dayNumber - 1);
+        const dow = curr.getDay();
+        return dow !== 1 && dow !== 3 && dow !== 5;
       }
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 1 && dayInCycle !== 3 && dayInCycle !== 5;
+      const d = ((dayNumber - 1) % 7) + 1;
+      return d !== 1 && d !== 3 && d !== 5;
     }
-    
     if (frequency === '3x weekly' || frequency.includes('3x weekly (any')) {
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 1 && dayInCycle !== 3 && dayInCycle !== 5;
+      const d = ((dayNumber - 1) % 7) + 1;
+      return d !== 1 && d !== 3 && d !== 5;
     }
-    
-    if (frequency === 'Every other day') {
-      return dayNumber % 2 === 0;
-    }
-    
-    if (frequency === '1x monthly') {
-      return ((dayNumber - 1) % 30) !== 0;
-    }
-    
+    if (frequency === 'Every other day') return dayNumber % 2 === 0;
+    if (frequency === '1x monthly') return ((dayNumber - 1) % 30) !== 0;
     return false;
   };
 
-  // Calculate protocol stats
   const getProtocolStats = (protocol) => {
     const { days, duration_days, dose_frequency, start_date } = protocol;
     
-    // Total expected injections (excluding off days)
     let totalExpected = 0;
     for (let d = 1; d <= duration_days; d++) {
-      if (!isOffDay(d, dose_frequency, start_date)) {
-        totalExpected++;
-      }
+      if (!isOffDay(d, dose_frequency, start_date)) totalExpected++;
     }
     
-    // Completed count
     const completedDays = days?.filter(d => d.completed && !isOffDay(d.day, dose_frequency, start_date)) || [];
     const completed = completedDays.length;
     
-    // Current day
     const startDate = new Date(start_date);
     const today = new Date();
     const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
     const currentDay = Math.min(Math.max(1, daysDiff), duration_days);
-    
-    // Week number (for HRT)
     const currentWeek = Math.ceil(currentDay / 7);
     const totalWeeks = Math.ceil(duration_days / 7);
-    
-    // Percentage
     const percentage = totalExpected > 0 ? Math.round((completed / totalExpected) * 100) : 0;
     
-    return {
-      completed,
-      totalExpected,
-      currentDay,
-      currentWeek,
-      totalWeeks,
-      percentage
-    };
+    return { completed, totalExpected, currentDay, currentWeek, totalWeeks, percentage };
   };
 
-  // Get next injection dates for HRT
   const getNextInjectionDates = (protocol) => {
     const { days, dose_frequency, start_date, duration_days } = protocol;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const upcoming = [];
     const startDateObj = new Date(start_date);
     
@@ -227,19 +181,172 @@ export default function PatientDashboard() {
           });
         }
       }
-      
       if (upcoming.length >= 4) break;
     }
-    
     return upcoming;
   };
 
-  // Format date
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', { 
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatFullDate = (dateStr) => {
+    return new Date(dateStr).toLocaleDateString('en-US', { 
       month: 'short', 
-      day: 'numeric' 
+      day: 'numeric',
+      year: 'numeric'
     });
+  };
+
+  const renderProtocolCard = (protocol, isCompleted = false) => {
+    const goalInfo = getGoalInfo(protocol.goal, protocol.category);
+    const stats = getProtocolStats(protocol);
+    const isExpanded = expandedProtocol === protocol.id;
+    const upcoming = getNextInjectionDates(protocol);
+    const isHRT = protocol.goal === 'hrt' || protocol.category === 'HRT';
+    const isIV = protocol.goal === 'iv_therapy' || protocol.category === 'IV Therapy';
+    
+    return (
+      <div key={protocol.id} style={{
+        ...styles.card,
+        opacity: isCompleted ? 0.85 : 1
+      }}>
+        <div 
+          style={styles.cardHeader}
+          onClick={() => setExpandedProtocol(isExpanded ? null : protocol.id)}
+        >
+          <div style={{
+            ...styles.iconCircle,
+            backgroundColor: `${goalInfo.color}15`
+          }}>
+            {goalInfo.icon}
+          </div>
+          <div style={styles.cardHeaderContent}>
+            <p style={{...styles.cardLabel, color: goalInfo.color}}>{goalInfo.label}</p>
+            <h3 style={styles.cardTitle}>{protocol.primary_peptide || protocol.program_name}</h3>
+            <p style={styles.cardSubtitle}>
+              {isCompleted ? 
+                `Completed ${formatFullDate(protocol.end_date)}` :
+                isHRT ? `Week ${stats.currentWeek} of ${stats.totalWeeks}` : 
+                isIV ? `${stats.completed} of ${stats.totalExpected} sessions` :
+                `Day ${stats.currentDay} of ${protocol.duration_days}`
+              }
+            </p>
+          </div>
+          <div style={{
+            ...styles.statusBadge,
+            backgroundColor: protocol.status === 'active' ? '#dcfce7' : '#f3f4f6',
+            color: protocol.status === 'active' ? '#166534' : '#6b7280'
+          }}>
+            {protocol.status}
+          </div>
+        </div>
+
+        <div style={styles.cardBody}>
+          <div style={styles.progressSection}>
+            <div style={styles.progressLabel}>
+              <span>{stats.completed} of {stats.totalExpected} {isIV ? 'sessions' : 'injections'}</span>
+              <span>{stats.percentage}%</span>
+            </div>
+            <div style={styles.progressBar}>
+              <div style={{
+                ...styles.progressFill,
+                width: `${stats.percentage}%`,
+                backgroundColor: goalInfo.color
+              }} />
+            </div>
+          </div>
+
+          {!isCompleted && upcoming.length > 0 && protocol.status === 'active' && (
+            <div style={styles.upcomingSection}>
+              <p style={styles.upcomingLabel}>Upcoming</p>
+              <div style={styles.upcomingDates}>
+                {upcoming.map((u, i) => (
+                  <div key={i} style={styles.upcomingDate}>
+                    {u.dayOfWeek} {formatDate(u.date)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isExpanded && protocol.days && (
+            <div style={styles.miniGrid}>
+              {protocol.days.slice(0, 14).map((day) => {
+                const isOff = isOffDay(day.day, protocol.dose_frequency, protocol.start_date);
+                return (
+                  <div 
+                    key={day.day}
+                    style={{
+                      ...styles.miniDay,
+                      backgroundColor: isOff ? '#f5f5f5' : day.completed ? goalInfo.color : '#fff',
+                      color: day.completed && !isOff ? '#fff' : isOff ? '#ccc' : '#666',
+                      border: `1px solid ${isOff ? '#eee' : day.completed ? goalInfo.color : '#e0e0e0'}`
+                    }}
+                  >
+                    {day.day}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {isExpanded && protocol.days && (
+          <div style={styles.expandedTracker}>
+            <div style={styles.dayGrid}>
+              {protocol.days.map((day) => {
+                const isOff = isOffDay(day.day, protocol.dose_frequency, protocol.start_date);
+                const isSaving = saving === `${protocol.id}-${day.day}`;
+                const canClick = !isOff && !isCompleted;
+                
+                return (
+                  <button
+                    key={day.day}
+                    style={{
+                      ...styles.dayButton,
+                      ...(isOff ? styles.dayOff : {}),
+                      ...(day.completed && !isOff ? {
+                        backgroundColor: goalInfo.color,
+                        borderColor: goalInfo.color,
+                        color: '#fff'
+                      } : {}),
+                      ...(day.isCurrent && !day.completed && !isOff ? styles.dayCurrent : {}),
+                      opacity: isSaving ? 0.5 : 1,
+                      cursor: canClick ? 'pointer' : 'default'
+                    }}
+                    onClick={() => canClick && toggleInjection(protocol.id, day.day, day.completed)}
+                    disabled={isSaving || isOff || isCompleted}
+                  >
+                    <div style={{
+                      ...styles.dayNumber,
+                      color: day.completed && !isOff ? '#fff' : isOff ? '#bbb' : '#333'
+                    }}>
+                      {day.day}
+                    </div>
+                    <div style={{
+                      ...styles.dayDate,
+                      color: day.completed && !isOff ? 'rgba(255,255,255,0.7)' : isOff ? '#ccc' : '#888'
+                    }}>
+                      {formatDate(day.date)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {protocol.days && protocol.days.length > 0 && (
+          <button 
+            style={styles.expandButton}
+            onClick={() => setExpandedProtocol(isExpanded ? null : protocol.id)}
+          >
+            {isExpanded ? '▲ Hide Full Tracker' : '▼ Show Full Tracker'}
+          </button>
+        )}
+      </div>
+    );
   };
 
   const styles = {
@@ -415,11 +522,6 @@ export default function PatientDashboard() {
       transition: 'all 0.15s ease',
       padding: '4px'
     },
-    dayCompleted: {
-      backgroundColor: '#000',
-      borderColor: '#000',
-      color: '#fff'
-    },
     dayOff: {
       backgroundColor: '#f5f5f5',
       borderColor: '#eee',
@@ -435,7 +537,6 @@ export default function PatientDashboard() {
     },
     dayDate: {
       fontSize: '9px',
-      color: '#888',
       marginTop: '2px'
     },
     expandButton: {
@@ -507,6 +608,39 @@ export default function PatientDashboard() {
       fontWeight: '600',
       textTransform: 'uppercase',
       letterSpacing: '0.5px'
+    },
+    sectionHeader: {
+      fontSize: '16px',
+      fontWeight: '600',
+      color: '#000',
+      margin: '24px 0 12px',
+      letterSpacing: '-0.3px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    sectionCount: {
+      fontSize: '13px',
+      fontWeight: '500',
+      color: '#888',
+      backgroundColor: '#f0f0f0',
+      padding: '2px 8px',
+      borderRadius: '10px'
+    },
+    toggleButton: {
+      backgroundColor: '#fff',
+      border: '1px solid #e0e0e0',
+      borderRadius: '8px',
+      padding: '10px 16px',
+      fontSize: '14px',
+      color: '#666',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      width: '100%',
+      marginTop: '8px'
     }
   };
 
@@ -539,16 +673,12 @@ export default function PatientDashboard() {
   const { patient, protocols } = data;
   const firstName = patient?.name?.split(' ')[0] || 'there';
   
-  // Sort protocols: active first, then by goal type
-  const sortedProtocols = [...protocols].sort((a, b) => {
-    if (a.status === 'active' && b.status !== 'active') return -1;
-    if (a.status !== 'active' && b.status === 'active') return 1;
-    return 0;
-  });
-
+  // Separate active and completed
+  const activeProtocols = protocols.filter(p => p.status === 'active');
+  const completedProtocols = protocols.filter(p => p.status === 'completed');
+  
   // Calculate totals
-  const totalCompleted = protocols.reduce((sum, p) => sum + (p.injections_completed || 0), 0);
-  const activeProtocols = protocols.filter(p => p.status === 'active').length;
+  const totalInjections = protocols.reduce((sum, p) => sum + (p.injections_completed || 0), 0);
 
   return (
     <div style={styles.container}>
@@ -572,166 +702,54 @@ export default function PatientDashboard() {
         {/* Summary Stats */}
         <div style={styles.summaryRow}>
           <div style={styles.summaryBox}>
-            <div style={styles.summaryNumber}>{activeProtocols}</div>
+            <div style={styles.summaryNumber}>{activeProtocols.length}</div>
             <div style={styles.summaryLabel}>Active Programs</div>
           </div>
           <div style={styles.summaryBox}>
-            <div style={styles.summaryNumber}>{totalCompleted}</div>
-            <div style={styles.summaryLabel}>Total Completed</div>
+            <div style={styles.summaryNumber}>{totalInjections}</div>
+            <div style={styles.summaryLabel}>Total Injections</div>
           </div>
         </div>
 
-        {/* Protocol Cards */}
-        {sortedProtocols.length === 0 ? (
+        {/* Active Protocols */}
+        {activeProtocols.length > 0 && (
+          <>
+            <div style={styles.sectionHeader}>
+              Active Programs
+              <span style={styles.sectionCount}>{activeProtocols.length}</span>
+            </div>
+            {activeProtocols.map((protocol) => renderProtocolCard(protocol, false))}
+          </>
+        )}
+
+        {/* Empty state if no active */}
+        {activeProtocols.length === 0 && completedProtocols.length === 0 && (
           <div style={styles.emptyState}>
-            <p>No active protocols found.</p>
+            <p>No protocols found.</p>
             <p>Contact Range Medical to get started.</p>
           </div>
-        ) : (
-          sortedProtocols.map((protocol) => {
-            const goalInfo = getGoalInfo(protocol.goal, protocol.category);
-            const stats = getProtocolStats(protocol);
-            const isExpanded = expandedProtocol === protocol.id;
-            const upcoming = getNextInjectionDates(protocol);
-            const isHRT = protocol.goal === 'hrt' || protocol.category === 'HRT';
-            const isIV = protocol.goal === 'iv_therapy' || protocol.category === 'IV Therapy';
+        )}
+
+        {/* Completed Protocols Toggle */}
+        {completedProtocols.length > 0 && (
+          <>
+            <button 
+              style={styles.toggleButton}
+              onClick={() => setShowCompleted(!showCompleted)}
+            >
+              {showCompleted ? '▲ Hide' : '▼ Show'} Completed Programs ({completedProtocols.length})
+            </button>
             
-            return (
-              <div key={protocol.id} style={styles.card}>
-                <div 
-                  style={styles.cardHeader}
-                  onClick={() => setExpandedProtocol(isExpanded ? null : protocol.id)}
-                >
-                  <div style={{
-                    ...styles.iconCircle,
-                    backgroundColor: `${goalInfo.color}15`
-                  }}>
-                    {goalInfo.icon}
-                  </div>
-                  <div style={styles.cardHeaderContent}>
-                    <p style={{...styles.cardLabel, color: goalInfo.color}}>{goalInfo.label}</p>
-                    <h3 style={styles.cardTitle}>{protocol.primary_peptide || protocol.program_name}</h3>
-                    <p style={styles.cardSubtitle}>
-                      {isHRT ? `Week ${stats.currentWeek} of ${stats.totalWeeks}` : 
-                       isIV ? `${stats.completed} of ${stats.totalExpected} sessions` :
-                       `Day ${stats.currentDay} of ${protocol.duration_days}`}
-                    </p>
-                  </div>
-                  <div style={{
-                    ...styles.statusBadge,
-                    backgroundColor: protocol.status === 'active' ? '#dcfce7' : '#f3f4f6',
-                    color: protocol.status === 'active' ? '#166534' : '#6b7280'
-                  }}>
-                    {protocol.status}
-                  </div>
+            {showCompleted && (
+              <>
+                <div style={styles.sectionHeader}>
+                  Completed Programs
+                  <span style={styles.sectionCount}>{completedProtocols.length}</span>
                 </div>
-
-                <div style={styles.cardBody}>
-                  {/* Progress Bar */}
-                  <div style={styles.progressSection}>
-                    <div style={styles.progressLabel}>
-                      <span>{stats.completed} of {stats.totalExpected} {isIV ? 'sessions' : 'injections'}</span>
-                      <span>{stats.percentage}%</span>
-                    </div>
-                    <div style={styles.progressBar}>
-                      <div style={{
-                        ...styles.progressFill,
-                        width: `${stats.percentage}%`,
-                        backgroundColor: goalInfo.color
-                      }} />
-                    </div>
-                  </div>
-
-                  {/* Upcoming Dates (for HRT/regular) */}
-                  {upcoming.length > 0 && protocol.status === 'active' && (
-                    <div style={styles.upcomingSection}>
-                      <p style={styles.upcomingLabel}>Upcoming</p>
-                      <div style={styles.upcomingDates}>
-                        {upcoming.map((u, i) => (
-                          <div key={i} style={styles.upcomingDate}>
-                            {u.dayOfWeek} {formatDate(u.date)}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Mini Grid Preview */}
-                  {!isExpanded && protocol.days && (
-                    <div style={styles.miniGrid}>
-                      {protocol.days.slice(0, 14).map((day) => {
-                        const isOff = isOffDay(day.day, protocol.dose_frequency, protocol.start_date);
-                        return (
-                          <div 
-                            key={day.day}
-                            style={{
-                              ...styles.miniDay,
-                              backgroundColor: isOff ? '#f5f5f5' : day.completed ? goalInfo.color : '#fff',
-                              color: day.completed && !isOff ? '#fff' : isOff ? '#ccc' : '#666',
-                              border: `1px solid ${isOff ? '#eee' : day.completed ? goalInfo.color : '#e0e0e0'}`
-                            }}
-                          >
-                            {day.day}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Expanded Tracker */}
-                {isExpanded && protocol.days && (
-                  <div style={styles.expandedTracker}>
-                    <div style={styles.dayGrid}>
-                      {protocol.days.map((day) => {
-                        const isOff = isOffDay(day.day, protocol.dose_frequency, protocol.start_date);
-                        const isSaving = saving === `${protocol.id}-${day.day}`;
-                        
-                        return (
-                          <button
-                            key={day.day}
-                            style={{
-                              ...styles.dayButton,
-                              ...(isOff ? styles.dayOff : {}),
-                              ...(day.completed && !isOff ? {...styles.dayCompleted, backgroundColor: goalInfo.color, borderColor: goalInfo.color} : {}),
-                              ...(day.isCurrent && !day.completed && !isOff ? styles.dayCurrent : {}),
-                              opacity: isSaving ? 0.5 : 1,
-                              cursor: isOff ? 'default' : 'pointer'
-                            }}
-                            onClick={() => !isOff && toggleInjection(protocol.id, day.day, day.completed)}
-                            disabled={isSaving || isOff}
-                          >
-                            <div style={{
-                              ...styles.dayNumber,
-                              color: day.completed && !isOff ? '#fff' : isOff ? '#bbb' : '#333'
-                            }}>
-                              {day.day}
-                            </div>
-                            <div style={{
-                              ...styles.dayDate,
-                              color: day.completed && !isOff ? 'rgba(255,255,255,0.7)' : isOff ? '#ccc' : '#888'
-                            }}>
-                              {formatDate(day.date)}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Expand/Collapse Button */}
-                {protocol.days && protocol.days.length > 0 && (
-                  <button 
-                    style={styles.expandButton}
-                    onClick={() => setExpandedProtocol(isExpanded ? null : protocol.id)}
-                  >
-                    {isExpanded ? '▲ Hide Full Tracker' : '▼ Show Full Tracker'}
-                  </button>
-                )}
-              </div>
-            );
-          })
+                {completedProtocols.map((protocol) => renderProtocolCard(protocol, true))}
+              </>
+            )}
+          </>
         )}
 
         {/* Contact */}

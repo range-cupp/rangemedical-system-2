@@ -260,6 +260,15 @@ export default function ProtocolDashboard() {
         }
       }
       
+      // Auto-fill goal when primary peptide is selected
+      if (field === 'primary_peptide' && value) {
+        const selectedPeptide = peptideList.find(p => p.name === value);
+        if (selectedPeptide?.suggested_primary_goal && !prev.goal) {
+          // Only auto-fill if goal is not already set
+          updated.goal = selectedPeptide.suggested_primary_goal;
+        }
+      }
+      
       return updated;
     });
   };
@@ -753,10 +762,14 @@ Questions? Text us anytime.
                   style={styles.select}
                 >
                   <option value="">Select goal...</option>
-                  <option value="recovery">Recovery – Tissue repair, injury, post-op</option>
-                  <option value="metabolic">Metabolic – Weight loss, body comp, energy</option>
-                  <option value="longevity">Longevity – Anti-aging, immune, cellular health</option>
-                  <option value="aesthetic">Aesthetic – Skin, hair, glow</option>
+                  <option value="recovery">Recovery / Pain / Tissue Repair</option>
+                  <option value="weight_metabolic">Weight & Metabolic</option>
+                  <option value="brain_focus">Brain, Focus & Mood</option>
+                  <option value="longevity_immune">Longevity & Immune Protection</option>
+                  <option value="skin_aesthetic">Skin, Hair & Aesthetic</option>
+                  <option value="sexual_health">Sexual Health</option>
+                  <option value="sleep_stress">Sleep & Stress</option>
+                  <option value="specialty">Specialty / Other</option>
                 </select>
               </div>
 

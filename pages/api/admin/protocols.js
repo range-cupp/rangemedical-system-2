@@ -128,6 +128,47 @@ async function handleUpdate(req, res) {
   }
 }
 
+// Handle DELETE request to remove protocol
+async function handleDelete(req, res) {
+  const { id } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Protocol ID required' });
+  }
+
+  try {
+    // First delete any injection logs for this protocol
+    const { error: logsError } = await supabase
+      .from('injection_logs')
+      .delete()
+      .eq('protocol_id', id);
+
+    if (logsError) {
+      console.error('Error deleting injection logs:', logsError);
+      // Continue anyway - protocol may not have logs
+    }
+
+    // Then delete the protocol
+    const { data, error } = await supabase
+      .from('protocols')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase delete error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    return res.status(200).json({ success: true, deleted: data });
+
+  } catch (error) {
+    console.error('Delete error:', error);
+    return res.status(500).json({ error: 'Failed to delete protocol' });
+  }
+}
+
 export default async function handler(req, res) {
   // Simple auth check
   const authHeader = req.headers.authorization;
@@ -140,6 +181,11 @@ export default async function handler(req, res) {
   // Handle PUT for updates
   if (req.method === 'PUT') {
     return handleUpdate(req, res);
+  }
+
+  // Handle DELETE for removing protocols
+  if (req.method === 'DELETE') {
+    return handleDelete(req, res);
   }
 
   if (req.method !== 'GET') {

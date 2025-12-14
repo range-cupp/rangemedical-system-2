@@ -41,7 +41,7 @@ const PROGRAM_MAPPING = {
     category: 'jumpstart'
   },
   
-  // Month Program 30-Day
+  // Month Program 30-Day (duration adjusted based on frequency when edited)
   'peptide month program - 30 day': {
     type: 'month_30day',
     duration: 30,
@@ -145,7 +145,7 @@ const PROGRAM_PATTERNS = [
   { pattern: /10.?day.*(?:bpc|tb|recovery|repair|wolverine|kpv|mgf|jumpstart)/i, type: 'jumpstart_10day', duration: 10 },
   { pattern: /(?:bpc|tb|recovery|repair|wolverine|kpv|mgf|jumpstart).*10.?day/i, type: 'jumpstart_10day', duration: 10 },
   
-  // Month Program / 30-day patterns (all goals map to same SKU)
+  // Month Program / 30-day patterns (duration adjusted based on frequency when edited)
   { pattern: /30.?day.*(?:bpc|tb|recovery|repair|kpv|metabolic|aod|mots|longevity|glow|aesthetic|month)/i, type: 'month_30day', duration: 30 },
   { pattern: /(?:bpc|tb|recovery|repair|kpv|metabolic|aod|mots|longevity|glow|aesthetic|month).*30.?day/i, type: 'month_30day', duration: 30 },
   { pattern: /peptide\s*month/i, type: 'month_30day', duration: 30 },

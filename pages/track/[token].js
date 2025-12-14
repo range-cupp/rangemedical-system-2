@@ -80,31 +80,33 @@ export default function PatientTracker() {
     if (name.includes('bpc')) {
       return {
         name: 'BPC-157',
-        what: 'BPC-157 is a healing peptide. It is made from a protein found in your stomach. Your body uses it to help fix damaged tissue.',
-        how: 'This peptide helps your body heal faster. It works by sending signals to cells that repair muscles, tendons, and other tissues. It also helps reduce swelling.',
+        what: 'BPC-157 is a healing peptide. It comes from a protein found in your stomach.',
+        how: 'This peptide helps your body heal faster. It sends signals to cells that fix muscles, tendons, and gut lining. It also helps calm swelling.',
         benefits: [
           'Helps heal muscles and tendons',
           'Supports gut health',
           'May reduce discomfort from injuries',
           'Helps your body recover faster'
         ],
-        note: 'Results vary from person to person. Most people start to notice changes within 2-4 weeks of consistent use.'
+        tip: 'You can take BPC-157 any time of day. It works with or without food.',
+        note: 'Results vary. Most people notice changes within 2-4 weeks.'
       };
     }
 
-    // TB-500
-    if (name.includes('tb-500') || name.includes('tb500') || name.includes('thymosin beta')) {
+    // TB-500 / Thymosin Beta-4
+    if (name.includes('tb-500') || name.includes('tb500') || (name.includes('thymosin') && name.includes('beta'))) {
       return {
         name: 'TB-500',
-        what: 'TB-500 is a healing peptide. It copies a protein your body already makes called Thymosin Beta-4. This protein helps your cells grow and heal.',
-        how: 'TB-500 helps new blood vessels form. It also helps cells move to where they are needed. This speeds up how fast your body can fix itself.',
+        what: 'TB-500 is a healing peptide. Your body makes a protein like this called Thymosin Beta-4.',
+        how: 'TB-500 helps new blood vessels form. It helps cells move to where they need to go. This speeds up healing.',
         benefits: [
           'Supports tissue repair',
           'Helps with flexibility',
           'May reduce recovery time',
           'Supports healthy inflammation response'
         ],
-        note: 'Results vary from person to person. Many people combine TB-500 with BPC-157 for better results.'
+        tip: 'TB-500 can be taken any time of day. It works with or without food.',
+        note: 'Results vary. Often combined with BPC-157 for better results.'
       };
     }
 
@@ -112,31 +114,33 @@ export default function PatientTracker() {
     if (name.includes('wolverine')) {
       return {
         name: 'Wolverine Blend',
-        what: 'The Wolverine Blend combines two healing peptides: BPC-157 and TB-500. Together, they work as a team to help your body heal.',
-        how: 'BPC-157 helps repair tissue from the inside. TB-500 helps new cells grow and move where they are needed. Using both gives your body more tools to heal.',
+        what: 'This blend has two healing peptides: BPC-157 and TB-500. They work as a team.',
+        how: 'BPC-157 helps repair tissue. TB-500 helps cells grow and move where needed. Together they give your body more tools to heal.',
         benefits: [
           'Faster recovery from workouts',
           'Helps heal muscles and tendons',
           'Supports joint health',
           'May reduce discomfort from injuries'
         ],
-        note: 'Results vary from person to person. This blend is popular with active people who want to recover faster.'
+        tip: 'Take this blend any time of day. It works with or without food.',
+        note: 'Results vary. Popular with active people who want to recover faster.'
       };
     }
 
-    // GHK-Cu
-    if (name.includes('ghk')) {
+    // GHK-Cu (but not GLOW or KLOW blends)
+    if (name.includes('ghk') && !name.includes('glow') && !name.includes('klow')) {
       return {
         name: 'GHK-Cu',
-        what: 'GHK-Cu is a peptide with copper attached to it. Your body makes this naturally, but you make less as you get older.',
-        how: 'GHK-Cu tells your skin to make more collagen. Collagen is what keeps your skin firm and smooth. It also helps your skin heal and stay healthy.',
+        what: 'GHK-Cu is a peptide with copper. Your body makes this naturally but makes less as you age.',
+        how: 'GHK-Cu tells your skin to make more collagen. Collagen keeps skin firm and smooth.',
         benefits: [
           'Supports healthy, firm skin',
           'May improve skin texture',
           'Helps with skin healing',
           'Supports hair health'
         ],
-        note: 'Results vary from person to person. Many people see changes in their skin within 4-8 weeks.'
+        tip: 'GHK-Cu can be taken any time. Drink water and protect skin from sun.',
+        note: 'Results vary. Many people see skin changes in 4-8 weeks.'
       };
     }
 
@@ -144,15 +148,50 @@ export default function PatientTracker() {
     if (name.includes('glow')) {
       return {
         name: 'GLOW Blend',
-        what: 'The GLOW Blend combines GHK-Cu with healing peptides BPC-157 and TB-500. It is made to support your skin from the inside.',
-        how: 'GHK-Cu helps your skin make collagen. BPC-157 and TB-500 help your skin heal and stay healthy. Together, they support a healthy glow.',
+        what: 'GLOW combines GHK-Cu with BPC-157 and TB-500. It supports your skin from the inside.',
+        how: 'GHK-Cu helps skin make collagen. BPC-157 and TB-500 help skin heal. Together they support a healthy glow.',
         benefits: [
           'Supports skin health',
           'Helps with skin firmness',
           'May improve skin texture',
           'Supports overall healing'
         ],
-        note: 'Results vary from person to person. Drink plenty of water and protect your skin from the sun for best results.'
+        tip: 'Take any time of day. Drink plenty of water and protect skin from sun.',
+        note: 'Results vary from person to person.'
+      };
+    }
+
+    // KLOW blend
+    if (name.includes('klow')) {
+      return {
+        name: 'KLOW Blend',
+        what: 'KLOW has GHK-Cu, KPV, BPC-157, and TB-500. It supports skin health and calming.',
+        how: 'Each peptide works on a different part of skin health. Together they support repair, calming, and collagen.',
+        benefits: [
+          'Supports skin health and repair',
+          'Helps calm skin irritation',
+          'Supports collagen production',
+          'Promotes overall healing'
+        ],
+        tip: 'Take any time of day. Stay hydrated for best results.',
+        note: 'Results vary from person to person.'
+      };
+    }
+
+    // KPV
+    if (name.includes('kpv') && !name.includes('klow')) {
+      return {
+        name: 'KPV',
+        what: 'KPV is a small peptide made of three amino acids. It comes from a hormone that calms inflammation.',
+        how: 'KPV helps calm your immune system. It can reduce redness and irritation in skin and gut.',
+        benefits: [
+          'Helps calm inflammation',
+          'Supports skin health',
+          'May help with gut issues',
+          'Supports immune balance'
+        ],
+        tip: 'KPV can be taken any time of day. It works with or without food.',
+        note: 'Results vary from person to person.'
       };
     }
 
@@ -160,15 +199,16 @@ export default function PatientTracker() {
     if (name.includes('aod')) {
       return {
         name: 'AOD-9604',
-        what: 'AOD-9604 is a peptide that comes from growth hormone. It is the part that helps your body use fat for energy.',
-        how: 'This peptide sends signals to fat cells. It tells them to release stored fat so your body can burn it. It does not affect blood sugar or muscle.',
+        what: 'AOD-9604 comes from growth hormone. It is the part that helps your body burn fat.',
+        how: 'This peptide tells fat cells to release stored fat. Your body can then burn it for energy. It does not affect muscle or blood sugar.',
         benefits: [
-          'Supports fat metabolism',
+          'Supports fat burning',
           'Does not affect muscle',
           'Does not raise blood sugar',
-          'May support weight management goals'
+          'May support weight goals'
         ],
-        note: 'Results vary from person to person. Works best with healthy eating and regular movement.'
+        tip: 'Take AOD-9604 in the morning on an empty stomach. Wait 20-30 minutes before eating.',
+        note: 'Results vary. Works best with healthy eating and exercise.'
       };
     }
 
@@ -176,31 +216,101 @@ export default function PatientTracker() {
     if (name.includes('mots')) {
       return {
         name: 'MOTS-C',
-        what: 'MOTS-C is a peptide made by your mitochondria. Mitochondria are the parts of your cells that make energy.',
-        how: 'MOTS-C helps your cells use sugar for energy better. It also helps your muscles work better during exercise.',
+        what: 'MOTS-C is made by your mitochondria. Mitochondria are the parts of cells that make energy.',
+        how: 'MOTS-C helps cells use sugar for energy. It helps muscles work better during exercise.',
         benefits: [
           'Supports energy levels',
-          'Helps with exercise performance',
-          'Supports healthy metabolism',
-          'May help with blood sugar balance'
+          'Helps with exercise',
+          'Supports metabolism',
+          'May help blood sugar balance'
         ],
-        note: 'Results vary from person to person. Many people feel more energy within 2-3 weeks.'
+        tip: 'Take MOTS-C in the morning on an empty stomach, before exercise.',
+        note: 'Results vary. Many people feel more energy in 2-3 weeks.'
       };
     }
 
-    // GLP-1 variants
-    if (name.includes('glp-1') || name.includes('semaglutide') || name.includes('tirzepatide')) {
+    // GLP-1 S (Semaglutide)
+    if (name.includes('glp-1 s') || (name.includes('semaglutide') && !name.includes('tir'))) {
       return {
-        name: 'GLP-1 Peptide',
-        what: 'GLP-1 peptides copy a hormone your gut makes after you eat. This hormone helps control hunger and blood sugar.',
-        how: 'GLP-1 slows down how fast food leaves your stomach. This helps you feel full longer. It also helps your body manage blood sugar better.',
+        name: 'Semaglutide (GLP-1)',
+        what: 'Semaglutide copies a hormone your gut makes after eating. It helps control hunger.',
+        how: 'This peptide slows how fast food leaves your stomach. You feel full longer. It also helps blood sugar.',
         benefits: [
           'Helps reduce appetite',
-          'Supports feeling full longer',
-          'Helps with blood sugar balance',
-          'Supports weight management goals'
+          'Helps you feel full longer',
+          'Supports blood sugar balance',
+          'Supports weight goals'
         ],
-        note: 'Results vary from person to person. Eat slowly and stop when you feel full. Drink plenty of water.'
+        tip: 'Take once a week on the same day. Eat slowly and stop when full. Drink lots of water.',
+        note: 'Results vary. Start low and increase slowly. Nausea may happen at first.'
+      };
+    }
+
+    // GLP-1 T (Tirzepatide)
+    if (name.includes('glp-1 t') || name.includes('tirzepatide')) {
+      return {
+        name: 'Tirzepatide (GLP-1/GIP)',
+        what: 'Tirzepatide works on two gut hormones: GLP-1 and GIP. Both help control hunger.',
+        how: 'This peptide slows digestion and helps you feel full. Working on two pathways may give stronger results.',
+        benefits: [
+          'Helps reduce appetite',
+          'Helps you feel full longer',
+          'Supports blood sugar balance',
+          'May give stronger weight support'
+        ],
+        tip: 'Take once a week on the same day. Eat slowly and stop when full. Drink lots of water.',
+        note: 'Results vary. Start low and increase slowly.'
+      };
+    }
+
+    // GLP-1 R (Retatrutide)
+    if (name.includes('glp-1 r') || name.includes('retatrutide')) {
+      return {
+        name: 'Retatrutide (Triple)',
+        what: 'Retatrutide works on three pathways: GLP-1, GIP, and glucagon. This is called a triple agonist.',
+        how: 'It controls hunger, blood sugar, and may help burn more energy. Three pathways may give the strongest results.',
+        benefits: [
+          'Helps reduce appetite',
+          'Supports blood sugar balance',
+          'May increase energy burning',
+          'Supports weight goals'
+        ],
+        tip: 'Take once a week on the same day. Drink plenty of water.',
+        note: 'Results vary. This is a newer peptide.'
+      };
+    }
+
+    // Survodutide
+    if (name.includes('survodutide')) {
+      return {
+        name: 'Survodutide',
+        what: 'Survodutide works on GLP-1 and glucagon receptors. It helps control appetite and metabolism.',
+        how: 'This peptide helps you feel full and may help your body burn more energy.',
+        benefits: [
+          'Helps reduce appetite',
+          'Supports metabolism',
+          'May help with weight goals',
+          'Works on two pathways'
+        ],
+        tip: 'Take once a week on the same day. Drink plenty of water.',
+        note: 'Results vary from person to person.'
+      };
+    }
+
+    // Cagrilintide
+    if (name.includes('cagrilintide')) {
+      return {
+        name: 'Cagrilintide',
+        what: 'Cagrilintide copies a hormone called amylin. Amylin helps control appetite after meals.',
+        how: 'This peptide helps you feel full faster and stay full longer after eating.',
+        benefits: [
+          'Helps reduce appetite',
+          'Helps you feel full faster',
+          'Supports weight goals',
+          'Works differently than GLP-1'
+        ],
+        tip: 'Take as directed. Drink plenty of water and eat slowly.',
+        note: 'Results vary from person to person.'
       };
     }
 
@@ -208,15 +318,16 @@ export default function PatientTracker() {
     if (name.includes('epithalon') || name.includes('epitalon')) {
       return {
         name: 'Epithalon',
-        what: 'Epithalon is a peptide that supports your telomeres. Telomeres are caps on the ends of your DNA that protect it.',
-        how: 'As you age, telomeres get shorter. Epithalon may help support telomere health. This is linked to healthy aging.',
+        what: 'Epithalon supports your telomeres. Telomeres are caps on your DNA that protect it, like plastic tips on shoelaces.',
+        how: 'As you age, telomeres get shorter. Epithalon may help protect them. This is linked to healthy aging.',
         benefits: [
           'Supports healthy aging',
-          'May support sleep quality',
-          'Supports cellular health',
-          'May support energy levels'
+          'May improve sleep',
+          'Supports cell health',
+          'May support energy'
         ],
-        note: 'Results vary from person to person. This peptide is often used as part of a longevity plan.'
+        tip: 'Take any time of day. Often used in cycles of 10-20 days.',
+        note: 'Results vary. Often used as part of a longevity plan.'
       };
     }
 
@@ -224,15 +335,16 @@ export default function PatientTracker() {
     if (name.includes('thymosin alpha') || name.includes('ta-1') || name.includes('ta1')) {
       return {
         name: 'Thymosin Alpha-1',
-        what: 'Thymosin Alpha-1 is a peptide that supports your immune system. Your thymus gland makes it naturally.',
-        how: 'This peptide helps your immune cells work better. It helps your body find and fight things that should not be there.',
+        what: 'TA1 supports your immune system. Your thymus gland makes it naturally.',
+        how: 'This peptide helps immune cells work better. It helps your body fight germs and stay healthy.',
         benefits: [
           'Supports immune function',
           'Helps your body stay healthy',
-          'Supports recovery',
-          'May help during times of stress'
+          'Supports recovery from illness',
+          'May help during stress'
         ],
-        note: 'Results vary from person to person. Often used to support overall wellness.'
+        tip: 'TA1 can be taken any time. Often taken 2-3 times per week.',
+        note: 'Results vary. Used to support overall wellness.'
       };
     }
 
@@ -240,31 +352,186 @@ export default function PatientTracker() {
     if (name.includes('pt-141')) {
       return {
         name: 'PT-141',
-        what: 'PT-141 is a peptide that works in your brain. It affects the pathways that control arousal and desire.',
-        how: 'PT-141 activates receptors in your brain. This can help increase feelings of desire. It works differently than other treatments.',
+        what: 'PT-141 works in your brain. It affects pathways that control desire.',
+        how: 'PT-141 activates special receptors in your brain. This can increase feelings of desire.',
         benefits: [
           'May support healthy desire',
           'Works through the brain',
           'Can be used as needed',
-          'Works for both men and women'
+          'Works for men and women'
         ],
-        note: 'Results vary from person to person. Take as directed by your provider.'
+        tip: 'Take 45-60 minutes before desired effect. Do not use more than once in 24 hours.',
+        note: 'Results vary. Some feel flushing or nausea which usually passes.'
       };
     }
 
-    // Sermorelin / GHRH peptides
-    if (name.includes('sermorelin') || name.includes('tesamorelin') || name.includes('cjc') || name.includes('ipamorelin') || name.includes('ghrp')) {
+    // Sermorelin
+    if (name.includes('sermorelin') && !name.includes('ipamorelin')) {
       return {
-        name: 'Growth Hormone Support',
-        what: 'This peptide helps your body make more of its own growth hormone. Growth hormone helps with energy, sleep, and recovery.',
-        how: 'It sends a signal to your pituitary gland. This gland then releases more growth hormone naturally. Your body controls how much it makes.',
+        name: 'Sermorelin',
+        what: 'Sermorelin tells your body to make more growth hormone. It signals your pituitary gland.',
+        how: 'Your pituitary gland is in your brain. When it gets this signal, it makes more of your own natural growth hormone.',
         benefits: [
-          'Supports natural growth hormone levels',
-          'May improve sleep quality',
-          'Supports recovery from exercise',
-          'May support energy and focus'
+          'Supports natural growth hormone',
+          'May improve sleep',
+          'Supports recovery',
+          'May support energy and body composition'
         ],
-        note: 'Results vary from person to person. Best taken at night before bed. Avoid eating 2 hours before your dose.'
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before. This works with your natural sleep cycle.',
+        note: 'Results vary. Better sleep is often noticed first.'
+      };
+    }
+
+    // Tesamorelin (alone)
+    if (name.includes('tesamorelin') && !name.includes('ipamorelin')) {
+      return {
+        name: 'Tesamorelin',
+        what: 'Tesamorelin signals your pituitary to release growth hormone. It is known for helping reduce belly fat.',
+        how: 'This peptide causes your body to make more growth hormone naturally. It is especially helpful for belly fat.',
+        benefits: [
+          'Supports natural growth hormone',
+          'May help reduce belly fat',
+          'Supports body composition',
+          'May improve energy and recovery'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
+        note: 'Results vary. May take 2-3 months for body changes.'
+      };
+    }
+
+    // Ipamorelin (alone)
+    if (name.includes('ipamorelin') && !name.includes('cjc') && !name.includes('tesamorelin') && !name.includes('sermorelin')) {
+      return {
+        name: 'Ipamorelin',
+        what: 'Ipamorelin is a gentle growth hormone peptide. It tells your pituitary to release growth hormone.',
+        how: 'Ipamorelin causes growth hormone release without strongly affecting other hormones. It has very few side effects.',
+        benefits: [
+          'Supports growth hormone release',
+          'Very few side effects',
+          'Does not increase hunger',
+          'Supports sleep and recovery'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after.',
+        note: 'Results vary. Popular because it is gentle.'
+      };
+    }
+
+    // CJC-1295 (alone, no DAC)
+    if (name.includes('cjc') && !name.includes('ipamorelin') && !name.includes('dac')) {
+      return {
+        name: 'CJC-1295',
+        what: 'CJC-1295 is a growth hormone releasing peptide. It causes a burst of growth hormone.',
+        how: 'This peptide signals your pituitary gland to release growth hormone in a pulse, similar to your natural pattern.',
+        benefits: [
+          'Supports natural growth hormone pulses',
+          'May improve sleep',
+          'Supports recovery',
+          'Supports body composition'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after.',
+        note: 'Results vary. Often combined with Ipamorelin.'
+      };
+    }
+
+    // CJC/Ipamorelin blend
+    if ((name.includes('cjc') && name.includes('ipamorelin')) || name.includes('cjc/ipa')) {
+      return {
+        name: 'CJC-1295 / Ipamorelin',
+        what: 'This blend has two peptides: CJC-1295 and Ipamorelin. They work as a team.',
+        how: 'CJC-1295 extends growth hormone release. Ipamorelin triggers the release gently. Together they are stronger than either alone.',
+        benefits: [
+          'Stronger growth hormone release',
+          'Supports deep sleep',
+          'Helps with recovery',
+          'Gentle with few side effects'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after. This works best with your natural sleep cycle.',
+        note: 'Results vary. This is one of the most popular GH combinations.'
+      };
+    }
+
+    // Tesamorelin/Ipamorelin blend
+    if (name.includes('tesamorelin') && name.includes('ipamorelin')) {
+      return {
+        name: 'Tesamorelin / Ipamorelin',
+        what: 'This blend combines Tesamorelin and Ipamorelin. Together they strongly support growth hormone.',
+        how: 'Both peptides signal growth hormone release. Tesamorelin is especially good for belly fat.',
+        benefits: [
+          'Strong growth hormone support',
+          'May help reduce belly fat',
+          'Supports sleep and recovery',
+          'Supports body composition'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
+        note: 'Results vary. May take 2-3 months for body changes.'
+      };
+    }
+
+    // Sermorelin/Ipamorelin blend
+    if (name.includes('sermorelin') && name.includes('ipamorelin')) {
+      return {
+        name: 'Sermorelin / Ipamorelin',
+        what: 'This blend combines Sermorelin and Ipamorelin for growth hormone support.',
+        how: 'Both peptides work together to signal your body to make more growth hormone naturally.',
+        benefits: [
+          'Supports natural growth hormone',
+          'May improve sleep',
+          'Supports recovery',
+          'Gentle with few side effects'
+        ],
+        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
+        note: 'Results vary. Better sleep often noticed first.'
+      };
+    }
+
+    // GHRP-2
+    if (name.includes('ghrp-2') || name.includes('ghrp2')) {
+      return {
+        name: 'GHRP-2',
+        what: 'GHRP-2 is a growth hormone releasing peptide. It causes strong growth hormone release.',
+        how: 'GHRP-2 works on ghrelin receptors in your brain. It may increase hunger and slightly raise cortisol.',
+        benefits: [
+          'Strong growth hormone release',
+          'Supports muscle growth',
+          'May improve sleep',
+          'Supports body composition'
+        ],
+        tip: 'Take at NIGHT before bed. Do not eat for 2 hours before. It may increase hunger.',
+        note: 'Results vary. Stronger than Ipamorelin.'
+      };
+    }
+
+    // GHRP-6
+    if (name.includes('ghrp-6') || name.includes('ghrp6')) {
+      return {
+        name: 'GHRP-6',
+        what: 'GHRP-6 causes strong growth hormone release. It is known for increasing hunger.',
+        how: 'GHRP-6 works on ghrelin receptors. Ghrelin is your hunger hormone. This strongly increases appetite.',
+        benefits: [
+          'Strong growth hormone release',
+          'Increases appetite (good for gaining)',
+          'Supports muscle growth',
+          'May help gut healing'
+        ],
+        tip: 'Take at NIGHT before bed. Do not eat for 2 hours before. Expect hunger about 20 minutes after.',
+        note: 'Results vary. Best for people who want to gain weight or muscle.'
+      };
+    }
+
+    // MK-677 / Ibutamoren
+    if (name.includes('mk-677') || name.includes('mk677') || name.includes('ibutamoren')) {
+      return {
+        name: 'MK-677',
+        what: 'MK-677 is an oral growth hormone peptide. You take it as a pill, not an injection.',
+        how: 'MK-677 mimics ghrelin and causes growth hormone release. Effects last about 24 hours.',
+        benefits: [
+          'No injections - taken by mouth',
+          'Raises growth hormone',
+          'May improve sleep',
+          'Supports muscle and recovery'
+        ],
+        tip: 'Take at NIGHT before bed. It may increase hunger. Start with a lower dose.',
+        note: 'Results vary. May cause water retention at first.'
       };
     }
 
@@ -272,15 +539,16 @@ export default function PatientTracker() {
     if (name.includes('selank')) {
       return {
         name: 'Selank',
-        what: 'Selank is a peptide that supports your brain. It was made to help with focus and calm.',
-        how: 'Selank works on pathways in your brain that affect mood and focus. It may help you feel more calm and clear.',
+        what: 'Selank supports your brain. It helps with focus and calm without drowsiness.',
+        how: 'Selank works on GABA pathways. GABA helps you feel calm. It also supports focus and memory.',
         benefits: [
           'Supports focus and clarity',
           'May help with feeling calm',
           'Supports memory',
           'Does not cause drowsiness'
         ],
-        note: 'Results vary from person to person. Often used as a nasal spray.'
+        tip: 'Usually taken as a nasal spray. Use 1-2 sprays per nostril. Can use any time.',
+        note: 'Results often felt in 15-30 minutes.'
       };
     }
 
@@ -288,15 +556,33 @@ export default function PatientTracker() {
     if (name.includes('semax')) {
       return {
         name: 'Semax',
-        what: 'Semax is a peptide that supports brain function. It was made to help with focus and mental energy.',
-        how: 'Semax supports the growth of brain cells. It also helps protect your brain and supports clear thinking.',
+        what: 'Semax supports brain function and mental clarity.',
+        how: 'Semax supports BDNF, which helps brain cells grow and connect. It supports clear thinking.',
         benefits: [
           'Supports mental clarity',
           'May help with focus',
           'Supports brain health',
           'May support memory'
         ],
-        note: 'Results vary from person to person. Often used as a nasal spray.'
+        tip: 'Usually taken as a nasal spray in the morning. Avoid late in day as it may affect sleep.',
+        note: 'Results often felt in 15-30 minutes.'
+      };
+    }
+
+    // Dihexa
+    if (name.includes('dihexa')) {
+      return {
+        name: 'Dihexa',
+        what: 'Dihexa supports brain connections. It is studied for memory and mental clarity.',
+        how: 'Dihexa helps a growth factor called HGF work better. This supports connections between brain cells.',
+        benefits: [
+          'May support memory',
+          'Supports brain cell connections',
+          'Very potent in small doses',
+          'Being studied for cognitive support'
+        ],
+        tip: 'Taken by mouth as a small tablet in the morning. Start with lowest dose.',
+        note: 'Results vary. This is a research peptide.'
       };
     }
 
@@ -304,29 +590,252 @@ export default function PatientTracker() {
     if (name.includes('nad')) {
       return {
         name: 'NAD+',
-        what: 'NAD+ is a molecule your cells need to make energy. Your body makes less of it as you age.',
-        how: 'NAD+ helps your mitochondria work better. Mitochondria are like batteries in your cells. More NAD+ means more energy.',
+        what: 'NAD+ is a molecule your cells need to make energy. You make less as you age.',
+        how: 'NAD+ helps your mitochondria work better. Mitochondria are like batteries in your cells.',
         benefits: [
           'Supports cellular energy',
           'May help with mental clarity',
           'Supports healthy aging',
           'May improve recovery'
         ],
-        note: 'Results vary from person to person. Many people feel more energy and clarity within days.'
+        tip: 'Can be taken by injection or IV. Flushing or warmth is normal and passes.',
+        note: 'Results vary. Many feel more energy within days.'
+      };
+    }
+
+    // DSIP
+    if (name.includes('dsip')) {
+      return {
+        name: 'DSIP',
+        what: 'DSIP stands for Delta Sleep Inducing Peptide. It supports deep sleep.',
+        how: 'DSIP works on sleep pathways in your brain. It may help you fall asleep and stay in deep sleep.',
+        benefits: [
+          'Supports falling asleep',
+          'May improve deep sleep',
+          'Supports natural sleep cycles',
+          'May help with stress'
+        ],
+        tip: 'Take 30-60 minutes before bed.',
+        note: 'Results vary from person to person.'
+      };
+    }
+
+    // LL-37
+    if (name.includes('ll-37')) {
+      return {
+        name: 'LL-37',
+        what: 'LL-37 is an antimicrobial peptide. Your immune system makes it to fight germs.',
+        how: 'LL-37 can kill bacteria directly. It also helps control inflammation and wound healing.',
+        benefits: [
+          'Supports immune defense',
+          'May help with infections',
+          'Supports wound healing',
+          'Helps control inflammation'
+        ],
+        tip: 'Follow your provider dosing instructions carefully.',
+        note: 'Results vary. Often used for immune support.'
+      };
+    }
+
+    // Gonadorelin
+    if (name.includes('gonadorelin')) {
+      return {
+        name: 'Gonadorelin',
+        what: 'Gonadorelin signals your body to make testosterone. It copies a hormone your brain makes.',
+        how: 'Gonadorelin tells your pituitary gland to release hormones that make testosterone and support fertility.',
+        benefits: [
+          'Supports natural testosterone',
+          'Helps maintain fertility',
+          'Often used with TRT',
+          'Supports testicular function'
+        ],
+        tip: 'Usually taken 2-3 times per week. Can be taken any time of day.',
+        note: 'Results vary. Often used by men on testosterone therapy.'
+      };
+    }
+
+    // MT-II / Melanotan
+    if (name.includes('mt-ii') || name.includes('mt-2') || name.includes('melanotan')) {
+      return {
+        name: 'Melanotan II',
+        what: 'Melanotan II affects skin color. It can cause tanning without sun.',
+        how: 'This peptide increases melanin in your skin. It can also affect appetite and desire.',
+        benefits: [
+          'Promotes skin tanning',
+          'May reduce need for sun',
+          'May support libido',
+          'May reduce appetite'
+        ],
+        tip: 'Start with a very low dose. Take before bed to reduce nausea. Still protect skin from sun.',
+        note: 'Results vary. New moles should be checked by a doctor.'
+      };
+    }
+
+    // 5-Amino-1MQ
+    if (name.includes('5-amino') || name.includes('1mq')) {
+      return {
+        name: '5-Amino-1MQ',
+        what: '5-Amino-1MQ supports metabolism. It blocks an enzyme that can slow fat burning.',
+        how: 'When this enzyme is blocked, your cells burn more energy. This may help with fat loss.',
+        benefits: [
+          'Supports fat burning',
+          'May increase energy burning',
+          'Supports metabolism',
+          'Taken by mouth (no injection)'
+        ],
+        tip: 'Take in the morning with or without food.',
+        note: 'Results vary. Works best with healthy eating and exercise.'
+      };
+    }
+
+    // Tesofensine
+    if (name.includes('tesofensine')) {
+      return {
+        name: 'Tesofensine',
+        what: 'Tesofensine affects brain chemicals. It was studied for brain conditions but showed weight loss benefits.',
+        how: 'It increases dopamine, serotonin, and norepinephrine. This can reduce appetite.',
+        benefits: [
+          'May reduce appetite',
+          'Supports feeling of fullness',
+          'May support mood',
+          'Supports weight management'
+        ],
+        tip: 'Take in the morning. Do not take late in day as it may affect sleep.',
+        note: 'Results vary. Follow dosing instructions carefully.'
+      };
+    }
+
+    // Oxytocin
+    if (name.includes('oxytocin')) {
+      return {
+        name: 'Oxytocin',
+        what: 'Oxytocin is the bonding hormone. Your body makes it during positive social times.',
+        how: 'Oxytocin affects areas of your brain for trust, bonding, and calm.',
+        benefits: [
+          'Supports feelings of connection',
+          'May help with stress',
+          'Supports social bonding',
+          'May support intimacy'
+        ],
+        tip: 'Usually taken as a nasal spray. Use as directed.',
+        note: 'Results vary from person to person.'
+      };
+    }
+
+    // Kisspeptin
+    if (name.includes('kisspeptin')) {
+      return {
+        name: 'Kisspeptin',
+        what: 'Kisspeptin is a hormone that signals your body to make reproductive hormones.',
+        how: 'It tells your brain to release hormones that support testosterone and fertility.',
+        benefits: [
+          'Supports hormone production',
+          'May support fertility',
+          'Works naturally with your body',
+          'Supports reproductive health'
+        ],
+        tip: 'Follow your provider dosing instructions.',
+        note: 'Results vary from person to person.'
+      };
+    }
+
+    // IGF-1
+    if (name.includes('igf-1') || name.includes('igf1')) {
+      return {
+        name: 'IGF-1 LR3',
+        what: 'IGF-1 is a growth factor. It is what growth hormone turns into to do its work.',
+        how: 'IGF-1 supports cell growth and repair. It is especially active in muscle cells.',
+        benefits: [
+          'Supports muscle growth',
+          'Supports cell repair',
+          'May improve recovery',
+          'Works directly'
+        ],
+        tip: 'Usually taken in the morning or after workouts.',
+        note: 'Results vary. This is a powerful peptide - follow dosing carefully.'
+      };
+    }
+
+    // Follistatin
+    if (name.includes('follistatin')) {
+      return {
+        name: 'Follistatin',
+        what: 'Follistatin blocks myostatin. Myostatin limits how much muscle you can build.',
+        how: 'By blocking myostatin, your body may be able to build more muscle.',
+        benefits: [
+          'May support muscle growth',
+          'Blocks muscle-limiting signals',
+          'Supports strength gains',
+          'Being studied for muscle conditions'
+        ],
+        tip: 'Follow your provider dosing instructions.',
+        note: 'Results vary. This is a research peptide.'
+      };
+    }
+
+    // SS-31 / Elamipretide
+    if (name.includes('ss-31') || name.includes('elamipretide')) {
+      return {
+        name: 'SS-31',
+        what: 'SS-31 supports your mitochondria. It can enter them and help them work better.',
+        how: 'SS-31 protects the inner part of mitochondria. This helps cells make energy better.',
+        benefits: [
+          'Supports mitochondria health',
+          'May increase cellular energy',
+          'Supports healthy aging',
+          'Being studied for heart and muscle'
+        ],
+        tip: 'Can be taken any time of day. Follow dosing instructions.',
+        note: 'Results vary. Targets the root of cellular energy.'
+      };
+    }
+
+    // FOXO4-DRI
+    if (name.includes('foxo4')) {
+      return {
+        name: 'FOXO4-DRI',
+        what: 'FOXO4-DRI is a longevity peptide. It helps your body clear out old, damaged cells.',
+        how: 'Old cells that do not work well are called senescent cells. This peptide may help remove them.',
+        benefits: [
+          'Supports healthy aging',
+          'May help clear old cells',
+          'Supports cellular health',
+          'Being studied for longevity'
+        ],
+        tip: 'Usually used in short cycles. Follow provider instructions.',
+        note: 'Results vary. This is a research peptide for longevity.'
+      };
+    }
+
+    // VIP
+    if (name.includes('vip') && !name.includes('kisspeptin')) {
+      return {
+        name: 'VIP',
+        what: 'VIP is Vasoactive Intestinal Peptide. It helps with inflammation and immune balance.',
+        how: 'VIP supports many body systems. It may help calm inflammation and support gut and brain health.',
+        benefits: [
+          'Supports immune balance',
+          'May help with inflammation',
+          'Supports gut health',
+          'Supports brain health'
+        ],
+        tip: 'Usually taken as a nasal spray. Follow provider instructions.',
+        note: 'Results vary. Often used for chronic inflammatory conditions.'
       };
     }
 
     // Default for unknown peptides
     return {
       name: peptideName,
-      what: 'This is a peptide therapy chosen for your specific health goals. Peptides are small proteins that send signals to your cells.',
-      how: 'Your provider selected this peptide based on your needs. It works by giving your body specific instructions to support your health goals.',
+      what: 'This is a peptide therapy chosen for your health goals. Peptides are small proteins that send signals to your cells.',
+      how: 'Your provider selected this peptide for your needs. It works by giving your body specific instructions.',
       benefits: [
         'Supports your specific health goals',
         'Works naturally with your body',
         'Chosen based on your needs'
       ],
-      note: 'Results vary from person to person. Follow your dosing schedule for best results. Contact us with any questions.'
+      tip: 'Follow dosing instructions from your provider. Contact Range Medical with questions.',
+      note: 'Results vary. Follow your dosing schedule for best results.'
     };
   };
 
@@ -504,6 +1013,13 @@ export default function PatientTracker() {
                         </ul>
                       </div>
                       
+                      {primaryInfo.tip && (
+                        <div style={styles.peptideTip}>
+                          <div style={styles.tipLabel}>Timing Tip</div>
+                          {primaryInfo.tip}
+                        </div>
+                      )}
+                      
                       <div style={styles.peptideNote}>
                         {primaryInfo.note}
                       </div>
@@ -532,6 +1048,13 @@ export default function PatientTracker() {
                           ))}
                         </ul>
                       </div>
+                      
+                      {secondaryInfo.tip && (
+                        <div style={styles.peptideTip}>
+                          <div style={styles.tipLabel}>Timing Tip</div>
+                          {secondaryInfo.tip}
+                        </div>
+                      )}
                       
                       <div style={styles.peptideNote}>
                         {secondaryInfo.note}
@@ -950,6 +1473,24 @@ const styles = {
     marginTop: '16px',
     paddingTop: '16px',
     borderTop: '1px solid #e0e0e0'
+  },
+  peptideTip: {
+    fontSize: '14px',
+    lineHeight: '1.6',
+    color: '#000000',
+    backgroundColor: '#f0fdf4',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    marginTop: '16px',
+    border: '1px solid #bbf7d0'
+  },
+  tipLabel: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#15803d',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginBottom: '4px'
   },
   disclaimer: {
     fontSize: '12px',

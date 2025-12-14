@@ -199,6 +199,24 @@ export default function PatientDashboard() {
     });
   };
 
+  // Transform peptide names for display
+  const getDisplayName = (peptideName) => {
+    if (!peptideName) return '';
+    
+    // BPC-157 variants should show as Wolverine
+    if (peptideName.toLowerCase().includes('bpc-157') && !peptideName.toLowerCase().includes('tb')) {
+      return 'Wolverine BPC-157 / TB-500';
+    }
+    if (peptideName.toLowerCase() === 'bpc-157') {
+      return 'Wolverine BPC-157 / TB-500';
+    }
+    if (peptideName.toLowerCase().includes('bpc') && !peptideName.toLowerCase().includes('wolverine') && !peptideName.toLowerCase().includes('tb')) {
+      return 'Wolverine BPC-157 / TB-500';
+    }
+    
+    return peptideName;
+  };
+
   const renderProtocolCard = (protocol, isCompleted = false) => {
     const goalInfo = getGoalInfo(protocol.goal, protocol.category);
     const stats = getProtocolStats(protocol);
@@ -224,7 +242,7 @@ export default function PatientDashboard() {
           </div>
           <div style={styles.cardHeaderContent}>
             <p style={{...styles.cardLabel, color: goalInfo.color}}>{goalInfo.label}</p>
-            <h3 style={styles.cardTitle}>{protocol.primary_peptide || protocol.program_name}</h3>
+            <h3 style={styles.cardTitle}>{getDisplayName(protocol.primary_peptide) || protocol.program_name}</h3>
             <p style={styles.cardSubtitle}>
               {isCompleted ? 
                 `Completed ${formatFullDate(protocol.end_date)}` :

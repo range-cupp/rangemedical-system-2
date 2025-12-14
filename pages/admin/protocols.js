@@ -342,7 +342,7 @@ export default function ProtocolDashboard() {
 
   // Copy tracker link with welcome message to clipboard
   const copyTrackerLink = (protocol) => {
-    const link = `https://rangemedical-system-2.vercel.app/track/${protocol.tracker_token}`;
+    const link = `https://rangemedical-system-2.vercel.app/track/${protocol.access_token}`;
     const firstName = protocol.patient_name?.split(' ')[0] || '';
     const peptide = protocol.primary_peptide || 'your peptide';
     
@@ -769,10 +769,10 @@ Questions? Text us anytime.
                         >
                           Edit
                         </button>
-                        {p.tracker_token && (
+                        {p.access_token && (
                           <>
                             <a
-                              href={`/track/${p.tracker_token}`}
+                              href={`/track/${p.access_token}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={styles.viewButton}

@@ -311,13 +311,27 @@ export default function ProtocolDashboard() {
     return acc;
   }, {});
 
-  // Copy tracker link to clipboard
-  const copyTrackerLink = (token) => {
-    const link = `https://rangemedical-system-2.vercel.app/track/${token}`;
-    navigator.clipboard.writeText(link).then(() => {
-      alert('Tracker link copied! You can paste it into a text message.');
+  // Copy tracker link with welcome message to clipboard
+  const copyTrackerLink = (protocol) => {
+    const link = `https://rangemedical-system-2.vercel.app/track/${protocol.access_token}`;
+    const firstName = protocol.patient_name?.split(' ')[0] || '';
+    const peptide = protocol.primary_peptide || 'your peptide';
+    
+    const message = `Hi ${firstName}! This is Range Medical.
+
+Your ${peptide} is ready. Here is your injection tracker link:
+
+${link}
+
+Open it to see your schedule, dosing instructions, and peptide info. Tap each day when you do your injection.
+
+Questions? Text us anytime.
+(949) 997-3988`;
+
+    navigator.clipboard.writeText(message).then(() => {
+      alert('Welcome message copied! Paste into your text.');
     }).catch(() => {
-      prompt('Copy this link:', link);
+      prompt('Copy this message:', message);
     });
   };
 
@@ -648,9 +662,9 @@ export default function ProtocolDashboard() {
                               View
                             </a>
                             <button
-                              onClick={() => copyTrackerLink(p.access_token)}
+                              onClick={() => copyTrackerLink(p)}
                               style={styles.trackerButton}
-                              title="Copy tracker link to send to patient"
+                              title="Copy welcome text to send to patient"
                             >
                               📋
                             </button>

@@ -46,7 +46,8 @@ async function handleUpdate(req, res) {
     dose_frequency,
     peptide_route,
     special_instructions,
-    status
+    status,
+    duration_days
   } = req.body;
 
   if (!id) {
@@ -54,20 +55,47 @@ async function handleUpdate(req, res) {
   }
 
   try {
+    // First get the existing protocol to get start_date
+    const { data: existing } = await supabase
+      .from('protocols')
+      .select('start_date, duration_days')
+      .eq('id', id)
+      .single();
+
+    // Calculate new end_date if duration changed
+    let end_date = null;
+    if (duration_days && existing?.start_date) {
+      const start = new Date(existing.start_date);
+      const end = new Date(start);
+      end.setDate(end.getDate() + duration_days - 1);
+      end_date = end.toISOString().split('T')[0];
+    }
+
+    // Build update object
+    const updateData = {
+      goal,
+      primary_peptide,
+      secondary_peptide,
+      dose_amount,
+      dose_frequency,
+      peptide_route,
+      special_instructions,
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    // Add duration and end_date if provided
+    if (duration_days) {
+      updateData.duration_days = duration_days;
+    }
+    if (end_date) {
+      updateData.end_date = end_date;
+    }
+
     // Update in Supabase
     const { data, error } = await supabase
       .from('protocols')
-      .update({
-        goal,
-        primary_peptide,
-        secondary_peptide,
-        dose_amount,
-        dose_frequency,
-        peptide_route,
-        special_instructions,
-        status,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();

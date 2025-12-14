@@ -122,6 +122,24 @@ export default function PatientTracker() {
     return false;
   };
 
+  // Transform peptide names for display
+  const getDisplayName = (peptideName) => {
+    if (!peptideName) return '';
+    
+    // BPC-157 variants should show as Wolverine
+    if (peptideName.toLowerCase().includes('bpc-157') && !peptideName.toLowerCase().includes('tb')) {
+      return 'Wolverine BPC-157 / TB-500';
+    }
+    if (peptideName.toLowerCase() === 'bpc-157') {
+      return 'Wolverine BPC-157 / TB-500';
+    }
+    if (peptideName.toLowerCase().includes('bpc') && !peptideName.toLowerCase().includes('wolverine') && !peptideName.toLowerCase().includes('tb')) {
+      return 'Wolverine BPC-157 / TB-500';
+    }
+    
+    return peptideName;
+  };
+
   // Get simple explanation for a peptide
   const getPeptideExplanation = (peptideName) => {
     if (!peptideName) return null;
@@ -1214,7 +1232,7 @@ export default function PatientTracker() {
           <div style={styles.cardHeader}>
             <div style={styles.protocolName}>{protocol.programName}</div>
             <div style={styles.peptides}>
-              {protocol.primaryPeptide}
+              {getDisplayName(protocol.primaryPeptide)}
               {protocol.secondaryPeptide && ` + ${protocol.secondaryPeptide}`}
             </div>
             {frequency && (

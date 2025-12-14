@@ -250,6 +250,77 @@ function extractPeptideTools(productName) {
 }
 
 /**
+ * Suggest primary goal based on peptide name
+ * Maps to the 10 outcome-focused goals
+ */
+function suggestGoalFromPeptide(peptideName) {
+  if (!peptideName) return 'specialty';
+  
+  const name = peptideName.toLowerCase();
+  
+  // Recovery / Pain / Tissue Repair
+  if (name.includes('bpc') || name.includes('tb-500') || name.includes('tb500') || 
+      name.includes('wolverine') || name.includes('mgf')) {
+    return 'recovery';
+  }
+  
+  // Weight & Metabolic
+  if (name.includes('glp-1') || name.includes('semaglutide') || name.includes('tirzepatide') ||
+      name.includes('retatrutide') || name.includes('survodutide') || name.includes('cagrilintide') ||
+      name.includes('aod') || name.includes('mots') || name.includes('5-amino') ||
+      name.includes('tesofensine')) {
+    return 'weight_metabolic';
+  }
+  
+  // Brain, Focus & Mood
+  if (name.includes('dihexa') || name.includes('semax') || name.includes('selank') ||
+      name.includes('nad') || name.includes('bdnf') || name.includes('brain')) {
+    return 'brain_focus';
+  }
+  
+  // Longevity & Immune Protection
+  if (name.includes('epithalon') || name.includes('epitalon') || name.includes('foxo4') ||
+      name.includes('ss-31') || name.includes('thymosin alpha') || name.includes('ta-1') ||
+      name.includes('ll-37') || name.includes('thymulin') || name.includes('thymagen') ||
+      name.includes('cardiogen')) {
+    return 'longevity_immune';
+  }
+  
+  // Skin, Hair & Aesthetic
+  if (name.includes('ghk') || name.includes('glow') || name.includes('klow') ||
+      name.includes('melanotan') || name.includes('mt-ii') || name.includes('kpv')) {
+    return 'skin_aesthetic';
+  }
+  
+  // Sexual Health
+  if (name.includes('pt-141') || name.includes('oxytocin') || name.includes('kisspeptin')) {
+    return 'sexual_health';
+  }
+  
+  // Sleep & Stress
+  if (name.includes('dsip')) {
+    return 'sleep_stress';
+  }
+  
+  // HRT / Hormone Therapy
+  if (name.includes('testosterone') || name.includes('estradiol') || name.includes('estrogen') ||
+      name.includes('progesterone') || name.includes('anastrozole') || name.includes('enclomiphene') ||
+      name.includes('dhea') || name.includes('pregnenolone') || name.includes('gonadorelin') ||
+      name.includes('hcg')) {
+    return 'hrt';
+  }
+  
+  // IV Therapy
+  if (name.includes('iv') || name.includes('myers') || name.includes('glutathione') ||
+      name.includes('vitamin c') || name.includes('hydration') || name.includes('immune boost')) {
+    return 'iv_therapy';
+  }
+  
+  // Default
+  return 'specialty';
+}
+
+/**
  * Update GHL contact with protocol info
  */
 async function updateGHLContact(contactId, protocolData) {
@@ -427,6 +498,9 @@ export default async function handler(req, res) {
       // Extract peptide tools
       const peptideTools = extractPeptideTools(productName);
       
+      // Suggest goal based on peptide
+      const suggestedGoal = suggestGoalFromPeptide(peptideTools.primary);
+      
       // Calculate dates
       const startDate = new Date().toISOString().split('T')[0];
       const endDate = new Date(Date.now() + protocolInfo.duration * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -442,10 +516,12 @@ export default async function handler(req, res) {
           program_type: protocolInfo.type,
           program_name: protocolInfo.programName,
           duration_days: protocolInfo.duration,
+          goal: suggestedGoal,
           primary_peptide: peptideTools.primary,
           secondary_peptide: peptideTools.secondary,
           peptide_route: 'SC', // Default to subcutaneous
           start_date: startDate,
+          end_date: endDate,
           status: 'active',
           ghl_payment_id: paymentId,
           amount_paid: amount, // Already in dollars

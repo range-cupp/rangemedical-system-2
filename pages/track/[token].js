@@ -37,7 +37,7 @@ export default function PatientTracker() {
   };
 
   // Determine if a day is an "off" day based on frequency
-  const isOffDay = (dayNumber, frequency) => {
+  const isOffDay = (dayNumber, frequency, startDate) => {
     if (!frequency) return false;
     
     // 5 days on / 2 days off - days 6, 7, 13, 14, 20, 21, etc. are off
@@ -51,14 +51,55 @@ export default function PatientTracker() {
       return ((dayNumber - 1) % 7) !== 0;
     }
     
-    // 2x weekly - days 1, 4, 8, 11, 15, 18, etc. (every 3-4 days)
-    if (frequency === '2x weekly') {
+    // 2x weekly (Mon/Thu) - injection on Mon and Thu
+    if (frequency === '2x weekly (Mon/Thu)') {
+      // Calculate the actual day of week for this day
+      if (startDate) {
+        const start = new Date(startDate);
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + dayNumber - 1);
+        const dayOfWeek = currentDate.getDay(); // 0=Sun, 1=Mon, 4=Thu
+        return dayOfWeek !== 1 && dayOfWeek !== 4;
+      }
+      // Fallback: Mon/Thu pattern assuming day 1 is Monday
       const dayInCycle = ((dayNumber - 1) % 7) + 1;
       return dayInCycle !== 1 && dayInCycle !== 4;
     }
     
-    // 3x weekly - days 1, 3, 5, 8, 10, 12, etc. (Mon/Wed/Fri pattern)
-    if (frequency === '3x weekly') {
+    // 2x weekly (Tue/Fri) - injection on Tue and Fri
+    if (frequency === '2x weekly (Tue/Fri)') {
+      if (startDate) {
+        const start = new Date(startDate);
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + dayNumber - 1);
+        const dayOfWeek = currentDate.getDay(); // 2=Tue, 5=Fri
+        return dayOfWeek !== 2 && dayOfWeek !== 5;
+      }
+      const dayInCycle = ((dayNumber - 1) % 7) + 1;
+      return dayInCycle !== 2 && dayInCycle !== 5;
+    }
+    
+    // 2x weekly (any days) - days 1, 4, 8, 11, 15, 18, etc. (every 3-4 days)
+    if (frequency === '2x weekly' || frequency.includes('2x weekly (any')) {
+      const dayInCycle = ((dayNumber - 1) % 7) + 1;
+      return dayInCycle !== 1 && dayInCycle !== 4;
+    }
+    
+    // 3x weekly (Mon/Wed/Fri) - injection on Mon, Wed, Fri
+    if (frequency === '3x weekly (Mon/Wed/Fri)') {
+      if (startDate) {
+        const start = new Date(startDate);
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + dayNumber - 1);
+        const dayOfWeek = currentDate.getDay(); // 1=Mon, 3=Wed, 5=Fri
+        return dayOfWeek !== 1 && dayOfWeek !== 3 && dayOfWeek !== 5;
+      }
+      const dayInCycle = ((dayNumber - 1) % 7) + 1;
+      return dayInCycle !== 1 && dayInCycle !== 3 && dayInCycle !== 5;
+    }
+    
+    // 3x weekly (any days) - days 1, 3, 5, 8, 10, 12, etc.
+    if (frequency === '3x weekly' || frequency.includes('3x weekly (any')) {
       const dayInCycle = ((dayNumber - 1) % 7) + 1;
       return dayInCycle !== 1 && dayInCycle !== 3 && dayInCycle !== 5;
     }
@@ -66,6 +107,16 @@ export default function PatientTracker() {
     // Every other day
     if (frequency === 'Every other day') {
       return dayNumber % 2 === 0;
+    }
+    
+    // 1x monthly - only day 1, 31, 61, etc. are session days
+    if (frequency === '1x monthly') {
+      return ((dayNumber - 1) % 30) !== 0;
+    }
+    
+    // As needed - no off days, but also no required days
+    if (frequency === 'As needed') {
+      return false; // All days available to log if needed
     }
     
     return false;
@@ -849,6 +900,217 @@ export default function PatientTracker() {
       };
     }
 
+    // ===== HRT / HORMONE THERAPY =====
+    
+    // Testosterone
+    if (name.includes('testosterone')) {
+      return {
+        name: 'Testosterone',
+        what: 'Testosterone is the main male hormone. It plays a key role in energy, muscle, mood, and overall health.',
+        how: 'Testosterone replacement brings your levels back to a healthy range. This helps your body function optimally.',
+        benefits: [
+          'Supports energy and vitality',
+          'Helps maintain muscle mass',
+          'Supports mood and mental clarity',
+          'Supports healthy libido',
+          'May improve sleep quality'
+        ],
+        tip: 'Inject on the SAME DAYS each week (usually Monday/Thursday). Rotate injection sites between left and right thigh or glutes.',
+        note: 'Consistency is key. Labs are typically checked at weeks 6-8 and 10-12 to optimize your dose.'
+      };
+    }
+
+    // Estradiol
+    if (name.includes('estradiol') || name.includes('estrogen')) {
+      return {
+        name: 'Estradiol',
+        what: 'Estradiol is the main form of estrogen. It supports many body functions in both women and men.',
+        how: 'Estradiol replacement helps maintain optimal hormone levels for overall health and wellbeing.',
+        benefits: [
+          'Supports bone health',
+          'Supports cardiovascular health',
+          'Helps with mood balance',
+          'Supports skin and tissue health',
+          'May help with hot flashes'
+        ],
+        tip: 'Take on your scheduled days. Consistency helps maintain stable levels.',
+        note: 'Results typically noticed within 4-8 weeks. Labs help optimize dosing.'
+      };
+    }
+
+    // Progesterone
+    if (name.includes('progesterone')) {
+      return {
+        name: 'Progesterone',
+        what: 'Progesterone is a hormone that works with estrogen. It supports sleep, mood, and hormone balance.',
+        how: 'Progesterone helps balance other hormones and has calming effects on the brain.',
+        benefits: [
+          'Supports restful sleep',
+          'Helps with mood balance',
+          'Balances estrogen effects',
+          'Supports bone health',
+          'May reduce anxiety'
+        ],
+        tip: 'Usually taken at BEDTIME because it promotes sleep. Take with or after food.',
+        note: 'Many people notice improved sleep within the first week.'
+      };
+    }
+
+    // Anastrozole
+    if (name.includes('anastrozole')) {
+      return {
+        name: 'Anastrozole',
+        what: 'Anastrozole helps control estrogen levels. It is often used alongside testosterone therapy.',
+        how: 'This medication blocks the enzyme that converts testosterone to estrogen, helping maintain optimal hormone balance.',
+        benefits: [
+          'Helps control estrogen levels',
+          'Supports testosterone therapy',
+          'May reduce water retention',
+          'Supports hormone balance'
+        ],
+        tip: 'Take on your scheduled days. Do not take more than prescribed.',
+        note: 'Labs help determine the right dose. Not everyone needs an AI (aromatase inhibitor).'
+      };
+    }
+
+    // Enclomiphene
+    if (name.includes('enclomiphene')) {
+      return {
+        name: 'Enclomiphene',
+        what: 'Enclomiphene helps your body make more testosterone naturally. It stimulates your own production.',
+        how: 'It signals your brain to tell your body to produce more testosterone, preserving natural function.',
+        benefits: [
+          'Supports natural testosterone production',
+          'Preserves fertility',
+          'May improve energy and mood',
+          'Does not shut down natural production'
+        ],
+        tip: 'Take in the MORNING with or without food.',
+        note: 'Labs are checked to monitor response. Works differently than testosterone injections.'
+      };
+    }
+
+    // DHEA
+    if (name.includes('dhea')) {
+      return {
+        name: 'DHEA',
+        what: 'DHEA is a hormone your body makes naturally. It decreases with age and supports many functions.',
+        how: 'DHEA is a precursor hormone that your body can convert to other hormones as needed.',
+        benefits: [
+          'Supports energy levels',
+          'May support immune function',
+          'Supports hormone balance',
+          'May support mood'
+        ],
+        tip: 'Usually taken in the MORNING. Can be taken with or without food.',
+        note: 'Results vary. Labs help determine optimal dosing.'
+      };
+    }
+
+    // Pregnenolone
+    if (name.includes('pregnenolone')) {
+      return {
+        name: 'Pregnenolone',
+        what: 'Pregnenolone is the "mother hormone" that your body uses to make other hormones.',
+        how: 'Your body converts pregnenolone into other hormones based on what it needs.',
+        benefits: [
+          'Supports hormone production',
+          'May support memory and focus',
+          'Supports stress response',
+          'May support mood'
+        ],
+        tip: 'Usually taken in the MORNING. Can be taken with or without food.',
+        note: 'Often used to support overall hormone health.'
+      };
+    }
+
+    // ===== IV THERAPY =====
+    
+    // Range IV / General IV
+    if (name.includes('range iv') || name.includes('iv') && name.includes('membership')) {
+      return {
+        name: 'Range IV',
+        what: 'Your monthly membership IV delivers vitamins, minerals, and hydration directly to your bloodstream.',
+        how: 'IV delivery bypasses digestion for 100% absorption. You feel the effects quickly.',
+        benefits: [
+          'Immediate hydration',
+          'Direct vitamin absorption',
+          'Supports energy and recovery',
+          'Monthly wellness boost'
+        ],
+        tip: 'Schedule your monthly IV at a time when you can relax for 30-60 minutes.',
+        note: 'Come to your appointment hydrated. Effects are often felt same day.'
+      };
+    }
+
+    // NAD+ IV
+    if (name.includes('nad') && name.includes('iv')) {
+      return {
+        name: 'NAD+ IV',
+        what: 'NAD+ is a molecule every cell needs for energy. IV delivery gives your cells a powerful boost.',
+        how: 'NAD+ supports cellular energy production and DNA repair. Levels decline with age.',
+        benefits: [
+          'Supports cellular energy',
+          'May improve mental clarity',
+          'Supports healthy aging',
+          'May improve recovery'
+        ],
+        tip: 'NAD+ IVs take 2-4 hours. You may feel flushing during infusion - this is normal.',
+        note: 'Many people feel increased energy and clarity after their session.'
+      };
+    }
+
+    // Myers Cocktail
+    if (name.includes('myers')) {
+      return {
+        name: 'Myers Cocktail IV',
+        what: 'The Myers Cocktail is a classic IV formula with B vitamins, vitamin C, magnesium, and calcium.',
+        how: 'This combination supports energy, immune function, and overall wellness.',
+        benefits: [
+          'Supports energy levels',
+          'Supports immune function',
+          'May help with fatigue',
+          'Supports overall wellness'
+        ],
+        tip: 'Sessions take about 30-45 minutes. Great for regular wellness support.',
+        note: 'A popular choice for general health and energy support.'
+      };
+    }
+
+    // Vitamin C IV
+    if (name.includes('vitamin c') && name.includes('iv')) {
+      return {
+        name: 'Vitamin C IV (High Dose)',
+        what: 'High dose vitamin C delivered by IV provides immune and antioxidant support beyond what pills can achieve.',
+        how: 'IV delivery allows much higher levels of vitamin C than oral supplements.',
+        benefits: [
+          'Powerful antioxidant support',
+          'Supports immune function',
+          'May support skin health',
+          'Supports collagen production'
+        ],
+        tip: 'Sessions take 45-60 minutes. Stay well hydrated before and after.',
+        note: 'Higher doses available for specific health goals. Discuss with your provider.'
+      };
+    }
+
+    // Glutathione IV
+    if (name.includes('glutathione')) {
+      return {
+        name: 'Glutathione IV',
+        what: 'Glutathione is your body\'s master antioxidant. It supports detox and skin health.',
+        how: 'Glutathione helps neutralize toxins and supports cellular health throughout your body.',
+        benefits: [
+          'Supports detoxification',
+          'May brighten skin',
+          'Powerful antioxidant',
+          'Supports liver health'
+        ],
+        tip: 'Can be added to other IVs or given as a push. Quick 10-15 minute add-on.',
+        note: 'Popular for skin brightening and detox support.'
+      };
+    }
+
     // Default for unknown peptides
     return {
       name: peptideName,
@@ -921,8 +1183,9 @@ export default function PatientTracker() {
   
   // Calculate actual injection days (excluding off days)
   const frequency = protocol.doseFrequency;
-  const injectionDays = days.filter(d => !isOffDay(d.day, frequency));
-  const completedInjections = days.filter(d => d.completed && !isOffDay(d.day, frequency)).length;
+  const startDate = protocol.startDate;
+  const injectionDays = days.filter(d => !isOffDay(d.day, frequency, startDate));
+  const completedInjections = days.filter(d => d.completed && !isOffDay(d.day, frequency, startDate)).length;
   const totalInjections = injectionDays.length;
   const adjustedCompletionRate = totalInjections > 0 ? Math.round((completedInjections / totalInjections) * 100) : 0;
 
@@ -1188,7 +1451,7 @@ export default function PatientTracker() {
 
         <div style={styles.daysGrid}>
           {days.map((day) => {
-            const isOff = isOffDay(day.day, frequency);
+            const isOff = isOffDay(day.day, frequency, startDate);
             return (
               <button
                 key={day.day}

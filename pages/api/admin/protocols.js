@@ -47,7 +47,8 @@ async function handleUpdate(req, res) {
     peptide_route,
     special_instructions,
     status,
-    duration_days
+    duration_days,
+    start_date
   } = req.body;
 
   if (!id) {
@@ -55,19 +56,23 @@ async function handleUpdate(req, res) {
   }
 
   try {
-    // First get the existing protocol to get start_date
+    // First get the existing protocol
     const { data: existing } = await supabase
       .from('protocols')
       .select('start_date, duration_days')
       .eq('id', id)
       .single();
 
-    // Calculate new end_date if duration changed
+    // Use new start_date if provided, otherwise existing
+    const effectiveStartDate = start_date || existing?.start_date;
+    const effectiveDuration = duration_days || existing?.duration_days;
+
+    // Calculate new end_date
     let end_date = null;
-    if (duration_days && existing?.start_date) {
-      const start = new Date(existing.start_date);
+    if (effectiveStartDate && effectiveDuration) {
+      const start = new Date(effectiveStartDate);
       const end = new Date(start);
-      end.setDate(end.getDate() + duration_days - 1);
+      end.setDate(end.getDate() + effectiveDuration - 1);
       end_date = end.toISOString().split('T')[0];
     }
 
@@ -83,6 +88,11 @@ async function handleUpdate(req, res) {
       status,
       updated_at: new Date().toISOString()
     };
+
+    // Add start_date if provided
+    if (start_date) {
+      updateData.start_date = start_date;
+    }
 
     // Add duration and end_date if provided
     if (duration_days) {

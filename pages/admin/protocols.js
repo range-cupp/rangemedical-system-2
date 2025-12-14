@@ -33,7 +33,9 @@ export default function ProtocolDashboard() {
     dose_frequency: '',
     peptide_route: 'SC',
     special_instructions: '',
-    status: 'active'
+    status: 'active',
+    duration_days: 30,
+    start_date: ''
   });
 
   // Check localStorage on mount
@@ -222,7 +224,8 @@ export default function ProtocolDashboard() {
       peptide_route: protocol.peptide_route || 'SC',
       special_instructions: protocol.special_instructions || '',
       status: protocol.status || 'active',
-      duration_days: protocol.duration_days || 30
+      duration_days: protocol.duration_days || 30,
+      start_date: protocol.start_date || ''
     });
   };
 
@@ -237,7 +240,8 @@ export default function ProtocolDashboard() {
       peptide_route: 'SC',
       special_instructions: '',
       status: 'active',
-      duration_days: 30
+      duration_days: 30,
+      start_date: ''
     });
   };
 
@@ -250,11 +254,19 @@ export default function ProtocolDashboard() {
         if (value === '5 days on / 2 days off') {
           // 5 on / 2 off needs 28 days for 20 injections
           updated.duration_days = 28;
+        } else if (value.includes('2x weekly') && !value.includes('monthly')) {
+          // HRT 2x weekly - suggest 12 weeks (84 days)
+          if (prev.duration_days < 70) {
+            updated.duration_days = 84;
+          }
+        } else if (value === '1x monthly') {
+          // Monthly IV - suggest 365 days (1 year)
+          updated.duration_days = 365;
         } else if (value === '1x daily' || value === '2x daily' || 
                    value === '1x daily (AM)' || value === '1x daily (PM)' || 
                    value === '1x daily (bedtime)') {
           // Daily frequencies use 30 days
-          if (prev.duration_days === 28) {
+          if (prev.duration_days === 28 || prev.duration_days > 90) {
             updated.duration_days = 30;
           }
         }
@@ -266,6 +278,14 @@ export default function ProtocolDashboard() {
         if (selectedPeptide?.suggested_primary_goal && !prev.goal) {
           // Only auto-fill if goal is not already set
           updated.goal = selectedPeptide.suggested_primary_goal;
+        }
+        // Auto-set route based on peptide
+        if (selectedPeptide?.default_route) {
+          updated.peptide_route = selectedPeptide.default_route;
+        }
+        // Auto-set frequency based on peptide
+        if (selectedPeptide?.default_frequency && !prev.dose_frequency) {
+          updated.dose_frequency = selectedPeptide.default_frequency;
         }
       }
       
@@ -392,11 +412,11 @@ Questions? Text us anytime.
       return Math.ceil(duration / 7);
     }
     
-    if (frequency === '2x weekly') {
+    if (frequency.includes('2x weekly')) {
       return Math.ceil(duration / 7) * 2;
     }
     
-    if (frequency === '3x weekly') {
+    if (frequency.includes('3x weekly')) {
       return Math.ceil(duration / 7) * 3;
     }
     
@@ -406,6 +426,14 @@ Questions? Text us anytime.
     
     if (frequency === '2x daily') {
       return duration * 2;
+    }
+    
+    if (frequency === '1x monthly') {
+      return Math.ceil(duration / 30);
+    }
+    
+    if (frequency === 'As needed') {
+      return '-';
     }
     
     // Default: 1x daily
@@ -769,6 +797,8 @@ Questions? Text us anytime.
                   <option value="skin_aesthetic">Skin, Hair & Aesthetic</option>
                   <option value="sexual_health">Sexual Health</option>
                   <option value="sleep_stress">Sleep & Stress</option>
+                  <option value="hrt">Hormone Optimization (HRT)</option>
+                  <option value="iv_therapy">IV Therapy</option>
                   <option value="specialty">Specialty / Other</option>
                 </select>
               </div>
@@ -828,21 +858,31 @@ Questions? Text us anytime.
                     style={styles.select}
                   >
                     <option value="">Select...</option>
-                    <option value="1x daily">1x daily</option>
-                    <option value="2x daily">2x daily</option>
-                    <option value="1x daily (AM)">1x daily (AM)</option>
-                    <option value="1x daily (PM)">1x daily (PM)</option>
-                    <option value="1x daily (bedtime)">1x daily (bedtime)</option>
-                    <option value="5 days on / 2 days off">5 days on / 2 days off</option>
-                    <option value="Every other day">Every other day</option>
-                    <option value="2x weekly">2x weekly</option>
-                    <option value="3x weekly">3x weekly</option>
-                    <option value="1x weekly">1x weekly</option>
-                    <option value="As needed">As needed</option>
+                    <optgroup label="Daily">
+                      <option value="1x daily">1x daily</option>
+                      <option value="2x daily">2x daily</option>
+                      <option value="1x daily (AM)">1x daily (AM)</option>
+                      <option value="1x daily (PM)">1x daily (PM)</option>
+                      <option value="1x daily (bedtime)">1x daily (bedtime)</option>
+                    </optgroup>
+                    <optgroup label="Weekly">
+                      <option value="2x weekly (Mon/Thu)">2x weekly (Mon/Thu) - HRT</option>
+                      <option value="2x weekly (Tue/Fri)">2x weekly (Tue/Fri)</option>
+                      <option value="2x weekly">2x weekly (any days)</option>
+                      <option value="3x weekly (Mon/Wed/Fri)">3x weekly (Mon/Wed/Fri)</option>
+                      <option value="3x weekly">3x weekly (any days)</option>
+                      <option value="1x weekly">1x weekly</option>
+                    </optgroup>
+                    <optgroup label="Other Patterns">
+                      <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                      <option value="Every other day">Every other day</option>
+                      <option value="1x monthly">1x monthly (IV/In-Clinic)</option>
+                      <option value="As needed">As needed</option>
+                    </optgroup>
                   </select>
                   {editForm.dose_frequency && (
                     <div style={styles.injectionInfo}>
-                      {getInjectionCount(editForm.duration_days, editForm.dose_frequency)} injections over {editForm.duration_days} days
+                      {getInjectionCount(editForm.duration_days, editForm.dose_frequency)} {editForm.dose_frequency.includes('monthly') ? 'sessions' : 'injections'} over {editForm.duration_days} days
                     </div>
                   )}
                 </div>
@@ -865,6 +905,32 @@ Questions? Text us anytime.
                   </select>
                 </div>
                 <div style={styles.formGroup}>
+                  <label style={styles.label}>Duration</label>
+                  <select
+                    value={editForm.duration_days}
+                    onChange={(e) => handleEditChange('duration_days', parseInt(e.target.value))}
+                    style={styles.select}
+                  >
+                    <optgroup label="Short Programs">
+                      <option value="10">10 days (Jumpstart)</option>
+                      <option value="28">28 days (4 weeks)</option>
+                      <option value="30">30 days (Month)</option>
+                    </optgroup>
+                    <optgroup label="HRT Cycles">
+                      <option value="70">70 days (10 weeks)</option>
+                      <option value="84">84 days (12 weeks)</option>
+                      <option value="90">90 days (3 months)</option>
+                    </optgroup>
+                    <optgroup label="Extended">
+                      <option value="180">180 days (6 months)</option>
+                      <option value="365">365 days (1 year)</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              <div style={styles.formRow}>
+                <div style={styles.formGroup}>
                   <label style={styles.label}>Status</label>
                   <select
                     value={editForm.status}
@@ -877,6 +943,15 @@ Questions? Text us anytime.
                     <option value="ready_refill">Ready for Refill</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Start Date</label>
+                  <input
+                    type="date"
+                    value={editForm.start_date || ''}
+                    onChange={(e) => handleEditChange('start_date', e.target.value)}
+                    style={styles.input}
+                  />
                 </div>
               </div>
 

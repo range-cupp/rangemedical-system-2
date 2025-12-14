@@ -342,7 +342,7 @@ export default function ProtocolDashboard() {
 
   // Copy tracker link with welcome message to clipboard
   const copyTrackerLink = (protocol) => {
-    const link = `https://rangemedical-system-2.vercel.app/track/${protocol.access_token}`;
+    const link = `https://rangemedical-system-2.vercel.app/track/${protocol.tracker_token}`;
     const firstName = protocol.patient_name?.split(' ')[0] || '';
     const peptide = protocol.primary_peptide || 'your peptide';
     
@@ -362,6 +362,55 @@ Questions? Text us anytime.
     }).catch(() => {
       prompt('Copy this message:', message);
     });
+  };
+
+  // Copy patient dashboard link (shows all protocols)
+  const copyDashboardLink = async (protocol) => {
+    try {
+      // Get or create patient dashboard token
+      const res = await fetch('/api/admin/protocols?view=dashboard_token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${password}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ghl_contact_id: protocol.ghl_contact_id,
+          patient_name: protocol.patient_name,
+          patient_email: protocol.patient_email,
+          patient_phone: protocol.patient_phone
+        })
+      });
+      
+      if (!res.ok) {
+        alert('Failed to get dashboard link');
+        return;
+      }
+      
+      const { token } = await res.json();
+      const link = `https://rangemedical-system-2.vercel.app/my/${token}`;
+      const firstName = protocol.patient_name?.split(' ')[0] || '';
+      
+      const message = `Hi ${firstName}! This is Range Medical.
+
+Here is your personal dashboard link:
+
+${link}
+
+You can view all your treatments, track your progress, and see upcoming appointments.
+
+Questions? Text us anytime.
+(949) 997-3988`;
+
+      navigator.clipboard.writeText(message).then(() => {
+        alert('Dashboard link copied! Paste into your text.');
+      }).catch(() => {
+        prompt('Copy this message:', message);
+      });
+    } catch (err) {
+      console.error('Dashboard link error:', err);
+      alert('Failed to generate dashboard link');
+    }
   };
 
   // Delete protocol
@@ -720,10 +769,10 @@ Questions? Text us anytime.
                         >
                           Edit
                         </button>
-                        {p.access_token && (
+                        {p.tracker_token && (
                           <>
                             <a
-                              href={`/track/${p.access_token}`}
+                              href={`/track/${p.tracker_token}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={styles.viewButton}
@@ -737,6 +786,13 @@ Questions? Text us anytime.
                               title="Copy welcome text to send to patient"
                             >
                               📋
+                            </button>
+                            <button
+                              onClick={() => copyDashboardLink(p)}
+                              style={styles.dashboardButton}
+                              title="Copy patient dashboard link (all protocols)"
+                            >
+                              🏠
                             </button>
                           </>
                         )}
@@ -1303,6 +1359,15 @@ const styles = {
     backgroundColor: '#f0fdf4',
     color: '#166534',
     border: '1px solid #86efac',
+    padding: '6px 10px',
+    borderRadius: '4px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  dashboardButton: {
+    backgroundColor: '#eff6ff',
+    color: '#1d4ed8',
+    border: '1px solid #93c5fd',
     padding: '6px 10px',
     borderRadius: '4px',
     fontSize: '14px',

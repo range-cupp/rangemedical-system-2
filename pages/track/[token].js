@@ -1005,7 +1005,82 @@ export default function PatientTracker() {
         {/* Instructions Panel */}
         {activeTab === 'instructions' && (
           <div style={styles.infoPanel}>
-            <pre style={styles.instructionsText}>{dosingInstructions}</pre>
+            <div style={styles.peptideSection}>
+              <h3 style={styles.peptideTitle}>Your Protocol</h3>
+              
+              <div style={styles.peptideBlock}>
+                <div style={styles.peptideLabel}>Peptide{dosingInstructions.peptideList?.length > 1 ? 's' : ''}</div>
+                <p style={styles.peptideText}>{dosingInstructions.peptides}</p>
+              </div>
+              
+              <div style={styles.instructionsRow}>
+                <div style={styles.instructionsCol}>
+                  <div style={styles.peptideLabel}>Dose</div>
+                  <p style={styles.peptideText}>{dosingInstructions.dose}</p>
+                </div>
+                <div style={styles.instructionsCol}>
+                  <div style={styles.peptideLabel}>Frequency</div>
+                  <p style={styles.peptideText}>{dosingInstructions.frequency}</p>
+                </div>
+                <div style={styles.instructionsCol}>
+                  <div style={styles.peptideLabel}>Duration</div>
+                  <p style={styles.peptideText}>{dosingInstructions.duration}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div style={{...styles.peptideSection, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e8e8e8'}}>
+              <div style={styles.peptideBlock}>
+                <div style={styles.peptideLabel}>When to Take</div>
+                <p style={{...styles.peptideText, fontWeight: '600', marginBottom: '8px'}}>{dosingInstructions.timing?.when}</p>
+                <p style={styles.peptideText}>{dosingInstructions.timing?.instructions}</p>
+              </div>
+              
+              {dosingInstructions.timing?.fasting && (
+                <div style={styles.peptideTip}>
+                  <div style={styles.tipLabel}>Fasting Required</div>
+                  Do not eat for 2 hours before your injection.
+                </div>
+              )}
+              
+              {dosingInstructions.timing?.secondaryNote && (
+                <div style={styles.peptideNote}>
+                  {dosingInstructions.timing.secondaryNote}
+                </div>
+              )}
+            </div>
+            
+            <div style={{...styles.peptideSection, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e8e8e8'}}>
+              <div style={styles.peptideBlock}>
+                <div style={styles.peptideLabel}>
+                  How to {dosingInstructions.routeType === 'Oral' ? 'Take' : dosingInstructions.routeType === 'Intranasal' ? 'Use' : 'Inject'}
+                </div>
+                <p style={{...styles.peptideText, fontWeight: '600', marginBottom: '8px'}}>
+                  {dosingInstructions.route?.title} — {dosingInstructions.route?.location}
+                </p>
+                <ul style={styles.benefitsList}>
+                  {dosingInstructions.route?.steps?.map((step, i) => (
+                    <li key={i} style={styles.benefitItem}>{step}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            <div style={{...styles.peptideSection, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e8e8e8'}}>
+              <div style={styles.peptideBlock}>
+                <div style={styles.peptideLabel}>Storage</div>
+                <ul style={styles.benefitsList}>
+                  {dosingInstructions.storage?.map((item, i) => (
+                    <li key={i} style={styles.benefitItem}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            <div style={styles.contactBox}>
+              <div style={styles.contactLabel}>Questions? Text or call us anytime</div>
+              <a href="sms:+19499973988" style={styles.contactPhone}>{dosingInstructions.contact}</a>
+            </div>
           </div>
         )}
 
@@ -1356,6 +1431,33 @@ const styles = {
     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     margin: 0,
     fontWeight: '400'
+  },
+  instructionsRow: {
+    display: 'flex',
+    gap: '20px',
+    marginTop: '16px'
+  },
+  instructionsCol: {
+    flex: 1
+  },
+  contactBox: {
+    marginTop: '28px',
+    paddingTop: '24px',
+    borderTop: '1px solid #e8e8e8',
+    textAlign: 'center'
+  },
+  contactLabel: {
+    fontSize: '13px',
+    color: '#888888',
+    marginBottom: '8px',
+    fontWeight: '500'
+  },
+  contactPhone: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#000000',
+    textDecoration: 'none',
+    letterSpacing: '-0.3px'
   },
   sectionTitle: {
     fontSize: '14px',

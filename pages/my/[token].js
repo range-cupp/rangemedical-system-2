@@ -12,6 +12,7 @@ export default function PatientDashboard() {
   const [expandedProtocol, setExpandedProtocol] = useState(null);
   const [saving, setSaving] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [expandedCompleted, setExpandedCompleted] = useState({});
 
   useEffect(() => {
     if (!token) return;
@@ -272,7 +273,7 @@ export default function PatientDashboard() {
 
           {!isExpanded && protocol.days && (
             <div style={styles.miniGrid}>
-              {protocol.days.slice(0, 14).map((day) => {
+              {(isCompleted ? protocol.days : protocol.days.slice(0, 14)).map((day) => {
                 const isOff = isOffDay(day.day, protocol.dose_frequency, protocol.start_date);
                 return (
                   <div 
@@ -284,7 +285,7 @@ export default function PatientDashboard() {
                       border: `1px solid ${isOff ? '#eee' : day.completed ? goalInfo.color : '#e0e0e0'}`
                     }}
                   >
-                    {day.day}
+                    {day.completed && !isOff ? '✓' : day.day}
                   </div>
                 );
               })}
@@ -322,7 +323,7 @@ export default function PatientDashboard() {
                       ...styles.dayNumber,
                       color: day.completed && !isOff ? '#fff' : isOff ? '#bbb' : '#333'
                     }}>
-                      {day.day}
+                      {day.completed && !isOff ? '✓' : day.day}
                     </div>
                     <div style={{
                       ...styles.dayDate,

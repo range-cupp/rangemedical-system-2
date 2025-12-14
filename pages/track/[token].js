@@ -907,6 +907,9 @@ export default function PatientTracker() {
         <title>Injection Tracker | Range Medical</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="theme-color" content="#000000" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
       {/* Header */}
@@ -1142,16 +1145,17 @@ export default function PatientTracker() {
 const styles = {
   container: {
     minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    backgroundColor: '#fafafa',
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
   },
   loading: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     height: '100vh',
-    fontSize: '18px',
-    color: '#666666'
+    fontSize: '16px',
+    color: '#666666',
+    fontWeight: '500'
   },
   errorContainer: {
     display: 'flex',
@@ -1163,9 +1167,10 @@ const styles = {
     textAlign: 'center'
   },
   errorMessage: {
-    fontSize: '18px',
+    fontSize: '16px',
     color: '#000000',
-    marginTop: '20px'
+    marginTop: '20px',
+    fontWeight: '500'
   },
   errorHelp: {
     fontSize: '14px',
@@ -1175,23 +1180,25 @@ const styles = {
   header: {
     backgroundColor: '#000000',
     color: 'white',
-    padding: '20px',
-    paddingTop: '40px'
+    padding: '24px 20px',
+    paddingTop: '48px'
   },
   headerInner: {
     maxWidth: '900px',
     margin: '0 auto'
   },
   logo: {
-    fontSize: '14px',
-    fontWeight: '700',
-    letterSpacing: '2px',
-    opacity: 0.9
+    fontSize: '11px',
+    fontWeight: '600',
+    letterSpacing: '3px',
+    textTransform: 'uppercase',
+    opacity: 0.7
   },
   greeting: {
-    fontSize: '24px',
+    fontSize: '28px',
     fontWeight: '600',
-    marginTop: '10px'
+    marginTop: '8px',
+    letterSpacing: '-0.5px'
   },
   content: {
     maxWidth: '900px',
@@ -1201,33 +1208,37 @@ const styles = {
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '24px',
-    border: '1px solid #e0e0e0',
-    marginBottom: '20px'
+    borderRadius: '16px',
+    padding: '28px',
+    border: '1px solid #e8e8e8',
+    marginBottom: '20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
   },
   cardHeader: {
-    marginBottom: '24px'
+    marginBottom: '28px'
   },
   protocolName: {
-    fontSize: '22px',
+    fontSize: '20px',
     fontWeight: '600',
-    color: '#000000'
+    color: '#000000',
+    letterSpacing: '-0.3px'
   },
   peptides: {
-    fontSize: '16px',
-    color: '#666666',
-    marginTop: '6px'
+    fontSize: '15px',
+    color: '#555555',
+    marginTop: '6px',
+    fontWeight: '500'
   },
   frequency: {
-    fontSize: '14px',
+    fontSize: '13px',
     color: '#888888',
-    marginTop: '4px'
+    marginTop: '4px',
+    fontWeight: '500'
   },
   statsRow: {
     display: 'flex',
     justifyContent: 'space-around',
-    marginBottom: '24px'
+    marginBottom: '28px'
   },
   stat: {
     textAlign: 'center'
@@ -1235,40 +1246,43 @@ const styles = {
   statValue: {
     fontSize: '36px',
     fontWeight: '700',
-    color: '#000000'
+    color: '#000000',
+    letterSpacing: '-1px'
   },
   statLabel: {
-    fontSize: '13px',
-    color: '#666666',
+    fontSize: '11px',
+    color: '#888888',
     textTransform: 'uppercase',
-    letterSpacing: '1px',
-    marginTop: '4px'
+    letterSpacing: '1.5px',
+    marginTop: '4px',
+    fontWeight: '600'
   },
   progressContainer: {
-    height: '12px',
-    backgroundColor: '#e5e5e5',
-    borderRadius: '6px',
+    height: '10px',
+    backgroundColor: '#f0f0f0',
+    borderRadius: '5px',
     overflow: 'hidden'
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#10b981',
-    borderRadius: '6px',
+    backgroundColor: '#000000',
+    borderRadius: '5px',
     transition: 'width 0.3s ease'
   },
   instructionsButton: {
     display: 'block',
     width: '100%',
     padding: '16px',
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: '600',
     color: '#000000',
     backgroundColor: '#ffffff',
-    border: '2px solid #000000',
-    borderRadius: '8px',
+    border: '1.5px solid #000000',
+    borderRadius: '10px',
     cursor: 'pointer',
     textAlign: 'center',
-    marginBottom: '20px'
+    marginBottom: '20px',
+    letterSpacing: '0.3px'
   },
   tabContainer: {
     display: 'flex',
@@ -1278,15 +1292,16 @@ const styles = {
   tabButton: {
     flex: 1,
     padding: '14px 16px',
-    fontSize: '15px',
+    fontSize: '13px',
     fontWeight: '600',
     color: '#000000',
     backgroundColor: '#ffffff',
-    border: '2px solid #000000',
-    borderRadius: '8px',
+    border: '1.5px solid #000000',
+    borderRadius: '10px',
     cursor: 'pointer',
     textAlign: 'center',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
+    letterSpacing: '0.3px'
   },
   tabButtonActive: {
     backgroundColor: '#000000',
@@ -1294,39 +1309,44 @@ const styles = {
   },
   infoPanel: {
     backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    padding: '24px',
-    border: '1px solid #e0e0e0',
-    marginBottom: '20px'
+    borderRadius: '16px',
+    padding: '28px',
+    border: '1px solid #e8e8e8',
+    marginBottom: '20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
   },
   instructionsPanel: {
     backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    padding: '24px',
-    border: '1px solid #e0e0e0',
-    marginBottom: '20px'
+    borderRadius: '16px',
+    padding: '28px',
+    border: '1px solid #e8e8e8',
+    marginBottom: '20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
   },
   instructionsText: {
-    fontSize: '15px',
-    lineHeight: '1.8',
+    fontSize: '14px',
+    lineHeight: '1.9',
     color: '#333333',
     whiteSpace: 'pre-wrap',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    margin: 0
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    margin: 0,
+    fontWeight: '400'
   },
   sectionTitle: {
-    fontSize: '15px',
+    fontSize: '14px',
     color: '#666666',
     textAlign: 'center',
-    marginBottom: '12px'
+    marginBottom: '12px',
+    fontWeight: '500'
   },
   offDayLegend: {
     display: 'flex',
     justifyContent: 'center',
     gap: '24px',
     marginBottom: '16px',
-    fontSize: '13px',
-    color: '#666666'
+    fontSize: '12px',
+    color: '#888888',
+    fontWeight: '500'
   },
   legendItem: {
     display: 'flex',
@@ -1334,21 +1354,21 @@ const styles = {
     gap: '6px'
   },
   legendDotGrey: {
-    width: '12px',
-    height: '12px',
+    width: '10px',
+    height: '10px',
     borderRadius: '3px',
     backgroundColor: '#e0e0e0'
   },
   legendDotGreen: {
-    width: '12px',
-    height: '12px',
+    width: '10px',
+    height: '10px',
     borderRadius: '3px',
-    backgroundColor: '#10b981'
+    backgroundColor: '#000000'
   },
   daysGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(7, 1fr)',
-    gap: '10px'
+    gap: '8px'
   },
   dayButton: {
     aspectRatio: '1',
@@ -1357,160 +1377,171 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    border: '2px solid #e0e0e0',
+    border: '1.5px solid #e0e0e0',
     borderRadius: '10px',
     cursor: 'pointer',
     position: 'relative',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.15s ease',
     padding: '8px'
   },
   dayCompleted: {
-    backgroundColor: '#10b981',
-    borderColor: '#10b981',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
     color: 'white'
   },
   dayCurrent: {
     borderColor: '#000000',
-    borderWidth: '3px',
-    boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.1)'
+    borderWidth: '2px',
+    boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.08)'
   },
   dayFuture: {
-    opacity: 0.6
+    opacity: 0.5
   },
   dayOff: {
-    backgroundColor: '#f0f0f0',
-    borderColor: '#e0e0e0',
+    backgroundColor: '#f5f5f5',
+    borderColor: '#e8e8e8',
     cursor: 'default'
   },
   dayNumber: {
-    fontSize: '13px',
-    fontWeight: '700'
+    fontSize: '12px',
+    fontWeight: '600',
+    letterSpacing: '-0.2px'
   },
   dayNumberOff: {
-    color: '#aaaaaa'
+    color: '#bbbbbb'
   },
   dayDate: {
-    fontSize: '10px',
+    fontSize: '9px',
     marginTop: '2px',
-    opacity: 0.8
+    opacity: 0.7,
+    fontWeight: '500'
   },
   dayDateOff: {
-    color: '#aaaaaa'
+    color: '#bbbbbb'
   },
   checkmark: {
     position: 'absolute',
-    top: '4px',
-    right: '6px',
-    fontSize: '12px',
+    top: '3px',
+    right: '5px',
+    fontSize: '10px',
     fontWeight: 'bold'
   },
   offLabel: {
     position: 'absolute',
-    bottom: '4px',
-    fontSize: '8px',
+    bottom: '3px',
+    fontSize: '7px',
     fontWeight: '700',
-    color: '#aaaaaa',
-    letterSpacing: '0.5px'
+    color: '#bbbbbb',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
   },
   todayBadge: {
     position: 'absolute',
-    bottom: '4px',
-    fontSize: '8px',
+    bottom: '3px',
+    fontSize: '7px',
     fontWeight: '700',
     color: '#000000',
-    letterSpacing: '0.5px'
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
   },
   completedMessage: {
     textAlign: 'center',
-    fontSize: '16px',
-    color: '#10b981',
+    fontSize: '15px',
+    color: '#000000',
     fontWeight: '600',
     margin: '24px 0',
-    padding: '16px',
-    backgroundColor: '#ecfdf5',
-    borderRadius: '8px'
+    padding: '20px',
+    backgroundColor: '#f5f5f5',
+    borderRadius: '12px',
+    letterSpacing: '-0.2px'
   },
   peptideSection: {
   },
   peptideTitle: {
-    fontSize: '20px',
+    fontSize: '18px',
     fontWeight: '700',
     color: '#000000',
-    marginBottom: '16px',
-    marginTop: '0'
+    marginBottom: '20px',
+    marginTop: '0',
+    letterSpacing: '-0.3px'
   },
   peptideBlock: {
-    marginBottom: '16px'
+    marginBottom: '20px'
   },
   peptideLabel: {
-    fontSize: '14px',
+    fontSize: '11px',
     fontWeight: '700',
-    color: '#000000',
+    color: '#888888',
     marginBottom: '6px',
     textTransform: 'uppercase',
-    letterSpacing: '0.5px'
+    letterSpacing: '1.5px'
   },
   peptideText: {
-    fontSize: '15px',
-    lineHeight: '1.7',
-    color: '#333333',
-    margin: '0'
+    fontSize: '14px',
+    lineHeight: '1.75',
+    color: '#444444',
+    margin: '0',
+    fontWeight: '400'
   },
   benefitsList: {
     margin: '0',
-    paddingLeft: '20px'
+    paddingLeft: '18px'
   },
   benefitItem: {
-    fontSize: '15px',
-    lineHeight: '1.8',
-    color: '#333333'
+    fontSize: '14px',
+    lineHeight: '1.9',
+    color: '#444444',
+    fontWeight: '400'
   },
   peptideNote: {
-    fontSize: '14px',
-    lineHeight: '1.6',
-    color: '#666666',
-    fontStyle: 'italic',
-    marginTop: '16px',
-    paddingTop: '16px',
-    borderTop: '1px solid #e0e0e0'
-  },
-  peptideTip: {
-    fontSize: '14px',
-    lineHeight: '1.6',
-    color: '#000000',
-    backgroundColor: '#f0fdf4',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    marginTop: '16px',
-    border: '1px solid #bbf7d0'
-  },
-  tipLabel: {
-    fontSize: '12px',
-    fontWeight: '700',
-    color: '#15803d',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    marginBottom: '4px'
-  },
-  disclaimer: {
-    fontSize: '12px',
+    fontSize: '13px',
     lineHeight: '1.6',
     color: '#888888',
-    marginTop: '24px',
-    paddingTop: '16px',
-    borderTop: '1px solid #e0e0e0',
-    textAlign: 'center'
+    fontStyle: 'italic',
+    marginTop: '20px',
+    paddingTop: '20px',
+    borderTop: '1px solid #e8e8e8'
+  },
+  peptideTip: {
+    fontSize: '13px',
+    lineHeight: '1.6',
+    color: '#000000',
+    backgroundColor: '#f8f8f8',
+    padding: '16px',
+    borderRadius: '10px',
+    marginTop: '20px',
+    border: '1px solid #e8e8e8'
+  },
+  tipLabel: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: '#000000',
+    textTransform: 'uppercase',
+    letterSpacing: '1.5px',
+    marginBottom: '6px'
+  },
+  disclaimer: {
+    fontSize: '11px',
+    lineHeight: '1.6',
+    color: '#aaaaaa',
+    marginTop: '28px',
+    paddingTop: '20px',
+    borderTop: '1px solid #e8e8e8',
+    textAlign: 'center',
+    fontWeight: '400'
   },
   footer: {
     textAlign: 'center',
-    padding: '30px 0',
-    color: '#666666',
-    fontSize: '14px'
+    padding: '40px 0',
+    color: '#888888',
+    fontSize: '13px',
+    fontWeight: '500'
   },
   phoneLink: {
     color: '#000000',
     fontWeight: '600',
     fontSize: '18px',
-    textDecoration: 'none'
+    textDecoration: 'none',
+    letterSpacing: '-0.3px'
   }
 };

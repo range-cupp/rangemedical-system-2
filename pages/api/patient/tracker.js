@@ -353,19 +353,59 @@ function generateDosingInstructions(protocol) {
       // Check for conflicts (e.g., one morning, one night)
       if ((timing.when.includes('NIGHT') && secondaryTiming.when.includes('MORNING')) ||
           (timing.when.includes('MORNING') && secondaryTiming.when.includes('NIGHT'))) {
-        secondaryNote = `\nNote: If taking ${secondary} separately, follow its specific timing.`;
+        secondaryNote = `If taking ${secondary} separately, follow its specific timing.`;
       }
     }
   }
 
-  // Route instructions
-  const routeInstructions = {
-    'SC': 'Inject under the skin (subcutaneous) in your belly or thigh.\n   • Pinch a fold of skin\n   • Insert needle at 45° angle\n   • Inject slowly\n   • Release skin, remove needle',
-    'IM': 'Inject into muscle (intramuscular) in your thigh or shoulder.\n   • Insert needle at 90° angle\n   • Inject slowly\n   • Remove needle',
-    'IV': 'Administered at the clinic by our medical team.',
-    'Intranasal': 'Spray into nostril as directed.\n   • Clear nose first\n   • Insert tip into nostril\n   • Spray while breathing in gently',
-    'Oral': 'Take by mouth as directed.\n   • Swallow with water\n   • Follow any food/fasting instructions',
-    'Topical': 'Apply to clean, dry skin as directed.'
+  // Route instructions - structured for display
+  const routeData = {
+    'SC': {
+      title: 'Subcutaneous Injection',
+      location: 'Belly or thigh',
+      steps: [
+        'Pinch a fold of skin',
+        'Insert needle at 45° angle',
+        'Inject slowly',
+        'Release skin, remove needle'
+      ]
+    },
+    'IM': {
+      title: 'Intramuscular Injection',
+      location: 'Thigh or shoulder',
+      steps: [
+        'Insert needle at 90° angle',
+        'Inject slowly',
+        'Remove needle'
+      ]
+    },
+    'IV': {
+      title: 'Intravenous',
+      location: 'At clinic',
+      steps: ['Administered by our medical team']
+    },
+    'Intranasal': {
+      title: 'Nasal Spray',
+      location: 'Nostril',
+      steps: [
+        'Clear nose first',
+        'Insert tip into nostril',
+        'Spray while breathing in gently'
+      ]
+    },
+    'Oral': {
+      title: 'Oral',
+      location: 'By mouth',
+      steps: [
+        'Swallow with water',
+        'Follow any food/fasting instructions'
+      ]
+    },
+    'Topical': {
+      title: 'Topical',
+      location: 'On skin',
+      steps: ['Apply to clean, dry skin as directed']
+    }
   };
 
   // Frequency display
@@ -374,50 +414,26 @@ function generateDosingInstructions(protocol) {
     return freq;
   };
 
-  let instructions = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-         RANGE MEDICAL
-      Your Protocol Instructions
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-PEPTIDE${secondary ? 'S' : ''}
-${peptide}${secondary ? `\n${secondary}` : ''}
-
-DOSE
-${dose}
-
-FREQUENCY
-${getFrequencyDisplay(frequency)}
-
-DURATION
-${duration} days
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-WHEN TO TAKE
-${timing.when}
-
-${timing.instructions}${secondaryNote}
-${timing.fasting ? '\nDo not eat for 2 hours before injection.' : ''}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-HOW TO ${route === 'Oral' ? 'TAKE' : route === 'Intranasal' ? 'USE' : 'INJECT'}
-${routeInstructions[route] || routeInstructions['SC']}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-STORAGE
-Keep refrigerated (36-46°F)
-Do not freeze
-Protect from light
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-QUESTIONS?
-Text or call us anytime
-(949) 997-3988
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
-
-  return instructions;
+  // Return structured data
+  return {
+    peptides: secondary ? `${peptide} + ${secondary}` : peptide,
+    peptideList: secondary ? [peptide, secondary] : [peptide],
+    dose: dose,
+    frequency: getFrequencyDisplay(frequency),
+    duration: `${duration} days`,
+    timing: {
+      when: timing.when,
+      instructions: timing.instructions,
+      fasting: timing.fasting,
+      secondaryNote: secondaryNote
+    },
+    route: routeData[route] || routeData['SC'],
+    routeType: route,
+    storage: [
+      'Keep refrigerated (36-46°F)',
+      'Do not freeze',
+      'Protect from light'
+    ],
+    contact: '(949) 997-3988'
+  };
 }

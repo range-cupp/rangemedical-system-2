@@ -204,52 +204,220 @@ function generateDosingInstructions(protocol) {
   const duration = protocol.duration_days;
   const goal = protocol.goal;
 
+  // Determine timing based on peptide type
+  const getPeptideTiming = (peptideName) => {
+    if (!peptideName) return null;
+    const name = peptideName.toLowerCase();
+
+    // NIGHTTIME - Growth Hormone Secretagogues (before bed, fasted)
+    if (name.includes('sermorelin') || name.includes('tesamorelin') || 
+        name.includes('ipamorelin') || name.includes('cjc') ||
+        name.includes('ghrp') || name.includes('hexarelin') ||
+        name.includes('mk-677') || name.includes('ibutamoren')) {
+      return {
+        when: 'NIGHTTIME — Before Bed',
+        instructions: 'Take right before bed. Do not eat for 2 hours before your injection. This works with your natural growth hormone release during sleep.',
+        fasting: true
+      };
+    }
+
+    // NIGHTTIME - Sleep peptides
+    if (name.includes('dsip')) {
+      return {
+        when: 'NIGHTTIME — 30-60 Min Before Bed',
+        instructions: 'Take 30-60 minutes before you want to fall asleep.',
+        fasting: false
+      };
+    }
+
+    // MORNING - Metabolic peptides (fasted)
+    if (name.includes('aod') || name.includes('mots')) {
+      return {
+        when: 'MORNING — Empty Stomach',
+        instructions: 'Take in the morning on an empty stomach. Wait 20-30 minutes before eating for best results.',
+        fasting: true
+      };
+    }
+
+    // MORNING - Cognitive/Energy (may affect sleep)
+    if (name.includes('semax') || name.includes('tesofensine')) {
+      return {
+        when: 'MORNING',
+        instructions: 'Take in the morning. Avoid taking late in the day as it may affect sleep.',
+        fasting: false
+      };
+    }
+
+    // MORNING - Oral metabolic
+    if (name.includes('5-amino') || name.includes('1mq')) {
+      return {
+        when: 'MORNING',
+        instructions: 'Take in the morning. Can be taken with or without food.',
+        fasting: false
+      };
+    }
+
+    // AS NEEDED - PT-141
+    if (name.includes('pt-141')) {
+      return {
+        when: 'AS NEEDED — 45-60 Min Before',
+        instructions: 'Take 45-60 minutes before desired effect. Do not use more than once in 24 hours or more than 8 times per month.',
+        fasting: false
+      };
+    }
+
+    // WEEKLY - GLP-1 peptides
+    if (name.includes('glp-1') || name.includes('semaglutide') || 
+        name.includes('tirzepatide') || name.includes('retatrutide') ||
+        name.includes('survodutide') || name.includes('cagrilintide')) {
+      return {
+        when: 'ONCE WEEKLY — Same Day Each Week',
+        instructions: 'Take once a week on the same day. Can be taken with or without food. Eat slowly and stop when you feel full. Drink plenty of water.',
+        fasting: false
+      };
+    }
+
+    // ANY TIME - Most healing/recovery peptides
+    if (name.includes('bpc') || name.includes('tb-500') || name.includes('tb500') ||
+        name.includes('wolverine') || name.includes('ghk') || name.includes('glow') ||
+        name.includes('klow') || name.includes('kpv')) {
+      return {
+        when: 'ANY TIME — Consistent Daily',
+        instructions: 'Can be taken any time of day. Take at the same time each day for consistency. Works with or without food.',
+        fasting: false
+      };
+    }
+
+    // ANY TIME - Immune/Longevity
+    if (name.includes('thymosin alpha') || name.includes('ta-1') || name.includes('ta1') ||
+        name.includes('epithalon') || name.includes('ll-37')) {
+      return {
+        when: 'ANY TIME — Consistent Daily',
+        instructions: 'Can be taken any time of day. Take at the same time each day for consistency.',
+        fasting: false
+      };
+    }
+
+    // ANY TIME - Fertility support
+    if (name.includes('gonadorelin') || name.includes('hcg') || name.includes('kisspeptin')) {
+      return {
+        when: '2-3x WEEKLY — Any Time',
+        instructions: 'Usually taken 2-3 times per week. Can be taken any time of day.',
+        fasting: false
+      };
+    }
+
+    // NASAL - Cognitive
+    if (name.includes('selank')) {
+      return {
+        when: 'ANY TIME — As Needed',
+        instructions: 'Use 1-2 sprays in each nostril. Can be used any time you need focus and calm.',
+        fasting: false
+      };
+    }
+
+    // NAD+
+    if (name.includes('nad')) {
+      return {
+        when: 'ANY TIME',
+        instructions: 'Can be taken any time of day. You may feel flushing or warmth after injection — this is normal and passes quickly.',
+        fasting: false
+      };
+    }
+
+    // BEFORE BED - Melanotan
+    if (name.includes('melanotan') || name.includes('mt-ii') || name.includes('mt-2')) {
+      return {
+        when: 'EVENING — Before Bed',
+        instructions: 'Take before bed to minimize side effects. Start with a very low dose. Some nausea is normal at first.',
+        fasting: false
+      };
+    }
+
+    // Default
+    return {
+      when: 'CONSISTENT DAILY',
+      instructions: 'Take at the same time each day for best results. Follow your provider\'s specific instructions.',
+      fasting: false
+    };
+  };
+
+  // Get timing for primary peptide
+  const timing = getPeptideTiming(peptide);
+  
+  // Check if secondary peptide has different timing requirements
+  let secondaryNote = '';
+  if (secondary) {
+    const secondaryTiming = getPeptideTiming(secondary);
+    if (secondaryTiming && secondaryTiming.when !== timing.when) {
+      // Check for conflicts (e.g., one morning, one night)
+      if ((timing.when.includes('NIGHT') && secondaryTiming.when.includes('MORNING')) ||
+          (timing.when.includes('MORNING') && secondaryTiming.when.includes('NIGHT'))) {
+        secondaryNote = `\nNote: If taking ${secondary} separately, follow its specific timing.`;
+      }
+    }
+  }
+
   // Route instructions
   const routeInstructions = {
-    'SC': 'Inject subcutaneously (under the skin) in your belly or thigh. Pinch a fold of skin, insert the needle at a 45° angle, and inject slowly.',
-    'IM': 'Inject intramuscularly into your thigh or deltoid muscle. Insert the needle at a 90° angle and inject slowly.',
-    'IV': 'This is administered intravenously at the clinic.',
-    'Intranasal': 'Spray into your nostril as directed.',
-    'Oral': 'Take by mouth as directed.',
-    'Topical': 'Apply to skin as directed.'
+    'SC': 'Inject under the skin (subcutaneous) in your belly or thigh.\n   • Pinch a fold of skin\n   • Insert needle at 45° angle\n   • Inject slowly\n   • Release skin, remove needle',
+    'IM': 'Inject into muscle (intramuscular) in your thigh or shoulder.\n   • Insert needle at 90° angle\n   • Inject slowly\n   • Remove needle',
+    'IV': 'Administered at the clinic by our medical team.',
+    'Intranasal': 'Spray into nostril as directed.\n   • Clear nose first\n   • Insert tip into nostril\n   • Spray while breathing in gently',
+    'Oral': 'Take by mouth as directed.\n   • Swallow with water\n   • Follow any food/fasting instructions',
+    'Topical': 'Apply to clean, dry skin as directed.'
   };
 
-  // Goal-specific tips
-  const goalTips = {
-    'recovery': 'For best results, stay hydrated. BPC-157 and TB-500 work synergistically to accelerate tissue repair.',
-    'metabolic': 'Take your injection in the morning on an empty stomach for optimal metabolic effects. Light fasting can enhance results.',
-    'longevity': 'Consistency is key for longevity peptides. Take at the same time each day, preferably in the evening.',
-    'aesthetic': 'GHK-Cu supports collagen production. Stay well-hydrated and protect your skin from sun exposure.'
+  // Frequency display
+  const getFrequencyDisplay = (freq) => {
+    if (freq.includes('5 days on')) return '5 days on, 2 days off';
+    return freq;
   };
 
-  let instructions = `
-YOUR PROTOCOL INSTRUCTIONS
+  let instructions = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         RANGE MEDICAL
+      Your Protocol Instructions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 PEPTIDE${secondary ? 'S' : ''}
-${peptide}${secondary ? ` + ${secondary}` : ''}
+${peptide}${secondary ? `\n${secondary}` : ''}
 
-DOSAGE
-${dose} — ${frequency}
+DOSE
+${dose}
+
+FREQUENCY
+${getFrequencyDisplay(frequency)}
 
 DURATION
 ${duration} days
 
-HOW TO INJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHEN TO TAKE
+${timing.when}
+
+${timing.instructions}${secondaryNote}
+${timing.fasting ? '\nDo not eat for 2 hours before injection.' : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HOW TO ${route === 'Oral' ? 'TAKE' : route === 'Intranasal' ? 'USE' : 'INJECT'}
 ${routeInstructions[route] || routeInstructions['SC']}
 
-TIMING
-${frequency.includes('AM') ? 'Take in the morning' : 
-  frequency.includes('PM') || frequency.includes('bedtime') ? 'Take in the evening/before bed' : 
-  'Take at the same time each day for consistency'}
-
-${goal ? `\nTIP\n${goalTips[goal] || ''}` : ''}
-
-QUESTIONS?
-Text or call Range Medical: (949) 997-3988
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 STORAGE
-Keep refrigerated (36-46°F). Do not freeze. Protect from light.
-`.trim();
+Keep refrigerated (36-46°F)
+Do not freeze
+Protect from light
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+QUESTIONS?
+Text or call us anytime
+(949) 997-3988
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
 
   return instructions;
 }

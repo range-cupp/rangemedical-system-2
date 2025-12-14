@@ -36,10 +36,14 @@ export default async function handler(req, res) {
         .eq('protocol_id', protocol.id)
         .order('day_number', { ascending: true });
 
-      // Calculate days info
-      const today = new Date();
-      const startDate = new Date(protocol.start_date);
-      const endDate = new Date(protocol.end_date);
+      // Calculate days info (use PST/PDT timezone - Los Angeles)
+      const now = new Date();
+      // Get current date in Los Angeles timezone
+      const pstDateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // 'en-CA' gives YYYY-MM-DD format
+      const today = new Date(pstDateStr + 'T12:00:00');
+      
+      const startDate = new Date(protocol.start_date + 'T12:00:00');
+      const endDate = new Date(protocol.end_date + 'T12:00:00');
       const currentDay = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
       const totalDays = protocol.duration_days;
 

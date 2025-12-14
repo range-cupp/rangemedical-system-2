@@ -335,6 +335,39 @@ Questions? Text us anytime.
     });
   };
 
+  // Delete protocol
+  const deleteProtocol = async (protocolId, patientName) => {
+    const confirmed = window.confirm(`Are you sure you want to delete the protocol for ${patientName}?\n\nThis will also delete all injection logs for this protocol. This cannot be undone.`);
+    
+    if (!confirmed) return;
+    
+    try {
+      const res = await fetch('/api/admin/protocols', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${password}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: protocolId })
+      });
+      
+      if (res.ok) {
+        // Refresh data
+        if (contactFilter) {
+          fetchProtocolsByContact(contactFilter);
+        } else {
+          fetchProtocols(activeTab);
+        }
+        fetchStats();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to delete protocol');
+      }
+    } catch (err) {
+      setError('Network error while deleting');
+    }
+  };
+
   // Calculate injection count based on duration and frequency
   const getInjectionCount = (duration, frequency) => {
     if (!duration || !frequency) return 0;
@@ -680,6 +713,13 @@ Questions? Text us anytime.
                             GHL
                           </a>
                         )}
+                        <button
+                          onClick={() => deleteProtocol(p.id, p.patient_name)}
+                          style={styles.deleteButton}
+                          title="Delete protocol"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1240,6 +1280,16 @@ const styles = {
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer'
+  },
+  deleteButton: {
+    backgroundColor: 'transparent',
+    border: '1px solid #e5e7eb',
+    padding: '6px 10px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    opacity: 0.6,
+    transition: 'opacity 0.2s'
   },
 
   // Modal styles

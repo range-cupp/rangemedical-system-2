@@ -221,7 +221,8 @@ export default function ProtocolDashboard() {
       dose_frequency: protocol.dose_frequency || '',
       peptide_route: protocol.peptide_route || 'SC',
       special_instructions: protocol.special_instructions || '',
-      status: protocol.status || 'active'
+      status: protocol.status || 'active',
+      duration_days: protocol.duration_days || 30
     });
   };
 
@@ -235,12 +236,32 @@ export default function ProtocolDashboard() {
       dose_frequency: '',
       peptide_route: 'SC',
       special_instructions: '',
-      status: 'active'
+      status: 'active',
+      duration_days: 30
     });
   };
 
   const handleEditChange = (field, value) => {
-    setEditForm(prev => ({ ...prev, [field]: value }));
+    setEditForm(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // Auto-adjust duration based on frequency
+      if (field === 'dose_frequency') {
+        if (value === '5 days on / 2 days off') {
+          // 5 on / 2 off needs 28 days for 20 injections
+          updated.duration_days = 28;
+        } else if (value === '1x daily' || value === '2x daily' || 
+                   value === '1x daily (AM)' || value === '1x daily (PM)' || 
+                   value === '1x daily (bedtime)') {
+          // Daily frequencies use 30 days
+          if (prev.duration_days === 28) {
+            updated.duration_days = 30;
+          }
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const saveProtocol = async () => {
@@ -298,6 +319,41 @@ export default function ProtocolDashboard() {
     }).catch(() => {
       prompt('Copy this link:', link);
     });
+  };
+
+  // Calculate injection count based on duration and frequency
+  const getInjectionCount = (duration, frequency) => {
+    if (!duration || !frequency) return 0;
+    
+    if (frequency === '5 days on / 2 days off') {
+      // 5 injections per 7-day cycle
+      const fullWeeks = Math.floor(duration / 7);
+      const remainingDays = duration % 7;
+      return fullWeeks * 5 + Math.min(remainingDays, 5);
+    }
+    
+    if (frequency === '1x weekly') {
+      return Math.ceil(duration / 7);
+    }
+    
+    if (frequency === '2x weekly') {
+      return Math.ceil(duration / 7) * 2;
+    }
+    
+    if (frequency === '3x weekly') {
+      return Math.ceil(duration / 7) * 3;
+    }
+    
+    if (frequency === 'Every other day') {
+      return Math.ceil(duration / 2);
+    }
+    
+    if (frequency === '2x daily') {
+      return duration * 2;
+    }
+    
+    // Default: 1x daily
+    return duration;
   };
 
   const formatDate = (dateString) => {
@@ -717,6 +773,11 @@ export default function ProtocolDashboard() {
                     <option value="1x weekly">1x weekly</option>
                     <option value="As needed">As needed</option>
                   </select>
+                  {editForm.dose_frequency && (
+                    <div style={styles.injectionInfo}>
+                      {getInjectionCount(editForm.duration_days, editForm.dose_frequency)} injections over {editForm.duration_days} days
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1261,6 +1322,12 @@ const styles = {
     borderRadius: '6px',
     boxSizing: 'border-box',
     backgroundColor: 'white'
+  },
+  injectionInfo: {
+    marginTop: '6px',
+    fontSize: '13px',
+    color: '#10b981',
+    fontWeight: '500'
   },
   textarea: {
     width: '100%',

@@ -1,1614 +1,801 @@
-// /pages/admin/protocols.js
-// Protocol Tracking Dashboard for Range Medical
+// =====================================================
+// RANGE MEDICAL - PROTOCOL DETAIL PAGE
+// /pages/admin/protocol/[id].js
+// Full protocol view with injection tracking
+// =====================================================
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 
-export default function ProtocolDashboard() {
+export default function ProtocolDetail() {
   const router = useRouter();
-  const { contact } = router.query; // Get contact ID from URL if present
+  const { id } = router.query;
   
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState('active');
-  const [protocols, setProtocols] = useState([]);
-  const [stats, setStats] = useState({ active: 0, completed: 0, readyForRefill: 0, totalRevenue: 0 });
-  const [milestones, setMilestones] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [error, setError] = useState('');
-  const [authChecked, setAuthChecked] = useState(false);
-  const [contactFilter, setContactFilter] = useState(null);
-  
-  // Edit modal state
-  const [editingProtocol, setEditingProtocol] = useState(null);
-  const [peptideList, setPeptideList] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [editForm, setEditForm] = useState({
-    goal: '',
-    primary_peptide: '',
-    secondary_peptide: '',
-    dose_amount: '',
-    dose_frequency: '',
-    peptide_route: 'SC',
-    special_instructions: '',
-    status: 'active',
-    duration_days: 30,
-    start_date: ''
+  const [loading, setLoading] = useState(true);
+  const [protocol, setProtocol] = useState(null);
+  const [patient, setPatient] = useState(null);
+  const [injections, setInjections] = useState([]);
+  const [error, setError] = useState(null);
+  const [showLogForm, setShowLogForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    injection_date: new Date().toISOString().split('T')[0],
+    injection_site: 'abdomen',
+    location: 'in_clinic',
+    dose: '',
+    notes: ''
   });
 
-  // Check localStorage on mount
   useEffect(() => {
-    const storedAuth = localStorage.getItem('range_admin_auth');
-    if (storedAuth) {
-      setPassword(storedAuth);
-      setIsAuthenticated(true);
+    if (id) {
+      fetchProtocol(id);
     }
-    setAuthChecked(true);
-  }, []);
+  }, [id]);
 
-  // Set contact filter from URL
-  useEffect(() => {
-    if (contact) {
-      setContactFilter(contact);
-      setActiveTab('contact');
-    }
-  }, [contact]);
-
-  // Fetch data when authenticated
-  useEffect(() => {
-    if (isAuthenticated && password) {
-      fetchStats();
-      fetchMilestones();
-      fetchPeptideList();
-      if (contactFilter) {
-        fetchProtocolsByContact(contactFilter);
-      } else {
-        fetchProtocols(activeTab);
-      }
-    }
-  }, [isAuthenticated, activeTab, password, contactFilter]);
-
-  const fetchPeptideList = async () => {
+  const fetchProtocol = async (protocolId) => {
     try {
-      const res = await fetch('/api/admin/protocols?view=peptides', {
-        headers: { 'Authorization': `Bearer ${password}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPeptideList(data);
+      setLoading(true);
+      const response = await fetch(`/api/admin/protocol/${protocolId}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setProtocol(result.data.protocol);
+        setPatient(result.data.patient);
+        setInjections(result.data.injections || []);
+      } else {
+        setError(result.error || 'Protocol not found');
       }
     } catch (err) {
-      console.error('Failed to fetch peptides:', err);
+      setError('Failed to load protocol');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogin = async (e) => {
+  const handleLogInjection = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-    
-    // Test the password against the API
+    setSubmitting(true);
+
     try {
-      const res = await fetch('/api/admin/protocols?view=stats', {
-        headers: { 'Authorization': `Bearer ${password}` }
-      });
-      
-      if (res.ok) {
-        localStorage.setItem('range_admin_auth', password);
-        setIsAuthenticated(true);
-      } else {
-        setError('Invalid password');
-      }
-    } catch (err) {
-      setError('Connection error');
-    }
-    setLoading(false);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('range_admin_auth');
-    setIsAuthenticated(false);
-    setPassword('');
-  };
-
-  const fetchProtocols = async (view, search = '') => {
-    setLoading(true);
-    setError('');
-    try {
-      const url = search 
-        ? `/api/admin/protocols?view=search&search=${encodeURIComponent(search)}`
-        : `/api/admin/protocols?view=${view}`;
-      
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${password}` }
-      });
-      
-      if (res.status === 401) {
-        setIsAuthenticated(false);
-        localStorage.removeItem('range_admin_auth');
-        return;
-      }
-      
-      const data = await res.json();
-      if (res.ok) {
-        setProtocols(data);
-      } else {
-        setError(data.error || 'Failed to fetch');
-      }
-    } catch (err) {
-      setError('Network error');
-    }
-    setLoading(false);
-  };
-
-  const fetchStats = async () => {
-    try {
-      const res = await fetch('/api/admin/protocols?view=stats', {
-        headers: { 'Authorization': `Bearer ${password}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch stats:', err);
-    }
-  };
-
-  const fetchMilestones = async () => {
-    try {
-      const res = await fetch('/api/admin/protocols?view=milestones', {
-        headers: { 'Authorization': `Bearer ${password}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMilestones(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch milestones:', err);
-    }
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setContactFilter(null);
-      setActiveTab('search');
-      fetchProtocols('search', searchQuery);
-    }
-  };
-
-  const fetchProtocolsByContact = async (contactId) => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(`/api/admin/protocols?view=contact&contactId=${encodeURIComponent(contactId)}`, {
-        headers: { 'Authorization': `Bearer ${password}` }
-      });
-      
-      if (res.status === 401) {
-        setIsAuthenticated(false);
-        localStorage.removeItem('range_admin_auth');
-        return;
-      }
-      
-      const data = await res.json();
-      if (res.ok) {
-        setProtocols(data);
-      } else {
-        setError(data.error || 'Failed to fetch');
-      }
-    } catch (err) {
-      setError('Network error');
-    }
-    setLoading(false);
-  };
-
-  const clearContactFilter = () => {
-    setContactFilter(null);
-    setActiveTab('active');
-    router.push('/admin/protocols', undefined, { shallow: true });
-  };
-
-  // Edit modal handlers
-  const openEditModal = (protocol) => {
-    setEditingProtocol(protocol);
-    setEditForm({
-      goal: protocol.goal || '',
-      primary_peptide: protocol.primary_peptide || '',
-      secondary_peptide: protocol.secondary_peptide || '',
-      dose_amount: protocol.dose_amount || '',
-      dose_frequency: protocol.dose_frequency || '',
-      peptide_route: protocol.peptide_route || 'SC',
-      special_instructions: protocol.special_instructions || '',
-      status: protocol.status || 'active',
-      duration_days: protocol.duration_days || 30,
-      start_date: protocol.start_date || ''
-    });
-  };
-
-  const closeEditModal = () => {
-    setEditingProtocol(null);
-    setEditForm({
-      goal: '',
-      primary_peptide: '',
-      secondary_peptide: '',
-      dose_amount: '',
-      dose_frequency: '',
-      peptide_route: 'SC',
-      special_instructions: '',
-      status: 'active',
-      duration_days: 30,
-      start_date: ''
-    });
-  };
-
-  const handleEditChange = (field, value) => {
-    setEditForm(prev => {
-      const updated = { ...prev, [field]: value };
-      
-      // Auto-adjust duration based on frequency
-      if (field === 'dose_frequency') {
-        if (value === '5 days on / 2 days off') {
-          // 5 on / 2 off needs 28 days for 20 injections
-          updated.duration_days = 28;
-        } else if (value.includes('2x weekly') && !value.includes('monthly')) {
-          // HRT 2x weekly - suggest 12 weeks (84 days)
-          if (prev.duration_days < 70) {
-            updated.duration_days = 84;
-          }
-        } else if (value === '1x monthly') {
-          // Monthly IV - suggest 365 days (1 year)
-          updated.duration_days = 365;
-        } else if (value === '1x daily' || value === '2x daily' || 
-                   value === '1x daily (AM)' || value === '1x daily (PM)' || 
-                   value === '1x daily (bedtime)') {
-          // Daily frequencies use 30 days
-          if (prev.duration_days === 28 || prev.duration_days > 90) {
-            updated.duration_days = 30;
-          }
-        }
-      }
-      
-      // Auto-fill goal when primary peptide is selected
-      if (field === 'primary_peptide' && value) {
-        const selectedPeptide = peptideList.find(p => p.name === value);
-        if (selectedPeptide?.suggested_primary_goal && !prev.goal) {
-          // Only auto-fill if goal is not already set
-          updated.goal = selectedPeptide.suggested_primary_goal;
-        }
-        // Auto-set route based on peptide
-        if (selectedPeptide?.default_route) {
-          updated.peptide_route = selectedPeptide.default_route;
-        }
-        // Auto-set frequency based on peptide
-        if (selectedPeptide?.default_frequency && !prev.dose_frequency) {
-          updated.dose_frequency = selectedPeptide.default_frequency;
-        }
-      }
-      
-      return updated;
-    });
-  };
-
-  const saveProtocol = async () => {
-    if (!editingProtocol) return;
-    
-    setSaving(true);
-    setError('');
-    
-    try {
-      const res = await fetch('/api/admin/protocols', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${password}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id: editingProtocol.id,
-          ghl_contact_id: editingProtocol.ghl_contact_id,
-          ...editForm
-        })
-      });
-      
-      if (res.ok) {
-        // Refresh data
-        if (contactFilter) {
-          fetchProtocolsByContact(contactFilter);
-        } else {
-          fetchProtocols(activeTab);
-        }
-        fetchStats();
-        closeEditModal();
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Failed to save');
-      }
-    } catch (err) {
-      setError('Network error');
-    }
-    
-    setSaving(false);
-  };
-
-  // Group peptides by category for dropdown
-  const peptidesByCategory = peptideList.reduce((acc, p) => {
-    if (!acc[p.category]) acc[p.category] = [];
-    acc[p.category].push(p);
-    return acc;
-  }, {});
-
-  // Copy tracker link with welcome message to clipboard
-  const copyTrackerLink = (protocol) => {
-    const link = `https://rangemedical-system-2.vercel.app/track/${protocol.tracker_token}`;
-    const firstName = protocol.patient_name?.split(' ')[0] || '';
-    const peptide = protocol.primary_peptide || 'your peptide';
-    
-    const message = `Hi ${firstName}! This is Range Medical.
-
-Your ${peptide} is ready. Here is your injection tracker link:
-
-${link}
-
-Open it to see your schedule, dosing instructions, and peptide info. Tap each day when you do your injection.
-
-Questions? Text us anytime.
-(949) 997-3988`;
-
-    navigator.clipboard.writeText(message).then(() => {
-      alert('Welcome message copied! Paste into your text.');
-    }).catch(() => {
-      prompt('Copy this message:', message);
-    });
-  };
-
-  // Copy patient dashboard link (shows all protocols)
-  const copyDashboardLink = async (protocol) => {
-    try {
-      // Get or create patient dashboard token
-      const res = await fetch('/api/admin/protocols?view=dashboard_token', {
+      const response = await fetch('/api/admin/log-injection', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${password}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ghl_contact_id: protocol.ghl_contact_id,
-          patient_name: protocol.patient_name,
-          patient_email: protocol.patient_email,
-          patient_phone: protocol.patient_phone
+          patient_id: patient.id,
+          injection_type: `peptide_${protocol.id}`,
+          ...formData
         })
       });
-      
-      if (!res.ok) {
-        alert('Failed to get dashboard link');
-        return;
+
+      const result = await response.json();
+      if (result.success) {
+        setShowLogForm(false);
+        setFormData({
+          ...formData,
+          injection_date: new Date().toISOString().split('T')[0],
+          notes: '',
+          dose: ''
+        });
+        fetchProtocol(id);
+      } else {
+        alert('Error: ' + result.error);
       }
-      
-      const { token } = await res.json();
-      const link = `https://rangemedical-system-2.vercel.app/my/${token}`;
-      const firstName = protocol.patient_name?.split(' ')[0] || '';
-      
-      const message = `Hi ${firstName}! This is Range Medical.
-
-Here is your personal dashboard link:
-
-${link}
-
-You can view all your treatments, track your progress, and see upcoming appointments.
-
-Questions? Text us anytime.
-(949) 997-3988`;
-
-      navigator.clipboard.writeText(message).then(() => {
-        alert('Dashboard link copied! Paste into your text.');
-      }).catch(() => {
-        prompt('Copy this message:', message);
-      });
     } catch (err) {
-      console.error('Dashboard link error:', err);
-      alert('Failed to generate dashboard link');
+      alert('Error logging injection');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // Delete protocol
-  const deleteProtocol = async (protocolId, patientName) => {
-    const confirmed = window.confirm(`Are you sure you want to delete the protocol for ${patientName}?\n\nThis will also delete all injection logs for this protocol. This cannot be undone.`);
-    
-    if (!confirmed) return;
+  const handleStatusChange = async (newStatus) => {
+    if (!confirm(`Are you sure you want to mark this protocol as ${newStatus}?`)) return;
     
     try {
-      const res = await fetch('/api/admin/protocols', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${password}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ id: protocolId })
+      const response = await fetch(`/api/admin/protocol/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
       });
-      
-      if (res.ok) {
-        // Refresh data
-        if (contactFilter) {
-          fetchProtocolsByContact(contactFilter);
-        } else {
-          fetchProtocols(activeTab);
-        }
-        fetchStats();
+
+      const result = await response.json();
+      if (result.success) {
+        fetchProtocol(id);
       } else {
-        const data = await res.json();
-        setError(data.error || 'Failed to delete protocol');
+        alert('Error updating status');
       }
     } catch (err) {
-      setError('Network error while deleting');
+      alert('Error updating status');
     }
   };
 
-  // Calculate injection count based on duration and frequency
-  const getInjectionCount = (duration, frequency) => {
-    if (!duration || !frequency) return 0;
-    
-    if (frequency === '5 days on / 2 days off') {
-      // 5 injections per 7-day cycle
-      const fullWeeks = Math.floor(duration / 7);
-      const remainingDays = duration % 7;
-      return fullWeeks * 5 + Math.min(remainingDays, 5);
-    }
-    
-    if (frequency === '1x weekly') {
-      return Math.ceil(duration / 7);
-    }
-    
-    if (frequency.includes('2x weekly')) {
-      return Math.ceil(duration / 7) * 2;
-    }
-    
-    if (frequency.includes('3x weekly')) {
-      return Math.ceil(duration / 7) * 3;
-    }
-    
-    if (frequency === 'Every other day') {
-      return Math.ceil(duration / 2);
-    }
-    
-    if (frequency === '2x daily') {
-      return duration * 2;
-    }
-    
-    if (frequency === '1x monthly') {
-      return Math.ceil(duration / 30);
-    }
-    
-    if (frequency === 'As needed') {
-      return '-';
-    }
-    
-    // Default: 1x daily
-    return duration;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(amount || 0);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return '#10b981';
-      case 'completed': return '#6b7280';
-      case 'ready_refill': return '#f59e0b';
-      case 'pending': return '#3b82f6';
-      case 'cancelled': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
-
-  const getDaysRemainingColor = (days) => {
-    if (days <= 3) return '#ef4444';
-    if (days <= 7) return '#f59e0b';
-    return '#10b981';
-  };
-
-  const getGoalColor = (goal) => {
-    switch (goal) {
-      case 'recovery': return '#3b82f6';    // blue
-      case 'metabolic': return '#f59e0b';   // amber
-      case 'longevity': return '#8b5cf6';   // purple
-      case 'aesthetic': return '#ec4899';   // pink
-      default: return '#6b7280';
-    }
-  };
-
-  // Loading state while checking auth
-  if (!authChecked) {
+  if (loading) {
     return (
-      <div style={styles.loginContainer}>
-        <Head>
-          <title>Protocol Dashboard - Range Medical</title>
-        </Head>
-        <div style={styles.loginBox}>
-          <p>Loading...</p>
+      <PageWrapper>
+        <div style={styles.loading}>
+          <div style={styles.spinner}></div>
+          <p>Loading protocol...</p>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
-  // Login screen
-  if (!isAuthenticated) {
+  if (error || !protocol) {
     return (
-      <div style={styles.loginContainer}>
-        <Head>
-          <title>Protocol Dashboard - Range Medical</title>
-        </Head>
-        <div style={styles.loginBox}>
-          <h1 style={styles.loginTitle}>Range Medical</h1>
-          <p style={styles.loginSubtitle}>Protocol Dashboard</p>
-          {error && <p style={styles.loginError}>{error}</p>}
-          <form onSubmit={handleLogin}>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.loginInput}
-              disabled={loading}
-            />
-            <button type="submit" style={styles.loginButton} disabled={loading}>
-              {loading ? 'Checking...' : 'Login'}
-            </button>
-          </form>
+      <PageWrapper>
+        <div style={styles.errorState}>
+          <h2>Protocol Not Found</h2>
+          <p>{error}</p>
+          <button onClick={() => router.back()} style={styles.backBtn}>
+            ← Go Back
+          </button>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
-  // Main dashboard
+  const isActive = protocol.status === 'active';
+  const today = new Date();
+  const endDate = protocol.end_date ? new Date(protocol.end_date) : null;
+  const startDate = protocol.start_date ? new Date(protocol.start_date) : null;
+  const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : null;
+  const totalDays = protocol.duration_days || 30;
+  const daysElapsed = startDate ? Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)) : 0;
+  const progressPercent = Math.min(100, Math.max(0, (daysElapsed / totalDays) * 100));
+
   return (
-    <div style={styles.container}>
-      <Head>
-        <title>Protocol Dashboard - Range Medical</title>
-      </Head>
-
+    <PageWrapper>
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
-          <h1 style={styles.title}>Protocol Dashboard</h1>
-          <span style={styles.subtitle}>Range Medical</span>
+          <button onClick={() => router.back()} style={styles.backLink}>
+            ← Back to Patient
+          </button>
+          <h1 style={styles.protocolTitle}>{protocol.program_name}</h1>
+          <div style={styles.patientLink}>
+            Patient: <a href={`/admin/patient/${patient?.ghl_contact_id || patient?.id}`} style={styles.patientLinkText}>
+              {patient?.full_name || patient?.name}
+            </a>
+          </div>
         </div>
         <div style={styles.headerRight}>
-          <form onSubmit={handleSearch} style={styles.searchForm}>
-            <input
-              type="text"
-              placeholder="Search patient..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={styles.searchInput}
-            />
-            <button type="submit" style={styles.searchButton}>Search</button>
-          </form>
-          <button onClick={handleLogout} style={styles.logoutButton}>Logout</button>
+          <span style={{
+            ...styles.statusBadge,
+            backgroundColor: isActive ? '#dcfce7' : protocol.status === 'completed' ? '#f3f4f6' : '#fee2e2',
+            color: isActive ? '#166534' : protocol.status === 'completed' ? '#666' : '#991b1b'
+          }}>
+            {protocol.status}
+          </span>
         </div>
       </header>
 
-      {/* Stats Cards */}
-      <div style={styles.statsGrid}>
-        <div style={styles.statCard}>
-          <div style={styles.statNumber}>{stats.active}</div>
-          <div style={styles.statLabel}>Active Protocols</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={{...styles.statNumber, color: '#f59e0b'}}>{stats.readyForRefill}</div>
-          <div style={styles.statLabel}>Ready for Refill</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statNumber}>{stats.completed}</div>
-          <div style={styles.statLabel}>Completed</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={{...styles.statNumber, color: '#10b981'}}>{formatCurrency(stats.totalRevenue)}</div>
-          <div style={styles.statLabel}>Total Revenue</div>
-        </div>
-      </div>
-
-      {/* Today's Milestones - hide when viewing specific contact */}
-      {!contactFilter && milestones.length > 0 && (
-        <div style={styles.milestonesSection}>
-          <h2 style={styles.sectionTitle}>📋 Today's Tasks ({milestones.length})</h2>
-          <div style={styles.milestonesList}>
-            {milestones.map((m) => (
-              <div key={m.id} style={styles.milestoneItem}>
-                <strong>{m.protocol?.patient_name}</strong> — {m.milestone_name}
-                <span style={styles.milestoneMeta}>{m.protocol?.program_name}</span>
+      <main style={styles.main}>
+        <div style={styles.contentGrid}>
+          {/* Left Column - Protocol Info */}
+          <div style={styles.leftColumn}>
+            {/* Progress Card */}
+            <div style={styles.card}>
+              <h3 style={styles.cardTitle}>Protocol Progress</h3>
+              <div style={styles.progressSection}>
+                <div style={styles.progressBar}>
+                  <div style={{...styles.progressFill, width: `${progressPercent}%`}} />
+                </div>
+                <div style={styles.progressLabels}>
+                  <span>Day {Math.max(0, daysElapsed)} of {totalDays}</span>
+                  {daysLeft !== null && daysLeft > 0 && <span>{daysLeft} days remaining</span>}
+                  {daysLeft !== null && daysLeft <= 0 && <span style={{color: '#ef4444'}}>Protocol ended</span>}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              
+              <div style={styles.statsGrid}>
+                <div style={styles.statBox}>
+                  <div style={styles.statNumber}>{protocol.injections_completed || 0}</div>
+                  <div style={styles.statLabel}>Injections Logged</div>
+                </div>
+                <div style={styles.statBox}>
+                  <div style={styles.statNumber}>{totalDays}</div>
+                  <div style={styles.statLabel}>Total Days</div>
+                </div>
+              </div>
+            </div>
 
-      {/* Contact Filter Banner */}
-      {contactFilter && protocols.length > 0 && (
-        <div style={styles.contactBanner}>
-          <span>Viewing protocols for: <strong>{protocols[0]?.patient_name || 'Contact'}</strong></span>
-          <button onClick={clearContactFilter} style={styles.clearFilterButton}>
-            ✕ Clear Filter
-          </button>
-        </div>
-      )}
+            {/* Protocol Details Card */}
+            <div style={styles.card}>
+              <h3 style={styles.cardTitle}>Protocol Details</h3>
+              
+              <div style={styles.detailSection}>
+                <div style={styles.detailLabel}>Program</div>
+                <div style={styles.detailValue}>{protocol.program_name}</div>
+              </div>
 
-      {/* Tabs - hide when viewing specific contact */}
-      {!contactFilter && (
-        <div style={styles.tabs}>
-          {[
-            { id: 'active', label: 'Active', count: stats.active },
-            { id: 'ending-soon', label: 'Ending Soon' },
-            { id: 'refill', label: 'Ready for Refill', count: stats.readyForRefill },
-            { id: 'completed', label: 'Completed' },
-            { id: 'all', label: 'All' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}
-              style={{
-                ...styles.tab,
-                ...(activeTab === tab.id ? styles.tabActive : {})
-              }}
-            >
-              {tab.label}
-              {tab.count > 0 && <span style={styles.tabBadge}>{tab.count}</span>}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Error */}
-      {error && <div style={styles.error}>{error}</div>}
-
-      {/* Loading */}
-      {loading && <div style={styles.loading}>Loading...</div>}
-
-      {/* Protocols Table */}
-      {!loading && (
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Patient</th>
-                <th style={styles.th}>Program</th>
-                <th style={styles.th}>Goal</th>
-                <th style={styles.th}>Peptides</th>
-                <th style={styles.th}>Start</th>
-                <th style={styles.th}>End</th>
-                <th style={styles.th}>Progress</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Paid</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {protocols.length === 0 ? (
-                <tr>
-                  <td colSpan="10" style={styles.emptyState}>No protocols found</td>
-                </tr>
-              ) : (
-                protocols.map((p) => (
-                  <tr key={p.id} style={styles.tr}>
-                    <td style={styles.td}>
-                      <div style={styles.patientName}>{p.patient_name}</div>
-                      <div style={styles.patientEmail}>{p.patient_email}</div>
-                    </td>
-                    <td style={styles.td}>
-                      <div style={styles.programName}>{p.program_name}</div>
-                      <div style={styles.programType}>{p.duration_days} days</div>
-                    </td>
-                    <td style={styles.td}>
-                      {p.goal ? (
-                        <span style={{
-                          ...styles.goalBadge,
-                          backgroundColor: getGoalColor(p.goal)
-                        }}>
-                          {p.goal}
-                        </span>
-                      ) : (
-                        <span style={styles.notSet}>Not set</span>
-                      )}
-                    </td>
-                    <td style={styles.td}>
-                      <div>{p.primary_peptide || <span style={styles.notSet}>Not set</span>}</div>
-                      {p.secondary_peptide && (
-                        <div style={styles.secondaryPeptide}>{p.secondary_peptide}</div>
-                      )}
-                    </td>
-                    <td style={styles.td}>{formatDate(p.start_date)}</td>
-                    <td style={styles.td}>{formatDate(p.end_date)}</td>
-                    <td style={styles.td}>
-                      {p.status === 'active' ? (
-                        <div style={styles.progressCell}>
-                          <div style={styles.progressText}>
-                            {p.injections_completed || 0}/{p.duration_days}
-                          </div>
-                          <div style={styles.miniProgressBar}>
-                            <div style={{
-                              ...styles.miniProgressFill,
-                              width: `${Math.min(100, ((p.injections_completed || 0) / p.duration_days) * 100)}%`
-                            }} />
-                          </div>
-                          {p.days_remaining !== null && (
-                            <div style={styles.daysLeft}>{p.days_remaining}d left</div>
-                          )}
-                        </div>
-                      ) : '-'}
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{
-                        ...styles.statusBadge,
-                        backgroundColor: getStatusColor(p.status)
-                      }}>
-                        {p.status?.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td style={styles.td}>{formatCurrency(p.amount_paid)}</td>
-                    <td style={styles.td}>
-                      <div style={styles.actionButtons}>
-                        <button
-                          onClick={() => openEditModal(p)}
-                          style={styles.editButton}
-                        >
-                          Edit
-                        </button>
-                        {p.tracker_token && (
-                          <>
-                            <a
-                              href={`/track/${p.tracker_token}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={styles.viewButton}
-                              title="View patient tracker"
-                            >
-                              View
-                            </a>
-                            <button
-                              onClick={() => copyTrackerLink(p)}
-                              style={styles.trackerButton}
-                              title="Copy welcome text to send to patient"
-                            >
-                              📋
-                            </button>
-                            <button
-                              onClick={() => copyDashboardLink(p)}
-                              style={styles.dashboardButton}
-                              title="Copy patient dashboard link (all protocols)"
-                            >
-                              🏠
-                            </button>
-                          </>
-                        )}
-                        {p.ghl_contact_id && (
-                          <>
-                            <a
-                              href={`/admin/patient/lookup?ghl=${p.ghl_contact_id}`}
-                              style={styles.profileButton}
-                              title="View full patient profile"
-                            >
-                              👤
-                            </a>
-                            <a
-                              href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${p.ghl_contact_id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={styles.ghlLink}
-                            >
-                              GHL
-                            </a>
-                          </>
-                        )}
-                        <button
-                          onClick={() => deleteProtocol(p.id, p.patient_name)}
-                          style={styles.deleteButton}
-                          title="Delete protocol"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+              {protocol.program_type && (
+                <div style={styles.detailSection}>
+                  <div style={styles.detailLabel}>Type</div>
+                  <div style={styles.detailValue}>{protocol.program_type}</div>
+                </div>
               )}
-            </tbody>
-          </table>
-        </div>
-      )}
 
-      {/* Edit Protocol Modal */}
-      {editingProtocol && (
-        <div style={styles.modalOverlay} onClick={closeEditModal}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <h2 style={styles.modalTitle}>Edit Protocol</h2>
-              <button onClick={closeEditModal} style={styles.modalClose}>✕</button>
-            </div>
-            
-            <div style={styles.modalBody}>
-              <div style={styles.modalPatientInfo}>
-                <strong>{editingProtocol.patient_name}</strong>
-                <span>{editingProtocol.program_name}</span>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Goal *</label>
-                <select
-                  value={editForm.goal}
-                  onChange={(e) => handleEditChange('goal', e.target.value)}
-                  style={styles.select}
-                >
-                  <option value="">Select goal...</option>
-                  <option value="recovery">Recovery / Pain / Tissue Repair</option>
-                  <option value="weight_metabolic">Weight & Metabolic</option>
-                  <option value="brain_focus">Brain, Focus & Mood</option>
-                  <option value="longevity_immune">Longevity & Immune Protection</option>
-                  <option value="skin_aesthetic">Skin, Hair & Aesthetic</option>
-                  <option value="sexual_health">Sexual Health</option>
-                  <option value="sleep_stress">Sleep & Stress</option>
-                  <option value="hrt">Hormone Optimization (HRT)</option>
-                  <option value="iv_therapy">IV Therapy</option>
-                  <option value="specialty">Specialty / Other</option>
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Primary Peptide *</label>
-                <select
-                  value={editForm.primary_peptide}
-                  onChange={(e) => handleEditChange('primary_peptide', e.target.value)}
-                  style={styles.select}
-                >
-                  <option value="">Select peptide...</option>
-                  {Object.entries(peptidesByCategory).map(([category, peptides]) => (
-                    <optgroup key={category} label={category.replace('_', ' ').toUpperCase()}>
-                      {peptides.map((p) => (
-                        <option key={p.id} value={p.name}>{p.name}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Secondary Peptide (optional)</label>
-                <select
-                  value={editForm.secondary_peptide}
-                  onChange={(e) => handleEditChange('secondary_peptide', e.target.value)}
-                  style={styles.select}
-                >
-                  <option value="">None</option>
-                  {Object.entries(peptidesByCategory).map(([category, peptides]) => (
-                    <optgroup key={category} label={category.replace('_', ' ').toUpperCase()}>
-                      {peptides.map((p) => (
-                        <option key={p.id} value={p.name}>{p.name}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.formRow}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Dose</label>
-                  <input
-                    type="text"
-                    value={editForm.dose_amount}
-                    onChange={(e) => handleEditChange('dose_amount', e.target.value)}
-                    placeholder="e.g., 500mcg"
-                    style={styles.input}
-                  />
+              {(protocol.primary_peptide || protocol.secondary_peptide) && (
+                <div style={styles.detailSection}>
+                  <div style={styles.detailLabel}>Peptides</div>
+                  <div style={styles.detailValue}>
+                    {protocol.primary_peptide}
+                    {protocol.secondary_peptide && ` + ${protocol.secondary_peptide}`}
+                  </div>
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Frequency</label>
-                  <select
-                    value={editForm.dose_frequency}
-                    onChange={(e) => handleEditChange('dose_frequency', e.target.value)}
-                    style={styles.select}
-                  >
-                    <option value="">Select...</option>
-                    <optgroup label="Daily">
-                      <option value="1x daily">1x daily</option>
-                      <option value="2x daily">2x daily</option>
-                      <option value="1x daily (AM)">1x daily (AM)</option>
-                      <option value="1x daily (PM)">1x daily (PM)</option>
-                      <option value="1x daily (bedtime)">1x daily (bedtime)</option>
-                    </optgroup>
-                    <optgroup label="Weekly">
-                      <option value="2x weekly (Mon/Thu)">2x weekly (Mon/Thu) - HRT</option>
-                      <option value="2x weekly (Tue/Fri)">2x weekly (Tue/Fri)</option>
-                      <option value="2x weekly">2x weekly (any days)</option>
-                      <option value="3x weekly (Mon/Wed/Fri)">3x weekly (Mon/Wed/Fri)</option>
-                      <option value="3x weekly">3x weekly (any days)</option>
-                      <option value="1x weekly">1x weekly</option>
-                    </optgroup>
-                    <optgroup label="Other Patterns">
-                      <option value="5 days on / 2 days off">5 days on / 2 days off</option>
-                      <option value="Every other day">Every other day</option>
-                      <option value="1x monthly">1x monthly (IV/In-Clinic)</option>
-                      <option value="As needed">As needed</option>
-                    </optgroup>
-                  </select>
-                  {editForm.dose_frequency && (
-                    <div style={styles.injectionInfo}>
-                      {getInjectionCount(editForm.duration_days, editForm.dose_frequency)} {editForm.dose_frequency.includes('monthly') ? 'sessions' : 'injections'} over {editForm.duration_days} days
+              )}
+
+              <div style={styles.detailSection}>
+                <div style={styles.detailLabel}>Dose</div>
+                <div style={styles.detailValue}>{protocol.dose_amount || '-'}</div>
+              </div>
+
+              <div style={styles.detailSection}>
+                <div style={styles.detailLabel}>Frequency</div>
+                <div style={styles.detailValue}>{protocol.dose_frequency || '-'}</div>
+              </div>
+
+              <div style={styles.detailSection}>
+                <div style={styles.detailLabel}>Start Date</div>
+                <div style={styles.detailValue}>{formatDate(protocol.start_date)}</div>
+              </div>
+
+              <div style={styles.detailSection}>
+                <div style={styles.detailLabel}>End Date</div>
+                <div style={styles.detailValue}>{formatDate(protocol.end_date)}</div>
+              </div>
+
+              {protocol.goal && (
+                <div style={styles.detailSection}>
+                  <div style={styles.detailLabel}>Goal</div>
+                  <div style={styles.detailValue}>{protocol.goal}</div>
+                </div>
+              )}
+
+              {protocol.special_instructions && (
+                <div style={styles.detailSection}>
+                  <div style={styles.detailLabel}>Instructions</div>
+                  <div style={styles.instructionsBox}>{protocol.special_instructions}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions Card */}
+            <div style={styles.card}>
+              <h3 style={styles.cardTitle}>Actions</h3>
+              <div style={styles.actionsGrid}>
+                {isActive && (
+                  <button onClick={() => handleStatusChange('completed')} style={styles.completeBtn}>
+                    Mark as Completed
+                  </button>
+                )}
+                {protocol.status === 'completed' && (
+                  <button onClick={() => handleStatusChange('active')} style={styles.reactivateBtn}>
+                    Reactivate Protocol
+                  </button>
+                )}
+                {isActive && (
+                  <button onClick={() => handleStatusChange('cancelled')} style={styles.cancelBtn}>
+                    Cancel Protocol
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Injection Log */}
+          <div style={styles.rightColumn}>
+            <div style={styles.card}>
+              <div style={styles.cardHeader}>
+                <h3 style={styles.cardTitle}>Injection Log</h3>
+                {isActive && (
+                  <button onClick={() => setShowLogForm(!showLogForm)} style={styles.logBtn}>
+                    {showLogForm ? 'Cancel' : '+ Log Injection'}
+                  </button>
+                )}
+              </div>
+
+              {/* Log Form */}
+              {showLogForm && (
+                <form onSubmit={handleLogInjection} style={styles.logForm}>
+                  <div style={styles.formRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Date</label>
+                      <input
+                        type="date"
+                        value={formData.injection_date}
+                        onChange={e => setFormData({...formData, injection_date: e.target.value})}
+                        style={styles.input}
+                        required
+                      />
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Location</label>
+                      <select
+                        value={formData.location}
+                        onChange={e => setFormData({...formData, location: e.target.value})}
+                        style={styles.select}
+                      >
+                        <option value="in_clinic">In Clinic</option>
+                        <option value="take_home">Take Home</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={styles.formRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Injection Site</label>
+                      <select
+                        value={formData.injection_site}
+                        onChange={e => setFormData({...formData, injection_site: e.target.value})}
+                        style={styles.select}
+                      >
+                        <option value="abdomen">Abdomen</option>
+                        <option value="thigh">Thigh</option>
+                        <option value="glute">Glute</option>
+                        <option value="deltoid">Deltoid</option>
+                      </select>
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Dose (optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 0.5ml"
+                        value={formData.dose}
+                        onChange={e => setFormData({...formData, dose: e.target.value})}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Notes (optional)</label>
+                    <input
+                      type="text"
+                      placeholder="Any notes..."
+                      value={formData.notes}
+                      onChange={e => setFormData({...formData, notes: e.target.value})}
+                      style={styles.input}
+                    />
+                  </div>
+                  <button type="submit" style={styles.submitBtn} disabled={submitting}>
+                    {submitting ? 'Saving...' : 'Log Injection'}
+                  </button>
+                </form>
+              )}
 
-              <div style={styles.formRow}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Route</label>
-                  <select
-                    value={editForm.peptide_route}
-                    onChange={(e) => handleEditChange('peptide_route', e.target.value)}
-                    style={styles.select}
-                  >
-                    <option value="SC">SC (Subcutaneous)</option>
-                    <option value="IM">IM (Intramuscular)</option>
-                    <option value="IV">IV (Intravenous)</option>
-                    <option value="Intranasal">Intranasal</option>
-                    <option value="Oral">Oral</option>
-                    <option value="Topical">Topical</option>
-                  </select>
+              {/* Injection History */}
+              {injections.length > 0 ? (
+                <div style={styles.injectionList}>
+                  {injections.map((log, i) => (
+                    <div key={i} style={styles.injectionItem}>
+                      <div style={styles.injectionDate}>
+                        {formatDate(log.injection_date)}
+                      </div>
+                      <div style={styles.injectionDetails}>
+                        <span style={styles.injectionSite}>{log.injection_site}</span>
+                        <span style={{
+                          ...styles.locationBadge,
+                          backgroundColor: log.location === 'in_clinic' ? '#dcfce7' : '#e0e7ff',
+                          color: log.location === 'in_clinic' ? '#166534' : '#4338ca'
+                        }}>
+                          {log.location === 'in_clinic' ? 'In Clinic' : 'Take Home'}
+                        </span>
+                        {log.dose && <span style={styles.injectionDose}>{log.dose}</span>}
+                      </div>
+                      {log.notes && <div style={styles.injectionNotes}>{log.notes}</div>}
+                      <div style={styles.injectionMeta}>
+                        Logged by {log.logged_by || 'unknown'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Duration</label>
-                  <select
-                    value={editForm.duration_days}
-                    onChange={(e) => handleEditChange('duration_days', parseInt(e.target.value))}
-                    style={styles.select}
-                  >
-                    <optgroup label="Short Programs">
-                      <option value="10">10 days (Jumpstart)</option>
-                      <option value="28">28 days (4 weeks)</option>
-                      <option value="30">30 days (Month)</option>
-                    </optgroup>
-                    <optgroup label="HRT Cycles">
-                      <option value="70">70 days (10 weeks)</option>
-                      <option value="84">84 days (12 weeks)</option>
-                      <option value="90">90 days (3 months)</option>
-                    </optgroup>
-                    <optgroup label="Extended">
-                      <option value="180">180 days (6 months)</option>
-                      <option value="365">365 days (1 year)</option>
-                    </optgroup>
-                  </select>
+              ) : (
+                <div style={styles.emptyInjections}>
+                  <p>No injections logged yet</p>
+                  {isActive && <p style={styles.emptyHint}>Click "Log Injection" to record the first one</p>}
                 </div>
-              </div>
-
-              <div style={styles.formRow}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Status</label>
-                  <select
-                    value={editForm.status}
-                    onChange={(e) => handleEditChange('status', e.target.value)}
-                    style={styles.select}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="ready_refill">Ready for Refill</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Start Date</label>
-                  <input
-                    type="date"
-                    value={editForm.start_date || ''}
-                    onChange={(e) => handleEditChange('start_date', e.target.value)}
-                    style={styles.input}
-                  />
-                </div>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Special Instructions</label>
-                <textarea
-                  value={editForm.special_instructions}
-                  onChange={(e) => handleEditChange('special_instructions', e.target.value)}
-                  placeholder="Any special instructions for this protocol..."
-                  style={styles.textarea}
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div style={styles.modalFooter}>
-              <button onClick={closeEditModal} style={styles.cancelButton}>
-                Cancel
-              </button>
-              <button onClick={saveProtocol} style={styles.saveButton} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
+              )}
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </main>
+    </PageWrapper>
   );
 }
 
+// =====================================================
+// PAGE WRAPPER
+// =====================================================
+function PageWrapper({ children }) {
+  return (
+    <>
+      <Head>
+        <title>Protocol Detail | Range Medical</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </Head>
+      <div style={styles.page}>
+        {children}
+      </div>
+      <style jsx global>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        body { margin: 0; padding: 0; }
+      `}</style>
+    </>
+  );
+}
+
+// =====================================================
+// UTILITIES
+// =====================================================
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+// =====================================================
+// STYLES
+// =====================================================
 const styles = {
-  // Login
-  loginContainer: {
+  page: {
     minHeight: '100vh',
+    backgroundColor: '#fafafa',
+    fontFamily: 'Inter, -apple-system, sans-serif'
+  },
+  loading: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f3f4f6',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    height: '100vh',
+    color: '#666'
   },
-  loginBox: {
-    backgroundColor: 'white',
-    padding: '40px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+  spinner: {
+    width: '32px',
+    height: '32px',
+    border: '3px solid #e5e5e5',
+    borderTopColor: '#000',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    marginBottom: '16px'
+  },
+  errorState: {
     textAlign: 'center',
-    width: '100%',
-    maxWidth: '360px'
+    padding: '64px',
+    color: '#666'
   },
-  loginTitle: {
-    margin: '0 0 8px 0',
-    fontSize: '24px',
-    color: '#1a365d'
-  },
-  loginSubtitle: {
-    margin: '0 0 24px 0',
-    color: '#6b7280',
-    fontSize: '14px'
-  },
-  loginInput: {
-    width: '100%',
-    padding: '12px 16px',
-    fontSize: '16px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    marginBottom: '16px',
-    boxSizing: 'border-box'
-  },
-  loginButton: {
-    width: '100%',
-    padding: '12px',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: 'white',
-    backgroundColor: '#1a365d',
+  backBtn: {
+    padding: '10px 20px',
+    backgroundColor: '#000',
+    color: '#fff',
     border: 'none',
     borderRadius: '8px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    marginTop: '16px'
   },
-  loginError: {
-    color: '#dc2626',
-    backgroundColor: '#fee2e2',
-    padding: '10px',
-    borderRadius: '6px',
-    marginBottom: '16px',
-    fontSize: '14px'
-  },
-
-  // Main container
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#f9fafb',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    padding: '24px'
-  },
-
+  
   // Header
   header: {
+    backgroundColor: '#fff',
+    borderBottom: '1px solid #e5e5e5',
+    padding: '24px 32px',
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
-    gap: '16px'
+    alignItems: 'flex-start'
   },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: '12px'
-  },
+  headerLeft: {},
   headerRight: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px'
   },
-  title: {
-    margin: 0,
-    fontSize: '28px',
-    color: '#1a365d'
-  },
-  subtitle: {
-    color: '#6b7280',
-    fontSize: '14px'
-  },
-  searchForm: {
-    display: 'flex',
-    gap: '8px'
-  },
-  searchInput: {
-    padding: '8px 12px',
-    fontSize: '14px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    width: '200px'
-  },
-  searchButton: {
-    padding: '8px 16px',
-    fontSize: '14px',
-    backgroundColor: '#1a365d',
-    color: 'white',
+  backLink: {
+    background: 'none',
     border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer'
-  },
-  logoutButton: {
-    padding: '8px 16px',
+    color: '#666',
     fontSize: '14px',
-    backgroundColor: 'transparent',
-    color: '#6b7280',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    padding: 0,
+    marginBottom: '8px',
+    display: 'block'
   },
-
-  // Stats
-  statsGrid: {
+  protocolTitle: {
+    fontSize: '24px',
+    fontWeight: '600',
+    margin: 0,
+    color: '#000'
+  },
+  patientLink: {
+    fontSize: '14px',
+    color: '#666',
+    marginTop: '4px'
+  },
+  patientLinkText: {
+    color: '#000',
+    fontWeight: '500',
+    textDecoration: 'none'
+  },
+  statusBadge: {
+    padding: '6px 14px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+    textTransform: 'uppercase'
+  },
+  
+  // Main Content
+  main: {
+    padding: '32px',
+    maxWidth: '1200px',
+    margin: '0 auto'
+  },
+  contentGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '16px',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '24px'
+  },
+  leftColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px'
+  },
+  rightColumn: {},
+  
+  // Cards
+  card: {
+    backgroundColor: '#fff',
+    border: '1px solid #e5e5e5',
+    borderRadius: '12px',
+    padding: '24px'
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px'
+  },
+  cardTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    margin: '0 0 20px 0',
+    color: '#000'
+  },
+  
+  // Progress Section
+  progressSection: {
     marginBottom: '24px'
   },
-  statCard: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  progressBar: {
+    height: '8px',
+    backgroundColor: '#f0f0f0',
+    borderRadius: '4px',
+    overflow: 'hidden',
+    marginBottom: '8px'
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#000',
+    borderRadius: '4px',
+    transition: 'width 0.3s ease'
+  },
+  progressLabels: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '13px',
+    color: '#666'
+  },
+  
+  // Stats Grid
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px'
+  },
+  statBox: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: '8px',
+    padding: '16px',
+    textAlign: 'center'
   },
   statNumber: {
     fontSize: '32px',
     fontWeight: '700',
-    color: '#1a365d',
-    marginBottom: '4px'
+    color: '#000'
   },
   statLabel: {
+    fontSize: '12px',
+    color: '#666',
+    marginTop: '4px'
+  },
+  
+  // Detail Sections
+  detailSection: {
+    marginBottom: '16px'
+  },
+  detailLabel: {
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: '4px',
+    textTransform: 'uppercase'
+  },
+  detailValue: {
     fontSize: '14px',
-    color: '#6b7280'
+    color: '#000'
   },
-
-  // Milestones
-  milestonesSection: {
-    backgroundColor: '#fef3c7',
-    padding: '16px 20px',
-    borderRadius: '12px',
-    marginBottom: '24px'
+  instructionsBox: {
+    fontSize: '14px',
+    color: '#374151',
+    backgroundColor: '#f9f9f9',
+    padding: '12px',
+    borderRadius: '6px'
   },
-  sectionTitle: {
-    margin: '0 0 12px 0',
-    fontSize: '16px',
-    color: '#92400e'
-  },
-  milestonesList: {
+  
+  // Actions
+  actionsGrid: {
     display: 'flex',
     flexDirection: 'column',
     gap: '8px'
   },
-  milestoneItem: {
-    fontSize: '14px',
-    color: '#78350f'
-  },
-  milestoneMeta: {
-    marginLeft: '8px',
-    color: '#a16207',
-    fontSize: '12px'
-  },
-
-  // Tabs
-  tabs: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '20px',
-    flexWrap: 'wrap'
-  },
-  contactBanner: {
-    backgroundColor: '#dbeafe',
-    color: '#1e40af',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    marginBottom: '16px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  clearFilterButton: {
-    backgroundColor: 'transparent',
-    color: '#1e40af',
-    border: '1px solid #1e40af',
-    padding: '6px 12px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px'
-  },
-  tab: {
-    padding: '10px 20px',
-    fontSize: '14px',
-    fontWeight: '500',
-    backgroundColor: 'white',
-    color: '#4b5563',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  tabActive: {
-    backgroundColor: '#1a365d',
-    color: 'white',
-    borderColor: '#1a365d'
-  },
-  tabBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: '2px 8px',
-    borderRadius: '10px',
-    fontSize: '12px'
-  },
-
-  // Table
-  tableContainer: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    overflow: 'auto'
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '14px'
-  },
-  th: {
-    textAlign: 'left',
-    padding: '14px 16px',
-    borderBottom: '2px solid #e5e7eb',
-    color: '#6b7280',
-    fontWeight: '600',
-    fontSize: '12px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
-  },
-  tr: {
-    borderBottom: '1px solid #f3f4f6'
-  },
-  td: {
-    padding: '14px 16px',
-    verticalAlign: 'top'
-  },
-  patientName: {
-    fontWeight: '600',
-    color: '#111827'
-  },
-  patientEmail: {
-    fontSize: '12px',
-    color: '#6b7280'
-  },
-  programName: {
-    color: '#111827'
-  },
-  programType: {
-    fontSize: '12px',
-    color: '#6b7280'
-  },
-  secondaryPeptide: {
-    fontSize: '12px',
-    color: '#6b7280'
-  },
-  daysRemaining: {
-    display: 'inline-block',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    color: 'white',
-    fontWeight: '600',
-    fontSize: '13px'
-  },
-  statusBadge: {
-    display: 'inline-block',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    color: 'white',
-    fontWeight: '500',
-    fontSize: '12px',
-    textTransform: 'capitalize'
-  },
-  goalBadge: {
-    display: 'inline-block',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    color: 'white',
-    fontWeight: '500',
-    fontSize: '11px',
-    textTransform: 'capitalize'
-  },
-  emptyState: {
-    padding: '40px',
-    textAlign: 'center',
-    color: '#6b7280'
-  },
-  viewButton: {
-    backgroundColor: '#000000',
-    color: '#ffffff',
-    border: 'none',
-    padding: '6px 12px',
-    borderRadius: '4px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    display: 'inline-block'
-  },
-  trackerButton: {
-    backgroundColor: '#f0fdf4',
-    color: '#166534',
-    border: '1px solid #86efac',
-    padding: '6px 10px',
-    borderRadius: '4px',
-    fontSize: '14px',
-    cursor: 'pointer'
-  },
-  dashboardButton: {
-    backgroundColor: '#eff6ff',
-    color: '#1d4ed8',
-    border: '1px solid #93c5fd',
-    padding: '6px 10px',
-    borderRadius: '4px',
-    fontSize: '14px',
-    cursor: 'pointer'
-  },
-  progressCell: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '4px'
-  },
-  progressText: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#1a365d'
-  },
-  miniProgressBar: {
-    width: '60px',
-    height: '6px',
-    backgroundColor: '#e2e8f0',
-    borderRadius: '3px',
-    overflow: 'hidden'
-  },
-  miniProgressFill: {
-    height: '100%',
-    backgroundColor: '#10b981',
-    borderRadius: '3px',
-    transition: 'width 0.3s ease'
-  },
-  daysLeft: {
-    fontSize: '10px',
-    color: '#64748b'
-  },
-  ghlLink: {
-    color: '#3b82f6',
-    textDecoration: 'none',
-    fontSize: '12px',
-    fontWeight: '500',
-    padding: '4px 8px',
-    border: '1px solid #3b82f6',
-    borderRadius: '4px'
-  },
-  profileButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '28px',
-    height: '28px',
-    borderRadius: '6px',
-    backgroundColor: '#8b5cf6',
+  completeBtn: {
+    padding: '10px 16px',
+    backgroundColor: '#166534',
     color: '#fff',
-    textDecoration: 'none',
+    border: 'none',
+    borderRadius: '6px',
     fontSize: '14px',
-    border: 'none',
-    cursor: 'pointer'
-  },
-  notSet: {
-    color: '#9ca3af',
-    fontStyle: 'italic',
-    fontSize: '13px'
-  },
-  doseFrequency: {
-    fontSize: '12px',
-    color: '#6b7280'
-  },
-  actionButtons: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center'
-  },
-  editButton: {
-    backgroundColor: '#1a365d',
-    color: 'white',
-    border: 'none',
-    padding: '6px 12px',
-    borderRadius: '4px',
-    fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer'
   },
-  deleteButton: {
-    backgroundColor: 'transparent',
-    border: '1px solid #e5e7eb',
-    padding: '6px 10px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    cursor: 'pointer',
-    opacity: 0.6,
-    transition: 'opacity 0.2s'
-  },
-
-  // Modal styles
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000
-  },
-  modal: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '500px',
-    maxHeight: '90vh',
-    overflow: 'auto',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '20px 24px',
-    borderBottom: '1px solid #e5e7eb'
-  },
-  modalTitle: {
-    margin: 0,
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1a365d'
-  },
-  modalClose: {
-    background: 'none',
+  reactivateBtn: {
+    padding: '10px 16px',
+    backgroundColor: '#000',
+    color: '#fff',
     border: 'none',
-    fontSize: '20px',
-    color: '#6b7280',
-    cursor: 'pointer',
-    padding: '4px'
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
   },
-  modalBody: {
-    padding: '24px'
+  cancelBtn: {
+    padding: '10px 16px',
+    backgroundColor: '#fff',
+    color: '#991b1b',
+    border: '1px solid #fee2e2',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
   },
-  modalPatientInfo: {
-    backgroundColor: '#f3f4f6',
-    padding: '12px 16px',
+  
+  // Log Button
+  logBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  
+  // Log Form
+  logForm: {
+    backgroundColor: '#f9f9f9',
     borderRadius: '8px',
-    marginBottom: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
-  modalFooter: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '12px',
-    padding: '16px 24px',
-    borderTop: '1px solid #e5e7eb',
-    backgroundColor: '#f9fafb'
-  },
-  formGroup: {
-    marginBottom: '16px',
-    flex: 1
+    padding: '16px',
+    marginBottom: '20px'
   },
   formRow: {
-    display: 'flex',
-    gap: '16px'
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+    marginBottom: '12px'
+  },
+  formGroup: {
+    marginBottom: '12px'
   },
   label: {
     display: 'block',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: '500',
-    color: '#374151',
-    marginBottom: '6px'
+    marginBottom: '6px',
+    color: '#374151'
   },
   input: {
     width: '100%',
-    padding: '10px 12px',
-    fontSize: '14px',
-    border: '1px solid #d1d5db',
+    padding: '8px 12px',
+    border: '1px solid #e5e5e5',
     borderRadius: '6px',
+    fontSize: '14px',
+    outline: 'none',
     boxSizing: 'border-box'
   },
   select: {
     width: '100%',
-    padding: '10px 12px',
-    fontSize: '14px',
-    border: '1px solid #d1d5db',
+    padding: '8px 12px',
+    border: '1px solid #e5e5e5',
     borderRadius: '6px',
+    fontSize: '14px',
+    outline: 'none',
     boxSizing: 'border-box',
-    backgroundColor: 'white'
+    backgroundColor: '#fff'
   },
-  injectionInfo: {
-    marginTop: '6px',
-    fontSize: '13px',
-    color: '#10b981',
-    fontWeight: '500'
-  },
-  textarea: {
+  submitBtn: {
     width: '100%',
-    padding: '10px 12px',
-    fontSize: '14px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    boxSizing: 'border-box',
-    resize: 'vertical',
-    fontFamily: 'inherit'
-  },
-  cancelButton: {
-    padding: '10px 20px',
-    fontSize: '14px',
-    fontWeight: '500',
-    backgroundColor: 'white',
-    color: '#374151',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer'
-  },
-  saveButton: {
-    padding: '10px 20px',
-    fontSize: '14px',
-    fontWeight: '500',
-    backgroundColor: '#1a365d',
-    color: 'white',
+    padding: '10px',
+    backgroundColor: '#000',
+    color: '#fff',
     border: 'none',
     borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
     cursor: 'pointer'
   },
-  error: {
-    backgroundColor: '#fee2e2',
-    color: '#dc2626',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    marginBottom: '16px'
+  
+  // Injection List
+  injectionList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
   },
-  loading: {
+  injectionItem: {
+    padding: '12px',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '8px'
+  },
+  injectionDate: {
+    fontSize: '14px',
+    fontWeight: '600',
+    marginBottom: '6px'
+  },
+  injectionDetails: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    flexWrap: 'wrap'
+  },
+  injectionSite: {
+    fontSize: '13px',
+    color: '#374151',
+    textTransform: 'capitalize'
+  },
+  locationBadge: {
+    padding: '2px 8px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600'
+  },
+  injectionDose: {
+    fontSize: '13px',
+    color: '#666'
+  },
+  injectionNotes: {
+    fontSize: '13px',
+    color: '#666',
+    marginTop: '6px',
+    fontStyle: 'italic'
+  },
+  injectionMeta: {
+    fontSize: '11px',
+    color: '#999',
+    marginTop: '6px'
+  },
+  
+  // Empty State
+  emptyInjections: {
     textAlign: 'center',
-    padding: '40px',
-    color: '#6b7280'
+    padding: '32px',
+    color: '#666'
+  },
+  emptyHint: {
+    fontSize: '13px',
+    color: '#999',
+    marginTop: '8px'
   }
 };

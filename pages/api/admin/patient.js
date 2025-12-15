@@ -57,7 +57,64 @@ export default async function handler(req, res) {
       }
     }
     
-    // If no patient found by ID, try email/phone
+    // If looking up by ghl_contact_id, first get the email/phone from protocols
+    if (!patient && ghl_contact_id) {
+      const { data: protocol } = await supabase
+        .from('protocols')
+        .select('patient_name, patient_email, patient_phone')
+        .eq('ghl_contact_id', ghl_contact_id)
+        .limit(1)
+        .single();
+      
+      if (protocol) {
+        // Try to find real patient by email
+        if (protocol.patient_email) {
+          const { data: foundPatient } = await supabase
+            .from('patients')
+            .select('*')
+            .ilike('email', protocol.patient_email)
+            .limit(1)
+            .single();
+          
+          if (foundPatient) {
+            patient = foundPatient;
+            patientId = foundPatient.id;
+          }
+        }
+        
+        // If not found by email, try phone
+        if (!patient && protocol.patient_phone) {
+          const cleanPhone = protocol.patient_phone.replace(/\D/g, '').slice(-10);
+          const { data: foundPatient } = await supabase
+            .from('patients')
+            .select('*')
+            .or(`phone.ilike.%${cleanPhone}%`)
+            .limit(1)
+            .single();
+          
+          if (foundPatient) {
+            patient = foundPatient;
+            patientId = foundPatient.id;
+          }
+        }
+        
+        // If still no patient, create shell with protocol info
+        if (!patient) {
+          patient = {
+            id: null,
+            name: protocol.patient_name,
+            email: protocol.patient_email,
+            phone: protocol.patient_phone,
+            ghl_contact_id: ghl_contact_id
+          };
+        } else {
+          // Add ghl_contact_id to found patient
+          patient.ghl_contact_id = ghl_contact_id;
+        }
+      }
+    }
+    
+    // If no patient found by ID or ghl, try email/phone directly
     if (!patient && (email || phone)) {
       let query = supabase.from('patients').select('*');
       
@@ -74,27 +131,6 @@ export default async function handler(req, res) {
       if (!error && data) {
         patient = data;
         patientId = data.id;
-      }
-    }
-
-    // If still no patient, create a shell from protocols/purchases data
-    if (!patient && ghl_contact_id) {
-      // Try to find from protocols
-      const { data: protocol } = await supabase
-        .from('protocols')
-        .select('patient_name, patient_email, patient_phone')
-        .eq('ghl_contact_id', ghl_contact_id)
-        .limit(1)
-        .single();
-      
-      if (protocol) {
-        patient = {
-          id: null,
-          name: protocol.patient_name,
-          email: protocol.patient_email,
-          phone: protocol.patient_phone,
-          ghl_contact_id: ghl_contact_id
-        };
       }
     }
 

@@ -940,8 +940,8 @@ export default function PatientProfile() {
                         <td style={styles.td}>{formatDate(p.start_date)}</td>
                         <td style={styles.td}>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            {p.tracker_token && (
-                              <a href={`/track/${p.tracker_token}`} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
+                            {(p.tracker_token || p.access_token) && (
+                              <a href={`/track/${p.tracker_token || p.access_token}`} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
                                 View
                               </a>
                             )}

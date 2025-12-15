@@ -126,6 +126,8 @@ export default async function handler(req, res) {
           id: p.id,
           protocol_name: p.program_name, // alias for frontend
           program_name: p.program_name,
+          primary_peptide: p.primary_peptide,
+          secondary_peptide: p.secondary_peptide,
           status: p.status,
           dose: p.dose_amount,
           dose_amount: p.dose_amount,
@@ -136,7 +138,9 @@ export default async function handler(req, res) {
           days_remaining: daysRemaining,
           start_date: p.start_date,
           end_date: p.end_date,
-          next_refill_date: p.next_refill_date
+          next_refill_date: p.next_refill_date,
+          special_instructions: p.special_instructions,
+          injections_completed: p.injections_completed || 0
         };
       });
     }

@@ -124,12 +124,17 @@ export default async function handler(req, res) {
         }
         return {
           id: p.id,
-          protocol_name: p.program_name,
+          protocol_name: p.program_name, // alias for frontend
+          program_name: p.program_name,
           status: p.status,
           dose: p.dose_amount,
+          dose_amount: p.dose_amount,
           frequency: p.dose_frequency,
+          dose_frequency: p.dose_frequency,
+          duration_days: p.duration_days,
           injection_location: p.injection_location,
           days_remaining: daysRemaining,
+          start_date: p.start_date,
           end_date: p.end_date,
           next_refill_date: p.next_refill_date
         };

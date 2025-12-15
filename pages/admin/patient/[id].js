@@ -876,8 +876,8 @@ export default function PatientProfile() {
                 <table style={styles.table}>
                   <thead>
                     <tr>
-                      <th style={styles.th}>Document</th>
                       <th style={styles.th}>Type</th>
+                      <th style={styles.th}>Patient</th>
                       <th style={styles.th}>Signed</th>
                       <th style={styles.th}>Actions</th>
                     </tr>
@@ -885,15 +885,31 @@ export default function PatientProfile() {
                   <tbody>
                     {consents.map(c => (
                       <tr key={c.id}>
-                        <td style={styles.td}>{c.document_name || 'Consent Form'}</td>
-                        <td style={styles.td}>{c.document_type || '-'}</td>
-                        <td style={styles.td}>{formatDate(c.uploaded_at)}</td>
                         <td style={styles.td}>
-                          {c.document_url && (
-                            <a href={c.document_url} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
-                              View
-                            </a>
-                          )}
+                          <span style={{
+                            ...styles.statusBadge,
+                            backgroundColor: '#dbeafe',
+                            color: '#1e40af',
+                            textTransform: 'capitalize'
+                          }}>
+                            {(c.consent_type || 'consent').replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td style={styles.td}>{c.first_name} {c.last_name}</td>
+                        <td style={styles.td}>{formatDate(c.consent_date || c.submitted_at)}</td>
+                        <td style={styles.td}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {c.pdf_url && (
+                              <a href={c.pdf_url} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
+                                View PDF
+                              </a>
+                            )}
+                            {c.signature_url && (
+                              <a href={c.signature_url} target="_blank" rel="noopener noreferrer" style={{...styles.linkButton, backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #86efac'}}>
+                                Signature
+                              </a>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -184,11 +184,12 @@ async function getNeedsAttention() {
 // Get all patients with summary info
 // =====================================================
 async function getPatientsSummary() {
-  // Get patients
+  // Get patients (only those with GHL contact ID)
   const { data: patients, error } = await supabase
     .from('patients')
     .select('*')
     .eq('status', 'active')
+    .not('ghl_contact_id', 'is', null)
     .order('full_name');
 
   if (error) throw error;
@@ -197,6 +198,7 @@ async function getPatientsSummary() {
   const { data: hrtMemberships } = await supabase
     .from('hrt_memberships')
     .select(`
+      id,
       patient_id,
       ghl_contact_id,
       status,
@@ -227,10 +229,12 @@ async function getPatientsSummary() {
     .select('patient_id, ghl_contact_id')
     .eq('status', 'active');
 
-  // Create lookup maps
+  // Create lookup maps - use patient_id as key
   const hrtMap = new Map();
   for (const hrt of hrtMemberships || []) {
-    hrtMap.set(hrt.ghl_contact_id, hrt);
+    if (hrt.patient_id) {
+      hrtMap.set(hrt.patient_id, hrt);
+    }
   }
 
   const periodMap = new Map();
@@ -240,21 +244,25 @@ async function getPatientsSummary() {
 
   const wlMap = new Map();
   for (const wl of weightLoss || []) {
-    wlMap.set(wl.ghl_contact_id, wl);
+    if (wl.patient_id) {
+      wlMap.set(wl.patient_id, wl);
+    }
   }
 
   const protocolMap = new Map();
   for (const p of protocolCounts || []) {
-    const count = protocolMap.get(p.ghl_contact_id) || 0;
-    protocolMap.set(p.ghl_contact_id, count + 1);
+    if (p.patient_id) {
+      const count = protocolMap.get(p.patient_id) || 0;
+      protocolMap.set(p.patient_id, count + 1);
+    }
   }
 
-  // Enrich patients
+  // Enrich patients - use patient.id for lookups
   return patients.map(patient => {
-    const hrt = hrtMap.get(patient.ghl_contact_id);
+    const hrt = hrtMap.get(patient.id);
     const period = hrt ? periodMap.get(hrt.id) : null;
-    const wl = wlMap.get(patient.ghl_contact_id);
-    const protocolCount = protocolMap.get(patient.ghl_contact_id) || 0;
+    const wl = wlMap.get(patient.id);
+    const protocolCount = protocolMap.get(patient.id) || 0;
 
     let ivDaysLeft = null;
     if (period && !period.iv_used) {

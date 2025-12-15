@@ -179,6 +179,55 @@ async function handleDelete(req, res) {
   }
 }
 
+// Handle POST request to get/create dashboard token
+async function handleDashboardToken(req, res) {
+  const { ghl_contact_id, patient_name, patient_email, patient_phone } = req.body;
+
+  if (!ghl_contact_id) {
+    return res.status(400).json({ error: 'Contact ID required' });
+  }
+
+  try {
+    // Check if token already exists
+    const { data: existing } = await supabase
+      .from('patient_access_tokens')
+      .select('token')
+      .eq('ghl_contact_id', ghl_contact_id)
+      .single();
+
+    if (existing) {
+      return res.status(200).json({ token: existing.token });
+    }
+
+    // Create new token
+    const token = Math.random().toString(36).substring(2, 10) + 
+                  Math.random().toString(36).substring(2, 10);
+
+    const { data: newToken, error } = await supabase
+      .from('patient_access_tokens')
+      .insert({
+        token,
+        ghl_contact_id,
+        patient_name,
+        patient_email,
+        patient_phone
+      })
+      .select('token')
+      .single();
+
+    if (error) {
+      console.error('Token creation error:', error);
+      return res.status(500).json({ error: 'Failed to create token' });
+    }
+
+    return res.status(200).json({ token: newToken.token });
+
+  } catch (error) {
+    console.error('Dashboard token error:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}
+
 export default async function handler(req, res) {
   // Simple auth check
   const authHeader = req.headers.authorization;
@@ -196,6 +245,15 @@ export default async function handler(req, res) {
   // Handle DELETE for removing protocols
   if (req.method === 'DELETE') {
     return handleDelete(req, res);
+  }
+
+  // Handle POST for dashboard token
+  if (req.method === 'POST') {
+    const { view } = req.query;
+    if (view === 'dashboard_token') {
+      return handleDashboardToken(req, res);
+    }
+    return res.status(400).json({ error: 'Invalid POST request' });
   }
 
   if (req.method !== 'GET') {

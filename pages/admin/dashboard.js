@@ -77,11 +77,13 @@ export default function StaffDashboard() {
               active={activeTab === 'hrt'} 
               onClick={() => setActiveTab('hrt')}
               label="HRT Members"
+              count={data.patients?.filter(p => p.hrt_status === 'active').length || 0}
             />
             <NavItem 
               active={activeTab === 'weightloss'} 
               onClick={() => setActiveTab('weightloss')}
               label="Weight Loss"
+              count={data.patients?.filter(p => p.weight_loss_status === 'active').length || 0}
             />
             <NavItem 
               active={activeTab === 'sessions'} 
@@ -92,6 +94,7 @@ export default function StaffDashboard() {
               active={activeTab === 'protocols'} 
               onClick={() => setActiveTab('protocols')}
               label="Peptide Protocols"
+              count={data.patients?.filter(p => p.active_protocols > 0).length || 0}
             />
           </nav>
         </aside>
@@ -141,6 +144,12 @@ export default function StaffDashboard() {
               <AttentionList items={data.needsAttention} />
             ) : activeTab === 'patients' ? (
               <PatientList patients={filteredPatients} />
+            ) : activeTab === 'hrt' ? (
+              <PatientList patients={filteredPatients.filter(p => p.hrt_status === 'active')} />
+            ) : activeTab === 'protocols' ? (
+              <PatientList patients={filteredPatients.filter(p => p.active_protocols > 0)} />
+            ) : activeTab === 'weightloss' ? (
+              <PatientList patients={filteredPatients.filter(p => p.weight_loss_status === 'active')} />
             ) : (
               <ComingSoon tab={activeTab} />
             )}
@@ -319,12 +328,20 @@ function PatientList({ patients }) {
               )}
             </td>
             <td style={styles.td}>
-              <button 
-                onClick={() => window.location.href = `/admin/patient/${patient.ghl_contact_id}`}
-                style={styles.viewBtn}
-              >
-                View
-              </button>
+              <div style={styles.actionBtns}>
+                <button 
+                  onClick={() => window.location.href = `/admin/patient/${patient.ghl_contact_id}`}
+                  style={styles.viewBtn}
+                >
+                  View
+                </button>
+                <button 
+                  onClick={() => window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${patient.ghl_contact_id}`, '_blank')}
+                  style={styles.ghlBtnSmall}
+                >
+                  GHL
+                </button>
+              </div>
             </td>
           </tr>
         ))}
@@ -615,12 +632,26 @@ const styles = {
   },
   viewBtn: {
     padding: '6px 14px',
-    backgroundColor: '#fff',
-    color: '#000',
-    border: '1px solid #e5e5e5',
+    backgroundColor: '#000',
+    color: '#fff',
+    border: 'none',
     borderRadius: '6px',
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer'
+  },
+  ghlBtnSmall: {
+    padding: '6px 10px',
+    backgroundColor: '#fff',
+    color: '#666',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  actionBtns: {
+    display: 'flex',
+    gap: '6px'
   }
 };

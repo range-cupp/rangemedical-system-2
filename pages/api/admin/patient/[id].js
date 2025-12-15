@@ -64,7 +64,8 @@ export default async function handler(req, res) {
       city: patient.city,
       state: patient.state,
       zip: patient.zip_code || patient.zip,
-      status: patient.status
+      status: patient.status,
+      login_token: patient.login_token
     };
 
     // =====================================================

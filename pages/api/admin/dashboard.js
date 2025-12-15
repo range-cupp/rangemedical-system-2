@@ -184,12 +184,11 @@ async function getNeedsAttention() {
 // Get all patients with summary info
 // =====================================================
 async function getPatientsSummary() {
-  // Get patients (only those with GHL contact ID)
+  // Get all active patients
   const { data: patients, error } = await supabase
     .from('patients')
     .select('*')
     .eq('status', 'active')
-    .not('ghl_contact_id', 'is', null)
     .order('full_name');
 
   if (error) throw error;

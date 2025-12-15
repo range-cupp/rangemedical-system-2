@@ -13,6 +13,7 @@ export default function PatientDashboard() {
   const [saving, setSaving] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedCompleted, setExpandedCompleted] = useState({});
+  const [showPurchases, setShowPurchases] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -660,6 +661,47 @@ export default function PatientDashboard() {
       gap: '8px',
       width: '100%',
       marginTop: '8px'
+    },
+    purchaseList: {
+      backgroundColor: '#fff',
+      borderRadius: '12px',
+      border: '1px solid #e5e5e5',
+      overflow: 'hidden'
+    },
+    purchaseItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: '14px 16px',
+      borderBottom: '1px solid #f0f0f0',
+      gap: '12px'
+    },
+    purchaseIcon: {
+      fontSize: '20px',
+      width: '36px',
+      height: '36px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#f5f5f5',
+      borderRadius: '8px'
+    },
+    purchaseDetails: {
+      flex: 1
+    },
+    purchaseItemName: {
+      fontSize: '14px',
+      fontWeight: '500',
+      color: '#000',
+      marginBottom: '2px'
+    },
+    purchaseMeta: {
+      fontSize: '12px',
+      color: '#888'
+    },
+    purchaseAmount: {
+      fontSize: '14px',
+      fontWeight: '600',
+      color: '#000'
     }
   };
 
@@ -766,6 +808,62 @@ export default function PatientDashboard() {
                   <span style={styles.sectionCount}>{completedProtocols.length}</span>
                 </div>
                 {completedProtocols.map((protocol) => renderProtocolCard(protocol, true))}
+              </>
+            )}
+          </>
+        )}
+
+        {/* Purchase History */}
+        {data.purchases && data.purchases.length > 0 && (
+          <>
+            <button 
+              style={styles.toggleButton}
+              onClick={() => setShowPurchases(!showPurchases)}
+            >
+              {showPurchases ? '▲ Hide' : '▼ Show'} Purchase History ({data.purchases.length})
+            </button>
+            
+            {showPurchases && (
+              <>
+                <div style={styles.sectionHeader}>
+                  Purchase History
+                  <span style={styles.sectionCount}>{data.purchases.length}</span>
+                </div>
+                <div style={styles.purchaseList}>
+                  {data.purchases.map((purchase, idx) => {
+                    const categoryIcons = {
+                      'IV Therapy': '💧',
+                      'Weight Loss': '⚡',
+                      'HRT': '💉',
+                      'Labs': '🧪',
+                      'Injections': '💉',
+                      'Hyperbaric': '🫁',
+                      'Red Light': '🔴',
+                      'Consultation': '📋'
+                    };
+                    const icon = categoryIcons[purchase.category] || '📦';
+                    
+                    return (
+                      <div key={idx} style={styles.purchaseItem}>
+                        <div style={styles.purchaseIcon}>{icon}</div>
+                        <div style={styles.purchaseDetails}>
+                          <div style={styles.purchaseItemName}>{purchase.item_name}</div>
+                          <div style={styles.purchaseMeta}>
+                            {new Date(purchase.purchase_date).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}
+                            {purchase.quantity > 1 && ` • Qty: ${purchase.quantity}`}
+                          </div>
+                        </div>
+                        <div style={styles.purchaseAmount}>
+                          ${parseFloat(purchase.amount).toFixed(0)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </>
             )}
           </>

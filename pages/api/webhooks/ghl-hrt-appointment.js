@@ -1,5 +1,5 @@
 // =====================================================
-// GHL WEBHOOK HANDLER - RANGE IV APPOINTMENTS
+// GHL WEBHOOK HANDLER - RANGE IV APPOINTMENTS (FIXED)
 // /pages/api/webhooks/ghl-hrt-appointment.js
 // Auto-marks IV as used when appointment shows "completed"
 // Range Medical
@@ -22,32 +22,69 @@ export default async function handler(req, res) {
   try {
     const payload = req.body;
     
-    console.log('GHL HRT Appointment Webhook received:', JSON.stringify(payload, null, 2));
+    // Log the FULL payload so we can see what GHL sends
+    console.log('=== GHL APPOINTMENT WEBHOOK ===');
+    console.log('Full payload:', JSON.stringify(payload, null, 2));
 
-    // Extract appointment data from GHL webhook
-    const {
-      id: appointmentId,
-      contactId,
-      title,
-      appointmentStatus,
-      startTime,
-      contact
-    } = payload;
+    // GHL sends data in different structures - extract what we need
+    // Try multiple possible field names
+    const appointmentId = payload.id || payload.appointmentId || payload.appointment_id || payload.calendarEventId;
+    const contactId = payload.contactId || payload.contact_id || payload.contact?.id;
+    const appointmentStatus = payload.appointmentStatus || payload.status || payload.appointment_status || payload.selectedStatus;
+    
+    // Title can be in many places
+    const title = payload.title 
+      || payload.appointmentTitle 
+      || payload.appointment_title 
+      || payload.name 
+      || payload.calendarName
+      || payload.calendar?.name
+      || payload.selectedCalendar
+      || payload.calendarId
+      || '';
+
+    const startTime = payload.startTime 
+      || payload.start_time 
+      || payload.appointmentDate 
+      || payload.selectedTimezone 
+      || payload.selectedSlot
+      || new Date().toISOString();
+
+    console.log('Extracted fields:');
+    console.log('- appointmentId:', appointmentId);
+    console.log('- contactId:', contactId);
+    console.log('- title:', title);
+    console.log('- status:', appointmentStatus);
+    console.log('- startTime:', startTime);
+
+    // If we don't have a contact ID, we can't process
+    if (!contactId) {
+      console.log('No contact ID found in payload');
+      return res.status(200).json({ 
+        success: false, 
+        message: 'No contact ID in payload',
+        payloadKeys: Object.keys(payload)
+      });
+    }
 
     // Check if this is a Range IV appointment
     const isRangeIV = isRangeIVAppointment(title, payload);
     
+    console.log('Is Range IV:', isRangeIV);
+
     if (!isRangeIV) {
-      console.log(`Not a Range IV appointment: "${title}"`);
+      console.log(`Not a Range IV appointment. Title: "${title}"`);
       return res.status(200).json({ 
         success: true, 
-        message: 'Not a Range IV appointment, skipping' 
+        message: `Not a Range IV appointment: "${title}"`,
+        extractedTitle: title,
+        payloadKeys: Object.keys(payload)
       });
     }
 
-    // Log the appointment
+    // Log the appointment to database
     await logAppointment({
-      appointmentId,
+      appointmentId: appointmentId || 'unknown',
       contactId,
       title,
       appointmentStatus,
@@ -55,27 +92,27 @@ export default async function handler(req, res) {
       payload
     });
 
-    // Only process if status is 'showed' or 'completed'
-    const completedStatuses = ['showed', 'completed', 'confirmed'];
+    // Only process if status indicates completion
+    const completedStatuses = ['showed', 'completed', 'confirmed', 'show', 'complete'];
+    const statusLower = (appointmentStatus || '').toLowerCase();
     
-    if (!completedStatuses.includes(appointmentStatus?.toLowerCase())) {
-      console.log(`Range IV appointment status: ${appointmentStatus} - not marking as used yet`);
+    if (!completedStatuses.some(s => statusLower.includes(s))) {
+      console.log(`Status "${appointmentStatus}" is not a completion status`);
       return res.status(200).json({ 
         success: true, 
-        message: `Appointment logged, status is ${appointmentStatus}` 
+        message: `Appointment logged, status is "${appointmentStatus}"` 
       });
     }
 
     // Mark the IV as used
     const result = await markIvUsed(
       contactId,
-      appointmentId,
+      appointmentId || `ghl-${Date.now()}`,
       new Date(startTime)
     );
 
     if (!result.success) {
       console.error('Failed to mark IV as used:', result.error);
-      // Still return 200 to prevent webhook retries
       return res.status(200).json({ 
         success: false, 
         error: result.error,
@@ -93,7 +130,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Webhook handler error:', error);
-    // Return 200 to prevent retries, but log the error
     return res.status(200).json({ 
       success: false, 
       error: error.message 
@@ -103,27 +139,39 @@ export default async function handler(req, res) {
 
 // =====================================================
 // HELPER: Check if appointment is a Range IV
+// Now checks the ENTIRE payload for "range iv" anywhere
 // =====================================================
 function isRangeIVAppointment(title, payload) {
-  const titleLower = (title || '').toLowerCase();
+  // Convert entire payload to string and search
+  const payloadStr = JSON.stringify(payload).toLowerCase();
   
-  // Check appointment title for "Range IV"
-  if (titleLower.includes('range iv')) {
+  // Check if "range iv" appears anywhere in the payload
+  if (payloadStr.includes('range iv') || payloadStr.includes('rangeiv')) {
     return true;
   }
   
-  // Check for variations
-  const ivKeywords = ['range iv', 'rangeiv', 'hrt iv'];
-  for (const keyword of ivKeywords) {
-    if (titleLower.includes(keyword)) {
+  // Also check title specifically
+  const titleLower = (title || '').toLowerCase();
+  if (titleLower.includes('range iv') || titleLower.includes('hrt iv')) {
+    return true;
+  }
+  
+  // Check common GHL fields that might contain the appointment type
+  const fieldsToCheck = [
+    payload.title,
+    payload.name,
+    payload.appointmentTitle,
+    payload.calendarName,
+    payload.calendar?.name,
+    payload.selectedCalendar,
+    payload.eventType,
+    payload.type
+  ];
+  
+  for (const field of fieldsToCheck) {
+    if (field && field.toLowerCase().includes('range iv')) {
       return true;
     }
-  }
-  
-  // Check calendar name if available
-  const calendarName = payload.calendar?.name?.toLowerCase() || '';
-  if (calendarName.includes('range iv')) {
-    return true;
   }
   
   return false;
@@ -134,15 +182,13 @@ function isRangeIVAppointment(title, payload) {
 // =====================================================
 async function logAppointment({ appointmentId, contactId, title, appointmentStatus, startTime, payload }) {
   try {
-    // Check if we already logged this appointment
     const { data: existing } = await supabase
       .from('hrt_iv_appointment_log')
       .select('id')
       .eq('ghl_appointment_id', appointmentId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
-      // Update existing log
       await supabase
         .from('hrt_iv_appointment_log')
         .update({
@@ -151,21 +197,20 @@ async function logAppointment({ appointmentId, contactId, title, appointmentStat
         })
         .eq('ghl_appointment_id', appointmentId);
     } else {
-      // Insert new log
       await supabase
         .from('hrt_iv_appointment_log')
         .insert({
           ghl_appointment_id: appointmentId,
           ghl_contact_id: contactId,
-          appointment_title: title,
+          appointment_title: title || 'Unknown',
           appointment_date: startTime,
           appointment_status: appointmentStatus,
           webhook_payload: payload
         });
     }
+    console.log('Appointment logged to database');
   } catch (error) {
     console.error('Error logging appointment:', error);
-    // Don't throw - logging failure shouldn't stop processing
   }
 }
 
@@ -174,7 +219,6 @@ async function logAppointment({ appointmentId, contactId, title, appointmentStat
 // =====================================================
 async function markIvUsed(contactId, appointmentId, appointmentDate) {
   try {
-    // Call the database function
     const { data, error } = await supabase.rpc('mark_iv_used', {
       p_contact_id: contactId,
       p_appointment_id: appointmentId,
@@ -183,7 +227,10 @@ async function markIvUsed(contactId, appointmentId, appointmentDate) {
 
     if (error) throw error;
 
-    // Update the log entry
+    if (data?.success === false) {
+      return { success: false, error: data.error };
+    }
+
     await supabase
       .from('hrt_iv_appointment_log')
       .update({

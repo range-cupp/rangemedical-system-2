@@ -33,7 +33,9 @@ export default function ProtocolDashboard() {
     dose_frequency: '',
     peptide_route: 'SC',
     special_instructions: '',
-    status: 'active'
+    status: 'active',
+    duration_days: 30,
+    start_date: ''
   });
 
   // Check localStorage on mount
@@ -221,7 +223,9 @@ export default function ProtocolDashboard() {
       dose_frequency: protocol.dose_frequency || '',
       peptide_route: protocol.peptide_route || 'SC',
       special_instructions: protocol.special_instructions || '',
-      status: protocol.status || 'active'
+      status: protocol.status || 'active',
+      duration_days: protocol.duration_days || 30,
+      start_date: protocol.start_date || ''
     });
   };
 
@@ -235,12 +239,58 @@ export default function ProtocolDashboard() {
       dose_frequency: '',
       peptide_route: 'SC',
       special_instructions: '',
-      status: 'active'
+      status: 'active',
+      duration_days: 30,
+      start_date: ''
     });
   };
 
   const handleEditChange = (field, value) => {
-    setEditForm(prev => ({ ...prev, [field]: value }));
+    setEditForm(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // Auto-adjust duration based on frequency
+      if (field === 'dose_frequency') {
+        if (value === '5 days on / 2 days off') {
+          // 5 on / 2 off needs 28 days for 20 injections
+          updated.duration_days = 28;
+        } else if (value.includes('2x weekly') && !value.includes('monthly')) {
+          // HRT 2x weekly - suggest 12 weeks (84 days)
+          if (prev.duration_days < 70) {
+            updated.duration_days = 84;
+          }
+        } else if (value === '1x monthly') {
+          // Monthly IV - suggest 365 days (1 year)
+          updated.duration_days = 365;
+        } else if (value === '1x daily' || value === '2x daily' || 
+                   value === '1x daily (AM)' || value === '1x daily (PM)' || 
+                   value === '1x daily (bedtime)') {
+          // Daily frequencies use 30 days
+          if (prev.duration_days === 28 || prev.duration_days > 90) {
+            updated.duration_days = 30;
+          }
+        }
+      }
+      
+      // Auto-fill goal when primary peptide is selected
+      if (field === 'primary_peptide' && value) {
+        const selectedPeptide = peptideList.find(p => p.name === value);
+        if (selectedPeptide?.suggested_primary_goal && !prev.goal) {
+          // Only auto-fill if goal is not already set
+          updated.goal = selectedPeptide.suggested_primary_goal;
+        }
+        // Auto-set route based on peptide
+        if (selectedPeptide?.default_route) {
+          updated.peptide_route = selectedPeptide.default_route;
+        }
+        // Auto-set frequency based on peptide
+        if (selectedPeptide?.default_frequency && !prev.dose_frequency) {
+          updated.dose_frequency = selectedPeptide.default_frequency;
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const saveProtocol = async () => {
@@ -290,14 +340,153 @@ export default function ProtocolDashboard() {
     return acc;
   }, {});
 
-  // Copy tracker link to clipboard
-  const copyTrackerLink = (token) => {
-    const link = `https://rangemedical-system-2.vercel.app/track/${token}`;
-    navigator.clipboard.writeText(link).then(() => {
-      alert('Tracker link copied! You can paste it into a text message.');
+  // Copy tracker link with welcome message to clipboard
+  const copyTrackerLink = (protocol) => {
+    const link = `https://rangemedical-system-2.vercel.app/track/${protocol.tracker_token}`;
+    const firstName = protocol.patient_name?.split(' ')[0] || '';
+    const peptide = protocol.primary_peptide || 'your peptide';
+    
+    const message = `Hi ${firstName}! This is Range Medical.
+
+Your ${peptide} is ready. Here is your injection tracker link:
+
+${link}
+
+Open it to see your schedule, dosing instructions, and peptide info. Tap each day when you do your injection.
+
+Questions? Text us anytime.
+(949) 997-3988`;
+
+    navigator.clipboard.writeText(message).then(() => {
+      alert('Welcome message copied! Paste into your text.');
     }).catch(() => {
-      prompt('Copy this link:', link);
+      prompt('Copy this message:', message);
     });
+  };
+
+  // Copy patient dashboard link (shows all protocols)
+  const copyDashboardLink = async (protocol) => {
+    try {
+      // Get or create patient dashboard token
+      const res = await fetch('/api/admin/protocols?view=dashboard_token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${password}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ghl_contact_id: protocol.ghl_contact_id,
+          patient_name: protocol.patient_name,
+          patient_email: protocol.patient_email,
+          patient_phone: protocol.patient_phone
+        })
+      });
+      
+      if (!res.ok) {
+        alert('Failed to get dashboard link');
+        return;
+      }
+      
+      const { token } = await res.json();
+      const link = `https://rangemedical-system-2.vercel.app/my/${token}`;
+      const firstName = protocol.patient_name?.split(' ')[0] || '';
+      
+      const message = `Hi ${firstName}! This is Range Medical.
+
+Here is your personal dashboard link:
+
+${link}
+
+You can view all your treatments, track your progress, and see upcoming appointments.
+
+Questions? Text us anytime.
+(949) 997-3988`;
+
+      navigator.clipboard.writeText(message).then(() => {
+        alert('Dashboard link copied! Paste into your text.');
+      }).catch(() => {
+        prompt('Copy this message:', message);
+      });
+    } catch (err) {
+      console.error('Dashboard link error:', err);
+      alert('Failed to generate dashboard link');
+    }
+  };
+
+  // Delete protocol
+  const deleteProtocol = async (protocolId, patientName) => {
+    const confirmed = window.confirm(`Are you sure you want to delete the protocol for ${patientName}?\n\nThis will also delete all injection logs for this protocol. This cannot be undone.`);
+    
+    if (!confirmed) return;
+    
+    try {
+      const res = await fetch('/api/admin/protocols', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${password}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: protocolId })
+      });
+      
+      if (res.ok) {
+        // Refresh data
+        if (contactFilter) {
+          fetchProtocolsByContact(contactFilter);
+        } else {
+          fetchProtocols(activeTab);
+        }
+        fetchStats();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to delete protocol');
+      }
+    } catch (err) {
+      setError('Network error while deleting');
+    }
+  };
+
+  // Calculate injection count based on duration and frequency
+  const getInjectionCount = (duration, frequency) => {
+    if (!duration || !frequency) return 0;
+    
+    if (frequency === '5 days on / 2 days off') {
+      // 5 injections per 7-day cycle
+      const fullWeeks = Math.floor(duration / 7);
+      const remainingDays = duration % 7;
+      return fullWeeks * 5 + Math.min(remainingDays, 5);
+    }
+    
+    if (frequency === '1x weekly') {
+      return Math.ceil(duration / 7);
+    }
+    
+    if (frequency.includes('2x weekly')) {
+      return Math.ceil(duration / 7) * 2;
+    }
+    
+    if (frequency.includes('3x weekly')) {
+      return Math.ceil(duration / 7) * 3;
+    }
+    
+    if (frequency === 'Every other day') {
+      return Math.ceil(duration / 2);
+    }
+    
+    if (frequency === '2x daily') {
+      return duration * 2;
+    }
+    
+    if (frequency === '1x monthly') {
+      return Math.ceil(duration / 30);
+    }
+    
+    if (frequency === 'As needed') {
+      return '-';
+    }
+    
+    // Default: 1x daily
+    return duration;
   };
 
   const formatDate = (dateString) => {
@@ -580,25 +769,59 @@ export default function ProtocolDashboard() {
                         >
                           Edit
                         </button>
-                        {p.access_token && (
-                          <button
-                            onClick={() => copyTrackerLink(p.access_token)}
-                            style={styles.trackerButton}
-                            title="Copy tracker link"
-                          >
-                            📱
-                          </button>
+                        {p.tracker_token && (
+                          <>
+                            <a
+                              href={`/track/${p.tracker_token}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={styles.viewButton}
+                              title="View patient tracker"
+                            >
+                              View
+                            </a>
+                            <button
+                              onClick={() => copyTrackerLink(p)}
+                              style={styles.trackerButton}
+                              title="Copy welcome text to send to patient"
+                            >
+                              📋
+                            </button>
+                            <button
+                              onClick={() => copyDashboardLink(p)}
+                              style={styles.dashboardButton}
+                              title="Copy patient dashboard link (all protocols)"
+                            >
+                              🏠
+                            </button>
+                          </>
                         )}
                         {p.ghl_contact_id && (
-                          <a
-                            href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${p.ghl_contact_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={styles.ghlLink}
-                          >
-                            GHL
-                          </a>
+                          <>
+                            <a
+                              href={`/admin/patient/lookup?ghl=${p.ghl_contact_id}`}
+                              style={styles.profileButton}
+                              title="View full patient profile"
+                            >
+                              👤
+                            </a>
+                            <a
+                              href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${p.ghl_contact_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={styles.ghlLink}
+                            >
+                              GHL
+                            </a>
+                          </>
                         )}
+                        <button
+                          onClick={() => deleteProtocol(p.id, p.patient_name)}
+                          style={styles.deleteButton}
+                          title="Delete protocol"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -632,10 +855,16 @@ export default function ProtocolDashboard() {
                   style={styles.select}
                 >
                   <option value="">Select goal...</option>
-                  <option value="recovery">Recovery – Tissue repair, injury, post-op</option>
-                  <option value="metabolic">Metabolic – Weight loss, body comp, energy</option>
-                  <option value="longevity">Longevity – Anti-aging, immune, cellular health</option>
-                  <option value="aesthetic">Aesthetic – Skin, hair, glow</option>
+                  <option value="recovery">Recovery / Pain / Tissue Repair</option>
+                  <option value="weight_metabolic">Weight & Metabolic</option>
+                  <option value="brain_focus">Brain, Focus & Mood</option>
+                  <option value="longevity_immune">Longevity & Immune Protection</option>
+                  <option value="skin_aesthetic">Skin, Hair & Aesthetic</option>
+                  <option value="sexual_health">Sexual Health</option>
+                  <option value="sleep_stress">Sleep & Stress</option>
+                  <option value="hrt">Hormone Optimization (HRT)</option>
+                  <option value="iv_therapy">IV Therapy</option>
+                  <option value="specialty">Specialty / Other</option>
                 </select>
               </div>
 
@@ -694,17 +923,33 @@ export default function ProtocolDashboard() {
                     style={styles.select}
                   >
                     <option value="">Select...</option>
-                    <option value="1x daily">1x daily</option>
-                    <option value="2x daily">2x daily</option>
-                    <option value="1x daily (AM)">1x daily (AM)</option>
-                    <option value="1x daily (PM)">1x daily (PM)</option>
-                    <option value="1x daily (bedtime)">1x daily (bedtime)</option>
-                    <option value="Every other day">Every other day</option>
-                    <option value="2x weekly">2x weekly</option>
-                    <option value="3x weekly">3x weekly</option>
-                    <option value="1x weekly">1x weekly</option>
-                    <option value="As needed">As needed</option>
+                    <optgroup label="Daily">
+                      <option value="1x daily">1x daily</option>
+                      <option value="2x daily">2x daily</option>
+                      <option value="1x daily (AM)">1x daily (AM)</option>
+                      <option value="1x daily (PM)">1x daily (PM)</option>
+                      <option value="1x daily (bedtime)">1x daily (bedtime)</option>
+                    </optgroup>
+                    <optgroup label="Weekly">
+                      <option value="2x weekly (Mon/Thu)">2x weekly (Mon/Thu) - HRT</option>
+                      <option value="2x weekly (Tue/Fri)">2x weekly (Tue/Fri)</option>
+                      <option value="2x weekly">2x weekly (any days)</option>
+                      <option value="3x weekly (Mon/Wed/Fri)">3x weekly (Mon/Wed/Fri)</option>
+                      <option value="3x weekly">3x weekly (any days)</option>
+                      <option value="1x weekly">1x weekly</option>
+                    </optgroup>
+                    <optgroup label="Other Patterns">
+                      <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                      <option value="Every other day">Every other day</option>
+                      <option value="1x monthly">1x monthly (IV/In-Clinic)</option>
+                      <option value="As needed">As needed</option>
+                    </optgroup>
                   </select>
+                  {editForm.dose_frequency && (
+                    <div style={styles.injectionInfo}>
+                      {getInjectionCount(editForm.duration_days, editForm.dose_frequency)} {editForm.dose_frequency.includes('monthly') ? 'sessions' : 'injections'} over {editForm.duration_days} days
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -725,6 +970,32 @@ export default function ProtocolDashboard() {
                   </select>
                 </div>
                 <div style={styles.formGroup}>
+                  <label style={styles.label}>Duration</label>
+                  <select
+                    value={editForm.duration_days}
+                    onChange={(e) => handleEditChange('duration_days', parseInt(e.target.value))}
+                    style={styles.select}
+                  >
+                    <optgroup label="Short Programs">
+                      <option value="10">10 days (Jumpstart)</option>
+                      <option value="28">28 days (4 weeks)</option>
+                      <option value="30">30 days (Month)</option>
+                    </optgroup>
+                    <optgroup label="HRT Cycles">
+                      <option value="70">70 days (10 weeks)</option>
+                      <option value="84">84 days (12 weeks)</option>
+                      <option value="90">90 days (3 months)</option>
+                    </optgroup>
+                    <optgroup label="Extended">
+                      <option value="180">180 days (6 months)</option>
+                      <option value="365">365 days (1 year)</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              <div style={styles.formRow}>
+                <div style={styles.formGroup}>
                   <label style={styles.label}>Status</label>
                   <select
                     value={editForm.status}
@@ -737,6 +1008,15 @@ export default function ProtocolDashboard() {
                     <option value="ready_refill">Ready for Refill</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Start Date</label>
+                  <input
+                    type="date"
+                    value={editForm.start_date || ''}
+                    onChange={(e) => handleEditChange('start_date', e.target.value)}
+                    style={styles.input}
+                  />
                 </div>
               </div>
 
@@ -1072,10 +1352,31 @@ const styles = {
     textAlign: 'center',
     color: '#6b7280'
   },
+  viewButton: {
+    backgroundColor: '#000000',
+    color: '#ffffff',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '4px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    display: 'inline-block'
+  },
   trackerButton: {
     backgroundColor: '#f0fdf4',
     color: '#166534',
     border: '1px solid #86efac',
+    padding: '6px 10px',
+    borderRadius: '4px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  dashboardButton: {
+    backgroundColor: '#eff6ff',
+    color: '#1d4ed8',
+    border: '1px solid #93c5fd',
     padding: '6px 10px',
     borderRadius: '4px',
     fontSize: '14px',
@@ -1118,6 +1419,20 @@ const styles = {
     border: '1px solid #3b82f6',
     borderRadius: '4px'
   },
+  profileButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '28px',
+    height: '28px',
+    borderRadius: '6px',
+    backgroundColor: '#8b5cf6',
+    color: '#fff',
+    textDecoration: 'none',
+    fontSize: '14px',
+    border: 'none',
+    cursor: 'pointer'
+  },
   notSet: {
     color: '#9ca3af',
     fontStyle: 'italic',
@@ -1141,6 +1456,16 @@ const styles = {
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer'
+  },
+  deleteButton: {
+    backgroundColor: 'transparent',
+    border: '1px solid #e5e7eb',
+    padding: '6px 10px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    opacity: 0.6,
+    transition: 'opacity 0.2s'
   },
 
   // Modal styles
@@ -1237,6 +1562,12 @@ const styles = {
     borderRadius: '6px',
     boxSizing: 'border-box',
     backgroundColor: 'white'
+  },
+  injectionInfo: {
+    marginTop: '6px',
+    fontSize: '13px',
+    color: '#10b981',
+    fontWeight: '500'
   },
   textarea: {
     width: '100%',

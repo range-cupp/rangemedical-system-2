@@ -321,6 +321,154 @@ function suggestGoalFromPeptide(peptideName) {
 }
 
 /**
+ * Categorize purchase by product name
+ */
+function categorizePurchase(productName) {
+  if (!productName) return 'Other';
+  const name = productName.toLowerCase();
+  
+  // Peptides
+  if (/peptide|bpc|tb-?500|ghk|epitalon|tesa|ipa|mots|thymosin|ta-1|kisspeptin|pt-141|melanotan|sermorelin|cjc|ipamorelin|tesamorelin|wolverine/i.test(name)) {
+    return 'Peptide';
+  }
+  
+  // IV Therapy
+  if (/iv|infusion|hydration|myers|blu|methylene blue|vitamin c|glutathione iv|nad\+ iv|exosome|glow iv|detox iv|energy iv|recovery iv|hangover/i.test(name)) {
+    return 'IV Therapy';
+  }
+  
+  // Weight Loss
+  if (/weight loss|tirzepatide|semaglutide|retatrutide|weight-loss/i.test(name)) {
+    return 'Weight Loss';
+  }
+  
+  // HRT
+  if (/hrt|trt|testosterone|hormone|pellet/i.test(name)) {
+    return 'HRT';
+  }
+  
+  // Labs
+  if (/lab|blood draw|blood test|panel|g6pd/i.test(name)) {
+    return 'Labs';
+  }
+  
+  // Injections (non-peptide)
+  if (/nad\+ injection|nad injection|b12|b-12|torodol|injection therapy|vitamin d/i.test(name)) {
+    return 'Injection';
+  }
+  
+  // Hyperbaric
+  if (/hyperbaric/i.test(name)) {
+    return 'Hyperbaric';
+  }
+  
+  // Red Light
+  if (/red light/i.test(name)) {
+    return 'Red Light';
+  }
+  
+  // Consultation
+  if (/consult|review|follow up|assessment|encounter/i.test(name)) {
+    return 'Consultation';
+  }
+  
+  return 'Other';
+}
+
+/**
+ * Normalize item name for consistent storage
+ */
+function normalizeItemName(productName, category) {
+  if (!productName) return 'Unknown';
+  const name = productName.toLowerCase();
+  
+  if (category === 'Peptide') {
+    if (/wolverine|bpc.*tb|tb.*bpc/i.test(name)) {
+      if (/30/i.test(name)) return 'Wolverine Blend (BPC/TB) - 30 Day';
+      if (/10/i.test(name)) return 'Wolverine Blend (BPC/TB) - 10 Day';
+      return 'Wolverine Blend (BPC/TB)';
+    }
+    if (/ghk/i.test(name)) return 'GHK-Cu Protocol';
+    if (/epitalon/i.test(name)) return 'Epitalon Protocol';
+    if (/tesa.*ipa|ipa.*tesa/i.test(name)) return 'Tesamorelin/Ipamorelin Blend';
+    if (/mots/i.test(name)) return 'MOTS-C Protocol';
+    if (/30.*day|30-day/i.test(name)) return 'Peptide Protocol - 30 Day';
+    if (/10.*day|10-day/i.test(name)) return 'Peptide Protocol - 10 Day';
+    if (/14.*day|14-day/i.test(name)) return 'Peptide Protocol - 14 Day';
+    if (/vial/i.test(name)) return 'Peptide Vial';
+    if (/injection/i.test(name)) return 'Peptide Injection (In-Clinic)';
+    return 'Peptide Therapy';
+  }
+  
+  if (category === 'IV Therapy') {
+    if (/methylene blue.*vitamin c|mb.*vitamin c/i.test(name)) return 'MB + Vitamin C + Magnesium IV';
+    if (/methylene blue.*sublingual/i.test(name)) return 'Methylene Blue Sublingual';
+    if (/range iv|build your own|choose your own/i.test(name)) return 'Range IV (Build Your Own)';
+    if (/myers|immune/i.test(name)) return 'Immune Boost IV (Myers)';
+    if (/vitamin c|high.?dose/i.test(name)) return 'High-Dose Vitamin C IV';
+    if (/nad\+ iv|nad iv/i.test(name)) return 'NAD+ IV';
+    if (/glutathione/i.test(name)) return 'Glutathione IV';
+    if (/exosome/i.test(name)) return 'Exosome IV Therapy';
+    if (/blu/i.test(name)) return 'The Blu IV';
+    if (/hydration|basic/i.test(name)) return 'Basic Hydration IV';
+    return 'IV Therapy';
+  }
+  
+  if (category === 'Weight Loss') {
+    if (/program|membership/i.test(name)) return 'Weight Loss Program (Monthly)';
+    return 'Weight Loss Injection';
+  }
+  
+  if (category === 'HRT') {
+    if (/female/i.test(name)) return 'Female HRT Membership';
+    if (/pellet/i.test(name)) return 'Testosterone Pellet';
+    return 'Male HRT Membership';
+  }
+  
+  if (category === 'Labs') {
+    if (/elite.*male/i.test(name)) return 'Elite Lab Panel - Male';
+    if (/elite.*female/i.test(name)) return 'Elite Lab Panel - Female';
+    if (/elite/i.test(name)) return 'Elite Lab Panel';
+    if (/g6pd/i.test(name)) return 'G6PD Blood Test';
+    if (/follow/i.test(name)) return 'Follow Up Blood Draw';
+    return 'New Patient Blood Draw';
+  }
+  
+  if (category === 'Injection') {
+    if (/nad/i.test(name)) {
+      const match = name.match(/(\d+)\s*mg/);
+      if (match) return `NAD+ Injection (${match[1]}mg)`;
+      if (/12.?pack/i.test(name)) return 'NAD+ 12-Pack';
+      if (/10.?pack/i.test(name)) return 'NAD+ 10-Pack';
+      return 'NAD+ Injection';
+    }
+    if (/b-?12/i.test(name)) return 'B12 Injection';
+    if (/torodol/i.test(name)) return 'Toradol Injection';
+    return 'Injection Therapy';
+  }
+  
+  if (category === 'Hyperbaric') {
+    if (/package|10/i.test(name)) return 'Hyperbaric - 10 Pack';
+    return 'Hyperbaric - Single';
+  }
+  
+  if (category === 'Red Light') {
+    if (/20/i.test(name)) return 'Red Light - 20 Pack';
+    if (/10/i.test(name)) return 'Red Light - 10 Pack';
+    if (/5/i.test(name)) return 'Red Light - 5 Pack';
+    return 'Red Light - Single';
+  }
+  
+  if (category === 'Consultation') {
+    if (/review/i.test(name)) return 'Lab Review Consultation';
+    if (/follow/i.test(name)) return 'Follow Up Consultation';
+    return 'Initial Consultation';
+  }
+  
+  return productName.substring(0, 60);
+}
+
+/**
  * Update GHL contact with protocol info
  */
 async function updateGHLContact(contactId, protocolData) {
@@ -475,6 +623,41 @@ export default async function handler(req, res) {
       let contactPhone = customer.phone || payload.phone;
       
       console.log('👤 Contact extracted:', { contactId, contactName, contactEmail });
+      
+      // =========================================
+      // CREATE PURCHASE RECORD (ALL PAYMENTS)
+      // =========================================
+      const purchaseCategory = categorizePurchase(productName);
+      const normalizedItem = normalizeItemName(productName, purchaseCategory);
+      
+      try {
+        const { data: purchase, error: purchaseError } = await supabase
+          .from('purchases')
+          .insert({
+            ghl_contact_id: contactId || null,
+            patient_name: contactName || 'Unknown',
+            patient_email: contactEmail || null,
+            patient_phone: contactPhone || null,
+            purchase_date: new Date().toISOString().split('T')[0],
+            category: purchaseCategory,
+            item_name: normalizedItem,
+            quantity: 1,
+            amount: amount,
+            invoice_number: paymentId || null,
+            source: 'GoHighLevel'
+          })
+          .select()
+          .single();
+        
+        if (purchaseError) {
+          console.error('⚠️ Purchase insert error:', purchaseError);
+        } else {
+          console.log('✅ Purchase recorded:', purchase.id, '-', normalizedItem);
+        }
+      } catch (purchaseErr) {
+        console.error('⚠️ Purchase creation failed:', purchaseErr);
+        // Continue - don't fail the webhook for purchase logging
+      }
       
       // Parse product to protocol
       const protocolInfo = parseProductToProtocol(productName);

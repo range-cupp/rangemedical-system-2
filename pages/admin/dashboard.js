@@ -72,6 +72,7 @@ export default function StaffDashboard() {
               active={activeTab === 'patients'} 
               onClick={() => setActiveTab('patients')}
               label="All Patients"
+              count={data.patients?.length || 0}
             />
             <NavItem 
               active={activeTab === 'hrt'} 
@@ -330,17 +331,19 @@ function PatientList({ patients }) {
             <td style={styles.td}>
               <div style={styles.actionBtns}>
                 <button 
-                  onClick={() => window.location.href = `/admin/patient/${patient.ghl_contact_id}`}
+                  onClick={() => window.location.href = `/admin/patient/${patient.ghl_contact_id || patient.id}`}
                   style={styles.viewBtn}
                 >
                   View
                 </button>
-                <button 
-                  onClick={() => window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${patient.ghl_contact_id}`, '_blank')}
-                  style={styles.ghlBtnSmall}
-                >
-                  GHL
-                </button>
+                {patient.ghl_contact_id && (
+                  <button 
+                    onClick={() => window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${patient.ghl_contact_id}`, '_blank')}
+                    style={styles.ghlBtnSmall}
+                  >
+                    GHL
+                  </button>
+                )}
               </div>
             </td>
           </tr>

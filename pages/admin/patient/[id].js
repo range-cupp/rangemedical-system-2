@@ -939,11 +939,19 @@ export default function PatientProfile() {
                         <td style={styles.td}>{p.injections_completed} / {p.duration_days}</td>
                         <td style={styles.td}>{formatDate(p.start_date)}</td>
                         <td style={styles.td}>
-                          {p.tracker_token && (
-                            <a href={`/track/${p.tracker_token}`} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
-                              View Tracker
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {p.tracker_token && (
+                              <a href={`/track/${p.tracker_token}`} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
+                                View
+                              </a>
+                            )}
+                            <a 
+                              href={`/admin/protocols?contact=${patient.ghl_contact_id}`} 
+                              style={{...styles.linkButton, backgroundColor: '#1a365d', color: '#fff', border: 'none'}}
+                            >
+                              Edit
                             </a>
-                          )}
+                          </div>
                         </td>
                       </tr>
                     ))}

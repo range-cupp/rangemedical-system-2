@@ -151,10 +151,19 @@ function PageWrapper({ children }) {
 // =====================================================
 function RangeLogo() {
   return (
-    <svg width="100" height="50" viewBox="0 0 120 60" fill="none">
-      <circle cx="30" cy="24" r="18" stroke="black" strokeWidth="2" fill="none"/>
-      <path d="M30 12 L22 32 M30 12 L38 32 M24 26 L36 26" stroke="black" strokeWidth="2" fill="none"/>
-      <text x="0" y="52" fontFamily="Inter, sans-serif" fontSize="16" fontWeight="600" fill="black">RANGE</text>
+    <svg width="120" height="60" viewBox="0 0 1024 1024" fill="none">
+      {/* Circle */}
+      <circle cx="512" cy="380" r="280" stroke="black" strokeWidth="28" fill="none"/>
+      {/* Triangle A - open top */}
+      <path d="M512 180 L340 520 L400 520 L512 310 L624 520 L684 520 Z" fill="black"/>
+      {/* Underline bar inside circle */}
+      <rect x="370" y="540" width="284" height="28" fill="black"/>
+      {/* RANGE text */}
+      <text x="170" y="820" fontFamily="Inter, Arial, sans-serif" fontSize="200" fontWeight="600" letterSpacing="40" fill="black">
+        RANGE
+      </text>
+      {/* TM */}
+      <text x="920" y="700" fontFamily="Inter, Arial, sans-serif" fontSize="50" fill="black">™</text>
     </svg>
   );
 }

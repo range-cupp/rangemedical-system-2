@@ -167,7 +167,7 @@ async function getNeedsAttention() {
         patient_email: protocol.patient_email,
         patient_phone: protocol.patient_phone,
         ghl_contact_id: protocol.ghl_contact_id,
-        detail: protocol.protocol_name,
+        detail: protocol.program_name,
         days_remaining: daysLeft,
         due_date: protocol.end_date
       });

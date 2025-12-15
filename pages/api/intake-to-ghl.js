@@ -68,8 +68,10 @@ export default async function handler(req, res) {
 
     console.log('📤 Processing intake for:', firstName, lastName, email);
 
-    // Step 1: Search for existing contact by email
+    // Step 1: Search for existing contact by email OR phone
     let contactId = null;
+    
+    // Try email first
     try {
       const searchResponse = await fetch(
         `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`,
@@ -87,14 +89,41 @@ export default async function handler(req, res) {
         const searchResult = await searchResponse.json();
         if (searchResult.contact && searchResult.contact.id) {
           contactId = searchResult.contact.id;
-          console.log('✅ Found existing contact:', contactId);
+          console.log('✅ Found existing contact by email:', contactId);
         }
       }
     } catch (searchError) {
-      console.warn('⚠️ Contact search failed (will create new):', searchError.message);
+      console.warn('⚠️ Email search failed:', searchError.message);
     }
 
-    // Step 2: Create or update contact
+    // If no match by email, try phone
+    if (!contactId && formattedPhone) {
+      try {
+        const phoneSearchResponse = await fetch(
+          `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&phone=${encodeURIComponent(formattedPhone)}`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28',
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (phoneSearchResponse.ok) {
+          const phoneSearchResult = await phoneSearchResponse.json();
+          if (phoneSearchResult.contact && phoneSearchResult.contact.id) {
+            contactId = phoneSearchResult.contact.id;
+            console.log('✅ Found existing contact by phone:', contactId);
+          }
+        }
+      } catch (phoneSearchError) {
+        console.warn('⚠️ Phone search failed:', phoneSearchError.message);
+      }
+    }
+
+    // Step 2: Build contact data
     const contactData = {
       firstName: firstName,
       lastName: lastName,
@@ -130,9 +159,11 @@ export default async function handler(req, res) {
       }
     });
 
+    // Step 3: Create or update contact
     let contactResponse;
     if (contactId) {
       // Update existing contact
+      console.log('📝 Updating existing contact:', contactId);
       contactResponse = await fetch(
         `https://services.leadconnectorhq.com/contacts/${contactId}`,
         {
@@ -146,7 +177,8 @@ export default async function handler(req, res) {
         }
       );
     } else {
-      // Create new contact
+      // Try to create new contact
+      console.log('📝 Creating new contact...');
       contactData.locationId = GHL_LOCATION_ID;
       contactResponse = await fetch(
         'https://services.leadconnectorhq.com/contacts/',
@@ -160,6 +192,33 @@ export default async function handler(req, res) {
           body: JSON.stringify(contactData)
         }
       );
+
+      // Handle duplicate error - GHL returns the existing contactId in the error
+      if (contactResponse.status === 400) {
+        const errorData = await contactResponse.json();
+        if (errorData.meta?.contactId) {
+          console.log('⚠️ Duplicate detected via', errorData.meta.matchingField, '- updating existing contact:', errorData.meta.contactId);
+          contactId = errorData.meta.contactId;
+          
+          // Retry as update
+          delete contactData.locationId;
+          contactResponse = await fetch(
+            `https://services.leadconnectorhq.com/contacts/${contactId}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${GHL_API_KEY}`,
+                'Version': '2021-07-28',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(contactData)
+            }
+          );
+        } else {
+          // Not a duplicate error, throw the original error
+          throw new Error(`GoHighLevel API error: 400 - ${JSON.stringify(errorData)}`);
+        }
+      }
     }
 
     if (!contactResponse.ok) {
@@ -173,7 +232,7 @@ export default async function handler(req, res) {
 
     console.log('✅ Contact saved:', contactId);
 
-    // Step 3: Add comprehensive note with all document links
+    // Step 4: Add comprehensive note with all document links
     if (contactId) {
       try {
         console.log('📝 Adding intake completion note...');
@@ -242,7 +301,7 @@ Custom field updated: medical_intake_form = Complete`;
       }
     }
 
-    // Step 4: Add tags for workflow triggers
+    // Step 5: Add tags for workflow triggers
     if (contactId) {
       try {
         const tagResponse = await fetch(

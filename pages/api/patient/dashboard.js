@@ -93,13 +93,31 @@ export default async function handler(req, res) {
       return { ...protocol, category, days, access_token: protocol.access_token };
     });
 
+    // Get purchases for this patient (if table exists)
+    let purchases = [];
+    try {
+      const { data: purchaseData } = await supabase
+        .from('purchases')
+        .select('*')
+        .or(`patient_phone.eq.${patientToken.patient_phone},patient_email.eq.${patientToken.patient_email}`)
+        .order('purchase_date', { ascending: false });
+      
+      if (purchaseData) {
+        purchases = purchaseData;
+      }
+    } catch (e) {
+      // Table may not exist yet
+      console.log('Purchases table not found or error:', e.message);
+    }
+
     return res.status(200).json({
       patient: {
         name: patientToken.patient_name,
         email: patientToken.patient_email,
         phone: patientToken.patient_phone
       },
-      protocols: protocolsWithDays
+      protocols: protocolsWithDays,
+      purchases: purchases
     });
 
   } catch (error) {

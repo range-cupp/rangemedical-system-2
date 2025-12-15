@@ -99,6 +99,9 @@ export default function PatientProfile() {
         <TabButton active={activeTab === 'protocols'} onClick={() => setActiveTab('protocols')}>
           Protocols {patient.protocols?.length > 0 && `(${patient.protocols.length})`}
         </TabButton>
+        <TabButton active={activeTab === 'injections'} onClick={() => setActiveTab('injections')}>
+          Injections {patient.injection_log?.length > 0 && `(${patient.injection_log.length})`}
+        </TabButton>
         <TabButton active={activeTab === 'intake'} onClick={() => setActiveTab('intake')}>
           Medical Intake {patient.intakes?.length > 0 && `(${patient.intakes.length})`}
         </TabButton>
@@ -112,6 +115,7 @@ export default function PatientProfile() {
         {activeTab === 'overview' && <OverviewTab patient={patient} />}
         {activeTab === 'purchases' && <PurchasesTab purchases={patient.purchases} />}
         {activeTab === 'protocols' && <ProtocolsTab protocols={patient.protocols} />}
+        {activeTab === 'injections' && <InjectionsTab patient={patient} onRefresh={() => fetchPatientProfile(id)} />}
         {activeTab === 'intake' && <IntakeTab intakes={patient.intakes} />}
         {activeTab === 'consents' && <ConsentsTab consents={patient.consents} />}
       </main>
@@ -601,6 +605,204 @@ function IntakeTab({ intakes }) {
 }
 
 // =====================================================
+// INJECTIONS TAB
+// =====================================================
+function InjectionsTab({ patient, onRefresh }) {
+  const [showLogForm, setShowLogForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    injection_type: 'hrt',
+    injection_date: new Date().toISOString().split('T')[0],
+    injection_site: 'abdomen',
+    location: 'in_clinic',
+    dose: '',
+    notes: ''
+  });
+
+  // Build injection type options
+  const injectionOptions = [];
+  if (patient.hrt) injectionOptions.push({ value: 'hrt', label: 'HRT - Testosterone' });
+  if (patient.weight_loss) injectionOptions.push({ value: 'weight_loss', label: `Weight Loss - ${patient.weight_loss.medication}` });
+  patient.protocols?.filter(p => p.status === 'active').forEach(p => {
+    injectionOptions.push({ value: `peptide_${p.id}`, label: `Peptide - ${p.program_name}` });
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const response = await fetch('/api/admin/log-injection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          ...formData
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setShowLogForm(false);
+        setFormData({
+          ...formData,
+          injection_date: new Date().toISOString().split('T')[0],
+          notes: '',
+          dose: ''
+        });
+        onRefresh();
+      } else {
+        alert('Error logging injection: ' + result.error);
+      }
+    } catch (err) {
+      alert('Error logging injection');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>Injection Log</h3>
+        <button onClick={() => setShowLogForm(!showLogForm)} style={styles.addBtn}>
+          {showLogForm ? 'Cancel' : '+ Log Injection'}
+        </button>
+      </div>
+
+      {/* Log Form */}
+      {showLogForm && (
+        <div style={styles.logFormCard}>
+          <h4 style={styles.formTitle}>Log New Injection</h4>
+          <form onSubmit={handleSubmit} style={styles.logFormGrid}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Type</label>
+              <select
+                value={formData.injection_type}
+                onChange={e => setFormData({...formData, injection_type: e.target.value})}
+                style={styles.select}
+                required
+              >
+                {injectionOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Date</label>
+              <input
+                type="date"
+                value={formData.injection_date}
+                onChange={e => setFormData({...formData, injection_date: e.target.value})}
+                style={styles.input}
+                required
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Location</label>
+              <select
+                value={formData.location}
+                onChange={e => setFormData({...formData, location: e.target.value})}
+                style={styles.select}
+              >
+                <option value="in_clinic">In Clinic</option>
+                <option value="take_home">Take Home (Patient Logged)</option>
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Injection Site</label>
+              <select
+                value={formData.injection_site}
+                onChange={e => setFormData({...formData, injection_site: e.target.value})}
+                style={styles.select}
+              >
+                <option value="abdomen">Abdomen</option>
+                <option value="thigh">Thigh</option>
+                <option value="glute">Glute</option>
+                <option value="deltoid">Deltoid</option>
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Dose (optional)</label>
+              <input
+                type="text"
+                placeholder="e.g., 0.5ml, 200mg"
+                value={formData.dose}
+                onChange={e => setFormData({...formData, dose: e.target.value})}
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Notes (optional)</label>
+              <input
+                type="text"
+                placeholder="Any notes..."
+                value={formData.notes}
+                onChange={e => setFormData({...formData, notes: e.target.value})}
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.formActions}>
+              <button type="submit" style={styles.submitBtn} disabled={submitting}>
+                {submitting ? 'Saving...' : 'Log Injection'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Injection History */}
+      {patient.injection_log?.length > 0 ? (
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Date</th>
+              <th style={styles.th}>Type</th>
+              <th style={styles.th}>Medication</th>
+              <th style={styles.th}>Site</th>
+              <th style={styles.th}>Location</th>
+              <th style={styles.th}>Logged By</th>
+              <th style={styles.th}>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {patient.injection_log.map((log, i) => (
+              <tr key={i} style={styles.tr}>
+                <td style={styles.td}>{formatDate(log.injection_date)}</td>
+                <td style={styles.td}>
+                  <span style={styles.typeTag}>{log.injection_type}</span>
+                </td>
+                <td style={styles.td}>{log.medication || '-'}</td>
+                <td style={styles.td}>{log.injection_site || '-'}</td>
+                <td style={styles.td}>
+                  <span style={{
+                    ...styles.locationTag,
+                    backgroundColor: log.location === 'in_clinic' ? '#dcfce7' : '#e0e7ff',
+                    color: log.location === 'in_clinic' ? '#166534' : '#4338ca'
+                  }}>
+                    {log.location === 'in_clinic' ? 'In Clinic' : 'Take Home'}
+                  </span>
+                </td>
+                <td style={styles.td}>{log.logged_by || '-'}</td>
+                <td style={styles.td}>{log.notes || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <EmptyState message="No injections logged yet" />
+      )}
+    </div>
+  );
+}
+
+// =====================================================
 // CONSENTS TAB
 // =====================================================
 function ConsentsTab({ consents }) {
@@ -1032,5 +1234,97 @@ const styles = {
   emptyText: {
     color: '#999',
     fontSize: '13px'
+  },
+  
+  // Injection Form Styles
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px'
+  },
+  addBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  logFormCard: {
+    backgroundColor: '#f9f9f9',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    padding: '20px',
+    marginBottom: '24px'
+  },
+  formTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    margin: '0 0 16px 0'
+  },
+  logFormGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: '16px'
+  },
+  formGroup: {
+    marginBottom: '0'
+  },
+  label: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: '500',
+    marginBottom: '6px',
+    color: '#374151'
+  },
+  input: {
+    width: '100%',
+    padding: '8px 12px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  select: {
+    width: '100%',
+    padding: '8px 12px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    backgroundColor: '#fff'
+  },
+  formActions: {
+    display: 'flex',
+    alignItems: 'flex-end'
+  },
+  submitBtn: {
+    padding: '8px 20px',
+    backgroundColor: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  typeTag: {
+    padding: '4px 8px',
+    backgroundColor: '#f3f4f6',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: '500',
+    textTransform: 'capitalize'
+  },
+  locationTag: {
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600'
   }
 };

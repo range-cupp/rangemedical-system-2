@@ -81,6 +81,14 @@ export default function PatientProfile() {
           </div>
         </div>
         <div style={styles.headerRight}>
+          {patient.login_token && (
+            <button 
+              onClick={() => window.open(`/patient/dashboard?token=${patient.login_token}`, '_blank')}
+              style={styles.portalBtn}
+            >
+              View Patient Portal
+            </button>
+          )}
           <button 
             onClick={() => window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${patient.ghl_contact_id}`, '_blank')}
             style={styles.ghlBtn}
@@ -968,6 +976,21 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
+  },
+  portalBtn: {
+    padding: '10px 20px',
+    backgroundColor: '#fff',
+    color: '#000',
+    border: '1px solid #000',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  headerRight: {
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center'
   },
   
   // Tabs

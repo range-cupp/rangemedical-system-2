@@ -1,286 +1,454 @@
-// /pages/api/admin/patient.js
-// Patient Profile API - Fetches all data for a single patient
-// Range Medical
+// /pages/api/protocol-webhook.js
+// Range Medical - Payment Webhook Handler
+// Creates purchase records for ALL payments
+// Creates protocols for trackable items (Peptides, HRT, Weight Loss)
+// v2.0 - Fixed purchase linking
 
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'range2024admin';
+// =====================================================
+// CATEGORIZATION FUNCTIONS
+// =====================================================
+
+function categorizePurchase(productName) {
+  if (!productName) return 'Other';
+  const name = productName.toLowerCase();
+  
+  // Peptides - check first (most specific)
+  if (/peptide|bpc|tb-?500|ghk|epitalon|tesa|ipa|mots|thymosin|ta-1|kisspeptin|pt-141|melanotan|sermorelin|cjc|ipamorelin|tesamorelin|wolverine|recovery.*program|recovery.*jumpstart|peptide.*month|peptide.*maintenance/i.test(name)) {
+    return 'Peptide';
+  }
+  
+  // Weight Loss
+  if (/weight loss|tirzepatide|semaglutide|retatrutide|weight-loss|ozempic|mounjaro/i.test(name)) {
+    return 'Weight Loss';
+  }
+  
+  // HRT/TRT
+  if (/hrt|trt|testosterone|hormone|pellet|estradiol|progesterone|membership|monthly.*member/i.test(name)) {
+    return 'HRT';
+  }
+  
+  // IV Therapy
+  if (/iv|infusion|hydration|myers|methylene blue|vitamin c|glutathione iv|nad\+ iv|exosome|glow iv|detox iv|energy iv|recovery iv|hangover|drip/i.test(name)) {
+    return 'IV Therapy';
+  }
+  
+  // Labs
+  if (/lab|blood draw|blood test|panel|g6pd|diagnostic|bloodwork/i.test(name)) {
+    return 'Labs';
+  }
+  
+  // Injections (non-peptide)
+  if (/nad\+ injection|nad injection|b12|b-12|torodol|injection therapy|vitamin d|injection pack|tri-immune/i.test(name)) {
+    return 'Injection';
+  }
+  
+  // Hyperbaric
+  if (/hyperbaric|hbot/i.test(name)) {
+    return 'Hyperbaric';
+  }
+  
+  // Red Light
+  if (/red light|pbm|photobiomodulation/i.test(name)) {
+    return 'Red Light';
+  }
+  
+  // Consultation
+  if (/consult|review|follow up|assessment|encounter|visit/i.test(name)) {
+    return 'Consultation';
+  }
+  
+  return 'Other';
+}
+
+function normalizeItemName(productName, category) {
+  if (!productName) return 'Unknown';
+  const name = productName.toLowerCase();
+  
+  // PEPTIDES
+  if (category === 'Peptide') {
+    // $100M Money Models - Outcome-based programs
+    if (/recovery.*jumpstart|jumpstart.*10/i.test(name)) {
+      return 'Peptide Recovery Jumpstart (10-Day)';
+    }
+    if (/peptide.*month|month.*program|30.*day.*peptide/i.test(name)) {
+      return 'Peptide Month Program (30-Day)';
+    }
+    if (/maintenance|4.*week.*refill|refill/i.test(name)) {
+      return 'Peptide Maintenance (4-Week Refill)';
+    }
+    if (/peptide.*injection|in-clinic|clinic.*injection/i.test(name)) {
+      return 'Peptide Injection (In-Clinic)';
+    }
+    
+    // Specific blends
+    if (/wolverine|bpc.*tb|tb.*bpc/i.test(name)) {
+      if (/30/i.test(name)) return 'Wolverine Blend (BPC/TB) - 30 Day';
+      if (/10/i.test(name)) return 'Wolverine Blend (BPC/TB) - 10 Day';
+      return 'Wolverine Blend (BPC/TB)';
+    }
+    if (/ghk/i.test(name)) return 'GHK-Cu Protocol';
+    if (/epitalon/i.test(name)) return 'Epitalon Protocol';
+    if (/tesa.*ipa|ipa.*tesa/i.test(name)) return 'Tesamorelin/Ipamorelin Blend';
+    if (/mots/i.test(name)) return 'MOTS-C Protocol';
+    if (/bpc.*157|bpc-157/i.test(name)) return 'BPC-157 Protocol';
+    if (/tb.*500|tb-500/i.test(name)) return 'TB-500 Protocol';
+    
+    return 'Peptide Protocol';
+  }
+  
+  // WEIGHT LOSS
+  if (category === 'Weight Loss') {
+    if (/tirzepatide/i.test(name)) return 'Tirzepatide Program';
+    if (/semaglutide/i.test(name)) return 'Semaglutide Program';
+    if (/retatrutide/i.test(name)) return 'Retatrutide Program';
+    return 'Weight Loss Program';
+  }
+  
+  // HRT
+  if (category === 'HRT') {
+    if (/membership|monthly.*member/i.test(name)) return 'HRT Membership';
+    if (/testosterone/i.test(name)) return 'Testosterone Therapy';
+    if (/estradiol/i.test(name)) return 'Estradiol Therapy';
+    if (/pellet/i.test(name)) return 'Hormone Pellet Therapy';
+    return 'HRT Protocol';
+  }
+  
+  // IV THERAPY
+  if (category === 'IV Therapy') {
+    if (/methylene blue|mb.*vitamin/i.test(name)) return 'Methylene Blue + Vitamin C IV';
+    if (/range iv|build your own/i.test(name)) return 'Range IV (Custom)';
+    if (/myers|immune/i.test(name)) return 'Immune Boost IV';
+    if (/nad/i.test(name)) return 'NAD+ IV';
+    if (/glutathione/i.test(name)) return 'Glutathione IV';
+    if (/vitamin c/i.test(name)) return 'High Dose Vitamin C IV';
+    if (/hydration/i.test(name)) return 'Hydration IV';
+    if (/exosome/i.test(name)) return 'Exosome IV';
+    return 'IV Therapy';
+  }
+  
+  // INJECTIONS
+  if (category === 'Injection') {
+    if (/nad/i.test(name)) return 'NAD+ Injection';
+    if (/b12|b-12/i.test(name)) return 'B12 Injection';
+    if (/tri-immune/i.test(name)) return 'Tri-Immune Injection';
+    if (/injection pack/i.test(name)) return 'Injection Pack';
+    return 'Injection';
+  }
+  
+  // Return original name for other categories
+  return productName.substring(0, 100);
+}
+
+// Check if this purchase should create a trackable protocol
+function shouldCreateProtocol(category, productName) {
+  // These categories always get protocols
+  if (['Peptide', 'Weight Loss'].includes(category)) {
+    return true;
+  }
+  
+  // HRT memberships get protocols
+  if (category === 'HRT' && /membership|monthly/i.test(productName)) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Determine protocol duration in days
+function getProtocolDuration(category, productName) {
+  const name = productName?.toLowerCase() || '';
+  
+  if (category === 'Peptide') {
+    if (/10.*day|jumpstart/i.test(name)) return 10;
+    if (/14.*day/i.test(name)) return 14;
+    if (/30.*day|month|30-day/i.test(name)) return 30;
+    if (/maintenance|refill|4.*week/i.test(name)) return 28;
+    return 30; // Default peptide duration
+  }
+  
+  if (category === 'Weight Loss') {
+    if (/week/i.test(name)) return 7;
+    return 30; // Monthly by default
+  }
+  
+  if (category === 'HRT') {
+    return 30; // Monthly membership
+  }
+  
+  return 30;
+}
+
+// Generate unique access token
+function generateToken() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+// =====================================================
+// MAIN WEBHOOK HANDLER
+// =====================================================
 
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Check authorization
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.replace('Bearer ', '');
-  
-  if (token !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  if (req.method !== 'GET') {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { id, ghl_contact_id, email, phone } = req.query;
+  console.log('📥 Webhook received at:', new Date().toISOString());
+  console.log('📦 Raw payload:', JSON.stringify(req.body, null, 2));
 
   try {
-    let patient = null;
-    let patientId = id;
-
+    const payload = req.body;
+    
     // =====================================================
-    // FIND PATIENT
+    // EXTRACT DATA FROM GHL PAYLOAD
     // =====================================================
     
-    if (id) {
-      // Direct patient ID lookup
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (!error && data) {
-        patient = data;
-        patientId = data.id;
-      }
+    // Contact info - try multiple paths
+    const contactId = 
+      payload.contact?.id ||
+      payload.contactId ||
+      payload.contact_id ||
+      payload.customData?.contact_id ||
+      null;
+    
+    const contactName = 
+      payload.contact?.name ||
+      payload.full_name ||
+      payload.contactName ||
+      `${payload.contact?.firstName || payload.first_name || ''} ${payload.contact?.lastName || payload.last_name || ''}`.trim() ||
+      payload.customData?.contact_name ||
+      'Unknown';
+    
+    const contactEmail = 
+      payload.contact?.email ||
+      payload.email ||
+      payload.contactEmail ||
+      payload.customData?.contact_email ||
+      null;
+    
+    const contactPhone = 
+      payload.contact?.phone ||
+      payload.phone ||
+      payload.contactPhone ||
+      payload.customData?.contact_phone ||
+      null;
+    
+    // Payment info
+    const amount = 
+      parseFloat(payload.amount) ||
+      parseFloat(payload.payment?.amount) ||
+      parseFloat(payload.total) ||
+      parseFloat(payload.charge_amount) ||
+      0;
+    
+    const paymentId = 
+      payload.payment_id ||
+      payload.paymentId ||
+      payload.invoice_id ||
+      payload.invoiceId ||
+      payload.id ||
+      null;
+    
+    // Product info - try multiple paths
+    let productName = 
+      payload.product_name ||
+      payload.productName ||
+      payload.product?.name ||
+      payload.name ||
+      payload.title ||
+      payload.customData?.product_name ||
+      null;
+    
+    // Check for line items if no product name found
+    if (!productName && payload.lineItems?.length > 0) {
+      productName = payload.lineItems[0].name || payload.lineItems[0].title;
+    }
+    if (!productName && payload.items?.length > 0) {
+      productName = payload.items[0].name || payload.items[0].title;
+    }
+    if (!productName && payload.products?.length > 0) {
+      productName = payload.products[0].name || payload.products[0].title;
     }
     
-    // If looking up by ghl_contact_id, first get the email/phone from protocols
-    if (!patient && ghl_contact_id) {
-      const { data: protocol } = await supabase
-        .from('protocols')
-        .select('patient_name, patient_email, patient_phone')
-        .eq('ghl_contact_id', ghl_contact_id)
-        .limit(1)
-        .single();
-      
-      if (protocol) {
-        // Try to find real patient by email
-        if (protocol.patient_email) {
-          const { data: foundPatient } = await supabase
-            .from('patients')
-            .select('*')
-            .ilike('email', protocol.patient_email)
-            .limit(1)
-            .single();
-          
-          if (foundPatient) {
-            patient = foundPatient;
-            patientId = foundPatient.id;
-          }
-        }
-        
-        // If not found by email, try phone
-        if (!patient && protocol.patient_phone) {
-          const cleanPhone = protocol.patient_phone.replace(/\D/g, '').slice(-10);
-          const { data: foundPatient } = await supabase
-            .from('patients')
-            .select('*')
-            .or(`phone.ilike.%${cleanPhone}%`)
-            .limit(1)
-            .single();
-          
-          if (foundPatient) {
-            patient = foundPatient;
-            patientId = foundPatient.id;
-          }
-        }
-        
-        // If still no patient, create shell with protocol info
-        if (!patient) {
-          patient = {
-            id: null,
-            name: protocol.patient_name,
-            email: protocol.patient_email,
-            phone: protocol.patient_phone,
-            ghl_contact_id: ghl_contact_id
-          };
-        } else {
-          // Add ghl_contact_id to found patient
-          patient.ghl_contact_id = ghl_contact_id;
-        }
-      }
-    }
-    
-    // If no patient found by ID or ghl, try email/phone directly
-    if (!patient && (email || phone)) {
-      let query = supabase.from('patients').select('*');
-      
-      if (email) {
-        query = query.ilike('email', email);
-      } else if (phone) {
-        // Clean phone for matching
-        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-        query = query.or(`phone.ilike.%${cleanPhone}%`);
-      }
-      
-      const { data, error } = await query.limit(1).single();
-      
-      if (!error && data) {
-        patient = data;
-        patientId = data.id;
-      }
-    }
-
-    if (!patient) {
-      return res.status(404).json({ error: 'Patient not found' });
-    }
-
-    // =====================================================
-    // FETCH ALL RELATED DATA
-    // =====================================================
-
-    // Intakes
-    let intakes = [];
-    if (patientId) {
-      const { data } = await supabase
-        .from('intakes')
-        .select('*')
-        .eq('patient_id', patientId)
-        .order('submitted_at', { ascending: false });
-      intakes = data || [];
-    }
-
-    // Consents
-    let consents = [];
-    if (patientId) {
-      const { data } = await supabase
-        .from('consents')
-        .select('*')
-        .eq('patient_id', patientId)
-        .order('submitted_at', { ascending: false });
-      consents = data || [];
-    }
-
-    // Labs
-    let labs = [];
-    if (patientId) {
-      const { data } = await supabase
-        .from('labs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .order('test_date', { ascending: false });
-      labs = data || [];
-    }
-
-    // Medical Documents
-    let documents = [];
-    if (patientId) {
-      const { data } = await supabase
-        .from('medical_documents')
-        .select('*')
-        .eq('patient_id', patientId)
-        .order('created_at', { ascending: false });
-      documents = data || [];
-    }
-
-    // Protocols - match by ghl_contact_id OR email OR phone
-    let protocols = [];
-    const patientEmail = patient.email?.toLowerCase();
-    const patientPhone = patient.phone?.replace(/\D/g, '').slice(-10);
-    
-    let protocolQuery = supabase.from('protocols').select('*');
-    
-    if (ghl_contact_id) {
-      protocolQuery = protocolQuery.eq('ghl_contact_id', ghl_contact_id);
-    } else if (patientEmail) {
-      protocolQuery = protocolQuery.ilike('patient_email', patientEmail);
-    } else if (patientPhone) {
-      protocolQuery = protocolQuery.or(`patient_phone.ilike.%${patientPhone}%`);
-    }
-    
-    const { data: protocolData } = await protocolQuery.order('start_date', { ascending: false });
-    protocols = protocolData || [];
-
-    // If we found protocols but didn't have ghl_contact_id, grab it
-    if (protocols.length > 0 && !patient.ghl_contact_id) {
-      patient.ghl_contact_id = protocols[0].ghl_contact_id;
-    }
-
-    // Get injection logs for protocols
-    const protocolIds = protocols.map(p => p.id);
-    let injectionLogs = [];
-    if (protocolIds.length > 0) {
-      const { data } = await supabase
-        .from('injection_logs')
-        .select('*')
-        .in('protocol_id', protocolIds);
-      injectionLogs = data || [];
-    }
-
-    // Add injection stats to protocols
-    protocols = protocols.map(p => {
-      const logs = injectionLogs.filter(l => l.protocol_id === p.id);
-      return {
-        ...p,
-        injections_completed: logs.length
-      };
+    console.log('📋 Extracted data:', {
+      contactId,
+      contactName,
+      contactEmail,
+      contactPhone,
+      productName,
+      amount,
+      paymentId
     });
 
-    // Purchases - match by ghl_contact_id OR email OR phone
-    let purchases = [];
-    let purchaseQuery = supabase.from('purchases').select('*');
+    // =====================================================
+    // VALIDATE MINIMUM DATA
+    // =====================================================
     
-    if (patient.ghl_contact_id) {
-      purchaseQuery = purchaseQuery.eq('ghl_contact_id', patient.ghl_contact_id);
-    } else if (patientEmail) {
-      purchaseQuery = purchaseQuery.ilike('patient_email', patientEmail);
-    } else if (patientPhone) {
-      purchaseQuery = purchaseQuery.or(`patient_phone.ilike.%${patientPhone}%`);
+    if (!contactId && !contactEmail && !contactPhone) {
+      console.log('⚠️ No contact identifier found');
+      return res.status(200).json({ 
+        success: false, 
+        error: 'No contact identifier',
+        message: 'Payment received but no contact info to link it to'
+      });
     }
+
+    // =====================================================
+    // CREATE PURCHASE RECORD (ALL PAYMENTS)
+    // =====================================================
     
-    const { data: purchaseData } = await purchaseQuery.order('purchase_date', { ascending: false });
-    purchases = purchaseData || [];
-
-    // =====================================================
-    // CALCULATE SUMMARY STATS
-    // =====================================================
-
-    const stats = {
-      totalSpent: purchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0),
-      totalPurchases: purchases.length,
-      activeProtocols: protocols.filter(p => p.status === 'active').length,
-      completedProtocols: protocols.filter(p => p.status === 'completed').length,
-      totalInjections: injectionLogs.length,
-      labsCount: labs.length,
-      consentsCount: consents.length,
-      hasIntake: intakes.length > 0,
-      firstVisit: purchases.length > 0 ? purchases[purchases.length - 1].purchase_date : null,
-      lastVisit: purchases.length > 0 ? purchases[0].purchase_date : null
+    const category = categorizePurchase(productName);
+    const normalizedItem = normalizeItemName(productName, category);
+    
+    console.log('💳 Creating purchase record:', { category, normalizedItem });
+    
+    const purchaseData = {
+      ghl_contact_id: contactId || null,
+      patient_name: contactName || 'Unknown',
+      patient_email: contactEmail || null,
+      patient_phone: contactPhone || null,
+      purchase_date: new Date().toISOString().split('T')[0],
+      category: category,
+      item_name: normalizedItem,
+      original_item_name: productName || 'Unknown',
+      quantity: 1,
+      amount: amount,
+      invoice_number: paymentId || null,
+      source: 'GoHighLevel',
+      raw_payload: JSON.stringify(payload).substring(0, 5000) // Store raw payload for debugging
     };
+    
+    const { data: purchase, error: purchaseError } = await supabase
+      .from('purchases')
+      .insert(purchaseData)
+      .select()
+      .single();
+    
+    if (purchaseError) {
+      console.error('❌ Purchase insert error:', purchaseError);
+      // Continue anyway - don't fail the whole webhook
+    } else {
+      console.log('✅ Purchase created:', purchase?.id);
+    }
 
     // =====================================================
-    // RETURN COMPLETE PROFILE
+    // CREATE PROTOCOL (IF TRACKABLE)
     // =====================================================
+    
+    let protocol = null;
+    
+    if (shouldCreateProtocol(category, productName)) {
+      console.log('📋 Creating protocol for trackable item');
+      
+      const duration = getProtocolDuration(category, productName);
+      const accessToken = generateToken();
+      const startDate = new Date().toISOString().split('T')[0];
+      
+      // Calculate end date
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + duration);
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      const protocolData = {
+        ghl_contact_id: contactId || null,
+        patient_name: contactName,
+        patient_email: contactEmail || null,
+        patient_phone: contactPhone || null,
+        protocol_type: category,
+        protocol_name: normalizedItem,
+        start_date: startDate,
+        end_date: endDateStr,
+        duration_days: duration,
+        status: 'active',
+        access_token: accessToken,
+        reminder_enabled: true,
+        reminder_time: '18:30:00', // 6:30pm PST default
+        purchase_id: purchase?.id || null,
+        amount: amount
+      };
+      
+      const { data: newProtocol, error: protocolError } = await supabase
+        .from('protocols')
+        .insert(protocolData)
+        .select()
+        .single();
+      
+      if (protocolError) {
+        console.error('❌ Protocol insert error:', protocolError);
+      } else {
+        protocol = newProtocol;
+        console.log('✅ Protocol created:', {
+          id: protocol.id,
+          type: category,
+          name: normalizedItem,
+          duration,
+          token: accessToken
+        });
+        
+        // Link purchase to protocol
+        if (purchase?.id) {
+          await supabase
+            .from('purchases')
+            .update({ protocol_id: protocol.id })
+            .eq('id', purchase.id);
+        }
+      }
+    }
 
-    return res.status(200).json({
-      patient: {
-        ...patient,
-        ghl_contact_id: patient.ghl_contact_id || ghl_contact_id
+    // =====================================================
+    // RESPONSE
+    // =====================================================
+    
+    const trackerUrl = protocol ? 
+      `https://rangemedical-system-2.vercel.app/track/${protocol.access_token}` : 
+      null;
+    
+    const response = {
+      success: true,
+      purchase: {
+        id: purchase?.id,
+        category,
+        item: normalizedItem,
+        amount
       },
-      stats,
-      intakes,
-      consents,
-      labs,
-      documents,
-      protocols,
-      purchases
-    });
+      protocol: protocol ? {
+        id: protocol.id,
+        type: category,
+        name: normalizedItem,
+        duration: protocol.duration_days,
+        trackerUrl
+      } : null,
+      contact: {
+        id: contactId,
+        name: contactName,
+        email: contactEmail
+      }
+    };
+    
+    console.log('✅ Webhook complete:', response);
+    return res.status(200).json(response);
 
   } catch (error) {
-    console.error('Patient profile error:', error);
-    return res.status(500).json({ error: 'Server error', details: error.message });
+    console.error('❌ Webhook error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 }

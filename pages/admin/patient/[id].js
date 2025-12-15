@@ -428,7 +428,7 @@ function ProtocolCard({ protocol }) {
   const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : null;
 
   const handleClick = () => {
-    window.location.href = `/admin/protocols/${protocol.id}`;
+    window.location.href = `/admin/protocol/${protocol.id}`;
   };
 
   return (

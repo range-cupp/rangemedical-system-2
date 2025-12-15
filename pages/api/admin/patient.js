@@ -160,7 +160,7 @@ export default async function handler(req, res) {
         .from('consents')
         .select('*')
         .eq('patient_id', patientId)
-        .order('uploaded_at', { ascending: false });
+        .order('submitted_at', { ascending: false });
       consents = data || [];
     }
 

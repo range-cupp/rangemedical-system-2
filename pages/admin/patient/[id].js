@@ -427,8 +427,12 @@ function ProtocolCard({ protocol }) {
   const endDate = protocol.end_date ? new Date(protocol.end_date) : null;
   const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : null;
 
+  const handleClick = () => {
+    window.location.href = `/admin/protocol/${protocol.id}`;
+  };
+
   return (
-    <div style={styles.protocolCard}>
+    <div style={styles.protocolCard} onClick={handleClick}>
       <div style={styles.protocolHeader}>
         <h4 style={styles.protocolName}>{protocol.program_name}</h4>
         <span style={{
@@ -478,6 +482,8 @@ function ProtocolCard({ protocol }) {
           <strong>Instructions:</strong> {protocol.special_instructions}
         </div>
       )}
+      
+      <div style={styles.viewProtocolLink}>View Details →</div>
     </div>
   );
 }
@@ -1120,7 +1126,13 @@ const styles = {
     backgroundColor: '#fff',
     border: '1px solid #e5e5e5',
     borderRadius: '8px',
-    padding: '16px'
+    padding: '16px',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    ':hover': {
+      borderColor: '#000',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+    }
   },
   protocolHeader: {
     display: 'flex',
@@ -1136,6 +1148,14 @@ const styles = {
   },
   protocolDetails: {
     marginBottom: '12px'
+  },
+  viewProtocolLink: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#000',
+    marginTop: '12px',
+    paddingTop: '12px',
+    borderTop: '1px solid #f0f0f0'
   },
   instructions: {
     fontSize: '12px',

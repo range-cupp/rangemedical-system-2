@@ -124,10 +124,10 @@ export default async function handler(req, res) {
         }
         return {
           id: p.id,
-          protocol_name: p.protocol_name,
+          protocol_name: p.program_name,
           status: p.status,
-          dose: p.dose,
-          frequency: p.frequency,
+          dose: p.dose_amount,
+          frequency: p.dose_frequency,
           injection_location: p.injection_location,
           days_remaining: daysRemaining,
           end_date: p.end_date,

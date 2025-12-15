@@ -98,17 +98,30 @@ export default async function handler(req, res) {
         }
       }
     } else {
-      // Assume it's a protocol ID
+      // Assume it's a protocol ID - could be 'peptide_xxx' format or just ID
+      const protocolId = injection_type.startsWith('peptide_') 
+        ? injection_type.replace('peptide_', '') 
+        : injection_type;
+        
       const { data: protocol } = await supabase
         .from('protocols')
         .select('*')
-        .eq('id', injection_type)
+        .eq('id', protocolId)
         .single();
 
       if (protocol) {
-        medication = protocol.protocol_name;
+        medication = protocol.program_name;
         programId = protocol.id;
         programType = 'peptide';
+        
+        // Increment injections_completed
+        await supabase
+          .from('protocols')
+          .update({ 
+            injections_completed: (protocol.injections_completed || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', protocolId);
       }
     }
 
@@ -124,6 +137,7 @@ export default async function handler(req, res) {
         injection_site: injection_site || 'abdomen',
         program_id: programId,
         program_type: programType,
+        location: 'take_home',
         logged_by: 'patient',
         notes
       })

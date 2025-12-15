@@ -1,127 +1,192 @@
+// =====================================================
+// PATIENT DASHBOARD API
+// /pages/api/patient/dashboard.js
+// Returns patient's services and status
+// =====================================================
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   const { token } = req.query;
-  if (!token) return res.status(400).json({ error: 'Token required' });
+
+  if (!token) {
+    return res.status(400).json({ success: false, error: 'Token required' });
+  }
 
   try {
-    const { data: patientToken, error: tokenError } = await supabase
-      .from('patient_access_tokens')
+    // Find patient by token
+    const { data: patient, error: patientError } = await supabase
+      .from('patients')
       .select('*')
-      .eq('token', token)
+      .eq('login_token', token)
       .single();
 
-    if (tokenError || !patientToken) {
-      return res.status(404).json({ error: 'Invalid or expired link' });
+    if (patientError || !patient) {
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
-    await supabase
-      .from('patient_access_tokens')
-      .update({ last_accessed_at: new Date().toISOString() })
-      .eq('id', patientToken.id);
-
-    const { data: protocols, error: protocolsError } = await supabase
-      .from('protocols')
-      .select('*')
-      .eq('ghl_contact_id', patientToken.ghl_contact_id)
-      .order('start_date', { ascending: false });
-
-    if (protocolsError) {
-      console.error('Protocols error:', protocolsError);
-      return res.status(500).json({ error: 'Failed to load protocols' });
-    }
-
-    const protocolIds = protocols.map(p => p.id);
-    let injectionLogs = [];
-    if (protocolIds.length > 0) {
-      const { data: logs } = await supabase
-        .from('injection_logs')
-        .select('*')
-        .in('protocol_id', protocolIds);
-      injectionLogs = logs || [];
-    }
-
-    const peptideNames = protocols.map(p => p.primary_peptide).filter(Boolean);
-    let peptideTools = [];
-    if (peptideNames.length > 0) {
-      const { data: tools } = await supabase
-        .from('peptide_tools')
-        .select('name, category')
-        .in('name', peptideNames);
-      peptideTools = tools || [];
+    // Check token expiration (optional)
+    if (patient.token_expires_at && new Date(patient.token_expires_at) < new Date()) {
+      return res.status(401).json({ success: false, error: 'Token expired' });
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const patientData = {
+      id: patient.id,
+      ghl_contact_id: patient.ghl_contact_id,
+      first_name: patient.first_name,
+      last_name: patient.last_name,
+      full_name: patient.full_name,
+      email: patient.email,
+      phone: patient.phone
+    };
 
-    const protocolsWithDays = protocols.map(protocol => {
-      const peptideTool = peptideTools.find(t => t.name === protocol.primary_peptide);
-      const category = peptideTool?.category || null;
-      const startDate = new Date(protocol.start_date);
-      const days = [];
-      
-      for (let i = 0; i < protocol.duration_days; i++) {
-        const dayDate = new Date(startDate);
-        dayDate.setDate(startDate.getDate() + i);
-        const dayNumber = i + 1;
-        const dateStr = dayDate.toISOString().split('T')[0];
-        const log = injectionLogs.find(l => l.protocol_id === protocol.id && l.day_number === dayNumber);
-        
-        days.push({
-          day: dayNumber,
-          date: dateStr,
-          completed: !!log,
-          completedAt: log?.completed_at || null,
-          isCurrent: dateStr === todayStr,
-          isFuture: dayDate > today
-        });
-      }
+    // Get HRT membership
+    const { data: hrt } = await supabase
+      .from('hrt_memberships')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active')
+      .single();
 
-      return { ...protocol, category, days, access_token: protocol.access_token };
-    });
-
-    // Get purchases for this patient (if table exists)
-    let purchases = [];
-    try {
-      const { data: purchaseData } = await supabase
-        .from('purchases')
+    if (hrt) {
+      // Get current period
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+      const { data: period } = await supabase
+        .from('hrt_monthly_periods')
         .select('*')
-        .or(`patient_phone.eq.${patientToken.patient_phone},patient_email.eq.${patientToken.patient_email}`)
-        .order('purchase_date', { ascending: false });
-      
-      if (purchaseData) {
-        purchases = purchaseData;
+        .eq('membership_id', hrt.id)
+        .gte('period_start', monthStart)
+        .single();
+
+      let ivDaysLeft = null;
+      if (period && !period.iv_used) {
+        const periodEnd = new Date(period.period_end);
+        ivDaysLeft = Math.ceil((periodEnd - today) / (1000 * 60 * 60 * 24));
       }
-    } catch (e) {
-      // Table may not exist yet
-      console.log('Purchases table not found or error:', e.message);
+
+      patientData.hrt = {
+        status: hrt.status,
+        membership_type: hrt.membership_type,
+        injection_frequency: hrt.injection_frequency,
+        injection_location: hrt.injection_frequency ? 'take_home' : null,
+        next_lab_due: hrt.next_lab_due,
+        iv_used: period?.iv_used || false,
+        iv_days_left: ivDaysLeft,
+        current_period: period?.period_label
+      };
     }
 
+    // Get Weight Loss program
+    const { data: wl } = await supabase
+      .from('weight_loss_programs')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active')
+      .single();
+
+    if (wl) {
+      patientData.weight_loss = {
+        status: wl.status,
+        medication: wl.medication,
+        current_dose: wl.current_dose,
+        current_weight: wl.current_weight,
+        starting_weight: wl.starting_weight,
+        goal_weight: wl.goal_weight,
+        injection_frequency: wl.injection_frequency,
+        injection_location: wl.injection_location,
+        next_refill_date: wl.next_refill_date
+      };
+    }
+
+    // Get Protocols
+    const { data: protocols } = await supabase
+      .from('protocols')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active');
+
+    if (protocols?.length > 0) {
+      patientData.protocols = protocols.map(p => {
+        let daysRemaining = null;
+        if (p.end_date) {
+          const endDate = new Date(p.end_date);
+          daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+        }
+        return {
+          id: p.id,
+          protocol_name: p.protocol_name,
+          status: p.status,
+          dose: p.dose,
+          frequency: p.frequency,
+          injection_location: p.injection_location,
+          days_remaining: daysRemaining,
+          end_date: p.end_date,
+          next_refill_date: p.next_refill_date
+        };
+      });
+    }
+
+    // Get Session Packs
+    const { data: packs } = await supabase
+      .from('session_packages')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active');
+
+    if (packs?.length > 0) {
+      patientData.session_packs = packs.map(p => ({
+        id: p.id,
+        service_type: p.service_type,
+        package_name: p.package_name,
+        sessions_purchased: p.sessions_purchased,
+        sessions_used: p.sessions_used,
+        sessions_remaining: p.sessions_purchased - p.sessions_used,
+        status: p.status,
+        expiration_date: p.expiration_date
+      }));
+    }
+
+    // Get Challenges
+    const { data: challenges } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active');
+
+    if (challenges?.length > 0) {
+      patientData.challenges = challenges.map(c => ({
+        id: c.id,
+        challenge_name: c.challenge_name,
+        start_date: c.start_date,
+        end_date: c.end_date,
+        hbot_remaining: c.hbot_sessions_included - c.hbot_sessions_used,
+        rlt_remaining: c.rlt_sessions_included - c.rlt_sessions_used
+      }));
+    }
+
+    // Update last login
+    await supabase
+      .from('patients')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', patient.id);
+
     return res.status(200).json({
-      patient: {
-        name: patientToken.patient_name,
-        email: patientToken.patient_email,
-        phone: patientToken.patient_phone
-      },
-      protocols: protocolsWithDays,
-      purchases: purchases
+      success: true,
+      data: patientData
     });
 
   } catch (error) {
-    console.error('Dashboard error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    console.error('Patient dashboard error:', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

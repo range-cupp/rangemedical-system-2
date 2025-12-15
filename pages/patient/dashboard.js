@@ -254,10 +254,21 @@ function OverviewTab({ patient, openLogModal }) {
 
         {/* Active Protocols */}
         {patient.protocols?.filter(p => p.status === 'active').slice(0, 2).map((protocol, i) => (
-          <ServiceCard key={i} title={protocol.protocol_name} status={protocol.status} subtitle="Peptide Protocol">
+          <ServiceCard key={i} title={protocol.program_name} status={protocol.status} subtitle="Peptide Protocol">
+            {/* Peptide Name */}
+            {(protocol.primary_peptide || protocol.secondary_peptide) && (
+              <div style={styles.serviceItem}>
+                <span style={styles.serviceLabel}>Peptide</span>
+                <span style={styles.serviceValue}>
+                  {protocol.primary_peptide}
+                  {protocol.secondary_peptide && ` + ${protocol.secondary_peptide}`}
+                </span>
+              </div>
+            )}
+            
             <div style={styles.serviceItem}>
               <span style={styles.serviceLabel}>Days Remaining</span>
-              <span style={styles.serviceValue}>{protocol.days_remaining} days</span>
+              <span style={{...styles.serviceValue, fontSize: '20px', fontWeight: '700'}}>{protocol.days_remaining} days</span>
             </div>
             
             <div style={styles.serviceItem}>
@@ -323,15 +334,28 @@ function ProtocolsTab({ protocols, openLogModal }) {
             {active.map((protocol, i) => (
               <div key={i} style={styles.protocolCard}>
                 <div style={styles.protocolHeader}>
-                  <h4 style={styles.protocolName}>{protocol.protocol_name}</h4>
+                  <h4 style={styles.protocolName}>{protocol.program_name}</h4>
                   <span style={styles.activeBadge}>Active</span>
                 </div>
                 
-                <div style={styles.protocolDetails}>
-                  <div style={styles.detailRow}>
-                    <span>Days Left:</span>
-                    <strong>{protocol.days_remaining} days</strong>
+                {/* Peptide Names */}
+                {(protocol.primary_peptide || protocol.secondary_peptide) && (
+                  <div style={styles.peptideRow}>
+                    <span style={styles.peptideLabel}>Peptide:</span>
+                    <span style={styles.peptideValue}>
+                      {protocol.primary_peptide}
+                      {protocol.secondary_peptide && ` + ${protocol.secondary_peptide}`}
+                    </span>
                   </div>
+                )}
+                
+                {/* Days Remaining - Prominent */}
+                <div style={styles.daysRemainingBox}>
+                  <div style={styles.daysNumber}>{protocol.days_remaining}</div>
+                  <div style={styles.daysLabel}>days remaining</div>
+                </div>
+                
+                <div style={styles.protocolDetails}>
                   <div style={styles.detailRow}>
                     <span>Dose:</span>
                     <span>{protocol.dose} · {protocol.frequency}</span>
@@ -340,7 +364,19 @@ function ProtocolsTab({ protocols, openLogModal }) {
                     <span>End Date:</span>
                     <span>{formatDate(protocol.end_date)}</span>
                   </div>
+                  {protocol.injections_completed > 0 && (
+                    <div style={styles.detailRow}>
+                      <span>Injections Logged:</span>
+                      <span>{protocol.injections_completed}</span>
+                    </div>
+                  )}
                 </div>
+
+                {protocol.special_instructions && (
+                  <div style={styles.instructionsBox}>
+                    <strong>Instructions:</strong> {protocol.special_instructions}
+                  </div>
+                )}
 
                 {protocol.injection_location === 'take_home' && (
                   <button onClick={() => openLogModal(`peptide_${protocol.id}`)} style={styles.logButton}>
@@ -360,9 +396,18 @@ function ProtocolsTab({ protocols, openLogModal }) {
             {completed.map((protocol, i) => (
               <div key={i} style={{...styles.protocolCard, opacity: 0.7}}>
                 <div style={styles.protocolHeader}>
-                  <h4 style={styles.protocolName}>{protocol.protocol_name}</h4>
+                  <h4 style={styles.protocolName}>{protocol.program_name}</h4>
                   <span style={styles.completedBadge}>Completed</span>
                 </div>
+                {(protocol.primary_peptide || protocol.secondary_peptide) && (
+                  <div style={styles.peptideRow}>
+                    <span style={styles.peptideLabel}>Peptide:</span>
+                    <span style={styles.peptideValue}>
+                      {protocol.primary_peptide}
+                      {protocol.secondary_peptide && ` + ${protocol.secondary_peptide}`}
+                    </span>
+                  </div>
+                )}
                 <div style={styles.protocolDetails}>
                   <div style={styles.detailRow}>
                     <span>Duration:</span>
@@ -974,13 +1019,14 @@ const styles = {
   protocolCard: {
     border: '1px solid #e5e5e5',
     borderRadius: '12px',
-    padding: '16px'
+    padding: '16px',
+    backgroundColor: '#fff'
   },
   protocolHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '12px'
+    marginBottom: '8px'
   },
   protocolName: {
     fontSize: '15px',
@@ -1005,7 +1051,46 @@ const styles = {
     fontWeight: '600',
     textTransform: 'uppercase'
   },
-  protocolDetails: {},
+  peptideRow: {
+    marginBottom: '12px'
+  },
+  peptideLabel: {
+    fontSize: '12px',
+    color: '#666',
+    marginRight: '6px'
+  },
+  peptideValue: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#000'
+  },
+  daysRemainingBox: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: '8px',
+    padding: '12px',
+    textAlign: 'center',
+    marginBottom: '12px'
+  },
+  daysNumber: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: '#000'
+  },
+  daysLabel: {
+    fontSize: '12px',
+    color: '#666'
+  },
+  instructionsBox: {
+    fontSize: '12px',
+    color: '#666',
+    backgroundColor: '#f9f9f9',
+    padding: '10px',
+    borderRadius: '6px',
+    marginBottom: '12px'
+  },
+  protocolDetails: {
+    marginBottom: '12px'
+  },
   detailRow: {
     display: 'flex',
     justifyContent: 'space-between',

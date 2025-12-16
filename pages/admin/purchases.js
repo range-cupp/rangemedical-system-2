@@ -3,6 +3,7 @@
 // Range Medical
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -22,11 +23,13 @@ const CATEGORIES = [
 ];
 
 export default function AdminPurchases() {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [initialized, setInitialized] = useState(false);
   
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -35,6 +38,20 @@ export default function AdminPurchases() {
 
   // Stats
   const [stats, setStats] = useState({ total: 0, revenue: 0 });
+
+  // Initialize from URL params
+  useEffect(() => {
+    if (router.isReady && !initialized) {
+      const { category, search } = router.query;
+      if (category && CATEGORIES.includes(category)) {
+        setCategoryFilter(category);
+      }
+      if (search) {
+        setSearchQuery(search);
+      }
+      setInitialized(true);
+    }
+  }, [router.isReady, router.query]);
 
   useEffect(() => {
     const stored = localStorage.getItem('adminPassword');
@@ -72,11 +89,11 @@ export default function AdminPurchases() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) fetchPurchases();
-  }, [isAuthenticated, categoryFilter, dateRange]);
+    if (isAuthenticated && initialized) fetchPurchases();
+  }, [isAuthenticated, categoryFilter, dateRange, initialized]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !initialized) return;
     const timer = setTimeout(() => fetchPurchases(), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -199,7 +216,9 @@ export default function AdminPurchases() {
         }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>RANGE MEDICAL</h1>
-            <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.8 }}>Purchase History</p>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.8 }}>
+              {categoryFilter === 'All' ? 'Purchase History' : `${categoryFilter} Purchases`}
+            </p>
           </div>
           <button onClick={() => {
             localStorage.removeItem('adminPassword');
@@ -254,7 +273,9 @@ export default function AdminPurchases() {
         }}>
           <div>
             <div style={{ fontSize: '24px', fontWeight: '600' }}>{stats.total}</div>
-            <div style={{ fontSize: '13px', color: '#666' }}>Purchases</div>
+            <div style={{ fontSize: '13px', color: '#666' }}>
+              {categoryFilter === 'All' ? 'Purchases' : `${categoryFilter} Purchases`}
+            </div>
           </div>
           <div>
             <div style={{ fontSize: '24px', fontWeight: '600' }}>{formatCurrency(stats.revenue)}</div>
@@ -282,7 +303,13 @@ export default function AdminPurchases() {
           
           <select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              const newUrl = e.target.value === 'All' 
+                ? '/admin/purchases' 
+                : `/admin/purchases?category=${encodeURIComponent(e.target.value)}`;
+              router.push(newUrl, undefined, { shallow: true });
+            }}
             style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
           >
             {CATEGORIES.map(cat => (

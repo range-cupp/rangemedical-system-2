@@ -136,7 +136,7 @@ export default async function handler(req, res) {
 
       // Calculate dates
       const startDateObj = start_date ? new Date(start_date) : new Date();
-      const durationDays = duration_days || 30;
+      const durationDays = duration_days || 10;
       const endDateObj = new Date(startDateObj);
       endDateObj.setDate(endDateObj.getDate() + durationDays);
 
@@ -145,7 +145,7 @@ export default async function handler(req, res) {
         patient_name,
         patient_email: patient_email || null,
         patient_phone: patient_phone || null,
-        program_type,
+        program_type: program_type || 'recovery_jumpstart_10day',
         program_name,
         start_date: startDateObj.toISOString().split('T')[0],
         end_date: endDateObj.toISOString().split('T')[0],

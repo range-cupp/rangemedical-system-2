@@ -315,6 +315,19 @@ function generateToken() {
   return crypto.randomBytes(16).toString('hex');
 }
 
+// Map item name to allowed program_type values
+function getProgramType(itemName) {
+  const name = itemName?.toLowerCase() || '';
+  
+  if (/jumpstart/i.test(name)) return 'jumpstart_10day';
+  if (/10-day|10 day/i.test(name)) return 'recovery_10day';
+  if (/30-day|month/i.test(name)) return 'month_30day';
+  if (/injection|in-clinic/i.test(name)) return 'injection_clinic';
+  if (/week/i.test(name)) return 'recovery_10day';
+  
+  return 'month_30day'; // default
+}
+
 // =====================================================
 // MAIN WEBHOOK HANDLER
 // =====================================================
@@ -494,15 +507,14 @@ export default async function handler(req, res) {
         patient_name: contactName,
         patient_email: contactEmail || null,
         patient_phone: contactPhone || null,
-        protocol_type: category,
-        protocol_name: normalizedItem,
+        program_type: getProgramType(normalizedItem),
+        program_name: normalizedItem,
         start_date: startDate,
         end_date: endDateStr,
         duration_days: duration,
         status: 'active',
         access_token: accessToken,
-        reminder_enabled: true,
-        reminder_time: '18:30:00', // 6:30pm PST default
+        reminders_enabled: true,
         purchase_id: purchase?.id || null,
         amount: amount
       };

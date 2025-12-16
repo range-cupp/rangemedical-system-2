@@ -61,15 +61,17 @@ export default async function handler(req, res) {
       injectionPurchasesResult,
       peptidePurchasesResult,
       
-      // Lists for display
-      activeProtocolsListResult,
+      // Lists for display - PEPTIDE protocols (ending soonest)
+      activePeptideProtocolsResult,
+      
+      // Lists for display - WEIGHT LOSS protocols (ending soonest)
+      activeWeightLossProtocolsResult,
+      
+      // Recent purchases list
       recentPurchasesListResult,
       
       // HRT members (unique patients with HRT purchases)
       hrtMembersResult,
-      
-      // Weight Loss active protocols
-      weightLossProtocolsResult,
       
       // Recent IV sessions
       recentIVResult,
@@ -108,13 +110,23 @@ export default async function handler(req, res) {
       // Peptide purchases (30 days)
       supabase.from('purchases').select('amount').eq('category', 'Peptide').gte('purchase_date', thirtyDaysAgoStr),
       
-      // Active protocols list (ending soonest first)
+      // PEPTIDE protocols - Active, ending soonest first
       supabase
         .from('protocols')
         .select('id, patient_name, program_name, program_type, start_date, end_date, duration_days, injections_completed, access_token')
         .eq('status', 'active')
+        .in('program_type', ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic', 'jumpstart_10day', 'recovery_10day', 'month_30day'])
         .order('end_date', { ascending: true, nullsFirst: false })
-        .limit(20),
+        .limit(15),
+      
+      // WEIGHT LOSS protocols - Active, ending soonest first
+      supabase
+        .from('protocols')
+        .select('id, patient_name, program_name, program_type, start_date, end_date, duration_days, injections_completed, access_token')
+        .eq('status', 'active')
+        .in('program_type', ['weight_loss_program', 'weight_loss_injection'])
+        .order('end_date', { ascending: true, nullsFirst: false })
+        .limit(15),
       
       // Recent purchases list
       supabase
@@ -129,15 +141,6 @@ export default async function handler(req, res) {
         .select('ghl_contact_id, patient_name, patient_email, patient_phone')
         .eq('category', 'HRT')
         .not('ghl_contact_id', 'is', null),
-      
-      // Weight Loss protocols (active)
-      supabase
-        .from('purchases')
-        .select('id, patient_name, item_name, purchase_date, ghl_contact_id')
-        .eq('category', 'Weight Loss')
-        .gte('purchase_date', thirtyDaysAgoStr)
-        .order('purchase_date', { ascending: false })
-        .limit(10),
       
       // Recent IV sessions
       supabase
@@ -178,6 +181,10 @@ export default async function handler(req, res) {
     });
     const hrtMembers = Array.from(hrtMemberMap.values());
 
+    // Get active protocol counts by category
+    const activePeptideProtocols = activePeptideProtocolsResult.data || [];
+    const activeWeightLossProtocols = activeWeightLossProtocolsResult.data || [];
+
     // Build response
     const response = {
       stats: {
@@ -194,8 +201,9 @@ export default async function handler(req, res) {
           purchases: hrtPurchasesResult.data?.length || 0
         },
         weightLoss: {
-          activePurchases: weightLossPurchasesResult.data?.length || 0,
-          revenue: weightLossRevenue
+          activeProtocols: activeWeightLossProtocols.length,
+          revenue: weightLossRevenue,
+          purchases: weightLossPurchasesResult.data?.length || 0
         },
         ivTherapy: {
           sessions: ivPurchasesResult.data?.length || 0,
@@ -206,16 +214,16 @@ export default async function handler(req, res) {
           revenue: injectionRevenue
         },
         peptides: {
-          activeProtocols: activeProtocolsResult.count || 0,
+          activeProtocols: activePeptideProtocols.length,
           revenue: peptideRevenue
         }
       },
       
-      // Lists
-      activeProtocols: activeProtocolsListResult.data || [],
+      // Lists - Separate Peptide and Weight Loss protocols
+      activePeptideProtocols: activePeptideProtocols,
+      activeWeightLossProtocols: activeWeightLossProtocols,
       recentPurchases: recentPurchasesListResult.data || [],
       hrtMembers: hrtMembers.slice(0, 10),
-      recentWeightLoss: weightLossProtocolsResult.data || [],
       recentIV: recentIVResult.data || [],
       recentInjections: recentInjectionsResult.data || []
     };

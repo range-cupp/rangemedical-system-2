@@ -207,43 +207,55 @@ function normalizeItemName(productName, category) {
   if (!productName) return 'Unknown';
   const name = productName.toLowerCase();
   
-  // PEPTIDES
+  // PEPTIDES - $100M Money Models naming
   if (category === 'Peptide') {
-    // $100M Money Models - Outcome-based programs
-    if (/recovery.*jumpstart|jumpstart.*10|10.*day.*peptide.*recovery/i.test(name)) {
-      return 'Peptide Recovery Jumpstart (10-Day)';
+    // Peptide Recovery Jumpstart – 10 Day
+    if (/recovery.*jumpstart|jumpstart.*10|10.*day.*peptide.*recovery|peptide.*10.*day|10-day.*protocol/i.test(name)) {
+      return 'Peptide Recovery Jumpstart – 10 Day';
     }
-    if (/peptide.*month|month.*peptide|30.*day.*peptide/i.test(name)) {
-      return 'Peptide Month Program (30-Day)';
+    
+    // Peptide Month Program – 30 Day
+    if (/peptide.*month|month.*peptide|30.*day.*peptide|peptide.*30.*day/i.test(name)) {
+      return 'Peptide Month Program – 30 Day';
     }
+    
+    // Peptide Maintenance – 4-Week Refill
     if (/maintenance|refill|peptide.*4.*week/i.test(name)) {
-      return 'Peptide Maintenance (4-Week)';
+      return 'Peptide Maintenance – 4-Week Refill';
     }
+    
+    // Peptide Injection (In-Clinic)
     if (/peptide.*injection.*clinic|in.*clinic.*peptide/i.test(name)) {
       return 'Peptide Injection (In-Clinic)';
     }
     
-    // Legacy/specific peptide names - map to programs
+    // Specific peptide blends - append to appropriate program name
     if (/wolverine/i.test(name)) {
-      if (/10.*day|10-day/i.test(name)) return 'Wolverine Blend (BPC/TB) - 10 Day';
-      return 'Wolverine Blend (BPC/TB)';
+      if (/10.*day|10-day/i.test(name)) return 'Wolverine Blend (BPC/TB) – 10 Day';
+      return 'Wolverine Blend (BPC/TB) – 30 Day';
     }
-    if (/bpc.*tb|tb.*bpc|bpc-157.*tb|wolverine/i.test(name)) {
-      if (/10.*day|10-day/i.test(name)) return 'BPC-157/TB-500 Protocol (10-Day)';
-      return 'BPC-157/TB-500 Protocol';
+    if (/bpc.*tb|tb.*bpc|bpc-157.*tb/i.test(name)) {
+      if (/10.*day|10-day/i.test(name)) return 'BPC-157/TB-500 – 10 Day';
+      return 'BPC-157/TB-500 – 30 Day';
     }
-    if (/glow/i.test(name)) return 'GLOW Protocol';
-    if (/ta-1|thymosin.*alpha/i.test(name)) return 'TA-1 Protocol';
-    if (/aod/i.test(name)) return 'AOD Protocol';
-    if (/3x.*blend/i.test(name)) return '3x Blend Protocol';
-    if (/ghk/i.test(name)) return 'GHK-Cu Protocol';
-    if (/epitalon/i.test(name)) return 'Epitalon Protocol';
+    if (/glow/i.test(name)) return 'GLOW Protocol – 30 Day';
+    if (/ta-1|thymosin.*alpha/i.test(name)) return 'TA-1 Protocol – 30 Day';
+    if (/aod/i.test(name)) return 'AOD Protocol – 30 Day';
+    if (/3x.*blend/i.test(name)) return '3x Blend Protocol – 30 Day';
+    if (/ghk/i.test(name)) return 'GHK-Cu Protocol – 30 Day';
+    if (/epitalon/i.test(name)) return 'Epitalon Protocol – 30 Day';
     if (/pt-?141/i.test(name)) return 'PT-141 Protocol';
     if (/kisspeptin/i.test(name)) return 'Kisspeptin Protocol';
-    if (/sermorelin|cjc|ipamorelin|tesamorelin/i.test(name)) return 'Growth Hormone Protocol';
-    if (/mots/i.test(name)) return 'MOTS-c Protocol';
-    if (/bpc/i.test(name)) return 'BPC-157 Protocol';
-    if (/tb-?500/i.test(name)) return 'TB-500 Protocol';
+    if (/sermorelin|cjc|ipamorelin|tesamorelin/i.test(name)) return 'Growth Hormone Protocol – 30 Day';
+    if (/mots/i.test(name)) return 'MOTS-c Protocol – 30 Day';
+    if (/bpc/i.test(name)) {
+      if (/10.*day|10-day/i.test(name)) return 'BPC-157 – 10 Day';
+      return 'BPC-157 – 30 Day';
+    }
+    if (/tb-?500/i.test(name)) {
+      if (/10.*day|10-day/i.test(name)) return 'TB-500 – 10 Day';
+      return 'TB-500 – 30 Day';
+    }
     
     return productName; // Return original if no match
   }
@@ -383,13 +395,56 @@ function generateToken() {
 function getProgramType(itemName) {
   const name = itemName?.toLowerCase() || '';
   
-  if (/jumpstart/i.test(name)) return 'jumpstart_10day';
-  if (/10-day|10 day/i.test(name)) return 'recovery_10day';
-  if (/30-day|month/i.test(name)) return 'month_30day';
-  if (/injection|in-clinic/i.test(name)) return 'injection_clinic';
-  if (/week/i.test(name)) return 'recovery_10day';
+  // 10-Day programs -> Recovery Jumpstart
+  if (/jumpstart|10-day|10 day|recovery.*10|10.*day/i.test(name)) {
+    return 'recovery_jumpstart_10day';
+  }
   
-  return 'month_30day'; // default
+  // In-clinic injection
+  if (/injection|in-clinic/i.test(name)) {
+    return 'injection_clinic';
+  }
+  
+  // Maintenance/Refill explicitly mentioned
+  if (/maintenance|refill|4.*week|4-week/i.test(name)) {
+    return 'maintenance_4week';
+  }
+  
+  // 30-Day/Month programs - will be determined as month_program or maintenance later
+  if (/30-day|30 day|month/i.test(name)) {
+    return 'month_program_30day'; // Default, may be changed to maintenance
+  }
+  
+  // Week programs -> Recovery Jumpstart
+  if (/week/i.test(name)) {
+    return 'recovery_jumpstart_10day';
+  }
+  
+  return 'recovery_jumpstart_10day'; // default to 10-day
+}
+
+// Check if patient already has a 30-day program (to determine if this is maintenance)
+async function checkIfMaintenance(supabase, contactId) {
+  if (!contactId) return false;
+  
+  try {
+    const { data, error } = await supabase
+      .from('protocols')
+      .select('id')
+      .eq('ghl_contact_id', contactId)
+      .in('program_type', ['month_program_30day', 'month_30day'])
+      .limit(1);
+    
+    if (error) {
+      console.error('Error checking for existing protocols:', error);
+      return false;
+    }
+    
+    return data && data.length > 0;
+  } catch (err) {
+    console.error('Error in checkIfMaintenance:', err);
+    return false;
+  }
 }
 
 // =====================================================
@@ -618,12 +673,24 @@ export default async function handler(req, res) {
       endDate.setDate(endDate.getDate() + duration);
       const endDateStr = endDate.toISOString().split('T')[0];
       
+      // Determine program type
+      let programType = getProgramType(normalizedItem);
+      
+      // If it's a 30-day program, check if patient already has one (making this a maintenance/refill)
+      if (programType === 'month_program_30day' && contactId) {
+        const isMaintenance = await checkIfMaintenance(supabase, contactId);
+        if (isMaintenance) {
+          programType = 'maintenance_4week';
+          console.log('📋 Patient has existing 30-day program, marking as maintenance');
+        }
+      }
+      
       const protocolData = {
         ghl_contact_id: contactId || null,
         patient_name: contactName,
         patient_email: contactEmail || null,
         patient_phone: contactPhone || null,
-        program_type: getProgramType(normalizedItem),
+        program_type: programType,
         program_name: normalizedItem,
         start_date: startDate,
         end_date: endDateStr,

@@ -1,5 +1,5 @@
 // /pages/admin/purchases.js
-// Purchase History Dashboard
+// Purchase History Dashboard - Consistent Styling
 // Range Medical
 
 import { useState, useEffect } from 'react';
@@ -31,12 +31,11 @@ export default function AdminPurchases() {
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState('30'); // days
+  const [dateRange, setDateRange] = useState('30');
 
   // Stats
   const [stats, setStats] = useState({ total: 0, revenue: 0 });
 
-  // Check stored password
   useEffect(() => {
     const stored = localStorage.getItem('adminPassword');
     if (stored) {
@@ -45,7 +44,6 @@ export default function AdminPurchases() {
     }
   }, []);
 
-  // Fetch purchases
   const fetchPurchases = async () => {
     setLoading(true);
     setError('');
@@ -65,10 +63,7 @@ export default function AdminPurchases() {
       
       const data = await res.json();
       setPurchases(data.purchases || []);
-      setStats({
-        total: data.total || 0,
-        revenue: data.revenue || 0
-      });
+      setStats({ total: data.total || 0, revenue: data.revenue || 0 });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -77,19 +72,15 @@ export default function AdminPurchases() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchPurchases();
-    }
+    if (isAuthenticated) fetchPurchases();
   }, [isAuthenticated, categoryFilter, dateRange]);
 
-  // Debounced search
   useEffect(() => {
     if (!isAuthenticated) return;
     const timer = setTimeout(() => fetchPurchases(), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Handle login
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -115,17 +106,13 @@ export default function AdminPurchases() {
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
+      month: 'short', day: 'numeric', year: 'numeric'
     });
   };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
+      style: 'currency', currency: 'USD', minimumFractionDigits: 0
     }).format(amount || 0);
   };
 
@@ -165,11 +152,12 @@ export default function AdminPurchases() {
             width: '100%',
             maxWidth: '400px'
           }}>
-            <h1 style={{ margin: '0 0 24px', fontSize: '24px', textAlign: 'center' }}>
-              Range Medical Admin
-            </h1>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <h1 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '600' }}>RANGE MEDICAL</h1>
+              <p style={{ margin: 0, color: '#666' }}>Admin Dashboard</p>
+            </div>
             {error && (
-              <div style={{ background: '#ffebee', color: '#c62828', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+              <div style={{ background: '#ffebee', color: '#c62828', padding: '12px', borderRadius: '4px', marginBottom: '16px', fontSize: '14px' }}>
                 {error}
               </div>
             )}
@@ -213,6 +201,20 @@ export default function AdminPurchases() {
             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>RANGE MEDICAL</h1>
             <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.8 }}>Purchase History</p>
           </div>
+          <button onClick={() => {
+            localStorage.removeItem('adminPassword');
+            setIsAuthenticated(false);
+          }} style={{
+            padding: '8px 16px',
+            background: 'transparent',
+            color: 'white',
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}>
+            Logout
+          </button>
         </header>
 
         {/* Navigation */}
@@ -305,7 +307,8 @@ export default function AdminPurchases() {
             background: '#f5f5f5',
             border: '1px solid #ddd',
             borderRadius: '4px',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontSize: '14px'
           }}>
             Refresh
           </button>

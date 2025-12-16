@@ -8,10 +8,14 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 const PROGRAM_TYPES = [
-  { value: 'recovery_jumpstart_10day', label: 'Peptide Recovery Jumpstart – 10 Day' },
-  { value: 'month_program_30day', label: 'Peptide Month Program – 30 Day' },
-  { value: 'maintenance_4week', label: 'Peptide Maintenance – 4-Week Refill' },
-  { value: 'injection_clinic', label: 'Peptide Injection (In-Clinic)' }
+  // Peptide Programs
+  { value: 'recovery_jumpstart_10day', label: 'Peptide Recovery Jumpstart – 10 Day', category: 'Peptide' },
+  { value: 'month_program_30day', label: 'Peptide Month Program – 30 Day', category: 'Peptide' },
+  { value: 'maintenance_4week', label: 'Peptide Maintenance – 4-Week Refill', category: 'Peptide' },
+  { value: 'injection_clinic', label: 'Peptide Injection (In-Clinic)', category: 'Peptide' },
+  // Weight Loss Programs
+  { value: 'weight_loss_program', label: 'Weight Loss Program (Monthly)', category: 'Weight Loss' },
+  { value: 'weight_loss_injection', label: 'Weight Loss Injection', category: 'Weight Loss' }
 ];
 
 const STATUS_OPTIONS = [
@@ -768,9 +772,16 @@ export default function AdminProtocols() {
                       required
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     >
-                      {PROGRAM_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
+                      <optgroup label="Peptide Programs">
+                        {PROGRAM_TYPES.filter(t => t.category === 'Peptide').map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Weight Loss Programs">
+                        {PROGRAM_TYPES.filter(t => t.category === 'Weight Loss').map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
 

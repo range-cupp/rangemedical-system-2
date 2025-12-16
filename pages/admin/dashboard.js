@@ -14,10 +14,10 @@ export default function AdminDashboard() {
   
   // Dashboard data
   const [stats, setStats] = useState({});
-  const [activeProtocols, setActiveProtocols] = useState([]);
+  const [activePeptideProtocols, setActivePeptideProtocols] = useState([]);
+  const [activeWeightLossProtocols, setActiveWeightLossProtocols] = useState([]);
   const [recentPurchases, setRecentPurchases] = useState([]);
   const [hrtMembers, setHrtMembers] = useState([]);
-  const [recentWeightLoss, setRecentWeightLoss] = useState([]);
   const [recentIV, setRecentIV] = useState([]);
   const [recentInjections, setRecentInjections] = useState([]);
 
@@ -50,10 +50,10 @@ export default function AdminDashboard() {
       
       const data = await res.json();
       setStats(data.stats || {});
-      setActiveProtocols(data.activeProtocols || []);
+      setActivePeptideProtocols(data.activePeptideProtocols || []);
+      setActiveWeightLossProtocols(data.activeWeightLossProtocols || []);
       setRecentPurchases(data.recentPurchases || []);
       setHrtMembers(data.hrtMembers || []);
-      setRecentWeightLoss(data.recentWeightLoss || []);
       setRecentIV(data.recentIV || []);
       setRecentInjections(data.recentInjections || []);
     } catch (err) {
@@ -308,7 +308,7 @@ export default function AdminDashboard() {
               <StatCard 
                 label="Weight Loss" 
                 value={formatCurrency(stats.weightLoss?.revenue)} 
-                subtext={`${stats.weightLoss?.activePurchases || 0} this month`}
+                subtext={`${stats.weightLoss?.activeProtocols || 0} active`}
                 color="#ff9800"
                 isText
               />
@@ -339,12 +339,60 @@ export default function AdminDashboard() {
               {/* Peptide Protocols - Ending Soonest */}
               <ServiceCard
                 title="Peptide Protocols"
-                subtitle="ending soonest"
+                subtitle={`${activePeptideProtocols.length} active`}
                 color="#4caf50"
                 linkText="View All"
                 linkHref="/admin/protocols?status=active"
-                emptyText="No active protocols"
-                items={activeProtocols}
+                emptyText="No active peptide protocols"
+                items={activePeptideProtocols}
+                renderItem={(protocol) => {
+                  const today = new Date();
+                  const endDate = new Date(protocol.end_date);
+                  const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                  const isEndingSoon = daysLeft <= 3;
+                  const isOverdue = daysLeft < 0;
+                  
+                  return (
+                    <div key={protocol.id} style={{
+                      padding: '12px 16px',
+                      borderBottom: '1px solid #f0f0f0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: isOverdue ? '#fff5f5' : isEndingSoon ? '#fffbf0' : 'white'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{protocol.patient_name}</div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>{protocol.program_name}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          fontWeight: '600',
+                          color: isOverdue ? '#c62828' : isEndingSoon ? '#ef6c00' : '#666'
+                        }}>
+                          {isOverdue ? `${Math.abs(daysLeft)}d overdue` : 
+                           daysLeft === 0 ? 'Ends today' :
+                           `${daysLeft}d left`}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#999' }}>
+                          {protocol.injections_completed || 0}/{protocol.duration_days}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }}
+              />
+
+              {/* Weight Loss Protocols - Separate from Peptides */}
+              <ServiceCard
+                title="Weight Loss Programs"
+                subtitle={`${activeWeightLossProtocols.length} active`}
+                color="#ff9800"
+                linkText="View All"
+                linkHref="/admin/purchases?category=Weight+Loss"
+                emptyText="No active weight loss programs"
+                items={activeWeightLossProtocols}
                 renderItem={(protocol) => {
                   const today = new Date();
                   const endDate = new Date(protocol.end_date);
@@ -412,34 +460,6 @@ export default function AdminDashboard() {
                     }}>
                       History →
                     </Link>
-                  </div>
-                )}
-              />
-
-              {/* Weight Loss */}
-              <ServiceCard
-                title="Weight Loss"
-                subtitle="recent purchases"
-                color="#ff9800"
-                linkText="View All"
-                linkHref="/admin/purchases?category=Weight+Loss"
-                emptyText="No recent weight loss purchases"
-                items={recentWeightLoss}
-                renderItem={(item) => (
-                  <div key={item.id} style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #f0f0f0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: '500', fontSize: '14px' }}>{item.patient_name}</div>
-                      <div style={{ fontSize: '12px', color: '#666' }}>{item.item_name}</div>
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#999' }}>
-                      {formatDate(item.purchase_date)}
-                    </div>
                   </div>
                 )}
               />

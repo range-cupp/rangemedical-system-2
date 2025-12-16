@@ -1,665 +1,557 @@
-// =====================================================
-// RANGE MEDICAL - STAFF DASHBOARD
 // /pages/admin/dashboard.js
-// Clean black/white design
-// =====================================================
+// Range Medical - Unified Admin Dashboard
+// Clinic Homebase for all patient management
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 
-export default function StaffDashboard() {
+export default function AdminDashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('attention');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [data, setData] = useState({
-    needsAttention: [],
-    patients: [],
-    summary: {}
+  const [error, setError] = useState('');
+  
+  // Dashboard data
+  const [stats, setStats] = useState({
+    totalProtocols: 0,
+    activeProtocols: 0,
+    completedProtocols: 0,
+    totalPurchases: 0,
+    recentPurchases: 0,
+    totalPatients: 0,
+    totalRevenue: 0
   });
+  const [recentProtocols, setRecentProtocols] = useState([]);
+  const [recentPurchases, setRecentPurchases] = useState([]);
+  const [activeProtocols, setActiveProtocols] = useState([]);
 
+  // Check stored password on mount
   useEffect(() => {
-    fetchDashboard();
+    const stored = localStorage.getItem('adminPassword');
+    if (stored) {
+      setPassword(stored);
+      setIsAuthenticated(true);
+    } else {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchDashboard = async () => {
+  // Fetch dashboard data
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDashboardData();
+    }
+  }, [isAuthenticated]);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await fetch('/api/admin/dashboard');
-      const result = await response.json();
-      if (result.success) {
-        setData(result.data);
-      }
+      const res = await fetch('/api/admin/dashboard-stats', {
+        headers: { 'Authorization': `Bearer ${password}` }
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch dashboard data');
+      
+      const data = await res.json();
+      setStats(data.stats || {});
+      setRecentProtocols(data.recentProtocols || []);
+      setRecentPurchases(data.recentPurchases || []);
+      setActiveProtocols(data.activeProtocols || []);
     } catch (err) {
-      console.error('Error:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredPatients = data.patients?.filter(p => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      p.full_name?.toLowerCase().includes(search) ||
-      p.email?.toLowerCase().includes(search) ||
-      p.phone?.includes(search)
-    );
-  }) || [];
+  // Handle login
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const res = await fetch('/api/admin/dashboard-stats', {
+        headers: { 'Authorization': `Bearer ${password}` }
+      });
+      
+      if (res.ok) {
+        setIsAuthenticated(true);
+        localStorage.setItem('adminPassword', password);
+      } else {
+        setError('Invalid password');
+        setLoading(false);
+      }
+    } catch (err) {
+      setError('Connection error');
+      setLoading(false);
+    }
+  };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric'
+    });
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0
+    }).format(amount || 0);
+  };
+
+  // Login screen
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Head>
+          <title>Admin Login | Range Medical</title>
+        </Head>
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f5f5f5',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        }}>
+          <form onSubmit={handleLogin} style={{
+            background: 'white',
+            padding: '40px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            width: '100%',
+            maxWidth: '400px'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <h1 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '600' }}>
+                RANGE MEDICAL
+              </h1>
+              <p style={{ margin: 0, color: '#666' }}>Admin Dashboard</p>
+            </div>
+            
+            {error && (
+              <div style={{
+                background: '#ffebee',
+                color: '#c62828',
+                padding: '12px',
+                borderRadius: '4px',
+                marginBottom: '16px',
+                fontSize: '14px'
+              }}>
+                {error}
+              </div>
+            )}
+            
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter admin password"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '16px',
+                marginBottom: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+            
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'black',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '16px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1
+              }}
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
+        </div>
+      </>
+    );
+  }
+
+  // Main dashboard
   return (
     <>
       <Head>
-        <title>Staff Dashboard | Range Medical</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <title>Admin Dashboard | Range Medical</title>
       </Head>
-
-      <div style={styles.page}>
-        {/* Sidebar */}
-        <aside style={styles.sidebar}>
-          <div style={styles.logo}>
-            <RangeLogo />
+      <div style={{
+        minHeight: '100vh',
+        background: '#f5f5f5',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        {/* Header */}
+        <header style={{
+          background: 'black',
+          color: 'white',
+          padding: '16px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>RANGE MEDICAL</h1>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.8 }}>Admin Dashboard</p>
           </div>
-          
-          <nav style={styles.nav}>
-            <NavItem 
-              active={activeTab === 'attention'} 
-              onClick={() => setActiveTab('attention')}
-              label="Needs Attention"
-              count={data.needsAttention?.length || 0}
-              alert={data.needsAttention?.length > 0}
-            />
-            <NavItem 
-              active={activeTab === 'patients'} 
-              onClick={() => setActiveTab('patients')}
-              label="All Patients"
-              count={data.patients?.length || 0}
-            />
-            <NavItem 
-              active={activeTab === 'hrt'} 
-              onClick={() => setActiveTab('hrt')}
-              label="HRT Members"
-              count={data.patients?.filter(p => p.hrt_status === 'active').length || 0}
-            />
-            <NavItem 
-              active={activeTab === 'weightloss'} 
-              onClick={() => setActiveTab('weightloss')}
-              label="Weight Loss"
-              count={data.patients?.filter(p => p.weight_loss_status === 'active').length || 0}
-            />
-            <NavItem 
-              active={activeTab === 'sessions'} 
-              onClick={() => setActiveTab('sessions')}
-              label="Session Packs"
-            />
-            <NavItem 
-              active={activeTab === 'protocols'} 
-              onClick={() => setActiveTab('protocols')}
-              label="Peptide Protocols"
-              count={data.patients?.filter(p => p.active_protocols > 0).length || 0}
-            />
-          </nav>
-        </aside>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={fetchDashboardData}
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(255,255,255,0.1)',
+                color: 'white',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Refresh
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('adminPassword');
+                setIsAuthenticated(false);
+              }}
+              style={{
+                padding: '8px 16px',
+                background: 'transparent',
+                color: 'white',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        </header>
 
-        {/* Main Content */}
-        <main style={styles.main}>
-          {/* Header */}
-          <header style={styles.header}>
-            <div>
-              <h1 style={styles.pageTitle}>
-                {activeTab === 'attention' && 'Needs Attention'}
-                {activeTab === 'patients' && 'All Patients'}
-                {activeTab === 'hrt' && 'HRT Members'}
-                {activeTab === 'weightloss' && 'Weight Loss'}
-                {activeTab === 'sessions' && 'Session Packs'}
-                {activeTab === 'protocols' && 'Peptide Protocols'}
-              </h1>
-              <p style={styles.pageSubtitle}>
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </p>
-            </div>
-            
-            <div style={styles.headerActions}>
-              <input
-                type="text"
-                placeholder="Search patients..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={styles.searchInput}
+        {/* Navigation */}
+        <nav style={{
+          background: 'white',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '0 24px',
+          display: 'flex',
+          gap: '0'
+        }}>
+          {[
+            { href: '/admin/dashboard', label: 'Dashboard', active: true },
+            { href: '/admin/protocols', label: 'Protocols' },
+            { href: '/admin/purchases', label: 'Purchases' },
+            { href: '/admin/patients', label: 'Patients' }
+          ].map(item => (
+            <Link key={item.href} href={item.href} style={{
+              padding: '16px 20px',
+              color: item.active ? 'black' : '#666',
+              textDecoration: 'none',
+              borderBottom: item.active ? '2px solid black' : '2px solid transparent',
+              fontWeight: item.active ? '500' : '400',
+              fontSize: '14px'
+            }}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        {loading ? (
+          <div style={{ padding: '60px', textAlign: 'center', color: '#666' }}>
+            Loading dashboard...
+          </div>
+        ) : (
+          <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+            {/* Stats Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              <StatCard 
+                label="Active Protocols" 
+                value={stats.activeProtocols} 
+                color="#4caf50"
+                href="/admin/protocols?status=active"
               />
-              <button onClick={fetchDashboard} style={styles.refreshBtn}>
-                Refresh
-              </button>
+              <StatCard 
+                label="Total Protocols" 
+                value={stats.totalProtocols} 
+                color="#2196f3"
+                href="/admin/protocols"
+              />
+              <StatCard 
+                label="Purchases (30 days)" 
+                value={stats.recentPurchases} 
+                color="#ff9800"
+                href="/admin/purchases"
+              />
+              <StatCard 
+                label="Revenue (30 days)" 
+                value={formatCurrency(stats.totalRevenue)} 
+                color="#9c27b0"
+                isText
+              />
             </div>
-          </header>
 
-          {/* Content */}
-          <div style={styles.content}>
-            {loading ? (
-              <LoadingState />
-            ) : activeTab === 'attention' ? (
-              <AttentionList items={data.needsAttention} />
-            ) : activeTab === 'patients' ? (
-              <PatientList patients={filteredPatients} />
-            ) : activeTab === 'hrt' ? (
-              <PatientList patients={filteredPatients.filter(p => p.hrt_status === 'active')} />
-            ) : activeTab === 'protocols' ? (
-              <PatientList patients={filteredPatients.filter(p => p.active_protocols > 0)} />
-            ) : activeTab === 'weightloss' ? (
-              <PatientList patients={filteredPatients.filter(p => p.weight_loss_status === 'active')} />
-            ) : (
-              <ComingSoon tab={activeTab} />
-            )}
+            {/* Quick Actions */}
+            <div style={{
+              background: 'white',
+              borderRadius: '8px',
+              padding: '20px',
+              marginBottom: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <h2 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '600' }}>Quick Actions</h2>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <Link href="/admin/protocols" style={{
+                  padding: '12px 20px',
+                  background: 'black',
+                  color: 'white',
+                  borderRadius: '4px',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  + New Protocol
+                </Link>
+                <Link href="/admin/protocols?status=active" style={{
+                  padding: '12px 20px',
+                  background: '#e8f5e9',
+                  color: '#2e7d32',
+                  borderRadius: '4px',
+                  textDecoration: 'none',
+                  fontSize: '14px'
+                }}>
+                  View Active Protocols
+                </Link>
+                <Link href="/admin/purchases" style={{
+                  padding: '12px 20px',
+                  background: '#e3f2fd',
+                  color: '#1565c0',
+                  borderRadius: '4px',
+                  textDecoration: 'none',
+                  fontSize: '14px'
+                }}>
+                  View Purchases
+                </Link>
+              </div>
+            </div>
+
+            {/* Two Column Layout */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+              gap: '24px'
+            }}>
+              {/* Active Protocols */}
+              <div style={{
+                background: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  padding: '16px 20px',
+                  borderBottom: '1px solid #e0e0e0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Active Protocols</h2>
+                  <Link href="/admin/protocols?status=active" style={{
+                    fontSize: '13px',
+                    color: '#1976d2',
+                    textDecoration: 'none'
+                  }}>
+                    View All →
+                  </Link>
+                </div>
+                <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                  {activeProtocols.length === 0 ? (
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                      No active protocols
+                    </div>
+                  ) : (
+                    activeProtocols.map(protocol => (
+                      <div key={protocol.id} style={{
+                        padding: '12px 20px',
+                        borderBottom: '1px solid #f0f0f0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: '500', fontSize: '14px' }}>
+                            {protocol.patient_name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            {protocol.program_name}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            Day {protocol.injections_completed || 0}/{protocol.duration_days}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#999' }}>
+                            Ends {formatDate(protocol.end_date)}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Recent Purchases */}
+              <div style={{
+                background: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  padding: '16px 20px',
+                  borderBottom: '1px solid #e0e0e0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Recent Purchases</h2>
+                  <Link href="/admin/purchases" style={{
+                    fontSize: '13px',
+                    color: '#1976d2',
+                    textDecoration: 'none'
+                  }}>
+                    View All →
+                  </Link>
+                </div>
+                <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                  {recentPurchases.length === 0 ? (
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                      No recent purchases
+                    </div>
+                  ) : (
+                    recentPurchases.map(purchase => (
+                      <div key={purchase.id} style={{
+                        padding: '12px 20px',
+                        borderBottom: '1px solid #f0f0f0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: '500', fontSize: '14px' }}>
+                            {purchase.patient_name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            {purchase.item_name}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontWeight: '500', fontSize: '14px' }}>
+                            {formatCurrency(purchase.amount)}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#999' }}>
+                            {formatDate(purchase.purchase_date)}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Category Breakdown */}
+            <div style={{
+              background: 'white',
+              borderRadius: '8px',
+              padding: '20px',
+              marginTop: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <h2 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '600' }}>
+                Protocol Types Overview
+              </h2>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '12px'
+              }}>
+                {[
+                  { type: 'recovery_10day', label: 'Recovery (10-Day)', color: '#4caf50' },
+                  { type: 'jumpstart_10day', label: 'Jumpstart (10-Day)', color: '#2196f3' },
+                  { type: 'month_30day', label: 'Month (30-Day)', color: '#ff9800' },
+                  { type: 'injection_clinic', label: 'In-Clinic', color: '#9c27b0' }
+                ].map(item => {
+                  const count = activeProtocols.filter(p => p.program_type === item.type).length;
+                  return (
+                    <div key={item.type} style={{
+                      padding: '16px',
+                      background: '#f5f5f5',
+                      borderRadius: '8px',
+                      borderLeft: `4px solid ${item.color}`
+                    }}>
+                      <div style={{ fontSize: '24px', fontWeight: '600' }}>{count}</div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>{item.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </main>
+        )}
       </div>
     </>
   );
 }
 
-// =====================================================
-// RANGE LOGO COMPONENT
-// =====================================================
-function RangeLogo() {
-  return (
-    <svg width="140" height="70" viewBox="0 0 1024 1024" fill="none">
-      {/* Circle */}
-      <circle cx="512" cy="380" r="280" stroke="black" strokeWidth="28" fill="none"/>
-      {/* Triangle A - open top */}
-      <path d="M512 180 L340 520 L400 520 L512 310 L624 520 L684 520 Z" fill="black"/>
-      {/* Underline bar inside circle */}
-      <rect x="370" y="540" width="284" height="28" fill="black"/>
-      {/* RANGE text */}
-      <text x="170" y="820" fontFamily="Inter, Arial, sans-serif" fontSize="200" fontWeight="600" letterSpacing="40" fill="black">
-        RANGE
-      </text>
-      {/* TM */}
-      <text x="920" y="700" fontFamily="Inter, Arial, sans-serif" fontSize="50" fill="black">™</text>
-    </svg>
-  );
-}
-
-// =====================================================
-// NAV ITEM
-// =====================================================
-function NavItem({ active, onClick, label, count, alert }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        ...styles.navItem,
-        backgroundColor: active ? '#000' : 'transparent',
-        color: active ? '#fff' : '#000'
-      }}
-    >
-      <span>{label}</span>
-      {count !== undefined && count > 0 && (
-        <span style={{
-          ...styles.navCount,
-          backgroundColor: alert ? '#000' : '#e5e5e5',
-          color: alert ? '#fff' : '#666'
-        }}>
-          {count}
-        </span>
-      )}
-    </button>
-  );
-}
-
-// =====================================================
-// ATTENTION LIST
-// =====================================================
-function AttentionList({ items }) {
-  if (!items || items.length === 0) {
-    return (
-      <div style={styles.emptyState}>
-        <div style={styles.emptyIcon}>✓</div>
-        <h3 style={styles.emptyTitle}>All caught up!</h3>
-        <p style={styles.emptyText}>No items need attention right now.</p>
+// Stat Card Component
+function StatCard({ label, value, color, href, isText }) {
+  const content = (
+    <div style={{
+      background: 'white',
+      borderRadius: '8px',
+      padding: '20px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      borderLeft: `4px solid ${color}`,
+      cursor: href ? 'pointer' : 'default',
+      transition: 'transform 0.1s',
+    }}>
+      <div style={{ 
+        fontSize: isText ? '24px' : '32px', 
+        fontWeight: '600',
+        marginBottom: '4px'
+      }}>
+        {value}
       </div>
-    );
-  }
-
-  const getAttentionStyle = (type) => {
-    switch (type) {
-      case 'hrt_iv': return { bg: '#fef3c7', border: '#f59e0b', label: 'IV Expiring' };
-      case 'lab': return { bg: '#fee2e2', border: '#ef4444', label: 'Lab Overdue' };
-      case 'protocol': return { bg: '#e0e7ff', border: '#6366f1', label: 'Protocol Ending' };
-      default: return { bg: '#f3f4f6', border: '#9ca3af', label: type };
-    }
-  };
-
-  return (
-    <div style={styles.attentionList}>
-      {items.map((item, i) => {
-        const style = getAttentionStyle(item.attention_type);
-        return (
-          <div key={i} style={{
-            ...styles.attentionCard,
-            borderLeftColor: style.border
-          }}>
-            <div style={styles.attentionHeader}>
-              <span style={{
-                ...styles.attentionBadge,
-                backgroundColor: style.bg,
-                color: style.border
-              }}>
-                {item.attention_label}
-              </span>
-              <span style={styles.attentionDays}>
-                {item.days_remaining < 0 
-                  ? `${Math.abs(item.days_remaining)} days overdue`
-                  : `${item.days_remaining} days left`
-                }
-              </span>
-            </div>
-            
-            <div style={styles.attentionBody}>
-              <h4 style={styles.attentionName}>{item.patient_name}</h4>
-              <p style={styles.attentionDetail}>{item.detail}</p>
-              <p style={styles.attentionContact}>
-                {item.patient_email} · {item.patient_phone}
-              </p>
-            </div>
-            
-            <div style={styles.attentionActions}>
-              <button 
-                onClick={() => window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${item.ghl_contact_id}`, '_blank')}
-                style={styles.actionBtn}
-              >
-                Open in GHL
-              </button>
-            </div>
-          </div>
-        );
-      })}
+      <div style={{ fontSize: '14px', color: '#666' }}>{label}</div>
     </div>
   );
-}
 
-// =====================================================
-// PATIENT LIST
-// =====================================================
-function PatientList({ patients }) {
-  if (!patients || patients.length === 0) {
-    return (
-      <div style={styles.emptyState}>
-        <h3 style={styles.emptyTitle}>No patients found</h3>
-      </div>
-    );
+  if (href) {
+    return <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>{content}</Link>;
   }
-
-  return (
-    <table style={styles.table}>
-      <thead>
-        <tr>
-          <th style={styles.th}>Patient</th>
-          <th style={styles.th}>Services</th>
-          <th style={styles.th}>Status</th>
-          <th style={styles.th}>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {patients.map((patient) => (
-          <tr key={patient.id} style={styles.tr}>
-            <td style={styles.td}>
-              <div style={styles.patientName}>{patient.full_name}</div>
-              <div style={styles.patientContact}>
-                {patient.email}
-                {patient.phone && ` · ${patient.phone}`}
-              </div>
-            </td>
-            <td style={styles.td}>
-              <div style={styles.serviceTags}>
-                {patient.hrt_status === 'active' && (
-                  <span style={styles.serviceTag}>HRT</span>
-                )}
-                {patient.weight_loss_status === 'active' && (
-                  <span style={styles.serviceTag}>Weight Loss</span>
-                )}
-                {patient.active_protocols > 0 && (
-                  <span style={styles.serviceTag}>Peptides ({patient.active_protocols})</span>
-                )}
-              </div>
-            </td>
-            <td style={styles.td}>
-              {patient.hrt_status === 'active' && (
-                <div style={styles.statusItem}>
-                  IV: {patient.hrt_iv_used ? '✓ Used' : `${patient.hrt_iv_days_left}d left`}
-                </div>
-              )}
-            </td>
-            <td style={styles.td}>
-              <div style={styles.actionBtns}>
-                <button 
-                  onClick={() => window.location.href = `/admin/patient/${patient.ghl_contact_id || patient.id}`}
-                  style={styles.viewBtn}
-                >
-                  View
-                </button>
-                {patient.ghl_contact_id && (
-                  <button 
-                    onClick={() => window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${patient.ghl_contact_id}`, '_blank')}
-                    style={styles.ghlBtnSmall}
-                  >
-                    GHL
-                  </button>
-                )}
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+  return content;
 }
-
-// =====================================================
-// LOADING & COMING SOON
-// =====================================================
-function LoadingState() {
-  return (
-    <div style={styles.emptyState}>
-      <div style={styles.spinner}></div>
-      <p>Loading...</p>
-    </div>
-  );
-}
-
-function ComingSoon({ tab }) {
-  return (
-    <div style={styles.emptyState}>
-      <h3 style={styles.emptyTitle}>{tab} view</h3>
-      <p style={styles.emptyText}>Coming soon</p>
-    </div>
-  );
-}
-
-// =====================================================
-// STYLES
-// =====================================================
-const styles = {
-  page: {
-    display: 'flex',
-    minHeight: '100vh',
-    fontFamily: 'Inter, -apple-system, sans-serif',
-    backgroundColor: '#fff'
-  },
-  
-  // Sidebar
-  sidebar: {
-    width: '240px',
-    borderRight: '1px solid #e5e5e5',
-    padding: '24px 16px',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  logo: {
-    marginBottom: '32px',
-    paddingLeft: '8px'
-  },
-  nav: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
-  navItem: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 16px',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    textAlign: 'left',
-    transition: 'all 0.15s'
-  },
-  navCount: {
-    padding: '2px 8px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  
-  // Main
-  main: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  header: {
-    padding: '24px 32px',
-    borderBottom: '1px solid #e5e5e5',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  pageTitle: {
-    fontSize: '24px',
-    fontWeight: '600',
-    margin: 0,
-    color: '#000'
-  },
-  pageSubtitle: {
-    fontSize: '14px',
-    color: '#666',
-    margin: '4px 0 0 0'
-  },
-  headerActions: {
-    display: 'flex',
-    gap: '12px'
-  },
-  searchInput: {
-    padding: '10px 16px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '8px',
-    fontSize: '14px',
-    width: '280px',
-    outline: 'none'
-  },
-  refreshBtn: {
-    padding: '10px 20px',
-    backgroundColor: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  
-  // Content
-  content: {
-    flex: 1,
-    padding: '24px 32px',
-    backgroundColor: '#fafafa'
-  },
-  
-  // Empty state
-  emptyState: {
-    textAlign: 'center',
-    padding: '64px',
-    color: '#666'
-  },
-  emptyIcon: {
-    width: '64px',
-    height: '64px',
-    borderRadius: '50%',
-    backgroundColor: '#000',
-    color: '#fff',
-    fontSize: '32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 16px'
-  },
-  emptyTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    margin: '0 0 8px 0',
-    color: '#000'
-  },
-  emptyText: {
-    fontSize: '14px',
-    margin: 0
-  },
-  spinner: {
-    width: '32px',
-    height: '32px',
-    border: '3px solid #e5e5e5',
-    borderTopColor: '#000',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    margin: '0 auto 16px'
-  },
-  
-  // Attention list
-  attentionList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
-  },
-  attentionCard: {
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #e5e5e5',
-    borderLeft: '4px solid',
-    padding: '16px 20px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px'
-  },
-  attentionHeader: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    minWidth: '120px'
-  },
-  attentionBadge: {
-    padding: '4px 10px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: '600',
-    display: 'inline-block'
-  },
-  attentionDays: {
-    fontSize: '12px',
-    color: '#666'
-  },
-  attentionBody: {
-    flex: 1
-  },
-  attentionName: {
-    fontSize: '16px',
-    fontWeight: '600',
-    margin: '0 0 4px 0',
-    color: '#000'
-  },
-  attentionDetail: {
-    fontSize: '14px',
-    margin: '0 0 4px 0',
-    color: '#333'
-  },
-  attentionContact: {
-    fontSize: '12px',
-    margin: 0,
-    color: '#666'
-  },
-  attentionActions: {
-    display: 'flex',
-    gap: '8px'
-  },
-  actionBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  
-  // Table
-  table: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #e5e5e5',
-    borderCollapse: 'collapse'
-  },
-  th: {
-    textAlign: 'left',
-    padding: '14px 16px',
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    borderBottom: '1px solid #e5e5e5'
-  },
-  tr: {
-    borderBottom: '1px solid #f0f0f0'
-  },
-  td: {
-    padding: '14px 16px',
-    verticalAlign: 'middle'
-  },
-  patientName: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#000'
-  },
-  patientContact: {
-    fontSize: '12px',
-    color: '#666',
-    marginTop: '2px'
-  },
-  serviceTags: {
-    display: 'flex',
-    gap: '6px',
-    flexWrap: 'wrap'
-  },
-  serviceTag: {
-    padding: '4px 10px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: '500',
-    color: '#374151'
-  },
-  statusItem: {
-    fontSize: '13px',
-    color: '#374151'
-  },
-  viewBtn: {
-    padding: '6px 14px',
-    backgroundColor: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  ghlBtnSmall: {
-    padding: '6px 10px',
-    backgroundColor: '#fff',
-    color: '#666',
-    border: '1px solid #e5e5e5',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  actionBtns: {
-    display: 'flex',
-    gap: '6px'
-  }
-};

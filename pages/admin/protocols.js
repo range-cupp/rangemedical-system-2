@@ -8,10 +8,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 const PROGRAM_TYPES = [
-  { value: 'injection_clinic', label: 'Injection (In-Clinic)' },
-  { value: 'jumpstart_10day', label: 'Jumpstart (10-Day)' },
-  { value: 'recovery_10day', label: 'Recovery (10-Day)' },
-  { value: 'month_30day', label: 'Month Program (30-Day)' }
+  { value: 'recovery_jumpstart_10day', label: 'Peptide Recovery Jumpstart – 10 Day' },
+  { value: 'month_program_30day', label: 'Peptide Month Program – 30 Day' },
+  { value: 'maintenance_4week', label: 'Peptide Maintenance – 4-Week Refill' },
+  { value: 'injection_clinic', label: 'Peptide Injection (In-Clinic)' }
 ];
 
 const STATUS_OPTIONS = [
@@ -50,10 +50,10 @@ export default function AdminProtocols() {
     patient_email: '',
     patient_phone: '',
     ghl_contact_id: '',
-    program_type: 'month_30day',
+    program_type: 'recovery_jumpstart_10day',
     program_name: '',
     start_date: new Date().toISOString().split('T')[0],
-    duration_days: 30,
+    duration_days: 10,
     status: 'active',
     primary_peptide: '',
     secondary_peptide: '',
@@ -154,10 +154,10 @@ export default function AdminProtocols() {
       patient_email: '',
       patient_phone: '',
       ghl_contact_id: '',
-      program_type: 'month_30day',
+      program_type: 'recovery_jumpstart_10day',
       program_name: '',
       start_date: new Date().toISOString().split('T')[0],
-      duration_days: 30,
+      duration_days: 10,
       status: 'active',
       primary_peptide: '',
       secondary_peptide: '',
@@ -173,15 +173,24 @@ export default function AdminProtocols() {
 
   const openEditModal = (protocol) => {
     setEditingProtocol(protocol);
+    
+    // Map legacy program_type values to new ones
+    let programType = protocol.program_type || 'recovery_jumpstart_10day';
+    if (programType === 'jumpstart_10day' || programType === 'recovery_10day') {
+      programType = 'recovery_jumpstart_10day';
+    } else if (programType === 'month_30day') {
+      programType = 'month_program_30day';
+    }
+    
     setFormData({
       patient_name: protocol.patient_name || '',
       patient_email: protocol.patient_email || '',
       patient_phone: protocol.patient_phone || '',
       ghl_contact_id: protocol.ghl_contact_id || '',
-      program_type: protocol.program_type || 'month_30day',
+      program_type: programType,
       program_name: protocol.program_name || '',
       start_date: protocol.start_date || '',
-      duration_days: protocol.duration_days || 30,
+      duration_days: protocol.duration_days || 10,
       status: protocol.status || 'active',
       primary_peptide: protocol.primary_peptide || '',
       secondary_peptide: protocol.secondary_peptide || '',

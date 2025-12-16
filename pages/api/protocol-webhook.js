@@ -1,8 +1,9 @@
 // /pages/api/protocol-webhook.js
 // Range Medical - Payment Webhook Handler
+// v3.0 - GHL Tags + Correct Paid Amounts
 // Creates purchase records for ALL payments
 // Creates protocols for trackable items (Peptides, HRT, Weight Loss)
-// v2.0 - Fixed purchase linking
+// Adds GHL tags based on purchase category
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
@@ -11,6 +12,121 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// GHL API configuration
+const GHL_API_KEY = process.env.GHL_API_KEY;
+const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
+
+// =====================================================
+// GHL TAG MAPPING BY CATEGORY
+// =====================================================
+const CATEGORY_TAGS = {
+  'Peptide': 'Peptide Patient',
+  'Weight Loss': 'Weight Loss Patient',
+  'HRT': 'HRT Member',
+  'IV Therapy': 'IV Therapy Patient',
+  'Injection': 'Injection Patient',
+  'Labs': 'Labs Patient',
+  'Hyperbaric': 'Hyperbaric Patient',
+  'Red Light': 'Red Light Patient',
+  'Consultation': 'Consultation',
+  'Product': 'Product Purchase',
+  'Prescription': 'Prescription',
+  'Gift Card': 'Gift Card'
+};
+
+// =====================================================
+// GHL API FUNCTIONS
+// =====================================================
+
+async function addTagToContact(contactId, tagName) {
+  if (!GHL_API_KEY || !contactId || !tagName) {
+    console.log('⚠️ Cannot add tag - missing API key, contact ID, or tag name');
+    return false;
+  }
+
+  try {
+    // First, get or create the tag
+    const tagId = await getOrCreateTag(tagName);
+    if (!tagId) {
+      console.log('⚠️ Could not get/create tag:', tagName);
+      return false;
+    }
+
+    // Add tag to contact
+    const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/tags`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      body: JSON.stringify({ tags: [tagName] })
+    });
+
+    if (response.ok) {
+      console.log(`✅ Added tag "${tagName}" to contact ${contactId}`);
+      return true;
+    } else {
+      const errorText = await response.text();
+      console.log(`⚠️ Failed to add tag: ${response.status} - ${errorText}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error adding tag:', error.message);
+    return false;
+  }
+}
+
+async function getOrCreateTag(tagName) {
+  if (!GHL_API_KEY || !GHL_LOCATION_ID) return null;
+
+  try {
+    // Try to find existing tag
+    const searchResponse = await fetch(
+      `https://services.leadconnectorhq.com/locations/${GHL_LOCATION_ID}/tags?query=${encodeURIComponent(tagName)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28'
+        }
+      }
+    );
+
+    if (searchResponse.ok) {
+      const data = await searchResponse.json();
+      const existingTag = data.tags?.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+      if (existingTag) {
+        return existingTag.id;
+      }
+    }
+
+    // Create new tag if not found
+    const createResponse = await fetch(
+      `https://services.leadconnectorhq.com/locations/${GHL_LOCATION_ID}/tags`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        body: JSON.stringify({ name: tagName })
+      }
+    );
+
+    if (createResponse.ok) {
+      const newTag = await createResponse.json();
+      console.log(`✅ Created new tag: ${tagName}`);
+      return newTag.tag?.id;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ Error with tag:', error.message);
+    return null;
+  }
+}
 
 // =====================================================
 // CATEGORIZATION FUNCTIONS
@@ -21,7 +137,6 @@ function categorizePurchase(productName) {
   const name = productName.toLowerCase();
   
   // Peptides - check first (most specific)
-  // Includes GLOW, TA-1, AOD, 3x Blend protocols
   if (/peptide|bpc|tb-?500|ghk|epitalon|tesa|ipa|mots|thymosin|ta-1|kisspeptin|pt-141|melanotan|sermorelin|cjc|ipamorelin|tesamorelin|wolverine|recovery.*program|recovery.*jumpstart|peptide.*month|peptide.*maintenance|glow|aod|3x blend/i.test(name)) {
     return 'Peptide';
   }
@@ -98,66 +213,39 @@ function normalizeItemName(productName, category) {
     if (/recovery.*jumpstart|jumpstart.*10|10.*day.*peptide.*recovery/i.test(name)) {
       return 'Peptide Recovery Jumpstart (10-Day)';
     }
-    if (/peptide.*month|month.*program|30.*day.*peptide|30.*day.*bpc|30.*day.*protocol/i.test(name)) {
+    if (/peptide.*month|month.*peptide|30.*day.*peptide/i.test(name)) {
       return 'Peptide Month Program (30-Day)';
     }
-    if (/maintenance|4.*week.*refill|refill/i.test(name)) {
-      return 'Peptide Maintenance (4-Week Refill)';
+    if (/maintenance|refill|peptide.*4.*week/i.test(name)) {
+      return 'Peptide Maintenance (4-Week)';
     }
-    if (/peptide.*injection|in-clinic|clinic.*injection/i.test(name)) {
+    if (/peptide.*injection.*clinic|in.*clinic.*peptide/i.test(name)) {
       return 'Peptide Injection (In-Clinic)';
     }
-    if (/14.*day|peptide.*protocol.*14/i.test(name)) {
-      return 'Peptide Protocol (14-Day)';
-    }
-    if (/peptide.*week/i.test(name)) {
-      return 'Peptide Week Supply';
-    }
     
-    // GLOW protocol (aesthetic)
-    if (/glow/i.test(name)) {
-      return 'GLOW Protocol (30-Day)';
-    }
-    
-    // TA-1 (Thymosin Alpha-1)
-    if (/ta-1/i.test(name)) {
-      return 'TA-1 Protocol (30-Day)';
-    }
-    
-    // AOD-9604
-    if (/aod/i.test(name)) {
-      return 'AOD-9604 Protocol (30-Day)';
-    }
-    
-    // 3x Blend
-    if (/3x blend/i.test(name)) {
-      return '3x Blend Protocol (30-Day)';
-    }
-    
-    // Specific blends
-    if (/wolverine|bpc.*tb|tb.*bpc/i.test(name)) {
-      if (/30/i.test(name)) return 'Wolverine Blend (BPC/TB) - 30 Day';
-      if (/10/i.test(name)) return 'Wolverine Blend (BPC/TB) - 10 Day';
+    // Legacy/specific peptide names - map to programs
+    if (/wolverine/i.test(name)) {
+      if (/10.*day|10-day/i.test(name)) return 'Wolverine Blend (BPC/TB) - 10 Day';
       return 'Wolverine Blend (BPC/TB)';
     }
+    if (/bpc.*tb|tb.*bpc|bpc-157.*tb|wolverine/i.test(name)) {
+      if (/10.*day|10-day/i.test(name)) return 'BPC-157/TB-500 Protocol (10-Day)';
+      return 'BPC-157/TB-500 Protocol';
+    }
+    if (/glow/i.test(name)) return 'GLOW Protocol';
+    if (/ta-1|thymosin.*alpha/i.test(name)) return 'TA-1 Protocol';
+    if (/aod/i.test(name)) return 'AOD Protocol';
+    if (/3x.*blend/i.test(name)) return '3x Blend Protocol';
     if (/ghk/i.test(name)) return 'GHK-Cu Protocol';
     if (/epitalon/i.test(name)) return 'Epitalon Protocol';
-    if (/cjc.*ipa|ipa.*cjc/i.test(name)) return 'CJC/Ipamorelin Protocol';
-    if (/tesa.*ipa|ipa.*tesa/i.test(name)) return 'Tesamorelin/Ipamorelin Blend';
-    if (/mots/i.test(name)) return 'MOTS-C Protocol';
-    if (/bpc.*157|bpc-157/i.test(name)) return 'BPC-157 Protocol';
-    if (/tb.*500|tb-500/i.test(name)) return 'TB-500 Protocol';
+    if (/pt-?141/i.test(name)) return 'PT-141 Protocol';
+    if (/kisspeptin/i.test(name)) return 'Kisspeptin Protocol';
+    if (/sermorelin|cjc|ipamorelin|tesamorelin/i.test(name)) return 'Growth Hormone Protocol';
+    if (/mots/i.test(name)) return 'MOTS-c Protocol';
+    if (/bpc/i.test(name)) return 'BPC-157 Protocol';
+    if (/tb-?500/i.test(name)) return 'TB-500 Protocol';
     
-    // Vials
-    if (/vial/i.test(name)) {
-      if (/tesa|ipa/i.test(name)) return 'Tesamorelin/Ipamorelin Vial';
-      if (/bpc/i.test(name)) return 'BPC-157/TB-500 Vial';
-      if (/hcg/i.test(name)) return 'HCG Vial';
-      if (/reta/i.test(name)) return 'Retatrutide Vial';
-      return 'Peptide Vial';
-    }
-    
-    return 'Peptide Protocol';
+    return productName; // Return original if no match
   }
   
   // WEIGHT LOSS
@@ -165,136 +253,112 @@ function normalizeItemName(productName, category) {
     if (/tirzepatide/i.test(name)) return 'Tirzepatide Program';
     if (/semaglutide/i.test(name)) return 'Semaglutide Program';
     if (/retatrutide/i.test(name)) return 'Retatrutide Program';
-    if (/skinny shot/i.test(name)) {
-      if (/10 pack|10-pack/i.test(name)) return 'Skinny Shots (10-Pack)';
+    if (/skinny.*shot/i.test(name)) {
+      if (/3x|3 pack|three/i.test(name)) return 'Skinny Shot (3-Pack)';
       return 'Skinny Shot';
     }
-    if (/injection/i.test(name)) return 'Weight Loss Injection';
-    return 'Weight Loss Program';
+    return productName;
   }
   
   // HRT
   if (category === 'HRT') {
     if (/membership|monthly.*member/i.test(name)) return 'HRT Membership';
-    if (/anastrazole/i.test(name)) return 'Anastrazole';
-    if (/pellet/i.test(name)) return 'Hormone Pellet Procedure';
-    if (/booster/i.test(name)) return 'Testosterone Booster';
     if (/testosterone/i.test(name)) return 'Testosterone Therapy';
-    if (/estradiol/i.test(name)) return 'Estradiol Therapy';
-    return 'HRT Protocol';
+    if (/pellet/i.test(name)) return 'Hormone Pellet Therapy';
+    if (/anastrazole/i.test(name)) return 'Anastrazole';
+    return productName;
   }
   
   // IV THERAPY
   if (category === 'IV Therapy') {
-    if (/methylene blue/i.test(name) && !/sublingual/i.test(name)) return 'Methylene Blue + Vitamin C IV';
-    if (/range iv|build your own/i.test(name)) return 'Range IV (Custom)';
-    if (/myers|immune/i.test(name)) return 'Immune Boost IV';
-    if (/nad/i.test(name)) return 'NAD+ IV';
-    if (/glutathione/i.test(name)) return 'Glutathione IV';
-    if (/vitamin c/i.test(name)) return 'High Dose Vitamin C IV';
+    if (/myers/i.test(name)) return 'Myers Cocktail IV';
     if (/hydration/i.test(name)) return 'Hydration IV';
+    if (/nad/i.test(name)) return 'NAD+ IV';
+    if (/methylene/i.test(name)) return 'Methylene Blue IV';
+    if (/vitamin.*c/i.test(name)) return 'Vitamin C IV';
+    if (/glutathione/i.test(name)) return 'Glutathione IV';
     if (/exosome/i.test(name)) return 'Exosome IV';
-    return 'IV Therapy';
+    if (/hangover/i.test(name)) return 'Hangover Recovery IV';
+    if (/energy/i.test(name)) return 'Energy IV';
+    if (/recovery/i.test(name)) return 'Recovery IV';
+    if (/detox/i.test(name)) return 'Detox IV';
+    if (/glow/i.test(name)) return 'Glow IV';
+    if (/range.*iv/i.test(name)) return 'Range IV';
+    return productName;
   }
   
   // INJECTIONS
   if (category === 'Injection') {
     if (/nad/i.test(name)) {
-      if (/12 pack|12-pack/i.test(name)) {
-        if (/100/i.test(name)) return 'NAD+ 12-Pack (100mg)';
-        if (/75/i.test(name)) return 'NAD+ 12-Pack (75mg)';
-        if (/50/i.test(name)) return 'NAD+ 12-Pack (50mg)';
-        return 'NAD+ 12-Pack';
-      }
-      if (/10 pack|10-pack/i.test(name)) return 'NAD+ 10-Pack (100mg)';
-      if (/8 pack|8-pack/i.test(name)) return 'NAD+ 8-Pack (50mg)';
+      if (/12.*pack|12-pack/i.test(name)) return 'NAD+ Injection (12-Pack)';
+      if (/10.*pack|10-pack/i.test(name)) return 'NAD+ Injection (10-Pack)';
+      if (/8.*pack|8-pack/i.test(name)) return 'NAD+ Injection (8-Pack)';
       if (/vial/i.test(name)) return 'NAD+ Vial';
       return 'NAD+ Injection';
     }
-    if (/b12|b-12/i.test(name)) return 'B12 Injection';
-    if (/tri-immune/i.test(name)) return 'Tri-Immune Injection';
-    if (/range injection/i.test(name)) return 'Range Injections';
-    if (/torodol/i.test(name)) return 'Toradol Injection';
-    if (/injection pack/i.test(name)) return 'Injection Pack';
-    return 'Injection';
+    if (/b-?12/i.test(name)) return 'B12 Injection';
+    if (/vitamin.*d/i.test(name)) return 'Vitamin D Injection';
+    if (/tri-?immune/i.test(name)) return 'Tri-Immune Injection';
+    if (/torodol/i.test(name)) return 'Torodol Injection';
+    if (/range.*injection/i.test(name)) return 'Range Injection';
+    return productName;
   }
   
   // LABS
   if (category === 'Labs') {
-    if (/new patient/i.test(name)) return 'New Patient Blood Draw';
-    if (/elite/i.test(name)) return 'Elite Lab Panel';
-    if (/follow up/i.test(name)) return 'Follow-Up Blood Draw';
     if (/phlebotomy/i.test(name)) return 'Therapeutic Phlebotomy';
-    if (/g6pd/i.test(name)) return 'G6PD Blood Test';
-    return 'Blood Draw / Labs';
+    if (/comprehensive|full/i.test(name)) return 'Comprehensive Lab Panel';
+    if (/basic/i.test(name)) return 'Basic Lab Panel';
+    if (/hormone/i.test(name)) return 'Hormone Panel';
+    if (/thyroid/i.test(name)) return 'Thyroid Panel';
+    if (/g6pd/i.test(name)) return 'G6PD Test';
+    return productName;
   }
   
-  // CONSULTATION
-  if (category === 'Consultation') {
-    if (/gameplan/i.test(name)) return 'The Performance Gameplan';
-    if (/initial/i.test(name)) return 'Initial Consultation';
-    if (/hourly/i.test(name)) return 'Hourly Consultation';
-    return 'Consultation';
+  // HYPERBARIC
+  if (category === 'Hyperbaric') {
+    if (/single|session/i.test(name)) return 'Hyperbaric Session (Single)';
+    if (/pack|series/i.test(name)) return 'Hyperbaric Sessions (Pack)';
+    return 'Hyperbaric Oxygen Therapy';
   }
   
-  // PRODUCT
-  if (category === 'Product') {
-    if (/sublingual/i.test(name)) return 'Methylene Blue Sublingual';
-    if (/shipping/i.test(name)) return 'Shipping';
-    if (/candle/i.test(name)) {
-      if (/3 pack/i.test(name)) return '3-Pack Range Candles';
-      return 'Range Candle';
-    }
-    if (/deodorant/i.test(name)) return 'Range Deodorant';
-    if (/travel case/i.test(name)) return 'Travel Case';
-    return 'Product';
+  // RED LIGHT
+  if (category === 'Red Light') {
+    if (/single|session/i.test(name)) return 'Red Light Session (Single)';
+    if (/pack|series/i.test(name)) return 'Red Light Sessions (Pack)';
+    return 'Red Light Therapy';
   }
   
-  // PRESCRIPTION
-  if (category === 'Prescription') {
-    if (/meloxicam/i.test(name)) return 'Meloxicam Prescription';
-    if (/cyclobenzaprine/i.test(name)) return 'Cyclobenzaprine Prescription';
-    if (/pickup/i.test(name)) return 'Medication Pickup';
-    return 'Prescription';
-  }
-  
-  // GIFT CARD
-  if (category === 'Gift Card') {
-    return 'Gift Card';
-  }
-  
-  // Return original name for other categories
-  return productName.substring(0, 100);
+  return productName;
 }
 
-// Check if this purchase should create a trackable protocol
 function shouldCreateProtocol(category, productName) {
-  // These categories always get protocols
+  // Create protocols for trackable categories
   if (['Peptide', 'Weight Loss'].includes(category)) {
     return true;
   }
-  
-  // HRT memberships get protocols
-  if (category === 'HRT' && /membership|monthly/i.test(productName)) {
-    return true;
-  }
-  
   return false;
 }
 
-// Determine protocol duration in days
 function getProtocolDuration(category, productName) {
-  const name = productName?.toLowerCase() || '';
+  if (!productName) return 30;
+  const name = productName.toLowerCase();
   
   if (category === 'Peptide') {
-    if (/10.*day|jumpstart/i.test(name)) return 10;
-    if (/14.*day/i.test(name)) return 14;
-    if (/week/i.test(name)) return 7;
-    if (/30.*day|month|30-day|glow|ta-1|aod|3x blend/i.test(name)) return 30;
+    // Jumpstart and 10-day programs
+    if (/jumpstart|10.*day|10-day|week/i.test(name)) return 10;
+    // 14-day programs
+    if (/14.*day|14-day|two.*week|2.*week/i.test(name)) return 14;
+    // Maintenance (4-week)
     if (/maintenance|refill|4.*week/i.test(name)) return 28;
-    // Vials default to 30 days
+    // Monthly/30-day programs
+    if (/month|30.*day|30-day/i.test(name)) return 30;
+    // GLOW, TA-1, AOD, 3x Blend - default 30 days
+    if (/glow|ta-1|aod|3x.*blend/i.test(name)) return 30;
+    // Vials - default 30 days
     if (/vial/i.test(name)) return 30;
-    return 30; // Default peptide duration
+    // In-clinic injection
+    if (/in.*clinic|injection/i.test(name) && !/pack/i.test(name)) return 1;
   }
   
   if (category === 'Weight Loss') {
@@ -386,19 +450,62 @@ export default async function handler(req, res) {
       payload.customData?.contact_phone ||
       null;
     
-    // Payment info
-    const amount = 
+    // =====================================================
+    // EXTRACT CORRECT PAID AMOUNT (Invoice Total, not Line Item)
+    // =====================================================
+    
+    // Try to get Invoice Total (actual paid amount) first
+    // Fall back to other amount fields
+    const invoiceTotal = 
+      parseFloat(payload.invoice_total) ||
+      parseFloat(payload.invoiceTotal) ||
+      parseFloat(payload.total_amount) ||
+      parseFloat(payload.totalAmount) ||
+      parseFloat(payload.invoice?.total) ||
+      null;
+    
+    const lineItemAmount = 
       parseFloat(payload.amount) ||
       parseFloat(payload.payment?.amount) ||
       parseFloat(payload.total) ||
       parseFloat(payload.charge_amount) ||
+      parseFloat(payload.lineItems?.[0]?.amount) ||
+      parseFloat(payload.items?.[0]?.price) ||
       0;
+    
+    // Calculate actual paid amount
+    // If we have invoice subtotal and total, calculate the discount rate
+    const invoiceSubtotal = 
+      parseFloat(payload.invoice_sub_total) ||
+      parseFloat(payload.invoiceSubTotal) ||
+      parseFloat(payload.sub_total) ||
+      parseFloat(payload.subTotal) ||
+      parseFloat(payload.invoice?.subTotal) ||
+      null;
+    
+    let amount;
+    if (invoiceTotal !== null && invoiceSubtotal && invoiceSubtotal > 0) {
+      // Calculate proportional amount for this line item
+      const discountRate = invoiceTotal / invoiceSubtotal;
+      amount = lineItemAmount * discountRate;
+      console.log(`💰 Calculated paid amount: $${lineItemAmount} × ${discountRate.toFixed(2)} = $${amount.toFixed(2)}`);
+    } else if (invoiceTotal !== null) {
+      // Use invoice total directly if no line item breakdown
+      amount = invoiceTotal;
+      console.log(`💰 Using invoice total: $${amount}`);
+    } else {
+      // Fall back to line item amount
+      amount = lineItemAmount;
+      console.log(`💰 Using line item amount: $${amount}`);
+    }
     
     const paymentId = 
       payload.payment_id ||
       payload.paymentId ||
       payload.invoice_id ||
       payload.invoiceId ||
+      payload.invoice_number ||
+      payload.invoiceNumber ||
       payload.id ||
       null;
     
@@ -429,7 +536,7 @@ export default async function handler(req, res) {
       contactEmail,
       contactPhone,
       productName,
-      amount,
+      amount: amount.toFixed(2),
       paymentId
     });
 
@@ -447,13 +554,13 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
-    // CREATE PURCHASE RECORD (ALL PAYMENTS)
+    // CATEGORIZE AND CREATE PURCHASE RECORD
     // =====================================================
     
     const category = categorizePurchase(productName);
     const normalizedItem = normalizeItemName(productName, category);
     
-    console.log('💳 Creating purchase record:', { category, normalizedItem });
+    console.log('💳 Creating purchase record:', { category, normalizedItem, amount: amount.toFixed(2) });
     
     const purchaseData = {
       ghl_contact_id: contactId || null,
@@ -465,10 +572,10 @@ export default async function handler(req, res) {
       item_name: normalizedItem,
       original_item_name: productName || 'Unknown',
       quantity: 1,
-      amount: amount,
+      amount: parseFloat(amount.toFixed(2)),
       invoice_number: paymentId || null,
       source: 'GoHighLevel',
-      raw_payload: JSON.stringify(payload).substring(0, 5000) // Store raw payload for debugging
+      raw_payload: JSON.stringify(payload).substring(0, 5000)
     };
     
     const { data: purchase, error: purchaseError } = await supabase
@@ -479,9 +586,18 @@ export default async function handler(req, res) {
     
     if (purchaseError) {
       console.error('❌ Purchase insert error:', purchaseError);
-      // Continue anyway - don't fail the whole webhook
     } else {
       console.log('✅ Purchase created:', purchase?.id);
+    }
+
+    // =====================================================
+    // ADD GHL TAG BASED ON CATEGORY
+    // =====================================================
+    
+    if (contactId && CATEGORY_TAGS[category]) {
+      const tagName = CATEGORY_TAGS[category];
+      console.log(`🏷️ Adding tag "${tagName}" to contact ${contactId}`);
+      await addTagToContact(contactId, tagName);
     }
 
     // =====================================================
@@ -516,7 +632,7 @@ export default async function handler(req, res) {
         access_token: accessToken,
         reminders_enabled: true,
         purchase_id: purchase?.id || null,
-        amount: amount
+        amount: parseFloat(amount.toFixed(2))
       };
       
       const { data: newProtocol, error: protocolError } = await supabase
@@ -548,36 +664,27 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
-    // RESPONSE
+    // RETURN SUCCESS RESPONSE
     // =====================================================
-    
-    const trackerUrl = protocol ? 
-      `https://rangemedical-system-2.vercel.app/track/${protocol.access_token}` : 
-      null;
     
     const response = {
       success: true,
-      purchase: {
-        id: purchase?.id,
+      purchase: purchase ? {
+        id: purchase.id,
         category,
         item: normalizedItem,
-        amount
-      },
+        amount: parseFloat(amount.toFixed(2))
+      } : null,
       protocol: protocol ? {
         id: protocol.id,
-        type: category,
-        name: normalizedItem,
-        duration: protocol.duration_days,
-        trackerUrl
+        access_token: protocol.access_token,
+        tracker_url: `https://app.range-medical.com/track/${protocol.access_token}`
       } : null,
-      contact: {
-        id: contactId,
-        name: contactName,
-        email: contactEmail
-      }
+      tag_added: contactId && CATEGORY_TAGS[category] ? CATEGORY_TAGS[category] : null
     };
     
-    console.log('✅ Webhook complete:', response);
+    console.log('✅ Webhook processed successfully:', response);
+    
     return res.status(200).json(response);
 
   } catch (error) {

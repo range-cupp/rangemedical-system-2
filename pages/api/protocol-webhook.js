@@ -392,9 +392,20 @@ function generateToken() {
 }
 
 // Map item name to allowed program_type values
-function getProgramType(itemName) {
+function getProgramType(itemName, category) {
   const name = itemName?.toLowerCase() || '';
   
+  // WEIGHT LOSS - separate from peptides
+  if (category === 'Weight Loss') {
+    // Skinny Shot and single injections
+    if (/skinny.*shot|injection/i.test(name) && !/program|month|weekly/i.test(name)) {
+      return 'weight_loss_injection';
+    }
+    // Monthly programs (Tirzepatide, Semaglutide, etc.)
+    return 'weight_loss_program';
+  }
+  
+  // PEPTIDES
   // 10-Day programs -> Recovery Jumpstart
   if (/jumpstart|10-day|10 day|recovery.*10|10.*day/i.test(name)) {
     return 'recovery_jumpstart_10day';
@@ -673,10 +684,10 @@ export default async function handler(req, res) {
       endDate.setDate(endDate.getDate() + duration);
       const endDateStr = endDate.toISOString().split('T')[0];
       
-      // Determine program type
-      let programType = getProgramType(normalizedItem);
+      // Determine program type (pass category for Weight Loss distinction)
+      let programType = getProgramType(normalizedItem, category);
       
-      // If it's a 30-day program, check if patient already has one (making this a maintenance/refill)
+      // If it's a 30-day peptide program, check if patient already has one (making this a maintenance/refill)
       if (programType === 'month_program_30day' && contactId) {
         const isMaintenance = await checkIfMaintenance(supabase, contactId);
         if (isMaintenance) {

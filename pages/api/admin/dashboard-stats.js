@@ -83,12 +83,12 @@ export default async function handler(req, res) {
         .order('purchase_date', { ascending: false })
         .limit(15),
       
-      // Active protocols list (for display)
+      // Active protocols list (for display) - sorted by end_date ascending (ending soonest first)
       supabase
         .from('protocols')
         .select('id, patient_name, program_name, program_type, start_date, end_date, duration_days, injections_completed, access_token')
         .eq('status', 'active')
-        .order('end_date', { ascending: true })
+        .order('end_date', { ascending: true, nullsFirst: false })
         .limit(20)
     ]);
 

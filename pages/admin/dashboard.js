@@ -13,18 +13,13 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   
   // Dashboard data
-  const [stats, setStats] = useState({
-    totalProtocols: 0,
-    activeProtocols: 0,
-    completedProtocols: 0,
-    totalPurchases: 0,
-    recentPurchases: 0,
-    totalPatients: 0,
-    totalRevenue: 0
-  });
-  const [recentProtocols, setRecentProtocols] = useState([]);
-  const [recentPurchases, setRecentPurchases] = useState([]);
+  const [stats, setStats] = useState({});
   const [activeProtocols, setActiveProtocols] = useState([]);
+  const [recentPurchases, setRecentPurchases] = useState([]);
+  const [hrtMembers, setHrtMembers] = useState([]);
+  const [recentWeightLoss, setRecentWeightLoss] = useState([]);
+  const [recentIV, setRecentIV] = useState([]);
+  const [recentInjections, setRecentInjections] = useState([]);
 
   // Check stored password on mount
   useEffect(() => {
@@ -55,9 +50,12 @@ export default function AdminDashboard() {
       
       const data = await res.json();
       setStats(data.stats || {});
-      setRecentProtocols(data.recentProtocols || []);
-      setRecentPurchases(data.recentPurchases || []);
       setActiveProtocols(data.activeProtocols || []);
+      setRecentPurchases(data.recentPurchases || []);
+      setHrtMembers(data.hrtMembers || []);
+      setRecentWeightLoss(data.recentWeightLoss || []);
+      setRecentIV(data.recentIV || []);
+      setRecentInjections(data.recentInjections || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -279,36 +277,256 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-            {/* Stats Cards */}
+            
+            {/* Revenue Overview Cards */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: '16px',
               marginBottom: '24px'
             }}>
               <StatCard 
-                label="Active Protocols" 
-                value={stats.activeProtocols} 
-                color="#4caf50"
-                href="/admin/protocols?status=active"
-              />
-              <StatCard 
-                label="Total Protocols" 
-                value={stats.totalProtocols} 
-                color="#2196f3"
-                href="/admin/protocols"
-              />
-              <StatCard 
-                label="Purchases (30 days)" 
-                value={stats.recentPurchases} 
-                color="#ff9800"
-                href="/admin/purchases"
-              />
-              <StatCard 
-                label="Revenue (30 days)" 
+                label="Total Revenue (30d)" 
                 value={formatCurrency(stats.totalRevenue)} 
+                color="#2e7d32"
+                isText
+              />
+              <StatCard 
+                label="HRT" 
+                value={formatCurrency(stats.hrt?.revenue)} 
+                subtext={`${stats.hrt?.members || 0} members`}
+                color="#1565c0"
+                isText
+              />
+              <StatCard 
+                label="Peptides" 
+                value={formatCurrency(stats.peptides?.revenue)} 
+                subtext={`${stats.peptides?.activeProtocols || 0} active`}
+                color="#4caf50"
+                isText
+              />
+              <StatCard 
+                label="Weight Loss" 
+                value={formatCurrency(stats.weightLoss?.revenue)} 
+                subtext={`${stats.weightLoss?.activePurchases || 0} this month`}
+                color="#ff9800"
+                isText
+              />
+              <StatCard 
+                label="IV Therapy" 
+                value={formatCurrency(stats.ivTherapy?.revenue)} 
+                subtext={`${stats.ivTherapy?.sessions || 0} sessions`}
                 color="#9c27b0"
                 isText
+              />
+              <StatCard 
+                label="Injections" 
+                value={formatCurrency(stats.injections?.revenue)} 
+                subtext={`${stats.injections?.count || 0} this month`}
+                color="#e91e63"
+                isText
+              />
+            </div>
+
+            {/* Service Sections - 2x2 Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+              gap: '24px',
+              marginBottom: '24px'
+            }}>
+              
+              {/* Peptide Protocols - Ending Soonest */}
+              <ServiceCard
+                title="Peptide Protocols"
+                subtitle="ending soonest"
+                color="#4caf50"
+                linkText="View All"
+                linkHref="/admin/protocols?status=active"
+                emptyText="No active protocols"
+                items={activeProtocols}
+                renderItem={(protocol) => {
+                  const today = new Date();
+                  const endDate = new Date(protocol.end_date);
+                  const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                  const isEndingSoon = daysLeft <= 3;
+                  const isOverdue = daysLeft < 0;
+                  
+                  return (
+                    <div key={protocol.id} style={{
+                      padding: '12px 16px',
+                      borderBottom: '1px solid #f0f0f0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: isOverdue ? '#fff5f5' : isEndingSoon ? '#fffbf0' : 'white'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{protocol.patient_name}</div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>{protocol.program_name}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          fontWeight: '600',
+                          color: isOverdue ? '#c62828' : isEndingSoon ? '#ef6c00' : '#666'
+                        }}>
+                          {isOverdue ? `${Math.abs(daysLeft)}d overdue` : 
+                           daysLeft === 0 ? 'Ends today' :
+                           `${daysLeft}d left`}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#999' }}>
+                          {protocol.injections_completed || 0}/{protocol.duration_days}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }}
+              />
+
+              {/* HRT Members */}
+              <ServiceCard
+                title="HRT Members"
+                subtitle={`${stats.hrt?.members || 0} total`}
+                color="#1565c0"
+                linkText="View Purchases"
+                linkHref="/admin/purchases?category=HRT"
+                emptyText="No HRT members"
+                items={hrtMembers}
+                renderItem={(member) => (
+                  <div key={member.ghl_contact_id} style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f0f0f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: '500', fontSize: '14px' }}>{member.patient_name}</div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>{member.patient_email || member.patient_phone || '-'}</div>
+                    </div>
+                    <Link href={`/admin/purchases?search=${encodeURIComponent(member.patient_name)}`} style={{
+                      fontSize: '12px',
+                      color: '#1565c0',
+                      textDecoration: 'none'
+                    }}>
+                      History →
+                    </Link>
+                  </div>
+                )}
+              />
+
+              {/* Weight Loss */}
+              <ServiceCard
+                title="Weight Loss"
+                subtitle="recent purchases"
+                color="#ff9800"
+                linkText="View All"
+                linkHref="/admin/purchases?category=Weight+Loss"
+                emptyText="No recent weight loss purchases"
+                items={recentWeightLoss}
+                renderItem={(item) => (
+                  <div key={item.id} style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f0f0f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: '500', fontSize: '14px' }}>{item.patient_name}</div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>{item.item_name}</div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>
+                      {formatDate(item.purchase_date)}
+                    </div>
+                  </div>
+                )}
+              />
+
+              {/* IV Therapy */}
+              <ServiceCard
+                title="IV Therapy"
+                subtitle="recent sessions"
+                color="#9c27b0"
+                linkText="View All"
+                linkHref="/admin/purchases?category=IV+Therapy"
+                emptyText="No recent IV sessions"
+                items={recentIV}
+                renderItem={(item) => (
+                  <div key={item.id} style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f0f0f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: '500', fontSize: '14px' }}>{item.patient_name}</div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>{item.item_name}</div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>
+                      {formatDate(item.purchase_date)}
+                    </div>
+                  </div>
+                )}
+              />
+
+              {/* Injections */}
+              <ServiceCard
+                title="Injections"
+                subtitle="recent in-clinic"
+                color="#e91e63"
+                linkText="View All"
+                linkHref="/admin/purchases?category=Injection"
+                emptyText="No recent injections"
+                items={recentInjections}
+                renderItem={(item) => (
+                  <div key={item.id} style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f0f0f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: '500', fontSize: '14px' }}>{item.patient_name}</div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>{item.item_name}</div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>
+                      {formatDate(item.purchase_date)}
+                    </div>
+                  </div>
+                )}
+              />
+
+              {/* Recent Purchases */}
+              <ServiceCard
+                title="Recent Purchases"
+                subtitle="all categories"
+                color="#607d8b"
+                linkText="View All"
+                linkHref="/admin/purchases"
+                emptyText="No recent purchases"
+                items={recentPurchases.slice(0, 10)}
+                renderItem={(purchase) => (
+                  <div key={purchase.id} style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f0f0f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '500', fontSize: '14px' }}>{purchase.patient_name}</div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>{purchase.item_name}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: '500', fontSize: '14px' }}>{formatCurrency(purchase.amount)}</div>
+                      <div style={{ fontSize: '11px', color: '#999' }}>{purchase.category}</div>
+                    </div>
+                  </div>
+                )}
               />
             </div>
 
@@ -317,7 +535,6 @@ export default function AdminDashboard() {
               background: 'white',
               borderRadius: '8px',
               padding: '20px',
-              marginBottom: '24px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
             }}>
               <h2 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '600' }}>Quick Actions</h2>
@@ -328,10 +545,7 @@ export default function AdminDashboard() {
                   color: 'white',
                   borderRadius: '4px',
                   textDecoration: 'none',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
+                  fontSize: '14px'
                 }}>
                   + New Protocol
                 </Link>
@@ -343,7 +557,7 @@ export default function AdminDashboard() {
                   textDecoration: 'none',
                   fontSize: '14px'
                 }}>
-                  View Active Protocols
+                  Active Protocols
                 </Link>
                 <Link href="/admin/purchases" style={{
                   padding: '12px 20px',
@@ -353,187 +567,18 @@ export default function AdminDashboard() {
                   textDecoration: 'none',
                   fontSize: '14px'
                 }}>
-                  View Purchases
+                  All Purchases
                 </Link>
-              </div>
-            </div>
-
-            {/* Two Column Layout */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-              gap: '24px'
-            }}>
-              {/* Active Protocols - Ending Soonest First */}
-              <div style={{
-                background: 'white',
-                borderRadius: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  padding: '16px 20px',
-                  borderBottom: '1px solid #e0e0e0',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
+                <Link href="/admin/patients" style={{
+                  padding: '12px 20px',
+                  background: '#f3e5f5',
+                  color: '#7b1fa2',
+                  borderRadius: '4px',
+                  textDecoration: 'none',
+                  fontSize: '14px'
                 }}>
-                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Active Protocols <span style={{ fontWeight: '400', color: '#666', fontSize: '13px' }}>(ending soonest)</span></h2>
-                  <Link href="/admin/protocols?status=active" style={{
-                    fontSize: '13px',
-                    color: '#1976d2',
-                    textDecoration: 'none'
-                  }}>
-                    View All →
-                  </Link>
-                </div>
-                <div style={{ maxHeight: '400px', overflow: 'auto' }}>
-                  {activeProtocols.length === 0 ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-                      No active protocols
-                    </div>
-                  ) : (
-                    activeProtocols.map(protocol => {
-                      const today = new Date();
-                      const endDate = new Date(protocol.end_date);
-                      const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-                      const isEndingSoon = daysLeft <= 3;
-                      const isOverdue = daysLeft < 0;
-                      
-                      return (
-                        <div key={protocol.id} style={{
-                          padding: '12px 20px',
-                          borderBottom: '1px solid #f0f0f0',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          background: isOverdue ? '#fff8f8' : isEndingSoon ? '#fffbf0' : 'white'
-                        }}>
-                          <div>
-                            <div style={{ fontWeight: '500', fontSize: '14px' }}>
-                              {protocol.patient_name}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#666' }}>
-                              {protocol.program_name}
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ 
-                              fontSize: '12px', 
-                              fontWeight: '600',
-                              color: isOverdue ? '#c62828' : isEndingSoon ? '#ef6c00' : '#666'
-                            }}>
-                              {isOverdue ? `${Math.abs(daysLeft)} days overdue` : 
-                               daysLeft === 0 ? 'Ends today' :
-                               daysLeft === 1 ? '1 day left' :
-                               `${daysLeft} days left`}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#999' }}>
-                              Day {protocol.injections_completed || 0}/{protocol.duration_days}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* Recent Purchases */}
-              <div style={{
-                background: 'white',
-                borderRadius: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  padding: '16px 20px',
-                  borderBottom: '1px solid #e0e0e0',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Recent Purchases</h2>
-                  <Link href="/admin/purchases" style={{
-                    fontSize: '13px',
-                    color: '#1976d2',
-                    textDecoration: 'none'
-                  }}>
-                    View All →
-                  </Link>
-                </div>
-                <div style={{ maxHeight: '400px', overflow: 'auto' }}>
-                  {recentPurchases.length === 0 ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-                      No recent purchases
-                    </div>
-                  ) : (
-                    recentPurchases.map(purchase => (
-                      <div key={purchase.id} style={{
-                        padding: '12px 20px',
-                        borderBottom: '1px solid #f0f0f0',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <div>
-                          <div style={{ fontWeight: '500', fontSize: '14px' }}>
-                            {purchase.patient_name}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#666' }}>
-                            {purchase.item_name}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: '500', fontSize: '14px' }}>
-                            {formatCurrency(purchase.amount)}
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#999' }}>
-                            {formatDate(purchase.purchase_date)}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Category Breakdown */}
-            <div style={{
-              background: 'white',
-              borderRadius: '8px',
-              padding: '20px',
-              marginTop: '24px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-              <h2 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '600' }}>
-                Protocol Types Overview
-              </h2>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: '12px'
-              }}>
-                {[
-                  { type: 'recovery_10day', label: 'Recovery (10-Day)', color: '#4caf50' },
-                  { type: 'jumpstart_10day', label: 'Jumpstart (10-Day)', color: '#2196f3' },
-                  { type: 'month_30day', label: 'Month (30-Day)', color: '#ff9800' },
-                  { type: 'injection_clinic', label: 'In-Clinic', color: '#9c27b0' }
-                ].map(item => {
-                  const count = activeProtocols.filter(p => p.program_type === item.type).length;
-                  return (
-                    <div key={item.type} style={{
-                      padding: '16px',
-                      background: '#f5f5f5',
-                      borderRadius: '8px',
-                      borderLeft: `4px solid ${item.color}`
-                    }}>
-                      <div style={{ fontSize: '24px', fontWeight: '600' }}>{count}</div>
-                      <div style={{ fontSize: '12px', color: '#666' }}>{item.label}</div>
-                    </div>
-                  );
-                })}
+                  Patient Directory
+                </Link>
               </div>
             </div>
           </div>
@@ -544,25 +589,19 @@ export default function AdminDashboard() {
 }
 
 // Stat Card Component
-function StatCard({ label, value, color, href, isText }) {
+function StatCard({ label, value, subtext, color, href, isText }) {
   const content = (
     <div style={{
       background: 'white',
       borderRadius: '8px',
-      padding: '20px',
+      padding: '16px 20px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      borderLeft: `4px solid ${color}`,
-      cursor: href ? 'pointer' : 'default',
-      transition: 'transform 0.1s',
+      borderTop: `3px solid ${color}`,
+      cursor: href ? 'pointer' : 'default'
     }}>
-      <div style={{ 
-        fontSize: isText ? '24px' : '32px', 
-        fontWeight: '600',
-        marginBottom: '4px'
-      }}>
-        {value}
-      </div>
-      <div style={{ fontSize: '14px', color: '#666' }}>{label}</div>
+      <div style={{ fontSize: '13px', color: '#666', marginBottom: '4px' }}>{label}</div>
+      <div style={{ fontSize: '22px', fontWeight: '600' }}>{value}</div>
+      {subtext && <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{subtext}</div>}
     </div>
   );
 
@@ -570,4 +609,42 @@ function StatCard({ label, value, color, href, isText }) {
     return <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>{content}</Link>;
   }
   return content;
+}
+
+// Service Card Component
+function ServiceCard({ title, subtitle, color, linkText, linkHref, emptyText, items, renderItem }) {
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '8px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      overflow: 'hidden'
+    }}>
+      <div style={{
+        padding: '14px 16px',
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderLeft: `4px solid ${color}`
+      }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>{title}</h3>
+          {subtitle && <span style={{ fontSize: '12px', color: '#666' }}>{subtitle}</span>}
+        </div>
+        <Link href={linkHref} style={{ fontSize: '12px', color: '#1976d2', textDecoration: 'none' }}>
+          {linkText} →
+        </Link>
+      </div>
+      <div style={{ maxHeight: '280px', overflow: 'auto' }}>
+        {items.length === 0 ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#666', fontSize: '14px' }}>
+            {emptyText}
+          </div>
+        ) : (
+          items.map(renderItem)
+        )}
+      </div>
+    </div>
+  );
 }

@@ -63,11 +63,18 @@ export default async function handler(req, res) {
       // List protocols with filters
       let query = supabase
         .from('protocols')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' });
 
       if (status && status !== 'all') {
         query = query.eq('status', status);
+        // Sort active protocols by end_date (ending soonest first)
+        if (status === 'active') {
+          query = query.order('end_date', { ascending: true, nullsFirst: false });
+        } else {
+          query = query.order('created_at', { ascending: false });
+        }
+      } else {
+        query = query.order('created_at', { ascending: false });
       }
 
       if (ghl_contact_id) {

@@ -1,9 +1,11 @@
 // /pages/admin/protocols.js
 // Protocol Management Dashboard - CRUD Interface
-// Range Medical
+// Range Medical - Consistent with Dashboard styling
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 
 const PROGRAM_TYPES = [
   { value: 'injection_clinic', label: 'Injection (In-Clinic)' },
@@ -20,6 +22,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AdminProtocols() {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [protocols, setProtocols] = useState([]);
@@ -27,13 +30,14 @@ export default function AdminProtocols() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  // Filters
+  // Filters - initialize from URL params
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [initialized, setInitialized] = useState(false);
   
   // Modal state
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
+  const [modalMode, setModalMode] = useState('create');
   const [editingProtocol, setEditingProtocol] = useState(null);
   
   // Delete confirmation
@@ -60,7 +64,42 @@ export default function AdminProtocols() {
     reminders_enabled: true
   });
 
-  // Load protocols
+  // Initialize from URL params
+  useEffect(() => {
+    if (router.isReady && !initialized) {
+      const { status } = router.query;
+      if (status && ['active', 'completed', 'paused', 'cancelled'].includes(status)) {
+        setStatusFilter(status);
+      }
+      setInitialized(true);
+    }
+  }, [router.isReady, router.query]);
+
+  // Check stored password on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('adminPassword');
+    if (stored) {
+      setPassword(stored);
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // Fetch protocols when authenticated and filters change
+  useEffect(() => {
+    if (isAuthenticated && initialized) {
+      fetchProtocols();
+    }
+  }, [isAuthenticated, statusFilter, initialized]);
+
+  // Debounced search
+  useEffect(() => {
+    if (!isAuthenticated || !initialized) return;
+    const timer = setTimeout(() => {
+      fetchProtocols();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const fetchProtocols = async () => {
     setLoading(true);
     setError('');
@@ -72,14 +111,10 @@ export default function AdminProtocols() {
       params.append('limit', '200');
       
       const res = await fetch(`/api/admin/protocols?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${password}`
-        }
+        headers: { 'Authorization': `Bearer ${password}` }
       });
       
-      if (!res.ok) {
-        throw new Error('Failed to fetch protocols');
-      }
+      if (!res.ok) throw new Error('Failed to fetch protocols');
       
       const data = await res.json();
       setProtocols(data.protocols || []);
@@ -90,7 +125,6 @@ export default function AdminProtocols() {
     }
   };
 
-  // Handle login
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -98,9 +132,7 @@ export default function AdminProtocols() {
     
     try {
       const res = await fetch('/api/admin/protocols?limit=1', {
-        headers: {
-          'Authorization': `Bearer ${password}`
-        }
+        headers: { 'Authorization': `Bearer ${password}` }
       });
       
       if (res.ok) {
@@ -116,32 +148,6 @@ export default function AdminProtocols() {
     }
   };
 
-  // Check stored password on mount
-  useEffect(() => {
-    const stored = localStorage.getItem('adminPassword');
-    if (stored) {
-      setPassword(stored);
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  // Fetch protocols when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProtocols();
-    }
-  }, [isAuthenticated, statusFilter]);
-
-  // Debounced search
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const timer = setTimeout(() => {
-      fetchProtocols();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Open create modal
   const openCreateModal = () => {
     setFormData({
       patient_name: '',
@@ -165,7 +171,6 @@ export default function AdminProtocols() {
     setShowModal(true);
   };
 
-  // Open edit modal
   const openEditModal = (protocol) => {
     setEditingProtocol(protocol);
     setFormData({
@@ -190,7 +195,6 @@ export default function AdminProtocols() {
     setShowModal(true);
   };
 
-  // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -215,9 +219,7 @@ export default function AdminProtocols() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to save protocol');
-      }
+      if (!res.ok) throw new Error(data.error || 'Failed to save protocol');
 
       setSuccess(modalMode === 'create' 
         ? `Protocol created for ${formData.patient_name}` 
@@ -231,7 +233,6 @@ export default function AdminProtocols() {
     }
   };
 
-  // Handle delete
   const handleDelete = async () => {
     if (!deletingProtocol) return;
     
@@ -242,16 +243,12 @@ export default function AdminProtocols() {
     try {
       const res = await fetch(`/api/admin/protocols?id=${deletingProtocol.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${password}`
-        }
+        headers: { 'Authorization': `Bearer ${password}` }
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete protocol');
-      }
+      if (!res.ok) throw new Error(data.error || 'Failed to delete protocol');
 
       setSuccess(`Protocol deleted: ${deletingProtocol.program_name}`);
       setShowDeleteConfirm(false);
@@ -264,7 +261,6 @@ export default function AdminProtocols() {
     }
   };
 
-  // Format date
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('en-US', { 
@@ -274,7 +270,6 @@ export default function AdminProtocols() {
     });
   };
 
-  // Status badge color
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return { bg: '#e8f5e9', text: '#2e7d32' };
@@ -289,9 +284,7 @@ export default function AdminProtocols() {
   if (!isAuthenticated) {
     return (
       <>
-        <Head>
-          <title>Admin Login | Range Medical</title>
-        </Head>
+        <Head><title>Admin Login | Range Medical</title></Head>
         <div style={{
           minHeight: '100vh',
           display: 'flex',
@@ -308,53 +301,26 @@ export default function AdminProtocols() {
             width: '100%',
             maxWidth: '400px'
           }}>
-            <h1 style={{ margin: '0 0 24px', fontSize: '24px', textAlign: 'center' }}>
-              Range Medical Admin
-            </h1>
-            
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <h1 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '600' }}>RANGE MEDICAL</h1>
+              <p style={{ margin: 0, color: '#666' }}>Admin Dashboard</p>
+            </div>
             {error && (
-              <div style={{
-                background: '#ffebee',
-                color: '#c62828',
-                padding: '12px',
-                borderRadius: '4px',
-                marginBottom: '16px'
-              }}>
+              <div style={{ background: '#ffebee', color: '#c62828', padding: '12px', borderRadius: '4px', marginBottom: '16px', fontSize: '14px' }}>
                 {error}
               </div>
             )}
-            
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter admin password"
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '16px',
-                marginBottom: '16px',
-                boxSizing: 'border-box'
-              }}
+              style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px', marginBottom: '16px', boxSizing: 'border-box' }}
             />
-            
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: 'black',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '16px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1
-              }}
-            >
+            <button type="submit" disabled={loading} style={{
+              width: '100%', padding: '12px', background: 'black', color: 'white',
+              border: 'none', borderRadius: '4px', fontSize: '16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1
+            }}>
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
@@ -363,50 +329,100 @@ export default function AdminProtocols() {
     );
   }
 
-  // Main dashboard
+  // Main page
   return (
     <>
-      <Head>
-        <title>Protocol Management | Range Medical</title>
-      </Head>
+      <Head><title>Protocols | Range Medical</title></Head>
       <div style={{
         minHeight: '100vh',
         background: '#f5f5f5',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        {/* Header */}
+        {/* Header - Matches Dashboard */}
         <header style={{
-          background: 'white',
-          borderBottom: '1px solid #e0e0e0',
+          background: 'black',
+          color: 'white',
           padding: '16px 24px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '24px' }}>Protocol Management</h1>
-            <p style={{ margin: '4px 0 0', color: '#666', fontSize: '14px' }}>
-              {protocols.length} protocols found
-            </p>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>RANGE MEDICAL</h1>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.8 }}>Protocol Management</p>
           </div>
-          <button
-            onClick={openCreateModal}
-            style={{
-              padding: '10px 20px',
-              background: 'black',
-              color: 'white',
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={openCreateModal} style={{
+              padding: '8px 16px',
+              background: 'white',
+              color: 'black',
               border: 'none',
               borderRadius: '4px',
-              fontSize: '14px',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            + New Protocol
-          </button>
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              + New Protocol
+            </button>
+            <button onClick={() => {
+              localStorage.removeItem('adminPassword');
+              setIsAuthenticated(false);
+            }} style={{
+              padding: '8px 16px',
+              background: 'transparent',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}>
+              Logout
+            </button>
+          </div>
         </header>
+
+        {/* Navigation - Matches Dashboard */}
+        <nav style={{
+          background: 'white',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '0 24px',
+          display: 'flex',
+          gap: '0'
+        }}>
+          {[
+            { href: '/admin/dashboard', label: 'Dashboard' },
+            { href: '/admin/protocols', label: 'Protocols', active: true },
+            { href: '/admin/purchases', label: 'Purchases' },
+            { href: '/admin/patients', label: 'Patients' }
+          ].map(item => (
+            <Link key={item.href} href={item.href} style={{
+              padding: '16px 20px',
+              color: item.active ? 'black' : '#666',
+              textDecoration: 'none',
+              borderBottom: item.active ? '2px solid black' : '2px solid transparent',
+              fontWeight: item.active ? '500' : '400',
+              fontSize: '14px'
+            }}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Stats Bar */}
+        <div style={{
+          background: 'white',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '16px 24px',
+          display: 'flex',
+          gap: '32px'
+        }}>
+          <div>
+            <div style={{ fontSize: '24px', fontWeight: '600' }}>{protocols.length}</div>
+            <div style={{ fontSize: '13px', color: '#666' }}>
+              {statusFilter === 'all' ? 'Total Protocols' : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Protocols`}
+            </div>
+          </div>
+        </div>
 
         {/* Filters */}
         <div style={{
@@ -423,24 +439,20 @@ export default function AdminProtocols() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, email, or program..."
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '14px',
-              width: '300px'
-            }}
+            style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', width: '300px' }}
           />
           
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '14px'
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              // Update URL without reload
+              const newUrl = e.target.value === 'all' 
+                ? '/admin/protocols' 
+                : `/admin/protocols?status=${e.target.value}`;
+              router.push(newUrl, undefined, { shallow: true });
             }}
+            style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
           >
             <option value="all">All Statuses</option>
             {STATUS_OPTIONS.map(opt => (
@@ -448,46 +460,33 @@ export default function AdminProtocols() {
             ))}
           </select>
 
-          <button
-            onClick={fetchProtocols}
-            style={{
-              padding: '8px 16px',
-              background: '#f5f5f5',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
+          <button onClick={fetchProtocols} style={{
+            padding: '8px 16px',
+            background: '#f5f5f5',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}>
             Refresh
           </button>
         </div>
 
         {/* Messages */}
-        <div style={{ padding: '0 24px' }}>
-          {error && (
-            <div style={{
-              background: '#ffebee',
-              color: '#c62828',
-              padding: '12px 16px',
-              borderRadius: '4px',
-              marginTop: '16px'
-            }}>
-              {error}
-            </div>
-          )}
-          
-          {success && (
-            <div style={{
-              background: '#e8f5e9',
-              color: '#2e7d32',
-              padding: '12px 16px',
-              borderRadius: '4px',
-              marginTop: '16px'
-            }}>
-              {success}
-            </div>
-          )}
-        </div>
+        {(error || success) && (
+          <div style={{ padding: '0 24px', marginTop: '16px' }}>
+            {error && (
+              <div style={{ background: '#ffebee', color: '#c62828', padding: '12px 16px', borderRadius: '4px', marginBottom: '8px' }}>
+                {error}
+              </div>
+            )}
+            {success && (
+              <div style={{ background: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: '4px' }}>
+                {success}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Protocol Table */}
         <div style={{ padding: '24px', overflowX: 'auto' }}>
@@ -668,21 +667,22 @@ export default function AdminProtocols() {
                 borderBottom: '1px solid #e0e0e0',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                background: 'black',
+                color: 'white',
+                borderRadius: '8px 8px 0 0'
               }}>
-                <h2 style={{ margin: 0, fontSize: '20px' }}>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
                   {modalMode === 'create' ? 'New Protocol' : 'Edit Protocol'}
                 </h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#666'
-                  }}
-                >
+                <button onClick={() => setShowModal(false)} style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: 'white',
+                  lineHeight: 1
+                }}>
                   ×
                 </button>
               </div>
@@ -691,11 +691,11 @@ export default function AdminProtocols() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   {/* Patient Info */}
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666' }}>Patient Information</h3>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Patient Information</h3>
                   </div>
                   
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Patient Name *
                     </label>
                     <input
@@ -703,57 +703,36 @@ export default function AdminProtocols() {
                       value={formData.patient_name}
                       onChange={(e) => setFormData({ ...formData, patient_name: e.target.value })}
                       required
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Email
                     </label>
                     <input
                       type="email"
                       value={formData.patient_email}
                       onChange={(e) => setFormData({ ...formData, patient_email: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Phone
                     </label>
                     <input
                       type="tel"
                       value={formData.patient_phone}
                       onChange={(e) => setFormData({ ...formData, patient_phone: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       GHL Contact ID
                     </label>
                     <input
@@ -761,38 +740,24 @@ export default function AdminProtocols() {
                       value={formData.ghl_contact_id}
                       onChange={(e) => setFormData({ ...formData, ghl_contact_id: e.target.value })}
                       placeholder="Optional"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   {/* Program Info */}
-                  <div style={{ gridColumn: '1 / -1', marginTop: '16px' }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666' }}>Program Details</h3>
+                  <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Program Details</h3>
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Program Type *
                     </label>
                     <select
                       value={formData.program_type}
                       onChange={(e) => setFormData({ ...formData, program_type: e.target.value })}
                       required
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     >
                       {PROGRAM_TYPES.map(type => (
                         <option key={type.value} value={type.value}>{type.label}</option>
@@ -801,7 +766,7 @@ export default function AdminProtocols() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Program Name *
                     </label>
                     <input
@@ -810,38 +775,24 @@ export default function AdminProtocols() {
                       onChange={(e) => setFormData({ ...formData, program_name: e.target.value })}
                       required
                       placeholder="e.g., BPC-157 Recovery Program"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Start Date
                     </label>
                     <input
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Duration (Days)
                     </label>
                     <input
@@ -850,33 +801,19 @@ export default function AdminProtocols() {
                       onChange={(e) => setFormData({ ...formData, duration_days: parseInt(e.target.value) || 30 })}
                       min="1"
                       max="365"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   {modalMode === 'edit' && (
                     <div>
-                      <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                      <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                         Status
                       </label>
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          border: '1px solid #ddd',
-                          borderRadius: '4px',
-                          fontSize: '14px',
-                          boxSizing: 'border-box'
-                        }}
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                       >
                         {STATUS_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -886,12 +823,12 @@ export default function AdminProtocols() {
                   )}
 
                   {/* Peptide Details */}
-                  <div style={{ gridColumn: '1 / -1', marginTop: '16px' }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666' }}>Peptide Details (Optional)</h3>
+                  <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Peptide Details (Optional)</h3>
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Primary Peptide
                     </label>
                     <input
@@ -899,19 +836,12 @@ export default function AdminProtocols() {
                       value={formData.primary_peptide}
                       onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
                       placeholder="e.g., BPC-157"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Secondary Peptide
                     </label>
                     <input
@@ -919,19 +849,12 @@ export default function AdminProtocols() {
                       value={formData.secondary_peptide}
                       onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
                       placeholder="e.g., TB-500"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Dose Amount
                     </label>
                     <input
@@ -939,19 +862,12 @@ export default function AdminProtocols() {
                       value={formData.dose_amount}
                       onChange={(e) => setFormData({ ...formData, dose_amount: e.target.value })}
                       placeholder="e.g., 0.5ml"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Dose Frequency
                     </label>
                     <input
@@ -959,20 +875,13 @@ export default function AdminProtocols() {
                       value={formData.dose_frequency}
                       onChange={(e) => setFormData({ ...formData, dose_frequency: e.target.value })}
                       placeholder="e.g., Once daily"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   {/* Notes */}
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Special Instructions
                     </label>
                     <textarea
@@ -980,20 +889,12 @@ export default function AdminProtocols() {
                       onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
                       rows={3}
                       placeholder="Instructions for the patient..."
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box',
-                        resize: 'vertical'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical' }}
                     />
                   </div>
 
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Internal Notes
                     </label>
                     <textarea
@@ -1001,15 +902,7 @@ export default function AdminProtocols() {
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       rows={2}
                       placeholder="Staff-only notes..."
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box',
-                        resize: 'vertical'
-                      }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical' }}
                     />
                   </div>
 
@@ -1019,6 +912,7 @@ export default function AdminProtocols() {
                         type="checkbox"
                         checked={formData.reminders_enabled}
                         onChange={(e) => setFormData({ ...formData, reminders_enabled: e.target.checked })}
+                        style={{ width: '16px', height: '16px' }}
                       />
                       <span style={{ fontSize: '14px' }}>Enable daily injection reminders</span>
                     </label>
@@ -1034,34 +928,26 @@ export default function AdminProtocols() {
                   paddingTop: '16px',
                   borderTop: '1px solid #e0e0e0'
                 }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    style={{
-                      padding: '10px 20px',
-                      background: '#f5f5f5',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      cursor: 'pointer'
-                    }}
-                  >
+                  <button type="button" onClick={() => setShowModal(false)} style={{
+                    padding: '10px 20px',
+                    background: '#f5f5f5',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}>
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    style={{
-                      padding: '10px 20px',
-                      background: 'black',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      opacity: loading ? 0.7 : 1
-                    }}
-                  >
+                  <button type="submit" disabled={loading} style={{
+                    padding: '10px 20px',
+                    background: 'black',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.7 : 1
+                  }}>
                     {loading ? 'Saving...' : (modalMode === 'create' ? 'Create Protocol' : 'Save Changes')}
                   </button>
                 </div>
@@ -1087,43 +973,40 @@ export default function AdminProtocols() {
             <div style={{
               background: 'white',
               borderRadius: '8px',
-              padding: '24px',
               width: '100%',
               maxWidth: '400px',
-              margin: '20px'
+              margin: '20px',
+              overflow: 'hidden'
             }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>Delete Protocol?</h3>
-              <p style={{ margin: '0 0 8px', color: '#666' }}>
-                Are you sure you want to delete this protocol?
-              </p>
-              <p style={{ margin: '0 0 24px' }}>
-                <strong>{deletingProtocol.program_name}</strong> for <strong>{deletingProtocol.patient_name}</strong>
-              </p>
-              <p style={{ margin: '0 0 24px', color: '#c62828', fontSize: '13px' }}>
-                This will also delete all injection logs for this protocol. This action cannot be undone.
-              </p>
-              
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button
-                  onClick={() => {
+              <div style={{ background: '#c62828', color: 'white', padding: '16px 20px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Delete Protocol?</h3>
+              </div>
+              <div style={{ padding: '20px' }}>
+                <p style={{ margin: '0 0 8px', color: '#666' }}>
+                  Are you sure you want to delete this protocol?
+                </p>
+                <p style={{ margin: '0 0 16px' }}>
+                  <strong>{deletingProtocol.program_name}</strong> for <strong>{deletingProtocol.patient_name}</strong>
+                </p>
+                <p style={{ margin: '0 0 20px', color: '#c62828', fontSize: '13px' }}>
+                  This will also delete all injection logs. This action cannot be undone.
+                </p>
+                
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <button onClick={() => {
                     setShowDeleteConfirm(false);
                     setDeletingProtocol(null);
-                  }}
-                  style={{
+                  }} style={{
                     padding: '10px 20px',
                     background: '#f5f5f5',
                     border: '1px solid #ddd',
                     borderRadius: '4px',
                     fontSize: '14px',
                     cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={loading}
-                  style={{
+                  }}>
+                    Cancel
+                  </button>
+                  <button onClick={handleDelete} disabled={loading} style={{
                     padding: '10px 20px',
                     background: '#c62828',
                     color: 'white',
@@ -1132,10 +1015,10 @@ export default function AdminProtocols() {
                     fontSize: '14px',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     opacity: loading ? 0.7 : 1
-                  }}
-                >
-                  {loading ? 'Deleting...' : 'Delete Protocol'}
-                </button>
+                  }}>
+                    {loading ? 'Deleting...' : 'Delete Protocol'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

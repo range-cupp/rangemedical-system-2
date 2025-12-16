@@ -34,22 +34,49 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get date 30 days ago
-    const thirtyDaysAgo = new Date();
+    // Get date ranges
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+    
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
 
     // Parallel queries for performance
     const [
+      // Protocol stats
       protocolsResult,
       activeProtocolsResult,
       completedProtocolsResult,
-      purchasesResult,
+      
+      // Purchase stats (30 days)
       recentPurchasesResult,
       revenueResult,
-      recentProtocolsListResult,
+      
+      // Category-specific purchases (30 days)
+      hrtPurchasesResult,
+      weightLossPurchasesResult,
+      ivPurchasesResult,
+      injectionPurchasesResult,
+      peptidePurchasesResult,
+      
+      // Lists for display
+      activeProtocolsListResult,
       recentPurchasesListResult,
-      activeProtocolsListResult
+      
+      // HRT members (unique patients with HRT purchases)
+      hrtMembersResult,
+      
+      // Weight Loss active protocols
+      weightLossProtocolsResult,
+      
+      // Recent IV sessions
+      recentIVResult,
+      
+      // Recent Injections
+      recentInjectionsResult
+      
     ] = await Promise.all([
       // Total protocols count
       supabase.from('protocols').select('id', { count: 'exact', head: true }),
@@ -60,40 +87,96 @@ export default async function handler(req, res) {
       // Completed protocols count
       supabase.from('protocols').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
       
-      // Total purchases count
-      supabase.from('purchases').select('id', { count: 'exact', head: true }),
-      
       // Recent purchases count (30 days)
       supabase.from('purchases').select('id', { count: 'exact', head: true }).gte('purchase_date', thirtyDaysAgoStr),
       
       // Revenue (30 days)
       supabase.from('purchases').select('amount').gte('purchase_date', thirtyDaysAgoStr),
       
-      // Recent protocols list (for display)
+      // HRT purchases (30 days)
+      supabase.from('purchases').select('amount').eq('category', 'HRT').gte('purchase_date', thirtyDaysAgoStr),
+      
+      // Weight Loss purchases (30 days)
+      supabase.from('purchases').select('amount').eq('category', 'Weight Loss').gte('purchase_date', thirtyDaysAgoStr),
+      
+      // IV Therapy purchases (30 days)
+      supabase.from('purchases').select('amount').eq('category', 'IV Therapy').gte('purchase_date', thirtyDaysAgoStr),
+      
+      // Injection purchases (30 days)
+      supabase.from('purchases').select('amount').eq('category', 'Injection').gte('purchase_date', thirtyDaysAgoStr),
+      
+      // Peptide purchases (30 days)
+      supabase.from('purchases').select('amount').eq('category', 'Peptide').gte('purchase_date', thirtyDaysAgoStr),
+      
+      // Active protocols list (ending soonest first)
       supabase
         .from('protocols')
-        .select('id, patient_name, program_name, program_type, start_date, created_at')
-        .order('created_at', { ascending: false })
-        .limit(10),
+        .select('id, patient_name, program_name, program_type, start_date, end_date, duration_days, injections_completed, access_token')
+        .eq('status', 'active')
+        .order('end_date', { ascending: true, nullsFirst: false })
+        .limit(20),
       
-      // Recent purchases list (for display)
+      // Recent purchases list
       supabase
         .from('purchases')
         .select('id, patient_name, item_name, category, amount, purchase_date')
         .order('purchase_date', { ascending: false })
         .limit(15),
       
-      // Active protocols list (for display) - sorted by end_date ascending (ending soonest first)
+      // HRT unique members (all time)
       supabase
-        .from('protocols')
-        .select('id, patient_name, program_name, program_type, start_date, end_date, duration_days, injections_completed, access_token')
-        .eq('status', 'active')
-        .order('end_date', { ascending: true, nullsFirst: false })
-        .limit(20)
+        .from('purchases')
+        .select('ghl_contact_id, patient_name, patient_email, patient_phone')
+        .eq('category', 'HRT')
+        .not('ghl_contact_id', 'is', null),
+      
+      // Weight Loss protocols (active)
+      supabase
+        .from('purchases')
+        .select('id, patient_name, item_name, purchase_date, ghl_contact_id')
+        .eq('category', 'Weight Loss')
+        .gte('purchase_date', thirtyDaysAgoStr)
+        .order('purchase_date', { ascending: false })
+        .limit(10),
+      
+      // Recent IV sessions
+      supabase
+        .from('purchases')
+        .select('id, patient_name, item_name, purchase_date')
+        .eq('category', 'IV Therapy')
+        .order('purchase_date', { ascending: false })
+        .limit(10),
+      
+      // Recent Injections
+      supabase
+        .from('purchases')
+        .select('id, patient_name, item_name, purchase_date')
+        .eq('category', 'Injection')
+        .order('purchase_date', { ascending: false })
+        .limit(10)
     ]);
 
-    // Calculate total revenue
+    // Calculate revenues
     const totalRevenue = revenueResult.data?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+    const hrtRevenue = hrtPurchasesResult.data?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+    const weightLossRevenue = weightLossPurchasesResult.data?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+    const ivRevenue = ivPurchasesResult.data?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+    const injectionRevenue = injectionPurchasesResult.data?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+    const peptideRevenue = peptidePurchasesResult.data?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+
+    // Get unique HRT members
+    const hrtMemberMap = new Map();
+    (hrtMembersResult.data || []).forEach(p => {
+      if (p.ghl_contact_id && !hrtMemberMap.has(p.ghl_contact_id)) {
+        hrtMemberMap.set(p.ghl_contact_id, {
+          ghl_contact_id: p.ghl_contact_id,
+          patient_name: p.patient_name,
+          patient_email: p.patient_email,
+          patient_phone: p.patient_phone
+        });
+      }
+    });
+    const hrtMembers = Array.from(hrtMemberMap.values());
 
     // Build response
     const response = {
@@ -101,13 +184,40 @@ export default async function handler(req, res) {
         totalProtocols: protocolsResult.count || 0,
         activeProtocols: activeProtocolsResult.count || 0,
         completedProtocols: completedProtocolsResult.count || 0,
-        totalPurchases: purchasesResult.count || 0,
         recentPurchases: recentPurchasesResult.count || 0,
-        totalRevenue: totalRevenue
+        totalRevenue: totalRevenue,
+        
+        // Category stats
+        hrt: {
+          members: hrtMembers.length,
+          revenue: hrtRevenue,
+          purchases: hrtPurchasesResult.data?.length || 0
+        },
+        weightLoss: {
+          activePurchases: weightLossPurchasesResult.data?.length || 0,
+          revenue: weightLossRevenue
+        },
+        ivTherapy: {
+          sessions: ivPurchasesResult.data?.length || 0,
+          revenue: ivRevenue
+        },
+        injections: {
+          count: injectionPurchasesResult.data?.length || 0,
+          revenue: injectionRevenue
+        },
+        peptides: {
+          activeProtocols: activeProtocolsResult.count || 0,
+          revenue: peptideRevenue
+        }
       },
-      recentProtocols: recentProtocolsListResult.data || [],
+      
+      // Lists
+      activeProtocols: activeProtocolsListResult.data || [],
       recentPurchases: recentPurchasesListResult.data || [],
-      activeProtocols: activeProtocolsListResult.data || []
+      hrtMembers: hrtMembers.slice(0, 10),
+      recentWeightLoss: weightLossProtocolsResult.data || [],
+      recentIV: recentIVResult.data || [],
+      recentInjections: recentInjectionsResult.data || []
     };
 
     return res.status(200).json(response);

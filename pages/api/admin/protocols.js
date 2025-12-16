@@ -176,7 +176,7 @@ export default async function handler(req, res) {
       return res.status(201).json({
         success: true,
         protocol: data,
-        tracker_url: `https://rangemedical-system-2.vercel.app/track/${data.access_token}`
+        tracker_url: `https://app.range-medical.com/track/${data.access_token}`
       });
     }
 

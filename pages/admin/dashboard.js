@@ -364,7 +364,7 @@ export default function AdminDashboard() {
               gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
               gap: '24px'
             }}>
-              {/* Active Protocols */}
+              {/* Active Protocols - Ending Soonest First */}
               <div style={{
                 background: 'white',
                 borderRadius: '8px',
@@ -378,7 +378,7 @@ export default function AdminDashboard() {
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Active Protocols</h2>
+                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Active Protocols <span style={{ fontWeight: '400', color: '#666', fontSize: '13px' }}>(ending soonest)</span></h2>
                   <Link href="/admin/protocols?status=active" style={{
                     fontSize: '13px',
                     color: '#1976d2',
@@ -393,32 +393,48 @@ export default function AdminDashboard() {
                       No active protocols
                     </div>
                   ) : (
-                    activeProtocols.map(protocol => (
-                      <div key={protocol.id} style={{
-                        padding: '12px 20px',
-                        borderBottom: '1px solid #f0f0f0',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <div>
-                          <div style={{ fontWeight: '500', fontSize: '14px' }}>
-                            {protocol.patient_name}
+                    activeProtocols.map(protocol => {
+                      const today = new Date();
+                      const endDate = new Date(protocol.end_date);
+                      const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                      const isEndingSoon = daysLeft <= 3;
+                      const isOverdue = daysLeft < 0;
+                      
+                      return (
+                        <div key={protocol.id} style={{
+                          padding: '12px 20px',
+                          borderBottom: '1px solid #f0f0f0',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: isOverdue ? '#fff8f8' : isEndingSoon ? '#fffbf0' : 'white'
+                        }}>
+                          <div>
+                            <div style={{ fontWeight: '500', fontSize: '14px' }}>
+                              {protocol.patient_name}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#666' }}>
+                              {protocol.program_name}
+                            </div>
                           </div>
-                          <div style={{ fontSize: '12px', color: '#666' }}>
-                            {protocol.program_name}
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ 
+                              fontSize: '12px', 
+                              fontWeight: '600',
+                              color: isOverdue ? '#c62828' : isEndingSoon ? '#ef6c00' : '#666'
+                            }}>
+                              {isOverdue ? `${Math.abs(daysLeft)} days overdue` : 
+                               daysLeft === 0 ? 'Ends today' :
+                               daysLeft === 1 ? '1 day left' :
+                               `${daysLeft} days left`}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#999' }}>
+                              Day {protocol.injections_completed || 0}/{protocol.duration_days}
+                            </div>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '12px', color: '#666' }}>
-                            Day {protocol.injections_completed || 0}/{protocol.duration_days}
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#999' }}>
-                            Ends {formatDate(protocol.end_date)}
-                          </div>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

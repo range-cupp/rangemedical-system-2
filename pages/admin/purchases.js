@@ -517,6 +517,274 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 }
 
 // ============================================
+// ADD TO PROTOCOL MODAL
+// ============================================
+function AddToProtocolModal({ purchase, onClose, onSuccess }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [protocols, setProtocols] = useState([]);
+  const [selectedProtocolId, setSelectedProtocolId] = useState('');
+  const [sessionNotes, setSessionNotes] = useState('');
+
+  // Fetch patient's active session-based protocols
+  useEffect(() => {
+    if (purchase?.ghl_contact_id) {
+      fetchProtocols();
+    } else {
+      setLoading(false);
+    }
+  }, [purchase]);
+
+  const fetchProtocols = async () => {
+    try {
+      const res = await fetch(`/api/admin/protocols?ghl_contact_id=${purchase.ghl_contact_id}&status=active`);
+      if (res.ok) {
+        const data = await res.json();
+        // Filter to session-based protocols (ones with total_sessions)
+        const sessionProtocols = data.filter(p => 
+          p.total_sessions || 
+          ['iv_therapy', 'hbot_sessions', 'red_light_sessions', 'injection_pack'].includes(p.program_type)
+        );
+        setProtocols(sessionProtocols);
+      }
+    } catch (err) {
+      console.error('Error fetching protocols:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddSession = async () => {
+    if (!selectedProtocolId) {
+      setError('Please select a protocol');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/admin/protocol/${selectedProtocolId}/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purchase_id: purchase.id,
+          session_date: new Date().toISOString(),
+          notes: sessionNotes
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to add session');
+      }
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+  };
+
+  if (!purchase) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        width: '100%',
+        maxWidth: '500px',
+        margin: '20px'
+      }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Add to Protocol</h2>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>
+            {purchase.patient_name} • {purchase.item_name} ({formatCurrency(purchase.amount)})
+          </p>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '20px' }}>
+          {error && (
+            <div style={{ padding: '12px', background: '#fef2f2', color: '#991b1b', borderRadius: '6px', fontSize: '14px', marginBottom: '16px' }}>
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+              Loading protocols...
+            </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+                  Select Protocol
+                </label>
+                <select
+                  value={selectedProtocolId}
+                  onChange={(e) => setSelectedProtocolId(e.target.value)}
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    border: '1px solid #e5e5e5', 
+                    borderRadius: '6px', 
+                    fontSize: '14px',
+                    background: 'white'
+                  }}
+                >
+                  <option value="">-- Select a protocol --</option>
+                  {protocols.length > 0 && (
+                    <optgroup label="Active Packs">
+                      {protocols.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.program_name || p.program_type} 
+                          {p.total_sessions ? ` (${p.injections_completed || 0}/${p.total_sessions} used)` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <optgroup label="Other Options">
+                    <option value="new_standalone">+ Create Single Session (Standalone)</option>
+                    <option value="new_pack">+ Create New Pack</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {protocols.length === 0 && (
+                <div style={{ 
+                  padding: '16px', 
+                  background: '#fef3c7', 
+                  borderRadius: '8px', 
+                  fontSize: '14px', 
+                  color: '#92400e',
+                  marginBottom: '16px'
+                }}>
+                  ⚠️ No active session packs found for this patient. Select "Create Single Session" or "Create New Pack" below.
+                </div>
+              )}
+
+              {/* Session Notes */}
+              {selectedProtocolId && !selectedProtocolId.startsWith('new_') && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+                    Session Notes (optional)
+                  </label>
+                  <textarea
+                    value={sessionNotes}
+                    onChange={(e) => setSessionNotes(e.target.value)}
+                    placeholder="Any notes about this session..."
+                    rows={2}
+                    style={{ 
+                      width: '100%', 
+                      padding: '10px 12px', 
+                      border: '1px solid #e5e5e5', 
+                      borderRadius: '6px', 
+                      fontSize: '14px',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '20px', borderTop: '1px solid #e5e5e5', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '10px 20px', border: '1px solid #e5e5e5', borderRadius: '6px', background: 'white', fontSize: '14px', cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          {selectedProtocolId === 'new_standalone' || selectedProtocolId === 'new_pack' ? (
+            <button
+              onClick={() => {
+                onClose();
+                // Trigger create protocol with this purchase
+                window.dispatchEvent(new CustomEvent('createProtocolFromPurchase', { detail: purchase }));
+              }}
+              style={{
+                padding: '10px 24px',
+                border: 'none',
+                borderRadius: '6px',
+                background: '#000',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              Continue to Create
+            </button>
+          ) : (
+            <button
+              onClick={handleAddSession}
+              disabled={saving || !selectedProtocolId}
+              style={{
+                padding: '10px 24px',
+                border: 'none',
+                borderRadius: '6px',
+                background: '#000',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: saving || !selectedProtocolId ? 'not-allowed' : 'pointer',
+                opacity: saving || !selectedProtocolId ? 0.6 : 1
+              }}
+            >
+              {saving ? 'Adding...' : 'Add Session'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper: Determine if purchase is a package or single session
+function isPackagePurchase(purchase) {
+  if (!purchase) return false;
+  const name = (purchase.item_name || '').toLowerCase();
+  
+  // Packages: quantity > 1, or name contains pack/package
+  if (purchase.quantity > 1) return true;
+  if (/\d+[\s-]?pack|\d+[\s-]?session|package/i.test(name)) return true;
+  
+  return false;
+}
+
+// Helper: Determine if purchase is session-based (can be added to protocol)
+function isSessionPurchase(purchase) {
+  if (!purchase) return false;
+  const category = purchase.category || '';
+  
+  // These categories are session-based
+  return ['IV Therapy', 'Injection', 'Hyperbaric', 'Red Light'].includes(category);
+}
+
+// ============================================
 // MAIN PAGE COMPONENT
 // ============================================
 export default function AdminPurchases() {
@@ -530,6 +798,16 @@ export default function AdminPurchases() {
   
   // Modal state
   const [createProtocolPurchase, setCreateProtocolPurchase] = useState(null);
+  const [addToProtocolPurchase, setAddToProtocolPurchase] = useState(null);
+  
+  // Listen for create protocol event from AddToProtocol modal
+  useEffect(() => {
+    const handleCreateFromPurchase = (e) => {
+      setCreateProtocolPurchase(e.detail);
+    };
+    window.addEventListener('createProtocolFromPurchase', handleCreateFromPurchase);
+    return () => window.removeEventListener('createProtocolFromPurchase', handleCreateFromPurchase);
+  }, []);
   
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -622,6 +900,12 @@ export default function AdminPurchases() {
 
   const handleProtocolCreated = () => {
     setCreateProtocolPurchase(null);
+    setAddToProtocolPurchase(null);
+    fetchPurchases();
+  };
+
+  const handleSessionAdded = () => {
+    setAddToProtocolPurchase(null);
     fetchPurchases();
   };
 
@@ -712,6 +996,15 @@ export default function AdminPurchases() {
           purchase={createProtocolPurchase}
           onClose={() => setCreateProtocolPurchase(null)}
           onSuccess={handleProtocolCreated}
+        />
+      )}
+      
+      {/* Add to Protocol Modal */}
+      {addToProtocolPurchase && (
+        <AddToProtocolModal
+          purchase={addToProtocolPurchase}
+          onClose={() => setAddToProtocolPurchase(null)}
+          onSuccess={handleSessionAdded}
         />
       )}
       
@@ -937,6 +1230,38 @@ export default function AdminPurchases() {
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         {purchase.protocol_id ? (
                           <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '500' }}>✓ Assigned</span>
+                        ) : isPackagePurchase(purchase) ? (
+                          <button
+                            onClick={() => setCreateProtocolPurchase(purchase)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#000',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Create Protocol
+                          </button>
+                        ) : isSessionPurchase(purchase) ? (
+                          <button
+                            onClick={() => setAddToProtocolPurchase(purchase)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#3b82f6',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Add to Protocol
+                          </button>
                         ) : (
                           <button
                             onClick={() => setCreateProtocolPurchase(purchase)}

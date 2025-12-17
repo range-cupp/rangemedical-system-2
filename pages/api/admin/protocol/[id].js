@@ -1,7 +1,3 @@
-// /pages/api/admin/protocol/[id].js
-// Update a protocol
-// Range Medical
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -17,7 +13,6 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    // Get protocol details
     const { data, error } = await supabase
       .from('protocols')
       .select('*')
@@ -27,12 +22,10 @@ export default async function handler(req, res) {
     if (error) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
-
     return res.status(200).json(data);
   }
 
   if (req.method === 'PUT') {
-    // Update protocol
     const {
       injection_location,
       status,
@@ -45,7 +38,9 @@ export default async function handler(req, res) {
       reminders_enabled
     } = req.body;
 
-    const updateData = {};
+    const updateData = {
+      updated_at: new Date().toISOString()
+    };
     
     if (injection_location !== undefined) updateData.injection_location = injection_location;
     if (status !== undefined) updateData.status = status;
@@ -56,8 +51,6 @@ export default async function handler(req, res) {
     if (end_date !== undefined) updateData.end_date = end_date || null;
     if (special_instructions !== undefined) updateData.special_instructions = special_instructions;
     if (reminders_enabled !== undefined) updateData.reminders_enabled = reminders_enabled;
-    
-    updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from('protocols')

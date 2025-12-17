@@ -1,106 +1,82 @@
-// =====================================================
-// PROTOCOL DETAIL API
 // /pages/api/admin/protocol/[id].js
-// Returns protocol with patient info and injection log
-// =====================================================
+// Protocol management API - update settings
+// Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'range2024admin';
+
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Check auth
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '');
+  if (token !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const { id } = req.query;
+  if (!id) return res.status(400).json({ error: 'Protocol ID required' });
 
-  if (!id) {
-    return res.status(400).json({ success: false, error: 'Protocol ID required' });
+  // GET - fetch protocol details
+  if (req.method === 'GET') {
+    try {
+      const { data, error } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
 
-  try {
-    // Get protocol
-    const { data: protocol, error: protocolError } = await supabase
-      .from('protocols')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (protocolError || !protocol) {
-      return res.status(404).json({ success: false, error: 'Protocol not found' });
-    }
-
-    // Get patient
-    let patient = null;
-    if (protocol.patient_id) {
-      const { data: patientData } = await supabase
-        .from('patients')
-        .select('id, ghl_contact_id, full_name, name, email, phone')
-        .eq('id', protocol.patient_id)
-        .single();
-      patient = patientData;
-    } else if (protocol.ghl_contact_id) {
-      const { data: patientData } = await supabase
-        .from('patients')
-        .select('id, ghl_contact_id, full_name, name, email, phone')
-        .eq('ghl_contact_id', protocol.ghl_contact_id)
-        .single();
-      patient = patientData;
-    }
-
-    // If still no patient, create basic info from protocol
-    if (!patient) {
-      patient = {
-        id: null,
-        ghl_contact_id: protocol.ghl_contact_id,
-        full_name: protocol.patient_name,
-        email: protocol.patient_email,
-        phone: protocol.patient_phone
-      };
-    }
-
-    // Get injection log for this protocol
-    const { data: injections } = await supabase
-      .from('injection_log')
-      .select('*')
-      .eq('program_id', id)
-      .order('injection_date', { ascending: false });
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        protocol: {
-          id: protocol.id,
-          program_name: protocol.program_name,
-          program_type: protocol.program_type,
-          status: protocol.status,
-          primary_peptide: protocol.primary_peptide,
-          secondary_peptide: protocol.secondary_peptide,
-          peptide_route: protocol.peptide_route,
-          dose_amount: protocol.dose_amount,
-          dose_frequency: protocol.dose_frequency,
-          duration_days: protocol.duration_days,
-          start_date: protocol.start_date,
-          end_date: protocol.end_date,
-          special_instructions: protocol.special_instructions,
-          goal: protocol.goal,
-          injections_completed: protocol.injections_completed || 0,
-          prescribing_provider: protocol.prescribing_provider,
-          notes: protocol.notes,
-          amount_paid: protocol.amount_paid,
-          payment_date: protocol.payment_date
-        },
-        patient,
-        injections: injections || []
+  // PUT - update protocol
+  if (req.method === 'PUT') {
+    try {
+      const updates = req.body;
+      
+      // Only allow certain fields to be updated
+      const allowedFields = ['injection_location', 'status', 'reminders_enabled', 'dose_frequency', 
+                            'primary_peptide', 'secondary_peptide', 'dose_amount', 'special_instructions'];
+      
+      const filteredUpdates = {};
+      for (const key of allowedFields) {
+        if (updates[key] !== undefined) {
+          filteredUpdates[key] = updates[key];
+        }
       }
-    });
 
-  } catch (error) {
-    console.error('Protocol detail API error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+      if (Object.keys(filteredUpdates).length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update' });
+      }
+
+      const { data, error } = await supabase
+        .from('protocols')
+        .update(filteredUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, protocol: data });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
+
+  return res.status(405).json({ error: 'Method not allowed' });
 }

@@ -351,6 +351,8 @@ export default function AdminDashboard() {
                   const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                   const isEndingSoon = daysLeft <= 3;
                   const isOverdue = daysLeft < 0;
+                  const completed = protocol.injections_completed || 0;
+                  const expected = protocol.expected_injections || protocol.duration_days;
                   
                   return (
                     <div key={protocol.id} style={{
@@ -376,7 +378,7 @@ export default function AdminDashboard() {
                            `${daysLeft}d left`}
                         </div>
                         <div style={{ fontSize: '11px', color: '#999' }}>
-                          {protocol.injections_completed || 0}/{protocol.duration_days}
+                          {completed}/{expected} injections
                         </div>
                       </div>
                     </div>
@@ -399,6 +401,9 @@ export default function AdminDashboard() {
                   const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                   const isEndingSoon = daysLeft <= 3;
                   const isOverdue = daysLeft < 0;
+                  const completed = protocol.injections_completed || 0;
+                  const expected = protocol.expected_injections || 4;
+                  const frequency = protocol.dose_frequency === '2x weekly' ? '2x/wk' : '1x/wk';
                   
                   return (
                     <div key={protocol.id} style={{
@@ -411,7 +416,10 @@ export default function AdminDashboard() {
                     }}>
                       <div>
                         <div style={{ fontWeight: '500', fontSize: '14px' }}>{protocol.patient_name}</div>
-                        <div style={{ fontSize: '12px', color: '#666' }}>{protocol.program_name}</div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>
+                          {protocol.program_name}
+                          <span style={{ color: '#ff9800', marginLeft: '6px' }}>({frequency})</span>
+                        </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ 
@@ -424,7 +432,7 @@ export default function AdminDashboard() {
                            `${daysLeft}d left`}
                         </div>
                         <div style={{ fontSize: '11px', color: '#999' }}>
-                          {protocol.injections_completed || 0}/{protocol.duration_days}
+                          {completed}/{expected} injections
                         </div>
                       </div>
                     </div>

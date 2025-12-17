@@ -1,11 +1,110 @@
 // /pages/admin/patient/[id].js
-// Patient Profile Page with Consent Center
-// Range Medical - Black & White Design System
+// Patient Profile Page - Clean Protocol/Purchase Framework
+// Range Medical
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+
+// ============================================
+// PROTOCOL TEMPLATES
+// ============================================
+const PROTOCOL_TEMPLATES = {
+  'peptide_jumpstart': {
+    name: 'Peptide Recovery Jumpstart (10-Day)',
+    program_type: 'jumpstart_10day',
+    duration_days: 10,
+    injection_location: 'take_home',
+    dose_frequency: 'Daily',
+    tracking: 'daily_injection',
+    category: 'Peptide'
+  },
+  'peptide_month': {
+    name: 'Peptide Month Program (30-Day)',
+    program_type: 'month_30day',
+    duration_days: 30,
+    injection_location: 'take_home',
+    dose_frequency: 'Daily',
+    tracking: 'daily_injection',
+    category: 'Peptide'
+  },
+  'peptide_maintenance': {
+    name: 'Peptide Maintenance (4-Week)',
+    program_type: 'recovery_10day',
+    duration_days: 28,
+    injection_location: 'take_home',
+    dose_frequency: 'Daily',
+    tracking: 'daily_injection',
+    category: 'Peptide'
+  },
+  'peptide_injection': {
+    name: 'Peptide Injection (In-Clinic)',
+    program_type: 'injection_clinic',
+    duration_days: 1,
+    injection_location: 'in_clinic',
+    dose_frequency: 'Single',
+    tracking: 'single_visit',
+    category: 'Peptide'
+  },
+  'weight_loss': {
+    name: 'Weight Loss Program',
+    program_type: 'weight_loss',
+    duration_days: 28,
+    injection_location: 'in_clinic',
+    dose_frequency: 'Weekly',
+    tracking: 'weekly_weigh_in',
+    category: 'Weight Loss'
+  },
+  'hrt': {
+    name: 'HRT Membership',
+    program_type: 'hrt_membership',
+    duration_days: null, // Ongoing
+    injection_location: 'take_home',
+    dose_frequency: 'As prescribed',
+    tracking: 'quarterly_labs',
+    category: 'HRT'
+  },
+  'hbot': {
+    name: 'Hyperbaric Oxygen Therapy',
+    program_type: 'hbot_sessions',
+    duration_days: null,
+    injection_location: 'in_clinic',
+    dose_frequency: 'Per session',
+    tracking: 'session_count',
+    category: 'HBOT'
+  },
+  'red_light': {
+    name: 'Red Light Therapy',
+    program_type: 'red_light_sessions',
+    duration_days: null,
+    injection_location: 'in_clinic',
+    dose_frequency: 'Per session',
+    tracking: 'session_count',
+    category: 'Red Light'
+  },
+  'iv_therapy': {
+    name: 'IV Therapy',
+    program_type: 'iv_therapy',
+    duration_days: null,
+    injection_location: 'in_clinic',
+    dose_frequency: 'Per session',
+    tracking: 'session_count',
+    category: 'IV Therapy'
+  }
+};
+
+// Map purchase categories to template keys
+const CATEGORY_TO_TEMPLATE = {
+  'Peptide': 'peptide_jumpstart',
+  'Weight Loss': 'weight_loss',
+  'HRT': 'hrt',
+  'Hyperbaric': 'hbot',
+  'Red Light': 'red_light',
+  'IV Therapy': 'iv_therapy',
+  'Injection': 'peptide_injection',
+  'Labs': null // No protocol needed
+};
 
 // ============================================
 // ALL CONSENTS CONFIGURATION
@@ -24,249 +123,6 @@ const ALL_CONSENTS = [
   { id: 'testosterone-pellet', name: 'Testosterone Pellet Consent', url: 'https://range-medical.com/testosterone-pellet-consent-page', type: 'consent' },
   { id: 'trt-fertility', name: 'TRT Fertility Waiver', url: 'https://range-medical.com/trt-fertility-waiver-page', type: 'consent' },
 ];
-
-// ============================================
-// CONSENT CENTER COMPONENT
-// ============================================
-function ConsentCenter({ patientId, patientName, ghlContactId, completedConsents = [], completedIntakes = [] }) {
-  const [sendingId, setSendingId] = useState(null);
-  const [sentIds, setSentIds] = useState(new Set());
-  const [error, setError] = useState(null);
-
-  const getCompletedRecord = (consentId) => {
-    if (consentId === 'intake') {
-      return completedIntakes.length > 0 ? completedIntakes[0] : null;
-    }
-    return completedConsents.find(c => c.consent_type === consentId);
-  };
-
-  const sendConsent = async (consent) => {
-    if (!ghlContactId) {
-      setError('No GHL contact ID - cannot send SMS');
-      return;
-    }
-
-    setSendingId(consent.id);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/admin/send-form-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ghlContactId,
-          patientName,
-          formType: consent.name,
-          formUrl: consent.url
-        })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to send');
-      }
-
-      setSentIds(prev => new Set([...prev, consent.id]));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSendingId(null);
-    }
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', { 
-      month: 'short', day: 'numeric', year: 'numeric' 
-    });
-  };
-
-  const completedCount = ALL_CONSENTS.filter(c => getCompletedRecord(c.id)).length;
-
-  return (
-    <div style={{
-      background: 'white',
-      borderRadius: '8px',
-      border: '1px solid #e5e5e5',
-      overflow: 'hidden'
-    }}>
-      {/* Header */}
-      <div style={{
-        padding: '16px 20px',
-        borderBottom: '1px solid #e5e5e5',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'black' }}>
-            Consent Center
-          </h3>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#666' }}>
-            {completedCount} of {ALL_CONSENTS.length} completed
-          </p>
-        </div>
-        <div style={{
-          background: completedCount === ALL_CONSENTS.length ? '#000' : '#f5f5f5',
-          color: completedCount === ALL_CONSENTS.length ? '#fff' : '#666',
-          padding: '6px 12px',
-          borderRadius: '20px',
-          fontSize: '12px',
-          fontWeight: '500'
-        }}>
-          {completedCount === ALL_CONSENTS.length ? '✓ All Complete' : `${ALL_CONSENTS.length - completedCount} pending`}
-        </div>
-      </div>
-
-      {/* Error message */}
-      {error && (
-        <div style={{
-          padding: '12px 20px',
-          background: '#fef2f2',
-          color: '#991b1b',
-          fontSize: '13px',
-          borderBottom: '1px solid #fecaca'
-        }}>
-          {error}
-        </div>
-      )}
-
-      {/* Consent List */}
-      <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-        {ALL_CONSENTS.map((consent, index) => {
-          const completed = getCompletedRecord(consent.id);
-          const isSending = sendingId === consent.id;
-          const wasSent = sentIds.has(consent.id);
-
-          return (
-            <div
-              key={consent.id}
-              style={{
-                padding: '14px 20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: index < ALL_CONSENTS.length - 1 ? '1px solid #f0f0f0' : 'none',
-                background: completed ? '#fafafa' : 'white'
-              }}
-            >
-              {/* Left side */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                <div style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  background: completed ? '#000' : '#fff',
-                  border: completed ? 'none' : '2px solid #e5e5e5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  {completed ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  ) : (
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e5e5e5' }} />
-                  )}
-                </div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '500', color: completed ? '#666' : '#000' }}>
-                    {consent.name}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
-                    {completed ? `Completed ${formatDate(completed.submitted_at)}` : 'Not completed'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right side - actions */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {completed && completed.pdf_url && (
-                  <a
-                    href={completed.pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      color: '#000',
-                      background: '#f5f5f5',
-                      border: 'none',
-                      borderRadius: '4px',
-                      textDecoration: 'none'
-                    }}
-                  >
-                    View PDF
-                  </a>
-                )}
-
-                <button
-                  onClick={() => sendConsent(consent)}
-                  disabled={isSending || !ghlContactId}
-                  style={{
-                    padding: '6px 14px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    color: wasSent ? '#16a34a' : (completed ? '#666' : '#fff'),
-                    background: wasSent ? '#f0fdf4' : (completed ? '#fff' : '#000'),
-                    border: wasSent ? '1px solid #bbf7d0' : (completed ? '1px solid #e5e5e5' : 'none'),
-                    borderRadius: '4px',
-                    cursor: isSending || !ghlContactId ? 'not-allowed' : 'pointer',
-                    opacity: isSending ? 0.6 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  {isSending ? (
-                    'Sending...'
-                  ) : wasSent ? (
-                    <>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      Sent
-                    </>
-                  ) : (
-                    <>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 2L11 13"></path>
-                        <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-                      </svg>
-                      Send
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        padding: '12px 20px',
-        borderTop: '1px solid #e5e5e5',
-        background: '#fafafa',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <span style={{ fontSize: '12px', color: '#666' }}>
-          Click "Send" to text consent link to patient
-        </span>
-        {!ghlContactId && (
-          <span style={{ fontSize: '12px', color: '#dc2626' }}>
-            ⚠️ No GHL contact linked
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ============================================
 // HELPER FUNCTIONS
@@ -308,11 +164,12 @@ function TabButton({ active, onClick, children }) {
 // ============================================
 function OverviewTab({ patient }) {
   const activeProtocols = patient.protocols?.filter(p => p.status === 'active') || [];
+  const unassignedPurchases = patient.purchases?.filter(p => !p.protocol_id) || [];
   const totalSpent = patient.purchases?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-      {/* Stats */}
+      {/* Stats Row */}
       <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '16px' }}>
         <div style={{ flex: 1, background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
           <div style={{ fontSize: '32px', fontWeight: '600' }}>{patient.protocols?.length || 0}</div>
@@ -322,15 +179,27 @@ function OverviewTab({ patient }) {
           <div style={{ fontSize: '32px', fontWeight: '600', color: '#16a34a' }}>{activeProtocols.length}</div>
           <div style={{ fontSize: '13px', color: '#666' }}>Active</div>
         </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600' }}>{patient.purchases?.length || 0}</div>
-          <div style={{ fontSize: '13px', color: '#666' }}>Purchases</div>
+        <div style={{ flex: 1, background: 'white', borderRadius: '8px', border: unassignedPurchases.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e5e5', padding: '20px' }}>
+          <div style={{ fontSize: '32px', fontWeight: '600', color: unassignedPurchases.length > 0 ? '#f59e0b' : '#666' }}>{unassignedPurchases.length}</div>
+          <div style={{ fontSize: '13px', color: '#666' }}>Unassigned Purchases</div>
         </div>
         <div style={{ flex: 1, background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
           <div style={{ fontSize: '32px', fontWeight: '600', color: '#16a34a' }}>{formatCurrency(totalSpent)}</div>
           <div style={{ fontSize: '13px', color: '#666' }}>Total Spent</div>
         </div>
       </div>
+
+      {/* Unassigned Purchases Alert */}
+      {unassignedPurchases.length > 0 && (
+        <div style={{ gridColumn: '1 / -1', background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>
+            ⚠️ {unassignedPurchases.length} Unassigned Purchase{unassignedPurchases.length > 1 ? 's' : ''}
+          </div>
+          <div style={{ fontSize: '14px', color: '#92400e' }}>
+            Go to the Purchases tab to create protocols for these payments.
+          </div>
+        </div>
+      )}
 
       {/* Active Protocols */}
       <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
@@ -341,12 +210,12 @@ function OverviewTab({ patient }) {
           <p style={{ color: '#666', fontSize: '14px' }}>No active protocols</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {activeProtocols.map(p => (
+            {activeProtocols.slice(0, 5).map(p => (
               <div key={p.id} style={{ padding: '12px', background: '#fafafa', borderRadius: '6px' }}>
                 <div style={{ fontWeight: '500', fontSize: '14px' }}>{p.program_name || p.program_type}</div>
-                {p.peptide_name && <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{p.peptide_name}</div>}
+                {p.primary_peptide && <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{p.primary_peptide}</div>}
                 <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                  Ends: {formatDate(p.end_date)}
+                  {p.end_date ? `Ends: ${formatDate(p.end_date)}` : 'Ongoing'}
                 </div>
               </div>
             ))}
@@ -364,8 +233,11 @@ function OverviewTab({ patient }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {patient.purchases.slice(0, 5).map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                <span style={{ color: '#333' }}>{p.item_name}</span>
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
+                <div>
+                  <span style={{ color: '#333' }}>{p.item_name}</span>
+                  {!p.protocol_id && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px' }}>UNASSIGNED</span>}
+                </div>
                 <span style={{ color: '#666' }}>{formatCurrency(p.amount)}</span>
               </div>
             ))}
@@ -377,70 +249,128 @@ function OverviewTab({ patient }) {
 }
 
 // ============================================
-// CONSENTS TAB (uses ConsentCenter)
+// PURCHASES TAB - Main workflow hub
 // ============================================
-function ConsentsTab({ patient }) {
-  return (
-    <ConsentCenter
-      patientId={patient.id}
-      patientName={patient.name?.split(' ')[0] || 'there'}
-      ghlContactId={patient.ghl_contact_id}
-      completedConsents={patient.consents || []}
-      completedIntakes={patient.intakes || []}
-    />
-  );
-}
-
-// ============================================
-// PURCHASES TAB
-// ============================================
-function PurchasesTab({ purchases = [] }) {
-  const totalSpent = purchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+function PurchasesTab({ patient, onCreateProtocol, onRefresh }) {
+  const purchases = patient.purchases || [];
+  const unassigned = purchases.filter(p => !p.protocol_id);
+  const assigned = purchases.filter(p => p.protocol_id);
 
   return (
-    <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Purchase History</h3>
-        <div style={{ fontSize: '14px', color: '#666' }}>
-          Total: <span style={{ fontWeight: '600', color: '#16a34a' }}>{formatCurrency(totalSpent)}</span>
-        </div>
-      </div>
-      {purchases.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>No purchases found</div>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#fafafa' }}>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Date</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Category</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Item</th>
-              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {purchases.map(p => (
-              <tr key={p.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                <td style={{ padding: '12px 16px', fontSize: '14px' }}>{formatDate(p.purchase_date || p.created_at)}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    background: '#f5f5f5',
-                    color: '#333'
-                  }}>
-                    {p.category}
-                  </span>
-                </td>
-                <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.item_name}</td>
-                <td style={{ padding: '12px 16px', fontSize: '14px', textAlign: 'right', fontWeight: '500' }}>{formatCurrency(p.amount)}</td>
-              </tr>
+    <div>
+      {/* Unassigned Purchases */}
+      {unassigned.length > 0 && (
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px', color: '#92400e' }}>
+            ⚠️ Unassigned Purchases ({unassigned.length})
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {unassigned.map(purchase => (
+              <div key={purchase.id} style={{
+                background: '#fffbeb',
+                border: '1px solid #f59e0b',
+                borderRadius: '8px',
+                padding: '16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontWeight: '500', fontSize: '15px' }}>{purchase.item_name}</div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
+                    {formatDate(purchase.purchase_date)} • {purchase.category} • {formatCurrency(purchase.amount)}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => onCreateProtocol(purchase)}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#000',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Create Protocol
+                  </button>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
       )}
+
+      {/* All Purchases */}
+      <div>
+        <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px' }}>
+          All Purchases ({purchases.length})
+        </h3>
+        {purchases.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#666', background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
+            No purchases found
+          </div>
+        ) : (
+          <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#fafafa' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Date</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Item</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Category</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Amount</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchases.map(p => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{formatDate(p.purchase_date)}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.item_name}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        background: '#f5f5f5',
+                        color: '#333'
+                      }}>
+                        {p.category}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', textAlign: 'right', fontWeight: '500' }}>{formatCurrency(p.amount)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      {p.protocol_id ? (
+                        <span style={{ fontSize: '12px', color: '#16a34a' }}>✓ Assigned</span>
+                      ) : (
+                        <button
+                          onClick={() => onCreateProtocol(p)}
+                          style={{
+                            padding: '4px 12px',
+                            background: '#000',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Create Protocol
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -448,56 +378,10 @@ function PurchasesTab({ purchases = [] }) {
 // ============================================
 // PROTOCOLS TAB
 // ============================================
-function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
-  const [editingProtocol, setEditingProtocol] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({});
-
+function ProtocolsTab({ protocols = [], onEditProtocol, onViewNotes }) {
   const active = protocols.filter(p => p.status === 'active');
   const completed = protocols.filter(p => p.status === 'completed');
   const other = protocols.filter(p => !['active', 'completed'].includes(p.status));
-
-  const openEditModal = (protocol) => {
-    setFormData({
-      injection_location: protocol.injection_location || 'take_home',
-      status: protocol.status || 'active',
-      peptide_name: protocol.peptide_name || '',
-      dose_amount: protocol.dose_amount || '',
-      dose_frequency: protocol.dose_frequency || '',
-      start_date: protocol.start_date ? protocol.start_date.split('T')[0] : '',
-      end_date: protocol.end_date ? protocol.end_date.split('T')[0] : '',
-      special_instructions: protocol.special_instructions || '',
-      reminders_enabled: protocol.reminders_enabled !== false
-    });
-    setEditingProtocol(protocol);
-  };
-
-  const closeModal = () => {
-    setEditingProtocol(null);
-    setFormData({});
-  };
-
-  const saveProtocol = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/admin/protocol/${editingProtocol.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      
-      if (res.ok) {
-        closeModal();
-        if (onProtocolUpdate) onProtocolUpdate();
-      } else {
-        alert('Failed to save protocol');
-      }
-    } catch (err) {
-      alert('Error saving protocol: ' + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const ProtocolCard = ({ protocol }) => {
     const isActive = protocol.status === 'active';
@@ -507,44 +391,33 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
     const isInClinic = protocol.injection_location === 'in_clinic';
 
     return (
-      <div 
-        onClick={() => openEditModal(protocol)}
-        style={{
-          padding: '16px',
-          background: '#fafafa',
-          borderRadius: '8px',
-          border: isActive ? '2px solid black' : '1px solid #e5e5e5',
-          cursor: 'pointer',
-          transition: 'transform 0.1s, box-shadow 0.1s'
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{
+        padding: '16px',
+        background: 'white',
+        borderRadius: '8px',
+        border: isActive ? '2px solid black' : '1px solid #e5e5e5'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div>
             <div style={{ fontWeight: '600', fontSize: '15px' }}>{protocol.program_name || protocol.program_type}</div>
-            {protocol.peptide_name && (
-              <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>{protocol.peptide_name}</div>
+            {protocol.primary_peptide && (
+              <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>{protocol.primary_peptide}</div>
             )}
           </div>
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              fontSize: '10px',
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              background: isInClinic ? '#e0e7ff' : '#fef3c7',
-              color: isInClinic ? '#3730a3' : '#92400e'
-            }}>
-              {isInClinic ? 'In-Clinic' : 'Take Home'}
-            </span>
+            {protocol.injection_location && (
+              <span style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                background: isInClinic ? '#e0e7ff' : '#fef3c7',
+                color: isInClinic ? '#3730a3' : '#92400e'
+              }}>
+                {isInClinic ? 'In-Clinic' : 'Take Home'}
+              </span>
+            )}
             <span style={{
               padding: '4px 10px',
               borderRadius: '12px',
@@ -558,29 +431,74 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
             </span>
           </div>
         </div>
-        
-        {isActive && daysLeft !== null && (
-          <div style={{ marginTop: '12px', display: 'flex', gap: '16px' }}>
-            <div>
-              <div style={{ fontSize: '24px', fontWeight: '600' }}>{daysLeft}</div>
-              <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Days Left</div>
-            </div>
-            {protocol.injections_logged !== undefined && (
+
+        {/* Stats */}
+        {isActive && (
+          <div style={{ display: 'flex', gap: '24px', marginBottom: '12px' }}>
+            {daysLeft !== null && (
               <div>
-                <div style={{ fontSize: '24px', fontWeight: '600' }}>{protocol.injections_logged || 0}</div>
+                <div style={{ fontSize: '24px', fontWeight: '600' }}>{daysLeft}</div>
+                <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Days Left</div>
+              </div>
+            )}
+            {protocol.injections_completed !== undefined && (
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: '600' }}>{protocol.injections_completed || 0}</div>
                 <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Logged</div>
               </div>
             )}
           </div>
         )}
-        
-        <div style={{ marginTop: '12px', fontSize: '13px', color: '#666' }}>
+
+        {/* Dates */}
+        <div style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
           {protocol.start_date && <span>Started: {formatDate(protocol.start_date)}</span>}
           {protocol.end_date && <span style={{ marginLeft: '16px' }}>Ends: {formatDate(protocol.end_date)}</span>}
+          {!protocol.end_date && protocol.start_date && <span style={{ marginLeft: '16px' }}>Ongoing</span>}
         </div>
-        
-        <div style={{ marginTop: '8px', fontSize: '11px', color: '#999' }}>
-          Click to edit
+
+        {/* Dosing Info */}
+        {(protocol.dose_amount || protocol.dose_frequency) && (
+          <div style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+            {protocol.dose_amount && <span>Dose: {protocol.dose_amount}</span>}
+            {protocol.dose_frequency && <span style={{ marginLeft: '16px' }}>Frequency: {protocol.dose_frequency}</span>}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
+          <button
+            onClick={() => onEditProtocol(protocol)}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              background: '#000',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onViewNotes(protocol)}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              background: '#f5f5f5',
+              color: '#333',
+              border: '1px solid #e5e5e5',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Notes {protocol.notes ? '•' : ''}
+          </button>
         </div>
       </div>
     );
@@ -588,323 +506,34 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
 
   return (
     <div>
-      {/* Edit Modal */}
-      {editingProtocol && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }} onClick={closeModal}>
-          <div 
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              width: '100%',
-              maxWidth: '500px',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              margin: '20px'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Edit Protocol</h2>
-              <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>
-                {editingProtocol.program_name || editingProtocol.program_type}
-              </p>
-            </div>
-            
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Injection Location */}
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                  Injection Location
-                </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => setFormData({ ...formData, injection_location: 'take_home' })}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: formData.injection_location === 'take_home' ? '2px solid black' : '1px solid #e5e5e5',
-                      borderRadius: '8px',
-                      background: formData.injection_location === 'take_home' ? '#fef3c7' : 'white',
-                      fontWeight: formData.injection_location === 'take_home' ? '600' : '400',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🏠 Take Home
-                  </button>
-                  <button
-                    onClick={() => setFormData({ ...formData, injection_location: 'in_clinic' })}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: formData.injection_location === 'in_clinic' ? '2px solid black' : '1px solid #e5e5e5',
-                      borderRadius: '8px',
-                      background: formData.injection_location === 'in_clinic' ? '#e0e7ff' : 'white',
-                      fontWeight: formData.injection_location === 'in_clinic' ? '600' : '400',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🏥 In-Clinic
-                  </button>
-                </div>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #e5e5e5',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                  <option value="paused">Paused</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-
-              {/* Peptide Name */}
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                  Peptide Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.peptide_name}
-                  onChange={(e) => setFormData({ ...formData, peptide_name: e.target.value })}
-                  placeholder="e.g., BPC-157 + TB-500"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #e5e5e5',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              {/* Dosing */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                    Dose Amount
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.dose_amount}
-                    onChange={(e) => setFormData({ ...formData, dose_amount: e.target.value })}
-                    placeholder="e.g., 500mcg"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #e5e5e5',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                    Frequency
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.dose_frequency}
-                    onChange={(e) => setFormData({ ...formData, dose_frequency: e.target.value })}
-                    placeholder="e.g., 1x daily"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #e5e5e5',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Dates */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #e5e5e5',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #e5e5e5',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Special Instructions */}
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                  Special Instructions
-                </label>
-                <textarea
-                  value={formData.special_instructions}
-                  onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
-                  placeholder="Any special instructions for the patient..."
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #e5e5e5',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    resize: 'vertical',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              {/* Reminders Toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: '#f9f9f9', borderRadius: '8px' }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '500' }}>Daily Reminders</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>Send 6:30pm text if no injection logged</div>
-                </div>
-                <button
-                  onClick={() => setFormData({ ...formData, reminders_enabled: !formData.reminders_enabled })}
-                  style={{
-                    width: '50px',
-                    height: '28px',
-                    borderRadius: '14px',
-                    border: 'none',
-                    background: formData.reminders_enabled ? '#000' : '#e5e5e5',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  <div style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
-                    background: 'white',
-                    position: 'absolute',
-                    top: '3px',
-                    left: formData.reminders_enabled ? '25px' : '3px',
-                    transition: 'left 0.2s'
-                  }} />
-                </button>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div style={{ padding: '20px', borderTop: '1px solid #e5e5e5', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={closeModal}
-                style={{
-                  padding: '10px 20px',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '6px',
-                  background: 'white',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveProtocol}
-                disabled={saving}
-                style={{
-                  padding: '10px 24px',
-                  border: 'none',
-                  borderRadius: '6px',
-                  background: '#000',
-                  color: '#fff',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.6 : 1
-                }}
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {active.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px' }}>
             Active ({active.length})
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
             {active.map(p => <ProtocolCard key={p.id} protocol={p} />)}
           </div>
         </div>
       )}
 
       {completed.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', color: '#666' }}>
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px', color: '#666' }}>
             Completed ({completed.length})
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
             {completed.map(p => <ProtocolCard key={p.id} protocol={p} />)}
           </div>
         </div>
       )}
 
       {other.length > 0 && (
-        <div>
-          <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', color: '#666' }}>
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px', color: '#666' }}>
             Other ({other.length})
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
             {other.map(p => <ProtocolCard key={p.id} protocol={p} />)}
           </div>
         </div>
@@ -912,9 +541,167 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
 
       {protocols.length === 0 && (
         <div style={{ padding: '40px', textAlign: 'center', color: '#666', background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
-          No protocols found
+          No protocols found. Create one from the Purchases tab.
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================
+// CONSENT CENTER
+// ============================================
+function ConsentCenter({ patient }) {
+  const [sendingId, setSendingId] = useState(null);
+  const [sentIds, setSentIds] = useState(new Set());
+  const [error, setError] = useState(null);
+
+  const completedConsents = patient.consents || [];
+  const completedIntakes = patient.intakes || [];
+
+  const getCompletedRecord = (consentId) => {
+    if (consentId === 'intake') {
+      return completedIntakes.length > 0 ? completedIntakes[0] : null;
+    }
+    return completedConsents.find(c => c.consent_type === consentId);
+  };
+
+  const sendConsent = async (consent) => {
+    if (!patient.ghl_contact_id) {
+      setError('No GHL contact ID - cannot send SMS');
+      return;
+    }
+
+    setSendingId(consent.id);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/admin/send-form-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ghlContactId: patient.ghl_contact_id,
+          patientName: patient.name?.split(' ')[0] || 'there',
+          formType: consent.name,
+          formUrl: consent.url
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to send');
+      setSentIds(prev => new Set([...prev, consent.id]));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSendingId(null);
+    }
+  };
+
+  const completedCount = ALL_CONSENTS.filter(c => getCompletedRecord(c.id)).length;
+
+  return (
+    <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Consent Center</h3>
+          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#666' }}>{completedCount} of {ALL_CONSENTS.length} completed</p>
+        </div>
+        <div style={{
+          background: completedCount === ALL_CONSENTS.length ? '#000' : '#f5f5f5',
+          color: completedCount === ALL_CONSENTS.length ? '#fff' : '#666',
+          padding: '6px 12px',
+          borderRadius: '20px',
+          fontSize: '12px',
+          fontWeight: '500'
+        }}>
+          {completedCount === ALL_CONSENTS.length ? '✓ All Complete' : `${ALL_CONSENTS.length - completedCount} pending`}
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ padding: '12px 20px', background: '#fef2f2', color: '#991b1b', fontSize: '13px', borderBottom: '1px solid #fecaca' }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+        {ALL_CONSENTS.map((consent, index) => {
+          const completed = getCompletedRecord(consent.id);
+          const isSending = sendingId === consent.id;
+          const wasSent = sentIds.has(consent.id);
+
+          return (
+            <div key={consent.id} style={{
+              padding: '14px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: index < ALL_CONSENTS.length - 1 ? '1px solid #f0f0f0' : 'none',
+              background: completed ? '#fafafa' : 'white'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: completed ? '#000' : '#fff',
+                  border: completed ? 'none' : '2px solid #e5e5e5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  {completed ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  ) : (
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e5e5e5' }} />
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '500', color: completed ? '#666' : '#000' }}>{consent.name}</div>
+                  <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                    {completed ? `Completed ${formatDate(completed.submitted_at)}` : 'Not completed'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {completed && completed.pdf_url && (
+                  <a href={completed.pdf_url} target="_blank" rel="noopener noreferrer" style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#000',
+                    background: '#f5f5f5',
+                    borderRadius: '4px',
+                    textDecoration: 'none'
+                  }}>
+                    View PDF
+                  </a>
+                )}
+                <button
+                  onClick={() => sendConsent(consent)}
+                  disabled={isSending || !patient.ghl_contact_id}
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: wasSent ? '#16a34a' : (completed ? '#666' : '#fff'),
+                    background: wasSent ? '#f0fdf4' : (completed ? '#fff' : '#000'),
+                    border: wasSent ? '1px solid #bbf7d0' : (completed ? '1px solid #e5e5e5' : 'none'),
+                    borderRadius: '4px',
+                    cursor: isSending || !patient.ghl_contact_id ? 'not-allowed' : 'pointer',
+                    opacity: isSending ? 0.6 : 1
+                  }}
+                >
+                  {isSending ? 'Sending...' : wasSent ? '✓ Sent' : 'Send'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -932,8 +719,7 @@ function IntakeTab({ intakes = [] }) {
   }
 
   const intake = intakes[0];
-  
-  // Parse medical conditions if it's a JSON object
+
   const getMedicalConditions = () => {
     if (!intake.medical_conditions) return 'None reported';
     if (typeof intake.medical_conditions === 'string') return intake.medical_conditions;
@@ -967,67 +753,735 @@ function IntakeTab({ intakes = [] }) {
           </a>
         )}
       </div>
-      
+
       <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        {/* Basic Info */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Basic Info</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
             <div><span style={{ color: '#666' }}>Name:</span> {intake.first_name} {intake.last_name}</div>
-            <div><span style={{ color: '#666' }}>DOB:</span> {intake.date_of_birth || intake.dob || '-'}</div>
-            <div><span style={{ color: '#666' }}>Gender:</span> {intake.gender || intake.sex || '-'}</div>
+            <div><span style={{ color: '#666' }}>DOB:</span> {intake.date_of_birth || '-'}</div>
+            <div><span style={{ color: '#666' }}>Gender:</span> {intake.gender || '-'}</div>
             <div><span style={{ color: '#666' }}>Phone:</span> {intake.phone || '-'}</div>
-            <div><span style={{ color: '#666' }}>Email:</span> {intake.email || '-'}</div>
           </div>
         </div>
 
-        {/* Address */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Address</h4>
           <div style={{ fontSize: '14px' }}>
             {intake.street_address && <div>{intake.street_address}</div>}
-            {(intake.city || intake.state || intake.postal_code) && (
-              <div>{[intake.city, intake.state, intake.postal_code].filter(Boolean).join(', ')}</div>
-            )}
-            {!intake.street_address && !intake.city && '-'}
+            {(intake.city || intake.state) && <div>{[intake.city, intake.state, intake.postal_code].filter(Boolean).join(', ')}</div>}
           </div>
         </div>
 
-        {/* Medical Conditions */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Medical Conditions</h4>
           <div style={{ fontSize: '14px' }}>{getMedicalConditions()}</div>
         </div>
 
-        {/* Current Medications */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Current Medications</h4>
-          <div style={{ fontSize: '14px' }}>{intake.current_medications || intake.medications || 'None reported'}</div>
+          <div style={{ fontSize: '14px' }}>{intake.current_medications || 'None reported'}</div>
         </div>
 
-        {/* Allergies */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Allergies</h4>
-          <div style={{ fontSize: '14px' }}>{intake.allergies || (intake.has_allergies === false ? 'No known allergies' : 'None reported')}</div>
+          <div style={{ fontSize: '14px' }}>{intake.allergies || 'No known allergies'}</div>
         </div>
 
-        {/* What Brings You In */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Reason for Visit</h4>
           <div style={{ fontSize: '14px' }}>{intake.what_brings_you_in || intake.what_brings_you || '-'}</div>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Injury Info */}
-        {(intake.currently_injured || intake.injured) && (
-          <div style={{ gridColumn: '1 / -1' }}>
-            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Injury Details</h4>
-            <div style={{ fontSize: '14px' }}>
-              <div><span style={{ color: '#666' }}>Description:</span> {intake.injury_description || '-'}</div>
-              <div><span style={{ color: '#666' }}>Location:</span> {intake.injury_location || '-'}</div>
-              <div><span style={{ color: '#666' }}>When:</span> {intake.injury_when_occurred || intake.injury_date || '-'}</div>
+// ============================================
+// CREATE PROTOCOL MODAL
+// ============================================
+function CreateProtocolModal({ purchase, patient, onClose, onSuccess }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Determine template based on purchase category
+  const templateKey = CATEGORY_TO_TEMPLATE[purchase?.category] || 'peptide_jumpstart';
+  const template = PROTOCOL_TEMPLATES[templateKey] || PROTOCOL_TEMPLATES['peptide_jumpstart'];
+
+  const [formData, setFormData] = useState({
+    template: templateKey,
+    program_name: template.name,
+    program_type: template.program_type,
+    injection_location: template.injection_location,
+    duration_days: template.duration_days || 10,
+    primary_peptide: '',
+    secondary_peptide: '',
+    dose_amount: '',
+    dose_frequency: template.dose_frequency,
+    start_date: new Date().toISOString().split('T')[0],
+    special_instructions: '',
+    reminders_enabled: template.injection_location === 'take_home'
+  });
+
+  // Update form when template changes
+  const handleTemplateChange = (newTemplateKey) => {
+    const newTemplate = PROTOCOL_TEMPLATES[newTemplateKey];
+    if (newTemplate) {
+      setFormData(prev => ({
+        ...prev,
+        template: newTemplateKey,
+        program_name: newTemplate.name,
+        program_type: newTemplate.program_type,
+        injection_location: newTemplate.injection_location,
+        duration_days: newTemplate.duration_days || prev.duration_days,
+        dose_frequency: newTemplate.dose_frequency,
+        reminders_enabled: newTemplate.injection_location === 'take_home'
+      }));
+    }
+  };
+
+  const calculateEndDate = () => {
+    if (!formData.start_date || !formData.duration_days) return null;
+    const start = new Date(formData.start_date);
+    start.setDate(start.getDate() + parseInt(formData.duration_days));
+    return start.toISOString().split('T')[0];
+  };
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/admin/protocols', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          ghl_contact_id: patient.ghl_contact_id,
+          patient_name: patient.name,
+          patient_email: patient.email,
+          patient_phone: patient.phone,
+          purchase_id: purchase.id,
+          program_name: formData.program_name,
+          program_type: formData.program_type,
+          injection_location: formData.injection_location,
+          duration_days: formData.duration_days,
+          primary_peptide: formData.primary_peptide,
+          secondary_peptide: formData.secondary_peptide,
+          dose_amount: formData.dose_amount,
+          dose_frequency: formData.dose_frequency,
+          start_date: formData.start_date,
+          end_date: calculateEndDate(),
+          special_instructions: formData.special_instructions,
+          reminders_enabled: formData.reminders_enabled,
+          status: 'active',
+          amount: purchase.amount
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create protocol');
+      }
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!purchase) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        width: '100%',
+        maxWidth: '600px',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        margin: '20px'
+      }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Create Protocol</h2>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>
+            From: {purchase.item_name} ({formatCurrency(purchase.amount)})
+          </p>
+        </div>
+
+        {/* Form */}
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {error && (
+            <div style={{ padding: '12px', background: '#fef2f2', color: '#991b1b', borderRadius: '6px', fontSize: '14px' }}>
+              {error}
+            </div>
+          )}
+
+          {/* Template Selection */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Protocol Type</label>
+            <select
+              value={formData.template}
+              onChange={(e) => handleTemplateChange(e.target.value)}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px' }}
+            >
+              <optgroup label="Peptide">
+                <option value="peptide_jumpstart">Peptide Recovery Jumpstart (10-Day)</option>
+                <option value="peptide_month">Peptide Month Program (30-Day)</option>
+                <option value="peptide_maintenance">Peptide Maintenance (4-Week)</option>
+                <option value="peptide_injection">Peptide Injection (In-Clinic)</option>
+              </optgroup>
+              <optgroup label="Other Services">
+                <option value="weight_loss">Weight Loss Program</option>
+                <option value="hrt">HRT Membership</option>
+                <option value="hbot">Hyperbaric Oxygen Therapy</option>
+                <option value="red_light">Red Light Therapy</option>
+                <option value="iv_therapy">IV Therapy</option>
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Injection Location */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Location</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, injection_location: 'take_home', reminders_enabled: true })}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: formData.injection_location === 'take_home' ? '2px solid black' : '1px solid #e5e5e5',
+                  borderRadius: '8px',
+                  background: formData.injection_location === 'take_home' ? '#fef3c7' : 'white',
+                  fontWeight: formData.injection_location === 'take_home' ? '600' : '400',
+                  cursor: 'pointer'
+                }}
+              >
+                🏠 Take Home
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, injection_location: 'in_clinic', reminders_enabled: false })}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: formData.injection_location === 'in_clinic' ? '2px solid black' : '1px solid #e5e5e5',
+                  borderRadius: '8px',
+                  background: formData.injection_location === 'in_clinic' ? '#e0e7ff' : 'white',
+                  fontWeight: formData.injection_location === 'in_clinic' ? '600' : '400',
+                  cursor: 'pointer'
+                }}
+              >
+                🏥 In-Clinic
+              </button>
             </div>
           </div>
-        )}
+
+          {/* Peptide Names (for peptide protocols) */}
+          {formData.template.startsWith('peptide') && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Primary Peptide</label>
+                <input
+                  type="text"
+                  value={formData.primary_peptide}
+                  onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
+                  placeholder="e.g., BPC-157"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Secondary Peptide</label>
+                <input
+                  type="text"
+                  value={formData.secondary_peptide}
+                  onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
+                  placeholder="e.g., TB-500"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Dosing */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Dose Amount</label>
+              <input
+                type="text"
+                value={formData.dose_amount}
+                onChange={(e) => setFormData({ ...formData, dose_amount: e.target.value })}
+                placeholder="e.g., 500mcg"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Frequency</label>
+              <input
+                type="text"
+                value={formData.dose_frequency}
+                onChange={(e) => setFormData({ ...formData, dose_frequency: e.target.value })}
+                placeholder="e.g., Daily"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          {/* Dates */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Start Date</label>
+              <input
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Duration (days)</label>
+              <input
+                type="number"
+                value={formData.duration_days || ''}
+                onChange={(e) => setFormData({ ...formData, duration_days: parseInt(e.target.value) || null })}
+                placeholder="Ongoing"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>End Date</label>
+              <input
+                type="date"
+                value={calculateEndDate() || ''}
+                disabled
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box', background: '#f9f9f9' }}
+              />
+            </div>
+          </div>
+
+          {/* Special Instructions */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Special Instructions</label>
+            <textarea
+              value={formData.special_instructions}
+              onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
+              placeholder="Any special instructions..."
+              rows={3}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Reminders Toggle */}
+          {formData.injection_location === 'take_home' && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: '#f9f9f9', borderRadius: '8px' }}>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '500' }}>Daily Reminders</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>Send 6:30pm text if no injection logged</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, reminders_enabled: !formData.reminders_enabled })}
+                style={{
+                  width: '50px',
+                  height: '28px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: formData.reminders_enabled ? '#000' : '#e5e5e5',
+                  cursor: 'pointer',
+                  position: 'relative'
+                }}
+              >
+                <div style={{
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  background: 'white',
+                  position: 'absolute',
+                  top: '3px',
+                  left: formData.reminders_enabled ? '25px' : '3px',
+                  transition: 'left 0.2s'
+                }} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '20px', borderTop: '1px solid #e5e5e5', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '10px 20px', border: '1px solid #e5e5e5', borderRadius: '6px', background: 'white', fontSize: '14px', cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            style={{
+              padding: '10px 24px',
+              border: 'none',
+              borderRadius: '6px',
+              background: '#000',
+              color: '#fff',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.6 : 1
+            }}
+          >
+            {saving ? 'Creating...' : 'Create Protocol'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// EDIT PROTOCOL MODAL
+// ============================================
+function EditProtocolModal({ protocol, onClose, onSuccess }) {
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    injection_location: protocol?.injection_location || 'take_home',
+    status: protocol?.status || 'active',
+    primary_peptide: protocol?.primary_peptide || '',
+    secondary_peptide: protocol?.secondary_peptide || '',
+    dose_amount: protocol?.dose_amount || '',
+    dose_frequency: protocol?.dose_frequency || '',
+    start_date: protocol?.start_date?.split('T')[0] || '',
+    end_date: protocol?.end_date?.split('T')[0] || '',
+    special_instructions: protocol?.special_instructions || '',
+    reminders_enabled: protocol?.reminders_enabled !== false
+  });
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/protocol/${protocol.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (res.ok) {
+        onSuccess();
+      } else {
+        alert('Failed to save');
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!protocol) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        width: '100%',
+        maxWidth: '500px',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        margin: '20px'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Edit Protocol</h2>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>{protocol.program_name}</p>
+        </div>
+
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Location */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Location</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, injection_location: 'take_home' })}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: formData.injection_location === 'take_home' ? '2px solid black' : '1px solid #e5e5e5',
+                  borderRadius: '8px',
+                  background: formData.injection_location === 'take_home' ? '#fef3c7' : 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                🏠 Take Home
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, injection_location: 'in_clinic' })}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: formData.injection_location === 'in_clinic' ? '2px solid black' : '1px solid #e5e5e5',
+                  borderRadius: '8px',
+                  background: formData.injection_location === 'in_clinic' ? '#e0e7ff' : 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                🏥 In-Clinic
+              </button>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px' }}
+            >
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="paused">Paused</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          {/* Peptides */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Primary Peptide</label>
+              <input
+                type="text"
+                value={formData.primary_peptide}
+                onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Secondary</label>
+              <input
+                type="text"
+                value={formData.secondary_peptide}
+                onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          {/* Dosing */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Dose</label>
+              <input
+                type="text"
+                value={formData.dose_amount}
+                onChange={(e) => setFormData({ ...formData, dose_amount: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Frequency</label>
+              <input
+                type="text"
+                value={formData.dose_frequency}
+                onChange={(e) => setFormData({ ...formData, dose_frequency: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          {/* Dates */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Start Date</label>
+              <input
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>End Date</label>
+              <input
+                type="date"
+                value={formData.end_date}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Special Instructions</label>
+            <textarea
+              value={formData.special_instructions}
+              onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
+              rows={3}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Reminders */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: '#f9f9f9', borderRadius: '8px' }}>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '500' }}>Daily Reminders</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>6:30pm text if no injection logged</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, reminders_enabled: !formData.reminders_enabled })}
+              style={{
+                width: '50px',
+                height: '28px',
+                borderRadius: '14px',
+                border: 'none',
+                background: formData.reminders_enabled ? '#000' : '#e5e5e5',
+                cursor: 'pointer',
+                position: 'relative'
+              }}
+            >
+              <div style={{
+                width: '22px',
+                height: '22px',
+                borderRadius: '50%',
+                background: 'white',
+                position: 'absolute',
+                top: '3px',
+                left: formData.reminders_enabled ? '25px' : '3px',
+                transition: 'left 0.2s'
+              }} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: '20px', borderTop: '1px solid #e5e5e5', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '10px 20px', border: '1px solid #e5e5e5', borderRadius: '6px', background: 'white', cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ padding: '10px 24px', border: 'none', borderRadius: '6px', background: '#000', color: '#fff', fontWeight: '500', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// NOTES MODAL
+// ============================================
+function NotesModal({ protocol, onClose, onSuccess }) {
+  const [notes, setNotes] = useState(protocol?.notes || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/protocol/${protocol.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
+
+      if (res.ok) {
+        onSuccess();
+      }
+    } catch (err) {
+      alert('Error saving notes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!protocol) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        width: '100%',
+        maxWidth: '500px',
+        margin: '20px'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Protocol Notes</h2>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>{protocol.program_name}</p>
+        </div>
+
+        <div style={{ padding: '20px' }}>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add notes about this protocol..."
+            rows={8}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #e5e5e5',
+              borderRadius: '6px',
+              fontSize: '14px',
+              resize: 'vertical',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
+
+        <div style={{ padding: '20px', borderTop: '1px solid #e5e5e5', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '10px 20px', border: '1px solid #e5e5e5', borderRadius: '6px', background: 'white', cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ padding: '10px 24px', border: 'none', borderRadius: '6px', background: '#000', color: '#fff', fontWeight: '500', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? 'Saving...' : 'Save Notes'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1039,11 +1493,16 @@ function IntakeTab({ intakes = [] }) {
 export default function PatientProfilePage() {
   const router = useRouter();
   const { id } = router.query;
-  
+
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Modal states
+  const [createProtocolPurchase, setCreateProtocolPurchase] = useState(null);
+  const [editingProtocol, setEditingProtocol] = useState(null);
+  const [notesProtocol, setNotesProtocol] = useState(null);
 
   useEffect(() => {
     if (id) fetchPatient();
@@ -1052,59 +1511,32 @@ export default function PatientProfilePage() {
   const fetchPatient = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      // Try the API endpoint - it should handle both UUID and GHL contact ID
-      // First try /api/admin/patient/[id] format
-      let res = await fetch(`/api/admin/patient/${id}`);
-      
-      // If that fails, try /api/admin/patient?id=[id] format
-      if (!res.ok) {
-        res = await fetch(`/api/admin/patient?id=${id}`);
-      }
-      
-      // If still failing, try with ghl parameter
-      if (!res.ok) {
-        res = await fetch(`/api/admin/patient?ghl=${id}`);
-      }
-      
-      if (!res.ok) {
-        throw new Error('Patient not found');
-      }
-      
+      const res = await fetch(`/api/admin/patient/${id}`);
+      if (!res.ok) throw new Error('Patient not found');
       const data = await res.json();
-      
-      // Handle different response formats
-      if (data.patient) {
-        // API returns { patient: {...}, protocols: [...], ... }
-        setPatient({
-          ...data.patient,
-          protocols: data.protocols || [],
-          purchases: data.purchases || [],
-          intakes: data.intakes || [],
-          consents: data.consents || []
-        });
-      } else if (data.success && data.data) {
-        // API returns { success: true, data: {...} }
-        setPatient(data.data);
-      } else if (data.id || data.name) {
-        // API returns patient object directly
-        setPatient(data);
-      } else {
-        throw new Error('Invalid response format');
-      }
+      setPatient(data);
     } catch (err) {
-      console.error('Fetch patient error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleProtocolCreated = () => {
+    setCreateProtocolPurchase(null);
+    fetchPatient();
+  };
+
+  const handleProtocolUpdated = () => {
+    setEditingProtocol(null);
+    setNotesProtocol(null);
+    fetchPatient();
+  };
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: '16px', color: '#666' }}>Loading...</div>
+        <div>Loading...</div>
       </div>
     );
   }
@@ -1113,9 +1545,8 @@ export default function PatientProfilePage() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '18px', color: '#991b1b', marginBottom: '8px' }}>{error || 'Patient not found'}</div>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>ID: {id}</div>
-          <Link href="/admin/patients" style={{ color: '#000', textDecoration: 'underline' }}>← Back to Patients</Link>
+          <div style={{ fontSize: '18px', color: '#991b1b', marginBottom: '16px' }}>{error || 'Patient not found'}</div>
+          <Link href="/admin/patients" style={{ color: '#000' }}>← Back to Patients</Link>
         </div>
       </div>
     );
@@ -1127,6 +1558,30 @@ export default function PatientProfilePage() {
         <title>{patient.name} - Range Medical</title>
       </Head>
 
+      {/* Modals */}
+      {createProtocolPurchase && (
+        <CreateProtocolModal
+          purchase={createProtocolPurchase}
+          patient={patient}
+          onClose={() => setCreateProtocolPurchase(null)}
+          onSuccess={handleProtocolCreated}
+        />
+      )}
+      {editingProtocol && (
+        <EditProtocolModal
+          protocol={editingProtocol}
+          onClose={() => setEditingProtocol(null)}
+          onSuccess={handleProtocolUpdated}
+        />
+      )}
+      {notesProtocol && (
+        <NotesModal
+          protocol={notesProtocol}
+          onClose={() => setNotesProtocol(null)}
+          onSuccess={handleProtocolUpdated}
+        />
+      )}
+
       <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
         {/* Header */}
         <header style={{ background: 'white', borderBottom: '1px solid #e5e5e5', padding: '16px 24px' }}>
@@ -1135,39 +1590,12 @@ export default function PatientProfilePage() {
               ← Back to Patients
             </Link>
             <div style={{ display: 'flex', gap: '12px' }}>
-              {patient.login_token && (
-                <a
-                  href={`/patient/dashboard?token=${patient.login_token}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    padding: '8px 16px',
-                    background: '#f5f5f5',
-                    color: '#000',
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    textDecoration: 'none',
-                    border: '1px solid #e5e5e5'
-                  }}
-                >
-                  View Patient Portal
-                </a>
-              )}
               {patient.ghl_contact_id && (
                 <a
                   href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${patient.ghl_contact_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    padding: '8px 16px',
-                    background: '#000',
-                    color: '#fff',
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    textDecoration: 'none'
-                  }}
+                  style={{ padding: '8px 16px', background: '#000', color: '#fff', borderRadius: '4px', fontSize: '13px', fontWeight: '500', textDecoration: 'none' }}
                 >
                   Open in GHL
                 </a>
@@ -1189,16 +1617,16 @@ export default function PatientProfilePage() {
 
         {/* Tabs */}
         <div style={{ background: 'white', borderBottom: '1px solid #e5e5e5' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', gap: '0' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex' }}>
             <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>Overview</TabButton>
-            <TabButton active={activeTab === 'consents'} onClick={() => setActiveTab('consents')}>
-              Consents {patient.consents?.length > 0 && `(${patient.consents.length})`}
+            <TabButton active={activeTab === 'purchases'} onClick={() => setActiveTab('purchases')}>
+              Purchases {patient.purchases?.filter(p => !p.protocol_id).length > 0 && `(${patient.purchases.filter(p => !p.protocol_id).length} new)`}
             </TabButton>
             <TabButton active={activeTab === 'protocols'} onClick={() => setActiveTab('protocols')}>
               Protocols {patient.protocols?.length > 0 && `(${patient.protocols.length})`}
             </TabButton>
-            <TabButton active={activeTab === 'purchases'} onClick={() => setActiveTab('purchases')}>
-              Purchases {patient.purchases?.length > 0 && `(${patient.purchases.length})`}
+            <TabButton active={activeTab === 'consents'} onClick={() => setActiveTab('consents')}>
+              Consents {patient.consents?.length > 0 && `(${patient.consents.length})`}
             </TabButton>
             <TabButton active={activeTab === 'intake'} onClick={() => setActiveTab('intake')}>
               Medical Intake {patient.intakes?.length > 0 && '✓'}
@@ -1209,9 +1637,21 @@ export default function PatientProfilePage() {
         {/* Content */}
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
           {activeTab === 'overview' && <OverviewTab patient={patient} />}
-          {activeTab === 'consents' && <ConsentsTab patient={patient} />}
-          {activeTab === 'protocols' && <ProtocolsTab protocols={patient.protocols} onProtocolUpdate={fetchPatient} />}
-          {activeTab === 'purchases' && <PurchasesTab purchases={patient.purchases} />}
+          {activeTab === 'purchases' && (
+            <PurchasesTab
+              patient={patient}
+              onCreateProtocol={(purchase) => setCreateProtocolPurchase(purchase)}
+              onRefresh={fetchPatient}
+            />
+          )}
+          {activeTab === 'protocols' && (
+            <ProtocolsTab
+              protocols={patient.protocols}
+              onEditProtocol={(p) => setEditingProtocol(p)}
+              onViewNotes={(p) => setNotesProtocol(p)}
+            />
+          )}
+          {activeTab === 'consents' && <ConsentCenter patient={patient} />}
           {activeTab === 'intake' && <IntakeTab intakes={patient.intakes} />}
         </main>
       </div>

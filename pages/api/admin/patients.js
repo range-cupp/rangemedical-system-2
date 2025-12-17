@@ -36,32 +36,48 @@ export default async function handler(req, res) {
   try {
     const { search, limit = 200 } = req.query;
 
-    // Get unique patients from protocols with counts
-    let query = supabase
+    // Get patients from PROTOCOLS table
+    let protocolQuery = supabase
       .from('protocols')
       .select('ghl_contact_id, patient_name, patient_email, patient_phone')
       .not('ghl_contact_id', 'is', null)
       .not('ghl_contact_id', 'eq', 'cWEpIVvPWYRo8oc3dS8Q'); // Exclude walk-in
 
     if (search) {
-      query = query.or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%,patient_phone.ilike.%${search}%`);
+      protocolQuery = protocolQuery.or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%,patient_phone.ilike.%${search}%`);
     }
 
-    const { data: protocolPatients, error: protocolError } = await query;
+    const { data: protocolPatients, error: protocolError } = await protocolQuery;
 
     if (protocolError) {
       console.error('Protocol query error:', protocolError);
-      return res.status(500).json({ error: protocolError.message });
+    }
+
+    // Get patients from PURCHASES table (to catch patients with purchases but no protocols)
+    let purchaseQuery = supabase
+      .from('purchases')
+      .select('ghl_contact_id, patient_name, patient_email, patient_phone')
+      .not('ghl_contact_id', 'is', null)
+      .not('ghl_contact_id', 'eq', 'cWEpIVvPWYRo8oc3dS8Q'); // Exclude walk-in
+
+    if (search) {
+      purchaseQuery = purchaseQuery.or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%,patient_phone.ilike.%${search}%`);
+    }
+
+    const { data: purchasePatients, error: purchaseQueryError } = await purchaseQuery;
+
+    if (purchaseQueryError) {
+      console.error('Purchase query error:', purchaseQueryError);
     }
 
     // Get protocol counts per contact
-    const { data: protocolCounts, error: countError } = await supabase
+    const { data: protocolCounts } = await supabase
       .from('protocols')
       .select('ghl_contact_id')
       .not('ghl_contact_id', 'is', null);
 
     // Get purchase counts per contact
-    const { data: purchaseCounts, error: purchaseError } = await supabase
+    const { data: purchaseCounts } = await supabase
       .from('purchases')
       .select('ghl_contact_id')
       .not('ghl_contact_id', 'is', null);
@@ -77,10 +93,25 @@ export default async function handler(req, res) {
       purchaseCountMap[p.ghl_contact_id] = (purchaseCountMap[p.ghl_contact_id] || 0) + 1;
     });
 
-    // Deduplicate patients by ghl_contact_id
+    // Deduplicate patients by ghl_contact_id - merge from both tables
     const patientMap = new Map();
     
+    // Add from protocols
     (protocolPatients || []).forEach(p => {
+      if (p.ghl_contact_id && !patientMap.has(p.ghl_contact_id)) {
+        patientMap.set(p.ghl_contact_id, {
+          ghl_contact_id: p.ghl_contact_id,
+          patient_name: p.patient_name,
+          patient_email: p.patient_email,
+          patient_phone: p.patient_phone,
+          protocol_count: protocolCountMap[p.ghl_contact_id] || 0,
+          purchase_count: purchaseCountMap[p.ghl_contact_id] || 0
+        });
+      }
+    });
+
+    // Add from purchases (catches patients with purchases but no protocols)
+    (purchasePatients || []).forEach(p => {
       if (p.ghl_contact_id && !patientMap.has(p.ghl_contact_id)) {
         patientMap.set(p.ghl_contact_id, {
           ghl_contact_id: p.ghl_contact_id,

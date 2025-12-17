@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     
     if (injection_location !== undefined) updateData.injection_location = injection_location;
     if (status !== undefined) updateData.status = status;
-    if (peptide_name !== undefined) updateData.peptide_name = peptide_name;
+    if (peptide_name !== undefined) updateData.primary_peptide = peptide_name; // Map to correct column
     if (dose_amount !== undefined) updateData.dose_amount = dose_amount;
     if (dose_frequency !== undefined) updateData.dose_frequency = dose_frequency;
     if (start_date !== undefined) updateData.start_date = start_date || null;
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
 
     if (error) {
       console.error('Protocol update error:', error);
-      return res.status(500).json({ error: 'Failed to update protocol' });
+      return res.status(500).json({ error: 'Failed to update protocol', details: error.message });
     }
 
     return res.status(200).json(data);

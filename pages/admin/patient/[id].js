@@ -567,6 +567,19 @@ function IntakeTab({ intakes = [] }) {
 
   const intake = intakes[0];
   
+  // Parse medical conditions if it's a JSON object
+  const getMedicalConditions = () => {
+    if (!intake.medical_conditions) return 'None reported';
+    if (typeof intake.medical_conditions === 'string') return intake.medical_conditions;
+    if (typeof intake.medical_conditions === 'object') {
+      const conditions = Object.entries(intake.medical_conditions)
+        .filter(([key, val]) => val?.response === 'Yes')
+        .map(([key, val]) => val?.label || key);
+      return conditions.length > 0 ? conditions.join(', ') : 'None reported';
+    }
+    return 'None reported';
+  };
+
   return (
     <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -594,30 +607,61 @@ function IntakeTab({ intakes = [] }) {
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Basic Info</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
-            <div><span style={{ color: '#666' }}>DOB:</span> {intake.dob || '-'}</div>
-            <div><span style={{ color: '#666' }}>Sex:</span> {intake.sex || '-'}</div>
-            <div><span style={{ color: '#666' }}>Height:</span> {intake.height || '-'}</div>
-            <div><span style={{ color: '#666' }}>Weight:</span> {intake.weight || '-'}</div>
+            <div><span style={{ color: '#666' }}>Name:</span> {intake.first_name} {intake.last_name}</div>
+            <div><span style={{ color: '#666' }}>DOB:</span> {intake.date_of_birth || intake.dob || '-'}</div>
+            <div><span style={{ color: '#666' }}>Gender:</span> {intake.gender || intake.sex || '-'}</div>
+            <div><span style={{ color: '#666' }}>Phone:</span> {intake.phone || '-'}</div>
+            <div><span style={{ color: '#666' }}>Email:</span> {intake.email || '-'}</div>
+          </div>
+        </div>
+
+        {/* Address */}
+        <div>
+          <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Address</h4>
+          <div style={{ fontSize: '14px' }}>
+            {intake.street_address && <div>{intake.street_address}</div>}
+            {(intake.city || intake.state || intake.postal_code) && (
+              <div>{[intake.city, intake.state, intake.postal_code].filter(Boolean).join(', ')}</div>
+            )}
+            {!intake.street_address && !intake.city && '-'}
           </div>
         </div>
 
         {/* Medical Conditions */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Medical Conditions</h4>
-          <div style={{ fontSize: '14px' }}>{intake.medical_conditions || 'None reported'}</div>
+          <div style={{ fontSize: '14px' }}>{getMedicalConditions()}</div>
         </div>
 
-        {/* Medications */}
+        {/* Current Medications */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Current Medications</h4>
-          <div style={{ fontSize: '14px' }}>{intake.medications || 'None reported'}</div>
+          <div style={{ fontSize: '14px' }}>{intake.current_medications || intake.medications || 'None reported'}</div>
         </div>
 
         {/* Allergies */}
         <div>
           <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Allergies</h4>
-          <div style={{ fontSize: '14px' }}>{intake.allergies || 'None reported'}</div>
+          <div style={{ fontSize: '14px' }}>{intake.allergies || (intake.has_allergies === false ? 'No known allergies' : 'None reported')}</div>
         </div>
+
+        {/* What Brings You In */}
+        <div>
+          <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Reason for Visit</h4>
+          <div style={{ fontSize: '14px' }}>{intake.what_brings_you_in || intake.what_brings_you || '-'}</div>
+        </div>
+
+        {/* Injury Info */}
+        {(intake.currently_injured || intake.injured) && (
+          <div style={{ gridColumn: '1 / -1' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Injury Details</h4>
+            <div style={{ fontSize: '14px' }}>
+              <div><span style={{ color: '#666' }}>Description:</span> {intake.injury_description || '-'}</div>
+              <div><span style={{ color: '#666' }}>Location:</span> {intake.injury_location || '-'}</div>
+              <div><span style={{ color: '#666' }}>When:</span> {intake.injury_when_occurred || intake.injury_date || '-'}</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -642,11 +686,49 @@ export default function PatientProfilePage() {
   const fetchPatient = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/admin/patient/${id}`);
-      if (!res.ok) throw new Error('Patient not found');
+      setError(null);
+      
+      // Try the API endpoint - it should handle both UUID and GHL contact ID
+      // First try /api/admin/patient/[id] format
+      let res = await fetch(`/api/admin/patient/${id}`);
+      
+      // If that fails, try /api/admin/patient?id=[id] format
+      if (!res.ok) {
+        res = await fetch(`/api/admin/patient?id=${id}`);
+      }
+      
+      // If still failing, try with ghl parameter
+      if (!res.ok) {
+        res = await fetch(`/api/admin/patient?ghl=${id}`);
+      }
+      
+      if (!res.ok) {
+        throw new Error('Patient not found');
+      }
+      
       const data = await res.json();
-      setPatient(data);
+      
+      // Handle different response formats
+      if (data.patient) {
+        // API returns { patient: {...}, protocols: [...], ... }
+        setPatient({
+          ...data.patient,
+          protocols: data.protocols || [],
+          purchases: data.purchases || [],
+          intakes: data.intakes || [],
+          consents: data.consents || []
+        });
+      } else if (data.success && data.data) {
+        // API returns { success: true, data: {...} }
+        setPatient(data.data);
+      } else if (data.id || data.name) {
+        // API returns patient object directly
+        setPatient(data);
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (err) {
+      console.error('Fetch patient error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -665,7 +747,8 @@ export default function PatientProfilePage() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '18px', color: '#991b1b', marginBottom: '16px' }}>{error || 'Patient not found'}</div>
+          <div style={{ fontSize: '18px', color: '#991b1b', marginBottom: '8px' }}>{error || 'Patient not found'}</div>
+          <div style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>ID: {id}</div>
           <Link href="/admin/patients" style={{ color: '#000', textDecoration: 'underline' }}>← Back to Patients</Link>
         </div>
       </div>

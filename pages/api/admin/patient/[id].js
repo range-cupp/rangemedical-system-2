@@ -1,5 +1,5 @@
 // /pages/api/admin/patient/[id].js
-// Patient Profile API
+// Patient Profile API - v2 with Intakes & Consents
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -75,6 +75,8 @@ export default async function handler(req, res) {
 
     // Build patient info from the most recent protocol or purchase
     let patient = null;
+    let patientEmail = null;
+    let patientPhone = null;
     
     if (protocols && protocols.length > 0) {
       const p = protocols[0];
@@ -84,6 +86,8 @@ export default async function handler(req, res) {
         email: p.patient_email,
         phone: p.patient_phone
       };
+      patientEmail = p.patient_email;
+      patientPhone = p.patient_phone;
     } else if (purchases && purchases.length > 0) {
       const p = purchases[0];
       patient = {
@@ -92,17 +96,74 @@ export default async function handler(req, res) {
         email: p.patient_email,
         phone: p.patient_phone
       };
+      patientEmail = p.patient_email;
+      patientPhone = p.patient_phone;
     }
 
     if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
+    // Fetch intakes by email or phone
+    let intakes = [];
+    if (patientEmail || patientPhone) {
+      let intakeQuery = supabase.from('intakes').select('*');
+      
+      if (patientEmail && patientPhone) {
+        // Clean phone for matching (remove non-digits)
+        const cleanPhone = patientPhone.replace(/\D/g, '').slice(-10);
+        intakeQuery = intakeQuery.or(`email.ilike.${patientEmail},phone.ilike.%${cleanPhone}%`);
+      } else if (patientEmail) {
+        intakeQuery = intakeQuery.ilike('email', patientEmail);
+      } else if (patientPhone) {
+        const cleanPhone = patientPhone.replace(/\D/g, '').slice(-10);
+        intakeQuery = intakeQuery.ilike('phone', `%${cleanPhone}%`);
+      }
+      
+      const { data: intakeData, error: intakeError } = await intakeQuery.order('submitted_at', { ascending: false });
+      
+      if (intakeError) {
+        console.error('Intakes fetch error:', intakeError);
+      } else {
+        intakes = intakeData || [];
+      }
+    }
+
+    // Fetch consents by email or phone
+    let consents = [];
+    if (patientEmail || patientPhone) {
+      let consentQuery = supabase.from('consents').select('*');
+      
+      if (patientEmail && patientPhone) {
+        const cleanPhone = patientPhone.replace(/\D/g, '').slice(-10);
+        consentQuery = consentQuery.or(`email.ilike.${patientEmail},phone.ilike.%${cleanPhone}%`);
+      } else if (patientEmail) {
+        consentQuery = consentQuery.ilike('email', patientEmail);
+      } else if (patientPhone) {
+        const cleanPhone = patientPhone.replace(/\D/g, '').slice(-10);
+        consentQuery = consentQuery.ilike('phone', `%${cleanPhone}%`);
+      }
+      
+      const { data: consentData, error: consentError } = await consentQuery.order('submitted_at', { ascending: false });
+      
+      if (consentError) {
+        console.error('Consents fetch error:', consentError);
+      } else {
+        consents = consentData || [];
+      }
+    }
+
+    // Determine which purchase categories this patient has
+    const purchaseCategories = new Set((purchases || []).map(p => p.category));
+
     return res.status(200).json({
       patient,
       protocols: protocols || [],
       purchases: purchases || [],
-      questionnaires: questionnaires || []
+      questionnaires: questionnaires || [],
+      intakes,
+      consents,
+      purchaseCategories: Array.from(purchaseCategories)
     });
 
   } catch (error) {

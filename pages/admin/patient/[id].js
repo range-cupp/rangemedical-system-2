@@ -32,6 +32,7 @@ export default function PatientProfile() {
   const [sendingReminder, setSendingReminder] = useState(null);
   const [updatingLocation, setUpdatingLocation] = useState(null);
   const [updatingReminders, setUpdatingReminders] = useState(null);
+  const [updatingFrequency, setUpdatingFrequency] = useState(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(null); // { protocol, type, category }
   const [submittingQuestionnaire, setSubmittingQuestionnaire] = useState(false);
   
@@ -113,6 +114,25 @@ export default function PatientProfile() {
       alert('Failed to update');
     }
     setUpdatingReminders(null);
+  };
+
+  // Toggle frequency for weight loss (1x weekly <-> 2x weekly)
+  const toggleFrequency = async (protocolId, currentFrequency) => {
+    const newFrequency = currentFrequency === '2x weekly' ? '1x weekly' : '2x weekly';
+    setUpdatingFrequency(protocolId);
+    try {
+      const res = await fetch(`/api/admin/protocol/${protocolId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` },
+        body: JSON.stringify({ dose_frequency: newFrequency })
+      });
+      if (res.ok) {
+        setProtocols(protocols.map(p => p.id === protocolId ? { ...p, dose_frequency: newFrequency } : p));
+      }
+    } catch (err) {
+      alert('Failed to update');
+    }
+    setUpdatingFrequency(null);
   };
 
   // Send reminder
@@ -285,7 +305,7 @@ export default function PatientProfile() {
                         {/* Protocol Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                           <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', flexWrap: 'wrap' }}>
                               <span style={{ fontWeight: '600', fontSize: '15px' }}>{protocol.program_name}</span>
                               {/* Injection Location Badge */}
                               <button
@@ -300,6 +320,21 @@ export default function PatientProfile() {
                               >
                                 {updatingLocation === protocol.id ? '...' : isInClinic ? '🏥 In-Clinic' : '🏠 Take-Home'}
                               </button>
+                              {/* Frequency Toggle - only for weight loss */}
+                              {isWeightLoss && (
+                                <button
+                                  onClick={() => toggleFrequency(protocol.id, protocol.dose_frequency)}
+                                  disabled={updatingFrequency === protocol.id}
+                                  style={{
+                                    padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
+                                    border: 'none', cursor: 'pointer',
+                                    background: protocol.dose_frequency === '2x weekly' ? '#fce4ec' : '#f3e5f5',
+                                    color: protocol.dose_frequency === '2x weekly' ? '#c2185b' : '#7b1fa2'
+                                  }}
+                                >
+                                  {updatingFrequency === protocol.id ? '...' : protocol.dose_frequency === '2x weekly' ? '💉 2x Weekly' : '💉 1x Weekly'}
+                                </button>
+                              )}
                               {/* Auto-Text Toggle - only show for take-home */}
                               {!isInClinic && (
                                 <button

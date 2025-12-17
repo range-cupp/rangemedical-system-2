@@ -42,9 +42,23 @@ export default async function handler(req, res) {
       });
     }
 
+    // If patient_id not provided, look it up from patients table
+    let resolvedPatientId = patient_id;
+    if (!resolvedPatientId && ghl_contact_id) {
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('ghl_contact_id', ghl_contact_id)
+        .maybeSingle();
+      
+      if (patient) {
+        resolvedPatientId = patient.id;
+      }
+    }
+
     // Create protocol
     const protocolData = {
-      patient_id,
+      patient_id: resolvedPatientId,
       ghl_contact_id,
       patient_name,
       patient_email,

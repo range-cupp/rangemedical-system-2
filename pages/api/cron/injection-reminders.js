@@ -170,11 +170,17 @@ export default async function handler(req, res) {
       // Send reminder
       const firstName = getFirstName(protocol.patient_name);
       const trackerUrl = `https://app.range-medical.com/track/${protocol.access_token}`;
-      const isWeightLoss = protocol.dose_frequency === '1x weekly';
+      const isWeightLoss = protocol.dose_frequency === '1x weekly' || protocol.dose_frequency === '2x weekly';
       
       let message;
       if (isWeightLoss) {
-        message = `Hi ${firstName}! It's injection day for your weight loss program. Log it when done: ${trackerUrl} - Range Medical`;
+        const weekNum = Math.ceil(dayNumber / 7);
+        if (protocol.dose_frequency === '2x weekly') {
+          const isSecondShot = ((dayNumber - 1) % 7) >= 3;
+          message = `Hi ${firstName}! It's injection day (Week ${weekNum}, ${isSecondShot ? 'shot 2' : 'shot 1'}) for your weight loss program. Log it when done: ${trackerUrl} - Range Medical`;
+        } else {
+          message = `Hi ${firstName}! It's your Week ${weekNum} injection day. Log it when done: ${trackerUrl} - Range Medical`;
+        }
       } else {
         message = `Hi ${firstName}! Quick reminder - Day ${dayNumber} injection done? Tap to log: ${trackerUrl} - Range Medical`;
       }

@@ -186,7 +186,7 @@ export default function PatientProfile() {
   // Send form via SMS
   const sendFormLink = async (formType, formUrl) => {
     if (!patient?.phone || !id) {
-      alert('Patient phone number not available');
+      alert('Patient phone number not available. Use "Copy Link" instead.');
       return;
     }
     setSendingForm(formType);
@@ -200,13 +200,17 @@ export default function PatientProfile() {
         body: JSON.stringify({ contactId: id, message })
       });
       
+      const data = await res.json();
+      
       if (res.ok) {
-        alert(`${formName} link sent!`);
+        alert(`${formName} link sent to ${patient.phone}!`);
+      } else if (data.details?.message?.includes('Contact not found') || data.error?.includes('Contact not found')) {
+        alert(`This patient is not in GHL yet.\n\nUse "Copy Link" button and text manually to:\n${patient.phone}`);
       } else {
-        throw new Error('Failed to send');
+        throw new Error(data.error || 'Failed to send');
       }
     } catch (err) {
-      alert('Failed to send form link');
+      alert('Failed to send form link: ' + (err.message || 'Unknown error'));
     }
     setSendingForm(null);
   };
@@ -416,12 +420,19 @@ export default function PatientProfile() {
                     </a>
                   )}
                   {intakes.length === 0 && (
-                    <button 
-                      onClick={() => sendFormLink('intake', FORM_URLS.intake)}
-                      disabled={sendingForm === 'intake'}
-                      style={{ padding: '6px 12px', background: '#ff9800', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>
-                      {sendingForm === 'intake' ? 'Sending...' : '📱 Send Form'}
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => sendFormLink('intake', FORM_URLS.intake)}
+                        disabled={sendingForm === 'intake'}
+                        style={{ padding: '6px 12px', background: '#ff9800', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>
+                        {sendingForm === 'intake' ? 'Sending...' : '📱 Send Form'}
+                      </button>
+                      <button 
+                        onClick={() => { navigator.clipboard.writeText(FORM_URLS.intake); alert('Link copied!'); }}
+                        style={{ padding: '6px 12px', background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>
+                        📋 Copy Link
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -452,12 +463,19 @@ export default function PatientProfile() {
                         </a>
                       )}
                       {!status.completed && FORM_URLS[consentType] && (
-                        <button 
-                          onClick={() => sendFormLink(consentType, FORM_URLS[consentType])}
-                          disabled={sendingForm === consentType}
-                          style={{ padding: '6px 12px', background: '#c62828', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>
-                          {sendingForm === consentType ? 'Sending...' : '📱 Send Consent'}
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => sendFormLink(consentType, FORM_URLS[consentType])}
+                            disabled={sendingForm === consentType}
+                            style={{ padding: '6px 12px', background: '#c62828', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>
+                            {sendingForm === consentType ? 'Sending...' : '📱 Send Consent'}
+                          </button>
+                          <button 
+                            onClick={() => { navigator.clipboard.writeText(FORM_URLS[consentType]); alert('Link copied!'); }}
+                            style={{ padding: '6px 12px', background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>
+                            📋 Copy
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

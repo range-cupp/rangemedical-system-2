@@ -1,71 +1,157 @@
 // /pages/api/cron/injection-reminders.js
-// Daily 9am reminder for patients to complete their injection
-// Triggered by Vercel Cron or external scheduler
+// Daily cron to send injection reminders via GHL SMS
+// Range Medical
+//
+// Runs at 5pm PST - sends reminder if patient hasn't logged today's injection
+// Only sends on injection days (respects weekly frequency for weight loss)
+// Only sends between 9am-6pm PST
 
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
-const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://rangemedical-system-2.vercel.app';
+const GHL_API_KEY = process.env.GHL_API_KEY;
 
-export default async function handler(req, res) {
-  // Verify cron secret (optional security)
-  const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (process.env.CRON_SECRET && cronSecret !== process.env.CRON_SECRET) {
-    // Allow without secret for testing, but log warning
-    console.warn('Cron secret not provided or invalid');
+// Check if current time is within allowed window (9am-6pm PST)
+function isWithinAllowedHours() {
+  const now = new Date();
+  const pstHour = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours();
+  return pstHour >= 9 && pstHour < 18; // 9am to 6pm PST
+}
+
+// Determine if today is an injection day based on protocol frequency
+function isInjectionDay(startDate, frequency) {
+  const start = new Date(startDate);
+  const today = new Date();
+  start.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  
+  const dayNumber = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
+  
+  if (!frequency || frequency === 'Daily') return true;
+  
+  // 1x weekly - only days 1, 8, 15, 22, etc.
+  if (frequency === '1x weekly') {
+    return ((dayNumber - 1) % 7) === 0;
   }
+  
+  // 2x weekly - days 1, 4, 8, 11, etc. (Mon/Thu pattern)
+  if (frequency === '2x weekly') {
+    const dayInWeek = ((dayNumber - 1) % 7) + 1;
+    return dayInWeek === 1 || dayInWeek === 4;
+  }
+  
+  // 3x weekly - days 1, 3, 5, 8, 10, 12, etc. (Mon/Wed/Fri)
+  if (frequency === '3x weekly') {
+    const dayInWeek = ((dayNumber - 1) % 7) + 1;
+    return dayInWeek === 1 || dayInWeek === 3 || dayInWeek === 5;
+  }
+  
+  // 5 days on / 2 days off
+  if (frequency.includes('5 days on')) {
+    const dayInWeek = ((dayNumber - 1) % 7) + 1;
+    return dayInWeek <= 5;
+  }
+  
+  // Every other day
+  if (frequency === 'Every other day') {
+    return dayNumber % 2 === 1;
+  }
+  
+  return true;
+}
 
-  console.log('Starting injection reminder job...');
+// Send SMS via GHL
+async function sendSMS(contactId, message) {
+  if (!GHL_API_KEY || !contactId) return false;
 
   try {
-    // Get today's date in PST timezone
-    const now = new Date();
-    const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD format
-    
-    // 1. Get active protocols where today is within the protocol dates AND reminders enabled
-    const { data: activeProtocols, error: protocolError } = await supabase
+    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-04-15'
+      },
+      body: JSON.stringify({
+        type: 'SMS',
+        contactId: contactId,
+        message: message
+      })
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('SMS error:', error);
+    return false;
+  }
+}
+
+function getFirstName(fullName) {
+  if (!fullName) return 'there';
+  return fullName.split(' ')[0];
+}
+
+export default async function handler(req, res) {
+  // Verify authorization
+  const cronSecret = req.headers['x-cron-secret'];
+  const isAuthorized = cronSecret === process.env.CRON_SECRET || req.method === 'GET';
+  
+  if (!isAuthorized) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Check time window
+  if (!isWithinAllowedHours()) {
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Outside allowed hours (9am-6pm PST). No reminders sent.',
+      skipped: true
+    });
+  }
+
+  const results = { sent: [], skipped: [], errors: [] };
+
+  try {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Get active TAKE-HOME protocols with reminders enabled
+    // In-clinic patients don't need injection reminders
+    const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select('*')
       .eq('status', 'active')
       .eq('reminders_enabled', true)
-      .lte('start_date', today)
-      .gte('end_date', today);
+      .eq('injection_location', 'take_home')
+      .lte('start_date', todayStr)
+      .gte('end_date', todayStr)
+      .not('ghl_contact_id', 'is', null);
 
-    if (protocolError) {
-      console.error('Error fetching protocols:', protocolError);
-      return res.status(500).json({ error: 'Database error' });
+    if (protocolsError) {
+      throw new Error(`Protocols query error: ${protocolsError.message}`);
     }
 
-    console.log(`Found ${activeProtocols?.length || 0} active protocols for today`);
-
-    if (!activeProtocols || activeProtocols.length === 0) {
-      return res.status(200).json({ 
-        message: 'No active protocols today',
-        sent: 0 
-      });
-    }
-
-    // 2. For each protocol, check if they've logged today's injection
-    const remindersToSend = [];
-
-    for (const protocol of activeProtocols) {
-      // Calculate which day number today is
-      const startDate = new Date(protocol.start_date);
-      const todayDate = new Date(today);
-      const dayNumber = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-
-      // Skip if day number is out of range
-      if (dayNumber < 1 || dayNumber > protocol.duration_days) {
+    for (const protocol of (protocols || [])) {
+      // Check if today is an injection day for this protocol
+      if (!isInjectionDay(protocol.start_date, protocol.dose_frequency)) {
+        results.skipped.push({
+          patient: protocol.patient_name,
+          reason: `Not injection day (${protocol.dose_frequency})`
+        });
         continue;
       }
 
-      // Check if already logged today
+      // Calculate which day number today is
+      const startDate = new Date(protocol.start_date);
+      startDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      const dayNumber = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Check if they've already logged today
       const { data: todayLog } = await supabase
         .from('injection_logs')
         .select('id')
@@ -74,142 +160,47 @@ export default async function handler(req, res) {
         .single();
 
       if (todayLog) {
-        // Already logged, skip
-        console.log(`${protocol.patient_name} already logged Day ${dayNumber}`);
-        continue;
-      }
-
-      // Need to send reminder
-      remindersToSend.push({
-        protocol,
-        dayNumber
-      });
-    }
-
-    console.log(`${remindersToSend.length} patients need reminders`);
-
-    // 3. Send reminders via GHL
-    const results = {
-      sent: 0,
-      failed: 0,
-      skipped: 0,
-      details: []
-    };
-
-    for (const { protocol, dayNumber } of remindersToSend) {
-      // Skip if no GHL contact ID or phone
-      if (!protocol.ghl_contact_id) {
-        console.log(`Skipping ${protocol.patient_name} - no GHL contact ID`);
-        results.skipped++;
-        continue;
-      }
-
-      // Build tracker link
-      const trackerLink = `${BASE_URL}/track/${protocol.access_token}`;
-
-      // Build personalized message
-      const firstName = protocol.patient_name?.split(' ')[0] || 'there';
-      const message = buildReminderMessage(firstName, dayNumber, protocol.duration_days, trackerLink);
-
-      // Send via GHL
-      const sent = await sendGHLMessage(protocol.ghl_contact_id, message);
-
-      if (sent) {
-        results.sent++;
-        results.details.push({
-          name: protocol.patient_name,
-          day: dayNumber,
-          status: 'sent'
+        results.skipped.push({
+          patient: protocol.patient_name,
+          reason: 'Already logged today'
         });
-        console.log(`✓ Sent reminder to ${protocol.patient_name} (Day ${dayNumber})`);
+        continue;
+      }
+
+      // Send reminder
+      const firstName = getFirstName(protocol.patient_name);
+      const trackerUrl = `https://app.range-medical.com/track/${protocol.access_token}`;
+      const isWeightLoss = protocol.dose_frequency === '1x weekly';
+      
+      let message;
+      if (isWeightLoss) {
+        message = `Hi ${firstName}! It's injection day for your weight loss program. Log it when done: ${trackerUrl} - Range Medical`;
       } else {
-        results.failed++;
-        results.details.push({
-          name: protocol.patient_name,
-          day: dayNumber,
-          status: 'failed'
-        });
-        console.log(`✗ Failed to send to ${protocol.patient_name}`);
+        message = `Hi ${firstName}! Quick reminder - Day ${dayNumber} injection done? Tap to log: ${trackerUrl} - Range Medical`;
       }
 
-      // Small delay to avoid rate limiting
-      await sleep(200);
+      const sent = await sendSMS(protocol.ghl_contact_id, message);
+      
+      if (sent) {
+        results.sent.push({ patient: protocol.patient_name, day: dayNumber });
+      } else {
+        results.errors.push({ patient: protocol.patient_name, error: 'SMS failed' });
+      }
     }
-
-    console.log(`Reminder job complete: ${results.sent} sent, ${results.failed} failed, ${results.skipped} skipped`);
 
     return res.status(200).json({
-      message: 'Reminder job complete',
-      ...results
+      success: true,
+      timestamp: new Date().toISOString(),
+      summary: {
+        sent: results.sent.length,
+        skipped: results.skipped.length,
+        errors: results.errors.length
+      },
+      details: results
     });
 
   } catch (error) {
-    console.error('Reminder job error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Injection reminders error:', error);
+    return res.status(500).json({ error: error.message, results });
   }
-}
-
-
-// Build the reminder message
-function buildReminderMessage(firstName, dayNumber, totalDays, trackerLink) {
-  // Vary the message slightly based on progress
-  const progress = dayNumber / totalDays;
-
-  if (dayNumber === 1) {
-    return `Hey ${firstName}! Quick reminder — did you do your Day 1 injection today? Tap to log it:\n${trackerLink}`;
-  }
-  
-  if (dayNumber === totalDays) {
-    return `Hey ${firstName}! It's your LAST DAY! Did you do your final injection? Finish strong:\n${trackerLink}`;
-  }
-  
-  if (progress >= 0.75) {
-    return `Hey ${firstName}! Day ${dayNumber} of ${totalDays} — almost done! Did you get your injection in today?\n${trackerLink}`;
-  }
-  
-  if (progress >= 0.5) {
-    return `Hey ${firstName}! Day ${dayNumber} of ${totalDays} — over halfway! Don't forget to log today's injection:\n${trackerLink}`;
-  }
-
-  // Default message
-  return `Hey ${firstName}! Quick reminder — Day ${dayNumber} injection done? Tap to log it:\n${trackerLink}`;
-}
-
-
-// Send SMS via GHL API
-async function sendGHLMessage(contactId, message) {
-  try {
-    const response = await fetch(
-      `https://services.leadconnectorhq.com/conversations/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
-        },
-        body: JSON.stringify({
-          type: 'SMS',
-          contactId: contactId,
-          message: message
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('GHL API error:', errorText);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('GHL send error:', error);
-    return false;
-  }
-}
-
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }

@@ -1,6 +1,6 @@
 // /pages/api/protocol-webhook.js
 // Range Medical - Payment Webhook Handler
-// v3.0 - GHL Tags + Correct Paid Amounts
+// v4.0 - Fixed GHL Payload Parsing
 // Creates purchase records for ALL payments
 // Creates protocols for trackable items (Peptides, HRT, Weight Loss)
 // Adds GHL tags based on purchase category
@@ -89,13 +89,6 @@ async function addTagToContact(contactId, tagName) {
   }
 
   try {
-    // First, get or create the tag
-    const tagId = await getOrCreateTag(tagName);
-    if (!tagId) {
-      console.log('⚠️ Could not get/create tag:', tagName);
-      return false;
-    }
-
     // Add tag to contact
     const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/tags`, {
       method: 'POST',
@@ -118,56 +111,6 @@ async function addTagToContact(contactId, tagName) {
   } catch (error) {
     console.error('❌ Error adding tag:', error.message);
     return false;
-  }
-}
-
-async function getOrCreateTag(tagName) {
-  if (!GHL_API_KEY || !GHL_LOCATION_ID) return null;
-
-  try {
-    // Try to find existing tag
-    const searchResponse = await fetch(
-      `https://services.leadconnectorhq.com/locations/${GHL_LOCATION_ID}/tags?query=${encodeURIComponent(tagName)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28'
-        }
-      }
-    );
-
-    if (searchResponse.ok) {
-      const data = await searchResponse.json();
-      const existingTag = data.tags?.find(t => t.name.toLowerCase() === tagName.toLowerCase());
-      if (existingTag) {
-        return existingTag.id;
-      }
-    }
-
-    // Create new tag if not found
-    const createResponse = await fetch(
-      `https://services.leadconnectorhq.com/locations/${GHL_LOCATION_ID}/tags`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
-        },
-        body: JSON.stringify({ name: tagName })
-      }
-    );
-
-    if (createResponse.ok) {
-      const newTag = await createResponse.json();
-      console.log(`✅ Created new tag: ${tagName}`);
-      return newTag.tag?.id;
-    }
-
-    return null;
-  } catch (error) {
-    console.error('❌ Error with tag:', error.message);
-    return null;
   }
 }
 
@@ -526,127 +469,95 @@ export default async function handler(req, res) {
     const payload = req.body;
     
     // =====================================================
-    // EXTRACT DATA FROM GHL PAYLOAD
+    // EXTRACT DATA FROM GHL PAYLOAD - v4.0 FIXED
+    // GHL sends data in: payload.payment.line_items[0]
     // =====================================================
+    
+    // Get payment object
+    const payment = payload.payment || {};
+    const lineItems = payment.line_items || [];
+    const firstItem = lineItems[0] || {};
+    const invoice = payment.invoice || {};
+    const customer = payment.customer || {};
     
     // Contact info - try multiple paths
     const contactId = 
-      payload.contact?.id ||
-      payload.contactId ||
       payload.contact_id ||
-      payload.customData?.contact_id ||
+      payload.contactId ||
+      customer.id ||
+      payload.contact?.id ||
       null;
     
     const contactName = 
-      payload.contact?.name ||
       payload.full_name ||
-      payload.contactName ||
-      `${payload.contact?.firstName || payload.first_name || ''} ${payload.contact?.lastName || payload.last_name || ''}`.trim() ||
-      payload.customData?.contact_name ||
+      customer.name ||
+      `${customer.first_name || ''} ${customer.last_name || ''}`.trim() ||
+      `${payload.first_name || ''} ${payload.last_name || ''}`.trim() ||
+      payload.contact?.name ||
       'Unknown';
     
     const contactEmail = 
-      payload.contact?.email ||
       payload.email ||
-      payload.contactEmail ||
-      payload.customData?.contact_email ||
+      customer.email ||
+      payload.contact?.email ||
       null;
     
     const contactPhone = 
-      payload.contact?.phone ||
       payload.phone ||
-      payload.contactPhone ||
-      payload.customData?.contact_phone ||
+      customer.phone ||
+      payload.contact?.phone ||
       null;
     
     // =====================================================
-    // EXTRACT CORRECT PAID AMOUNT (Invoice Total, not Line Item)
+    // EXTRACT PRODUCT INFO FROM LINE ITEMS - FIXED!
     // =====================================================
     
-    // Try to get Invoice Total (actual paid amount) first
-    // Fall back to other amount fields
-    const invoiceTotal = 
-      parseFloat(payload.invoice_total) ||
-      parseFloat(payload.invoiceTotal) ||
-      parseFloat(payload.total_amount) ||
-      parseFloat(payload.totalAmount) ||
-      parseFloat(payload.invoice?.total) ||
-      null;
-    
-    const lineItemAmount = 
-      parseFloat(payload.amount) ||
-      parseFloat(payload.payment?.amount) ||
-      parseFloat(payload.total) ||
-      parseFloat(payload.charge_amount) ||
-      parseFloat(payload.lineItems?.[0]?.amount) ||
-      parseFloat(payload.items?.[0]?.price) ||
-      0;
-    
-    // Calculate actual paid amount
-    // If we have invoice subtotal and total, calculate the discount rate
-    const invoiceSubtotal = 
-      parseFloat(payload.invoice_sub_total) ||
-      parseFloat(payload.invoiceSubTotal) ||
-      parseFloat(payload.sub_total) ||
-      parseFloat(payload.subTotal) ||
-      parseFloat(payload.invoice?.subTotal) ||
-      null;
-    
-    let amount;
-    if (invoiceTotal !== null && invoiceSubtotal && invoiceSubtotal > 0) {
-      // Calculate proportional amount for this line item
-      const discountRate = invoiceTotal / invoiceSubtotal;
-      amount = lineItemAmount * discountRate;
-      console.log(`💰 Calculated paid amount: $${lineItemAmount} × ${discountRate.toFixed(2)} = $${amount.toFixed(2)}`);
-    } else if (invoiceTotal !== null) {
-      // Use invoice total directly if no line item breakdown
-      amount = invoiceTotal;
-      console.log(`💰 Using invoice total: $${amount}`);
-    } else {
-      // Fall back to line item amount
-      amount = lineItemAmount;
-      console.log(`💰 Using line item amount: $${amount}`);
-    }
-    
-    const paymentId = 
-      payload.payment_id ||
-      payload.paymentId ||
-      payload.invoice_id ||
-      payload.invoiceId ||
-      payload.invoice_number ||
-      payload.invoiceNumber ||
-      payload.id ||
-      null;
-    
-    // Product info - try multiple paths
-    let productName = 
+    // Product name from line_items[0].title
+    const productName = 
+      firstItem.title ||
+      firstItem.name ||
       payload.product_name ||
       payload.productName ||
-      payload.product?.name ||
-      payload.name ||
-      payload.title ||
-      payload.customData?.product_name ||
+      'Unknown';
+    
+    // Quantity from line_items[0].quantity
+    const quantity = 
+      parseInt(firstItem.quantity) ||
+      parseInt(payload.quantity) ||
+      1;
+    
+    // Amount - use line_price (actual paid) or price, then check payment totals
+    const lineItemPrice = 
+      parseFloat(firstItem.line_price) ||
+      parseFloat(firstItem.price) ||
+      0;
+    
+    const totalAmount = 
+      parseFloat(payment.total_amount) ||
+      parseFloat(invoice.amount_paid) ||
+      lineItemPrice ||
+      0;
+    
+    // Use total_amount if there's only one line item, otherwise use line item price
+    const amount = lineItems.length === 1 ? totalAmount : lineItemPrice;
+    
+    // Invoice number
+    const invoiceNumber = 
+      invoice.number ||
+      payment.transaction_id ||
+      payload.invoice_number ||
       null;
     
-    // Check for line items if no product name found
-    if (!productName && payload.lineItems?.length > 0) {
-      productName = payload.lineItems[0].name || payload.lineItems[0].title;
-    }
-    if (!productName && payload.items?.length > 0) {
-      productName = payload.items[0].name || payload.items[0].title;
-    }
-    if (!productName && payload.products?.length > 0) {
-      productName = payload.products[0].name || payload.products[0].title;
-    }
-    
-    console.log('📋 Extracted data:', {
+    console.log('📋 Extracted data (v4.0):', {
       contactId,
       contactName,
       contactEmail,
       contactPhone,
       productName,
+      quantity,
       amount: amount.toFixed(2),
-      paymentId
+      invoiceNumber,
+      lineItemsCount: lineItems.length
     });
 
     // =====================================================
@@ -663,207 +574,222 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
-    // CATEGORIZE PURCHASE
+    // PROCESS EACH LINE ITEM (Support multi-item invoices)
     // =====================================================
     
-    const category = categorizePurchase(productName);
-    const normalizedItem = normalizeItemName(productName, category);
+    const results = [];
+    const itemsToProcess = lineItems.length > 0 ? lineItems : [{ title: productName, price: amount, quantity: quantity }];
     
-    console.log('💳 Processing purchase:', { category, normalizedItem, amount: amount.toFixed(2) });
-
-    // =====================================================
-    // CHECK FOR DUPLICATE PURCHASE
-    // =====================================================
-    
-    const purchaseDate = new Date().toISOString().split('T')[0];
-    
-    // Check if this exact purchase already exists
-    // Method 1: By invoice number (most reliable)
-    // Method 2: By patient + date + category (catches duplicates with different item names)
-    // Method 3: By patient + item + date + amount (exact match)
-    
-    let existingPurchase = null;
-    
-    // Check by invoice number first (most reliable)
-    if (paymentId) {
-      const { data: byInvoice } = await supabase
-        .from('purchases')
-        .select('id')
-        .eq('invoice_number', paymentId)
-        .maybeSingle();
-      existingPurchase = byInvoice;
-      if (existingPurchase) {
-        console.log('⚠️ Duplicate found by invoice_number:', paymentId);
-      }
-    }
-    
-    // Check by patient + date + category (same person, same day, same type of service)
-    if (!existingPurchase && contactId) {
-      const { data: byCategory } = await supabase
-        .from('purchases')
-        .select('id, item_name, amount')
-        .eq('ghl_contact_id', contactId)
-        .eq('purchase_date', purchaseDate)
-        .eq('category', category)
-        .maybeSingle();
+    for (const item of itemsToProcess) {
+      const itemName = item.title || item.name || productName;
+      const itemQuantity = parseInt(item.quantity) || 1;
+      const itemAmount = parseFloat(item.line_price) || parseFloat(item.price) || 0;
       
-      if (byCategory) {
-        console.log('⚠️ Duplicate found by patient+date+category:', {
-          existing: byCategory.item_name,
-          new: normalizedItem
-        });
-        existingPurchase = byCategory;
-      }
-    }
-    
-    // Check by exact match (patient + item + date + amount)
-    if (!existingPurchase && contactId) {
-      const { data: byDetails } = await supabase
-        .from('purchases')
-        .select('id')
-        .eq('ghl_contact_id', contactId)
-        .eq('item_name', normalizedItem)
-        .eq('purchase_date', purchaseDate)
-        .eq('amount', parseFloat(amount.toFixed(2)))
-        .maybeSingle();
-      existingPurchase = byDetails;
-      if (existingPurchase) {
-        console.log('⚠️ Duplicate found by exact match');
-      }
-    }
-    
-    if (existingPurchase) {
-      console.log('⚠️ Skipping duplicate purchase:', existingPurchase.id);
-      return res.status(200).json({
-        success: true,
-        duplicate: true,
-        message: 'Purchase already exists for this patient/date/category',
-        existing_id: existingPurchase.id
+      // =====================================================
+      // CATEGORIZE PURCHASE
+      // =====================================================
+      
+      const category = categorizePurchase(itemName);
+      const normalizedItem = normalizeItemName(itemName, category);
+      
+      console.log('💳 Processing line item:', { 
+        itemName,
+        category, 
+        normalizedItem, 
+        quantity: itemQuantity,
+        amount: itemAmount.toFixed(2) 
       });
-    }
 
-    // =====================================================
-    // CREATE PURCHASE RECORD
-    // =====================================================
-    
-    console.log('💳 Creating purchase record:', { category, normalizedItem });
-    
-    const purchaseData = {
-      ghl_contact_id: contactId || null,
-      patient_name: contactName || 'Unknown',
-      patient_email: contactEmail || null,
-      patient_phone: contactPhone || null,
-      purchase_date: purchaseDate,
-      category: category,
-      item_name: normalizedItem,
-      original_item_name: productName || 'Unknown',
-      quantity: 1,
-      amount: parseFloat(amount.toFixed(2)),
-      invoice_number: paymentId || null,
-      source: 'GoHighLevel',
-      raw_payload: JSON.stringify(payload).substring(0, 5000)
-    };
-    
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('purchases')
-      .insert(purchaseData)
-      .select()
-      .single();
-    
-    if (purchaseError) {
-      console.error('❌ Purchase insert error:', purchaseError);
-    } else {
-      console.log('✅ Purchase created:', purchase?.id);
-    }
-
-    // =====================================================
-    // ADD GHL TAG BASED ON CATEGORY
-    // =====================================================
-    
-    if (contactId && CATEGORY_TAGS[category]) {
-      const tagName = CATEGORY_TAGS[category];
-      console.log(`🏷️ Adding tag "${tagName}" to contact ${contactId}`);
-      await addTagToContact(contactId, tagName);
-    }
-
-    // =====================================================
-    // CREATE PROTOCOL (IF TRACKABLE)
-    // =====================================================
-    
-    let protocol = null;
-    
-    if (shouldCreateProtocol(category, productName)) {
-      console.log('📋 Creating protocol for trackable item');
+      // =====================================================
+      // CHECK FOR DUPLICATE PURCHASE
+      // =====================================================
       
-      const duration = getProtocolDuration(category, productName);
-      const accessToken = generateToken();
-      const startDate = new Date().toISOString().split('T')[0];
+      const purchaseDate = new Date().toISOString().split('T')[0];
       
-      // Calculate end date
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + duration);
-      const endDateStr = endDate.toISOString().split('T')[0];
+      let existingPurchase = null;
       
-      // Determine program type (pass category for Weight Loss distinction)
-      let programType = getProgramType(normalizedItem, category);
-      
-      // If it's a 30-day peptide program, check if patient already has one (making this a maintenance/refill)
-      if (programType === 'month_program_30day' && contactId) {
-        const isMaintenance = await checkIfMaintenance(supabase, contactId);
-        if (isMaintenance) {
-          programType = 'maintenance_4week';
-          console.log('📋 Patient has existing 30-day program, marking as maintenance');
+      // Check by invoice number + item name (most reliable for multi-item invoices)
+      if (invoiceNumber) {
+        const { data: byInvoice } = await supabase
+          .from('purchases')
+          .select('id')
+          .eq('invoice_number', invoiceNumber)
+          .eq('item_name', normalizedItem)
+          .maybeSingle();
+        existingPurchase = byInvoice;
+        if (existingPurchase) {
+          console.log('⚠️ Duplicate found by invoice_number + item:', invoiceNumber, normalizedItem);
         }
       }
       
-      const protocolData = {
+      // Check by exact match (patient + item + date + amount)
+      if (!existingPurchase && contactId) {
+        const { data: byDetails } = await supabase
+          .from('purchases')
+          .select('id')
+          .eq('ghl_contact_id', contactId)
+          .eq('item_name', normalizedItem)
+          .eq('purchase_date', purchaseDate)
+          .eq('amount', parseFloat(itemAmount.toFixed(2)))
+          .maybeSingle();
+        existingPurchase = byDetails;
+        if (existingPurchase) {
+          console.log('⚠️ Duplicate found by exact match');
+        }
+      }
+      
+      if (existingPurchase) {
+        console.log('⚠️ Skipping duplicate purchase:', existingPurchase.id);
+        results.push({
+          success: true,
+          duplicate: true,
+          item: normalizedItem,
+          existing_id: existingPurchase.id
+        });
+        continue;
+      }
+
+      // =====================================================
+      // CREATE PURCHASE RECORD
+      // =====================================================
+      
+      const purchaseData = {
         ghl_contact_id: contactId || null,
-        patient_name: contactName,
+        patient_name: contactName || 'Unknown',
         patient_email: contactEmail || null,
         patient_phone: contactPhone || null,
-        program_type: programType,
-        program_name: normalizedItem,
-        start_date: startDate,
-        end_date: endDateStr,
-        duration_days: duration,
-        status: 'active',
-        access_token: accessToken,
-        reminders_enabled: true,
-        purchase_id: purchase?.id || null,
-        amount: parseFloat(amount.toFixed(2))
+        purchase_date: purchaseDate,
+        category: category,
+        item_name: normalizedItem,
+        original_item_name: itemName,
+        quantity: itemQuantity,
+        amount: parseFloat(itemAmount.toFixed(2)),
+        invoice_number: invoiceNumber || null,
+        source: 'GoHighLevel',
+        raw_payload: JSON.stringify(payload).substring(0, 5000)
       };
       
-      const { data: newProtocol, error: protocolError } = await supabase
-        .from('protocols')
-        .insert(protocolData)
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('purchases')
+        .insert(purchaseData)
         .select()
         .single();
       
-      if (protocolError) {
-        console.error('❌ Protocol insert error:', protocolError);
-      } else {
-        protocol = newProtocol;
-        console.log('✅ Protocol created:', {
-          id: protocol.id,
-          type: category,
-          name: normalizedItem,
-          duration,
-          token: accessToken
-        });
+      if (purchaseError) {
+        console.error('❌ Purchase insert error:', purchaseError);
+        results.push({ success: false, error: purchaseError.message, item: normalizedItem });
+        continue;
+      }
+      
+      console.log('✅ Purchase created:', purchase?.id);
+
+      // =====================================================
+      // ADD GHL TAG BASED ON CATEGORY
+      // =====================================================
+      
+      if (contactId && CATEGORY_TAGS[category]) {
+        const tagName = CATEGORY_TAGS[category];
+        console.log(`🏷️ Adding tag "${tagName}" to contact ${contactId}`);
+        await addTagToContact(contactId, tagName);
+      }
+
+      // =====================================================
+      // CREATE PROTOCOL (IF TRACKABLE)
+      // =====================================================
+      
+      let protocol = null;
+      
+      if (shouldCreateProtocol(category, itemName)) {
+        console.log('📋 Creating protocol for trackable item');
         
-        // Link purchase to protocol
-        if (purchase?.id) {
-          await supabase
-            .from('purchases')
-            .update({ protocol_id: protocol.id })
-            .eq('id', purchase.id);
+        const duration = getProtocolDuration(category, itemName);
+        const accessToken = generateToken();
+        const startDate = new Date().toISOString().split('T')[0];
+        
+        // Calculate end date
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + duration);
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        // Determine program type (pass category for Weight Loss distinction)
+        let programType = getProgramType(normalizedItem, category);
+        
+        // If it's a 30-day peptide program, check if patient already has one (making this a maintenance/refill)
+        if (programType === 'month_program_30day' && contactId) {
+          const isMaintenance = await checkIfMaintenance(supabase, contactId);
+          if (isMaintenance) {
+            programType = 'maintenance_4week';
+            console.log('📋 Patient has existing 30-day program, marking as maintenance');
+          }
         }
         
-        // Send welcome SMS with tracker link for Peptide and Weight Loss protocols
-        if ((category === 'Peptide' || category === 'Weight Loss') && contactId) {
-          await sendWelcomeSMS(contactId, contactName, normalizedItem, accessToken);
+        const protocolData = {
+          ghl_contact_id: contactId || null,
+          patient_name: contactName,
+          patient_email: contactEmail || null,
+          patient_phone: contactPhone || null,
+          program_type: programType,
+          program_name: normalizedItem,
+          start_date: startDate,
+          end_date: endDateStr,
+          duration_days: duration,
+          status: 'active',
+          access_token: accessToken,
+          reminders_enabled: true,
+          purchase_id: purchase?.id || null,
+          amount: parseFloat(itemAmount.toFixed(2)),
+          total_sessions: itemQuantity > 1 ? itemQuantity : null
+        };
+        
+        const { data: newProtocol, error: protocolError } = await supabase
+          .from('protocols')
+          .insert(protocolData)
+          .select()
+          .single();
+        
+        if (protocolError) {
+          console.error('❌ Protocol insert error:', protocolError);
+        } else {
+          protocol = newProtocol;
+          console.log('✅ Protocol created:', {
+            id: protocol.id,
+            type: category,
+            name: normalizedItem,
+            duration,
+            token: accessToken
+          });
+          
+          // Link purchase to protocol
+          if (purchase?.id) {
+            await supabase
+              .from('purchases')
+              .update({ protocol_id: protocol.id })
+              .eq('id', purchase.id);
+          }
+          
+          // Send welcome SMS with tracker link for Peptide and Weight Loss protocols
+          if ((category === 'Peptide' || category === 'Weight Loss') && contactId) {
+            await sendWelcomeSMS(contactId, contactName, normalizedItem, accessToken);
+          }
         }
       }
+
+      results.push({
+        success: true,
+        purchase: purchase ? {
+          id: purchase.id,
+          category,
+          item: normalizedItem,
+          quantity: itemQuantity,
+          amount: parseFloat(itemAmount.toFixed(2))
+        } : null,
+        protocol: protocol ? {
+          id: protocol.id,
+          access_token: protocol.access_token,
+          tracker_url: `https://app.range-medical.com/track/${protocol.access_token}`
+        } : null,
+        tag_added: contactId && CATEGORY_TAGS[category] ? CATEGORY_TAGS[category] : null
+      });
     }
 
     // =====================================================
@@ -872,18 +798,8 @@ export default async function handler(req, res) {
     
     const response = {
       success: true,
-      purchase: purchase ? {
-        id: purchase.id,
-        category,
-        item: normalizedItem,
-        amount: parseFloat(amount.toFixed(2))
-      } : null,
-      protocol: protocol ? {
-        id: protocol.id,
-        access_token: protocol.access_token,
-        tracker_url: `https://app.range-medical.com/track/${protocol.access_token}`
-      } : null,
-      tag_added: contactId && CATEGORY_TAGS[category] ? CATEGORY_TAGS[category] : null
+      items_processed: results.length,
+      results
     };
     
     console.log('✅ Webhook processed successfully:', response);

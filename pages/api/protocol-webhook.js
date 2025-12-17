@@ -572,6 +572,58 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
+    // CREATE/UPDATE PATIENT RECORD
+    // =====================================================
+    
+    let patientId = null;
+    
+    if (contactId) {
+      // Check if patient exists
+      const { data: existingPatient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('ghl_contact_id', contactId)
+        .maybeSingle();
+      
+      if (existingPatient) {
+        patientId = existingPatient.id;
+        console.log('👤 Found existing patient:', patientId);
+        
+        // Update patient info if we have new data
+        await supabase
+          .from('patients')
+          .update({
+            name: contactName || undefined,
+            phone: contactPhone || undefined,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', patientId);
+      } else {
+        // Create new patient record
+        const { data: newPatient, error: patientError } = await supabase
+          .from('patients')
+          .insert({
+            ghl_contact_id: contactId,
+            name: contactName || 'Unknown',
+            email: contactEmail || null,
+            phone: contactPhone || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+        
+        if (patientError) {
+          console.error('⚠️ Patient creation error:', patientError);
+          // Don't fail - continue with purchase creation
+        } else {
+          patientId = newPatient.id;
+          console.log('✅ Created new patient:', patientId, contactName);
+        }
+      }
+    }
+
+    // =====================================================
     // PROCESS EACH LINE ITEM (Support multi-item invoices)
     // =====================================================
     

@@ -331,10 +331,8 @@ function normalizeItemName(productName, category) {
 }
 
 function shouldCreateProtocol(category, productName) {
-  // Create protocols for trackable categories
-  if (['Peptide', 'Weight Loss'].includes(category)) {
-    return true;
-  }
+  // DISABLED - Protocols are now created manually by staff
+  // Webhook only creates purchase records
   return false;
 }
 

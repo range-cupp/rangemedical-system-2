@@ -18,6 +18,49 @@ const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
 // =====================================================
+// SEND SMS VIA GHL
+// =====================================================
+async function sendWelcomeSMS(contactId, patientName, programName, accessToken) {
+  if (!GHL_API_KEY || !contactId) {
+    console.log('⚠️ Cannot send SMS - missing API key or contact ID');
+    return false;
+  }
+
+  try {
+    const firstName = patientName ? patientName.split(' ')[0] : 'there';
+    const trackerUrl = `https://app.range-medical.com/track/${accessToken}`;
+    
+    const message = `Hi ${firstName}! Your ${programName} protocol is ready. Track your progress and log injections here: ${trackerUrl}\n\nPlease complete the quick starting assessment so we can measure your improvement. Questions? Call us at (949) 997-3988 - Range Medical`;
+
+    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-04-15'
+      },
+      body: JSON.stringify({
+        type: 'SMS',
+        contactId: contactId,
+        message: message
+      })
+    });
+
+    if (response.ok) {
+      console.log(`✅ Welcome SMS sent to ${patientName}`);
+      return true;
+    } else {
+      const errorText = await response.text();
+      console.log(`⚠️ Failed to send SMS: ${response.status} - ${errorText}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error sending SMS:', error.message);
+    return false;
+  }
+}
+
+// =====================================================
 // GHL TAG MAPPING BY CATEGORY
 // =====================================================
 const CATEGORY_TAGS = {
@@ -814,6 +857,11 @@ export default async function handler(req, res) {
             .from('purchases')
             .update({ protocol_id: protocol.id })
             .eq('id', purchase.id);
+        }
+        
+        // Send welcome SMS with tracker link for Peptide and Weight Loss protocols
+        if ((category === 'Peptide' || category === 'Weight Loss') && contactId) {
+          await sendWelcomeSMS(contactId, contactName, normalizedItem, accessToken);
         }
       }
     }

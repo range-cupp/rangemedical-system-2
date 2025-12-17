@@ -62,6 +62,17 @@ export default async function handler(req, res) {
       console.error('Purchases fetch error:', purchasesError);
     }
 
+    // Fetch questionnaire responses for this patient
+    const { data: questionnaires, error: questionnaireError } = await supabase
+      .from('questionnaire_responses')
+      .select('*')
+      .eq('ghl_contact_id', id)
+      .order('created_at', { ascending: false });
+
+    if (questionnaireError) {
+      console.error('Questionnaire fetch error:', questionnaireError);
+    }
+
     // Build patient info from the most recent protocol or purchase
     let patient = null;
     
@@ -90,7 +101,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       patient,
       protocols: protocols || [],
-      purchases: purchases || []
+      purchases: purchases || [],
+      questionnaires: questionnaires || []
     });
 
   } catch (error) {

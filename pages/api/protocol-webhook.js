@@ -620,20 +620,97 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
-    // CATEGORIZE AND CREATE PURCHASE RECORD
+    // CATEGORIZE PURCHASE
     // =====================================================
     
     const category = categorizePurchase(productName);
     const normalizedItem = normalizeItemName(productName, category);
     
-    console.log('💳 Creating purchase record:', { category, normalizedItem, amount: amount.toFixed(2) });
+    console.log('💳 Processing purchase:', { category, normalizedItem, amount: amount.toFixed(2) });
+
+    // =====================================================
+    // CHECK FOR DUPLICATE PURCHASE
+    // =====================================================
+    
+    const purchaseDate = new Date().toISOString().split('T')[0];
+    
+    // Check if this exact purchase already exists
+    // Method 1: By invoice number (most reliable)
+    // Method 2: By patient + date + category (catches duplicates with different item names)
+    // Method 3: By patient + item + date + amount (exact match)
+    
+    let existingPurchase = null;
+    
+    // Check by invoice number first (most reliable)
+    if (paymentId) {
+      const { data: byInvoice } = await supabase
+        .from('purchases')
+        .select('id')
+        .eq('invoice_number', paymentId)
+        .maybeSingle();
+      existingPurchase = byInvoice;
+      if (existingPurchase) {
+        console.log('⚠️ Duplicate found by invoice_number:', paymentId);
+      }
+    }
+    
+    // Check by patient + date + category (same person, same day, same type of service)
+    if (!existingPurchase && contactId) {
+      const { data: byCategory } = await supabase
+        .from('purchases')
+        .select('id, item_name, amount')
+        .eq('ghl_contact_id', contactId)
+        .eq('purchase_date', purchaseDate)
+        .eq('category', category)
+        .maybeSingle();
+      
+      if (byCategory) {
+        console.log('⚠️ Duplicate found by patient+date+category:', {
+          existing: byCategory.item_name,
+          new: normalizedItem
+        });
+        existingPurchase = byCategory;
+      }
+    }
+    
+    // Check by exact match (patient + item + date + amount)
+    if (!existingPurchase && contactId) {
+      const { data: byDetails } = await supabase
+        .from('purchases')
+        .select('id')
+        .eq('ghl_contact_id', contactId)
+        .eq('item_name', normalizedItem)
+        .eq('purchase_date', purchaseDate)
+        .eq('amount', parseFloat(amount.toFixed(2)))
+        .maybeSingle();
+      existingPurchase = byDetails;
+      if (existingPurchase) {
+        console.log('⚠️ Duplicate found by exact match');
+      }
+    }
+    
+    if (existingPurchase) {
+      console.log('⚠️ Skipping duplicate purchase:', existingPurchase.id);
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        message: 'Purchase already exists for this patient/date/category',
+        existing_id: existingPurchase.id
+      });
+    }
+
+    // =====================================================
+    // CREATE PURCHASE RECORD
+    // =====================================================
+    
+    console.log('💳 Creating purchase record:', { category, normalizedItem });
     
     const purchaseData = {
       ghl_contact_id: contactId || null,
       patient_name: contactName || 'Unknown',
       patient_email: contactEmail || null,
       patient_phone: contactPhone || null,
-      purchase_date: new Date().toISOString().split('T')[0],
+      purchase_date: purchaseDate,
       category: category,
       item_name: normalizedItem,
       original_item_name: productName || 'Unknown',

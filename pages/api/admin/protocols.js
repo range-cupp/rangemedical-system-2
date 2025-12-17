@@ -21,6 +21,7 @@ export default async function handler(req, res) {
       program_type,
       injection_location,
       duration_days,
+      total_sessions,
       primary_peptide,
       secondary_peptide,
       dose_amount,
@@ -52,6 +53,7 @@ export default async function handler(req, res) {
       program_type,
       injection_location: injection_location || 'take_home',
       duration_days: duration_days || null,
+      total_sessions: total_sessions || null,
       primary_peptide: primary_peptide || null,
       secondary_peptide: secondary_peptide || null,
       dose_amount: dose_amount || null,
@@ -62,6 +64,7 @@ export default async function handler(req, res) {
       reminders_enabled: reminders_enabled !== false,
       status: status || 'active',
       amount: amount || null,
+      injections_completed: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };

@@ -46,21 +46,45 @@ export default async function handler(req, res) {
     }
 
     const patientId = patient.id;
+    const ghlContactId = patient.ghl_contact_id;
 
-    // Fetch all related data
-    const [protocols, purchases, intakes, consents] = await Promise.all([
-      supabase.from('protocols').select('*').eq('patient_id', patientId).order('created_at', { ascending: false }),
-      supabase.from('purchases').select('*').eq('patient_id', patientId).order('purchase_date', { ascending: false }),
-      supabase.from('intakes').select('*').eq('patient_id', patientId).order('submitted_at', { ascending: false }),
-      supabase.from('consents').select('*').eq('patient_id', patientId).order('submitted_at', { ascending: false })
+    // Fetch all related data in parallel
+    const [protocolsRes, intakesRes, consentsRes, purchasesRes] = await Promise.all([
+      // Protocols - by patient_id OR ghl_contact_id
+      supabase
+        .from('protocols')
+        .select('*')
+        .or(`patient_id.eq.${patientId},ghl_contact_id.eq.${ghlContactId}`)
+        .order('created_at', { ascending: false }),
+      
+      // Intakes - by patient_id
+      supabase
+        .from('intakes')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('submitted_at', { ascending: false }),
+      
+      // Consents - by patient_id
+      supabase
+        .from('consents')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('submitted_at', { ascending: false }),
+      
+      // Purchases - by ghl_contact_id (this table uses ghl_contact_id, not patient_id)
+      ghlContactId ? supabase
+        .from('purchases')
+        .select('*')
+        .eq('ghl_contact_id', ghlContactId)
+        .order('purchase_date', { ascending: false }) : { data: [] }
     ]);
 
     return res.status(200).json({
       ...patient,
-      protocols: protocols.data || [],
-      purchases: purchases.data || [],
-      intakes: intakes.data || [],
-      consents: consents.data || []
+      protocols: protocolsRes.data || [],
+      intakes: intakesRes.data || [],
+      consents: consentsRes.data || [],
+      purchases: purchasesRes.data || []
     });
 
   } catch (error) {

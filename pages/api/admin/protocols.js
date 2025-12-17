@@ -93,8 +93,54 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: error.message });
       }
 
+      // Get injection counts for each protocol
+      const protocolIds = data.map(p => p.id);
+      let injectionCounts = {};
+      
+      if (protocolIds.length > 0) {
+        const { data: logs } = await supabase
+          .from('injection_logs')
+          .select('protocol_id')
+          .in('protocol_id', protocolIds);
+        
+        if (logs) {
+          logs.forEach(log => {
+            injectionCounts[log.protocol_id] = (injectionCounts[log.protocol_id] || 0) + 1;
+          });
+        }
+      }
+
+      // Enhance protocols with injection data
+      const enhancedProtocols = data.map(protocol => {
+        const isWeightLoss = protocol.program_type?.includes('weight_loss') || 
+                            protocol.dose_frequency === '1x weekly' || 
+                            protocol.dose_frequency === '2x weekly';
+        
+        let expectedInjections;
+        if (isWeightLoss) {
+          const weeks = Math.ceil((protocol.duration_days || 30) / 7);
+          expectedInjections = protocol.dose_frequency === '2x weekly' ? weeks * 2 : weeks;
+        } else {
+          // Peptide: daily injections (or calculate based on frequency)
+          if (protocol.dose_frequency === 'Every other day') {
+            expectedInjections = Math.ceil((protocol.duration_days || 10) / 2);
+          } else if (protocol.dose_frequency?.includes('5 days on')) {
+            expectedInjections = Math.round((protocol.duration_days || 10) * 5 / 7);
+          } else {
+            expectedInjections = protocol.duration_days || 10;
+          }
+        }
+
+        return {
+          ...protocol,
+          injections_completed: injectionCounts[protocol.id] || 0,
+          expected_injections: expectedInjections,
+          is_weight_loss: isWeightLoss
+        };
+      });
+
       return res.status(200).json({
-        protocols: data,
+        protocols: enhancedProtocols,
         total: count,
         limit: parseInt(limit),
         offset: parseInt(offset)

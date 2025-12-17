@@ -538,9 +538,13 @@ export default function AdminProtocols() {
               ) : (
                 protocols.map(protocol => {
                   const statusColor = getStatusColor(protocol.status);
-                  const progress = protocol.duration_days > 0 
-                    ? Math.round((protocol.injections_completed || 0) / protocol.duration_days * 100) 
+                  const expectedInjections = protocol.expected_injections || protocol.duration_days || 0;
+                  const completedInjections = protocol.injections_completed || 0;
+                  const progress = expectedInjections > 0 
+                    ? Math.round((completedInjections / expectedInjections) * 100) 
                     : 0;
+                  const isWeightLoss = protocol.is_weight_loss;
+                  const accentColor = isWeightLoss ? '#ff9800' : '#2196f3';
                   
                   return (
                     <tr key={protocol.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
@@ -549,7 +553,12 @@ export default function AdminProtocols() {
                         <div style={{ fontSize: '12px', color: '#666' }}>{protocol.patient_email || '-'}</div>
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                        {protocol.program_name || '-'}
+                        <div>{protocol.program_name || '-'}</div>
+                        {isWeightLoss && (
+                          <div style={{ fontSize: '11px', color: '#ff9800', marginTop: '2px' }}>
+                            {protocol.dose_frequency === '2x weekly' ? '2x weekly' : '1x weekly'}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px' }}>
                         {PROGRAM_TYPES.find(t => t.value === protocol.program_type)?.label || protocol.program_type}
@@ -572,11 +581,11 @@ export default function AdminProtocols() {
                             <div style={{
                               width: `${Math.min(progress, 100)}%`,
                               height: '100%',
-                              background: progress >= 100 ? '#4caf50' : '#2196f3'
+                              background: progress >= 100 ? '#4caf50' : accentColor
                             }} />
                           </div>
                           <span style={{ fontSize: '12px', color: '#666' }}>
-                            {protocol.injections_completed || 0}/{protocol.duration_days || 0}
+                            {completedInjections}/{expectedInjections}
                           </span>
                         </div>
                       </td>

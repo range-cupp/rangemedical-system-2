@@ -1,5 +1,5 @@
 // /pages/api/admin/protocol/[id].js
-// Protocol management API - update settings
+// Update a protocol
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -9,73 +9,69 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'range2024admin';
-
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  // Check auth
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.replace('Bearer ', '');
-  if (token !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
   const { id } = req.query;
-  if (!id) return res.status(400).json({ error: 'Protocol ID required' });
 
-  // GET - fetch protocol details
-  if (req.method === 'GET') {
-    try {
-      const { data, error } = await supabase
-        .from('protocols')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return res.status(200).json(data);
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
-    }
+  if (!id) {
+    return res.status(400).json({ error: 'Protocol ID required' });
   }
 
-  // PUT - update protocol
-  if (req.method === 'PUT') {
-    try {
-      const updates = req.body;
-      
-      // Only allow certain fields to be updated
-      const allowedFields = ['injection_location', 'status', 'reminders_enabled', 'dose_frequency', 
-                            'primary_peptide', 'secondary_peptide', 'dose_amount', 'special_instructions'];
-      
-      const filteredUpdates = {};
-      for (const key of allowedFields) {
-        if (updates[key] !== undefined) {
-          filteredUpdates[key] = updates[key];
-        }
-      }
+  if (req.method === 'GET') {
+    // Get protocol details
+    const { data, error } = await supabase
+      .from('protocols')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-      if (Object.keys(filteredUpdates).length === 0) {
-        return res.status(400).json({ error: 'No valid fields to update' });
-      }
-
-      const { data, error } = await supabase
-        .from('protocols')
-        .update(filteredUpdates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return res.status(200).json({ success: true, protocol: data });
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
+    if (error) {
+      return res.status(404).json({ error: 'Protocol not found' });
     }
+
+    return res.status(200).json(data);
+  }
+
+  if (req.method === 'PUT') {
+    // Update protocol
+    const {
+      injection_location,
+      status,
+      peptide_name,
+      dose_amount,
+      dose_frequency,
+      start_date,
+      end_date,
+      special_instructions,
+      reminders_enabled
+    } = req.body;
+
+    const updateData = {};
+    
+    if (injection_location !== undefined) updateData.injection_location = injection_location;
+    if (status !== undefined) updateData.status = status;
+    if (peptide_name !== undefined) updateData.peptide_name = peptide_name;
+    if (dose_amount !== undefined) updateData.dose_amount = dose_amount;
+    if (dose_frequency !== undefined) updateData.dose_frequency = dose_frequency;
+    if (start_date !== undefined) updateData.start_date = start_date || null;
+    if (end_date !== undefined) updateData.end_date = end_date || null;
+    if (special_instructions !== undefined) updateData.special_instructions = special_instructions;
+    if (reminders_enabled !== undefined) updateData.reminders_enabled = reminders_enabled;
+    
+    updateData.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('protocols')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Protocol update error:', error);
+      return res.status(500).json({ error: 'Failed to update protocol' });
+    }
+
+    return res.status(200).json(data);
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

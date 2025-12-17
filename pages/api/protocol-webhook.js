@@ -524,20 +524,42 @@ export default async function handler(req, res) {
       parseInt(payload.quantity) ||
       1;
     
-    // Amount - use line_price (actual paid) or price, then check payment totals
+    // =====================================================
+    // AMOUNT - Check multiple sources in priority order
+    // =====================================================
+    
+    // 1. Check for custom field "Amount Paid" (manually entered actual amount)
+    const customAmountPaid = 
+      parseFloat(payload['Amount Paid']) ||
+      parseFloat(payload.amount_paid) ||
+      parseFloat(payload.amountPaid) ||
+      null;
+    
+    // 2. Line item price
     const lineItemPrice = 
       parseFloat(firstItem.line_price) ||
       parseFloat(firstItem.price) ||
       0;
     
+    // 3. Payment/invoice totals
     const totalAmount = 
       parseFloat(payment.total_amount) ||
       parseFloat(invoice.amount_paid) ||
       lineItemPrice ||
       0;
     
-    // Use total_amount if there's only one line item, otherwise use line item price
-    const amount = lineItems.length === 1 ? totalAmount : lineItemPrice;
+    // Priority: Custom "Amount Paid" > Payment total (for single item) > Line item price
+    let amount;
+    if (customAmountPaid !== null && customAmountPaid > 0) {
+      amount = customAmountPaid;
+      console.log('💰 Using custom Amount Paid field:', amount);
+    } else if (lineItems.length === 1) {
+      amount = totalAmount;
+      console.log('💰 Using payment total:', amount);
+    } else {
+      amount = lineItemPrice;
+      console.log('💰 Using line item price:', amount);
+    }
     
     // Invoice number
     const invoiceNumber = 

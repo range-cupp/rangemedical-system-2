@@ -5,6 +5,8 @@
 // Sends two types of reminders:
 // 1. INTAKE reminder - Day 2 of protocol if intake not completed
 // 2. COMPLETION reminder - Last 2 days of protocol if completion not done
+//
+// Only sends between 9am-6pm PST
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,6 +17,13 @@ const supabase = createClient(
 
 const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
+
+// Check if current time is within allowed window (9am-6pm PST)
+function isWithinAllowedHours() {
+  const now = new Date();
+  const pstHour = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours();
+  return pstHour >= 9 && pstHour < 18; // 9am to 6pm PST
+}
 
 // Send SMS via GHL
 async function sendSMS(contactId, message) {
@@ -66,6 +75,15 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Check time window
+  if (!isWithinAllowedHours()) {
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Outside allowed hours (9am-6pm PST). No reminders sent.',
+      skipped: true
+    });
+  }
+
   const results = {
     intakeReminders: [],
     completionReminders: [],
@@ -87,14 +105,18 @@ export default async function handler(req, res) {
     const oneDayAgo = new Date(today);
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-    // Get active peptide protocols started 1-2 days ago
+    // Get active TAKE-HOME peptide protocols started 1-2 days ago
+    // In-clinic protocols don't get patient reminders - staff handles assessments
+    // Only send if reminders are enabled
     const { data: recentProtocols, error: recentError } = await supabase
       .from('protocols')
       .select('id, ghl_contact_id, patient_name, patient_phone, program_name, access_token, start_date, program_type')
       .eq('status', 'active')
+      .eq('injection_location', 'take_home')
+      .eq('reminders_enabled', true)
       .gte('start_date', twoDaysAgo.toISOString().split('T')[0])
       .lte('start_date', oneDayAgo.toISOString().split('T')[0])
-      .in('program_type', ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'jumpstart_10day', 'recovery_10day', 'month_30day'])
+      .in('program_type', ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'jumpstart_10day', 'recovery_10day', 'month_30day', 'weight_loss_program', 'weight_loss_injection'])
       .not('ghl_contact_id', 'is', null);
 
     if (recentError) {
@@ -135,14 +157,17 @@ export default async function handler(req, res) {
     const twoDaysFromNow = new Date(today);
     twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
 
-    // Get active peptide protocols ending soon
+    // Get active TAKE-HOME peptide protocols ending soon
+    // Only send if reminders are enabled
     const { data: endingProtocols, error: endingError } = await supabase
       .from('protocols')
       .select('id, ghl_contact_id, patient_name, patient_phone, program_name, access_token, end_date, program_type')
       .eq('status', 'active')
+      .eq('injection_location', 'take_home')
+      .eq('reminders_enabled', true)
       .gte('end_date', today.toISOString().split('T')[0])
       .lte('end_date', twoDaysFromNow.toISOString().split('T')[0])
-      .in('program_type', ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'jumpstart_10day', 'recovery_10day', 'month_30day'])
+      .in('program_type', ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'jumpstart_10day', 'recovery_10day', 'month_30day', 'weight_loss_program', 'weight_loss_injection'])
       .not('ghl_contact_id', 'is', null);
 
     if (endingError) {

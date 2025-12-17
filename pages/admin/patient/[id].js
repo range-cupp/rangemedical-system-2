@@ -1,11 +1,55 @@
 // /pages/admin/patient/[id].js
-// Patient Profile Page with In-Clinic/Take-Home Support
+// Patient Profile Page with Forms & Consents
 // Range Medical
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+
+// Form URLs
+const FORM_URLS = {
+  intake: 'https://app.range-medical.com/intake.html',
+  peptide: 'https://range-medical.com/peptide-therapy-consent-page',
+  'iv-injection': 'https://range-medical.com/iv--injection-therapy-consent-page',
+  blood_draw: 'https://range-medical.com/blood-draw-consent-page',
+  'exosome-iv': 'https://range-medical.com/exosome-iv-therapy-consent-page',
+  hrt: 'https://range-medical.com/hrt-consent-page',
+  hbot: 'https://range-medical.com/hyperbaric-oxygen-therapy-consent-page',
+  'red-light': 'https://range-medical.com/red-light-therapy-consent-page',
+  'weight-loss': 'https://range-medical.com/weight-loss-consent-page',
+  prp: 'https://range-medical.com/prp-consent-page',
+  'testosterone-pellet': 'https://range-medical.com/testosterone-pellet-consent-page',
+  'trt-fertility': 'https://range-medical.com/trt-fertility-waiver-page'
+};
+
+// Map purchase categories to required consent types
+const CATEGORY_TO_CONSENT = {
+  'Peptide': ['peptide'],
+  'IV Therapy': ['iv-injection'],
+  'Labs': ['blood_draw'],
+  'Injection': ['iv-injection'],
+  'HRT': ['hrt'],
+  'Hyperbaric': ['hbot'],
+  'Red Light': ['red-light'],
+  'Weight Loss': ['weight-loss'],
+  'Exosome': ['exosome-iv', 'iv-injection']
+};
+
+// Display names for consent types
+const CONSENT_DISPLAY_NAMES = {
+  'peptide': 'Peptide Therapy Consent',
+  'iv-injection': 'IV/Injection Consent',
+  'blood_draw': 'Blood Draw Consent',
+  'exosome-iv': 'Exosome IV Consent',
+  'hrt': 'HRT Consent',
+  'hbot': 'Hyperbaric Oxygen Consent',
+  'red-light': 'Red Light Therapy Consent',
+  'weight-loss': 'Weight Loss Consent',
+  'prp': 'PRP Consent',
+  'testosterone-pellet': 'Testosterone Pellet Consent',
+  'trt-fertility': 'TRT Fertility Waiver'
+};
 
 // Options for questionnaires
 const PEPTIDE_ACTIVITIES = ['Walking', 'Running', 'Weight Training', 'Sports', 'Work/Job', 'Sleep', 'Driving'];
@@ -27,24 +71,25 @@ export default function PatientProfile() {
   const [protocols, setProtocols] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [questionnaires, setQuestionnaires] = useState([]);
+  const [intakes, setIntakes] = useState([]);
+  const [consents, setConsents] = useState([]);
+  const [purchaseCategories, setPurchaseCategories] = useState([]);
   
   // UI state
   const [sendingReminder, setSendingReminder] = useState(null);
   const [updatingLocation, setUpdatingLocation] = useState(null);
   const [updatingReminders, setUpdatingReminders] = useState(null);
   const [updatingFrequency, setUpdatingFrequency] = useState(null);
-  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(null); // { protocol, type, category }
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(null);
   const [submittingQuestionnaire, setSubmittingQuestionnaire] = useState(false);
+  const [sendingForm, setSendingForm] = useState(null);
   
   // Questionnaire form data
   const [formData, setFormData] = useState({
-    // Shared
     sleep_quality: 5, energy_level: 5, current_medications: '', recovery_goals: '',
     goals_achieved: '', overall_improvement: 5, continue_treatment: true, additional_notes: '',
-    // Peptide
     primary_complaint: '', injury_location: '', injury_duration: '', pain_level: 5,
     pain_frequency: '', mobility_score: 5, activities_limited: [],
-    // Weight Loss
     current_weight: '', goal_weight: '', weight_at_completion: '', appetite_level: 5,
     cravings_level: 5, exercise_frequency: '', side_effects: [], side_effects_severity: 0
   });
@@ -72,6 +117,9 @@ export default function PatientProfile() {
       setProtocols(data.protocols || []);
       setPurchases(data.purchases || []);
       setQuestionnaires(data.questionnaires || []);
+      setIntakes(data.intakes || []);
+      setConsents(data.consents || []);
+      setPurchaseCategories(data.purchaseCategories || []);
     } catch (err) {
       setError(err.message);
     }
@@ -116,7 +164,7 @@ export default function PatientProfile() {
     setUpdatingReminders(null);
   };
 
-  // Toggle frequency for weight loss (1x weekly <-> 2x weekly)
+  // Toggle frequency for weight loss
   const toggleFrequency = async (protocolId, currentFrequency) => {
     const newFrequency = currentFrequency === '2x weekly' ? '1x weekly' : '2x weekly';
     setUpdatingFrequency(protocolId);
@@ -135,19 +183,47 @@ export default function PatientProfile() {
     setUpdatingFrequency(null);
   };
 
-  // Send reminder
-  const sendReminder = async (protocolId, reminderType) => {
-    setSendingReminder(`${protocolId}-${reminderType}`);
+  // Send form via SMS
+  const sendFormLink = async (formType, formUrl) => {
+    if (!patient?.phone || !id) {
+      alert('Patient phone number not available');
+      return;
+    }
+    setSendingForm(formType);
+    try {
+      const formName = formType === 'intake' ? 'Medical Intake Form' : CONSENT_DISPLAY_NAMES[formType] || 'Form';
+      const message = `Hi ${patient.name?.split(' ')[0] || 'there'}! Please complete your ${formName} for Range Medical: ${formUrl}`;
+      
+      const res = await fetch('/api/admin/send-form-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` },
+        body: JSON.stringify({ contactId: id, message })
+      });
+      
+      if (res.ok) {
+        alert(`${formName} link sent!`);
+      } else {
+        throw new Error('Failed to send');
+      }
+    } catch (err) {
+      alert('Failed to send form link');
+    }
+    setSendingForm(null);
+  };
+
+  // Send questionnaire reminder
+  const sendReminder = async (protocolId, type) => {
+    setSendingReminder(`${protocolId}-${type}`);
     try {
       const res = await fetch('/api/admin/send-questionnaire-reminder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` },
-        body: JSON.stringify({ protocol_id: protocolId, reminder_type: reminderType })
+        body: JSON.stringify({ protocolId, reminderType: type })
       });
       if (res.ok) alert('Reminder sent!');
-      else alert((await res.json()).error || 'Failed');
+      else throw new Error('Failed');
     } catch (err) {
-      alert('Error sending reminder');
+      alert('Failed to send reminder');
     }
     setSendingReminder(null);
   };
@@ -166,9 +242,8 @@ export default function PatientProfile() {
     setShowQuestionnaireModal({ protocol, type, category });
   };
 
-  // Submit staff questionnaire
-  const submitStaffQuestionnaire = async () => {
-    if (!showQuestionnaireModal) return;
+  // Submit questionnaire
+  const submitQuestionnaire = async () => {
     setSubmittingQuestionnaire(true);
     try {
       const res = await fetch('/api/admin/staff-questionnaire', {
@@ -177,41 +252,72 @@ export default function PatientProfile() {
         body: JSON.stringify({
           protocol_id: showQuestionnaireModal.protocol.id,
           questionnaire_type: showQuestionnaireModal.type,
-          questionnaire_category: showQuestionnaireModal.category,
           ...formData
         })
       });
       if (res.ok) {
-        alert('Assessment saved!');
         setShowQuestionnaireModal(null);
         fetchPatientData();
       } else {
-        alert((await res.json()).error || 'Failed to save');
+        const data = await res.json();
+        alert(data.error || 'Failed to submit');
       }
     } catch (err) {
-      alert('Error saving assessment');
+      alert('Failed to submit questionnaire');
     }
     setSubmittingQuestionnaire(false);
   };
 
   // Helpers
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
-  const formatCurrency = (a) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(a || 0);
-  const getStatusColor = (s) => ({ active: '#4caf50', completed: '#2196f3', paused: '#ff9800', cancelled: '#f44336' }[s] || '#666');
-  const getCategoryColor = (c) => ({ 'Peptide': '#4caf50', 'Weight Loss': '#ff9800', 'HRT': '#1565c0', 'IV Therapy': '#9c27b0' }[c] || '#666');
-  
   const getQuestionnaireCategory = (programType) => {
-    const peptideTypes = ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic', 'jumpstart_10day', 'recovery_10day', 'month_30day'];
-    const weightLossTypes = ['weight_loss_program', 'weight_loss_injection'];
-    if (peptideTypes.includes(programType)) return 'peptide';
-    if (weightLossTypes.includes(programType)) return 'weight_loss';
+    if (!programType) return 'peptide';
+    if (programType.includes('weight_loss')) return 'weight_loss';
     return 'peptide';
   };
 
   const getProtocolQuestionnaires = (protocolId) => questionnaires.filter(q => q.protocol_id === protocolId);
 
-  // Not authenticated
+  const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+  const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+  const getStatusColor = (status) => ({ active: '#4caf50', completed: '#2196f3', paused: '#ff9800', cancelled: '#9e9e9e' })[status] || '#666';
+  const getCategoryColor = (cat) => ({ Peptide: '#4caf50', 'IV Therapy': '#2196f3', 'Weight Loss': '#ff9800', HRT: '#9c27b0', Labs: '#00bcd4', Injection: '#ff5722' })[cat] || '#666';
+
+  // Get required consents based on purchases
+  const getRequiredConsents = () => {
+    const required = new Set();
+    purchaseCategories.forEach(cat => {
+      const consentTypes = CATEGORY_TO_CONSENT[cat] || [];
+      consentTypes.forEach(type => required.add(type));
+    });
+    return Array.from(required);
+  };
+
+  // Check if consent type is completed
+  const getConsentStatus = (consentType) => {
+    const consent = consents.find(c => c.consent_type === consentType);
+    return consent ? { completed: true, date: consent.submitted_at, pdfUrl: consent.pdf_url } : { completed: false };
+  };
+
+  // Handle login
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    localStorage.setItem('adminPassword', password);
+    setIsAuthenticated(true);
+  };
+
   if (!isAuthenticated) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui', background: '#f5f5f5' }}>
+        <form onSubmit={handleLogin} style={{ background: 'white', padding: '40px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <h2 style={{ margin: '0 0 20px', textAlign: 'center' }}>Staff Login</h2>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" style={{ width: '250px', padding: '12px', border: '1px solid #ddd', borderRadius: '6px', marginBottom: '16px', display: 'block', boxSizing: 'border-box' }} />
+          <button type="submit" style={{ width: '100%', padding: '12px', background: 'black', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Login</button>
+        </form>
+      </div>
+    );
+  }
+
+  if (!id) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
         <p>Please log in through the <Link href="/admin/dashboard" style={{ color: '#1976d2' }}>dashboard</Link></p>
@@ -281,12 +387,115 @@ export default function PatientProfile() {
               </div>
             </div>
 
-            {/* Protocols with Questionnaires */}
+            {/* Forms & Consents Section */}
+            <div style={{ background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', marginBottom: '24px' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #e0e0e0', background: '#fafafa' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>📋 Forms & Consents</h3>
+              </div>
+              
+              {/* Medical Intake */}
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: intakes.length > 0 ? '#e8f5e9' : '#fff3e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
+                    {intakes.length > 0 ? '✅' : '⚠️'}
+                  </span>
+                  <div>
+                    <div style={{ fontWeight: '500', fontSize: '14px' }}>Medical Intake Form</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {intakes.length > 0 
+                        ? `Completed ${formatDate(intakes[0].submitted_at)}` 
+                        : 'Required - Not completed'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {intakes.length > 0 && intakes[0].pdf_url && (
+                    <a href={intakes[0].pdf_url} target="_blank" rel="noopener noreferrer"
+                      style={{ padding: '6px 12px', background: '#e3f2fd', color: '#1565c0', borderRadius: '4px', fontSize: '12px', textDecoration: 'none', fontWeight: '500' }}>
+                      View PDF
+                    </a>
+                  )}
+                  {intakes.length === 0 && (
+                    <button 
+                      onClick={() => sendFormLink('intake', FORM_URLS.intake)}
+                      disabled={sendingForm === 'intake'}
+                      style={{ padding: '6px 12px', background: '#ff9800', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>
+                      {sendingForm === 'intake' ? 'Sending...' : '📱 Send Form'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Required Consents based on purchases */}
+              {getRequiredConsents().map(consentType => {
+                const status = getConsentStatus(consentType);
+                return (
+                  <div key={consentType} style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: status.completed ? '#e8f5e9' : '#ffebee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
+                        {status.completed ? '✅' : '❌'}
+                      </span>
+                      <div>
+                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{CONSENT_DISPLAY_NAMES[consentType]}</div>
+                        <div style={{ fontSize: '12px', color: status.completed ? '#666' : '#c62828' }}>
+                          {status.completed 
+                            ? `Signed ${formatDate(status.date)}` 
+                            : 'REQUIRED - Not signed'}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {status.completed && status.pdfUrl && (
+                        <a href={status.pdfUrl} target="_blank" rel="noopener noreferrer"
+                          style={{ padding: '6px 12px', background: '#e3f2fd', color: '#1565c0', borderRadius: '4px', fontSize: '12px', textDecoration: 'none', fontWeight: '500' }}>
+                          View PDF
+                        </a>
+                      )}
+                      {!status.completed && FORM_URLS[consentType] && (
+                        <button 
+                          onClick={() => sendFormLink(consentType, FORM_URLS[consentType])}
+                          disabled={sendingForm === consentType}
+                          style={{ padding: '6px 12px', background: '#c62828', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>
+                          {sendingForm === consentType ? 'Sending...' : '📱 Send Consent'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Other completed consents not in required list */}
+              {consents.filter(c => !getRequiredConsents().includes(c.consent_type)).map(consent => (
+                <div key={consent.id} style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafafa' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>✅</span>
+                    <div>
+                      <div style={{ fontWeight: '500', fontSize: '14px' }}>{CONSENT_DISPLAY_NAMES[consent.consent_type] || consent.consent_type}</div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>Signed {formatDate(consent.submitted_at)}</div>
+                    </div>
+                  </div>
+                  {consent.pdf_url && (
+                    <a href={consent.pdf_url} target="_blank" rel="noopener noreferrer"
+                      style={{ padding: '6px 12px', background: '#e3f2fd', color: '#1565c0', borderRadius: '4px', fontSize: '12px', textDecoration: 'none', fontWeight: '500' }}>
+                      View PDF
+                    </a>
+                  )}
+                </div>
+              ))}
+
+              {/* Empty state */}
+              {getRequiredConsents().length === 0 && consents.length === 0 && intakes.length === 0 && (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                  No forms or consents on file
+                </div>
+              )}
+            </div>
+
+            {/* Protocol History */}
             <div style={{ background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', marginBottom: '24px' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid #e0e0e0' }}>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Protocol History & Assessments</h3>
               </div>
-              
               {protocols.length === 0 ? (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>No protocols found</div>
               ) : (
@@ -307,46 +516,19 @@ export default function PatientProfile() {
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', flexWrap: 'wrap' }}>
                               <span style={{ fontWeight: '600', fontSize: '15px' }}>{protocol.program_name}</span>
-                              {/* Injection Location Badge */}
-                              <button
-                                onClick={() => toggleInjectionLocation(protocol.id, protocol.injection_location)}
-                                disabled={updatingLocation === protocol.id}
-                                style={{
-                                  padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
-                                  border: 'none', cursor: 'pointer',
-                                  background: isInClinic ? '#e3f2fd' : '#fff3e0',
-                                  color: isInClinic ? '#1565c0' : '#e65100'
-                                }}
-                              >
+                              <button onClick={() => toggleInjectionLocation(protocol.id, protocol.injection_location)} disabled={updatingLocation === protocol.id}
+                                style={{ padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', border: 'none', cursor: 'pointer', background: isInClinic ? '#e3f2fd' : '#fff3e0', color: isInClinic ? '#1565c0' : '#e65100' }}>
                                 {updatingLocation === protocol.id ? '...' : isInClinic ? '🏥 In-Clinic' : '🏠 Take-Home'}
                               </button>
-                              {/* Frequency Toggle - only for weight loss */}
                               {isWeightLoss && (
-                                <button
-                                  onClick={() => toggleFrequency(protocol.id, protocol.dose_frequency)}
-                                  disabled={updatingFrequency === protocol.id}
-                                  style={{
-                                    padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
-                                    border: 'none', cursor: 'pointer',
-                                    background: protocol.dose_frequency === '2x weekly' ? '#fce4ec' : '#f3e5f5',
-                                    color: protocol.dose_frequency === '2x weekly' ? '#c2185b' : '#7b1fa2'
-                                  }}
-                                >
+                                <button onClick={() => toggleFrequency(protocol.id, protocol.dose_frequency)} disabled={updatingFrequency === protocol.id}
+                                  style={{ padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', border: 'none', cursor: 'pointer', background: protocol.dose_frequency === '2x weekly' ? '#fce4ec' : '#f3e5f5', color: protocol.dose_frequency === '2x weekly' ? '#c2185b' : '#7b1fa2' }}>
                                   {updatingFrequency === protocol.id ? '...' : protocol.dose_frequency === '2x weekly' ? '💉 2x Weekly' : '💉 1x Weekly'}
                                 </button>
                               )}
-                              {/* Auto-Text Toggle - only show for take-home */}
                               {!isInClinic && (
-                                <button
-                                  onClick={() => toggleReminders(protocol.id, protocol.reminders_enabled)}
-                                  disabled={updatingReminders === protocol.id}
-                                  style={{
-                                    padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
-                                    border: 'none', cursor: 'pointer',
-                                    background: protocol.reminders_enabled ? '#e8f5e9' : '#ffebee',
-                                    color: protocol.reminders_enabled ? '#2e7d32' : '#c62828'
-                                  }}
-                                >
+                                <button onClick={() => toggleReminders(protocol.id, protocol.reminders_enabled)} disabled={updatingReminders === protocol.id}
+                                  style={{ padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', border: 'none', cursor: 'pointer', background: protocol.reminders_enabled ? '#e8f5e9' : '#ffebee', color: protocol.reminders_enabled ? '#2e7d32' : '#c62828' }}>
                                   {updatingReminders === protocol.id ? '...' : protocol.reminders_enabled ? '📱 Auto-Texts ON' : '📱 Auto-Texts OFF'}
                                 </button>
                               )}
@@ -357,17 +539,10 @@ export default function PatientProfile() {
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{
-                              padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '500',
-                              background: `${getStatusColor(protocol.status)}15`, color: getStatusColor(protocol.status)
-                            }}>
-                              {protocol.status}
-                            </span>
+                            <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '500', background: `${getStatusColor(protocol.status)}15`, color: getStatusColor(protocol.status) }}>{protocol.status}</span>
                             {!isInClinic && (
-                              <button
-                                onClick={() => { navigator.clipboard.writeText(`https://app.range-medical.com/track/${protocol.access_token}`); alert('Link copied!'); }}
-                                style={{ padding: '4px 8px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
-                              >
+                              <button onClick={() => { navigator.clipboard.writeText(`https://app.range-medical.com/track/${protocol.access_token}`); alert('Link copied!'); }}
+                                style={{ padding: '4px 8px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>
                                 📱 Copy Link
                               </button>
                             )}
@@ -376,18 +551,12 @@ export default function PatientProfile() {
 
                         {/* Assessment Actions */}
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                          {/* Intake */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: intake ? '#4caf50' : '#ddd' }} />
-                            <span style={{ fontSize: '12px', color: intake ? '#4caf50' : '#999' }}>
-                              {intake ? 'Intake complete' : 'Intake pending'}
-                            </span>
+                            <span style={{ fontSize: '12px', color: intake ? '#4caf50' : '#999' }}>{intake ? 'Intake complete' : 'Intake pending'}</span>
                             {!intake && (
                               isInClinic ? (
-                                <button onClick={() => openQuestionnaireModal(protocol, 'intake')}
-                                  style={{ padding: '2px 8px', fontSize: '10px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                                  Complete
-                                </button>
+                                <button onClick={() => openQuestionnaireModal(protocol, 'intake')} style={{ padding: '2px 8px', fontSize: '10px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Complete</button>
                               ) : protocol.ghl_contact_id && (
                                 <button onClick={() => sendReminder(protocol.id, 'intake')} disabled={sendingReminder === `${protocol.id}-intake`}
                                   style={{ padding: '2px 8px', fontSize: '10px', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}>
@@ -396,22 +565,15 @@ export default function PatientProfile() {
                               )
                             )}
                           </div>
-                          
-                          {/* Completion */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: completion ? '#4caf50' : '#ddd' }} />
-                            <span style={{ fontSize: '12px', color: completion ? '#4caf50' : daysLeft <= 2 ? '#e65100' : '#999' }}>
-                              {completion ? 'Completion done' : daysLeft <= 2 ? 'Completion due!' : 'Completion pending'}
-                            </span>
+                            <span style={{ fontSize: '12px', color: completion ? '#4caf50' : '#999' }}>{completion ? 'Completion complete' : 'Completion pending'}</span>
                             {!completion && intake && (
                               isInClinic ? (
-                                <button onClick={() => openQuestionnaireModal(protocol, 'completion')}
-                                  style={{ padding: '2px 8px', fontSize: '10px', background: daysLeft <= 2 ? '#ff9800' : '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                                  Complete
-                                </button>
+                                <button onClick={() => openQuestionnaireModal(protocol, 'completion')} style={{ padding: '2px 8px', fontSize: '10px', background: '#2196f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Complete</button>
                               ) : protocol.ghl_contact_id && (
                                 <button onClick={() => sendReminder(protocol.id, 'completion')} disabled={sendingReminder === `${protocol.id}-completion`}
-                                  style={{ padding: '2px 8px', fontSize: '10px', background: daysLeft <= 2 ? '#fff3e0' : '#fff', border: daysLeft <= 2 ? '1px solid #ff9800' : '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', color: daysLeft <= 2 ? '#e65100' : '#333' }}>
+                                  style={{ padding: '2px 8px', fontSize: '10px', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}>
                                   {sendingReminder === `${protocol.id}-completion` ? '...' : 'Send Reminder'}
                                 </button>
                               )
@@ -421,31 +583,30 @@ export default function PatientProfile() {
 
                         {/* Scores Display */}
                         {(intake || completion) && (
-                          <div style={{ display: 'flex', gap: '20px', background: '#fafafa', borderRadius: '8px', padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', gap: '20px', padding: '12px', background: '#fafafa', borderRadius: '6px', fontSize: '13px' }}>
                             {intake && (
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '10px', color: '#666', marginBottom: '8px', fontWeight: '600' }}>INTAKE</div>
                                 {isWeightLoss ? (
-                                  <div style={{ display: 'flex', gap: '16px', fontSize: '13px' }}>
+                                  <div style={{ display: 'flex', gap: '16px' }}>
                                     <div><span style={{ fontWeight: '600' }}>{intake.current_weight}</span> lbs</div>
                                     <div><span style={{ fontWeight: '600' }}>{intake.appetite_level}/10</span> appetite</div>
                                     <div><span style={{ fontWeight: '600' }}>{intake.cravings_level}/10</span> cravings</div>
                                   </div>
                                 ) : (
-                                  <div style={{ display: 'flex', gap: '16px', fontSize: '13px' }}>
+                                  <div style={{ display: 'flex', gap: '16px' }}>
                                     <div><span style={{ fontWeight: '600' }}>{intake.pain_level}</span> pain</div>
                                     <div><span style={{ fontWeight: '600' }}>{intake.mobility_score}</span> mobility</div>
                                     <div><span style={{ fontWeight: '600' }}>{intake.sleep_quality}</span> sleep</div>
                                   </div>
                                 )}
-                                {intake.injury_location && <div style={{ fontSize: '12px', color: '#666', marginTop: '6px' }}><strong>Focus:</strong> {intake.injury_location}</div>}
                               </div>
                             )}
                             {completion && (
                               <div style={{ flex: 1, borderLeft: intake ? '1px solid #e0e0e0' : 'none', paddingLeft: intake ? '20px' : '0' }}>
                                 <div style={{ fontSize: '10px', color: '#2e7d32', marginBottom: '8px', fontWeight: '600' }}>COMPLETION</div>
                                 {isWeightLoss ? (
-                                  <div style={{ display: 'flex', gap: '16px', fontSize: '13px' }}>
+                                  <div style={{ display: 'flex', gap: '16px' }}>
                                     <div>
                                       <span style={{ fontWeight: '600' }}>{completion.weight_at_completion}</span> lbs
                                       {intake?.current_weight && <span style={{ fontSize: '11px', marginLeft: '4px', color: parseFloat(completion.weight_at_completion) < parseFloat(intake.current_weight) ? '#4caf50' : '#c62828' }}>
@@ -455,7 +616,7 @@ export default function PatientProfile() {
                                     <div><span style={{ fontWeight: '600' }}>{completion.appetite_level}/10</span> appetite</div>
                                   </div>
                                 ) : (
-                                  <div style={{ display: 'flex', gap: '16px', fontSize: '13px' }}>
+                                  <div style={{ display: 'flex', gap: '16px' }}>
                                     <div>
                                       <span style={{ fontWeight: '600' }}>{completion.pain_level}</span> pain
                                       {intake && <span style={{ fontSize: '11px', marginLeft: '4px', color: completion.pain_level < intake.pain_level ? '#4caf50' : '#c62828' }}>
@@ -468,10 +629,8 @@ export default function PatientProfile() {
                                         ({completion.mobility_score > intake.mobility_score ? '↑' : '↓'}{Math.abs(completion.mobility_score - intake.mobility_score)})
                                       </span>}
                                     </div>
-                                    <div><span style={{ fontWeight: '600' }}>{completion.overall_improvement}/10</span> improvement</div>
                                   </div>
                                 )}
-                                {completion.continue_treatment && <div style={{ fontSize: '12px', color: '#2e7d32', marginTop: '6px' }}>✓ Wants to continue</div>}
                               </div>
                             )}
                           </div>
@@ -519,16 +678,13 @@ export default function PatientProfile() {
             <div style={{ background: 'white', borderRadius: '12px', width: '90%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' }}>
               <div style={{ padding: '20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '18px' }}>
-                    {showQuestionnaireModal.type === 'intake' ? 'Intake' : 'Completion'} Assessment
-                  </h3>
+                  <h3 style={{ margin: 0, fontSize: '18px' }}>{showQuestionnaireModal.type === 'intake' ? 'Intake' : 'Completion'} Assessment</h3>
                   <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#666' }}>{showQuestionnaireModal.protocol.patient_name}</p>
                 </div>
                 <button onClick={() => setShowQuestionnaireModal(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>×</button>
               </div>
               
               <div style={{ padding: '20px' }}>
-                {/* PEPTIDE FORM */}
                 {showQuestionnaireModal.category === 'peptide' && (
                   <>
                     {showQuestionnaireModal.type === 'intake' && (
@@ -555,7 +711,7 @@ export default function PatientProfile() {
                       <input type="range" min="0" max="10" value={formData.pain_level} onChange={(e) => setFormData({...formData, pain_level: parseInt(e.target.value)})} style={{ width: '100%' }} />
                     </div>
                     <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Mobility: {formData.mobility_score}/10</label>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Mobility Score: {formData.mobility_score}/10</label>
                       <input type="range" min="0" max="10" value={formData.mobility_score} onChange={(e) => setFormData({...formData, mobility_score: parseInt(e.target.value)})} style={{ width: '100%' }} />
                     </div>
                     <div style={{ marginBottom: '16px' }}>
@@ -567,106 +723,52 @@ export default function PatientProfile() {
                       <input type="range" min="0" max="10" value={formData.energy_level} onChange={(e) => setFormData({...formData, energy_level: parseInt(e.target.value)})} style={{ width: '100%' }} />
                     </div>
                     {showQuestionnaireModal.type === 'completion' && (
-                      <>
-                        <div style={{ marginBottom: '16px' }}>
-                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Overall Improvement: {formData.overall_improvement}/10</label>
-                          <input type="range" min="0" max="10" value={formData.overall_improvement} onChange={(e) => setFormData({...formData, overall_improvement: parseInt(e.target.value)})} style={{ width: '100%' }} />
-                        </div>
-                        <div style={{ marginBottom: '16px' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                            <input type="checkbox" checked={formData.continue_treatment} onChange={(e) => setFormData({...formData, continue_treatment: e.target.checked})} />
-                            Patient wants to continue treatment
-                          </label>
-                        </div>
-                      </>
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Overall Improvement: {formData.overall_improvement}/10</label>
+                        <input type="range" min="0" max="10" value={formData.overall_improvement} onChange={(e) => setFormData({...formData, overall_improvement: parseInt(e.target.value)})} style={{ width: '100%' }} />
+                      </div>
                     )}
                   </>
                 )}
-
-                {/* WEIGHT LOSS FORM */}
+                
                 {showQuestionnaireModal.category === 'weight_loss' && (
                   <>
-                    {showQuestionnaireModal.type === 'intake' ? (
+                    {showQuestionnaireModal.type === 'intake' && (
                       <>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Current Weight (lbs) *</label>
-                            <input type="number" value={formData.current_weight} onChange={(e) => setFormData({...formData, current_weight: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Goal Weight (lbs)</label>
-                            <input type="number" value={formData.goal_weight} onChange={(e) => setFormData({...formData, goal_weight: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
-                          </div>
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Current Weight (lbs) *</label>
+                          <input type="number" value={formData.current_weight} onChange={(e) => setFormData({...formData, current_weight: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
+                        </div>
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Goal Weight (lbs)</label>
+                          <input type="number" value={formData.goal_weight} onChange={(e) => setFormData({...formData, goal_weight: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
                         </div>
                       </>
-                    ) : (
+                    )}
+                    {showQuestionnaireModal.type === 'completion' && (
                       <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Current Weight (lbs) *</label>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Weight at Completion (lbs) *</label>
                         <input type="number" value={formData.weight_at_completion} onChange={(e) => setFormData({...formData, weight_at_completion: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
                       </div>
                     )}
                     <div style={{ marginBottom: '16px' }}>
                       <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Appetite Level: {formData.appetite_level}/10</label>
                       <input type="range" min="0" max="10" value={formData.appetite_level} onChange={(e) => setFormData({...formData, appetite_level: parseInt(e.target.value)})} style={{ width: '100%' }} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#666' }}><span>No appetite</span><span>Always hungry</span></div>
                     </div>
                     <div style={{ marginBottom: '16px' }}>
                       <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Cravings Level: {formData.cravings_level}/10</label>
                       <input type="range" min="0" max="10" value={formData.cravings_level} onChange={(e) => setFormData({...formData, cravings_level: parseInt(e.target.value)})} style={{ width: '100%' }} />
                     </div>
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Energy Level: {formData.energy_level}/10</label>
-                      <input type="range" min="0" max="10" value={formData.energy_level} onChange={(e) => setFormData({...formData, energy_level: parseInt(e.target.value)})} style={{ width: '100%' }} />
-                    </div>
-                    {showQuestionnaireModal.type === 'completion' && (
-                      <>
-                        <div style={{ marginBottom: '16px' }}>
-                          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Any side effects?</label>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {SIDE_EFFECTS.map(e => (
-                              <button key={e} type="button" onClick={() => {
-                                const current = formData.side_effects;
-                                if (e === 'None') {
-                                  setFormData({...formData, side_effects: current.includes('None') ? [] : ['None']});
-                                } else {
-                                  const filtered = current.filter(x => x !== 'None');
-                                  setFormData({...formData, side_effects: filtered.includes(e) ? filtered.filter(x => x !== e) : [...filtered, e]});
-                                }
-                              }} style={{ padding: '6px 12px', borderRadius: '16px', fontSize: '12px', cursor: 'pointer', border: formData.side_effects.includes(e) ? '2px solid #ff9800' : '1px solid #ddd', background: formData.side_effects.includes(e) ? '#fff3e0' : 'white' }}>{e}</button>
-                            ))}
-                          </div>
-                        </div>
-                        <div style={{ marginBottom: '16px' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                            <input type="checkbox" checked={formData.continue_treatment} onChange={(e) => setFormData({...formData, continue_treatment: e.target.checked})} />
-                            Patient wants to continue treatment
-                          </label>
-                        </div>
-                      </>
-                    )}
                   </>
                 )}
-
-                {/* Goals / Notes */}
-                {showQuestionnaireModal.type === 'intake' && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Patient Goals</label>
-                    <textarea value={formData.recovery_goals} onChange={(e) => setFormData({...formData, recovery_goals: e.target.value})} rows={2} placeholder="What does the patient hope to achieve?" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
-                  </div>
-                )}
-                {showQuestionnaireModal.type === 'completion' && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Improvements Noted</label>
-                    <textarea value={formData.goals_achieved} onChange={(e) => setFormData({...formData, goals_achieved: e.target.value})} rows={2} placeholder="What improvements did the patient report?" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
-                  </div>
-                )}
+                
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Additional Notes</label>
-                  <textarea value={formData.additional_notes} onChange={(e) => setFormData({...formData, additional_notes: e.target.value})} rows={2} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Notes</label>
+                  <textarea value={formData.additional_notes} onChange={(e) => setFormData({...formData, additional_notes: e.target.value})} rows={3} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box', resize: 'vertical' }} />
                 </div>
-
-                <button onClick={submitStaffQuestionnaire} disabled={submittingQuestionnaire}
-                  style={{ width: '100%', padding: '14px', background: submittingQuestionnaire ? '#999' : 'black', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
+                
+                <button onClick={submitQuestionnaire} disabled={submittingQuestionnaire}
+                  style={{ width: '100%', padding: '14px', background: 'black', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
                   {submittingQuestionnaire ? 'Saving...' : 'Save Assessment'}
                 </button>
               </div>

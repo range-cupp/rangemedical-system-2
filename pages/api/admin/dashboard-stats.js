@@ -182,8 +182,54 @@ export default async function handler(req, res) {
     const hrtMembers = Array.from(hrtMemberMap.values());
 
     // Get active protocol counts by category
-    const activePeptideProtocols = activePeptideProtocolsResult.data || [];
-    const activeWeightLossProtocols = activeWeightLossProtocolsResult.data || [];
+    const activePeptideProtocolsRaw = activePeptideProtocolsResult.data || [];
+    const activeWeightLossProtocolsRaw = activeWeightLossProtocolsResult.data || [];
+    
+    // Get injection counts for all active protocols
+    const allProtocolIds = [
+      ...activePeptideProtocolsRaw.map(p => p.id),
+      ...activeWeightLossProtocolsRaw.map(p => p.id)
+    ];
+    
+    let injectionCounts = {};
+    if (allProtocolIds.length > 0) {
+      const { data: logs } = await supabase
+        .from('injection_logs')
+        .select('protocol_id')
+        .in('protocol_id', allProtocolIds);
+      
+      if (logs) {
+        logs.forEach(log => {
+          injectionCounts[log.protocol_id] = (injectionCounts[log.protocol_id] || 0) + 1;
+        });
+      }
+    }
+
+    // Enhance peptide protocols with injection data
+    const activePeptideProtocols = activePeptideProtocolsRaw.map(protocol => {
+      let expectedInjections = protocol.duration_days || 10;
+      if (protocol.dose_frequency === 'Every other day') {
+        expectedInjections = Math.ceil(expectedInjections / 2);
+      } else if (protocol.dose_frequency?.includes('5 days on')) {
+        expectedInjections = Math.round(expectedInjections * 5 / 7);
+      }
+      return {
+        ...protocol,
+        injections_completed: injectionCounts[protocol.id] || 0,
+        expected_injections: expectedInjections
+      };
+    });
+
+    // Enhance weight loss protocols with injection data
+    const activeWeightLossProtocols = activeWeightLossProtocolsRaw.map(protocol => {
+      const weeks = Math.ceil((protocol.duration_days || 30) / 7);
+      const expectedInjections = protocol.dose_frequency === '2x weekly' ? weeks * 2 : weeks;
+      return {
+        ...protocol,
+        injections_completed: injectionCounts[protocol.id] || 0,
+        expected_injections: expectedInjections
+      };
+    });
 
     // Build response
     const response = {

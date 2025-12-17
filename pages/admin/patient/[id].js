@@ -236,6 +236,7 @@ function OverviewTab({ patient }) {
               <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
                 <div>
                   <span style={{ color: '#333' }}>{p.item_name}</span>
+                  {p.quantity > 1 && <span style={{ marginLeft: '6px', fontWeight: '600' }}>×{p.quantity}</span>}
                   {!p.protocol_id && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px' }}>UNASSIGNED</span>}
                 </div>
                 <span style={{ color: '#666' }}>{formatCurrency(p.amount)}</span>
@@ -276,7 +277,10 @@ function PurchasesTab({ patient, onCreateProtocol, onRefresh }) {
                 alignItems: 'center'
               }}>
                 <div>
-                  <div style={{ fontWeight: '500', fontSize: '15px' }}>{purchase.item_name}</div>
+                  <div style={{ fontWeight: '500', fontSize: '15px' }}>
+                    {purchase.item_name}
+                    {purchase.quantity > 1 && <span style={{ marginLeft: '8px', fontSize: '13px', fontWeight: '600', color: '#000' }}>×{purchase.quantity}</span>}
+                  </div>
                   <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
                     {formatDate(purchase.purchase_date)} • {purchase.category} • {formatCurrency(purchase.amount)}
                   </div>
@@ -320,6 +324,7 @@ function PurchasesTab({ patient, onCreateProtocol, onRefresh }) {
                 <tr style={{ background: '#fafafa' }}>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Date</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Item</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Qty</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Category</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Amount</th>
                   <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666' }}>Status</th>
@@ -330,6 +335,9 @@ function PurchasesTab({ patient, onCreateProtocol, onRefresh }) {
                   <tr key={p.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{formatDate(p.purchase_date)}</td>
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.item_name}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', textAlign: 'center', fontWeight: p.quantity > 1 ? '600' : '400' }}>
+                      {p.quantity || 1}
+                    </td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{
                         display: 'inline-block',
@@ -441,12 +449,20 @@ function ProtocolsTab({ protocols = [], onEditProtocol, onViewNotes }) {
                 <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Days Left</div>
               </div>
             )}
-            {protocol.injections_completed !== undefined && (
+            {protocol.total_sessions ? (
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: '600' }}>
+                  {protocol.injections_completed || 0}
+                  <span style={{ fontSize: '14px', fontWeight: '400', color: '#666' }}> / {protocol.total_sessions}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Sessions</div>
+              </div>
+            ) : protocol.injections_completed !== undefined && protocol.injections_completed !== null ? (
               <div>
                 <div style={{ fontSize: '24px', fontWeight: '600' }}>{protocol.injections_completed || 0}</div>
                 <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Logged</div>
               </div>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -814,6 +830,7 @@ function CreateProtocolModal({ purchase, patient, onClose, onSuccess }) {
     program_type: template.program_type,
     injection_location: template.injection_location,
     duration_days: template.duration_days || 10,
+    total_sessions: purchase?.quantity > 1 ? purchase.quantity : null,
     primary_peptide: '',
     secondary_peptide: '',
     dose_amount: '',
@@ -866,6 +883,7 @@ function CreateProtocolModal({ purchase, patient, onClose, onSuccess }) {
           program_type: formData.program_type,
           injection_location: formData.injection_location,
           duration_days: formData.duration_days,
+          total_sessions: formData.total_sessions,
           primary_peptide: formData.primary_peptide,
           secondary_peptide: formData.secondary_peptide,
           dose_amount: formData.dose_amount,
@@ -920,7 +938,7 @@ function CreateProtocolModal({ purchase, patient, onClose, onSuccess }) {
         <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Create Protocol</h2>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>
-            From: {purchase.item_name} ({formatCurrency(purchase.amount)})
+            From: {purchase.item_name}{purchase.quantity > 1 && ` ×${purchase.quantity}`} ({formatCurrency(purchase.amount)})
           </p>
         </div>
 
@@ -1074,6 +1092,30 @@ function CreateProtocolModal({ purchase, patient, onClose, onSuccess }) {
               />
             </div>
           </div>
+
+          {/* Total Sessions - for session-based protocols */}
+          {['peptide_injection', 'hbot', 'red_light', 'iv_therapy'].includes(formData.template) || purchase?.quantity > 1 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+                  Total Sessions
+                  {purchase?.quantity > 1 && <span style={{ fontWeight: '400', color: '#666' }}> (from purchase qty)</span>}
+                </label>
+                <input
+                  type="number"
+                  value={formData.total_sessions || ''}
+                  onChange={(e) => setFormData({ ...formData, total_sessions: parseInt(e.target.value) || null })}
+                  placeholder="e.g., 10"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+                <span style={{ fontSize: '13px', color: '#666' }}>
+                  Track completion as sessions (e.g., 5 of {formData.total_sessions || '?'} completed)
+                </span>
+              </div>
+            </div>
+          ) : null}
 
           {/* Special Instructions */}
           <div>

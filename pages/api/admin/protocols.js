@@ -26,6 +26,7 @@ export default async function handler(req, res) {
       secondary_peptide,
       dose_amount,
       dose_frequency,
+      injection_days,
       start_date,
       end_date,
       special_instructions,
@@ -56,6 +57,22 @@ export default async function handler(req, res) {
       }
     }
 
+    // Generate access token
+    const crypto = require('crypto');
+    const accessToken = crypto.randomBytes(16).toString('hex');
+
+    // Calculate expected injections based on frequency
+    let expectedInjections = duration_days || 0;
+    if (dose_frequency === '2x_daily') {
+      expectedInjections = (duration_days || 0) * 2;
+    } else if (dose_frequency === 'every_other_day') {
+      expectedInjections = Math.ceil((duration_days || 0) / 2);
+    } else if (dose_frequency === '2x_weekly') {
+      expectedInjections = Math.ceil((duration_days || 0) / 7) * 2;
+    } else if (dose_frequency === 'weekly') {
+      expectedInjections = Math.ceil((duration_days || 0) / 7);
+    }
+
     // Create protocol
     const protocolData = {
       patient_id: resolvedPatientId,
@@ -68,16 +85,19 @@ export default async function handler(req, res) {
       injection_location: injection_location || 'take_home',
       duration_days: duration_days || null,
       total_sessions: total_sessions || null,
+      expected_injections: expectedInjections || null,
       primary_peptide: primary_peptide || null,
       secondary_peptide: secondary_peptide || null,
       dose_amount: dose_amount || null,
-      dose_frequency: dose_frequency || null,
+      dose_frequency: dose_frequency || 'daily',
+      injection_days: injection_days || null,
       start_date: start_date || new Date().toISOString().split('T')[0],
       end_date: end_date || null,
       special_instructions: special_instructions || null,
       reminders_enabled: reminders_enabled !== false,
       status: status || 'active',
       amount: amount || null,
+      access_token: accessToken,
       injections_completed: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -165,6 +185,7 @@ export default async function handler(req, res) {
       secondary_peptide,
       dose_amount,
       dose_frequency,
+      injection_days,
       special_instructions,
       notes,
       reminders_enabled
@@ -178,6 +199,22 @@ export default async function handler(req, res) {
       end_date = endDateObj.toISOString().split('T')[0];
     }
 
+    // Calculate expected injections based on frequency
+    let expectedInjections = null;
+    if (duration_days && dose_frequency) {
+      if (dose_frequency === '2x_daily') {
+        expectedInjections = duration_days * 2;
+      } else if (dose_frequency === 'daily') {
+        expectedInjections = duration_days;
+      } else if (dose_frequency === 'every_other_day') {
+        expectedInjections = Math.ceil(duration_days / 2);
+      } else if (dose_frequency === '2x_weekly') {
+        expectedInjections = Math.ceil(duration_days / 7) * 2;
+      } else if (dose_frequency === 'weekly') {
+        expectedInjections = Math.ceil(duration_days / 7);
+      }
+    }
+
     const updateData = {
       patient_name,
       patient_email,
@@ -188,11 +225,13 @@ export default async function handler(req, res) {
       start_date,
       end_date,
       duration_days,
+      expected_injections: expectedInjections,
       status,
       primary_peptide,
       secondary_peptide,
       dose_amount,
       dose_frequency,
+      injection_days,
       special_instructions,
       notes,
       reminders_enabled,

@@ -131,45 +131,93 @@ const CATEGORY_TO_TEMPLATE = {
 };
 
 // ============================================
-// CREATE PROTOCOL MODAL
+// PROGRAM TYPES (matching protocols page)
 // ============================================
-function CreateProtocolModal({ purchase, onClose, onSuccess }) {
+const PROGRAM_TYPES = [
+  // Peptide Programs
+  { value: 'recovery_jumpstart_10day', label: 'Peptide Recovery Jumpstart – 10 Day', category: 'Peptide', duration: 10 },
+  { value: 'month_program_30day', label: 'Peptide Month Program – 30 Day', category: 'Peptide', duration: 30 },
+  { value: 'maintenance_4week', label: 'Peptide Maintenance – 4-Week Refill', category: 'Peptide', duration: 28 },
+  { value: 'injection_clinic', label: 'Peptide Injection (In-Clinic)', category: 'Peptide', duration: 1 },
+  // Weight Loss Programs
+  { value: 'weight_loss_program', label: 'Weight Loss Program (Monthly)', category: 'Weight Loss', duration: 28 },
+  { value: 'weight_loss_injection', label: 'Weight Loss Injection', category: 'Weight Loss', duration: 7 },
+  // Session-based
+  { value: 'iv_therapy', label: 'IV Therapy', category: 'Sessions', duration: null },
+  { value: 'injection_pack', label: 'Injection Pack', category: 'Sessions', duration: null },
+  { value: 'hbot_sessions', label: 'Hyperbaric Oxygen Therapy', category: 'Sessions', duration: null },
+  { value: 'red_light_sessions', label: 'Red Light Therapy', category: 'Sessions', duration: null }
+];
+
+const FREQUENCY_OPTIONS = [
+  { value: '2x_daily', label: '2x Daily (AM & PM)' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'every_other_day', label: 'Every Other Day' },
+  { value: '2x_weekly', label: '2x Weekly (Mon & Thu)' },
+  { value: 'weekly', label: 'Weekly' }
+];
+
+// ============================================
+// CREATE PROTOCOL MODAL (Enhanced)
+// ============================================
+function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  // Determine template based on purchase category
-  const templateKey = CATEGORY_TO_TEMPLATE[purchase?.category] || 'peptide_jumpstart';
-  const template = PROTOCOL_TEMPLATES[templateKey] || PROTOCOL_TEMPLATES['peptide_jumpstart'];
+  // Group peptides by category
+  const peptidesByCategory = peptides.reduce((acc, p) => {
+    const cat = p.category || 'Other';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(p);
+    return acc;
+  }, {});
+
+  // Determine initial program type based on purchase category
+  const getInitialProgramType = () => {
+    const cat = purchase?.category;
+    if (cat === 'Peptide') return 'recovery_jumpstart_10day';
+    if (cat === 'Weight Loss') return 'weight_loss_program';
+    if (cat === 'IV Therapy') return 'iv_therapy';
+    if (cat === 'Injection') return 'injection_pack';
+    if (cat === 'Hyperbaric') return 'hbot_sessions';
+    if (cat === 'Red Light') return 'red_light_sessions';
+    return 'recovery_jumpstart_10day';
+  };
+
+  const initialProgramType = getInitialProgramType();
+  const initialProgram = PROGRAM_TYPES.find(p => p.value === initialProgramType);
 
   const [formData, setFormData] = useState({
-    template: templateKey,
-    program_name: template.name,
-    program_type: template.program_type,
-    injection_location: template.injection_location,
-    duration_days: template.duration_days || 10,
+    patient_name: purchase?.patient_name || '',
+    patient_email: purchase?.patient_email || '',
+    patient_phone: purchase?.patient_phone || '',
+    ghl_contact_id: purchase?.ghl_contact_id || '',
+    program_type: initialProgramType,
+    program_name: initialProgram?.label || '',
+    injection_location: initialProgram?.category === 'Sessions' ? 'in_clinic' : 'take_home',
+    duration_days: initialProgram?.duration || 10,
     total_sessions: purchase?.quantity > 1 ? purchase.quantity : null,
     primary_peptide: '',
     secondary_peptide: '',
     dose_amount: '',
-    dose_frequency: template.dose_frequency,
+    dose_frequency: 'daily',
     start_date: new Date().toISOString().split('T')[0],
     special_instructions: '',
-    reminders_enabled: template.injection_location === 'take_home'
+    notes: '',
+    reminders_enabled: initialProgram?.category !== 'Sessions'
   });
 
-  // Update form when template changes
-  const handleTemplateChange = (newTemplateKey) => {
-    const newTemplate = PROTOCOL_TEMPLATES[newTemplateKey];
-    if (newTemplate) {
+  // Update form when program type changes
+  const handleProgramTypeChange = (value) => {
+    const program = PROGRAM_TYPES.find(p => p.value === value);
+    if (program) {
       setFormData(prev => ({
         ...prev,
-        template: newTemplateKey,
-        program_name: newTemplate.name,
-        program_type: newTemplate.program_type,
-        injection_location: newTemplate.injection_location,
-        duration_days: newTemplate.duration_days || prev.duration_days,
-        dose_frequency: newTemplate.dose_frequency,
-        reminders_enabled: newTemplate.injection_location === 'take_home'
+        program_type: value,
+        program_name: program.label,
+        duration_days: program.duration || prev.duration_days,
+        injection_location: program.category === 'Sessions' ? 'in_clinic' : prev.injection_location,
+        reminders_enabled: program.category !== 'Sessions'
       }));
     }
   };
@@ -190,10 +238,10 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ghl_contact_id: purchase.ghl_contact_id,
-          patient_name: purchase.patient_name,
-          patient_email: purchase.patient_email,
-          patient_phone: purchase.patient_phone,
+          ghl_contact_id: formData.ghl_contact_id,
+          patient_name: formData.patient_name,
+          patient_email: formData.patient_email,
+          patient_phone: formData.patient_phone,
           purchase_id: purchase.id,
           program_name: formData.program_name,
           program_type: formData.program_type,
@@ -207,6 +255,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
           start_date: formData.start_date,
           end_date: calculateEndDate(),
           special_instructions: formData.special_instructions,
+          notes: formData.notes,
           reminders_enabled: formData.reminders_enabled,
           status: 'active',
           amount: purchase.amount
@@ -232,6 +281,9 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
   };
 
+  const isPeptideProgram = ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic'].includes(formData.program_type);
+  const isWeightLoss = ['weight_loss_program', 'weight_loss_injection'].includes(formData.program_type);
+
   return (
     <div style={{
       position: 'fixed',
@@ -247,269 +299,359 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     }} onClick={onClose}>
       <div style={{
         background: 'white',
-        borderRadius: '12px',
+        borderRadius: '8px',
         width: '100%',
-        maxWidth: '600px',
+        maxWidth: '700px',
         maxHeight: '90vh',
         overflow: 'auto',
         margin: '20px'
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Create Protocol</h2>
-          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>
-            {purchase.patient_name} • {purchase.item_name}{purchase.quantity > 1 && ` ×${purchase.quantity}`} ({formatCurrency(purchase.amount)})
-          </p>
+        <div style={{
+          padding: '20px',
+          borderBottom: '1px solid #e0e0e0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'black',
+          color: 'white',
+          borderRadius: '8px 8px 0 0'
+        }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Create Protocol</h2>
+            <p style={{ margin: '4px 0 0', fontSize: '13px', opacity: 0.8 }}>
+              {purchase.item_name}{purchase.quantity > 1 && ` ×${purchase.quantity}`} ({formatCurrency(purchase.amount)})
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            color: 'white',
+            lineHeight: 1
+          }}>
+            ×
+          </button>
         </div>
 
         {/* Form */}
-        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ padding: '20px' }}>
           {error && (
-            <div style={{ padding: '12px', background: '#fef2f2', color: '#991b1b', borderRadius: '6px', fontSize: '14px' }}>
+            <div style={{ padding: '12px', background: '#ffebee', color: '#c62828', borderRadius: '6px', fontSize: '14px', marginBottom: '16px' }}>
               {error}
             </div>
           )}
 
-          {/* Template Selection */}
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Protocol Type</label>
-            <select
-              value={formData.template}
-              onChange={(e) => handleTemplateChange(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px' }}
-            >
-              <optgroup label="Peptide">
-                <option value="peptide_jumpstart">Peptide Recovery Jumpstart (10-Day)</option>
-                <option value="peptide_month">Peptide Month Program (30-Day)</option>
-                <option value="peptide_maintenance">Peptide Maintenance (4-Week)</option>
-                <option value="peptide_injection">Peptide Injection (In-Clinic)</option>
-              </optgroup>
-              <optgroup label="Other Services">
-                <option value="weight_loss">Weight Loss Program</option>
-                <option value="hrt">HRT Membership</option>
-                <option value="hbot">Hyperbaric Oxygen Therapy</option>
-                <option value="red_light">Red Light Therapy</option>
-                <option value="iv_therapy">IV Therapy</option>
-                <option value="injection_pack">Injection Pack</option>
-              </optgroup>
-            </select>
-          </div>
-
-          {/* Injection Location */}
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Location</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, injection_location: 'take_home', reminders_enabled: true })}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  border: formData.injection_location === 'take_home' ? '2px solid black' : '1px solid #e5e5e5',
-                  borderRadius: '8px',
-                  background: formData.injection_location === 'take_home' ? '#fef3c7' : 'white',
-                  fontWeight: formData.injection_location === 'take_home' ? '600' : '400',
-                  cursor: 'pointer'
-                }}
-              >
-                🏠 Take Home
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, injection_location: 'in_clinic', reminders_enabled: false })}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  border: formData.injection_location === 'in_clinic' ? '2px solid black' : '1px solid #e5e5e5',
-                  borderRadius: '8px',
-                  background: formData.injection_location === 'in_clinic' ? '#e0e7ff' : 'white',
-                  fontWeight: formData.injection_location === 'in_clinic' ? '600' : '400',
-                  cursor: 'pointer'
-                }}
-              >
-                🏥 In-Clinic
-              </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            {/* Patient Info */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Patient Information</h3>
             </div>
-          </div>
-
-          {/* Peptide Names (for peptide protocols) */}
-          {formData.template.startsWith('peptide') && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Primary Peptide</label>
-                <input
-                  type="text"
-                  value={formData.primary_peptide}
-                  onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
-                  placeholder="e.g., BPC-157"
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Secondary Peptide</label>
-                <input
-                  type="text"
-                  value={formData.secondary_peptide}
-                  onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
-                  placeholder="e.g., TB-500"
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Dosing */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Dose Amount</label>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Patient Name *
+              </label>
               <input
                 type="text"
-                value={formData.dose_amount}
-                onChange={(e) => setFormData({ ...formData, dose_amount: e.target.value })}
-                placeholder="e.g., 500mcg"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                value={formData.patient_name}
+                onChange={(e) => setFormData({ ...formData, patient_name: e.target.value })}
+                required
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
               />
             </div>
+
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Frequency</label>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={formData.patient_email}
+                onChange={(e) => setFormData({ ...formData, patient_email: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={formData.patient_phone}
+                onChange={(e) => setFormData({ ...formData, patient_phone: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                GHL Contact ID
+              </label>
               <input
                 type="text"
-                value={formData.dose_frequency}
-                onChange={(e) => setFormData({ ...formData, dose_frequency: e.target.value })}
-                placeholder="e.g., Daily"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                value={formData.ghl_contact_id}
+                onChange={(e) => setFormData({ ...formData, ghl_contact_id: e.target.value })}
+                placeholder="Optional"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
               />
             </div>
-          </div>
 
-          {/* Dates */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+            {/* Program Info */}
+            <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Program Details</h3>
+            </div>
+
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Start Date</label>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Program Type *
+              </label>
+              <select
+                value={formData.program_type}
+                onChange={(e) => handleProgramTypeChange(e.target.value)}
+                required
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
+              >
+                <optgroup label="Peptide Programs">
+                  {PROGRAM_TYPES.filter(t => t.category === 'Peptide').map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Weight Loss Programs">
+                  {PROGRAM_TYPES.filter(t => t.category === 'Weight Loss').map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Session-Based">
+                  {PROGRAM_TYPES.filter(t => t.category === 'Sessions').map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Program Name
+              </label>
+              <input
+                type="text"
+                value={formData.program_name}
+                onChange={(e) => setFormData({ ...formData, program_name: e.target.value })}
+                placeholder="e.g., BPC-157 Recovery Program"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Start Date
+              </label>
               <input
                 type="date"
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
               />
             </div>
+
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Duration (days)</label>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Duration (Days)
+              </label>
               <input
                 type="number"
                 value={formData.duration_days || ''}
                 onChange={(e) => setFormData({ ...formData, duration_days: parseInt(e.target.value) || null })}
+                min="1"
+                max="365"
                 placeholder="Ongoing"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
               />
             </div>
+
+            {/* Peptide Selection - only show for peptide/weight loss programs */}
+            {(isPeptideProgram || isWeightLoss) && (
+              <>
+                <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+                  <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>
+                    {isWeightLoss ? 'Medication Selection' : 'Peptide Selection'}
+                  </h3>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                    Primary {isWeightLoss ? 'Medication' : 'Peptide'}
+                  </label>
+                  <select
+                    value={formData.primary_peptide}
+                    onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- Select --</option>
+                    {Object.entries(peptidesByCategory).map(([category, items]) => (
+                      <optgroup key={category} label={category}>
+                        {items.map(p => (
+                          <option key={p.id || p.name} value={p.name}>{p.name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                    Secondary {isWeightLoss ? 'Medication' : 'Peptide'}
+                  </label>
+                  <select
+                    value={formData.secondary_peptide}
+                    onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- None --</option>
+                    {Object.entries(peptidesByCategory).map(([category, items]) => (
+                      <optgroup key={category} label={category}>
+                        {items.map(p => (
+                          <option key={p.id || p.name} value={p.name}>{p.name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Dosing */}
+            <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Dosing Schedule</h3>
+            </div>
+
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>End Date</label>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Dose Amount
+              </label>
               <input
-                type="date"
-                value={calculateEndDate() || ''}
-                disabled
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box', background: '#f9f9f9' }}
+                type="text"
+                value={formData.dose_amount}
+                onChange={(e) => setFormData({ ...formData, dose_amount: e.target.value })}
+                placeholder="e.g., 500mcg or 0.5ml"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
               />
             </div>
-          </div>
 
-          {/* Total Sessions - for session-based protocols */}
-          {(['peptide_injection', 'hbot', 'red_light', 'iv_therapy', 'injection_pack'].includes(formData.template) || purchase?.quantity > 1) && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-                  Total Sessions
-                  {purchase?.quantity > 1 && <span style={{ fontWeight: '400', color: '#666' }}> (from purchase qty)</span>}
-                </label>
-                <input
-                  type="number"
-                  value={formData.total_sessions || ''}
-                  onChange={(e) => setFormData({ ...formData, total_sessions: parseInt(e.target.value) || null })}
-                  placeholder="e.g., 10"
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
-                <span style={{ fontSize: '13px', color: '#666' }}>
-                  Track completion as sessions (e.g., 5 of {formData.total_sessions || '?'} completed)
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Special Instructions */}
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Special Instructions</label>
-            <textarea
-              value={formData.special_instructions}
-              onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
-              placeholder="Any special instructions..."
-              rows={3}
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          {/* Reminders Toggle */}
-          {formData.injection_location === 'take_home' && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: '#f9f9f9', borderRadius: '8px' }}>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '500' }}>Daily Reminders</div>
-                <div style={{ fontSize: '12px', color: '#666' }}>Send 6:30pm text if no injection logged</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, reminders_enabled: !formData.reminders_enabled })}
-                style={{
-                  width: '50px',
-                  height: '28px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: formData.reminders_enabled ? '#000' : '#e5e5e5',
-                  cursor: 'pointer',
-                  position: 'relative'
-                }}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Frequency *
+              </label>
+              <select
+                value={formData.dose_frequency}
+                onChange={(e) => setFormData({ ...formData, dose_frequency: e.target.value })}
+                required
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
               >
-                <div style={{
-                  width: '22px',
-                  height: '22px',
-                  borderRadius: '50%',
-                  background: 'white',
-                  position: 'absolute',
-                  top: '3px',
-                  left: formData.reminders_enabled ? '25px' : '3px',
-                  transition: 'left 0.2s'
-                }} />
-              </button>
+                {FREQUENCY_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        <div style={{ padding: '20px', borderTop: '1px solid #e5e5e5', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-          <button
-            onClick={onClose}
-            style={{ padding: '10px 20px', border: '1px solid #e5e5e5', borderRadius: '6px', background: 'white', fontSize: '14px', cursor: 'pointer' }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            style={{
-              padding: '10px 24px',
-              border: 'none',
-              borderRadius: '6px',
-              background: '#000',
-              color: '#fff',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.6 : 1
-            }}
-          >
-            {saving ? 'Creating...' : 'Create Protocol'}
-          </button>
+            {/* Notes */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Special Instructions
+              </label>
+              <textarea
+                value={formData.special_instructions}
+                onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
+                rows={3}
+                placeholder="Instructions visible to patient..."
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
+                Internal Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={2}
+                placeholder="Staff-only notes..."
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical' }}
+              />
+            </div>
+
+            {/* Reminders */}
+            <div style={{ gridColumn: '1 / -1', background: '#f9f9f9', padding: '16px', borderRadius: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.reminders_enabled}
+                  onChange={(e) => setFormData({ ...formData, reminders_enabled: e.target.checked })}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '500' }}>Enable Injection Reminders</div>
+                  <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                    {formData.dose_frequency === '2x_daily' 
+                      ? 'Patient receives reminders at 8:00 AM & 6:30 PM on injection days'
+                      : formData.dose_frequency === '2x_weekly'
+                      ? 'Patient receives reminders at 6:30 PM on Monday & Thursday'
+                      : formData.dose_frequency === 'every_other_day'
+                      ? 'Patient receives reminders at 6:30 PM on alternating days'
+                      : formData.dose_frequency === 'weekly'
+                      ? 'Patient receives weekly reminder at 6:30 PM'
+                      : 'Patient receives daily reminder at 6:30 PM if no injection logged'}
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Submit buttons */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            marginTop: '24px',
+            paddingTop: '20px',
+            borderTop: '1px solid #e0e0e0'
+          }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '10px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                background: 'white',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={saving || !formData.patient_name}
+              style={{
+                padding: '10px 24px',
+                border: 'none',
+                borderRadius: '6px',
+                background: saving ? '#ccc' : '#000',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: saving ? 'wait' : 'pointer'
+              }}
+            >
+              {saving ? 'Creating...' : 'Create Protocol'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -928,6 +1070,7 @@ export default function AdminPurchases() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [purchases, setPurchases] = useState([]);
+  const [peptides, setPeptides] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [initialized, setInitialized] = useState(false);
@@ -936,6 +1079,19 @@ export default function AdminPurchases() {
   const [createProtocolPurchase, setCreateProtocolPurchase] = useState(null);
   const [addToProtocolPurchase, setAddToProtocolPurchase] = useState(null);
   const [editAmountPurchase, setEditAmountPurchase] = useState(null);
+  
+  // Fetch peptides for dropdown
+  const fetchPeptides = async () => {
+    try {
+      const res = await fetch('/api/admin/peptides');
+      if (res.ok) {
+        const data = await res.json();
+        setPeptides(data.peptides || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch peptides:', err);
+    }
+  };
   
   // Listen for create protocol event from AddToProtocol modal
   useEffect(() => {
@@ -1004,7 +1160,10 @@ export default function AdminPurchases() {
   };
 
   useEffect(() => {
-    if (isAuthenticated && initialized) fetchPurchases();
+    if (isAuthenticated && initialized) {
+      fetchPurchases();
+      fetchPeptides();
+    }
   }, [isAuthenticated, categoryFilter, dateRange, initialized]);
 
   useEffect(() => {
@@ -1136,6 +1295,7 @@ export default function AdminPurchases() {
       {createProtocolPurchase && (
         <CreateProtocolModal
           purchase={createProtocolPurchase}
+          peptides={peptides}
           onClose={() => setCreateProtocolPurchase(null)}
           onSuccess={handleProtocolCreated}
         />

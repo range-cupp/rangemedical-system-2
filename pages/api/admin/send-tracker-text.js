@@ -18,6 +18,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Helper to format phone
+  const formatPhone = (phone) => {
+    let formatted = phone.replace(/\D/g, '');
+    if (formatted.length === 10) {
+      return '+1' + formatted;
+    } else if (formatted.length === 11 && formatted.startsWith('1')) {
+      return '+' + formatted;
+    } else if (!formatted.startsWith('+')) {
+      return '+' + formatted;
+    }
+    return formatted;
+  };
+
   const {
     protocol_id,
     patient_name,
@@ -41,11 +54,20 @@ export default async function handler(req, res) {
   try {
     // Try GHL API first if we have contact ID
     if (ghl_contact_id && GHL_API_KEY) {
-      const ghlResponse = await sendViaGHL(ghl_contact_id, message);
+      const ghlResponse = await sendViaGHL(ghl_contact_id, message, patient_phone);
       if (ghlResponse.success) {
         // Log the send
         await logTextSent(protocol_id, patient_phone, message, 'ghl');
         return res.status(200).json({ success: true, method: 'ghl' });
+      }
+    }
+    
+    // Try direct SMS if no contact ID but have phone
+    if (!ghl_contact_id && patient_phone && GHL_API_KEY) {
+      const directResponse = await sendDirectSMS(formatPhone(patient_phone), message);
+      if (directResponse.success) {
+        await logTextSent(protocol_id, patient_phone, message, 'ghl_direct');
+        return res.status(200).json({ success: true, method: 'ghl_direct' });
       }
     }
 
@@ -69,9 +91,40 @@ export default async function handler(req, res) {
   }
 }
 
-async function sendViaGHL(contactId, message) {
+async function sendViaGHL(contactId, message, phone) {
   try {
-    // GHL Conversations API
+    // Format phone number for GHL (needs +1 for US)
+    let formattedPhone = phone.replace(/\D/g, ''); // Remove non-digits
+    if (formattedPhone.length === 10) {
+      formattedPhone = '+1' + formattedPhone;
+    } else if (formattedPhone.length === 11 && formattedPhone.startsWith('1')) {
+      formattedPhone = '+' + formattedPhone;
+    } else if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+' + formattedPhone;
+    }
+
+    // First, update the contact to ensure phone number is set
+    console.log('Updating contact phone:', contactId, formattedPhone);
+    const updateResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      body: JSON.stringify({
+        phone: formattedPhone
+      })
+    });
+
+    if (!updateResponse.ok) {
+      const updateError = await updateResponse.json();
+      console.error('Failed to update contact phone:', updateError);
+    } else {
+      console.log('Contact phone updated successfully');
+    }
+
+    // Now send the SMS
     const response = await fetch(`https://services.leadconnectorhq.com/conversations/messages`, {
       method: 'POST',
       headers: {
@@ -97,6 +150,39 @@ async function sendViaGHL(contactId, message) {
     }
   } catch (err) {
     console.error('GHL API error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+async function sendDirectSMS(phone, message) {
+  try {
+    // Use GHL's direct SMS endpoint
+    const response = await fetch(`https://services.leadconnectorhq.com/conversations/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      body: JSON.stringify({
+        type: 'SMS',
+        phone: phone,
+        message: message,
+        locationId: GHL_LOCATION_ID
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Direct SMS sent:', data);
+      return { success: true, data };
+    } else {
+      const error = await response.json();
+      console.error('Direct SMS error:', error);
+      return { success: false, error };
+    }
+  } catch (err) {
+    console.error('Direct SMS error:', err);
     return { success: false, error: err.message };
   }
 }

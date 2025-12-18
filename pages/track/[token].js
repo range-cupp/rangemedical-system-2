@@ -236,21 +236,35 @@ export default function PatientTracker() {
   };
 
   const toggleDay = async (dayValue, isCompleted) => {
-    if (isInClinic) return;
+    console.log('Toggle clicked:', { dayValue, isCompleted, isInClinic });
+    
+    if (isInClinic) {
+      console.log('In-clinic protocol - clicks disabled');
+      return;
+    }
+    
+    const dayNumber = Math.floor(dayValue);
     setSaving(dayValue);
     
     try {
       const res = await fetch(`/api/patient/tracker?token=${token}`, {
         method: isCompleted ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ day: Math.floor(dayValue) })
+        body: JSON.stringify({ day: dayNumber })
       });
+      
+      const result = await res.json();
+      console.log('API response:', result);
       
       if (res.ok) {
         await fetchData();
+      } else {
+        console.error('API error:', result);
+        alert('Error saving. Please try again.');
       }
     } catch (err) {
       console.error('Toggle error:', err);
+      alert('Connection error. Please try again.');
     }
     
     setSaving(null);
@@ -630,18 +644,13 @@ export default function PatientTracker() {
                         const dayKey = item.day;
                         const isCompleted = completedDays.includes(Math.floor(item.day));
                         const isSaving = saving === dayKey;
-                        const isClickable = !isInClinic && !isSaving;
                         const accentColor = isWeightLoss ? '#ff9800' : '#000';
                         
                         return (
                           <button 
                             key={`${item.day}-${idx}`}
-                            onClick={() => {
-                              if (isClickable) {
-                                toggleDay(item.day, isCompleted);
-                              }
-                            }}
-                            disabled={!isClickable}
+                            onClick={() => toggleDay(item.day, isCompleted)}
+                            disabled={isInClinic || isSaving}
                             style={{
                               aspectRatio: isWeightLoss ? '1.3' : '1',
                               borderRadius: '12px',
@@ -650,7 +659,7 @@ export default function PatientTracker() {
                               color: isCompleted ? 'white' : '#333',
                               fontSize: isWeightLoss ? '12px' : '15px',
                               fontWeight: '600',
-                              cursor: isClickable ? 'pointer' : 'default',
+                              cursor: (isInClinic || isSaving) ? 'default' : 'pointer',
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
@@ -658,7 +667,8 @@ export default function PatientTracker() {
                               opacity: isSaving ? 0.5 : 1,
                               transition: 'all 0.2s ease',
                               padding: '8px 4px',
-                              WebkitTapHighlightColor: 'transparent'
+                              WebkitTapHighlightColor: 'transparent',
+                              touchAction: 'manipulation'
                             }}
                           >
                             <span>{item.label}</span>

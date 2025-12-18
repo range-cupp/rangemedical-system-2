@@ -1,6 +1,6 @@
 // /pages/admin/protocols.js
-// Protocol Management Dashboard - CRUD Interface
-// Range Medical - Consistent with Dashboard styling
+// Protocol Management Dashboard - With Peptide Catalog & Frequency
+// Range Medical
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -15,7 +15,12 @@ const PROGRAM_TYPES = [
   { value: 'injection_clinic', label: 'Peptide Injection (In-Clinic)', category: 'Peptide' },
   // Weight Loss Programs
   { value: 'weight_loss_program', label: 'Weight Loss Program (Monthly)', category: 'Weight Loss' },
-  { value: 'weight_loss_injection', label: 'Weight Loss Injection', category: 'Weight Loss' }
+  { value: 'weight_loss_injection', label: 'Weight Loss Injection', category: 'Weight Loss' },
+  // Session-based
+  { value: 'iv_therapy', label: 'IV Therapy', category: 'Sessions' },
+  { value: 'injection_pack', label: 'Injection Pack', category: 'Sessions' },
+  { value: 'hbot_sessions', label: 'Hyperbaric Oxygen Therapy', category: 'Sessions' },
+  { value: 'red_light_sessions', label: 'Red Light Therapy', category: 'Sessions' }
 ];
 
 const STATUS_OPTIONS = [
@@ -25,16 +30,25 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled' }
 ];
 
+const FREQUENCY_OPTIONS = [
+  { value: '2x_daily', label: '2x Daily (AM & PM)', remindTimes: ['08:00', '18:30'] },
+  { value: 'daily', label: 'Daily', remindTimes: ['18:30'] },
+  { value: 'every_other_day', label: 'Every Other Day', remindTimes: ['18:30'] },
+  { value: '2x_weekly', label: '2x Weekly (Mon & Thu)', remindTimes: ['18:30'], days: [1, 4] },
+  { value: 'weekly', label: 'Weekly', remindTimes: ['18:30'] }
+];
+
 export default function AdminProtocols() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [protocols, setProtocols] = useState([]);
+  const [peptides, setPeptides] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  // Filters - initialize from URL params
+  // Filters
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [initialized, setInitialized] = useState(false);
@@ -62,7 +76,8 @@ export default function AdminProtocols() {
     primary_peptide: '',
     secondary_peptide: '',
     dose_amount: '',
-    dose_frequency: '',
+    dose_frequency: 'daily',
+    injection_days: [],
     special_instructions: '',
     notes: '',
     reminders_enabled: true
@@ -88,6 +103,13 @@ export default function AdminProtocols() {
     }
   }, []);
 
+  // Fetch peptides catalog
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchPeptides();
+    }
+  }, [isAuthenticated]);
+
   // Fetch protocols when authenticated and filters change
   useEffect(() => {
     if (isAuthenticated && initialized) {
@@ -103,6 +125,18 @@ export default function AdminProtocols() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  const fetchPeptides = async () => {
+    try {
+      const res = await fetch('/api/admin/peptides');
+      if (res.ok) {
+        const data = await res.json();
+        setPeptides(data.peptides || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch peptides:', err);
+    }
+  };
 
   const fetchProtocols = async () => {
     setLoading(true);
@@ -166,7 +200,8 @@ export default function AdminProtocols() {
       primary_peptide: '',
       secondary_peptide: '',
       dose_amount: '',
-      dose_frequency: '',
+      dose_frequency: 'daily',
+      injection_days: [],
       special_instructions: '',
       notes: '',
       reminders_enabled: true
@@ -178,7 +213,7 @@ export default function AdminProtocols() {
   const openEditModal = (protocol) => {
     setEditingProtocol(protocol);
     
-    // Map legacy program_type values to new ones
+    // Map legacy program_type values
     let programType = protocol.program_type || 'recovery_jumpstart_10day';
     if (programType === 'jumpstart_10day' || programType === 'recovery_10day') {
       programType = 'recovery_jumpstart_10day';
@@ -199,7 +234,8 @@ export default function AdminProtocols() {
       primary_peptide: protocol.primary_peptide || '',
       secondary_peptide: protocol.secondary_peptide || '',
       dose_amount: protocol.dose_amount || '',
-      dose_frequency: protocol.dose_frequency || '',
+      dose_frequency: protocol.dose_frequency || 'daily',
+      injection_days: protocol.injection_days || [],
       special_instructions: protocol.special_instructions || '',
       notes: protocol.notes || '',
       reminders_enabled: protocol.reminders_enabled !== false
@@ -293,6 +329,18 @@ export default function AdminProtocols() {
     }
   };
 
+  const getFrequencyLabel = (freq) => {
+    const option = FREQUENCY_OPTIONS.find(f => f.value === freq);
+    return option?.label || freq || 'Daily';
+  };
+
+  // Group peptides by category
+  const peptidesByCategory = peptides.reduce((acc, p) => {
+    if (!acc[p.category]) acc[p.category] = [];
+    acc[p.category].push(p);
+    return acc;
+  }, {});
+
   // Login screen
   if (!isAuthenticated) {
     return (
@@ -351,7 +399,7 @@ export default function AdminProtocols() {
         background: '#f5f5f5',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        {/* Header - Matches Dashboard */}
+        {/* Header */}
         <header style={{
           background: 'black',
           color: 'white',
@@ -394,7 +442,7 @@ export default function AdminProtocols() {
           </div>
         </header>
 
-        {/* Navigation - Matches Dashboard */}
+        {/* Navigation */}
         <nav style={{
           background: 'white',
           borderBottom: '1px solid #e0e0e0',
@@ -459,7 +507,6 @@ export default function AdminProtocols() {
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
-              // Update URL without reload
               const newUrl = e.target.value === 'all' 
                 ? '/admin/protocols' 
                 : `/admin/protocols?status=${e.target.value}`;
@@ -514,9 +561,9 @@ export default function AdminProtocols() {
               <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Patient</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Program</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Type</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Start</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>End</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Peptides</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Frequency</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Dates</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Progress</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Status</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666' }}>Actions</th>
@@ -538,13 +585,11 @@ export default function AdminProtocols() {
               ) : (
                 protocols.map(protocol => {
                   const statusColor = getStatusColor(protocol.status);
-                  const expectedInjections = protocol.expected_injections || protocol.duration_days || 0;
+                  const expectedInjections = protocol.total_sessions || protocol.expected_injections || protocol.duration_days || 0;
                   const completedInjections = protocol.injections_completed || 0;
                   const progress = expectedInjections > 0 
                     ? Math.round((completedInjections / expectedInjections) * 100) 
                     : 0;
-                  const isWeightLoss = protocol.is_weight_loss;
-                  const accentColor = isWeightLoss ? '#ff9800' : '#2196f3';
                   
                   return (
                     <tr key={protocol.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
@@ -553,21 +598,20 @@ export default function AdminProtocols() {
                         <div style={{ fontSize: '12px', color: '#666' }}>{protocol.patient_email || '-'}</div>
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                        <div>{protocol.program_name || '-'}</div>
-                        {isWeightLoss && (
-                          <div style={{ fontSize: '11px', color: '#ff9800', marginTop: '2px' }}>
-                            {protocol.dose_frequency === '2x weekly' ? '2x weekly' : '1x weekly'}
-                          </div>
+                        {protocol.program_name || '-'}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                        <div>{protocol.primary_peptide || '-'}</div>
+                        {protocol.secondary_peptide && (
+                          <div style={{ color: '#666' }}>+ {protocol.secondary_peptide}</div>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                        {PROGRAM_TYPES.find(t => t.value === protocol.program_type)?.label || protocol.program_type}
+                      <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                        {getFrequencyLabel(protocol.dose_frequency)}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                        {formatDate(protocol.start_date)}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                        {formatDate(protocol.end_date)}
+                      <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                        <div>{formatDate(protocol.start_date)}</div>
+                        <div style={{ color: '#666' }}>→ {formatDate(protocol.end_date)}</div>
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -581,7 +625,7 @@ export default function AdminProtocols() {
                             <div style={{
                               width: `${Math.min(progress, 100)}%`,
                               height: '100%',
-                              background: progress >= 100 ? '#4caf50' : accentColor
+                              background: progress >= 100 ? '#4caf50' : '#2196f3'
                             }} />
                           </div>
                           <span style={{ fontSize: '12px', color: '#666' }}>
@@ -679,7 +723,7 @@ export default function AdminProtocols() {
               background: 'white',
               borderRadius: '8px',
               width: '100%',
-              maxWidth: '600px',
+              maxWidth: '700px',
               maxHeight: '90vh',
               overflow: 'auto',
               margin: '20px'
@@ -791,18 +835,22 @@ export default function AdminProtocols() {
                           <option key={type.value} value={type.value}>{type.label}</option>
                         ))}
                       </optgroup>
+                      <optgroup label="Session-Based">
+                        {PROGRAM_TYPES.filter(t => t.category === 'Sessions').map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
-                      Program Name *
+                      Program Name
                     </label>
                     <input
                       type="text"
                       value={formData.program_name}
                       onChange={(e) => setFormData({ ...formData, program_name: e.target.value })}
-                      required
                       placeholder="e.g., BPC-157 Recovery Program"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
@@ -851,35 +899,54 @@ export default function AdminProtocols() {
                     </div>
                   )}
 
-                  {/* Peptide Details */}
+                  {/* Peptide Selection */}
                   <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Peptide Details (Optional)</h3>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Peptide Selection</h3>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Primary Peptide
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.primary_peptide}
                       onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
-                      placeholder="e.g., BPC-157"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
+                    >
+                      <option value="">-- Select Peptide --</option>
+                      {Object.entries(peptidesByCategory).map(([category, items]) => (
+                        <optgroup key={category} label={category}>
+                          {items.map(p => (
+                            <option key={p.id || p.name} value={p.name}>{p.name}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
                       Secondary Peptide
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.secondary_peptide}
                       onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
-                      placeholder="e.g., TB-500"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
+                    >
+                      <option value="">-- None --</option>
+                      {Object.entries(peptidesByCategory).map(([category, items]) => (
+                        <optgroup key={category} label={category}>
+                          {items.map(p => (
+                            <option key={p.id || p.name} value={p.name}>{p.name}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Dosing */}
+                  <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Dosing Schedule</h3>
                   </div>
 
                   <div>
@@ -890,22 +957,25 @@ export default function AdminProtocols() {
                       type="text"
                       value={formData.dose_amount}
                       onChange={(e) => setFormData({ ...formData, dose_amount: e.target.value })}
-                      placeholder="e.g., 0.5ml"
+                      placeholder="e.g., 500mcg or 0.5ml"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
-                      Dose Frequency
+                      Frequency *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.dose_frequency}
                       onChange={(e) => setFormData({ ...formData, dose_frequency: e.target.value })}
-                      placeholder="e.g., Once daily"
+                      required
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
+                    >
+                      {FREQUENCY_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Notes */}
@@ -917,7 +987,7 @@ export default function AdminProtocols() {
                       value={formData.special_instructions}
                       onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
                       rows={3}
-                      placeholder="Instructions for the patient..."
+                      placeholder="Instructions visible to patient..."
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical' }}
                     />
                   </div>
@@ -935,15 +1005,29 @@ export default function AdminProtocols() {
                     />
                   </div>
 
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  {/* Reminders */}
+                  <div style={{ gridColumn: '1 / -1', background: '#f9f9f9', padding: '16px', borderRadius: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
                         checked={formData.reminders_enabled}
                         onChange={(e) => setFormData({ ...formData, reminders_enabled: e.target.checked })}
-                        style={{ width: '16px', height: '16px' }}
+                        style={{ width: '18px', height: '18px' }}
                       />
-                      <span style={{ fontSize: '14px' }}>Enable daily injection reminders</span>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: '500' }}>Enable Injection Reminders</div>
+                        <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                          {formData.dose_frequency === '2x_daily' 
+                            ? 'Patient receives reminders at 8:00 AM & 6:30 PM on injection days'
+                            : formData.dose_frequency === '2x_weekly'
+                            ? 'Patient receives reminders at 6:30 PM on Monday & Thursday'
+                            : formData.dose_frequency === 'every_other_day'
+                            ? 'Patient receives reminders at 6:30 PM on alternating days'
+                            : formData.dose_frequency === 'weekly'
+                            ? 'Patient receives weekly reminder at 6:30 PM'
+                            : 'Patient receives daily reminder at 6:30 PM if no injection logged'}
+                        </div>
+                      </div>
                     </label>
                   </div>
                 </div>

@@ -103,28 +103,9 @@ async function sendViaGHL(contactId, message, phone) {
       formattedPhone = '+' + formattedPhone;
     }
 
-    // First, update the contact to ensure phone number is set
-    console.log('Updating contact phone:', contactId, formattedPhone);
-    const updateResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      body: JSON.stringify({
-        phone: formattedPhone
-      })
-    });
+    console.log('Sending SMS to:', formattedPhone);
 
-    if (!updateResponse.ok) {
-      const updateError = await updateResponse.json();
-      console.error('Failed to update contact phone:', updateError);
-    } else {
-      console.log('Contact phone updated successfully');
-    }
-
-    // Now send the SMS
+    // Send SMS directly using phone number
     const response = await fetch(`https://services.leadconnectorhq.com/conversations/messages`, {
       method: 'POST',
       headers: {
@@ -135,6 +116,7 @@ async function sendViaGHL(contactId, message, phone) {
       body: JSON.stringify({
         type: 'SMS',
         contactId: contactId,
+        phone: formattedPhone,
         message: message
       })
     });

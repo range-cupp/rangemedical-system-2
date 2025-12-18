@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   }
 
   // Build tracker URL
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://rangemedical-system-2.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
   const trackerUrl = `${baseUrl}/track/${access_token}`;
 
   // Build message

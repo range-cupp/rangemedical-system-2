@@ -112,7 +112,7 @@ export default async function handler(req, res) {
 
   // GET - List protocols (with optional filters)
   if (req.method === 'GET') {
-    const { patient_id, ghl_contact_id, status } = req.query;
+    const { patient_id, ghl_contact_id, status, search, limit } = req.query;
 
     let query = supabase.from('protocols').select('*');
 
@@ -125,6 +125,12 @@ export default async function handler(req, res) {
     if (status) {
       query = query.eq('status', status);
     }
+    if (search) {
+      query = query.or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%,program_name.ilike.%${search}%`);
+    }
+    if (limit) {
+      query = query.limit(parseInt(limit));
+    }
 
     query = query.order('created_at', { ascending: false });
 
@@ -134,7 +140,117 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch protocols' });
     }
 
-    return res.status(200).json(data);
+    return res.status(200).json({ protocols: data });
+  }
+
+  // PUT - Update protocol
+  if (req.method === 'PUT') {
+    const { id } = req.query;
+    
+    if (!id) {
+      return res.status(400).json({ error: 'Protocol ID required' });
+    }
+
+    const {
+      patient_name,
+      patient_email,
+      patient_phone,
+      ghl_contact_id,
+      program_name,
+      program_type,
+      start_date,
+      duration_days,
+      status,
+      primary_peptide,
+      secondary_peptide,
+      dose_amount,
+      dose_frequency,
+      special_instructions,
+      notes,
+      reminders_enabled
+    } = req.body;
+
+    // Calculate end_date if start_date and duration_days provided
+    let end_date = null;
+    if (start_date && duration_days) {
+      const endDateObj = new Date(start_date);
+      endDateObj.setDate(endDateObj.getDate() + parseInt(duration_days));
+      end_date = endDateObj.toISOString().split('T')[0];
+    }
+
+    const updateData = {
+      patient_name,
+      patient_email,
+      patient_phone,
+      ghl_contact_id,
+      program_name,
+      program_type,
+      start_date,
+      end_date,
+      duration_days,
+      status,
+      primary_peptide,
+      secondary_peptide,
+      dose_amount,
+      dose_frequency,
+      special_instructions,
+      notes,
+      reminders_enabled,
+      updated_at: new Date().toISOString()
+    };
+
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) delete updateData[key];
+    });
+
+    const { data: protocol, error } = await supabase
+      .from('protocols')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Protocol update error:', error);
+      return res.status(500).json({ error: 'Failed to update protocol', details: error.message });
+    }
+
+    return res.status(200).json(protocol);
+  }
+
+  // DELETE - Delete protocol
+  if (req.method === 'DELETE') {
+    const { id } = req.query;
+    
+    if (!id) {
+      return res.status(400).json({ error: 'Protocol ID required' });
+    }
+
+    // First unlink any purchases
+    await supabase
+      .from('purchases')
+      .update({ protocol_id: null })
+      .eq('protocol_id', id);
+
+    // Delete injection logs
+    await supabase
+      .from('injection_logs')
+      .delete()
+      .eq('protocol_id', id);
+
+    // Delete protocol
+    const { error } = await supabase
+      .from('protocols')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Protocol delete error:', error);
+      return res.status(500).json({ error: 'Failed to delete protocol', details: error.message });
+    }
+
+    return res.status(200).json({ success: true });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

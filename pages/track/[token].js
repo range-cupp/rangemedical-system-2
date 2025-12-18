@@ -712,7 +712,7 @@ export default function PatientTracker() {
           background: 'white'
         }}>
           <div style={{ fontSize: '11px', color: '#ccc', letterSpacing: '2px', marginBottom: '4px' }}>RANGE MEDICAL</div>
-          <div style={{ fontSize: '11px', color: '#bbb' }}>Costa Mesa, California</div>
+          <div style={{ fontSize: '11px', color: '#bbb' }}>Newport Beach, CA</div>
         </footer>
       </div>
     </>

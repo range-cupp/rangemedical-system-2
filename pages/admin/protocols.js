@@ -61,6 +61,9 @@ export default function AdminProtocols() {
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingProtocol, setDeletingProtocol] = useState(null);
+  
+  // Text sending state
+  const [sendingText, setSendingText] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -307,6 +310,46 @@ export default function AdminProtocols() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sendTrackerText = async (protocol) => {
+    if (!protocol.patient_phone) {
+      setError('No phone number on file for this patient');
+      return;
+    }
+    
+    if (!protocol.access_token) {
+      setError('No tracker link available for this protocol');
+      return;
+    }
+    
+    setSendingText(protocol.id);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const res = await fetch('/api/admin/send-tracker-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          protocol_id: protocol.id,
+          patient_name: protocol.patient_name,
+          patient_phone: protocol.patient_phone,
+          access_token: protocol.access_token,
+          ghl_contact_id: protocol.ghl_contact_id
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to send text');
+      
+      setSuccess(`Tracker link sent to ${protocol.patient_name}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSendingText(null);
     }
   };
 
@@ -647,7 +690,25 @@ export default function AdminProtocols() {
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {protocol.access_token && protocol.patient_phone && (
+                            <button
+                              onClick={() => sendTrackerText(protocol)}
+                              disabled={sendingText === protocol.id}
+                              style={{
+                                padding: '6px 12px',
+                                background: sendingText === protocol.id ? '#ccc' : '#4caf50',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: sendingText === protocol.id ? 'wait' : 'pointer',
+                                fontWeight: '500'
+                              }}
+                            >
+                              {sendingText === protocol.id ? '...' : '📱 Text'}
+                            </button>
+                          )}
                           {protocol.access_token && (
                             <a
                               href={`/track/${protocol.access_token}`}

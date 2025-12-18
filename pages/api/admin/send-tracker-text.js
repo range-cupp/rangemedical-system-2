@@ -18,19 +18,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Helper to format phone
-  const formatPhone = (phone) => {
-    let formatted = phone.replace(/\D/g, '');
-    if (formatted.length === 10) {
-      return '+1' + formatted;
-    } else if (formatted.length === 11 && formatted.startsWith('1')) {
-      return '+' + formatted;
-    } else if (!formatted.startsWith('+')) {
-      return '+' + formatted;
-    }
-    return formatted;
-  };
-
   const {
     protocol_id,
     patient_name,
@@ -52,22 +39,13 @@ export default async function handler(req, res) {
   const message = `Hi ${firstName}! 👋\n\nYour Range Medical injection tracker is ready. Track your progress and stay on schedule:\n\n${trackerUrl}\n\nQuestions? Reply to this text or call (949) 997-3988`;
 
   try {
-    // Try GHL API first if we have contact ID
-    if (ghl_contact_id && GHL_API_KEY) {
+    // Try GHL API if we have contact ID or phone
+    if (GHL_API_KEY && (ghl_contact_id || patient_phone)) {
       const ghlResponse = await sendViaGHL(ghl_contact_id, message, patient_phone);
       if (ghlResponse.success) {
         // Log the send
         await logTextSent(protocol_id, patient_phone, message, 'ghl');
         return res.status(200).json({ success: true, method: 'ghl' });
-      }
-    }
-    
-    // Try direct SMS if no contact ID but have phone
-    if (!ghl_contact_id && patient_phone && GHL_API_KEY) {
-      const directResponse = await sendDirectSMS(formatPhone(patient_phone), message);
-      if (directResponse.success) {
-        await logTextSent(protocol_id, patient_phone, message, 'ghl_direct');
-        return res.status(200).json({ success: true, method: 'ghl_direct' });
       }
     }
 
@@ -103,93 +81,47 @@ async function sendViaGHL(contactId, message, phone) {
       formattedPhone = '+' + formattedPhone;
     }
 
-    console.log('Attempting to send SMS to:', formattedPhone, 'contactId:', contactId);
+    console.log('Looking for contact with phone:', formattedPhone);
 
-    // Try Method 1: Create conversation and send message
-    const createConvoResponse = await fetch(`https://services.leadconnectorhq.com/conversations`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      body: JSON.stringify({
-        locationId: GHL_LOCATION_ID,
-        phone: formattedPhone
-      })
-    });
-
-    if (createConvoResponse.ok) {
-      const convoData = await createConvoResponse.json();
-      console.log('Conversation created:', convoData);
-      
-      // Now send message to this conversation
-      const conversationId = convoData.conversation?.id || convoData.id;
-      if (conversationId) {
-        const msgResponse = await fetch(`https://services.leadconnectorhq.com/conversations/messages`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Content-Type': 'application/json',
-            'Version': '2021-07-28'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            conversationId: conversationId,
-            message: message
-          })
-        });
-
-        if (msgResponse.ok) {
-          const msgData = await msgResponse.json();
-          console.log('SMS sent via conversation:', msgData);
-          return { success: true, data: msgData };
-        } else {
-          const msgError = await msgResponse.json();
-          console.error('Message send error:', msgError);
+    // Step 1: Search for ANY contact with this phone number
+    const searchResponse = await fetch(
+      `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${formattedPhone}&limit=10`,
+      {
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28'
         }
       }
-    } else {
-      const convoError = await createConvoResponse.json();
-      console.error('Create conversation error:', convoError);
+    );
+
+    let targetContactId = null;
+
+    if (searchResponse.ok) {
+      const searchData = await searchResponse.json();
+      console.log('Contact search results:', JSON.stringify(searchData, null, 2));
+      
+      // Find contact with matching phone
+      if (searchData.contacts && searchData.contacts.length > 0) {
+        const phoneDigits = formattedPhone.replace(/\D/g, '').slice(-10);
+        const match = searchData.contacts.find(c => {
+          const cPhone = (c.phone || '').replace(/\D/g, '').slice(-10);
+          return cPhone === phoneDigits;
+        });
+        if (match) {
+          targetContactId = match.id;
+          console.log('Found contact by phone search:', targetContactId, match.firstName, match.lastName);
+        }
+      }
     }
 
-    // Try Method 2: Use inbound/outbound phone number
-    console.log('Trying alternate SMS method...');
-    const altResponse = await fetch(`https://services.leadconnectorhq.com/conversations/messages/outbound`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        locationId: GHL_LOCATION_ID,
-        contactId: contactId,
-        to: formattedPhone,
-        message: message
-      })
-    });
-
-    if (altResponse.ok) {
-      const altData = await altResponse.json();
-      console.log('Alt SMS sent:', altData);
-      return { success: true, data: altData };
-    } else {
-      const altError = await altResponse.json();
-      console.error('Alt SMS error:', altError);
-      return { success: false, error: altError };
+    // If no contact found by phone, use the original contactId
+    if (!targetContactId) {
+      targetContactId = contactId;
+      console.log('Using original contactId:', targetContactId);
     }
-  } catch (err) {
-    console.error('GHL API error:', err);
-    return { success: false, error: err.message };
-  }
-}
 
-async function sendDirectSMS(phone, message) {
-  try {
-    // Use GHL's direct SMS endpoint
+    // Step 2: Send SMS via conversations/messages
+    console.log('Sending SMS to contactId:', targetContactId);
     const response = await fetch(`https://services.leadconnectorhq.com/conversations/messages`, {
       method: 'POST',
       headers: {
@@ -199,23 +131,31 @@ async function sendDirectSMS(phone, message) {
       },
       body: JSON.stringify({
         type: 'SMS',
-        phone: phone,
-        message: message,
-        locationId: GHL_LOCATION_ID
+        contactId: targetContactId,
+        message: message
       })
     });
 
+    const responseText = await response.text();
+    console.log('SMS response status:', response.status);
+    console.log('SMS response body:', responseText);
+
     if (response.ok) {
-      const data = await response.json();
-      console.log('Direct SMS sent:', data);
+      const data = JSON.parse(responseText);
+      console.log('GHL SMS sent successfully');
       return { success: true, data };
     } else {
-      const error = await response.json();
-      console.error('Direct SMS error:', error);
+      let error;
+      try {
+        error = JSON.parse(responseText);
+      } catch {
+        error = { message: responseText };
+      }
+      console.error('GHL SMS error:', error);
       return { success: false, error };
     }
   } catch (err) {
-    console.error('Direct SMS error:', err);
+    console.error('GHL API error:', err);
     return { success: false, error: err.message };
   }
 }

@@ -103,42 +103,60 @@ async function sendViaGHL(contactId, message, phone) {
       formattedPhone = '+' + formattedPhone;
     }
 
-    console.log('Looking up contact by phone:', formattedPhone);
+    console.log('Attempting to send SMS to:', formattedPhone, 'contactId:', contactId);
 
-    // Search for contact by phone number
-    const searchResponse = await fetch(
-      `https://services.leadconnectorhq.com/contacts/search?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(formattedPhone)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
+    // Try Method 1: Create conversation and send message
+    const createConvoResponse = await fetch(`https://services.leadconnectorhq.com/conversations`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      body: JSON.stringify({
+        locationId: GHL_LOCATION_ID,
+        phone: formattedPhone
+      })
+    });
+
+    if (createConvoResponse.ok) {
+      const convoData = await createConvoResponse.json();
+      console.log('Conversation created:', convoData);
+      
+      // Now send message to this conversation
+      const conversationId = convoData.conversation?.id || convoData.id;
+      if (conversationId) {
+        const msgResponse = await fetch(`https://services.leadconnectorhq.com/conversations/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Version': '2021-07-28'
+          },
+          body: JSON.stringify({
+            type: 'SMS',
+            conversationId: conversationId,
+            message: message
+          })
+        });
+
+        if (msgResponse.ok) {
+          const msgData = await msgResponse.json();
+          console.log('SMS sent via conversation:', msgData);
+          return { success: true, data: msgData };
+        } else {
+          const msgError = await msgResponse.json();
+          console.error('Message send error:', msgError);
         }
       }
-    );
-
-    let targetContactId = contactId;
-
-    if (searchResponse.ok) {
-      const searchData = await searchResponse.json();
-      console.log('Search results:', searchData);
-      
-      // Find contact with matching phone
-      const matchingContact = searchData.contacts?.find(c => {
-        const contactPhone = c.phone?.replace(/\D/g, '');
-        const searchPhone = formattedPhone.replace(/\D/g, '');
-        return contactPhone === searchPhone || contactPhone?.endsWith(searchPhone.slice(-10));
-      });
-
-      if (matchingContact) {
-        targetContactId = matchingContact.id;
-        console.log('Found contact with phone:', targetContactId);
-      }
+    } else {
+      const convoError = await createConvoResponse.json();
+      console.error('Create conversation error:', convoError);
     }
 
-    // Send SMS to the contact
-    console.log('Sending SMS to contact:', targetContactId);
-    const response = await fetch(`https://services.leadconnectorhq.com/conversations/messages`, {
+    // Try Method 2: Use inbound/outbound phone number
+    console.log('Trying alternate SMS method...');
+    const altResponse = await fetch(`https://services.leadconnectorhq.com/conversations/messages/outbound`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${GHL_API_KEY}`,
@@ -147,19 +165,21 @@ async function sendViaGHL(contactId, message, phone) {
       },
       body: JSON.stringify({
         type: 'SMS',
-        contactId: targetContactId,
+        locationId: GHL_LOCATION_ID,
+        contactId: contactId,
+        to: formattedPhone,
         message: message
       })
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('GHL SMS sent:', data);
-      return { success: true, data };
+    if (altResponse.ok) {
+      const altData = await altResponse.json();
+      console.log('Alt SMS sent:', altData);
+      return { success: true, data: altData };
     } else {
-      const error = await response.json();
-      console.error('GHL SMS error:', error);
-      return { success: false, error };
+      const altError = await altResponse.json();
+      console.error('Alt SMS error:', altError);
+      return { success: false, error: altError };
     }
   } catch (err) {
     console.error('GHL API error:', err);

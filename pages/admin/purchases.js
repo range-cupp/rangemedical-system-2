@@ -517,6 +517,141 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 }
 
 // ============================================
+// EDIT AMOUNT MODAL
+// ============================================
+function EditAmountModal({ purchase, onClose, onSuccess }) {
+  const [amount, setAmount] = useState(purchase?.amount || 0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/admin/purchases/${purchase.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: parseFloat(amount) })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update amount');
+      }
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!purchase) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        width: '100%',
+        maxWidth: '400px',
+        margin: '20px'
+      }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Edit Amount</h2>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>
+            {purchase.patient_name} • {purchase.item_name}
+          </p>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '20px' }}>
+          {error && (
+            <div style={{ padding: '12px', background: '#fef2f2', color: '#991b1b', borderRadius: '6px', fontSize: '14px', marginBottom: '16px' }}>
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+              Amount Paid
+            </label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ 
+                position: 'absolute', 
+                left: '12px', 
+                top: '50%', 
+                transform: 'translateY(-50%)',
+                color: '#666',
+                fontSize: '16px'
+              }}>$</span>
+              <input
+                type="number"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px 12px 12px 28px', 
+                  border: '1px solid #e5e5e5', 
+                  borderRadius: '6px', 
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#666' }}>
+              Original: ${purchase.amount?.toFixed(2) || '0.00'}
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '20px', borderTop: '1px solid #e5e5e5', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '10px 20px', border: '1px solid #e5e5e5', borderRadius: '6px', background: 'white', fontSize: '14px', cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              padding: '10px 24px',
+              border: 'none',
+              borderRadius: '6px',
+              background: '#000',
+              color: '#fff',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.6 : 1
+            }}
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // ADD TO PROTOCOL MODAL
 // ============================================
 function AddToProtocolModal({ purchase, onClose, onSuccess }) {
@@ -541,8 +676,9 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
       const res = await fetch(`/api/admin/protocols?ghl_contact_id=${purchase.ghl_contact_id}&status=active`);
       if (res.ok) {
         const data = await res.json();
+        const protocolsList = data.protocols || data;
         // Filter to session-based protocols (ones with total_sessions)
-        const sessionProtocols = data.filter(p => 
+        const sessionProtocols = protocolsList.filter(p => 
           p.total_sessions || 
           ['iv_therapy', 'hbot_sessions', 'red_light_sessions', 'injection_pack'].includes(p.program_type)
         );
@@ -799,6 +935,7 @@ export default function AdminPurchases() {
   // Modal state
   const [createProtocolPurchase, setCreateProtocolPurchase] = useState(null);
   const [addToProtocolPurchase, setAddToProtocolPurchase] = useState(null);
+  const [editAmountPurchase, setEditAmountPurchase] = useState(null);
   
   // Listen for create protocol event from AddToProtocol modal
   useEffect(() => {
@@ -909,6 +1046,11 @@ export default function AdminPurchases() {
     fetchPurchases();
   };
 
+  const handleAmountEdited = () => {
+    setEditAmountPurchase(null);
+    fetchPurchases();
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('en-US', { 
@@ -1005,6 +1147,15 @@ export default function AdminPurchases() {
           purchase={addToProtocolPurchase}
           onClose={() => setAddToProtocolPurchase(null)}
           onSuccess={handleSessionAdded}
+        />
+      )}
+      
+      {/* Edit Amount Modal */}
+      {editAmountPurchase && (
+        <EditAmountModal
+          purchase={editAmountPurchase}
+          onClose={() => setEditAmountPurchase(null)}
+          onSuccess={handleAmountEdited}
         />
       )}
       
@@ -1221,8 +1372,25 @@ export default function AdminPurchases() {
                           {purchase.category}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', textAlign: 'right', fontWeight: '500' }}>
+                      <td 
+                        onClick={() => setEditAmountPurchase(purchase)}
+                        style={{ 
+                          padding: '12px 16px', 
+                          fontSize: '14px', 
+                          textAlign: 'right', 
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          position: 'relative'
+                        }}
+                        title="Click to edit amount"
+                      >
                         {formatCurrency(purchase.amount)}
+                        <span style={{ 
+                          marginLeft: '6px', 
+                          fontSize: '10px', 
+                          color: '#999',
+                          opacity: 0.5
+                        }}>✎</span>
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '12px', color: '#666' }}>
                         {purchase.source || '-'}

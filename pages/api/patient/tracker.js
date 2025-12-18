@@ -13,19 +13,19 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  
   if (req.method === 'OPTIONS') return res.status(200).end();
-
+  
   const { token } = req.query;
   if (!token) return res.status(400).json({ error: 'Token required' });
-
+  
   // Find protocol by access token
   const { data: protocol, error: protocolError } = await supabase
     .from('protocols')
     .select('*')
     .eq('access_token', token)
     .single();
-
+    
   if (protocolError || !protocol) {
     return res.status(404).json({ error: 'Protocol not found' });
   }
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         .select('*')
         .eq('protocol_id', protocol.id)
         .order('day_number', { ascending: true });
-
+        
       // Get intake questionnaire
       const { data: intakeQuestionnaire } = await supabase
         .from('questionnaire_responses')
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         .eq('protocol_id', protocol.id)
         .eq('questionnaire_type', 'intake')
         .single();
-
+        
       // Get completion questionnaire
       const { data: completionQuestionnaire } = await supabase
         .from('questionnaire_responses')
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         .eq('protocol_id', protocol.id)
         .eq('questionnaire_type', 'completion')
         .single();
-
+        
       return res.status(200).json({
         protocol,
         injectionLogs: injectionLogs || [],
@@ -72,31 +72,53 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const { day } = req.body;
-      if (!day) return res.status(400).json({ error: 'Day required' });
-
+      if (!day && day !== 0) return res.status(400).json({ error: 'Day required' });
+      
+      const dayNumber = parseInt(day);
+      
       // Check if already logged
       const { data: existing } = await supabase
         .from('injection_logs')
         .select('id')
         .eq('protocol_id', protocol.id)
-        .eq('day_number', day)
-        .single();
-
+        .eq('day_number', dayNumber)
+        .maybeSingle();
+        
       if (existing) {
-        return res.status(200).json({ message: 'Already logged' });
+        return res.status(200).json({ message: 'Already logged', existing: true });
       }
-
-      const { error: insertError } = await supabase
+      
+      // Insert new log - using correct column names
+      const { data: newLog, error: insertError } = await supabase
         .from('injection_logs')
         .insert({
           protocol_id: protocol.id,
-          ghl_contact_id: protocol.ghl_contact_id,
-          day_number: day,
-          logged_at: new Date().toISOString()
-        });
-
-      if (insertError) throw insertError;
-      return res.status(200).json({ success: true });
+          day_number: dayNumber,
+          completed_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        return res.status(500).json({ error: insertError.message, details: insertError });
+      }
+      
+      // Update injections_completed count on protocol
+      const { data: logs } = await supabase
+        .from('injection_logs')
+        .select('id')
+        .eq('protocol_id', protocol.id);
+        
+      await supabase
+        .from('protocols')
+        .update({ 
+          injections_completed: logs?.length || 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', protocol.id);
+      
+      return res.status(200).json({ success: true, log: newLog });
     } catch (error) {
       console.error('POST error:', error);
       return res.status(500).json({ error: error.message });
@@ -107,14 +129,35 @@ export default async function handler(req, res) {
   if (req.method === 'DELETE') {
     try {
       const { day } = req.body;
-      if (!day) return res.status(400).json({ error: 'Day required' });
-
-      await supabase
+      if (!day && day !== 0) return res.status(400).json({ error: 'Day required' });
+      
+      const dayNumber = parseInt(day);
+      
+      const { error: deleteError } = await supabase
         .from('injection_logs')
         .delete()
         .eq('protocol_id', protocol.id)
-        .eq('day_number', day);
-
+        .eq('day_number', dayNumber);
+        
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        return res.status(500).json({ error: deleteError.message });
+      }
+      
+      // Update injections_completed count on protocol
+      const { data: logs } = await supabase
+        .from('injection_logs')
+        .select('id')
+        .eq('protocol_id', protocol.id);
+        
+      await supabase
+        .from('protocols')
+        .update({ 
+          injections_completed: logs?.length || 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', protocol.id);
+      
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error('DELETE error:', error);

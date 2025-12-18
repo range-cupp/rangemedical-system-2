@@ -103,9 +103,41 @@ async function sendViaGHL(contactId, message, phone) {
       formattedPhone = '+' + formattedPhone;
     }
 
-    console.log('Sending SMS to:', formattedPhone);
+    console.log('Looking up contact by phone:', formattedPhone);
 
-    // Send SMS directly using phone number
+    // Search for contact by phone number
+    const searchResponse = await fetch(
+      `https://services.leadconnectorhq.com/contacts/search?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(formattedPhone)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        }
+      }
+    );
+
+    let targetContactId = contactId;
+
+    if (searchResponse.ok) {
+      const searchData = await searchResponse.json();
+      console.log('Search results:', searchData);
+      
+      // Find contact with matching phone
+      const matchingContact = searchData.contacts?.find(c => {
+        const contactPhone = c.phone?.replace(/\D/g, '');
+        const searchPhone = formattedPhone.replace(/\D/g, '');
+        return contactPhone === searchPhone || contactPhone?.endsWith(searchPhone.slice(-10));
+      });
+
+      if (matchingContact) {
+        targetContactId = matchingContact.id;
+        console.log('Found contact with phone:', targetContactId);
+      }
+    }
+
+    // Send SMS to the contact
+    console.log('Sending SMS to contact:', targetContactId);
     const response = await fetch(`https://services.leadconnectorhq.com/conversations/messages`, {
       method: 'POST',
       headers: {
@@ -115,8 +147,7 @@ async function sendViaGHL(contactId, message, phone) {
       },
       body: JSON.stringify({
         type: 'SMS',
-        contactId: contactId,
-        phone: formattedPhone,
+        contactId: targetContactId,
         message: message
       })
     });

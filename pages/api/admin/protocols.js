@@ -32,16 +32,21 @@ export default async function handler(req, res) {
       special_instructions,
       reminders_enabled,
       status,
-      amount
+      amount,
+      notes
     } = req.body;
 
-    // Validate required fields
-    if (!ghl_contact_id || !patient_name || !program_type) {
+    // Validate required fields - only patient_name and program_type are truly required
+    if (!patient_name || !program_type) {
       return res.status(400).json({ 
         error: 'Missing required fields', 
-        details: 'ghl_contact_id, patient_name, and program_type are required' 
+        details: 'patient_name and program_type are required',
+        received: { patient_name: !!patient_name, program_type: !!program_type }
       });
     }
+
+    // Generate a placeholder ghl_contact_id if not provided (for old/manual entries)
+    const effectiveGhlContactId = ghl_contact_id || `manual_${Date.now()}_${patient_name.replace(/\s+/g, '_').toLowerCase()}`;
 
     // If patient_id not provided, look it up from patients table
     let resolvedPatientId = patient_id;
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
     // Create protocol
     const protocolData = {
       patient_id: resolvedPatientId,
-      ghl_contact_id,
+      ghl_contact_id: effectiveGhlContactId,
       patient_name,
       patient_email,
       patient_phone,
@@ -80,6 +85,7 @@ export default async function handler(req, res) {
       start_date: start_date || new Date().toISOString().split('T')[0],
       end_date: end_date || null,
       special_instructions: special_instructions || null,
+      notes: notes || null,
       reminders_enabled: reminders_enabled !== false,
       status: status || 'active',
       amount: amount || null,

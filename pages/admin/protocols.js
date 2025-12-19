@@ -33,6 +33,7 @@ const STATUS_OPTIONS = [
 const FREQUENCY_OPTIONS = [
   { value: '2x_daily', label: '2x Daily (AM & PM)', remindTimes: ['08:00', '18:30'] },
   { value: 'daily', label: 'Daily', remindTimes: ['18:30'] },
+  { value: '5_on_2_off', label: '5 Days On / 2 Days Off', remindTimes: ['18:30'], days: [1, 2, 3, 4, 5] },
   { value: 'every_other_day', label: 'Every Other Day', remindTimes: ['18:30'] },
   { value: '3x_weekly', label: '3x Weekly (Mon, Wed, Fri)', remindTimes: ['18:30'], days: [1, 3, 5] },
   { value: '2x_weekly', label: '2x Weekly (Mon & Thu)', remindTimes: ['18:30'], days: [1, 4] },

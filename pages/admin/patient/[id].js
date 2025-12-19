@@ -160,90 +160,298 @@ function TabButton({ active, onClick, children }) {
 }
 
 // ============================================
-// OVERVIEW TAB
+// OVERVIEW TAB - Enhanced Dashboard
 // ============================================
 function OverviewTab({ patient }) {
   const activeProtocols = patient.protocols?.filter(p => p.status === 'active') || [];
+  const completedProtocols = patient.protocols?.filter(p => p.status === 'completed') || [];
   const unassignedPurchases = patient.purchases?.filter(p => !p.protocol_id) || [];
   const totalSpent = patient.purchases?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
 
+  // Calculate progress for active protocols
+  const getProgress = (protocol) => {
+    const total = protocol.total_sessions || protocol.duration_days || 0;
+    const completed = protocol.injections_completed || 0;
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  };
+
+  // Calculate days remaining
+  const getDaysRemaining = (endDate) => {
+    if (!endDate) return null;
+    const end = new Date(endDate);
+    const today = new Date();
+    const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+    <div>
       {/* Stats Row */}
-      <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '16px' }}>
-        <div style={{ flex: 1, background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600' }}>{patient.protocols?.length || 0}</div>
-          <div style={{ fontSize: '13px', color: '#666' }}>Total Protocols</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', padding: '20px', textAlign: 'center' }}>
+          <div style={{ fontSize: '36px', fontWeight: '700', color: '#000' }}>{patient.protocols?.length || 0}</div>
+          <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Total Protocols</div>
         </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600', color: '#16a34a' }}>{activeProtocols.length}</div>
-          <div style={{ fontSize: '13px', color: '#666' }}>Active</div>
+        <div style={{ background: '#f0fdf4', borderRadius: '12px', border: '1px solid #86efac', padding: '20px', textAlign: 'center' }}>
+          <div style={{ fontSize: '36px', fontWeight: '700', color: '#16a34a' }}>{activeProtocols.length}</div>
+          <div style={{ fontSize: '13px', color: '#166534', marginTop: '4px' }}>Active</div>
         </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: '8px', border: unassignedPurchases.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e5e5', padding: '20px' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600', color: unassignedPurchases.length > 0 ? '#f59e0b' : '#666' }}>{unassignedPurchases.length}</div>
-          <div style={{ fontSize: '13px', color: '#666' }}>Unassigned Purchases</div>
+        <div style={{ 
+          background: unassignedPurchases.length > 0 ? '#fffbeb' : 'white', 
+          borderRadius: '12px', 
+          border: unassignedPurchases.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e5e5', 
+          padding: '20px', 
+          textAlign: 'center' 
+        }}>
+          <div style={{ fontSize: '36px', fontWeight: '700', color: unassignedPurchases.length > 0 ? '#f59e0b' : '#666' }}>
+            {unassignedPurchases.length}
+          </div>
+          <div style={{ fontSize: '13px', color: unassignedPurchases.length > 0 ? '#92400e' : '#666', marginTop: '4px' }}>
+            Needs Action
+          </div>
         </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
-          <div style={{ fontSize: '32px', fontWeight: '600', color: '#16a34a' }}>{formatCurrency(totalSpent)}</div>
-          <div style={{ fontSize: '13px', color: '#666' }}>Total Spent</div>
+        <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', padding: '20px', textAlign: 'center' }}>
+          <div style={{ fontSize: '36px', fontWeight: '700', color: '#000' }}>{formatCurrency(totalSpent)}</div>
+          <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Total Value</div>
         </div>
       </div>
 
-      {/* Unassigned Purchases Alert */}
+      {/* Needs Action Alert */}
       {unassignedPurchases.length > 0 && (
-        <div style={{ gridColumn: '1 / -1', background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>
-            ⚠️ {unassignedPurchases.length} Unassigned Purchase{unassignedPurchases.length > 1 ? 's' : ''}
-          </div>
-          <div style={{ fontSize: '14px', color: '#92400e' }}>
-            Go to the Purchases tab to create protocols for these payments.
+        <div style={{ 
+          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', 
+          borderRadius: '12px', 
+          padding: '20px', 
+          marginBottom: '24px',
+          border: '1px solid #f59e0b'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontWeight: '600', color: '#92400e', fontSize: '16px', marginBottom: '4px' }}>
+                ⚠️ {unassignedPurchases.length} Purchase{unassignedPurchases.length > 1 ? 's' : ''} Need{unassignedPurchases.length === 1 ? 's' : ''} Protocol Assignment
+              </div>
+              <div style={{ fontSize: '14px', color: '#92400e' }}>
+                {unassignedPurchases.map(p => p.item_name).join(', ')}
+              </div>
+            </div>
+            <div style={{ fontSize: '12px', color: '#92400e' }}>
+              Go to Purchases tab →
+            </div>
           </div>
         </div>
       )}
 
-      {/* Active Protocols */}
-      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      {/* Active Protocols with Progress */}
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666' }}>
           Active Protocols
         </h3>
         {activeProtocols.length === 0 ? (
-          <p style={{ color: '#666', fontSize: '14px' }}>No active protocols</p>
+          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', padding: '40px', textAlign: 'center', color: '#666' }}>
+            No active protocols. Create one from the Purchases tab.
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {activeProtocols.slice(0, 5).map(p => (
-              <div key={p.id} style={{ padding: '12px', background: '#fafafa', borderRadius: '6px' }}>
-                <div style={{ fontWeight: '500', fontSize: '14px' }}>{p.program_name || p.program_type}</div>
-                {p.primary_peptide && <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{p.primary_peptide}</div>}
-                <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                  {p.end_date ? `Ends: ${formatDate(p.end_date)}` : 'Ongoing'}
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {activeProtocols.map(p => {
+              const progress = getProgress(p);
+              const daysLeft = getDaysRemaining(p.end_date);
+              const isEnding = daysLeft !== null && daysLeft <= 7 && daysLeft > 0;
+              const isExpired = daysLeft !== null && daysLeft <= 0;
+              
+              return (
+                <div key={p.id} style={{ 
+                  background: 'white', 
+                  borderRadius: '12px', 
+                  border: isExpired ? '2px solid #ef4444' : isEnding ? '2px solid #f59e0b' : '1px solid #e5e5e5', 
+                  padding: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '20px'
+                }}>
+                  {/* Progress Circle */}
+                  <div style={{ 
+                    width: '60px', 
+                    height: '60px', 
+                    borderRadius: '50%', 
+                    background: `conic-gradient(#000 ${progress * 3.6}deg, #f0f0f0 0deg)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <div style={{ 
+                      width: '48px', 
+                      height: '48px', 
+                      borderRadius: '50%', 
+                      background: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      fontWeight: '700'
+                    }}>
+                      {progress}%
+                    </div>
+                  </div>
+                  
+                  {/* Protocol Info */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                      {p.program_name || p.program_type}
+                    </div>
+                    {p.primary_peptide && (
+                      <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
+                        {p.primary_peptide}{p.secondary_peptide ? ` + ${p.secondary_peptide}` : ''}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#888' }}>
+                      <span>📅 Started: {formatDate(p.start_date)}</span>
+                      {p.end_date && <span>🏁 Ends: {formatDate(p.end_date)}</span>}
+                      {p.dose_frequency && <span>💉 {p.dose_frequency}</span>}
+                    </div>
+                  </div>
+                  
+                  {/* Status Badge */}
+                  <div style={{ textAlign: 'right' }}>
+                    {isExpired ? (
+                      <span style={{ 
+                        background: '#fef2f2', 
+                        color: '#dc2626', 
+                        padding: '6px 12px', 
+                        borderRadius: '20px', 
+                        fontSize: '12px', 
+                        fontWeight: '600' 
+                      }}>
+                        Expired
+                      </span>
+                    ) : isEnding ? (
+                      <span style={{ 
+                        background: '#fffbeb', 
+                        color: '#f59e0b', 
+                        padding: '6px 12px', 
+                        borderRadius: '20px', 
+                        fontSize: '12px', 
+                        fontWeight: '600' 
+                      }}>
+                        {daysLeft} days left
+                      </span>
+                    ) : daysLeft !== null ? (
+                      <span style={{ 
+                        background: '#f0fdf4', 
+                        color: '#16a34a', 
+                        padding: '6px 12px', 
+                        borderRadius: '20px', 
+                        fontSize: '12px', 
+                        fontWeight: '600' 
+                      }}>
+                        {daysLeft} days left
+                      </span>
+                    ) : (
+                      <span style={{ 
+                        background: '#f0f0f0', 
+                        color: '#666', 
+                        padding: '6px 12px', 
+                        borderRadius: '20px', 
+                        fontSize: '12px', 
+                        fontWeight: '600' 
+                      }}>
+                        Ongoing
+                      </span>
+                    )}
+                    {p.access_token && (
+                      <div style={{ marginTop: '8px' }}>
+                        <a 
+                          href={`/track/${p.access_token}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}
+                        >
+                          View Tracker →
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Recent Purchases */}
-      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '20px' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Recent Purchases
-        </h3>
-        {!patient.purchases?.length ? (
-          <p style={{ color: '#666', fontSize: '14px' }}>No purchases</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {patient.purchases.slice(0, 5).map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
-                <div>
-                  <span style={{ color: '#333' }}>{p.item_name}</span>
-                  {p.quantity > 1 && <span style={{ marginLeft: '6px', fontWeight: '600' }}>×{p.quantity}</span>}
-                  {!p.protocol_id && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px' }}>UNASSIGNED</span>}
+      {/* Purchase-Protocol Timeline */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        {/* Recent Purchases */}
+        <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666' }}>
+            Recent Purchases
+          </h3>
+          {!patient.purchases?.length ? (
+            <p style={{ color: '#666', fontSize: '14px' }}>No purchases</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {patient.purchases.slice(0, 6).map(p => (
+                <div key={p.id} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '12px',
+                  background: p.protocol_id ? '#f8f8f8' : '#fffbeb',
+                  borderRadius: '8px',
+                  borderLeft: p.protocol_id ? '3px solid #16a34a' : '3px solid #f59e0b'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: '500', fontSize: '14px', color: '#333' }}>{p.item_name}</div>
+                    <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                      {formatDate(p.purchase_date)}
+                      {p.quantity > 1 && ` • Qty: ${p.quantity}`}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: '600', fontSize: '14px' }}>{formatCurrency(p.amount)}</div>
+                    <div style={{ 
+                      fontSize: '10px', 
+                      marginTop: '4px',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      background: p.protocol_id ? '#dcfce7' : '#fef3c7',
+                      color: p.protocol_id ? '#166534' : '#92400e',
+                      fontWeight: '500'
+                    }}>
+                      {p.protocol_id ? '✓ Assigned' : 'Needs Protocol'}
+                    </div>
+                  </div>
                 </div>
-                <span style={{ color: '#666' }}>{formatCurrency(p.amount)}</span>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Completed Protocols */}
+        <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666' }}>
+            Completed Protocols
+          </h3>
+          {completedProtocols.length === 0 ? (
+            <p style={{ color: '#666', fontSize: '14px' }}>No completed protocols yet</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {completedProtocols.slice(0, 5).map(p => (
+                <div key={p.id} style={{ 
+                  padding: '12px', 
+                  background: '#f8f8f8', 
+                  borderRadius: '8px',
+                  borderLeft: '3px solid #16a34a'
+                }}>
+                  <div style={{ fontWeight: '500', fontSize: '14px' }}>{p.program_name || p.program_type}</div>
+                  {p.primary_peptide && <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>{p.primary_peptide}</div>}
+                  <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                    {formatDate(p.start_date)} - {formatDate(p.end_date)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

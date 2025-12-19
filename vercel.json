@@ -7,11 +7,7 @@
     {
       "path": "/api/cron/questionnaire-reminders",
       "schedule": "0 17 * * *"
-    }
-  ]
-}
-{
-  "crons": [
+    },
     {
       "path": "/api/cron/complete-expired-protocols",
       "schedule": "0 8 * * *"

@@ -1202,9 +1202,44 @@ export default function AdminPurchases() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('30');
+  const [linking, setLinking] = useState(false);
+  const [linkResult, setLinkResult] = useState(null);
 
   // Stats
   const [stats, setStats] = useState({ total: 0, revenue: 0 });
+
+  // Link purchases to contacts
+  const handleLinkContacts = async () => {
+    if (!confirm('This will match purchases to patients and fill in missing GHL Contact ID, email, and phone. Continue?')) {
+      return;
+    }
+    
+    setLinking(true);
+    setLinkResult(null);
+    
+    try {
+      const res = await fetch('/api/admin/purchases/link-contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        setLinkResult(data);
+        if (data.updated > 0) {
+          fetchPurchases(); // Refresh the list
+        }
+        alert(`Linked ${data.updated} purchases to contacts. ${data.skipped} skipped (no match or already complete).`);
+      } else {
+        alert('Error: ' + (data.error || 'Failed to link contacts'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setLinking(false);
+    }
+  };
 
   // Initialize from URL params
   useEffect(() => {
@@ -1553,6 +1588,22 @@ export default function AdminPurchases() {
             fontSize: '14px'
           }}>
             Refresh
+          </button>
+
+          <button 
+            onClick={handleLinkContacts} 
+            disabled={linking}
+            style={{
+              padding: '8px 16px',
+              background: linking ? '#ccc' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: linking ? 'not-allowed' : 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            {linking ? 'Linking...' : '🔗 Link Contacts'}
           </button>
         </div>
 

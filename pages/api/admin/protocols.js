@@ -118,7 +118,7 @@ export default async function handler(req, res) {
 
   // GET - List protocols (with optional filters)
   if (req.method === 'GET') {
-    const { patient_id, ghl_contact_id, status, search, limit } = req.query;
+    const { patient_id, ghl_contact_id, status, search, limit, sort, direction } = req.query;
 
     let query = supabase.from('protocols').select('*');
 
@@ -138,7 +138,16 @@ export default async function handler(req, res) {
       query = query.limit(parseInt(limit));
     }
 
-    query = query.order('end_date', { ascending: true, nullsFirst: false });
+    // Sorting
+    const sortField = sort || 'end_date';
+    const sortAscending = direction !== 'desc';
+    
+    // Handle null values for end_date
+    if (sortField === 'end_date') {
+      query = query.order('end_date', { ascending: sortAscending, nullsFirst: false });
+    } else {
+      query = query.order(sortField, { ascending: sortAscending });
+    }
 
     const { data, error } = await query;
 

@@ -152,6 +152,7 @@ const PROGRAM_TYPES = [
 const FREQUENCY_OPTIONS = [
   { value: '2x_daily', label: '2x Daily (AM & PM)' },
   { value: 'daily', label: 'Daily' },
+  { value: '5_on_2_off', label: '5 Days On / 2 Days Off' },
   { value: 'every_other_day', label: 'Every Other Day' },
   { value: '3x_weekly', label: '3x Weekly (Mon, Wed, Fri)' },
   { value: '2x_weekly', label: '2x Weekly (Mon & Thu)' },

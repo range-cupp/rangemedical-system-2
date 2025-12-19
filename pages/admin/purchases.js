@@ -231,6 +231,16 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
   };
 
   const handleSubmit = async () => {
+    // Client-side validation
+    if (!formData.patient_name?.trim()) {
+      setError('Patient name is required');
+      return;
+    }
+    if (!formData.program_type) {
+      setError('Program type is required');
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -239,7 +249,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ghl_contact_id: formData.ghl_contact_id,
+          ghl_contact_id: formData.ghl_contact_id || null,
           patient_name: formData.patient_name,
           patient_email: formData.patient_email,
           patient_phone: formData.patient_phone,
@@ -263,13 +273,15 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
         })
       });
 
+      const data = await res.json();
+      
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to create protocol');
+        throw new Error(data.details || data.error || 'Failed to create protocol');
       }
 
       onSuccess();
     } catch (err) {
+      console.error('Protocol creation error:', err);
       setError(err.message);
     } finally {
       setSaving(false);
@@ -345,6 +357,22 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            {/* Missing Data Notice */}
+            {(!purchase?.patient_name || !purchase?.ghl_contact_id) && (
+              <div style={{ 
+                gridColumn: '1 / -1', 
+                background: '#eff6ff', 
+                border: '1px solid #bfdbfe', 
+                borderRadius: '6px', 
+                padding: '12px 16px',
+                marginBottom: '8px'
+              }}>
+                <div style={{ fontSize: '13px', color: '#1e40af' }}>
+                  ℹ️ Some data is missing from this purchase record. Please fill in the required fields below.
+                </div>
+              </div>
+            )}
+
             {/* Patient Info */}
             <div style={{ gridColumn: '1 / -1' }}>
               <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Patient Information</h3>

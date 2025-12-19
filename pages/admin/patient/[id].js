@@ -1662,6 +1662,7 @@ function EditProtocolModal({ protocol, onClose, onSuccess }) {
                 <option value="">-- Select --</option>
                 <option value="2x_daily">2x Daily (AM & PM)</option>
                 <option value="daily">Daily</option>
+                <option value="5_on_2_off">5 Days On / 2 Days Off</option>
                 <option value="every_other_day">Every Other Day</option>
                 <option value="3x_weekly">3x Weekly (Mon, Wed, Fri)</option>
                 <option value="2x_weekly">2x Weekly (Mon & Thu)</option>

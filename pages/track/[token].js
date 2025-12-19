@@ -48,8 +48,10 @@ const FREQUENCY_DISPLAY = {
   '2x_daily': { label: '2× Daily', schedule: 'Morning & Evening' },
   'daily': { label: 'Daily', schedule: 'Once per day' },
   'every_other_day': { label: 'Every Other Day', schedule: 'Alternating days' },
+  '3x_weekly': { label: '3× Weekly', schedule: 'Mon, Wed, Fri' },
   '2x_weekly': { label: '2× Weekly', schedule: 'Monday & Thursday' },
   'weekly': { label: 'Weekly', schedule: 'Once per week' },
+  '3x weekly': { label: '3× Weekly', schedule: 'Mon, Wed, Fri' },
   '2x weekly': { label: '2× Weekly', schedule: 'Monday & Thursday' },
   '1x weekly': { label: 'Weekly', schedule: 'Once per week' }
 };
@@ -491,15 +493,22 @@ export default function PatientTracker() {
         days.push({ day: i, label: `D${i}`, subLabel: 'AM' });
         days.push({ day: i + 0.5, label: `D${i}`, subLabel: 'PM' });
       }
-    } else if (f.includes('weekly') && !f.includes('2x')) {
+    } else if (f.includes('3x_weekly') || f.includes('3x weekly')) {
       const weeks = Math.ceil(duration / 7);
-      for (let i = 1; i <= weeks; i++) days.push({ day: i * 7, label: `Wk ${i}` });
+      for (let i = 0; i < weeks; i++) {
+        days.push({ day: i * 7 + 1, label: `Wk${i + 1}`, subLabel: 'Mon' });
+        days.push({ day: i * 7 + 3, label: `Wk${i + 1}`, subLabel: 'Wed' });
+        days.push({ day: i * 7 + 5, label: `Wk${i + 1}`, subLabel: 'Fri' });
+      }
     } else if (f.includes('2x_weekly') || f.includes('2x weekly')) {
       const weeks = Math.ceil(duration / 7);
       for (let i = 0; i < weeks; i++) {
         days.push({ day: i * 7 + 1, label: `Wk${i + 1}`, subLabel: 'Mon' });
         days.push({ day: i * 7 + 4, label: `Wk${i + 1}`, subLabel: 'Thu' });
       }
+    } else if (f.includes('weekly') && !f.includes('2x') && !f.includes('3x')) {
+      const weeks = Math.ceil(duration / 7);
+      for (let i = 1; i <= weeks; i++) days.push({ day: i * 7, label: `Wk ${i}` });
     } else if (f.includes('every_other') || f.includes('every other')) {
       for (let i = 1; i <= duration; i += 2) days.push({ day: i, label: `Day ${i}` });
     } else {

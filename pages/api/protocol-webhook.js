@@ -467,12 +467,37 @@ export default async function handler(req, res) {
     const payload = req.body;
     
     // =====================================================
-    // EXTRACT DATA FROM GHL PAYLOAD - v4.0 FIXED
+    // CHECK IF THIS IS A REAL PAYMENT (not contact update)
+    // =====================================================
+    
+    const payment = payload.payment || {};
+    
+    // If there's no payment object, this is NOT a payment webhook - skip it
+    if (!payment || Object.keys(payment).length === 0) {
+      console.log('⚠️ No payment object found - this is not a payment webhook, skipping');
+      return res.status(200).json({ 
+        success: true, 
+        skipped: true,
+        reason: 'Not a payment webhook (no payment object)'
+      });
+    }
+    
+    // Check payment status - only process completed payments
+    const paymentStatus = payment.payment_status || payment.status || '';
+    if (paymentStatus && !['succeeded', 'completed', 'paid'].includes(paymentStatus.toLowerCase())) {
+      console.log('⚠️ Payment status is not completed:', paymentStatus);
+      return res.status(200).json({ 
+        success: true, 
+        skipped: true,
+        reason: `Payment status: ${paymentStatus}`
+      });
+    }
+    
+    // =====================================================
+    // EXTRACT DATA FROM GHL PAYLOAD - v5.0 WITH LIST PRICE
     // GHL sends data in: payload.payment.line_items[0]
     // =====================================================
     
-    // Get payment object
-    const payment = payload.payment || {};
     const lineItems = payment.line_items || [];
     const firstItem = lineItems[0] || {};
     const invoice = payment.invoice || {};
@@ -655,7 +680,19 @@ export default async function handler(req, res) {
     for (const item of itemsToProcess) {
       const itemName = item.title || item.name || productName;
       const itemQuantity = parseInt(item.quantity) || 1;
+      
+      // LIST PRICE = original price before discounts
+      const itemListPrice = parseFloat(item.price) || 0;
+      
+      // AMOUNT PAID = actual amount after discounts (line_price)
+      // line_price is what they actually paid for this item
       const itemAmount = parseFloat(item.line_price) || parseFloat(item.price) || 0;
+      
+      console.log('💰 Prices:', {
+        list_price: itemListPrice,
+        amount_paid: itemAmount,
+        discount: itemListPrice - itemAmount
+      });
       
       // =====================================================
       // CATEGORIZE PURCHASE
@@ -735,6 +772,7 @@ export default async function handler(req, res) {
         item_name: normalizedItem,
         original_item_name: itemName,
         quantity: itemQuantity,
+        list_price: parseFloat(itemListPrice.toFixed(2)),
         amount: parseFloat(itemAmount.toFixed(2)),
         invoice_number: invoiceNumber || null,
         source: 'GoHighLevel',
@@ -853,6 +891,7 @@ export default async function handler(req, res) {
           category,
           item: normalizedItem,
           quantity: itemQuantity,
+          list_price: parseFloat(itemListPrice.toFixed(2)),
           amount: parseFloat(itemAmount.toFixed(2))
         } : null,
         protocol: protocol ? {

@@ -153,6 +153,7 @@ const FREQUENCY_OPTIONS = [
   { value: '2x_daily', label: '2x Daily (AM & PM)' },
   { value: 'daily', label: 'Daily' },
   { value: 'every_other_day', label: 'Every Other Day' },
+  { value: '3x_weekly', label: '3x Weekly (Mon, Wed, Fri)' },
   { value: '2x_weekly', label: '2x Weekly (Mon & Thu)' },
   { value: 'weekly', label: 'Weekly' }
 ];
@@ -803,8 +804,12 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
   const [protocols, setProtocols] = useState([]);
   const [selectedProtocolId, setSelectedProtocolId] = useState('');
   const [sessionNotes, setSessionNotes] = useState('');
+  const [extensionDays, setExtensionDays] = useState(30);
 
-  // Fetch patient's active session-based protocols
+  // Determine if this is a duration-based extension (weight loss, peptide, HRT) vs session-based
+  const isDurationExtension = ['Weight Loss', 'Peptide', 'HRT'].includes(purchase?.category);
+
+  // Fetch patient's active protocols
   useEffect(() => {
     if (purchase?.ghl_contact_id) {
       fetchProtocols();
@@ -819,12 +824,28 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
       if (res.ok) {
         const data = await res.json();
         const protocolsList = data.protocols || data;
-        // Filter to session-based protocols (ones with total_sessions)
-        const sessionProtocols = protocolsList.filter(p => 
-          p.total_sessions || 
-          ['iv_therapy', 'hbot_sessions', 'red_light_sessions', 'injection_pack'].includes(p.program_type)
-        );
-        setProtocols(sessionProtocols);
+        
+        // Filter based on purchase category
+        let filtered = protocolsList;
+        if (isDurationExtension) {
+          // For weight loss/peptide/HRT - show matching program types
+          const categoryMap = {
+            'Weight Loss': ['weight_loss', 'weight_loss_program', 'weight_loss_injection'],
+            'Peptide': ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'month_30day', 'jumpstart_10day', 'recovery_10day'],
+            'HRT': ['hrt', 'hrt_membership', 'hrt_program']
+          };
+          const validTypes = categoryMap[purchase.category] || [];
+          filtered = protocolsList.filter(p => 
+            validTypes.some(t => (p.program_type || '').toLowerCase().includes(t.toLowerCase()))
+          );
+        } else {
+          // For sessions - filter to session-based protocols
+          filtered = protocolsList.filter(p => 
+            p.total_sessions || 
+            ['iv_therapy', 'hbot_sessions', 'red_light_sessions', 'injection_pack'].includes(p.program_type)
+          );
+        }
+        setProtocols(filtered);
       }
     } catch (err) {
       console.error('Error fetching protocols:', err);
@@ -833,7 +854,7 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
     }
   };
 
-  const handleAddSession = async () => {
+  const handleAddToProtocol = async () => {
     if (!selectedProtocolId) {
       setError('Please select a protocol');
       return;
@@ -843,19 +864,53 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/protocol/${selectedProtocolId}/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          purchase_id: purchase.id,
-          session_date: new Date().toISOString(),
-          notes: sessionNotes
-        })
-      });
+      if (isDurationExtension) {
+        // Extend protocol duration
+        const selectedProtocol = protocols.find(p => p.id === selectedProtocolId);
+        const currentEndDate = selectedProtocol?.end_date ? new Date(selectedProtocol.end_date) : new Date();
+        const newEndDate = new Date(currentEndDate);
+        newEndDate.setDate(newEndDate.getDate() + extensionDays);
+        
+        const newDuration = (selectedProtocol?.duration_days || 0) + extensionDays;
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to add session');
+        const res = await fetch(`/api/admin/protocols?id=${selectedProtocolId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            duration_days: newDuration,
+            end_date: newEndDate.toISOString().split('T')[0],
+            notes: `${selectedProtocol?.notes || ''}\n[${new Date().toLocaleDateString()}] Extended ${extensionDays} days - ${purchase.item_name}${sessionNotes ? ` - ${sessionNotes}` : ''}`
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to extend protocol');
+        }
+
+        // Link purchase to protocol
+        await fetch(`/api/admin/purchases/${purchase.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ protocol_id: selectedProtocolId })
+        });
+
+      } else {
+        // Add session to protocol
+        const res = await fetch(`/api/admin/protocol/${selectedProtocolId}/session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            purchase_id: purchase.id,
+            session_date: new Date().toISOString(),
+            notes: sessionNotes
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to add session');
+        }
       }
 
       onSuccess();
@@ -871,6 +926,8 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
   };
 
   if (!purchase) return null;
+
+  const selectedProtocol = protocols.find(p => p.id === selectedProtocolId);
 
   return (
     <div style={{
@@ -893,10 +950,12 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
         margin: '20px'
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5' }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Add to Protocol</h2>
-          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>
-            {purchase.patient_name} • {purchase.item_name} ({formatCurrency(purchase.amount)})
+        <div style={{ padding: '20px', borderBottom: '1px solid #e5e5e5', background: '#3b82f6', borderRadius: '12px 12px 0 0' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'white' }}>
+            {isDurationExtension ? 'Extend Protocol' : 'Add to Protocol'}
+          </h2>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: 'rgba(255,255,255,0.8)' }}>
+            {purchase.patient_name} • {purchase.item_name}
           </p>
         </div>
 
@@ -916,7 +975,7 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
             <>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-                  Select Protocol
+                  Select Protocol to {isDurationExtension ? 'Extend' : 'Add Session'}
                 </label>
                 <select
                   value={selectedProtocolId}
@@ -931,20 +990,13 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
                   }}
                 >
                   <option value="">-- Select a protocol --</option>
-                  {protocols.length > 0 && (
-                    <optgroup label="Active Packs">
-                      {protocols.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.program_name || p.program_type} 
-                          {p.total_sessions ? ` (${p.injections_completed || 0}/${p.total_sessions} used)` : ''}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  <optgroup label="Other Options">
-                    <option value="new_standalone">+ Create Single Session (Standalone)</option>
-                    <option value="new_pack">+ Create New Pack</option>
-                  </optgroup>
+                  {protocols.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.program_name || p.program_type} 
+                      {p.end_date ? ` (ends ${new Date(p.end_date).toLocaleDateString()})` : ''}
+                      {p.total_sessions ? ` (${p.injections_completed || 0}/${p.total_sessions} used)` : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -957,20 +1009,58 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
                   color: '#92400e',
                   marginBottom: '16px'
                 }}>
-                  ⚠️ No active session packs found for this patient. Select "Create Single Session" or "Create New Pack" below.
+                  ⚠️ No matching active protocols found for this patient. Use "+ New" to create a new protocol instead.
                 </div>
               )}
 
-              {/* Session Notes */}
-              {selectedProtocolId && !selectedProtocolId.startsWith('new_') && (
+              {/* Extension Days (for Weight Loss/Peptide/HRT) */}
+              {selectedProtocolId && isDurationExtension && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+                    Extend by (days)
+                  </label>
+                  <select
+                    value={extensionDays}
+                    onChange={(e) => setExtensionDays(parseInt(e.target.value))}
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      border: '1px solid #e5e5e5', 
+                      borderRadius: '6px', 
+                      fontSize: '14px',
+                      background: 'white'
+                    }}
+                  >
+                    <option value={7}>7 days (1 week)</option>
+                    <option value={14}>14 days (2 weeks)</option>
+                    <option value={28}>28 days (4 weeks)</option>
+                    <option value={30}>30 days (1 month)</option>
+                    <option value={60}>60 days (2 months)</option>
+                    <option value={90}>90 days (3 months)</option>
+                  </select>
+                  {selectedProtocol && (
+                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
+                      Current end: {selectedProtocol.end_date ? new Date(selectedProtocol.end_date).toLocaleDateString() : 'Not set'} → 
+                      New end: {(() => {
+                        const current = selectedProtocol.end_date ? new Date(selectedProtocol.end_date) : new Date();
+                        current.setDate(current.getDate() + extensionDays);
+                        return current.toLocaleDateString();
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedProtocolId && (
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-                    Session Notes (optional)
+                    Notes (optional)
                   </label>
                   <textarea
                     value={sessionNotes}
                     onChange={(e) => setSessionNotes(e.target.value)}
-                    placeholder="Any notes about this session..."
+                    placeholder={isDurationExtension ? "Any notes about this renewal..." : "Any notes about this session..."}
                     rows={2}
                     style={{ 
                       width: '100%', 
@@ -996,45 +1086,22 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
           >
             Cancel
           </button>
-          {selectedProtocolId === 'new_standalone' || selectedProtocolId === 'new_pack' ? (
-            <button
-              onClick={() => {
-                onClose();
-                // Trigger create protocol with this purchase
-                window.dispatchEvent(new CustomEvent('createProtocolFromPurchase', { detail: purchase }));
-              }}
-              style={{
-                padding: '10px 24px',
-                border: 'none',
-                borderRadius: '6px',
-                background: '#000',
-                color: '#fff',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-            >
-              Continue to Create
-            </button>
-          ) : (
-            <button
-              onClick={handleAddSession}
-              disabled={saving || !selectedProtocolId}
-              style={{
-                padding: '10px 24px',
-                border: 'none',
-                borderRadius: '6px',
-                background: '#000',
-                color: '#fff',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: saving || !selectedProtocolId ? 'not-allowed' : 'pointer',
-                opacity: saving || !selectedProtocolId ? 0.6 : 1
-              }}
-            >
-              {saving ? 'Adding...' : 'Add Session'}
-            </button>
-          )}
+          <button
+            onClick={handleAddToProtocol}
+            disabled={!selectedProtocolId || saving}
+            style={{ 
+              padding: '10px 20px', 
+              background: !selectedProtocolId || saving ? '#ccc' : '#3b82f6', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '6px', 
+              fontSize: '14px', 
+              fontWeight: '500',
+              cursor: !selectedProtocolId || saving ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {saving ? 'Saving...' : isDurationExtension ? `Extend ${extensionDays} Days` : 'Add Session'}
+          </button>
         </div>
       </div>
     </div>
@@ -1058,8 +1125,8 @@ function isSessionPurchase(purchase) {
   if (!purchase) return false;
   const category = purchase.category || '';
   
-  // These categories are session-based
-  return ['IV Therapy', 'Injection', 'Hyperbaric', 'Red Light'].includes(category);
+  // These categories are session-based or can extend existing protocols
+  return ['IV Therapy', 'Injection', 'Hyperbaric', 'Red Light', 'Weight Loss', 'Peptide', 'HRT'].includes(category);
 }
 
 // ============================================
@@ -1573,54 +1640,41 @@ export default function AdminPurchases() {
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         {purchase.protocol_id ? (
                           <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '500' }}>✓ Assigned</span>
-                        ) : isPackagePurchase(purchase) ? (
-                          <button
-                            onClick={() => setCreateProtocolPurchase(purchase)}
-                            style={{
-                              padding: '6px 12px',
-                              background: '#000',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Create Protocol
-                          </button>
-                        ) : isSessionPurchase(purchase) ? (
-                          <button
-                            onClick={() => setAddToProtocolPurchase(purchase)}
-                            style={{
-                              padding: '6px 12px',
-                              background: '#3b82f6',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Add to Protocol
-                          </button>
                         ) : (
-                          <button
-                            onClick={() => setCreateProtocolPurchase(purchase)}
-                            style={{
-                              padding: '6px 12px',
-                              background: '#000',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Create Protocol
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => setCreateProtocolPurchase(purchase)}
+                              style={{
+                                padding: '6px 10px',
+                                background: '#000',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              + New
+                            </button>
+                            {isSessionPurchase(purchase) && (
+                              <button
+                                onClick={() => setAddToProtocolPurchase(purchase)}
+                                style={{
+                                  padding: '6px 10px',
+                                  background: '#3b82f6',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: '500',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                + Existing
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>

@@ -1,5 +1,5 @@
 // /pages/track/[token].js
-// Patient Recovery Tracker - Premium Design
+// Patient Recovery Tracker - Premium Design with Wellness Tracking
 // Range Medical
 
 import { useState, useEffect } from 'react';
@@ -63,6 +63,17 @@ const EXERCISE_FREQUENCIES = ['None', '1-2 times per week', '3-4 times per week'
 const SIDE_EFFECTS = ['Nausea', 'Fatigue', 'Headache', 'Constipation', 'Diarrhea', 'Dizziness', 'Injection Site Reaction', 'None'];
 const CLOTHING_CHANGES = ['Much looser', 'Slightly looser', 'About the same', 'Slightly tighter'];
 
+// =====================================================
+// WELLNESS METRICS CONFIG
+// =====================================================
+const WELLNESS_METRICS = [
+  { key: 'energy', label: 'Energy', lowLabel: 'Exhausted', highLabel: 'Energetic', icon: '⚡', color: '#ff9800' },
+  { key: 'sleep', label: 'Sleep Quality', lowLabel: 'Poor', highLabel: 'Excellent', icon: '😴', color: '#5c6bc0' },
+  { key: 'pain', label: 'Pain Level', lowLabel: 'None', highLabel: 'Severe', icon: '🩹', color: '#ef5350', inverted: true },
+  { key: 'recovery', label: 'Recovery', lowLabel: 'Slow', highLabel: 'Fast', icon: '💪', color: '#26a69a' },
+  { key: 'wellbeing', label: 'Overall', lowLabel: 'Poor', highLabel: 'Great', icon: '✨', color: '#ab47bc' }
+];
+
 export default function PatientTracker() {
   const router = useRouter();
   const { token } = router.query;
@@ -77,6 +88,15 @@ export default function PatientTracker() {
   const [completionQuestionnaire, setCompletionQuestionnaire] = useState(null);
   const [activeForm, setActiveForm] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Wellness tracking state
+  const [symptoms, setSymptoms] = useState({ logs: [], stats: {} });
+  const [showWellnessCheckIn, setShowWellnessCheckIn] = useState(false);
+  const [wellnessData, setWellnessData] = useState({
+    energy: 5, sleep: 5, pain: 5, recovery: 5, wellbeing: 5, notes: ''
+  });
+  const [savingWellness, setSavingWellness] = useState(false);
+  const [todayLogged, setTodayLogged] = useState(false);
   
   // Form data
   const [formData, setFormData] = useState({
@@ -105,6 +125,9 @@ export default function PatientTracker() {
         if (category && !json.intakeQuestionnaire) {
           setActiveForm('intake');
         }
+        
+        // Fetch symptoms data
+        fetchSymptoms();
       } else {
         setError('Protocol not found. Please check your link.');
       }
@@ -112,6 +135,53 @@ export default function PatientTracker() {
       setError('Unable to load. Please try again.');
     }
     setLoading(false);
+  };
+  
+  const fetchSymptoms = async () => {
+    try {
+      const res = await fetch(`/api/patient/symptoms?token=${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSymptoms(data);
+        
+        // Check if today is already logged
+        const today = new Date().toISOString().split('T')[0];
+        const todayLog = data.logs?.find(l => l.log_date === today);
+        if (todayLog) {
+          setTodayLogged(true);
+          setWellnessData({
+            energy: todayLog.energy || 5,
+            sleep: todayLog.sleep || 5,
+            pain: todayLog.pain || 5,
+            recovery: todayLog.recovery || 5,
+            wellbeing: todayLog.wellbeing || 5,
+            notes: todayLog.notes || ''
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch symptoms:', err);
+    }
+  };
+  
+  const saveWellnessCheckIn = async () => {
+    setSavingWellness(true);
+    try {
+      const res = await fetch(`/api/patient/symptoms?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wellnessData)
+      });
+      
+      if (res.ok) {
+        setTodayLogged(true);
+        setShowWellnessCheckIn(false);
+        fetchSymptoms(); // Refresh data
+      }
+    } catch (err) {
+      console.error('Failed to save wellness:', err);
+    }
+    setSavingWellness(false);
   };
 
   const getQuestionnaireCategory = (programType) => {
@@ -159,144 +229,278 @@ export default function PatientTracker() {
         if (type === 'intake') setIntakeQuestionnaire(result.response);
         else setCompletionQuestionnaire(result.response);
         setActiveForm(null);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to save');
+        fetchData();
       }
     } catch (err) {
-      alert('Error saving. Please try again.');
+      console.error('Error submitting questionnaire:', err);
     }
     setSubmitting(false);
   };
 
-  // Calculate injection days based on frequency
-  const getInjectionDays = (startDate, durationDays, frequency, isWeightLoss) => {
-    const start = startDate ? new Date(startDate) : new Date();
-    const days = [];
-    
-    if (isWeightLoss) {
-      const weeks = Math.ceil(durationDays / 7);
-      if (frequency === '2x weekly' || frequency === '2x_weekly') {
-        for (let week = 0; week < weeks; week++) {
-          const day1 = week * 7 + 1;
-          const day2 = week * 7 + 4;
-          if (day1 <= durationDays) days.push({ day: day1, label: `Wk${week + 1}a`, week: week + 1, shot: 1 });
-          if (day2 <= durationDays) days.push({ day: day2, label: `Wk${week + 1}b`, week: week + 1, shot: 2 });
-        }
-      } else {
-        for (let week = 0; week < weeks; week++) {
-          const day = week * 7 + 1;
-          if (day <= durationDays) days.push({ day, label: `Week ${week + 1}`, week: week + 1, shot: 1 });
-        }
-      }
-      return days;
+  const toggleDay = async (day, isCompleted) => {
+    setSaving(day);
+    try {
+      const res = await fetch(`/api/patient/tracker`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, day_number: Math.floor(day), action: isCompleted ? 'remove' : 'add' })
+      });
+      if (res.ok) fetchData();
+    } catch (err) {
+      console.error('Error toggling day:', err);
     }
+    setSaving(null);
+  };
 
-    // Peptide frequency logic
-    if (frequency === '2x_daily') {
-      for (let i = 1; i <= durationDays; i++) {
-        days.push({ day: i, label: `${i}`, subLabel: 'AM', isAM: true });
-        days.push({ day: i + 0.5, label: `${i}`, subLabel: 'PM', isPM: true, dayNumber: i });
+  const getPeptideInfo = (peptideName) => {
+    if (!peptideName) return null;
+    const normalizedName = peptideName.trim();
+    if (PEPTIDE_INFO[normalizedName]) return PEPTIDE_INFO[normalizedName];
+    for (const key of Object.keys(PEPTIDE_INFO)) {
+      if (normalizedName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedName.toLowerCase())) {
+        return PEPTIDE_INFO[key];
       }
-      return days;
     }
-    
-    if (frequency === 'every_other_day') {
-      for (let i = 1; i <= durationDays; i += 2) {
-        days.push({ day: i, label: `Day ${i}` });
+    return null;
+  };
+
+  const generateInjectionDays = (frequency, duration) => {
+    const days = [];
+    const f = frequency?.toLowerCase() || 'daily';
+    if (f.includes('2x_daily') || f.includes('twice daily')) {
+      for (let i = 1; i <= duration; i++) {
+        days.push({ day: i, label: `D${i}`, subLabel: 'AM' });
+        days.push({ day: i + 0.5, label: `D${i}`, subLabel: 'PM' });
       }
-      return days;
-    }
-    
-    if (frequency === '2x_weekly' || frequency === '2x weekly') {
-      const weeks = Math.ceil(durationDays / 7);
-      for (let week = 0; week < weeks; week++) {
-        const day1 = week * 7 + 1; // Monday
-        const day2 = week * 7 + 4; // Thursday
-        if (day1 <= durationDays) days.push({ day: day1, label: `Wk${week + 1} Mon` });
-        if (day2 <= durationDays) days.push({ day: day2, label: `Wk${week + 1} Thu` });
+    } else if (f.includes('weekly') && !f.includes('2x')) {
+      const weeks = Math.ceil(duration / 7);
+      for (let i = 1; i <= weeks; i++) days.push({ day: i * 7, label: `Wk ${i}` });
+    } else if (f.includes('2x_weekly') || f.includes('2x weekly')) {
+      const weeks = Math.ceil(duration / 7);
+      for (let i = 0; i < weeks; i++) {
+        days.push({ day: i * 7 + 1, label: `Wk${i + 1}`, subLabel: 'Mon' });
+        days.push({ day: i * 7 + 4, label: `Wk${i + 1}`, subLabel: 'Thu' });
       }
-      return days;
-    }
-    
-    if (frequency === 'weekly') {
-      const weeks = Math.ceil(durationDays / 7);
-      for (let week = 0; week < weeks; week++) {
-        const day = week * 7 + 1;
-        if (day <= durationDays) days.push({ day, label: `Week ${week + 1}` });
-      }
-      return days;
-    }
-    
-    // Daily (default)
-    for (let i = 1; i <= durationDays; i++) {
-      days.push({ day: i, label: `${i}` });
+    } else if (f.includes('every_other') || f.includes('every other')) {
+      for (let i = 1; i <= duration; i += 2) days.push({ day: i, label: `Day ${i}` });
+    } else {
+      for (let i = 1; i <= duration; i++) days.push({ day: i, label: `${i}` });
     }
     return days;
   };
 
-  const toggleDay = async (dayValue, isCompleted) => {
-    console.log('Toggle clicked:', { dayValue, isCompleted, isInClinic });
-    
-    if (isInClinic) {
-      console.log('In-clinic protocol - clicks disabled');
-      return;
-    }
-    
-    const dayNumber = Math.floor(dayValue);
-    setSaving(dayValue);
-    
-    try {
-      const res = await fetch(`/api/patient/tracker?token=${token}`, {
-        method: isCompleted ? 'DELETE' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ day: dayNumber })
-      });
-      
-      const result = await res.json();
-      console.log('API response:', result);
-      
-      if (res.ok) {
-        await fetchData();
-      } else {
-        console.error('API error:', result);
-        alert('Error saving. Please try again.');
-      }
-    } catch (err) {
-      console.error('Toggle error:', err);
-      alert('Connection error. Please try again.');
-    }
-    
-    setSaving(null);
-  };
-
-  // Score Slider Component
-  const ScoreSlider = ({ label, value, onChange, lowLabel, highLabel, color }) => (
+  // =====================================================
+  // SCORE SLIDER COMPONENT
+  // =====================================================
+  const ScoreSlider = ({ label, value, onChange, lowLabel = '1', highLabel = '10', color = '#000' }) => (
     <div style={{ marginBottom: '24px' }}>
-      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '10px', color: '#1a1a1a' }}>{label}</label>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ fontSize: '11px', color: '#888', width: '60px' }}>{lowLabel}</span>
-        <input type="range" min="0" max="10" value={value} onChange={(e) => onChange(parseInt(e.target.value))} 
-          style={{ flex: 1, height: '6px', WebkitAppearance: 'none', background: `linear-gradient(to right, ${color || '#000'} 0%, ${color || '#000'} ${value * 10}%, #e0e0e0 ${value * 10}%, #e0e0e0 100%)`, borderRadius: '3px', outline: 'none' }} />
-        <span style={{ fontSize: '11px', color: '#888', width: '60px', textAlign: 'right' }}>{highLabel}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <label style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>{label}</label>
+        <span style={{ fontSize: '24px', fontWeight: '700', color }}>{value}</span>
       </div>
-      <div style={{ textAlign: 'center', marginTop: '8px' }}>
-        <span style={{ display: 'inline-block', background: color || '#000', color: 'white', padding: '4px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '600' }}>{value}/10</span>
+      <input type="range" min="1" max="10" value={value} onChange={(e) => onChange(parseInt(e.target.value))} style={{ width: '100%', height: '8px', borderRadius: '4px', outline: 'none', WebkitAppearance: 'none', background: `linear-gradient(to right, ${color} ${(value - 1) * 11.1}%, #e0e0e0 ${(value - 1) * 11.1}%)` }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+        <span style={{ fontSize: '11px', color: '#888' }}>{lowLabel}</span>
+        <span style={{ fontSize: '11px', color: '#888' }}>{highLabel}</span>
       </div>
     </div>
   );
 
-  // Get peptide info
-  const getPeptideInfo = (peptideName) => {
-    if (!peptideName) return null;
-    // Check for exact match first
-    if (PEPTIDE_INFO[peptideName]) return PEPTIDE_INFO[peptideName];
-    // Check for partial match
-    for (const key of Object.keys(PEPTIDE_INFO)) {
-      if (peptideName.toLowerCase().includes(key.toLowerCase())) return PEPTIDE_INFO[key];
-    }
-    return null;
+  // =====================================================
+  // WELLNESS CHECK-IN COMPONENT
+  // =====================================================
+  const WellnessCheckIn = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '20px'
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '20px',
+        width: '100%',
+        maxWidth: '400px',
+        maxHeight: '90vh',
+        overflow: 'auto'
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)',
+          color: 'white',
+          padding: '24px',
+          borderRadius: '20px 20px 0 0',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '28px', marginBottom: '8px' }}>🌟</div>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Daily Check-In</h2>
+          <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.8 }}>
+            {todayLogged ? 'Update your scores' : 'How are you feeling today?'}
+          </p>
+        </div>
+        
+        {/* Sliders */}
+        <div style={{ padding: '24px' }}>
+          {WELLNESS_METRICS.map(metric => (
+            <div key={metric.key} style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>{metric.icon}</span> {metric.label}
+                </span>
+                <span style={{ 
+                  fontSize: '20px', 
+                  fontWeight: '700', 
+                  color: metric.color,
+                  background: `${metric.color}15`,
+                  padding: '4px 12px',
+                  borderRadius: '12px'
+                }}>
+                  {wellnessData[metric.key]}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={wellnessData[metric.key]}
+                onChange={(e) => setWellnessData(prev => ({ ...prev, [metric.key]: parseInt(e.target.value) }))}
+                style={{
+                  width: '100%',
+                  height: '8px',
+                  borderRadius: '4px',
+                  outline: 'none',
+                  WebkitAppearance: 'none',
+                  background: `linear-gradient(to right, ${metric.color} ${(wellnessData[metric.key] - 1) * 11.1}%, #e8e8e8 ${(wellnessData[metric.key] - 1) * 11.1}%)`
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span style={{ fontSize: '10px', color: '#999' }}>{metric.lowLabel}</span>
+                <span style={{ fontSize: '10px', color: '#999' }}>{metric.highLabel}</span>
+              </div>
+            </div>
+          ))}
+          
+          {/* Notes */}
+          <div style={{ marginTop: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>
+              Notes (optional)
+            </label>
+            <textarea
+              value={wellnessData.notes}
+              onChange={(e) => setWellnessData(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Any symptoms, observations, or notes..."
+              rows={2}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #e0e0e0',
+                borderRadius: '12px',
+                fontSize: '14px',
+                resize: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+        </div>
+        
+        {/* Buttons */}
+        <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => setShowWellnessCheckIn(false)}
+            style={{
+              flex: 1,
+              padding: '14px',
+              background: '#f5f5f5',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={saveWellnessCheckIn}
+            disabled={savingWellness}
+            style={{
+              flex: 2,
+              padding: '14px',
+              background: savingWellness ? '#ccc' : 'linear-gradient(135deg, #000 0%, #333 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: savingWellness ? 'wait' : 'pointer'
+            }}
+          >
+            {savingWellness ? 'Saving...' : todayLogged ? 'Update' : 'Save Check-In'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // =====================================================
+  // PROGRESS CHART COMPONENT (Simple visual)
+  // =====================================================
+  const ProgressChart = ({ logs, metric }) => {
+    if (!logs || logs.length < 2) return null;
+    
+    const values = logs.map(l => l[metric.key]).filter(v => v !== null);
+    if (values.length < 2) return null;
+    
+    const max = 10;
+    const min = 1;
+    const width = 100;
+    const height = 40;
+    
+    const points = values.map((v, i) => {
+      const x = (i / (values.length - 1)) * width;
+      const y = height - ((v - min) / (max - min)) * height;
+      return `${x},${y}`;
+    }).join(' ');
+    
+    const first = values[0];
+    const last = values[values.length - 1];
+    const change = last - first;
+    const improved = metric.inverted ? change < 0 : change > 0;
+    
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+          <polyline
+            points={points}
+            fill="none"
+            stroke={metric.color}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span style={{ 
+          fontSize: '12px', 
+          fontWeight: '600',
+          color: improved ? '#4caf50' : change === 0 ? '#888' : '#f44336'
+        }}>
+          {improved ? '↑' : change === 0 ? '→' : '↓'}
+          {Math.abs(change)}
+        </span>
+      </div>
+    );
   };
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   if (loading) {
     return (
@@ -337,6 +541,32 @@ export default function PatientTracker() {
   const peptideInfo = getPeptideInfo(primaryPeptide);
   const frequencyInfo = FREQUENCY_DISPLAY[protocol?.dose_frequency] || FREQUENCY_DISPLAY['daily'];
 
+  // Calculate streak
+  const calculateStreak = () => {
+    const logs = symptoms.logs || [];
+    if (logs.length === 0) return 0;
+    
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+      
+      if (logs.some(l => l.log_date === dateStr)) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const streak = calculateStreak();
+
   return (
     <>
       <Head>
@@ -344,6 +574,9 @@ export default function PatientTracker() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="theme-color" content="#000000" />
       </Head>
+      
+      {/* Wellness Check-In Modal */}
+      {showWellnessCheckIn && <WellnessCheckIn />}
       
       <div style={{ minHeight: '100vh', background: '#fafafa', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}>
         {/* Premium Header */}
@@ -353,10 +586,10 @@ export default function PatientTracker() {
           padding: '24px 20px',
           textAlign: 'center'
         }}>
-          <div style={{ fontSize: '11px', letterSpacing: '3px', opacity: 0.6, marginBottom: '8px' }}>RANGE MEDICAL</div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '600', letterSpacing: '0.5px' }}>
+          <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '600', letterSpacing: '3px' }}>RANGE MEDICAL</h1>
+          <p style={{ margin: 0, fontSize: '13px', opacity: 0.7 }}>
             {isWeightLoss ? 'Weight Loss Journey' : 'Recovery Tracker'}
-          </h1>
+          </p>
         </header>
 
         {/* In-Clinic Banner */}
@@ -372,15 +605,157 @@ export default function PatientTracker() {
           <div style={{ fontSize: '13px', color: '#888', marginBottom: '4px' }}>Welcome back,</div>
           <div style={{ fontSize: '24px', fontWeight: '700', color: '#1a1a1a', marginBottom: '8px' }}>{protocol?.patient_name}</div>
           <div style={{ fontSize: '14px', color: '#666' }}>{protocol?.program_name}</div>
-          {daysLeft > 0 && (
-            <div style={{ marginTop: '16px', padding: '12px 16px', background: '#f8f8f8', borderRadius: '10px', display: 'inline-block' }}>
-              <span style={{ fontSize: '13px', color: '#666' }}>{daysLeft} days remaining</span>
-            </div>
-          )}
+          
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+            {daysLeft > 0 && (
+              <div style={{ padding: '10px 16px', background: '#f8f8f8', borderRadius: '10px' }}>
+                <span style={{ fontSize: '13px', color: '#666' }}>📅 {daysLeft} days left</span>
+              </div>
+            )}
+            {streak > 0 && (
+              <div style={{ padding: '10px 16px', background: '#fff3e0', borderRadius: '10px' }}>
+                <span style={{ fontSize: '13px', color: '#e65100' }}>🔥 {streak} day streak!</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* =====================================================
-            PROTOCOL INFO CARDS - New Premium Design
+            DAILY WELLNESS CHECK-IN BUTTON
+        ===================================================== */}
+        {!activeForm && !isInClinic && (
+          <div style={{ margin: '0 20px 20px' }}>
+            <button
+              onClick={() => setShowWellnessCheckIn(true)}
+              style={{
+                width: '100%',
+                padding: '20px',
+                background: todayLogged 
+                  ? 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)'
+                  : 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)',
+                border: 'none',
+                borderRadius: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  background: 'white', 
+                  borderRadius: '12px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '24px'
+                }}>
+                  {todayLogged ? '✅' : '📊'}
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a1a1a' }}>
+                    {todayLogged ? "Today's Check-In Complete" : 'Daily Wellness Check-In'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                    {todayLogged ? 'Tap to update your scores' : 'Track how you\'re feeling today'}
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize: '20px', color: '#888' }}>→</div>
+            </button>
+          </div>
+        )}
+
+        {/* =====================================================
+            WELLNESS PROGRESS CARD
+        ===================================================== */}
+        {!activeForm && symptoms.logs?.length >= 2 && (
+          <div style={{ margin: '0 20px 20px' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: '16px', 
+              padding: '20px',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '16px'
+              }}>
+                <span style={{ fontSize: '15px', fontWeight: '600', color: '#333' }}>Your Progress</span>
+                <span style={{ fontSize: '11px', color: '#888' }}>{symptoms.logs.length} check-ins</span>
+              </div>
+              
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {WELLNESS_METRICS.map(metric => {
+                  const logs = symptoms.logs || [];
+                  const values = logs.map(l => l[metric.key]).filter(v => v !== null);
+                  if (values.length < 2) return null;
+                  
+                  const first = values[0];
+                  const last = values[values.length - 1];
+                  const change = last - first;
+                  const improved = metric.inverted ? change < 0 : change > 0;
+                  
+                  return (
+                    <div key={metric.key} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      padding: '12px',
+                      background: '#fafafa',
+                      borderRadius: '10px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '18px' }}>{metric.icon}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '500' }}>{metric.label}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <ProgressChart logs={symptoms.logs} metric={metric} />
+                        <div style={{ 
+                          padding: '4px 10px', 
+                          borderRadius: '8px',
+                          background: improved ? '#e8f5e9' : change === 0 ? '#f5f5f5' : '#ffebee',
+                          color: improved ? '#2e7d32' : change === 0 ? '#666' : '#c62828',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {first} → {last}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Overall Improvement Message */}
+              {symptoms.stats?.changes?.wellbeing?.improved && (
+                <div style={{ 
+                  marginTop: '16px', 
+                  padding: '16px', 
+                  background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)',
+                  borderRadius: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🎉</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#2e7d32' }}>
+                    You're making progress!
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#388e3c', marginTop: '4px' }}>
+                    Your overall wellbeing has improved since starting
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* =====================================================
+            PROTOCOL INFO CARDS - Existing Premium Design
         ===================================================== */}
         {!activeForm && (primaryPeptide || protocol?.dose_frequency) && (
           <div style={{ margin: '0 20px 20px' }}>
@@ -406,77 +781,66 @@ export default function PatientTracker() {
               )}
               
               {/* Dosing Info */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
                 {protocol?.dose_amount && (
-                  <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', opacity: 0.5, marginBottom: '4px' }}>DOSAGE</div>
-                    <div style={{ fontSize: '16px', fontWeight: '600' }}>{protocol.dose_amount}</div>
+                  <div>
+                    <div style={{ fontSize: '11px', opacity: 0.5, marginBottom: '4px' }}>DOSE</div>
+                    <div style={{ fontSize: '15px', fontWeight: '600' }}>{protocol.dose_amount}</div>
                   </div>
                 )}
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px' }}>
+                <div>
                   <div style={{ fontSize: '11px', opacity: 0.5, marginBottom: '4px' }}>FREQUENCY</div>
-                  <div style={{ fontSize: '16px', fontWeight: '600' }}>{frequencyInfo.label}</div>
-                  <div style={{ fontSize: '12px', opacity: 0.6, marginTop: '2px' }}>{frequencyInfo.schedule}</div>
+                  <div style={{ fontSize: '15px', fontWeight: '600' }}>{frequencyInfo.label}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', opacity: 0.5, marginBottom: '4px' }}>DURATION</div>
+                  <div style={{ fontSize: '15px', fontWeight: '600' }}>{totalDays} days</div>
                 </div>
               </div>
             </div>
 
-            {/* Benefits Card */}
+            {/* Peptide Benefits Card */}
             {peptideInfo && (
               <div style={{ 
                 background: 'white', 
                 borderRadius: '16px', 
-                padding: '24px', 
-                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                border: '1px solid #f0f0f0'
+                padding: '20px',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
               }}>
-                <div style={{ fontSize: '11px', letterSpacing: '2px', color: '#888', marginBottom: '16px' }}>HOW IT HELPS</div>
-                
-                <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.6', marginBottom: '20px' }}>
-                  {peptideInfo.description}
-                </p>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ fontSize: '11px', letterSpacing: '2px', color: '#888', marginBottom: '12px' }}>BENEFITS</div>
+                <ul style={{ margin: 0, padding: '0 0 0 20px', listStyle: 'none' }}>
                   {peptideInfo.benefits.map((benefit, i) => (
-                    <div key={i} style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '8px',
-                      padding: '10px 12px',
-                      background: '#f8f8f8',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      color: '#333'
+                    <li key={i} style={{ 
+                      padding: '8px 0', 
+                      fontSize: '14px', 
+                      color: '#333',
+                      borderBottom: i < peptideInfo.benefits.length - 1 ? '1px solid #f0f0f0' : 'none',
+                      position: 'relative'
                     }}>
-                      <span style={{ color: '#4caf50' }}>✓</span>
+                      <span style={{ position: 'absolute', left: '-20px' }}>✓</span>
                       {benefit}
-                    </div>
+                    </li>
                   ))}
-                </div>
-                
-                <div style={{ marginTop: '16px', padding: '12px 16px', background: 'linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '11px', color: '#1565c0', fontWeight: '600', marginBottom: '4px' }}>BEST FOR</div>
-                  <div style={{ fontSize: '13px', color: '#333' }}>{peptideInfo.bestFor}</div>
-                </div>
+                </ul>
               </div>
             )}
           </div>
         )}
 
         {/* =====================================================
-            INTAKE FORMS (Peptide & Weight Loss)
+            INTAKE QUESTIONNAIRE FORMS
         ===================================================== */}
         {activeForm === 'intake' && isPeptide && !isInClinic && (
           <div style={{ padding: '0 20px 20px' }}>
             <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-              <div style={{ background: 'linear-gradient(135deg, #000 0%, #1a1a1a 100%)', color: 'white', padding: '24px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #000 0%, #333 100%)', color: 'white', padding: '24px' }}>
                 <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Starting Assessment</h2>
-                <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.7 }}>Help us track your recovery progress</p>
+                <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.9 }}>Help us understand your starting point</p>
               </div>
               <div style={{ padding: '24px' }}>
                 <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#1a1a1a' }}>What's your main issue? *</label>
-                  <textarea value={formData.primary_complaint} onChange={(e) => setFormData({ ...formData, primary_complaint: e.target.value })} required rows={2} placeholder="e.g., Shoulder pain, lower back inflammation" style={{ width: '100%', padding: '14px', border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '15px', boxSizing: 'border-box', resize: 'none' }} />
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#1a1a1a' }}>Primary concern *</label>
+                  <textarea value={formData.primary_complaint} onChange={(e) => setFormData({ ...formData, primary_complaint: e.target.value })} rows={2} placeholder="What brings you in? Describe your main issue..." style={{ width: '100%', padding: '14px', border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '15px', boxSizing: 'border-box', resize: 'none' }} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                   <div>
@@ -559,11 +923,19 @@ export default function PatientTracker() {
                   <span style={{ fontSize: '11px', fontWeight: '600', color: '#888', letterSpacing: '1px' }}>STARTING BASELINE</span>
                   <span style={{ fontSize: '11px', color: '#4caf50', background: '#e8f5e9', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>✓ Recorded</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', textAlign: 'center' }}>
-                  <div style={{ padding: '12px', background: '#f8f8f8', borderRadius: '10px' }}><div style={{ fontSize: '24px', fontWeight: '700', color: intakeQuestionnaire.pain_level > 6 ? '#c62828' : '#333' }}>{intakeQuestionnaire.pain_level}</div><div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Pain</div></div>
-                  <div style={{ padding: '12px', background: '#f8f8f8', borderRadius: '10px' }}><div style={{ fontSize: '24px', fontWeight: '700' }}>{intakeQuestionnaire.mobility_score}</div><div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Mobility</div></div>
-                  <div style={{ padding: '12px', background: '#f8f8f8', borderRadius: '10px' }}><div style={{ fontSize: '24px', fontWeight: '700' }}>{intakeQuestionnaire.sleep_quality}</div><div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Sleep</div></div>
-                  <div style={{ padding: '12px', background: '#f8f8f8', borderRadius: '10px' }}><div style={{ fontSize: '24px', fontWeight: '700' }}>{intakeQuestionnaire.energy_level}</div><div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Energy</div></div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                  <div style={{ textAlign: 'center', padding: '12px', background: '#fafafa', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '700', color: intakeQuestionnaire.pain_level > 5 ? '#c62828' : '#2e7d32' }}>{intakeQuestionnaire.pain_level || '-'}</div>
+                    <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Pain</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '12px', background: '#fafafa', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '700', color: '#333' }}>{intakeQuestionnaire.sleep_quality || '-'}</div>
+                    <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Sleep</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '12px', background: '#fafafa', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '700', color: '#333' }}>{intakeQuestionnaire.energy_level || '-'}</div>
+                    <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Energy</div>
+                  </div>
                 </div>
               </div>
             )}
@@ -571,32 +943,33 @@ export default function PatientTracker() {
             {intakeQuestionnaire && isWeightLoss && (
               <div style={{ background: 'white', borderRadius: '16px', padding: '20px', marginBottom: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '600', color: '#e65100', letterSpacing: '1px' }}>STARTING POINT</span>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: '#888', letterSpacing: '1px' }}>STARTING POINT</span>
                   <span style={{ fontSize: '11px', color: '#4caf50', background: '#e8f5e9', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>✓ Recorded</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', textAlign: 'center' }}>
-                  <div style={{ padding: '12px', background: '#fff8e1', borderRadius: '10px' }}><div style={{ fontSize: '24px', fontWeight: '700' }}>{intakeQuestionnaire.current_weight}</div><div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>lbs</div></div>
-                  <div style={{ padding: '12px', background: '#f8f8f8', borderRadius: '10px' }}><div style={{ fontSize: '24px', fontWeight: '700' }}>{intakeQuestionnaire.goal_weight || '—'}</div><div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Goal</div></div>
-                  <div style={{ padding: '12px', background: '#f8f8f8', borderRadius: '10px' }}><div style={{ fontSize: '24px', fontWeight: '700' }}>{intakeQuestionnaire.appetite_level}</div><div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Appetite</div></div>
-                  <div style={{ padding: '12px', background: '#f8f8f8', borderRadius: '10px' }}><div style={{ fontSize: '24px', fontWeight: '700' }}>{intakeQuestionnaire.cravings_level}</div><div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Cravings</div></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '32px', fontWeight: '700', color: '#ff9800' }}>{intakeQuestionnaire.current_weight || '-'}</div>
+                    <div style={{ fontSize: '12px', color: '#888' }}>Starting lbs</div>
+                  </div>
+                  {intakeQuestionnaire.goal_weight && (
+                    <>
+                      <div style={{ fontSize: '24px', color: '#ccc' }}>→</div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '32px', fontWeight: '700', color: '#4caf50' }}>{intakeQuestionnaire.goal_weight}</div>
+                        <div style={{ fontSize: '12px', color: '#888' }}>Goal lbs</div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Prompt for intake */}
-            {!intakeQuestionnaire && category && !isInClinic && (
-              <button onClick={() => setActiveForm('intake')} style={{ width: '100%', padding: '20px', background: 'white', border: '2px dashed #ddd', borderRadius: '16px', fontSize: '14px', cursor: 'pointer', marginBottom: '16px', textAlign: 'center' }}>
-                <div style={{ fontWeight: '600', marginBottom: '4px', color: '#333' }}>Complete Your Starting Assessment</div>
-                <div style={{ fontSize: '13px', color: '#888' }}>Help us track your progress</div>
-              </button>
-            )}
-
-            {/* Progress Card */}
+            {/* Injection Calendar Section */}
             {(() => {
-              const injectionDays = getInjectionDays(protocol?.start_date, totalDays, protocol?.dose_frequency, isWeightLoss);
-              const completedCount = injectionDays.filter(d => completedDays.includes(Math.floor(d.day))).length;
+              const injectionDays = generateInjectionDays(protocol?.dose_frequency, totalDays);
               const totalInjections = injectionDays.length;
-              const injectionProgress = Math.round((completedCount / totalInjections) * 100);
+              const completedCount = completedDays.length;
+              const injectionProgress = totalInjections > 0 ? Math.round((completedCount / totalInjections) * 100) : 0;
               
               return (
                 <>

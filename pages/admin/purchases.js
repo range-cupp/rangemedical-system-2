@@ -1483,7 +1483,8 @@ export default function AdminPurchases() {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Item</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666' }}>Qty</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Category</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', color: '#666' }}>Amount</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', color: '#666' }}>Price</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', color: '#666' }}>Paid</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Source</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666' }}>Protocol</th>
               </tr>
@@ -1491,13 +1492,13 @@ export default function AdminPurchases() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                  <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
                     Loading purchases...
                   </td>
                 </tr>
               ) : purchases.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                  <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
                     No purchases found
                   </td>
                 </tr>
@@ -1532,6 +1533,11 @@ export default function AdminPurchases() {
                           {purchase.category}
                         </span>
                       </td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', textAlign: 'right', color: '#666' }}>
+                        {purchase.list_price && purchase.list_price !== purchase.amount 
+                          ? formatCurrency(purchase.list_price) 
+                          : formatCurrency(purchase.amount)}
+                      </td>
                       <td 
                         onClick={() => setEditAmountPurchase(purchase)}
                         style={{ 
@@ -1540,13 +1546,22 @@ export default function AdminPurchases() {
                           textAlign: 'right', 
                           fontWeight: '500',
                           cursor: 'pointer',
-                          position: 'relative'
+                          position: 'relative',
+                          color: purchase.list_price && purchase.list_price !== purchase.amount ? '#16a34a' : '#000'
                         }}
                         title="Click to edit amount"
                       >
                         {formatCurrency(purchase.amount)}
+                        {purchase.list_price && purchase.list_price !== purchase.amount && (
+                          <span style={{ 
+                            marginLeft: '4px', 
+                            fontSize: '10px', 
+                            color: '#16a34a',
+                            fontWeight: '400'
+                          }}>✓</span>
+                        )}
                         <span style={{ 
-                          marginLeft: '6px', 
+                          marginLeft: '4px', 
                           fontSize: '10px', 
                           color: '#999',
                           opacity: 0.5

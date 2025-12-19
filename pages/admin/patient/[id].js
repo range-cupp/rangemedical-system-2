@@ -1406,6 +1406,65 @@ function CreateProtocolModal({ purchase, patient, onClose, onSuccess }) {
 // ============================================
 // EDIT PROTOCOL MODAL
 // ============================================
+// Medications/Peptides list for dropdowns
+const MEDICATIONS = [
+  // Peptides - Recovery
+  { value: 'BPC-157', label: 'BPC-157', category: 'Peptide' },
+  { value: 'TB-500', label: 'TB-500', category: 'Peptide' },
+  { value: 'BPC-157 / TB-500', label: 'BPC-157 / TB-500 (Combo)', category: 'Peptide' },
+  { value: 'KPV', label: 'KPV', category: 'Peptide' },
+  { value: 'Thymosin Alpha-1', label: 'Thymosin Alpha-1', category: 'Peptide' },
+  // Peptides - Growth Hormone
+  { value: 'CJC-1295 / Ipamorelin', label: 'CJC-1295 / Ipamorelin', category: 'Peptide' },
+  { value: 'Sermorelin', label: 'Sermorelin', category: 'Peptide' },
+  { value: 'Tesamorelin', label: 'Tesamorelin', category: 'Peptide' },
+  { value: 'MK-677', label: 'MK-677', category: 'Peptide' },
+  // Peptides - Other
+  { value: 'PT-141', label: 'PT-141', category: 'Peptide' },
+  { value: 'Melanotan II', label: 'Melanotan II', category: 'Peptide' },
+  { value: 'DSIP', label: 'DSIP', category: 'Peptide' },
+  { value: 'Epithalon', label: 'Epithalon', category: 'Peptide' },
+  { value: 'Selank', label: 'Selank', category: 'Peptide' },
+  { value: 'Semax', label: 'Semax', category: 'Peptide' },
+  { value: 'GHK-Cu', label: 'GHK-Cu', category: 'Peptide' },
+  // Weight Loss
+  { value: 'Semaglutide', label: 'Semaglutide', category: 'Weight Loss' },
+  { value: 'Tirzepatide', label: 'Tirzepatide', category: 'Weight Loss' },
+  { value: 'Liraglutide', label: 'Liraglutide', category: 'Weight Loss' },
+  // HRT / Testosterone
+  { value: 'Testosterone Cypionate', label: 'Testosterone Cypionate', category: 'HRT' },
+  { value: 'Testosterone Enanthate', label: 'Testosterone Enanthate', category: 'HRT' },
+  { value: 'HCG', label: 'HCG', category: 'HRT' },
+  { value: 'Anastrozole', label: 'Anastrozole', category: 'HRT' },
+  { value: 'Clomiphene', label: 'Clomiphene', category: 'HRT' },
+  { value: 'DHEA', label: 'DHEA', category: 'HRT' },
+  { value: 'Pregnenolone', label: 'Pregnenolone', category: 'HRT' },
+  // NAD+
+  { value: 'NAD+ Injection', label: 'NAD+ Injection', category: 'NAD+' },
+  { value: 'NAD+ IV', label: 'NAD+ IV', category: 'NAD+' },
+  // Vitamins / Nutrients
+  { value: 'B12 Injection', label: 'B12 Injection', category: 'Vitamin' },
+  { value: 'Vitamin D Injection', label: 'Vitamin D Injection', category: 'Vitamin' },
+  { value: 'Glutathione', label: 'Glutathione', category: 'Vitamin' },
+  { value: 'MIC B12 (Lipo)', label: 'MIC B12 (Lipo)', category: 'Vitamin' },
+  { value: 'Biotin Injection', label: 'Biotin Injection', category: 'Vitamin' },
+  // IV Therapy
+  { value: 'Myers Cocktail', label: 'Myers Cocktail', category: 'IV Therapy' },
+  { value: 'Immune Boost IV', label: 'Immune Boost IV', category: 'IV Therapy' },
+  { value: 'Hydration IV', label: 'Hydration IV', category: 'IV Therapy' },
+  { value: 'Recovery IV', label: 'Recovery IV', category: 'IV Therapy' },
+  { value: 'NAD+ IV Drip', label: 'NAD+ IV Drip', category: 'IV Therapy' },
+  // Other
+  { value: 'Other', label: 'Other (specify in notes)', category: 'Other' }
+];
+
+// Group medications by category
+const MEDICATIONS_BY_CATEGORY = MEDICATIONS.reduce((acc, med) => {
+  if (!acc[med.category]) acc[med.category] = [];
+  acc[med.category].push(med);
+  return acc;
+}, {});
+
 function EditProtocolModal({ protocol, onClose, onSuccess }) {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -1441,6 +1500,10 @@ function EditProtocolModal({ protocol, onClose, onSuccess }) {
       setSaving(false);
     }
   };
+
+  // Check if current value exists in dropdown, if not show text input
+  const isPrimaryInList = MEDICATIONS.some(m => m.value === formData.primary_peptide) || !formData.primary_peptide;
+  const isSecondaryInList = MEDICATIONS.some(m => m.value === formData.secondary_peptide) || !formData.secondary_peptide;
 
   if (!protocol) return null;
 
@@ -1522,25 +1585,59 @@ function EditProtocolModal({ protocol, onClose, onSuccess }) {
             </select>
           </div>
 
-          {/* Peptides */}
+          {/* Medications */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Primary Peptide</label>
-              <input
-                type="text"
-                value={formData.primary_peptide}
-                onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-              />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Primary Medication</label>
+              {isPrimaryInList ? (
+                <select
+                  value={formData.primary_peptide}
+                  onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', background: 'white' }}
+                >
+                  <option value="">-- Select --</option>
+                  {Object.entries(MEDICATIONS_BY_CATEGORY).map(([category, meds]) => (
+                    <optgroup key={category} label={category}>
+                      {meds.map(med => (
+                        <option key={med.value} value={med.value}>{med.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={formData.primary_peptide}
+                  onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              )}
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Secondary</label>
-              <input
-                type="text"
-                value={formData.secondary_peptide}
-                onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-              />
+              {isSecondaryInList ? (
+                <select
+                  value={formData.secondary_peptide}
+                  onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', background: 'white' }}
+                >
+                  <option value="">-- None --</option>
+                  {Object.entries(MEDICATIONS_BY_CATEGORY).map(([category, meds]) => (
+                    <optgroup key={category} label={category}>
+                      {meds.map(med => (
+                        <option key={med.value} value={med.value}>{med.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={formData.secondary_peptide}
+                  onChange={(e) => setFormData({ ...formData, secondary_peptide: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              )}
             </div>
           </div>
 
@@ -1557,12 +1654,19 @@ function EditProtocolModal({ protocol, onClose, onSuccess }) {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Frequency</label>
-              <input
-                type="text"
+              <select
                 value={formData.dose_frequency}
                 onChange={(e) => setFormData({ ...formData, dose_frequency: e.target.value })}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-              />
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', background: 'white' }}
+              >
+                <option value="">-- Select --</option>
+                <option value="2x_daily">2x Daily (AM & PM)</option>
+                <option value="daily">Daily</option>
+                <option value="every_other_day">Every Other Day</option>
+                <option value="3x_weekly">3x Weekly (Mon, Wed, Fri)</option>
+                <option value="2x_weekly">2x Weekly (Mon & Thu)</option>
+                <option value="weekly">Weekly</option>
+              </select>
             </div>
           </div>
 

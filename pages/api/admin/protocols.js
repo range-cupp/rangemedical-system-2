@@ -138,7 +138,7 @@ export default async function handler(req, res) {
       query = query.limit(parseInt(limit));
     }
 
-    query = query.order('created_at', { ascending: false });
+    query = query.order('end_date', { ascending: true, nullsFirst: false });
 
     const { data, error } = await query;
 

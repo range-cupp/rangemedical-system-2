@@ -53,6 +53,10 @@ export default function AdminProtocols() {
   const [searchQuery, setSearchQuery] = useState('');
   const [initialized, setInitialized] = useState(false);
   
+  // Sorting
+  const [sortField, setSortField] = useState('end_date');
+  const [sortDirection, setSortDirection] = useState('asc');
+  
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
@@ -149,6 +153,8 @@ export default function AdminProtocols() {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (searchQuery) params.append('search', searchQuery);
+      params.append('sort', sortField);
+      params.append('direction', sortDirection);
       params.append('limit', '200');
       
       const res = await fetch(`/api/admin/protocols?${params.toString()}`, {
@@ -165,6 +171,22 @@ export default function AdminProtocols() {
       setLoading(false);
     }
   };
+  
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Refetch when sort changes
+  useEffect(() => {
+    if (isAuthenticated && initialized) {
+      fetchProtocols();
+    }
+  }, [sortField, sortDirection]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -602,13 +624,33 @@ export default function AdminProtocols() {
           }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Patient</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Program</th>
+                <th 
+                  onClick={() => handleSort('patient_name')}
+                  style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', cursor: 'pointer', userSelect: 'none' }}
+                >
+                  Patient {sortField === 'patient_name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th 
+                  onClick={() => handleSort('program_name')}
+                  style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', cursor: 'pointer', userSelect: 'none' }}
+                >
+                  Program {sortField === 'program_name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Peptides</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Frequency</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Dates</th>
+                <th 
+                  onClick={() => handleSort('end_date')}
+                  style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', cursor: 'pointer', userSelect: 'none' }}
+                >
+                  Dates {sortField === 'end_date' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Progress</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Status</th>
+                <th 
+                  onClick={() => handleSort('status')}
+                  style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', cursor: 'pointer', userSelect: 'none' }}
+                >
+                  Status {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666' }}>Actions</th>
               </tr>
             </thead>

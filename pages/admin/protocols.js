@@ -51,7 +51,7 @@ export default function AdminProtocols() {
   const [success, setSuccess] = useState('');
   
   // Filters
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [initialized, setInitialized] = useState(false);
   
@@ -70,6 +70,44 @@ export default function AdminProtocols() {
   
   // Text sending state
   const [sendingText, setSendingText] = useState(null);
+
+  // Link contacts state
+  const [linking, setLinking] = useState(false);
+
+  // Link protocols to contacts handler
+  const handleLinkContacts = async () => {
+    if (!confirm('This will match protocols to patients and fill in missing GHL Contact ID, email, and phone. Continue?')) {
+      return;
+    }
+    
+    setLinking(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const res = await fetch('/api/admin/protocols/link-contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        if (data.updated > 0) {
+          setSuccess(`Linked ${data.updated} protocols to contacts. ${data.skipped} skipped (no match or already complete).`);
+          fetchProtocols(); // Refresh the list
+        } else {
+          setSuccess(`No protocols needed linking. ${data.already_complete} already complete, ${data.skipped} had no match.`);
+        }
+      } else {
+        setError('Error: ' + (data.error || 'Failed to link contacts'));
+      }
+    } catch (err) {
+      setError('Error: ' + err.message);
+    } finally {
+      setLinking(false);
+    }
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -597,6 +635,22 @@ export default function AdminProtocols() {
           }}>
             Refresh
           </button>
+
+          <button 
+            onClick={handleLinkContacts} 
+            disabled={linking}
+            style={{
+              padding: '8px 16px',
+              background: linking ? '#ccc' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: linking ? 'not-allowed' : 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            {linking ? 'Linking...' : '🔗 Link Contacts'}
+          </button>
         </div>
 
         {/* Messages */}
@@ -638,13 +692,13 @@ export default function AdminProtocols() {
                 >
                   Program {sortField === 'program_name' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Peptides</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Medication</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Frequency</th>
                 <th 
                   onClick={() => handleSort('end_date')}
-                  style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', cursor: 'pointer', userSelect: 'none' }}
+                  style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666', cursor: 'pointer', userSelect: 'none' }}
                 >
-                  Dates {sortField === 'end_date' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  Days Left {sortField === 'end_date' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Progress</th>
                 <th 
@@ -678,6 +732,21 @@ export default function AdminProtocols() {
                     ? Math.round((completedInjections / expectedInjections) * 100) 
                     : 0;
                   
+                  // Calculate days remaining
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const endDate = protocol.end_date ? new Date(protocol.end_date) : null;
+                  const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : null;
+                  
+                  // Color coding for days left
+                  const getDaysLeftStyle = () => {
+                    if (daysLeft === null) return { background: '#f5f5f5', color: '#666' };
+                    if (daysLeft <= 0) return { background: '#fee2e2', color: '#dc2626' };
+                    if (daysLeft <= 3) return { background: '#fef3c7', color: '#d97706' };
+                    if (daysLeft <= 7) return { background: '#fef9c3', color: '#ca8a04' };
+                    return { background: '#f0fdf4', color: '#16a34a' };
+                  };
+                  
                   return (
                     <tr key={protocol.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                       <td style={{ padding: '12px 16px' }}>
@@ -696,9 +765,21 @@ export default function AdminProtocols() {
                       <td style={{ padding: '12px 16px', fontSize: '13px' }}>
                         {getFrequencyLabel(protocol.dose_frequency)}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px' }}>
-                        <div>{formatDate(protocol.start_date)}</div>
-                        <div style={{ color: '#666' }}>→ {formatDate(protocol.end_date)}</div>
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        {daysLeft !== null ? (
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            ...getDaysLeftStyle()
+                          }}>
+                            {daysLeft <= 0 ? 'Expired' : daysLeft === 1 ? '1 day' : `${daysLeft} days`}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#999', fontSize: '13px' }}>Ongoing</span>
+                        )}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

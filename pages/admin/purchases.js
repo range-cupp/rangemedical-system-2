@@ -202,7 +202,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
     primary_peptide: '',
     secondary_peptide: '',
     dose_amount: '',
-    dose_frequency: 'daily',
+    dose_frequency: '',
     start_date: new Date().toISOString().split('T')[0],
     special_instructions: '',
     notes: '',
@@ -239,6 +239,10 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
     }
     if (!formData.program_type) {
       setError('Program type is required');
+      return;
+    }
+    if (!formData.dose_frequency) {
+      setError('Frequency is required');
       return;
     }
 
@@ -581,6 +585,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
                 required
                 style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
               >
+                <option value="">-- Select Frequency --</option>
                 {FREQUENCY_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -1658,7 +1663,16 @@ export default function AdminPurchases() {
                         {formatDate(purchase.purchase_date)}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{purchase.patient_name}</div>
+                        {purchase.ghl_contact_id ? (
+                          <a 
+                            href={`/admin/patient/${purchase.ghl_contact_id}`}
+                            style={{ fontWeight: '500', fontSize: '14px', color: '#1565c0', textDecoration: 'none' }}
+                          >
+                            {purchase.patient_name}
+                          </a>
+                        ) : (
+                          <div style={{ fontWeight: '500', fontSize: '14px' }}>{purchase.patient_name}</div>
+                        )}
                         <div style={{ fontSize: '12px', color: '#666' }}>{purchase.patient_email || '-'}</div>
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px', maxWidth: '300px' }}>

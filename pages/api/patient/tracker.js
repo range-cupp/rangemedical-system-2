@@ -16,7 +16,8 @@ export default async function handler(req, res) {
   
   if (req.method === 'OPTIONS') return res.status(200).end();
   
-  const { token } = req.query;
+  // Get token from query OR body
+  const token = req.query.token || req.body?.token;
   if (!token) return res.status(400).json({ error: 'Token required' });
   
   // Find protocol by access token
@@ -68,13 +69,44 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST - Log injection
+  // POST - Log or remove injection
   if (req.method === 'POST') {
     try {
-      const { day } = req.body;
-      if (!day && day !== 0) return res.status(400).json({ error: 'Day required' });
+      const { day, day_number, action } = req.body;
+      const dayValue = day_number ?? day;
+      if (dayValue === undefined && dayValue !== 0) return res.status(400).json({ error: 'Day required' });
       
-      const dayNumber = parseInt(day);
+      const dayNumber = parseInt(dayValue);
+      
+      // Handle removal
+      if (action === 'remove') {
+        const { error: deleteError } = await supabase
+          .from('injection_logs')
+          .delete()
+          .eq('protocol_id', protocol.id)
+          .eq('day_number', dayNumber);
+          
+        if (deleteError) {
+          console.error('Delete error:', deleteError);
+          return res.status(500).json({ error: deleteError.message });
+        }
+        
+        // Update count
+        const { data: logs } = await supabase
+          .from('injection_logs')
+          .select('id')
+          .eq('protocol_id', protocol.id);
+          
+        await supabase
+          .from('protocols')
+          .update({ 
+            injections_completed: logs?.length || 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', protocol.id);
+          
+        return res.status(200).json({ success: true, action: 'removed' });
+      }
       
       // Check if already logged
       const { data: existing } = await supabase

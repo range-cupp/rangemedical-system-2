@@ -678,7 +678,9 @@ export default function PatientPortal() {
                               fontWeight: '600'
                             }}
                           >
-                            Open Tracker →
+                            {protocol.program_type?.includes('weight_loss') || protocol.program_name?.toLowerCase().includes('weight loss')
+                              ? 'Log Injection →'
+                              : 'Open Tracker →'}
                           </a>
                         )}
                       </div>

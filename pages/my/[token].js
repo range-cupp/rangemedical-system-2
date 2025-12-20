@@ -167,6 +167,11 @@ export default function PatientPortal() {
   const { patient, protocols, purchases } = data || {};
   const activeProtocols = protocols?.filter(p => p.status === 'active') || [];
   const completedProtocols = protocols?.filter(p => p.status === 'completed') || [];
+  
+  // Get patient name - try patient record first, then fall back to first protocol
+  const patientName = patient?.first_name || 
+    protocols?.[0]?.patient_name?.split(' ')[0] || 
+    'Patient';
   const totalInvested = purchases?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
 
   return (
@@ -193,7 +198,7 @@ export default function PatientPortal() {
               RANGE MEDICAL
             </div>
             <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '600' }}>
-              Welcome, {patient?.first_name || 'Patient'}
+              Welcome, {patientName}
             </h1>
             <p style={{ margin: '8px 0 0', fontSize: '14px', opacity: 0.8 }}>
               Your wellness journey at a glance
@@ -206,7 +211,7 @@ export default function PatientPortal() {
           {/* Quick Stats */}
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(3, 1fr)', 
+            gridTemplateColumns: 'repeat(2, 1fr)', 
             gap: '12px',
             marginBottom: '24px'
           }}>
@@ -233,18 +238,6 @@ export default function PatientPortal() {
                 {completedProtocols.length}
               </div>
               <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Completed</div>
-            </div>
-            <div style={{ 
-              background: 'white', 
-              borderRadius: '16px', 
-              padding: '20px', 
-              textAlign: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-            }}>
-              <div style={{ fontSize: '32px', fontWeight: '700', color: '#000' }}>
-                {purchases?.length || 0}
-              </div>
-              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Total Visits</div>
             </div>
           </div>
 

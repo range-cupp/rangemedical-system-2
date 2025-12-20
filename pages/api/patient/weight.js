@@ -11,7 +11,7 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -112,6 +112,41 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, log: result });
     } catch (error) {
       console.error('POST weight error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  // DELETE - Remove weight log
+  if (req.method === 'DELETE') {
+    try {
+      const { logId } = req.body;
+      
+      if (!logId) {
+        return res.status(400).json({ error: 'Log ID required' });
+      }
+      
+      // Verify the log belongs to this protocol
+      const { data: log, error: findError } = await supabase
+        .from('weight_logs')
+        .select('id')
+        .eq('id', logId)
+        .eq('protocol_id', protocol.id)
+        .single();
+        
+      if (findError || !log) {
+        return res.status(404).json({ error: 'Weight log not found' });
+      }
+      
+      const { error: deleteError } = await supabase
+        .from('weight_logs')
+        .delete()
+        .eq('id', logId);
+        
+      if (deleteError) throw deleteError;
+      
+      return res.status(200).json({ success: true, deleted: logId });
+    } catch (error) {
+      console.error('DELETE weight error:', error);
       return res.status(500).json({ error: error.message });
     }
   }

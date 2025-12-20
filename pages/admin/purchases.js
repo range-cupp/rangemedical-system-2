@@ -146,6 +146,8 @@ const PROGRAM_TYPES = [
   { value: 'hrt_male_membership', label: 'Male HRT Membership (Monthly)', category: 'HRT', duration: 28 },
   { value: 'hrt_female_membership', label: 'Female HRT Membership (Monthly)', category: 'HRT', duration: 28 },
   { value: 'hrt_injection', label: 'HRT Injection (In-Clinic)', category: 'HRT', duration: 7 },
+  // Medical Injections
+  { value: 'injection_medical', label: 'Injection - Medical', category: 'Medical', duration: 1 },
   // Session-based
   { value: 'iv_therapy', label: 'IV Therapy', category: 'Sessions', duration: null },
   { value: 'injection_pack', label: 'Injection Pack', category: 'Sessions', duration: null },
@@ -306,6 +308,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
   const isPeptideProgram = ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic'].includes(formData.program_type);
   const isWeightLoss = ['weight_loss_program', 'weight_loss_injection'].includes(formData.program_type);
   const isHRT = ['hrt_male_membership', 'hrt_female_membership', 'hrt_injection'].includes(formData.program_type);
+  const isMedical = ['injection_medical'].includes(formData.program_type);
 
   return (
     <div style={{
@@ -468,6 +471,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
                     <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </optgroup>
+                <optgroup label="Medical Injections">
+                  {PROGRAM_TYPES.filter(t => t.category === 'Medical').map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </optgroup>
                 <optgroup label="Session-Based">
                   {PROGRAM_TYPES.filter(t => t.category === 'Sessions').map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
@@ -516,8 +524,8 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
               />
             </div>
 
-            {/* Medication Selection - show for peptide/weight loss/HRT programs */}
-            {(isPeptideProgram || isWeightLoss || isHRT) && (
+            {/* Medication Selection - show for peptide/weight loss/HRT/Medical programs */}
+            {(isPeptideProgram || isWeightLoss || isHRT || isMedical) && (
               <>
                 <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
                   <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>

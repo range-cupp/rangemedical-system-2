@@ -1186,7 +1186,7 @@ export default function PatientTracker() {
           </div>
           <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
             <button onClick={() => setShowCompletionSummary(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Close</button>
-            <button onClick={() => { setShowCompletionSummary(false); setShowRefillModal(true); }} style={{ flex: 1, padding: '14px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>Request Refill</button>
+            <a href={`sms:9499973988?body=${encodeURIComponent(`Hi, I'd like to request a refill for my ${protocol?.program_name || 'prescription'}. - ${protocol?.patient_name || ''}`)}`} onClick={() => setShowCompletionSummary(false)} style={{ flex: 1, padding: '14px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Request Refill</a>
           </div>
         </div>
       </div>
@@ -1381,9 +1381,11 @@ export default function PatientTracker() {
                   const isCompleted = completedDays.includes(Math.floor(item.day));
                   const isSaving = saving === item.day;
                   const accent = isWeightLoss ? '#ff9800' : '#000';
+                  // Weight loss patients can always log (even in-clinic, since staff helps them)
+                  const canLog = isWeightLoss || !isInClinic;
                   return (
-                    <button key={`${item.day}-${idx}`} onClick={() => toggleDay(item.day, isCompleted)} disabled={isInClinic || isSaving}
-                      style={{ aspectRatio: '1', borderRadius: '10px', border: isCompleted ? `2px solid ${accent}` : '1px solid #e8e8e8', background: isCompleted ? accent : '#fafafa', color: isCompleted ? 'white' : '#333', fontSize: '14px', fontWeight: '600', cursor: isInClinic ? 'default' : 'pointer', opacity: isSaving ? 0.5 : 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <button key={`${item.day}-${idx}`} onClick={() => canLog && toggleDay(item.day, isCompleted)} disabled={!canLog || isSaving}
+                      style={{ aspectRatio: '1', borderRadius: '10px', border: isCompleted ? `2px solid ${accent}` : '1px solid #e8e8e8', background: isCompleted ? accent : '#fafafa', color: isCompleted ? 'white' : '#333', fontSize: '14px', fontWeight: '600', cursor: canLog ? 'pointer' : 'default', opacity: isSaving ? 0.5 : 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                       <span>{item.label}</span>
                       {item.subLabel && <span style={{ fontSize: '9px', opacity: 0.7 }}>{item.subLabel}</span>}
                       {isCompleted && <span style={{ fontSize: '10px' }}>✓</span>}
@@ -1391,23 +1393,6 @@ export default function PatientTracker() {
                   );
                 })}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        {!activeForm && (
-          <div style={{ margin: '0 20px 20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <button onClick={() => setShowMessageModal(true)} style={{ padding: '16px', background: 'white', border: '1px solid #e0e0e0', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>💬</span>
-                <span style={{ fontSize: '14px', fontWeight: '500' }}>Message Clinic</span>
-              </button>
-              <button onClick={() => hasPendingRefill ? null : setShowRefillModal(true)} disabled={hasPendingRefill}
-                style={{ padding: '16px', background: hasPendingRefill ? '#e8f5e9' : 'white', border: '1px solid #e0e0e0', borderRadius: '14px', cursor: hasPendingRefill ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: hasPendingRefill ? 0.8 : 1 }}>
-                <span style={{ fontSize: '18px' }}>{hasPendingRefill ? '✓' : '📦'}</span>
-                <span style={{ fontSize: '14px', fontWeight: '500' }}>{hasPendingRefill ? 'Refill Requested' : 'Request Refill'}</span>
-              </button>
             </div>
           </div>
         )}

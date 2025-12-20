@@ -192,11 +192,9 @@ export default function PatientTracker() {
         setIntakeQuestionnaire(json.intakeQuestionnaire || null);
         setCompletionQuestionnaire(json.completionQuestionnaire || null);
         
-        // Show intake form if needed
+        // Determine category for questionnaire features
         const category = getQuestionnaireCategory(json.protocol?.program_type, json.protocol?.program_name);
-        if (category && !json.intakeQuestionnaire) {
-          setActiveForm('intake');
-        }
+        // Note: We no longer auto-show intake form - patients can access it via settings if needed
       } else {
         setError('Protocol not found. Please check your link.');
         setLoading(false);
@@ -1292,7 +1290,7 @@ export default function PatientTracker() {
         </div>
 
         {/* Action Buttons Row */}
-        {!activeForm && !isInClinic && (
+        {!activeForm && (!isInClinic || isWeightLoss) && (
           <div style={{ margin: '0 20px 20px', display: 'grid', gridTemplateColumns: isWeightLoss ? '1fr 1fr' : '1fr', gap: '12px' }}>
             {/* Wellness Check-in */}
             <button onClick={() => setShowWellnessCheckIn(true)} style={{ padding: '16px', background: todayLogged ? '#e8f5e9' : '#fff8e1', border: 'none', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>

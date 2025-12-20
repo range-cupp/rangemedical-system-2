@@ -496,7 +496,7 @@ export default function PatientTracker() {
     return null;
   };
 
-  const generateInjectionDays = (frequency, duration) => {
+  const generateInjectionDays = (frequency, duration, isWeightLossProtocol) => {
     const days = [];
     const f = frequency?.toLowerCase() || 'daily';
     if (f.includes('2x_daily') || f.includes('twice daily')) {
@@ -528,7 +528,8 @@ export default function PatientTracker() {
         days.push({ day: i * 7 + 4, label: `Wk${i + 1}`, subLabel: 'Thu' });
       }
     } else if (f.includes('weekly') && !f.includes('2x') && !f.includes('3x')) {
-      const weeks = Math.ceil(duration / 7);
+      // Weekly: exactly 4 weeks for weight loss, otherwise based on duration
+      const weeks = isWeightLossProtocol ? 4 : Math.ceil(duration / 7);
       for (let i = 1; i <= weeks; i++) days.push({ day: i * 7, label: `Wk ${i}` });
     } else if (f.includes('every_other') || f.includes('every other')) {
       for (let i = 1; i <= duration; i += 2) days.push({ day: i, label: `Day ${i}` });
@@ -1236,7 +1237,7 @@ export default function PatientTracker() {
   const frequencyInfo = FREQUENCY_DISPLAY[protocol?.dose_frequency] || FREQUENCY_DISPLAY['daily'];
   const streak = calculateStreak();
   
-  const injectionDays = generateInjectionDays(protocol?.dose_frequency, totalDays);
+  const injectionDays = generateInjectionDays(protocol?.dose_frequency, totalDays, isWeightLoss);
   const totalInjections = injectionDays.length;
   const completedCount = completedDays.length;
   const injectionProgress = totalInjections > 0 ? Math.round((completedCount / totalInjections) * 100) : 0;
@@ -1376,16 +1377,32 @@ export default function PatientTracker() {
               </div>
               
               {/* Calendar Grid */}
-              <div style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+              <div style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: isWeightLoss ? 'repeat(4, 1fr)' : 'repeat(5, 1fr)', gap: '8px' }}>
                 {injectionDays.map((item, idx) => {
                   const isCompleted = completedDays.includes(Math.floor(item.day));
                   const isSaving = saving === item.day;
                   const accent = isWeightLoss ? '#ff9800' : '#000';
-                  // Weight loss patients can always log (even in-clinic, since staff helps them)
-                  const canLog = isWeightLoss || !isInClinic;
                   return (
-                    <button key={`${item.day}-${idx}`} onClick={() => canLog && toggleDay(item.day, isCompleted)} disabled={!canLog || isSaving}
-                      style={{ aspectRatio: '1', borderRadius: '10px', border: isCompleted ? `2px solid ${accent}` : '1px solid #e8e8e8', background: isCompleted ? accent : '#fafafa', color: isCompleted ? 'white' : '#333', fontSize: '14px', fontWeight: '600', cursor: canLog ? 'pointer' : 'default', opacity: isSaving ? 0.5 : 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <button 
+                      key={`${item.day}-${idx}`} 
+                      onClick={() => toggleDay(item.day, isCompleted)} 
+                      disabled={isSaving}
+                      style={{ 
+                        aspectRatio: '1', 
+                        borderRadius: '10px', 
+                        border: isCompleted ? `2px solid ${accent}` : '1px solid #e8e8e8', 
+                        background: isCompleted ? accent : '#fafafa', 
+                        color: isCompleted ? 'white' : '#333', 
+                        fontSize: '14px', 
+                        fontWeight: '600', 
+                        cursor: 'pointer', 
+                        opacity: isSaving ? 0.5 : 1, 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        justifyContent: 'center' 
+                      }}
+                    >
                       <span>{item.label}</span>
                       {item.subLabel && <span style={{ fontSize: '9px', opacity: 0.7 }}>{item.subLabel}</span>}
                       {isCompleted && <span style={{ fontSize: '10px' }}>✓</span>}

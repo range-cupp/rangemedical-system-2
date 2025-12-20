@@ -135,7 +135,13 @@ export default async function handler(req, res) {
       query = query.eq('ghl_contact_id', ghl_contact_id);
     }
     if (status) {
-      query = query.eq('status', status);
+      // Handle comma-separated status values
+      const statuses = status.split(',').map(s => s.trim());
+      if (statuses.length === 1) {
+        query = query.eq('status', statuses[0]);
+      } else {
+        query = query.in('status', statuses);
+      }
     }
     if (search) {
       query = query.or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%,program_name.ilike.%${search}%`);

@@ -622,6 +622,7 @@ export default function PatientTracker() {
   );
 
   // Weight Chart
+  // Enhanced Weight Loss Journey Dashboard
   const WeightChart = ({ logs }) => {
     if (!logs || logs.length < 2) return null;
     const weights = logs.map(l => parseFloat(l.weight));
@@ -638,8 +639,18 @@ export default function PatientTracker() {
       return `${x},${y}`;
     }).join(' ');
     
+    // Create gradient fill area
+    const areaPoints = `${padding},${height - padding} ` + points + ` ${width - padding},${height - padding}`;
+    
     return (
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="weightGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ff9800" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#ff9800" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={areaPoints} fill="url(#weightGradient)" />
         <polyline points={points} fill="none" stroke="#ff9800" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         {weights.map((w, i) => {
           const x = padding + (i / (weights.length - 1)) * (width - 2 * padding);
@@ -647,6 +658,266 @@ export default function PatientTracker() {
           return <circle key={i} cx={x} cy={y} r="4" fill="#ff9800" />;
         })}
       </svg>
+    );
+  };
+
+  // Weight Loss Journey Stats Component
+  const WeightLossJourney = () => {
+    const logs = weightLogs.logs || [];
+    const stats = weightLogs.stats || {};
+    
+    if (logs.length === 0) {
+      return (
+        <div style={{ margin: '0 20px 20px' }}>
+          <div style={{ 
+            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', 
+            borderRadius: '20px', 
+            padding: '24px',
+            color: 'white',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚖️</div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '600' }}>Start Your Weight Journey</h3>
+            <p style={{ margin: '0 0 16px', fontSize: '14px', opacity: 0.9 }}>
+              Log your first weigh-in to begin tracking your transformation
+            </p>
+            <button
+              onClick={() => setShowWeightLog(true)}
+              style={{
+                background: 'white',
+                color: '#f57c00',
+                border: 'none',
+                padding: '12px 32px',
+                borderRadius: '25px',
+                fontSize: '15px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Log Weight
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const startWeight = stats.startWeight || logs[0]?.weight;
+    const currentWeight = stats.currentWeight || logs[logs.length - 1]?.weight;
+    const totalLost = startWeight - currentWeight;
+    const percentLost = startWeight > 0 ? ((totalLost / startWeight) * 100).toFixed(1) : 0;
+    
+    // Calculate weekly average loss
+    const firstLog = logs[0];
+    const lastLog = logs[logs.length - 1];
+    const daysBetween = firstLog && lastLog ? 
+      Math.max(1, Math.ceil((new Date(lastLog.log_date) - new Date(firstLog.log_date)) / (1000 * 60 * 60 * 24))) : 1;
+    const weeklyAvg = daysBetween > 0 ? ((totalLost / daysBetween) * 7).toFixed(1) : 0;
+    
+    // Get last 7 days progress
+    const last7Days = logs.slice(-7);
+    const last7DaysChange = last7Days.length >= 2 ? 
+      (parseFloat(last7Days[0].weight) - parseFloat(last7Days[last7Days.length - 1].weight)).toFixed(1) : 0;
+    
+    // Milestones
+    const milestones = [
+      { lbs: 5, emoji: '🌟', label: '5 lbs' },
+      { lbs: 10, emoji: '⭐', label: '10 lbs' },
+      { lbs: 15, emoji: '🔥', label: '15 lbs' },
+      { lbs: 20, emoji: '💪', label: '20 lbs' },
+      { lbs: 25, emoji: '🏆', label: '25 lbs' },
+      { lbs: 30, emoji: '👑', label: '30 lbs' },
+      { lbs: 40, emoji: '🚀', label: '40 lbs' },
+      { lbs: 50, emoji: '💎', label: '50 lbs' }
+    ];
+    
+    const achievedMilestones = milestones.filter(m => totalLost >= m.lbs);
+    const nextMilestone = milestones.find(m => totalLost < m.lbs);
+    const progressToNext = nextMilestone ? 
+      Math.min(100, ((totalLost / nextMilestone.lbs) * 100).toFixed(0)) : 100;
+
+    return (
+      <div style={{ margin: '0 20px 20px' }}>
+        {/* Main Stats Card */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', 
+          borderRadius: '20px', 
+          padding: '24px',
+          color: 'white',
+          marginBottom: '16px'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '14px', opacity: 0.7, marginBottom: '4px' }}>Total Lost</div>
+            <div style={{ fontSize: '48px', fontWeight: '700', color: totalLost > 0 ? '#4caf50' : '#fff' }}>
+              {totalLost > 0 ? '-' : ''}{Math.abs(totalLost).toFixed(1)}
+              <span style={{ fontSize: '24px', marginLeft: '4px' }}>lbs</span>
+            </div>
+            <div style={{ fontSize: '14px', color: '#4caf50', marginTop: '4px' }}>
+              {percentLost}% of starting weight
+            </div>
+          </div>
+          
+          {/* Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Start</div>
+              <div style={{ fontSize: '18px', fontWeight: '600' }}>{startWeight}</div>
+              <div style={{ fontSize: '10px', opacity: 0.5 }}>lbs</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Current</div>
+              <div style={{ fontSize: '18px', fontWeight: '600' }}>{currentWeight}</div>
+              <div style={{ fontSize: '10px', opacity: 0.5 }}>lbs</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Weekly Avg</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: weeklyAvg > 0 ? '#4caf50' : '#fff' }}>
+                {weeklyAvg > 0 ? '-' : ''}{Math.abs(weeklyAvg)}
+              </div>
+              <div style={{ fontSize: '10px', opacity: 0.5 }}>lbs/week</div>
+            </div>
+          </div>
+          
+          {/* Chart */}
+          {logs.length >= 2 && (
+            <div style={{ marginBottom: '16px' }}>
+              <WeightChart logs={logs} />
+            </div>
+          )}
+          
+          {/* Log Weight Button */}
+          <button
+            onClick={() => setShowWeightLog(true)}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '14px',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            ⚖️ Log Today's Weight
+          </button>
+        </div>
+        
+        {/* Progress to Next Milestone */}
+        {nextMilestone && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '16px', 
+            padding: '16px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: '600' }}>Next Milestone</span>
+              <span style={{ fontSize: '24px' }}>{nextMilestone.emoji}</span>
+            </div>
+            <div style={{ 
+              background: '#f0f0f0', 
+              borderRadius: '10px', 
+              height: '12px', 
+              overflow: 'hidden',
+              marginBottom: '8px'
+            }}>
+              <div style={{ 
+                width: `${progressToNext}%`, 
+                height: '100%', 
+                background: 'linear-gradient(90deg, #ff9800 0%, #f57c00 100%)',
+                borderRadius: '10px',
+                transition: 'width 0.5s ease'
+              }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#888' }}>
+              <span>{totalLost.toFixed(1)} lbs lost</span>
+              <span>{nextMilestone.label} goal</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Achieved Milestones */}
+        {achievedMilestones.length > 0 && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '16px', 
+            padding: '16px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            marginBottom: '16px'
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
+              🏅 Milestones Achieved
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {achievedMilestones.map((m, i) => (
+                <div key={i} style={{
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  padding: '8px 14px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  {m.emoji} {m.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Recent Weigh-ins */}
+        {logs.length > 0 && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '16px', 
+            padding: '16px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
+              📊 Recent Weigh-ins
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {logs.slice(-5).reverse().map((log, i) => {
+                const prevLog = logs[logs.indexOf(log) - 1];
+                const change = prevLog ? (parseFloat(log.weight) - parseFloat(prevLog.weight)).toFixed(1) : 0;
+                return (
+                  <div key={i} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 12px',
+                    background: '#fafafa',
+                    borderRadius: '10px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '500' }}>{log.weight} lbs</div>
+                      <div style={{ fontSize: '11px', color: '#888' }}>
+                        {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                    {prevLog && (
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: change < 0 ? '#4caf50' : change > 0 ? '#f44336' : '#888',
+                        background: change < 0 ? '#e8f5e9' : change > 0 ? '#ffebee' : '#f5f5f5',
+                        padding: '4px 10px',
+                        borderRadius: '12px'
+                      }}>
+                        {change > 0 ? '+' : ''}{change} lbs
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -1036,23 +1307,9 @@ export default function PatientTracker() {
           </div>
         )}
 
-        {/* Weight Progress Card (Weight Loss) */}
-        {isWeightLoss && weightLogs.logs?.length >= 2 && !activeForm && (
-          <div style={{ margin: '0 20px 20px' }}>
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <span style={{ fontSize: '15px', fontWeight: '600' }}>Weight Progress</span>
-                <span style={{ fontSize: '20px', fontWeight: '700', color: weightLogs.stats.totalChange < 0 ? '#4caf50' : '#f44336' }}>
-                  {weightLogs.stats.totalChange > 0 ? '+' : ''}{weightLogs.stats.totalChange?.toFixed(1)} lbs
-                </span>
-              </div>
-              <WeightChart logs={weightLogs.logs} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '12px', color: '#888' }}>
-                <span>Start: {weightLogs.stats.startWeight} lbs</span>
-                <span>Current: {weightLogs.stats.currentWeight} lbs</span>
-              </div>
-            </div>
-          </div>
+        {/* Weight Loss Journey Dashboard */}
+        {isWeightLoss && !activeForm && (
+          <WeightLossJourney />
         )}
 
         {/* Wellness Progress Card */}

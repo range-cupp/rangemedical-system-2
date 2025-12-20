@@ -864,7 +864,7 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
 
   const fetchProtocols = async () => {
     try {
-      const res = await fetch(`/api/admin/protocols?ghl_contact_id=${purchase.ghl_contact_id}&status=active`);
+      const res = await fetch(`/api/admin/protocols?ghl_contact_id=${purchase.ghl_contact_id}&status=active,ready_refill`);
       if (res.ok) {
         const data = await res.json();
         const protocolsList = data.protocols || data;
@@ -876,7 +876,7 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
           const categoryMap = {
             'Weight Loss': ['weight_loss', 'weight_loss_program', 'weight_loss_injection'],
             'Peptide': ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'month_30day', 'jumpstart_10day', 'recovery_10day'],
-            'HRT': ['hrt', 'hrt_membership', 'hrt_program']
+            'HRT': ['hrt', 'hrt_male_membership', 'hrt_female_membership', 'hrt_injection']
           };
           const validTypes = categoryMap[purchase.category] || [];
           filtered = protocolsList.filter(p => 

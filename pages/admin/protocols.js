@@ -20,6 +20,8 @@ const PROGRAM_TYPES = [
   { value: 'hrt_male_membership', label: 'Male HRT Membership (Monthly)', category: 'HRT' },
   { value: 'hrt_female_membership', label: 'Female HRT Membership (Monthly)', category: 'HRT' },
   { value: 'hrt_injection', label: 'HRT Injection (In-Clinic)', category: 'HRT' },
+  // Medical Injections
+  { value: 'injection_medical', label: 'Injection - Medical', category: 'Medical' },
   // Session-based
   { value: 'iv_therapy', label: 'IV Therapy', category: 'Sessions' },
   { value: 'injection_pack', label: 'Injection Pack', category: 'Sessions' },
@@ -1045,6 +1047,11 @@ export default function AdminProtocols() {
                       </optgroup>
                       <optgroup label="HRT Programs">
                         {PROGRAM_TYPES.filter(t => t.category === 'HRT').map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Medical Injections">
+                        {PROGRAM_TYPES.filter(t => t.category === 'Medical').map(type => (
                           <option key={type.value} value={type.value}>{type.label}</option>
                         ))}
                       </optgroup>

@@ -16,6 +16,10 @@ const PROGRAM_TYPES = [
   // Weight Loss Programs
   { value: 'weight_loss_program', label: 'Weight Loss Program (Monthly)', category: 'Weight Loss' },
   { value: 'weight_loss_injection', label: 'Weight Loss Injection', category: 'Weight Loss' },
+  // HRT Programs
+  { value: 'hrt_male_membership', label: 'Male HRT Membership (Monthly)', category: 'HRT' },
+  { value: 'hrt_female_membership', label: 'Female HRT Membership (Monthly)', category: 'HRT' },
+  { value: 'hrt_injection', label: 'HRT Injection (In-Clinic)', category: 'HRT' },
   // Session-based
   { value: 'iv_therapy', label: 'IV Therapy', category: 'Sessions' },
   { value: 'injection_pack', label: 'Injection Pack', category: 'Sessions' },
@@ -1039,6 +1043,11 @@ export default function AdminProtocols() {
                           <option key={type.value} value={type.value}>{type.label}</option>
                         ))}
                       </optgroup>
+                      <optgroup label="HRT Programs">
+                        {PROGRAM_TYPES.filter(t => t.category === 'HRT').map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </optgroup>
                       <optgroup label="Session-Based">
                         {PROGRAM_TYPES.filter(t => t.category === 'Sessions').map(type => (
                           <option key={type.value} value={type.value}>{type.label}</option>
@@ -1103,21 +1112,21 @@ export default function AdminProtocols() {
                     </div>
                   )}
 
-                  {/* Peptide Selection */}
+                  {/* Medication Selection */}
                   <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Peptide Selection</h3>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>Medication Selection</h3>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
-                      Primary Peptide
+                      Primary Medication
                     </label>
                     <select
                       value={formData.primary_peptide}
                       onChange={(e) => setFormData({ ...formData, primary_peptide: e.target.value })}
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     >
-                      <option value="">-- Select Peptide --</option>
+                      <option value="">-- Select Medication --</option>
                       {Object.entries(peptidesByCategory).map(([category, items]) => (
                         <optgroup key={category} label={category}>
                           {items.map(p => (
@@ -1130,7 +1139,7 @@ export default function AdminProtocols() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
-                      Secondary Peptide
+                      Secondary Medication
                     </label>
                     <select
                       value={formData.secondary_peptide}

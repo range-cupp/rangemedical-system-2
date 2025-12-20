@@ -162,14 +162,27 @@ function TabButton({ active, onClick, children }) {
 // ============================================
 // OVERVIEW TAB - Enhanced Dashboard
 // ============================================
-function OverviewTab({ patient, weightLogs }) {
+function OverviewTab({ patient, weightLogs, onWeightAdded }) {
   const activeProtocols = patient.protocols?.filter(p => p.status === 'active') || [];
   const completedProtocols = patient.protocols?.filter(p => p.status === 'completed') || [];
   const unassignedPurchases = patient.purchases?.filter(p => !p.protocol_id) || [];
   const totalSpent = patient.purchases?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
 
+  // Weight entry state
+  const [showWeightEntry, setShowWeightEntry] = useState(false);
+  const [newWeight, setNewWeight] = useState('');
+  const [weightDate, setWeightDate] = useState(new Date().toISOString().split('T')[0]);
+  const [savingWeight, setSavingWeight] = useState(false);
+  const [deletingWeightId, setDeletingWeightId] = useState(null);
+
   // Check if patient has weight loss protocols
   const hasWeightLossProtocol = patient.protocols?.some(p => 
+    p.program_type?.includes('weight_loss') || 
+    p.program_name?.toLowerCase().includes('weight loss')
+  );
+
+  // Get the weight loss protocol for token
+  const weightLossProtocol = patient.protocols?.find(p => 
     p.program_type?.includes('weight_loss') || 
     p.program_name?.toLowerCase().includes('weight loss')
   );
@@ -188,6 +201,61 @@ function OverviewTab({ patient, weightLogs }) {
     const today = new Date();
     const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
     return diff;
+  };
+
+  // Save weight entry
+  const handleSaveWeight = async () => {
+    if (!newWeight || !weightLossProtocol?.access_token) return;
+    
+    setSavingWeight(true);
+    try {
+      const res = await fetch(`/api/patient/weight?token=${weightLossProtocol.access_token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          weight: parseFloat(newWeight),
+          date: weightDate
+        })
+      });
+      
+      if (res.ok) {
+        setShowWeightEntry(false);
+        setNewWeight('');
+        setWeightDate(new Date().toISOString().split('T')[0]);
+        if (onWeightAdded) onWeightAdded();
+      } else {
+        alert('Failed to save weight');
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setSavingWeight(false);
+    }
+  };
+
+  // Delete weight entry
+  const handleDeleteWeight = async (logId) => {
+    if (!confirm('Delete this weight entry?')) return;
+    if (!weightLossProtocol?.access_token) return;
+    
+    setDeletingWeightId(logId);
+    try {
+      const res = await fetch(`/api/patient/weight?token=${weightLossProtocol.access_token}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId })
+      });
+      
+      if (res.ok) {
+        if (onWeightAdded) onWeightAdded();
+      } else {
+        alert('Failed to delete');
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setDeletingWeightId(null);
+    }
   };
 
   // Weight Loss Stats
@@ -270,9 +338,145 @@ function OverviewTab({ patient, weightLogs }) {
       {/* Weight Loss Journey Dashboard */}
       {hasWeightLossProtocol && (
         <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666' }}>
-            ⚖️ Weight Loss Journey
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: '0', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666' }}>
+              ⚖️ Weight Loss Journey
+            </h3>
+            <button
+              onClick={() => setShowWeightEntry(true)}
+              style={{
+                background: '#ff9800',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              + Add Weight
+            </button>
+          </div>
+          
+          {/* Weight Entry Modal */}
+          {showWeightEntry && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
+            }} onClick={() => setShowWeightEntry(false)}>
+              <div style={{
+                background: 'white',
+                borderRadius: '16px',
+                width: '100%',
+                maxWidth: '400px',
+                margin: '20px',
+                overflow: 'hidden'
+              }} onClick={e => e.stopPropagation()}>
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', 
+                  padding: '20px', 
+                  color: 'white',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚖️</div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Log Weight</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', opacity: 0.9 }}>{patient.first_name} {patient.last_name}</p>
+                </div>
+                
+                <div style={{ padding: '24px' }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+                      Weight (lbs)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={newWeight}
+                      onChange={(e) => setNewWeight(e.target.value)}
+                      placeholder="Enter weight"
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px',
+                        border: '2px solid #e5e5e5',
+                        borderRadius: '10px',
+                        fontSize: '18px',
+                        fontWeight: '600',
+                        textAlign: 'center',
+                        boxSizing: 'border-box'
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={weightDate}
+                      onChange={(e) => setWeightDate(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '1px solid #e5e5e5',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      onClick={() => setShowWeightEntry(false)}
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        border: '1px solid #e5e5e5',
+                        borderRadius: '10px',
+                        background: 'white',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveWeight}
+                      disabled={!newWeight || savingWeight}
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        border: 'none',
+                        borderRadius: '10px',
+                        background: newWeight ? '#ff9800' : '#ccc',
+                        color: 'white',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: newWeight ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {savingWeight ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {logs.length === 0 ? (
             <div style={{ 
@@ -284,9 +488,24 @@ function OverviewTab({ patient, weightLogs }) {
             }}>
               <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚖️</div>
               <div style={{ fontWeight: '600', color: '#9a3412', marginBottom: '4px' }}>No Weight Logs Yet</div>
-              <div style={{ fontSize: '13px', color: '#c2410c' }}>
-                Patient hasn't logged any weigh-ins. They can track via their patient portal.
+              <div style={{ fontSize: '13px', color: '#c2410c', marginBottom: '16px' }}>
+                Add the patient's starting weight to begin tracking their journey.
               </div>
+              <button
+                onClick={() => setShowWeightEntry(true)}
+                style={{
+                  background: '#ff9800',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                + Add Starting Weight
+              </button>
             </div>
           ) : (
             <div style={{ 
@@ -394,6 +613,7 @@ function OverviewTab({ patient, weightLogs }) {
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '12px', color: '#666' }}>Date</th>
                     <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: '12px', color: '#666' }}>Weight</th>
                     <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: '12px', color: '#666' }}>Change</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'center', fontSize: '12px', color: '#666', width: '60px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -401,7 +621,7 @@ function OverviewTab({ patient, weightLogs }) {
                     const prevLog = arr[i + 1];
                     const change = prevLog ? (parseFloat(log.weight) - parseFloat(prevLog.weight)).toFixed(1) : null;
                     return (
-                      <tr key={i} style={{ borderTop: '1px solid #f0f0f0' }}>
+                      <tr key={log.id || i} style={{ borderTop: '1px solid #f0f0f0' }}>
                         <td style={{ padding: '10px 16px', fontSize: '13px' }}>
                           {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </td>
@@ -417,6 +637,23 @@ function OverviewTab({ patient, weightLogs }) {
                               {change > 0 ? '+' : ''}{change}
                             </span>
                           )}
+                        </td>
+                        <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                          <button
+                            onClick={() => handleDeleteWeight(log.id)}
+                            disabled={deletingWeightId === log.id}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: deletingWeightId === log.id ? '#ccc' : '#999',
+                              cursor: deletingWeightId === log.id ? 'not-allowed' : 'pointer',
+                              fontSize: '14px',
+                              padding: '4px'
+                            }}
+                            title="Delete entry"
+                          >
+                            🗑️
+                          </button>
                         </td>
                       </tr>
                     );
@@ -2076,6 +2313,19 @@ export default function PatientProfilePage() {
     }
   };
 
+  // Refresh weight logs (called after adding new entry)
+  const refreshWeightLogs = () => {
+    if (patient?.protocols) {
+      const weightLossProtocol = patient.protocols.find(p => 
+        p.program_type?.includes('weight_loss') || 
+        p.program_name?.toLowerCase().includes('weight loss')
+      );
+      if (weightLossProtocol?.access_token) {
+        fetchWeightLogs(weightLossProtocol.access_token);
+      }
+    }
+  };
+
   const fetchPatient = async () => {
     try {
       setLoading(true);
@@ -2204,7 +2454,7 @@ export default function PatientProfilePage() {
 
         {/* Content */}
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-          {activeTab === 'overview' && <OverviewTab patient={patient} weightLogs={weightLogs} />}
+          {activeTab === 'overview' && <OverviewTab patient={patient} weightLogs={weightLogs} onWeightAdded={refreshWeightLogs} />}
           {activeTab === 'purchases' && (
             <PurchasesTab
               patient={patient}

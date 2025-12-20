@@ -23,20 +23,22 @@ export default async function handler(req, res) {
     patient_name,
     patient_phone,
     access_token,
-    ghl_contact_id
+    ghl_contact_id,
+    program_type,
+    program_name
   } = req.body;
 
   if (!patient_phone || !access_token) {
     return res.status(400).json({ error: 'Phone and access_token required' });
   }
 
-  // Build tracker URL
+  // Build patient portal URL - one link for everything
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
-  const trackerUrl = `${baseUrl}/track/${access_token}`;
+  const patientUrl = `${baseUrl}/my/${access_token}`;
 
   // Build message
   const firstName = patient_name?.split(' ')[0] || 'there';
-  const message = `Hi ${firstName}! 👋\n\nYour Range Medical injection tracker is ready. Track your progress and stay on schedule:\n\n${trackerUrl}\n\nQuestions? Reply to this text or call (949) 997-3988`;
+  const message = `Hi ${firstName}! 👋\n\nYour Range Medical patient portal is ready. View your programs, track your progress, and stay on schedule:\n\n${patientUrl}\n\nQuestions? Reply to this text or call (949) 997-3988`;
 
   try {
     // Try GHL API if we have contact ID or phone

@@ -123,7 +123,7 @@ export default function AdminProtocols() {
     primary_peptide: '',
     secondary_peptide: '',
     dose_amount: '',
-    dose_frequency: 'daily',
+    dose_frequency: '',
     injection_days: [],
     special_instructions: '',
     notes: '',
@@ -265,7 +265,7 @@ export default function AdminProtocols() {
       primary_peptide: '',
       secondary_peptide: '',
       dose_amount: '',
-      dose_frequency: 'daily',
+      dose_frequency: '',
       injection_days: [],
       special_instructions: '',
       notes: '',
@@ -311,6 +311,13 @@ export default function AdminProtocols() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.dose_frequency) {
+      setError('Frequency is required');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     setSuccess('');
@@ -399,7 +406,9 @@ export default function AdminProtocols() {
           patient_name: protocol.patient_name,
           patient_phone: protocol.patient_phone,
           access_token: protocol.access_token,
-          ghl_contact_id: protocol.ghl_contact_id
+          ghl_contact_id: protocol.ghl_contact_id,
+          program_type: protocol.program_type,
+          program_name: protocol.program_name
         })
       });
       
@@ -750,7 +759,16 @@ export default function AdminProtocols() {
                   return (
                     <tr key={protocol.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: '500' }}>{protocol.patient_name}</div>
+                        {protocol.ghl_contact_id ? (
+                          <a 
+                            href={`/admin/patient/${protocol.ghl_contact_id}`}
+                            style={{ fontWeight: '500', color: '#1565c0', textDecoration: 'none' }}
+                          >
+                            {protocol.patient_name}
+                          </a>
+                        ) : (
+                          <div style={{ fontWeight: '500' }}>{protocol.patient_name}</div>
+                        )}
                         <div style={{ fontSize: '12px', color: '#666' }}>{protocol.patient_email || '-'}</div>
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px' }}>
@@ -1158,6 +1176,7 @@ export default function AdminProtocols() {
                       required
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
                     >
+                      <option value="">-- Select Frequency --</option>
                       {FREQUENCY_OPTIONS.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}

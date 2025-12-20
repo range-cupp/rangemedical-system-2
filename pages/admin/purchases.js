@@ -142,6 +142,10 @@ const PROGRAM_TYPES = [
   // Weight Loss Programs
   { value: 'weight_loss_program', label: 'Weight Loss Program (Monthly)', category: 'Weight Loss', duration: 28 },
   { value: 'weight_loss_injection', label: 'Weight Loss Injection', category: 'Weight Loss', duration: 7 },
+  // HRT Programs
+  { value: 'hrt_male_membership', label: 'Male HRT Membership (Monthly)', category: 'HRT', duration: 28 },
+  { value: 'hrt_female_membership', label: 'Female HRT Membership (Monthly)', category: 'HRT', duration: 28 },
+  { value: 'hrt_injection', label: 'HRT Injection (In-Clinic)', category: 'HRT', duration: 7 },
   // Session-based
   { value: 'iv_therapy', label: 'IV Therapy', category: 'Sessions', duration: null },
   { value: 'injection_pack', label: 'Injection Pack', category: 'Sessions', duration: null },
@@ -301,6 +305,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
 
   const isPeptideProgram = ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic'].includes(formData.program_type);
   const isWeightLoss = ['weight_loss_program', 'weight_loss_injection'].includes(formData.program_type);
+  const isHRT = ['hrt_male_membership', 'hrt_female_membership', 'hrt_injection'].includes(formData.program_type);
 
   return (
     <div style={{
@@ -458,6 +463,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
                     <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </optgroup>
+                <optgroup label="HRT Programs">
+                  {PROGRAM_TYPES.filter(t => t.category === 'HRT').map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </optgroup>
                 <optgroup label="Session-Based">
                   {PROGRAM_TYPES.filter(t => t.category === 'Sessions').map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
@@ -506,18 +516,18 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
               />
             </div>
 
-            {/* Peptide Selection - only show for peptide/weight loss programs */}
-            {(isPeptideProgram || isWeightLoss) && (
+            {/* Medication Selection - show for peptide/weight loss/HRT programs */}
+            {(isPeptideProgram || isWeightLoss || isHRT) && (
               <>
                 <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
                   <h3 style={{ margin: '0 0 12px', fontSize: '14px', color: '#666', fontWeight: '600' }}>
-                    {isWeightLoss ? 'Medication Selection' : 'Peptide Selection'}
+                    Medication Selection
                   </h3>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
-                    Primary {isWeightLoss ? 'Medication' : 'Peptide'}
+                    Primary Medication
                   </label>
                   <select
                     value={formData.primary_peptide}
@@ -537,7 +547,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess, peptides = [] }) {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px', color: '#333', fontWeight: '500' }}>
-                    Secondary {isWeightLoss ? 'Medication' : 'Peptide'}
+                    Secondary Medication
                   </label>
                   <select
                     value={formData.secondary_peptide}

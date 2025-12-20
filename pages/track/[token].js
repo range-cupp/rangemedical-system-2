@@ -193,7 +193,7 @@ export default function PatientTracker() {
         setCompletionQuestionnaire(json.completionQuestionnaire || null);
         
         // Show intake form if needed
-        const category = getQuestionnaireCategory(json.protocol?.program_type);
+        const category = getQuestionnaireCategory(json.protocol?.program_type, json.protocol?.program_name);
         if (category && !json.intakeQuestionnaire) {
           setActiveForm('intake');
         }
@@ -466,12 +466,23 @@ export default function PatientTracker() {
   // HELPERS
   // =====================================================
   
-  const getQuestionnaireCategory = (programType) => {
-    if (!programType) return null;
+  const getQuestionnaireCategory = (programType, programName) => {
+    if (!programType && !programName) return null;
+    
+    // Check by program type
     const peptideTypes = ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic', 'jumpstart_10day', 'recovery_10day', 'month_30day'];
-    const weightLossTypes = ['weight_loss_program', 'weight_loss_injection'];
+    const weightLossTypes = ['weight_loss_program', 'weight_loss_injection', 'weight_loss'];
+    
     if (peptideTypes.includes(programType)) return 'peptide';
     if (weightLossTypes.includes(programType)) return 'weight_loss';
+    
+    // Also check program_type and program_name for weight loss keywords
+    const lowerType = (programType || '').toLowerCase();
+    const lowerName = (programName || '').toLowerCase();
+    if (lowerType.includes('weight') || lowerName.includes('weight loss')) {
+      return 'weight_loss';
+    }
+    
     return null;
   };
 
@@ -1217,7 +1228,7 @@ export default function PatientTracker() {
   const completedDays = injectionLogs.map(log => log.day_number);
   const totalDays = protocol?.duration_days || 10;
   const daysLeft = protocol?.end_date ? Math.max(0, Math.ceil((new Date(protocol.end_date) - new Date()) / (1000*60*60*24))) : 0;
-  const category = getQuestionnaireCategory(protocol?.program_type);
+  const category = getQuestionnaireCategory(protocol?.program_type, protocol?.program_name);
   const isWeightLoss = category === 'weight_loss';
   const isPeptide = category === 'peptide';
   const isInClinic = protocol?.injection_location === 'in_clinic';

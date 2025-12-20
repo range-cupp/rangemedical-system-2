@@ -162,11 +162,17 @@ function TabButton({ active, onClick, children }) {
 // ============================================
 // OVERVIEW TAB - Enhanced Dashboard
 // ============================================
-function OverviewTab({ patient }) {
+function OverviewTab({ patient, weightLogs }) {
   const activeProtocols = patient.protocols?.filter(p => p.status === 'active') || [];
   const completedProtocols = patient.protocols?.filter(p => p.status === 'completed') || [];
   const unassignedPurchases = patient.purchases?.filter(p => !p.protocol_id) || [];
   const totalSpent = patient.purchases?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+
+  // Check if patient has weight loss protocols
+  const hasWeightLossProtocol = patient.protocols?.some(p => 
+    p.program_type?.includes('weight_loss') || 
+    p.program_name?.toLowerCase().includes('weight loss')
+  );
 
   // Calculate progress for active protocols
   const getProgress = (protocol) => {
@@ -183,6 +189,26 @@ function OverviewTab({ patient }) {
     const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
     return diff;
   };
+
+  // Weight Loss Stats
+  const logs = weightLogs?.logs || [];
+  const stats = weightLogs?.stats || {};
+  const startWeight = stats.startWeight || (logs[0]?.weight);
+  const currentWeight = stats.currentWeight || (logs[logs.length - 1]?.weight);
+  const totalLost = startWeight && currentWeight ? (startWeight - currentWeight) : 0;
+  
+  // Milestones
+  const milestones = [
+    { lbs: 5, emoji: '🌟' },
+    { lbs: 10, emoji: '⭐' },
+    { lbs: 15, emoji: '🔥' },
+    { lbs: 20, emoji: '💪' },
+    { lbs: 25, emoji: '🏆' },
+    { lbs: 30, emoji: '👑' },
+    { lbs: 40, emoji: '🚀' },
+    { lbs: 50, emoji: '💎' }
+  ];
+  const achievedMilestones = milestones.filter(m => totalLost >= m.lbs);
 
   return (
     <div>
@@ -238,6 +264,167 @@ function OverviewTab({ patient }) {
               Go to Purchases tab →
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Weight Loss Journey Dashboard */}
+      {hasWeightLossProtocol && (
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666' }}>
+            ⚖️ Weight Loss Journey
+          </h3>
+          
+          {logs.length === 0 ? (
+            <div style={{ 
+              background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', 
+              borderRadius: '12px', 
+              border: '1px solid #fed7aa',
+              padding: '24px', 
+              textAlign: 'center' 
+            }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚖️</div>
+              <div style={{ fontWeight: '600', color: '#9a3412', marginBottom: '4px' }}>No Weight Logs Yet</div>
+              <div style={{ fontSize: '13px', color: '#c2410c' }}>
+                Patient hasn't logged any weigh-ins. They can track via their patient portal.
+              </div>
+            </div>
+          ) : (
+            <div style={{ 
+              background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', 
+              borderRadius: '16px', 
+              padding: '24px',
+              color: 'white'
+            }}>
+              {/* Main Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Start</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700' }}>{startWeight}</div>
+                  <div style={{ fontSize: '11px', opacity: 0.5 }}>lbs</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Current</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700' }}>{currentWeight}</div>
+                  <div style={{ fontSize: '11px', opacity: 0.5 }}>lbs</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Lost</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: totalLost > 0 ? '#4ade80' : '#fff' }}>
+                    {totalLost > 0 ? '-' : ''}{Math.abs(totalLost).toFixed(1)}
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.5 }}>lbs</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Weigh-ins</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700' }}>{logs.length}</div>
+                  <div style={{ fontSize: '11px', opacity: 0.5 }}>logged</div>
+                </div>
+              </div>
+
+              {/* Weight Chart */}
+              {logs.length >= 2 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <svg width="100%" height="80" viewBox="0 0 300 80" style={{ overflow: 'visible' }}>
+                    {(() => {
+                      const weights = logs.map(l => parseFloat(l.weight));
+                      const max = Math.max(...weights);
+                      const min = Math.min(...weights);
+                      const range = max - min || 1;
+                      const points = weights.map((w, i) => {
+                        const x = 10 + (i / (weights.length - 1)) * 280;
+                        const y = 10 + ((max - w) / range) * 60;
+                        return `${x},${y}`;
+                      }).join(' ');
+                      const areaPoints = `10,70 ${points} 290,70`;
+                      return (
+                        <>
+                          <defs>
+                            <linearGradient id="staffWeightGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="#ff9800" stopOpacity="0.4" />
+                              <stop offset="100%" stopColor="#ff9800" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          <polygon points={areaPoints} fill="url(#staffWeightGrad)" />
+                          <polyline points={points} fill="none" stroke="#ff9800" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                          {weights.map((w, i) => {
+                            const x = 10 + (i / (weights.length - 1)) * 280;
+                            const y = 10 + ((max - w) / range) * 60;
+                            return <circle key={i} cx={x} cy={y} r="4" fill="#ff9800" />;
+                          })}
+                        </>
+                      );
+                    })()}
+                  </svg>
+                </div>
+              )}
+
+              {/* Milestones */}
+              {achievedMilestones.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {achievedMilestones.map((m, i) => (
+                    <span key={i} style={{
+                      background: 'rgba(255,255,255,0.15)',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px'
+                    }}>
+                      {m.emoji} {m.lbs} lbs
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recent Weigh-ins Table */}
+          {logs.length > 0 && (
+            <div style={{ 
+              background: 'white', 
+              borderRadius: '12px', 
+              border: '1px solid #e5e5e5',
+              marginTop: '16px',
+              overflow: 'hidden'
+            }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e5e5', fontWeight: '600', fontSize: '13px' }}>
+                Recent Weigh-ins
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f9f9f9' }}>
+                    <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '12px', color: '#666' }}>Date</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: '12px', color: '#666' }}>Weight</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: '12px', color: '#666' }}>Change</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.slice(-10).reverse().map((log, i, arr) => {
+                    const prevLog = arr[i + 1];
+                    const change = prevLog ? (parseFloat(log.weight) - parseFloat(prevLog.weight)).toFixed(1) : null;
+                    return (
+                      <tr key={i} style={{ borderTop: '1px solid #f0f0f0' }}>
+                        <td style={{ padding: '10px 16px', fontSize: '13px' }}>
+                          {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', fontSize: '13px', fontWeight: '600' }}>
+                          {log.weight} lbs
+                        </td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', fontSize: '13px' }}>
+                          {change !== null && (
+                            <span style={{
+                              color: change < 0 ? '#16a34a' : change > 0 ? '#dc2626' : '#666',
+                              fontWeight: '500'
+                            }}>
+                              {change > 0 ? '+' : ''}{change}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -1853,6 +2040,7 @@ export default function PatientProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [weightLogs, setWeightLogs] = useState({ logs: [], stats: {} });
 
   // Modal states
   const [createProtocolPurchase, setCreateProtocolPurchase] = useState(null);
@@ -1862,6 +2050,31 @@ export default function PatientProfilePage() {
   useEffect(() => {
     if (id) fetchPatient();
   }, [id]);
+
+  // Fetch weight logs when patient has weight loss protocols
+  useEffect(() => {
+    if (patient?.protocols) {
+      const weightLossProtocol = patient.protocols.find(p => 
+        p.program_type?.includes('weight_loss') || 
+        p.program_name?.toLowerCase().includes('weight loss')
+      );
+      if (weightLossProtocol?.access_token) {
+        fetchWeightLogs(weightLossProtocol.access_token);
+      }
+    }
+  }, [patient]);
+
+  const fetchWeightLogs = async (token) => {
+    try {
+      const res = await fetch(`/api/patient/weight?token=${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWeightLogs(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch weight logs:', err);
+    }
+  };
 
   const fetchPatient = async () => {
     try {
@@ -1991,7 +2204,7 @@ export default function PatientProfilePage() {
 
         {/* Content */}
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-          {activeTab === 'overview' && <OverviewTab patient={patient} />}
+          {activeTab === 'overview' && <OverviewTab patient={patient} weightLogs={weightLogs} />}
           {activeTab === 'purchases' && (
             <PurchasesTab
               patient={patient}

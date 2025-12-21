@@ -1,6 +1,20 @@
 // /pages/admin/protocols.js
 // Protocol Management Dashboard - With Peptide Catalog & Frequency
 // Range Medical
+//
+// ============================================
+// FEATURES CHECKLIST - DO NOT REMOVE:
+// ============================================
+// □ Protocol table with sorting (patient, program, dates, status)
+// □ Status filter (All, Active only toggle)
+// □ Days Left column with color-coded urgency badges
+// □ Edit Protocol modal (full protocol editing)
+// □ Send Tracker Text button (SMS patient portal link)
+// □ Patient name links to patient profile
+// □ Medication dropdowns (Primary/Secondary)
+// □ Frequency dropdown with validation
+// □ Program type dropdown (Peptide, HRT, Weight Loss, Medical, Sessions)
+// ============================================
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -388,23 +402,24 @@ export default function AdminProtocols() {
     }
   };
 
-  const sendTrackerText = async (protocol) => {
+  const sendText = async (protocol, type = 'portal') => {
     if (!protocol.patient_phone) {
       setError('No phone number on file for this patient');
       return;
     }
     
     if (!protocol.access_token) {
-      setError('No tracker link available for this protocol');
+      setError('No access token available for this protocol');
       return;
     }
     
-    setSendingText(protocol.id);
+    const stateKey = type === 'onboard' ? protocol.id + '_onboard' : protocol.id;
+    setSendingText(stateKey);
     setError('');
     setSuccess('');
     
     try {
-      const res = await fetch('/api/admin/send-tracker-text', {
+      const res = await fetch('/api/admin/send-patient-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -413,8 +428,7 @@ export default function AdminProtocols() {
           patient_phone: protocol.patient_phone,
           access_token: protocol.access_token,
           ghl_contact_id: protocol.ghl_contact_id,
-          program_type: protocol.program_type,
-          program_name: protocol.program_name
+          message_type: type // 'portal' or 'onboard'
         })
       });
       
@@ -422,7 +436,10 @@ export default function AdminProtocols() {
       
       if (!res.ok) throw new Error(data.error || 'Failed to send text');
       
-      setSuccess(`Tracker link sent to ${protocol.patient_name}`);
+      const successMsg = type === 'onboard' 
+        ? `Onboarding link sent to ${protocol.patient_name}`
+        : `Portal link sent to ${protocol.patient_name}`;
+      setSuccess(successMsg);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -839,36 +856,56 @@ export default function AdminProtocols() {
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                           {protocol.access_token && protocol.patient_phone && (
-                            <button
-                              onClick={() => sendTrackerText(protocol)}
-                              disabled={sendingText === protocol.id}
-                              style={{
-                                padding: '6px 12px',
-                                background: sendingText === protocol.id ? '#ccc' : '#4caf50',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                cursor: sendingText === protocol.id ? 'wait' : 'pointer',
-                                fontWeight: '500'
-                              }}
-                            >
-                              {sendingText === protocol.id ? '...' : '📱 Text'}
-                            </button>
+                            <>
+                              <button
+                                onClick={() => sendText(protocol, 'portal')}
+                                disabled={sendingText === protocol.id}
+                                style={{
+                                  padding: '6px 10px',
+                                  background: sendingText === protocol.id ? '#ccc' : '#000',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  cursor: sendingText === protocol.id ? 'wait' : 'pointer',
+                                  fontWeight: '500'
+                                }}
+                                title="Send portal link"
+                              >
+                                {sendingText === protocol.id ? '...' : '📱 Portal'}
+                              </button>
+                              <button
+                                onClick={() => sendText(protocol, 'onboard')}
+                                disabled={sendingText === protocol.id + '_onboard'}
+                                style={{
+                                  padding: '6px 10px',
+                                  background: '#f59e0b',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  cursor: 'pointer',
+                                  fontWeight: '500'
+                                }}
+                                title="Send onboarding link"
+                              >
+                                📋 Onboard
+                              </button>
+                            </>
                           )}
                           {protocol.access_token && (
                             <a
-                              href={`/track/${protocol.access_token}`}
+                              href={`/p/${protocol.access_token}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
-                                padding: '6px 12px',
+                                padding: '6px 10px',
                                 background: '#e3f2fd',
                                 color: '#1565c0',
                                 borderRadius: '4px',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 textDecoration: 'none'
                               }}
                             >

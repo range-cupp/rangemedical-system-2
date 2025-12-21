@@ -59,95 +59,63 @@ export default async function handler(req, res) {
     const patientId = patient.id;
     const ghlContactId = patient.ghl_contact_id;
 
-    // Fetch protocols
-    const { data: protocols } = await supabase
-      .from('protocols')
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('created_at', { ascending: false });
+    // Fetch protocols by ghl_contact_id (protocols table uses ghl_contact_id, not patient_id)
+    let protocols = [];
+    if (ghlContactId) {
+      const { data } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('ghl_contact_id', ghlContactId)
+        .order('created_at', { ascending: false });
+      protocols = data || [];
+    }
 
-    // Fetch purchases
-    const { data: purchases } = await supabase
-      .from('purchases')
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('purchase_date', { ascending: false });
+    // Fetch purchases by ghl_contact_id (purchases table uses ghl_contact_id, not patient_id)
+    let purchases = [];
+    if (ghlContactId) {
+      const { data } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('ghl_contact_id', ghlContactId)
+        .order('purchase_date', { ascending: false });
+      purchases = data || [];
+    }
 
-    // Fetch intakes - by patient_id OR ghl_contact_id
-    let intakes = [];
-    const { data: intakesByPatient } = await supabase
+    // Fetch intakes by patient_id (intakes table uses patient_id)
+    const { data: intakes } = await supabase
       .from('intakes')
       .select('*')
       .eq('patient_id', patientId)
       .order('submitted_at', { ascending: false });
-    
-    intakes = intakesByPatient || [];
-    
-    // Also check by ghl_contact_id if we have one
-    if (ghlContactId) {
-      const { data: intakesByGhl } = await supabase
-        .from('intakes')
-        .select('*')
-        .eq('ghl_contact_id', ghlContactId)
-        .is('patient_id', null)
-        .order('submitted_at', { ascending: false });
-      
-      if (intakesByGhl && intakesByGhl.length > 0) {
-        // Merge and dedupe by id
-        const existingIds = new Set(intakes.map(i => i.id));
-        for (const intake of intakesByGhl) {
-          if (!existingIds.has(intake.id)) {
-            intakes.push(intake);
-          }
-        }
-      }
-    }
 
-    // Fetch consents - by patient_id OR ghl_contact_id
-    let consents = [];
-    const { data: consentsByPatient } = await supabase
+    // Fetch consents by patient_id (consents table uses patient_id)
+    const { data: consents } = await supabase
       .from('consents')
       .select('*')
       .eq('patient_id', patientId)
       .order('submitted_at', { ascending: false });
-    
-    consents = consentsByPatient || [];
-    
-    // Also check by ghl_contact_id if we have one
-    if (ghlContactId) {
-      const { data: consentsByGhl } = await supabase
-        .from('consents')
-        .select('*')
-        .eq('ghl_contact_id', ghlContactId)
-        .is('patient_id', null)
-        .order('submitted_at', { ascending: false });
-      
-      if (consentsByGhl && consentsByGhl.length > 0) {
-        const existingIds = new Set(consents.map(c => c.id));
-        for (const consent of consentsByGhl) {
-          if (!existingIds.has(consent.id)) {
-            consents.push(consent);
-          }
-        }
-      }
-    }
 
-    // Fetch injection log
-    const { data: injectionLog } = await supabase
-      .from('injection_log')
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('injection_date', { ascending: false })
-      .limit(50);
+    // Fetch injection log - try by protocol_id from protocols
+    let injectionLog = [];
+    if (protocols.length > 0) {
+      const protocolIds = protocols.map(p => p.id);
+      const { data } = await supabase
+        .from('injection_log')
+        .select('*')
+        .in('protocol_id', protocolIds)
+        .order('completed_at', { ascending: false })
+        .limit(50);
+      injectionLog = data || [];
+    }
 
     // Return complete patient data
     return res.status(200).json({
       ...patient,
-      protocols: protocols || [],
-      purchases: purchases || [],
-      intakes: intakes,
-      consents: consents,
-      injection_log: injectionLog || []
+      protocols: protocols,
+      purchases: purchases,
+      intakes: intakes || [],
+      consents: consents || [],
+      injection_log: injectionLog
     });
 
   } catch (error) {

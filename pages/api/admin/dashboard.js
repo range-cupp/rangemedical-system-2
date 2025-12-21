@@ -10,11 +10,6 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const password = req.headers['x-admin-password'];
-  if (password !== 'range2024') {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

@@ -17,6 +17,10 @@ export default function AdminUtilities() {
   // Link Contacts state
   const [linkingContacts, setLinkingContacts] = useState(false);
   const [linkContactsResult, setLinkContactsResult] = useState(null);
+  
+  // Backfill Patients state
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState(null);
 
   const handleLogin = () => {
     if (password === 'range2024') {
@@ -71,6 +75,30 @@ export default function AdminUtilities() {
       alert('Error: ' + err.message);
     } finally {
       setLinkingContacts(false);
+    }
+  };
+
+  const handleBackfillPatients = async () => {
+    if (!confirm('This will create patient records from intakes that don\\'t have linked patients. Continue?')) {
+      return;
+    }
+    
+    setBackfilling(true);
+    setBackfillResult(null);
+    
+    try {
+      const res = await fetch('/api/admin/backfill-patients-from-intakes', { method: 'POST' });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setBackfillResult(data);
+      } else {
+        alert('Error: ' + (data.error || 'Failed to backfill patients'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setBackfilling(false);
     }
   };
 
@@ -240,12 +268,57 @@ export default function AdminUtilities() {
           </div>
 
           {/* Info Card */}
-          <div style={{ background: '#fffbeb', borderRadius: '12px', border: '1px solid #fef3c7', padding: '20px 24px' }}>
+          <div style={{ background: '#fffbeb', borderRadius: '12px', border: '1px solid #fef3c7', padding: '20px 24px', marginBottom: '24px' }}>
             <h3 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: '600', color: '#92400e' }}>💡 Automatic Linking</h3>
             <p style={{ margin: 0, fontSize: '13px', color: '#92400e' }}>
               New form submissions are automatically linked to patients when they come in via webhooks. 
               A daily cron job also runs to catch any forms that may have been missed.
             </p>
+          </div>
+
+          {/* Backfill Patients Card */}
+          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', marginBottom: '24px', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Create Patients from Intakes</h2>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#888' }}>
+                Create patient records from existing intake forms
+              </p>
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#666' }}>
+                This will scan all intakes and create patient records for any that don't have one. 
+                Useful for intakes submitted before patient creation was automatic.
+              </p>
+              
+              <button
+                onClick={handleBackfillPatients}
+                disabled={backfilling}
+                style={{
+                  padding: '10px 20px',
+                  background: backfilling ? '#ccc' : '#000',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: backfilling ? 'wait' : 'pointer'
+                }}
+              >
+                {backfilling ? 'Processing...' : 'Create Patients from Intakes'}
+              </button>
+              
+              {backfillResult && (
+                <div style={{ marginTop: '16px', padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a', marginBottom: '8px' }}>✓ Complete</div>
+                  <div style={{ fontSize: '13px', color: '#666' }}>
+                    <div>Intakes processed: {backfillResult.results?.intakesProcessed || 0}</div>
+                    <div>New patients created: {backfillResult.results?.patientsCreated || 0}</div>
+                    <div>Linked to existing: {backfillResult.results?.patientsLinked || 0}</div>
+                    <div>Already linked: {backfillResult.results?.alreadyLinked || 0}</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
         </main>

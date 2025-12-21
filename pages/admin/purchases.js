@@ -1198,6 +1198,8 @@ export default function AdminPurchases() {
   const [createProtocolPurchase, setCreateProtocolPurchase] = useState(null);
   const [addToProtocolPurchase, setAddToProtocolPurchase] = useState(null);
   const [editAmountPurchase, setEditAmountPurchase] = useState(null);
+  const [deletingPurchase, setDeletingPurchase] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   
   // Fetch peptides for dropdown
   const fetchPeptides = async () => {
@@ -1230,6 +1232,31 @@ export default function AdminPurchases() {
 
   // Stats
   const [stats, setStats] = useState({ total: 0, revenue: 0 });
+
+  // Delete purchase
+  const handleDeletePurchase = async (purchase) => {
+    if (!confirm(`Delete "${purchase.item_name}" for ${purchase.patient_name}?\n\nThis cannot be undone.`)) {
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/purchases/${purchase.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        setPurchases(purchases.filter(p => p.id !== purchase.id));
+      } else {
+        const data = await res.json();
+        alert('Error: ' + (data.error || 'Failed to delete purchase'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Link purchases to contacts
   const handleLinkContacts = async () => {
@@ -1657,6 +1684,7 @@ export default function AdminPurchases() {
                 <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', color: '#666' }}>Paid</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666' }}>Source</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666' }}>Protocol</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontSize: '13px', color: '#666' }}></th>
               </tr>
             </thead>
             <tbody>
@@ -1788,6 +1816,25 @@ export default function AdminPurchases() {
                             )}
                           </div>
                         )}
+                      </td>
+                      <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleDeletePurchase(purchase)}
+                          disabled={deleting}
+                          style={{
+                            padding: '4px 8px',
+                            background: 'transparent',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            cursor: deleting ? 'wait' : 'pointer',
+                            opacity: deleting ? 0.5 : 1
+                          }}
+                          title="Delete purchase"
+                        >
+                          🗑️
+                        </button>
                       </td>
                     </tr>
                   );

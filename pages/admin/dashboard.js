@@ -7,27 +7,15 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 export default function StaffDashboard() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
-
-  const handleLogin = () => {
-    if (password === 'range2024') {
-      setIsAuthenticated(true);
-    } else {
-      alert('Invalid password');
-    }
-  };
 
   const fetchDashboard = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/dashboard', {
-        headers: { 'x-admin-password': 'range2024' }
-      });
+      const res = await fetch('/api/admin/dashboard');
       
       if (!res.ok) {
         const errData = await res.json();
@@ -45,34 +33,8 @@ export default function StaffDashboard() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchDashboard();
-    }
-  }, [isAuthenticated]);
-
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Head><title>Staff Dashboard | Range Medical</title></Head>
-        <div style={styles.loginContainer}>
-          <div style={styles.loginBox}>
-            <h1 style={styles.loginTitle}>Staff Dashboard</h1>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              placeholder="Password"
-              style={styles.loginInput}
-            />
-            <button onClick={handleLogin} style={styles.loginButton}>
-              Login
-            </button>
-          </div>
-        </div>
-      </>
-    );
-  }
+    fetchDashboard();
+  }, []);
 
   const atRisk = data?.at_risk || [];
   const stats = data?.stats || {};

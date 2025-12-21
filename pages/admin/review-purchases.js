@@ -29,9 +29,22 @@ export default function ReviewPurchases() {
     try {
       const res = await fetch('/api/admin/purchases?limit=500');
       const data = await res.json();
-      setPurchases(data.purchases || data || []);
+      console.log('Purchases API response:', data);
+      
+      // Handle different response formats
+      let purchasesList = [];
+      if (Array.isArray(data)) {
+        purchasesList = data;
+      } else if (data.purchases && Array.isArray(data.purchases)) {
+        purchasesList = data.purchases;
+      } else if (data.data && Array.isArray(data.data)) {
+        purchasesList = data.data;
+      }
+      
+      setPurchases(purchasesList);
     } catch (err) {
       console.error('Error fetching purchases:', err);
+      setPurchases([]);
     } finally {
       setLoading(false);
     }
@@ -74,8 +87,14 @@ export default function ReviewPurchases() {
     }
   };
 
+  // Calculate stats (with safety checks)
+  const purchasesList = Array.isArray(purchases) ? purchases : [];
+  const discountedCount = purchasesList.filter(p => p.list_price && Math.abs(p.list_price - p.amount) > 0.01).length;
+  const totalListPrice = purchasesList.reduce((sum, p) => sum + (p.list_price || p.amount || 0), 0);
+  const totalPaid = purchasesList.reduce((sum, p) => sum + (p.amount || 0), 0);
+
   // Filter purchases
-  const filteredPurchases = purchases.filter(p => {
+  const filteredPurchases = purchasesList.filter(p => {
     if (filter === 'all') return true;
     // "discounted" = list_price exists and differs from amount (likely a discount)
     if (filter === 'discounted') {
@@ -88,11 +107,6 @@ export default function ReviewPurchases() {
   const sortedPurchases = [...filteredPurchases].sort((a, b) => 
     new Date(b.purchase_date || b.created_at) - new Date(a.purchase_date || a.created_at)
   );
-
-  // Calculate stats
-  const discountedCount = purchases.filter(p => p.list_price && Math.abs(p.list_price - p.amount) > 0.01).length;
-  const totalListPrice = purchases.reduce((sum, p) => sum + (p.list_price || p.amount || 0), 0);
-  const totalPaid = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -155,7 +169,7 @@ export default function ReviewPurchases() {
           {/* Stats */}
           <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
             <div style={{ background: 'white', padding: '16px 24px', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
-              <div style={{ fontSize: '28px', fontWeight: '700' }}>{purchases.length}</div>
+              <div style={{ fontSize: '28px', fontWeight: '700' }}>{purchasesList.length}</div>
               <div style={{ fontSize: '13px', color: '#666' }}>Total Purchases</div>
             </div>
             <div style={{ background: 'white', padding: '16px 24px', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
@@ -364,7 +378,7 @@ export default function ReviewPurchases() {
           {/* Summary */}
           {!loading && sortedPurchases.length > 0 && (
             <div style={{ marginTop: '16px', padding: '12px 16px', background: '#f9f9f9', borderRadius: '8px', fontSize: '13px', color: '#666' }}>
-              Showing {sortedPurchases.length} of {purchases.length} purchases
+              Showing {sortedPurchases.length} of {purchasesList.length} purchases
             </div>
           )}
         </div>

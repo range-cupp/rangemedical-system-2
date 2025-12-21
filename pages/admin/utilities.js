@@ -79,7 +79,7 @@ export default function AdminUtilities() {
   };
 
   const handleBackfillPatients = async () => {
-    if (!confirm('This will create patient records from intakes that don\\'t have linked patients. Continue?')) {
+    if (!confirm('This will create patient records from intakes that do not have linked patients. Continue?')) {
       return;
     }
     

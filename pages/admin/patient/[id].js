@@ -1147,10 +1147,12 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
                     const change = prevLog ? (log.weight - prevLog.weight).toFixed(1) : null;
                     const isLoss = change && parseFloat(change) < 0;
                     const isGain = change && parseFloat(change) > 0;
+                    const logDate = log.log_date || log.date || log.created_at;
+                    const formattedDate = logDate ? new Date(logDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date';
                     return (
                       <div key={log.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#fafafa', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ fontSize: '13px', color: '#666' }}>{new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                          <div style={{ fontSize: '13px', color: '#666' }}>{formattedDate}</div>
                           <div style={{ fontSize: '15px', fontWeight: '600', color: '#111' }}>{log.weight} lbs</div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

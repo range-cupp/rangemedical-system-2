@@ -463,6 +463,77 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({});
   const [peptides, setPeptides] = useState([]);
+  
+  // Weight Loss Journey state
+  const [weightLogs, setWeightLogs] = useState([]);
+  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [newWeight, setNewWeight] = useState('');
+  const [weightDate, setWeightDate] = useState(new Date().toISOString().split('T')[0]);
+  const [savingWeight, setSavingWeight] = useState(false);
+
+  // Find weight loss protocol
+  const weightLossProtocol = protocols.find(p => 
+    p.program_type?.toLowerCase().includes('weight') || 
+    p.program_name?.toLowerCase().includes('weight')
+  );
+
+  // Fetch weight logs
+  useEffect(() => {
+    if (weightLossProtocol?.access_token) {
+      fetchWeightLogs();
+    }
+  }, [weightLossProtocol?.id]);
+
+  const fetchWeightLogs = async () => {
+    if (!weightLossProtocol?.access_token) return;
+    try {
+      const res = await fetch(`/api/patient/weight?token=${weightLossProtocol.access_token}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWeightLogs(data.logs || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch weight logs:', err);
+    }
+  };
+
+  const saveWeight = async () => {
+    if (!newWeight || !weightLossProtocol?.access_token) return;
+    setSavingWeight(true);
+    try {
+      const res = await fetch(`/api/patient/weight?token=${weightLossProtocol.access_token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weight: parseFloat(newWeight), date: weightDate })
+      });
+      if (res.ok) {
+        setShowWeightModal(false);
+        setNewWeight('');
+        setWeightDate(new Date().toISOString().split('T')[0]);
+        fetchWeightLogs();
+      }
+    } catch (err) {
+      console.error('Failed to save weight:', err);
+    } finally {
+      setSavingWeight(false);
+    }
+  };
+
+  const deleteWeightLog = async (logId) => {
+    if (!confirm('Delete this weigh-in?')) return;
+    try {
+      const res = await fetch(`/api/patient/weight?token=${weightLossProtocol.access_token}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId })
+      });
+      if (res.ok) {
+        fetchWeightLogs();
+      }
+    } catch (err) {
+      console.error('Failed to delete weight log:', err);
+    }
+  };
 
   // Fetch peptides for dropdown
   useEffect(() => {
@@ -945,6 +1016,169 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
                 }}
               >
                 {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Weight Loss Journey Dashboard */}
+      {weightLossProtocol && (
+        <div style={{ marginBottom: '24px', padding: '20px', background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', borderRadius: '12px', color: 'white' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>🏆 Weight Loss Journey</h3>
+            <button
+              onClick={() => setShowWeightModal(true)}
+              style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', color: 'white', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+            >
+              + Add Weight
+            </button>
+          </div>
+
+          {weightLogs.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>⚖️</div>
+              <p style={{ margin: 0, opacity: 0.9 }}>No weigh-ins recorded yet</p>
+              <button
+                onClick={() => setShowWeightModal(true)}
+                style={{ marginTop: '12px', padding: '10px 20px', background: 'white', border: 'none', borderRadius: '8px', color: '#f57c00', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                + Add Starting Weight
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '4px' }}>Start</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700' }}>{weightLogs[weightLogs.length - 1]?.weight || '-'}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '4px' }}>Current</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700' }}>{weightLogs[0]?.weight || '-'}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '4px' }}>Lost</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700' }}>
+                    {weightLogs.length >= 2 ? (weightLogs[weightLogs.length - 1].weight - weightLogs[0].weight).toFixed(1) : '0'}
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '4px' }}>Weigh-ins</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700' }}>{weightLogs.length}</div>
+                </div>
+              </div>
+
+              {/* Chart */}
+              {weightLogs.length >= 2 && (
+                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+                  <svg viewBox="0 0 300 80" style={{ width: '100%', height: '80px' }}>
+                    <defs>
+                      <linearGradient id="weightGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+                        <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                      </linearGradient>
+                    </defs>
+                    {(() => {
+                      const sorted = [...weightLogs].reverse();
+                      const weights = sorted.map(l => l.weight);
+                      const min = Math.min(...weights) - 2;
+                      const max = Math.max(...weights) + 2;
+                      const range = max - min || 1;
+                      const points = sorted.map((l, i) => {
+                        const x = (i / (sorted.length - 1)) * 280 + 10;
+                        const y = 70 - ((l.weight - min) / range) * 60;
+                        return `${x},${y}`;
+                      }).join(' ');
+                      const areaPoints = `10,70 ${points} 290,70`;
+                      return (
+                        <>
+                          <polygon points={areaPoints} fill="url(#weightGradient)" />
+                          <polyline points={points} fill="none" stroke="white" strokeWidth="2" />
+                          {sorted.map((l, i) => {
+                            const x = (i / (sorted.length - 1)) * 280 + 10;
+                            const y = 70 - ((l.weight - min) / range) * 60;
+                            return <circle key={i} cx={x} cy={y} r="3" fill="white" />;
+                          })}
+                        </>
+                      );
+                    })()}
+                  </svg>
+                </div>
+              )}
+
+              {/* Recent Weigh-ins Table */}
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+                      <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '500', opacity: 0.8 }}>Date</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '500', opacity: 0.8 }}>Weight</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '500', opacity: 0.8 }}>Change</th>
+                      <th style={{ padding: '8px 4px', width: '30px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weightLogs.slice(0, 10).map((log, idx) => {
+                      const prevLog = weightLogs[idx + 1];
+                      const change = prevLog ? (log.weight - prevLog.weight).toFixed(1) : null;
+                      return (
+                        <tr key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                          <td style={{ padding: '8px 12px' }}>{new Date(log.date).toLocaleDateString()}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>{log.weight} lbs</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', color: change && parseFloat(change) < 0 ? '#90EE90' : change && parseFloat(change) > 0 ? '#FFB6C1' : 'inherit' }}>
+                            {change ? `${parseFloat(change) > 0 ? '+' : ''}${change}` : '-'}
+                          </td>
+                          <td style={{ padding: '8px 4px', textAlign: 'center' }}>
+                            <button
+                              onClick={() => deleteWeightLog(log.id)}
+                              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '12px' }}
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Weight Modal */}
+      {showWeightModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }} onClick={() => setShowWeightModal(false)}>
+          <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '320px', margin: '20px' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: '600' }}>Log Weight</h3>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Weight (lbs)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={newWeight}
+                onChange={(e) => setNewWeight(e.target.value)}
+                placeholder="e.g., 185.5"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }}
+                autoFocus
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Date</label>
+              <input
+                type="date"
+                value={weightDate}
+                onChange={(e) => setWeightDate(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setShowWeightModal(false)} style={{ flex: 1, padding: '12px', background: '#f5f5f5', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={saveWeight} disabled={!newWeight || savingWeight} style={{ flex: 1, padding: '12px', background: '#ff9800', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', opacity: !newWeight || savingWeight ? 0.6 : 1 }}>
+                {savingWeight ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

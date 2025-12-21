@@ -607,13 +607,19 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
         body: JSON.stringify(formData)
       });
       
+      const responseData = await res.json();
+      console.log('Save response:', responseData);
+      
       if (res.ok) {
+        console.log('Save successful, closing modal and refreshing...');
         closeModal();
-        if (onProtocolUpdate) onProtocolUpdate();
+        if (onProtocolUpdate) {
+          console.log('Calling onProtocolUpdate (fetchPatient)');
+          onProtocolUpdate();
+        }
       } else {
-        const errorData = await res.json();
-        console.error('Save failed:', errorData);
-        alert('Failed to save protocol: ' + (errorData.error || 'Unknown error'));
+        console.error('Save failed:', responseData);
+        alert('Failed to save protocol: ' + (responseData.error || 'Unknown error'));
       }
     } catch (err) {
       console.error('Save error:', err);
@@ -1431,9 +1437,12 @@ export default function PatientProfilePage() {
       setLoading(true);
       setError(null);
       
+      // Add cache buster to force fresh data
+      const cacheBuster = `_t=${Date.now()}`;
+      
       // Try the API endpoint - it should handle both UUID and GHL contact ID
       // First try /api/admin/patient/[id] format
-      let res = await fetch(`/api/admin/patient/${id}`);
+      let res = await fetch(`/api/admin/patient/${id}?${cacheBuster}`);
       
       // If that fails, try /api/admin/patient?id=[id] format
       if (!res.ok) {

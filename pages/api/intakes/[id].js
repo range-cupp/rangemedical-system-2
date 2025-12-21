@@ -36,6 +36,7 @@ export default async function handler(req, res) {
 
     // Try to find existing patient by ghl_contact_id first, then email, then phone
     let patientId = null;
+    let patientCreated = false;
     
     // 1. Try ghl_contact_id (most reliable)
     if (data.ghlContactId) {
@@ -80,6 +81,43 @@ export default async function handler(req, res) {
       if (match) {
         patientId = match.id;
         console.log('  - Found patient by phone:', patientId);
+      }
+    }
+
+    // 4. If no patient found, CREATE one from intake data
+    if (!patientId) {
+      console.log('  - No patient found, creating new patient...');
+      
+      const newPatient = {
+        ghl_contact_id: data.ghlContactId || null,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        date_of_birth: data.dateOfBirth || null,
+        gender: data.gender,
+        address: data.streetAddress,
+        city: data.city,
+        state: data.state,
+        zip: data.postalCode,
+        country: data.country,
+        source: 'intake_form',
+        created_at: new Date().toISOString()
+      };
+
+      const { data: createdPatient, error: createError } = await supabase
+        .from('patients')
+        .insert(newPatient)
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('  - Failed to create patient:', createError.message);
+        // Continue anyway - intake will be saved without patient link
+      } else {
+        patientId = createdPatient.id;
+        patientCreated = true;
+        console.log('  - ✅ Created new patient:', patientId);
       }
     }
 
@@ -132,12 +170,13 @@ export default async function handler(req, res) {
     }
 
     console.log('✅ Intake saved:', intake.id);
-    console.log('  - Linked to patient:', patientId || '(none - will link later)');
+    console.log('  - Patient:', patientId, patientCreated ? '(NEW)' : '(existing)');
 
     return res.status(200).json({
       success: true,
       intakeId: intake.id,
       patientId: patientId,
+      patientCreated: patientCreated,
       linked: !!patientId
     });
 

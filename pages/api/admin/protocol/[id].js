@@ -30,6 +30,8 @@ export default async function handler(req, res) {
 
   // PUT - Update protocol
   if (req.method === 'PUT') {
+    console.log('Protocol update received:', req.body);
+    
     const {
       injection_location,
       status,
@@ -43,6 +45,8 @@ export default async function handler(req, res) {
       reminders_enabled,
       notes
     } = req.body;
+
+    console.log('Extracted end_date:', end_date);
 
     const updateData = {
       updated_at: new Date().toISOString()
@@ -60,6 +64,8 @@ export default async function handler(req, res) {
     if (special_instructions !== undefined) updateData.special_instructions = special_instructions;
     if (reminders_enabled !== undefined) updateData.reminders_enabled = reminders_enabled;
     if (notes !== undefined) updateData.notes = notes;
+
+    console.log('Update data being sent to DB:', updateData);
 
     const { data, error } = await supabase
       .from('protocols')

@@ -27,7 +27,11 @@ export default function ReviewPurchases() {
   const fetchPurchases = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/purchases?limit=500');
+      const res = await fetch('/api/admin/review-purchases', {
+        headers: {
+          'x-admin-password': 'range2024'
+        }
+      });
       const data = await res.json();
       console.log('Purchases API response:', data);
       

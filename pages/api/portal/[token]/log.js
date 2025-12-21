@@ -1,5 +1,5 @@
 // /pages/api/portal/[token]/log.js
-// Log injection/action completion
+// Log injection completion - simplified
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -23,106 +23,93 @@ export default async function handler(req, res) {
   try {
     const { block_id, day_number, completed } = req.body;
 
-    if (!block_id) {
-      return res.status(400).json({ error: 'block_id required' });
+    console.log('Log request:', { token, block_id, day_number, completed });
+
+    if (!block_id || !day_number) {
+      return res.status(400).json({ error: 'block_id and day_number required' });
     }
 
-    // Verify token matches this protocol
-    const { data: protocol } = await supabase
+    // Find protocol by ID (block_id is the protocol ID)
+    const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
-      .select('id, access_token, injections_completed, start_date')
+      .select('id, access_token, injections_completed')
       .eq('id', block_id)
       .single();
 
-    if (!protocol) {
+    if (protocolError || !protocol) {
+      console.error('Protocol not found:', protocolError);
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // Verify access
+    // Verify token matches
     if (protocol.access_token !== token) {
-      // Try patient_tokens as fallback
-      const { data: tokenData } = await supabase
-        .from('patient_tokens')
-        .select('patient_id')
-        .eq('token', token)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (!tokenData) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
+      console.error('Token mismatch:', { expected: protocol.access_token, got: token });
+      return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Calculate day number if not provided
-    let dayNum = day_number;
-    if (!dayNum && protocol.start_date) {
-      const start = new Date(protocol.start_date);
-      const today = new Date();
-      dayNum = Math.floor((today - start) / 86400000) + 1;
-    }
-    dayNum = dayNum || 1;
-
-    // Check if already logged
-    const { data: existing } = await supabase
+    // Check if log already exists for this day
+    const { data: existingLog } = await supabase
       .from('injection_logs')
       .select('id, completed')
       .eq('protocol_id', block_id)
-      .eq('day_number', dayNum)
+      .eq('day_number', day_number)
       .maybeSingle();
 
-    const shouldComplete = completed !== false;
+    if (existingLog) {
+      // Update existing log
+      const newCompleted = completed !== undefined ? completed : !existingLog.completed;
+      
+      await supabase
+        .from('injection_logs')
+        .update({ 
+          completed: newCompleted,
+          completed_at: newCompleted ? new Date().toISOString().split('T')[0] : null
+        })
+        .eq('id', existingLog.id);
 
-    if (existing) {
-      // Toggle existing log
-      if (shouldComplete === existing.completed) {
-        // Toggle off
-        await supabase
-          .from('injection_logs')
-          .update({ completed: !existing.completed })
-          .eq('id', existing.id);
-
-        // Update count
-        const newCount = Math.max(0, (protocol.injections_completed || 0) + (existing.completed ? -1 : 1));
+      // Update protocol count
+      const countChange = newCompleted !== existingLog.completed 
+        ? (newCompleted ? 1 : -1) 
+        : 0;
+      
+      if (countChange !== 0) {
         await supabase
           .from('protocols')
-          .update({ injections_completed: newCount })
-          .eq('id', block_id);
-      } else {
-        // Update to new state
-        await supabase
-          .from('injection_logs')
-          .update({ completed: shouldComplete })
-          .eq('id', existing.id);
-
-        const delta = shouldComplete ? 1 : -1;
-        await supabase
-          .from('protocols')
-          .update({ injections_completed: Math.max(0, (protocol.injections_completed || 0) + delta) })
+          .update({ 
+            injections_completed: Math.max(0, (protocol.injections_completed || 0) + countChange)
+          })
           .eq('id', block_id);
       }
+
+      return res.status(200).json({ success: true, toggled: true, completed: newCompleted });
     } else {
       // Create new log
+      const shouldComplete = completed !== false;
+      
       await supabase
         .from('injection_logs')
         .insert({
           protocol_id: block_id,
-          day_number: dayNum,
+          day_number: day_number,
           completed: shouldComplete,
-          completed_at: new Date().toISOString().split('T')[0]
+          completed_at: shouldComplete ? new Date().toISOString().split('T')[0] : null
         });
 
+      // Update protocol count if completed
       if (shouldComplete) {
         await supabase
           .from('protocols')
-          .update({ injections_completed: (protocol.injections_completed || 0) + 1 })
+          .update({ 
+            injections_completed: (protocol.injections_completed || 0) + 1
+          })
           .eq('id', block_id);
       }
-    }
 
-    return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, created: true, completed: shouldComplete });
+    }
 
   } catch (error) {
     console.error('Log error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error', details: error.message });
   }
 }

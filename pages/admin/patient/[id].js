@@ -599,6 +599,7 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
 
   const saveProtocol = async () => {
     setSaving(true);
+    console.log('Saving protocol with formData:', formData);
     try {
       const res = await fetch(`/api/admin/protocol/${editingProtocol.id}`, {
         method: 'PUT',
@@ -610,9 +611,12 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
         closeModal();
         if (onProtocolUpdate) onProtocolUpdate();
       } else {
-        alert('Failed to save protocol');
+        const errorData = await res.json();
+        console.error('Save failed:', errorData);
+        alert('Failed to save protocol: ' + (errorData.error || 'Unknown error'));
       }
     } catch (err) {
+      console.error('Save error:', err);
       alert('Error saving protocol: ' + err.message);
     } finally {
       setSaving(false);
@@ -729,8 +733,11 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
               width: '100%',
               maxWidth: '500px',
               maxHeight: '90vh',
-              overflow: 'auto',
-              margin: '20px'
+              overflow: 'visible',
+              overflowY: 'auto',
+              margin: '20px',
+              position: 'relative',
+              zIndex: 1001
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -904,14 +911,14 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
               </div>
 
               {/* Dates */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', position: 'relative', zIndex: 10 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
                     Start Date
                   </label>
                   <input
                     type="date"
-                    value={formData.start_date}
+                    value={formData.start_date || ''}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                     style={{
                       width: '100%',
@@ -919,7 +926,8 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
                       border: '1px solid #e5e5e5',
                       borderRadius: '6px',
                       fontSize: '14px',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      cursor: 'pointer'
                     }}
                   />
                 </div>
@@ -929,15 +937,19 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
                   </label>
                   <input
                     type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    value={formData.end_date || ''}
+                    onChange={(e) => {
+                      console.log('End date changed to:', e.target.value);
+                      setFormData({ ...formData, end_date: e.target.value });
+                    }}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
                       border: '1px solid #e5e5e5',
                       borderRadius: '6px',
                       fontSize: '14px',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      cursor: 'pointer'
                     }}
                   />
                 </div>
@@ -1189,7 +1201,7 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
 
       {/* Weight Modal */}
       {showWeightModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }} onClick={() => setShowWeightModal(false)}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }} onClick={() => setShowWeightModal(false)}>
           <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '360px', margin: '20px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0' }}>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Log Weight</h3>

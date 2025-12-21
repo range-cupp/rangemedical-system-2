@@ -15,9 +15,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Purchase ID required' });
   }
 
-  // PATCH - Update purchase
-  if (req.method === 'PATCH') {
-    const { amount, category, item_name, quantity } = req.body;
+  // PATCH or PUT - Update purchase
+  if (req.method === 'PATCH' || req.method === 'PUT') {
+    const { amount, category, item_name, quantity, protocol_id } = req.body;
 
     try {
       // Build update object with only provided fields
@@ -34,6 +34,9 @@ export default async function handler(req, res) {
       }
       if (quantity !== undefined) {
         updateData.quantity = parseInt(quantity);
+      }
+      if (protocol_id !== undefined) {
+        updateData.protocol_id = protocol_id;
       }
 
       if (Object.keys(updateData).length === 0) {

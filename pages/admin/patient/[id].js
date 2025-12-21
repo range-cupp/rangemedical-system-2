@@ -733,7 +733,6 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
               width: '100%',
               maxWidth: '500px',
               maxHeight: '90vh',
-              overflow: 'visible',
               overflowY: 'auto',
               margin: '20px',
               position: 'relative',
@@ -911,7 +910,7 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
               </div>
 
               {/* Dates */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', position: 'relative', zIndex: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
                     Start Date
@@ -920,6 +919,7 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
                     type="date"
                     value={formData.start_date || ''}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
@@ -927,7 +927,8 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
                       borderRadius: '6px',
                       fontSize: '14px',
                       boxSizing: 'border-box',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      WebkitAppearance: 'none'
                     }}
                   />
                 </div>
@@ -942,6 +943,7 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
                       console.log('End date changed to:', e.target.value);
                       setFormData({ ...formData, end_date: e.target.value });
                     }}
+                    onClick={(e) => e.stopPropagation()}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
@@ -949,7 +951,8 @@ function ProtocolsTab({ protocols = [], onProtocolUpdate }) {
                       borderRadius: '6px',
                       fontSize: '14px',
                       boxSizing: 'border-box',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      WebkitAppearance: 'none'
                     }}
                   />
                 </div>

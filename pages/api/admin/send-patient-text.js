@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     const onboardUrl = `${baseUrl}/onboard/${access_token}`;
     message = `Hi ${patient_name?.split(' ')[0] || 'there'}! Welcome to Range Medical. Take 2 minutes to set your goals and help us personalize your care: ${onboardUrl}`;
   } else {
-    const portalUrl = `${baseUrl}/p/${access_token}`;
+    const portalUrl = `${baseUrl}/portal/${access_token}`;
     message = `Hi ${patient_name?.split(' ')[0] || 'there'}! Here's your Range portal to track your progress and log your treatments: ${portalUrl}`;
   }
 

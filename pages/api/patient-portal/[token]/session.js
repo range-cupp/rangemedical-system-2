@@ -1,5 +1,5 @@
 // /pages/api/patient-portal/[token]/session.js
-// Mark session/injection complete
+// Mark session complete - works with existing injection_logs
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -23,156 +23,146 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Verify access
-    const { data: protocol } = await supabase
-      .from('patient_protocols')
+    // Verify protocol exists and token matches
+    let protocol = null;
+    let isOldTable = false;
+
+    // Try old protocols table first
+    const { data: oldProtocol } = await supabase
+      .from('protocols')
       .select('*')
       .eq('id', protocol_id)
-      .single();
+      .maybeSingle();
+
+    if (oldProtocol) {
+      protocol = oldProtocol;
+      isOldTable = true;
+    } else {
+      // Try new table
+      const { data: newProtocol } = await supabase
+        .from('patient_protocols')
+        .select('*')
+        .eq('id', protocol_id)
+        .maybeSingle();
+      
+      if (newProtocol) {
+        protocol = newProtocol;
+      }
+    }
 
     if (!protocol) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // For peptide/therapy protocols with session numbers
-    if (session_number && protocol.total_sessions) {
-      // Find the session
-      const { data: session } = await supabase
-        .from('protocol_sessions')
+    // For peptide protocols with session numbers (day 1, day 2, etc)
+    if (session_number) {
+      // Check if log exists
+      const { data: existingLog } = await supabase
+        .from('injection_logs')
         .select('*')
         .eq('protocol_id', protocol_id)
-        .eq('session_number', session_number)
+        .eq('day_number', session_number)
         .maybeSingle();
 
-      if (session) {
+      if (existingLog) {
         // Toggle completion
-        const newStatus = session.status === 'completed' ? 'scheduled' : 'completed';
+        const newCompleted = !existingLog.completed;
         
         await supabase
-          .from('protocol_sessions')
+          .from('injection_logs')
           .update({
-            status: newStatus,
-            completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
-            completed_by: 'patient'
+            completed: newCompleted,
+            completed_at: newCompleted ? new Date().toISOString().split('T')[0] : null
           })
-          .eq('id', session.id);
+          .eq('id', existingLog.id);
 
-        // Update protocol sessions_completed count
-        const { data: completedSessions } = await supabase
-          .from('protocol_sessions')
+        // Update protocol count
+        const { data: allCompleted } = await supabase
+          .from('injection_logs')
           .select('id')
           .eq('protocol_id', protocol_id)
-          .eq('status', 'completed');
+          .eq('completed', true);
 
+        const completedCount = allCompleted?.length || 0;
+        
+        if (isOldTable) {
+          await supabase
+            .from('protocols')
+            .update({ injections_completed: completedCount })
+            .eq('id', protocol_id);
+        } else {
+          await supabase
+            .from('patient_protocols')
+            .update({ sessions_completed: completedCount })
+            .eq('id', protocol_id);
+        }
+
+        return res.status(200).json({ success: true, completed: newCompleted });
+      } else {
+        // Create new log
         await supabase
-          .from('patient_protocols')
-          .update({
-            sessions_completed: completedSessions?.length || 0,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', protocol_id);
+          .from('injection_logs')
+          .insert({
+            protocol_id,
+            day_number: session_number,
+            completed: true,
+            completed_at: new Date().toISOString().split('T')[0]
+          });
 
-        return res.status(200).json({ success: true, status: newStatus });
+        // Update protocol count
+        const { data: allCompleted } = await supabase
+          .from('injection_logs')
+          .select('id')
+          .eq('protocol_id', protocol_id)
+          .eq('completed', true);
+
+        const completedCount = allCompleted?.length || 0;
+        
+        if (isOldTable) {
+          await supabase
+            .from('protocols')
+            .update({ injections_completed: completedCount })
+            .eq('id', protocol_id);
+        } else {
+          await supabase
+            .from('patient_protocols')
+            .update({ sessions_completed: completedCount })
+            .eq('id', protocol_id);
+        }
+
+        return res.status(200).json({ success: true, completed: true });
       }
     }
 
-    // For HRT/Weight Loss (no session number, just logging an injection)
-    if (!session_number) {
-      const today = new Date().toISOString().split('T')[0];
+    // For HRT/Weight Loss (no session number)
+    const today = new Date().toISOString().split('T')[0];
+    const nextSessionNum = (protocol.sessions_completed || protocol.injections_completed || 0) + 1;
 
-      // Check if already logged today
-      const { data: existing } = await supabase
-        .from('protocol_sessions')
-        .select('*')
-        .eq('protocol_id', protocol_id)
-        .eq('scheduled_date', today)
-        .maybeSingle();
+    await supabase
+      .from('injection_logs')
+      .insert({
+        protocol_id,
+        day_number: nextSessionNum,
+        completed: true,
+        completed_at: today
+      });
 
-      if (existing) {
-        // Toggle
-        const newStatus = existing.status === 'completed' ? 'scheduled' : 'completed';
-        await supabase
-          .from('protocol_sessions')
-          .update({
-            status: newStatus,
-            completed_at: newStatus === 'completed' ? new Date().toISOString() : null
-          })
-          .eq('id', existing.id);
-
-        return res.status(200).json({ success: true, toggled: true });
-      }
-
-      // Create new session entry
-      const sessionNumber = (protocol.sessions_completed || 0) + 1;
-      
+    if (isOldTable) {
       await supabase
-        .from('protocol_sessions')
-        .insert({
-          protocol_id,
-          session_number: sessionNumber,
-          scheduled_date: today,
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          completed_by: 'patient'
-        });
-
-      // Update protocol
-      const updates = {
-        sessions_completed: sessionNumber,
-        updated_at: new Date().toISOString()
-      };
-
-      // For HRT: update supply remaining
-      if (protocol.supply_type === 'prefilled') {
-        updates.supply_remaining = Math.max(0, (protocol.supply_remaining || 8) - 1);
-      } else if (protocol.supply_type === 'vial' && protocol.dose_per_injection) {
-        const mlPerInjection = protocol.dose_per_injection / 200; // 200mg/ml
-        updates.supply_remaining = Math.max(0, (protocol.supply_remaining || 10) - mlPerInjection);
-      }
-
-      // For Weight Loss: track titration
-      if (protocol.current_dose) {
-        updates.injections_at_current_dose = (protocol.injections_at_current_dose || 0) + 1;
-      }
-
+        .from('protocols')
+        .update({ injections_completed: nextSessionNum })
+        .eq('id', protocol_id);
+    } else {
       await supabase
         .from('patient_protocols')
-        .update(updates)
+        .update({ sessions_completed: nextSessionNum })
         .eq('id', protocol_id);
-
-      // Create titration alert if on 4th injection
-      if (updates.injections_at_current_dose === 4) {
-        await supabase.from('staff_alerts').insert({
-          protocol_id,
-          patient_id: protocol.patient_id,
-          alert_type: 'titration_due',
-          title: `Titration review: ${protocol.patient_name}`,
-          message: `${protocol.protocol_name} - 4 injections at ${protocol.current_dose}, consider titration`,
-          due_date: today,
-          priority: 'medium'
-        });
-      }
-
-      // Create refill alert if supply low
-      if (protocol.supply_type === 'prefilled' && updates.supply_remaining <= 2) {
-        await supabase.from('staff_alerts').insert({
-          protocol_id,
-          patient_id: protocol.patient_id,
-          alert_type: 'refill_due',
-          title: `Refill needed: ${protocol.patient_name}`,
-          message: `HRT - ${updates.supply_remaining} injections remaining`,
-          due_date: today,
-          priority: 'high'
-        });
-      }
-
-      return res.status(200).json({ success: true, created: true });
     }
 
-    return res.status(400).json({ error: 'Invalid request' });
+    return res.status(200).json({ success: true, session_number: nextSessionNum });
 
   } catch (error) {
     console.error('Session API error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error', details: error.message });
   }
 }

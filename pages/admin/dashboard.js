@@ -1,5 +1,5 @@
 // /pages/admin/dashboard.js
-// Staff Dashboard - At-Risk Patients
+// Staff Dashboard - Protocol Management
 // Range Medical
 
 import { useState, useEffect } from 'react';
@@ -8,311 +8,252 @@ import Link from 'next/link';
 
 export default function StaffDashboard() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
 
-  const fetchDashboard = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch('/api/admin/dashboard');
-      
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to load dashboard');
-      }
-      
-      const json = await res.json();
-      setData(json);
+      const res = await fetch('/api/admin/dashboard-v2');
+      if (!res.ok) throw new Error('Failed to load');
+      setData(await res.json());
     } catch (err) {
-      console.error('Dashboard fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const atRisk = data?.at_risk || [];
-  const stats = data?.stats || {};
+  const resolveAlert = async (alertId) => {
+    await fetch('/api/admin/alerts', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: alertId, status: 'resolved' })
+    });
+    fetchData();
+  };
+
+  if (loading) return <div style={styles.loading}>Loading...</div>;
+  if (error) return <div style={styles.error}>{error}</div>;
+
+  const { stats, alerts, protocols_ending, refills_due, labs_due, weekly_checkins } = data || {};
 
   return (
     <>
-      <Head><title>Staff Dashboard | Range Medical</title></Head>
+      <Head><title>Dashboard | Range Medical</title></Head>
       <div style={styles.container}>
         <header style={styles.header}>
           <div>
-            <h1 style={styles.headerTitle}>Staff Dashboard</h1>
-            <p style={styles.headerDate}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
+            <h1 style={styles.title}>Staff Dashboard</h1>
+            <p style={styles.date}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           </div>
           <div style={styles.headerActions}>
-            <button onClick={fetchDashboard} style={styles.refreshButton}>↻ Refresh</button>
-            <Link href="/admin" style={styles.navLink}>Admin →</Link>
+            <button onClick={fetchData} style={styles.refreshBtn}>↻ Refresh</button>
+            <Link href="/admin/protocols/new" style={styles.newBtn}>+ New Protocol</Link>
           </div>
         </header>
 
         <main style={styles.main}>
-          {/* Error State */}
-          {error && (
-            <div style={styles.errorBox}>
-              <strong>Error:</strong> {error}
-              <button onClick={fetchDashboard} style={styles.retryButton}>Retry</button>
-            </div>
-          )}
-
           {/* Stats */}
           <div style={styles.statsRow}>
-            <div style={styles.statCard}>
-              <div style={styles.statValue}>{stats.active_patients || 0}</div>
-              <div style={styles.statLabel}>Active Patients</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={{ 
-                ...styles.statValue, 
-                color: (stats.avg_accountability || 0) >= 80 ? '#16a34a' : 
-                       (stats.avg_accountability || 0) >= 60 ? '#f59e0b' : '#dc2626' 
-              }}>
-                {stats.avg_accountability || 0}%
-              </div>
-              <div style={styles.statLabel}>Avg Accountability</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={styles.statValue}>{stats.check_ins_this_week || 0}</div>
-              <div style={styles.statLabel}>Check-ins This Week</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={{ ...styles.statValue, color: atRisk.length > 0 ? '#dc2626' : '#16a34a' }}>
-                {atRisk.length}
-              </div>
-              <div style={styles.statLabel}>Need Attention</div>
-            </div>
+            <StatCard label="Active Protocols" value={stats?.active_protocols || 0} />
+            <StatCard label="Ending This Week" value={stats?.ending_this_week || 0} color={stats?.ending_this_week > 0 ? '#f59e0b' : null} />
+            <StatCard label="Refills Due" value={stats?.refills_due || 0} color={stats?.refills_due > 0 ? '#ef4444' : null} />
+            <StatCard label="Labs Due" value={stats?.labs_due || 0} color={stats?.labs_due > 0 ? '#3b82f6' : null} />
           </div>
 
-          {/* At Risk Section */}
-          <section style={styles.section}>
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>⚠️ Needs Attention ({atRisk.length})</h2>
-            </div>
-
-            {loading ? (
-              <div style={styles.emptyState}>Loading...</div>
-            ) : atRisk.length === 0 ? (
-              <div style={styles.emptyState}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>✓</span>
-                All patients are on track!
-              </div>
-            ) : (
+          {/* Alerts */}
+          {alerts?.length > 0 && (
+            <section style={styles.section}>
+              <h2 style={styles.sectionTitle}>⚠️ Needs Attention ({alerts.length})</h2>
               <div style={styles.alertList}>
-                {atRisk.map((patient, i) => (
-                  <div key={i} style={styles.alertCard}>
-                    <div style={styles.alertHeader}>
-                      <div>
-                        <Link 
-                          href={`/admin/patient/${patient.ghl_contact_id || patient.id}`} 
-                          style={styles.alertName}
-                        >
-                          {patient.name}
-                        </Link>
-                        <div style={styles.alertReason}>{patient.risk_reason}</div>
-                      </div>
-                      <div style={styles.alertScore}>
-                        <div style={styles.alertScoreValue}>{patient.accountability_score}%</div>
-                        <div style={styles.alertScoreLabel}>
-                          {patient.completed}/{patient.expected}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={styles.alertActions}>
-                      {patient.phone && (
-                        <>
-                          <a href={`sms:${patient.phone}`} style={styles.alertAction}>💬 Text</a>
-                          <a href={`tel:${patient.phone}`} style={styles.alertAction}>📞 Call</a>
-                        </>
-                      )}
-                      <Link 
-                        href={`/admin/patient/${patient.ghl_contact_id || patient.id}`}
-                        style={styles.alertActionBtn}
-                      >
-                        View Profile
-                      </Link>
-                    </div>
-                  </div>
+                {alerts.map(a => (
+                  <AlertCard key={a.id} alert={a} onResolve={() => resolveAlert(a.id)} />
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          )}
+
+          {/* Protocols Ending Soon */}
+          {protocols_ending?.length > 0 && (
+            <section style={styles.section}>
+              <h2 style={styles.sectionTitle}>📅 Protocols Ending Soon</h2>
+              <div style={styles.cardList}>
+                {protocols_ending.map(p => (
+                  <ProtocolCard key={p.id} protocol={p} highlight="end_date" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Refills Due */}
+          {refills_due?.length > 0 && (
+            <section style={styles.section}>
+              <h2 style={styles.sectionTitle}>💊 Refills Due</h2>
+              <div style={styles.cardList}>
+                {refills_due.map(p => (
+                  <ProtocolCard key={p.id} protocol={p} highlight="supply" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Labs Due */}
+          {labs_due?.length > 0 && (
+            <section style={styles.section}>
+              <h2 style={styles.sectionTitle}>🔬 Labs Due</h2>
+              <div style={styles.cardList}>
+                {labs_due.map(p => (
+                  <ProtocolCard key={p.id} protocol={p} highlight="labs" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Weekly Check-ins Due */}
+          {weekly_checkins?.length > 0 && (
+            <section style={styles.section}>
+              <h2 style={styles.sectionTitle}>📞 Weekly Check-ins Due</h2>
+              <div style={styles.cardList}>
+                {weekly_checkins.map(p => (
+                  <ProtocolCard key={p.id} protocol={p} highlight="checkin" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* All Good */}
+          {!alerts?.length && !protocols_ending?.length && !refills_due?.length && !labs_due?.length && (
+            <div style={styles.allGood}>
+              <span style={{ fontSize: '48px' }}>✓</span>
+              <h2>All caught up!</h2>
+              <p>No urgent items need attention</p>
+            </div>
+          )}
         </main>
       </div>
     </>
   );
 }
 
+function StatCard({ label, value, color }) {
+  return (
+    <div style={styles.statCard}>
+      <div style={{ ...styles.statValue, color: color || '#000' }}>{value}</div>
+      <div style={styles.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+function AlertCard({ alert, onResolve }) {
+  const priorityColors = {
+    high: '#fee2e2',
+    medium: '#fef3c7',
+    low: '#f0f9ff'
+  };
+
+  return (
+    <div style={{ ...styles.alertCard, background: priorityColors[alert.priority] || '#fff' }}>
+      <div style={styles.alertContent}>
+        <div style={styles.alertTitle}>{alert.title}</div>
+        <div style={styles.alertMessage}>{alert.message}</div>
+        {alert.patient_phone && (
+          <div style={styles.alertActions}>
+            <a href={`sms:${alert.patient_phone}`} style={styles.alertAction}>💬 Text</a>
+            <a href={`tel:${alert.patient_phone}`} style={styles.alertAction}>📞 Call</a>
+          </div>
+        )}
+      </div>
+      <button onClick={onResolve} style={styles.resolveBtn}>✓</button>
+    </div>
+  );
+}
+
+function ProtocolCard({ protocol, highlight }) {
+  return (
+    <div style={styles.protocolCard}>
+      <div style={styles.protocolInfo}>
+        <Link href={`/admin/patient/${protocol.ghl_contact_id || protocol.patient_id}`} style={styles.protocolName}>
+          {protocol.patient_name}
+        </Link>
+        <div style={styles.protocolType}>{protocol.protocol_name}</div>
+        {highlight === 'end_date' && (
+          <div style={styles.protocolHighlight}>Ends {formatDate(protocol.end_date)}</div>
+        )}
+        {highlight === 'supply' && (
+          <div style={styles.protocolHighlight}>
+            {protocol.supply_remaining} {protocol.supply_type === 'vial' ? 'ml' : 'injections'} remaining
+          </div>
+        )}
+        {highlight === 'labs' && (
+          <div style={styles.protocolHighlight}>
+            {protocol.baseline_labs_completed ? 'Follow-up' : 'Baseline'} labs due
+          </div>
+        )}
+        {highlight === 'checkin' && (
+          <div style={styles.protocolHighlight}>Weekly check-in due</div>
+        )}
+      </div>
+      <div style={styles.protocolActions}>
+        {protocol.patient_phone && (
+          <>
+            <a href={`sms:${protocol.patient_phone}`} style={styles.smallAction}>💬</a>
+            <a href={`tel:${protocol.patient_phone}`} style={styles.smallAction}>📞</a>
+          </>
+        )}
+        <Link href={`/admin/protocols/${protocol.id}`} style={styles.viewLink}>View</Link>
+      </div>
+    </div>
+  );
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 const styles = {
-  container: { 
-    minHeight: '100vh', 
-    background: '#f5f5f5', 
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' 
-  },
-  
-  loginContainer: { 
-    minHeight: '100vh', 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    background: '#f5f5f5' 
-  },
-  loginBox: { 
-    background: '#fff', 
-    padding: '40px', 
-    borderRadius: '12px', 
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-    width: '100%', 
-    maxWidth: '400px', 
-    textAlign: 'center' 
-  },
-  loginTitle: { fontSize: '24px', fontWeight: '700', margin: '0 0 24px' },
-  loginInput: { 
-    width: '100%', 
-    padding: '12px 16px', 
-    fontSize: '16px', 
-    border: '1px solid #e5e5e5', 
-    borderRadius: '8px', 
-    marginBottom: '16px', 
-    boxSizing: 'border-box' 
-  },
-  loginButton: { 
-    width: '100%', 
-    padding: '14px', 
-    background: '#000', 
-    color: '#fff', 
-    border: 'none', 
-    borderRadius: '8px', 
-    fontSize: '16px', 
-    fontWeight: '600', 
-    cursor: 'pointer' 
-  },
-  
-  header: { 
-    background: '#000', 
-    color: '#fff', 
-    padding: '20px 32px', 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center' 
-  },
-  headerTitle: { fontSize: '22px', fontWeight: '700', margin: 0 },
-  headerDate: { fontSize: '14px', opacity: 0.7, margin: '4px 0 0' },
-  headerActions: { display: 'flex', alignItems: 'center', gap: '16px' },
-  refreshButton: { 
-    padding: '8px 16px', 
-    background: 'rgba(255,255,255,0.1)', 
-    color: '#fff', 
-    border: '1px solid rgba(255,255,255,0.2)', 
-    borderRadius: '6px', 
-    fontSize: '14px', 
-    cursor: 'pointer' 
-  },
-  navLink: { color: '#fff', textDecoration: 'none', fontSize: '14px' },
-  
+  container: { minHeight: '100vh', background: '#f5f5f5', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' },
+  loading: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  error: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' },
+
+  header: { background: '#000', color: '#fff', padding: '20px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  title: { fontSize: '22px', fontWeight: '700', margin: 0 },
+  date: { fontSize: '14px', opacity: 0.7, margin: '4px 0 0' },
+  headerActions: { display: 'flex', gap: '12px' },
+  refreshBtn: { padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', cursor: 'pointer' },
+  newBtn: { padding: '8px 16px', background: '#fff', color: '#000', borderRadius: '6px', textDecoration: 'none', fontWeight: '500', fontSize: '14px' },
+
   main: { maxWidth: '1200px', margin: '0 auto', padding: '24px' },
-  
-  errorBox: {
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
-    color: '#991b1b',
-    padding: '16px',
-    borderRadius: '8px',
-    marginBottom: '24px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  retryButton: {
-    padding: '8px 16px',
-    background: '#991b1b',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer'
-  },
-  
-  statsRow: { 
-    display: 'grid', 
-    gridTemplateColumns: 'repeat(4, 1fr)', 
-    gap: '16px', 
-    marginBottom: '24px' 
-  },
-  statCard: { 
-    background: '#fff', 
-    padding: '20px', 
-    borderRadius: '12px', 
-    textAlign: 'center', 
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)' 
-  },
-  statValue: { fontSize: '32px', fontWeight: '700', marginBottom: '4px' },
-  statLabel: { fontSize: '13px', color: '#666' },
-  
-  section: { 
-    background: '#fff', 
-    borderRadius: '12px', 
-    marginBottom: '24px', 
-    overflow: 'hidden', 
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)' 
-  },
-  sectionHeader: { padding: '20px 24px', borderBottom: '1px solid #f0f0f0' },
-  sectionTitle: { fontSize: '18px', fontWeight: '600', margin: 0 },
-  
-  emptyState: { padding: '40px', textAlign: 'center', color: '#666' },
-  
-  alertList: { padding: '16px' },
-  alertCard: { 
-    padding: '20px', 
-    background: '#fafafa', 
-    borderRadius: '10px', 
-    marginBottom: '12px', 
-    border: '1px solid #f0f0f0' 
-  },
-  alertHeader: { 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'flex-start', 
-    marginBottom: '12px' 
-  },
-  alertName: { 
-    fontSize: '16px', 
-    fontWeight: '600', 
-    color: '#000', 
-    textDecoration: 'none' 
-  },
-  alertReason: { fontSize: '13px', color: '#dc2626', fontWeight: '500', marginTop: '4px' },
-  alertScore: { textAlign: 'right' },
-  alertScoreValue: { fontSize: '24px', fontWeight: '700' },
-  alertScoreLabel: { fontSize: '11px', color: '#666' },
-  alertActions: { display: 'flex', gap: '12px', alignItems: 'center' },
-  alertAction: { 
-    padding: '8px 16px', 
-    background: '#fff', 
-    border: '1px solid #e5e5e5', 
-    borderRadius: '6px', 
-    fontSize: '13px', 
-    color: '#333', 
-    textDecoration: 'none', 
-    fontWeight: '500' 
-  },
-  alertActionBtn: { 
-    padding: '8px 16px', 
-    background: '#000', 
-    color: '#fff', 
-    border: 'none', 
-    borderRadius: '6px', 
-    fontSize: '13px', 
-    fontWeight: '500', 
-    cursor: 'pointer',
-    textDecoration: 'none'
-  }
+
+  statsRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' },
+  statCard: { background: '#fff', padding: '20px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+  statValue: { fontSize: '32px', fontWeight: '700' },
+  statLabel: { fontSize: '13px', color: '#666', marginTop: '4px' },
+
+  section: { background: '#fff', borderRadius: '12px', marginBottom: '24px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+  sectionTitle: { fontSize: '16px', fontWeight: '600', margin: 0, padding: '16px 20px', borderBottom: '1px solid #f0f0f0' },
+
+  alertList: { padding: '12px' },
+  alertCard: { display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '8px', marginBottom: '8px' },
+  alertContent: { flex: 1 },
+  alertTitle: { fontSize: '15px', fontWeight: '600' },
+  alertMessage: { fontSize: '13px', color: '#666', marginTop: '4px' },
+  alertActions: { display: 'flex', gap: '12px', marginTop: '8px' },
+  alertAction: { fontSize: '13px', color: '#333', textDecoration: 'none' },
+  resolveBtn: { width: '36px', height: '36px', background: '#000', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' },
+
+  cardList: { padding: '12px' },
+  protocolCard: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#fafafa', borderRadius: '8px', marginBottom: '8px' },
+  protocolInfo: { flex: 1 },
+  protocolName: { fontSize: '15px', fontWeight: '600', color: '#000', textDecoration: 'none' },
+  protocolType: { fontSize: '13px', color: '#666', marginTop: '2px' },
+  protocolHighlight: { fontSize: '12px', color: '#dc2626', fontWeight: '500', marginTop: '4px' },
+  protocolActions: { display: 'flex', alignItems: 'center', gap: '8px' },
+  smallAction: { fontSize: '16px', textDecoration: 'none' },
+  viewLink: { padding: '6px 12px', background: '#000', color: '#fff', borderRadius: '6px', fontSize: '12px', textDecoration: 'none' },
+
+  allGood: { textAlign: 'center', padding: '60px 24px', color: '#666' }
 };

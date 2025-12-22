@@ -897,7 +897,7 @@ export default function AdminProtocols() {
                           )}
                           {protocol.access_token && (
                             <a
-                              href={`/p/${protocol.access_token}`}
+                              href={`/portal/${protocol.access_token}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{

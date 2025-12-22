@@ -106,6 +106,34 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to create protocol', details: protocolError.message });
     }
 
+    // Create protocol_sessions for the injection calendar
+    const totalDays = duration_days || total_sessions || 10;
+    const startDateObj = new Date(start_date || new Date());
+    const sessions = [];
+
+    for (let i = 1; i <= totalDays; i++) {
+      const sessionDate = new Date(startDateObj);
+      sessionDate.setDate(startDateObj.getDate() + i - 1);
+      
+      sessions.push({
+        protocol_id: protocol.id,
+        session_number: i,
+        scheduled_date: sessionDate.toISOString().split('T')[0],
+        status: 'scheduled'
+      });
+    }
+
+    if (sessions.length > 0) {
+      const { error: sessionsError } = await supabase
+        .from('protocol_sessions')
+        .insert(sessions);
+      
+      if (sessionsError) {
+        console.log('Note: Could not create protocol_sessions (table may not exist):', sessionsError.message);
+        // Don't fail - table might not exist yet
+      }
+    }
+
     // Link purchase to protocol if provided
     if (purchase_id) {
       const { error: purchaseError } = await supabase

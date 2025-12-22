@@ -50,6 +50,8 @@ export default function StaffDashboard() {
             <p style={styles.date}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           </div>
           <div style={styles.headerActions}>
+            <Link href="/admin/purchases" style={styles.navLink}>Purchases</Link>
+            <Link href="/admin/protocols" style={styles.navLink}>Protocols</Link>
             <button onClick={fetchData} style={styles.refreshBtn}>↻ Refresh</button>
             <Link href="/admin/protocols/new" style={styles.newBtn}>+ New Protocol</Link>
           </div>
@@ -58,10 +60,12 @@ export default function StaffDashboard() {
         <main style={styles.main}>
           {/* Stats */}
           <div style={styles.statsRow}>
+            <Link href="/admin/purchases" style={{ textDecoration: 'none' }}>
+              <StatCard label="Unassigned Purchases" value={stats?.unassigned_purchases || 0} color={stats?.unassigned_purchases > 0 ? '#f59e0b' : null} />
+            </Link>
             <StatCard label="Active Protocols" value={stats?.active_protocols || 0} />
             <StatCard label="Ending This Week" value={stats?.ending_this_week || 0} color={stats?.ending_this_week > 0 ? '#f59e0b' : null} />
-            <StatCard label="Refills Due" value={stats?.refills_due || 0} color={stats?.refills_due > 0 ? '#ef4444' : null} />
-            <StatCard label="Labs Due" value={stats?.labs_due || 0} color={stats?.labs_due > 0 ? '#3b82f6' : null} />
+            <StatCard label="Need Attention" value={stats?.needs_attention || 0} color={stats?.needs_attention > 0 ? '#ef4444' : null} />
           </div>
 
           {/* Alerts */}
@@ -140,7 +144,7 @@ export default function StaffDashboard() {
 
 function StatCard({ label, value, color }) {
   return (
-    <div style={styles.statCard}>
+    <div style={{ ...styles.statCard, cursor: 'default' }}>
       <div style={{ ...styles.statValue, color: color || '#000' }}>{value}</div>
       <div style={styles.statLabel}>{label}</div>
     </div>
@@ -222,8 +226,9 @@ const styles = {
   header: { background: '#000', color: '#fff', padding: '20px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: '22px', fontWeight: '700', margin: 0 },
   date: { fontSize: '14px', opacity: 0.7, margin: '4px 0 0' },
-  headerActions: { display: 'flex', gap: '12px' },
+  headerActions: { display: 'flex', gap: '12px', alignItems: 'center' },
   refreshBtn: { padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', cursor: 'pointer' },
+  navLink: { padding: '8px 16px', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: '14px' },
   newBtn: { padding: '8px 16px', background: '#fff', color: '#000', borderRadius: '6px', textDecoration: 'none', fontWeight: '500', fontSize: '14px' },
 
   main: { maxWidth: '1200px', margin: '0 auto', padding: '24px' },

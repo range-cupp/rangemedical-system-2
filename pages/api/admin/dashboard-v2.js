@@ -22,6 +22,18 @@ export default async function handler(req, res) {
     oneWeekOut.setDate(oneWeekOut.getDate() + 7);
     const oneWeekStr = oneWeekOut.toISOString().split('T')[0];
 
+    // Get unassigned purchases (no protocol_id)
+    let unassignedCount = 0;
+    try {
+      const { count } = await supabase
+        .from('purchases')
+        .select('id', { count: 'exact', head: true })
+        .is('protocol_id', null);
+      unassignedCount = count || 0;
+    } catch (e) {
+      console.log('Could not count unassigned purchases');
+    }
+
     // Get all active protocols
     const { data: protocols } = await supabase
       .from('patient_protocols')
@@ -95,10 +107,10 @@ export default async function handler(req, res) {
 
     // Calculate stats
     const stats = {
+      unassigned_purchases: unassignedCount,
       active_protocols: (protocols?.length || 0) + (oldProtocols?.length || 0),
       ending_this_week: protocolsEnding.length,
-      refills_due: refillsDue.length,
-      labs_due: labsDue.length
+      needs_attention: refillsDue.length + labsDue.length + weeklyCheckins.length
     };
 
     return res.status(200).json({

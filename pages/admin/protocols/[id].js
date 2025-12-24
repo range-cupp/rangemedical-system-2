@@ -509,11 +509,9 @@ export default function ProtocolDetail() {
             <div style={styles.card}>
               <h2 style={styles.cardTitle}>Actions</h2>
               <div style={styles.actionStack}>
-                {protocol?.access_token && (
-                  <a href={`/portal/${protocol.access_token}`} target="_blank" style={styles.actionBtn}>
-                    👁️ View Patient Portal
-                  </a>
-                )}
+                <a href={`/portal/${protocol?.id}`} target="_blank" style={styles.actionBtn}>
+                  👁️ View Patient Portal
+                </a>
                 {protocol?.patient_phone && (
                   <>
                     <a href={`tel:${protocol.patient_phone}`} style={styles.actionBtnSecondary}>📞 Call</a>
@@ -523,20 +521,18 @@ export default function ProtocolDetail() {
               </div>
             </div>
 
-            {protocol?.access_token && (
-              <div style={styles.card}>
-                <h2 style={styles.cardTitle}>Portal Link</h2>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/portal/${protocol.access_token}`);
-                    setSuccess('Copied!');
-                  }}
-                  style={styles.copyBtn}
-                >
-                  📋 Copy Link
-                </button>
-              </div>
-            )}
+            <div style={styles.card}>
+              <h2 style={styles.cardTitle}>Portal Link</h2>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/portal/${protocol?.id}`);
+                  setSuccess('Copied!');
+                }}
+                style={styles.copyBtn}
+              >
+                📋 Copy Link
+              </button>
+            </div>
           </div>
         </div>
       </div>

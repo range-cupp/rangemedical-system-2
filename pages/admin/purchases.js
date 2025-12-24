@@ -235,9 +235,9 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         dose_frequency: form.frequency,
         injection_location: form.deliveryMethod,
         
-        // Duration
+        // Duration - always provide duration_days (database requires it)
         start_date: form.startDate,
-        duration_days: isSessionBased ? null : (isOngoing ? null : parseInt(form.duration)),
+        duration_days: isSessionBased ? parseInt(form.totalSessions) : (isOngoing ? 30 : parseInt(form.duration)),
         total_sessions: isSessionBased ? parseInt(form.totalSessions) : (isOngoing ? null : parseInt(form.duration)),
         end_date: calculateEndDate(),
         

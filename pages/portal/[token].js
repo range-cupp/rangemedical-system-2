@@ -34,7 +34,32 @@ export default function PatientPortal() {
       const res = await fetch(`/api/patient-portal/${token}`);
       if (!res.ok) throw new Error('Protocol not found');
       const data = await res.json();
-      setProtocol(data.protocol || data);
+      
+      // API returns { patient, protocols } - get the first/active protocol
+      if (data.protocols && data.protocols.length > 0) {
+        // Find active protocol or use first one
+        const activeProtocol = data.protocols.find(p => p.status === 'active') || data.protocols[0];
+        
+        // Map fields to what the portal expects
+        setProtocol({
+          ...activeProtocol,
+          patient_name: data.patient ? `${data.patient.first_name} ${data.patient.last_name || ''}`.trim() : activeProtocol.patient_name,
+          program_name: activeProtocol.protocol_name || activeProtocol.program_name,
+          primary_peptide: activeProtocol.medication || activeProtocol.primary_peptide,
+          dose_amount: activeProtocol.dosage || activeProtocol.dose_amount,
+          dose_frequency: activeProtocol.frequency || activeProtocol.dose_frequency,
+          total_sessions: activeProtocol.total_sessions,
+          duration_days: activeProtocol.total_sessions,
+          start_date: activeProtocol.start_date,
+          end_date: activeProtocol.end_date,
+          special_instructions: activeProtocol.special_instructions
+        });
+      } else if (data.protocol) {
+        // Direct protocol response
+        setProtocol(data.protocol);
+      } else {
+        throw new Error('No protocol found');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

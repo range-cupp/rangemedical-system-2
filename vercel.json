@@ -5,7 +5,7 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/complete-expired-protocols",
+      "path": "/api/cron/complete-protocols",
       "schedule": "0 7 * * *"
     },
     {

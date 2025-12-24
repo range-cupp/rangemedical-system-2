@@ -1,5 +1,5 @@
 // /pages/api/patient-portal/[token].js
-// Patient Portal API - Works with existing protocols table
+// Patient Portal API - Works with access_token OR protocol ID
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -24,77 +24,98 @@ export default async function handler(req, res) {
     let protocols = [];
     let patient = null;
 
-    // First, try to find in old protocols table by access_token
-    const { data: oldProtocols, error: oldError } = await supabase
-      .from('protocols')
-      .select('*')
-      .eq('access_token', token);
+    // Check if token looks like a UUID (protocol ID) vs access token
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
 
-    if (oldProtocols?.length > 0) {
-      // Found in old table - use that
-      const first = oldProtocols[0];
-      
-      patient = {
-        id: first.patient_id,
-        first_name: first.patient_name?.split(' ')[0] || 'there',
-        last_name: first.patient_name?.split(' ').slice(1).join(' ') || '',
-        phone: first.patient_phone,
-        email: first.patient_email,
-        ghl_contact_id: first.ghl_contact_id
-      };
+    if (isUUID) {
+      // Look up by protocol ID directly
+      const { data: protocol } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('id', token)
+        .maybeSingle();
 
-      // Get injection logs for each protocol
-      for (const p of oldProtocols) {
-        const { data: logs } = await supabase
-          .from('injection_logs')
-          .select('*')
-          .eq('protocol_id', p.id)
-          .order('day_number', { ascending: true });
+      if (protocol) {
+        patient = {
+          id: protocol.patient_id,
+          first_name: protocol.patient_name?.split(' ')[0] || 'there',
+          last_name: protocol.patient_name?.split(' ').slice(1).join(' ') || '',
+          phone: protocol.patient_phone,
+          email: protocol.patient_email,
+          ghl_contact_id: protocol.ghl_contact_id
+        };
 
-        // Generate sessions from logs or create empty ones
-        const totalDays = p.total_sessions || p.total_days || 10;
-        const sessions = [];
-        const startDate = p.start_date ? new Date(p.start_date) : new Date();
-
-        for (let i = 1; i <= totalDays; i++) {
-          const sessionDate = new Date(startDate);
-          sessionDate.setDate(startDate.getDate() + i - 1);
-          
-          const log = logs?.find(l => l.day_number === i);
-          
-          sessions.push({
-            id: log?.id || `day-${i}`,
-            session_number: i,
-            scheduled_date: sessionDate.toISOString().split('T')[0],
-            status: log?.completed ? 'completed' : 'scheduled',
-            completed_at: log?.completed_at
-          });
-        }
-
+        const totalDays = protocol.total_sessions || protocol.total_days || protocol.duration_days || 10;
+        
         protocols.push({
-          id: p.id,
-          protocol_name: p.program_name || `${totalDays}-Day Recovery Protocol`,
-          medication: p.primary_peptide,
-          dosage: p.dose_amount,
-          frequency: p.dose_frequency || 'daily',
-          delivery_method: 'take_home',
-          start_date: p.start_date,
-          end_date: p.end_date,
+          id: protocol.id,
+          protocol_name: protocol.program_name || `${totalDays}-Day Recovery Protocol`,
+          medication: protocol.primary_peptide,
+          dosage: protocol.dose_amount,
+          frequency: protocol.dose_frequency || 'daily',
+          delivery_method: protocol.injection_location || 'take_home',
+          start_date: protocol.start_date,
+          end_date: protocol.end_date,
           total_sessions: totalDays,
-          sessions_completed: logs?.filter(l => l.completed).length || p.injections_completed || 0,
-          status: p.status,
+          sessions_completed: protocol.injections_completed || 0,
+          status: protocol.status,
+          special_instructions: protocol.special_instructions,
           category: 'peptide',
           checkin_type: 'recovery',
-          checkin_due: true, // Simplified for now
-          sessions
+          checkin_due: true
         });
       }
-    } else {
-      // Try new patient_protocols table
+    }
+
+    // If not found by ID, try access_token
+    if (protocols.length === 0) {
+      const { data: oldProtocols, error: oldError } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('access_token', token);
+
+      if (oldProtocols?.length > 0) {
+        const first = oldProtocols[0];
+        
+        patient = {
+          id: first.patient_id,
+          first_name: first.patient_name?.split(' ')[0] || 'there',
+          last_name: first.patient_name?.split(' ').slice(1).join(' ') || '',
+          phone: first.patient_phone,
+          email: first.patient_email,
+          ghl_contact_id: first.ghl_contact_id
+        };
+
+        for (const p of oldProtocols) {
+          const totalDays = p.total_sessions || p.total_days || p.duration_days || 10;
+
+          protocols.push({
+            id: p.id,
+            protocol_name: p.program_name || `${totalDays}-Day Recovery Protocol`,
+            medication: p.primary_peptide,
+            dosage: p.dose_amount,
+            frequency: p.dose_frequency || 'daily',
+            delivery_method: p.injection_location || 'take_home',
+            start_date: p.start_date,
+            end_date: p.end_date,
+            total_sessions: totalDays,
+            sessions_completed: p.injections_completed || 0,
+            status: p.status,
+            special_instructions: p.special_instructions,
+            category: 'peptide',
+            checkin_type: 'recovery',
+            checkin_due: true
+          });
+        }
+      }
+    }
+
+    // Try new patient_protocols table
+    if (protocols.length === 0) {
       const { data: newProtocols } = await supabase
         .from('patient_protocols')
         .select('*')
-        .eq('access_token', token);
+        .or(`access_token.eq.${token},id.eq.${token}`);
 
       if (newProtocols?.length > 0) {
         const first = newProtocols[0];
@@ -108,112 +129,14 @@ export default async function handler(req, res) {
         };
 
         for (const p of newProtocols) {
-          const { data: sessions } = await supabase
-            .from('protocol_sessions')
-            .select('*')
-            .eq('protocol_id', p.id)
-            .order('session_number', { ascending: true });
-
-          let category = 'peptide';
-          let checkinType = 'recovery';
-          
-          if (p.protocol_name?.includes('HRT')) {
-            category = 'hrt';
-            checkinType = 'hrt';
-          } else if (p.protocol_name?.includes('Weight')) {
-            category = 'weight_loss';
-            checkinType = 'weight_loss';
-          } else if (p.protocol_name?.includes('Red Light') || p.protocol_name?.includes('HBOT')) {
-            category = 'therapy';
-          }
-
           protocols.push({
             ...p,
-            category,
-            checkin_type: checkinType,
-            checkin_due: true,
-            sessions: sessions || []
+            protocol_name: p.protocol_name || p.program_name,
+            category: 'peptide',
+            checkin_type: 'recovery',
+            checkin_due: true
           });
         }
-      }
-    }
-
-    // Also try to find by patient token
-    if (protocols.length === 0) {
-      // Check patient_portal_tokens if table exists
-      try {
-        const { data: tokenRecord } = await supabase
-          .from('patient_portal_tokens')
-          .select('patient_id, ghl_contact_id')
-          .eq('token', token)
-          .maybeSingle();
-
-        if (tokenRecord) {
-          // Get all protocols for this patient
-          const { data: patientProtocols } = await supabase
-            .from('protocols')
-            .select('*')
-            .or(`patient_id.eq.${tokenRecord.patient_id},ghl_contact_id.eq.${tokenRecord.ghl_contact_id}`)
-            .eq('status', 'active');
-
-          if (patientProtocols?.length > 0) {
-            const first = patientProtocols[0];
-            patient = {
-              id: first.patient_id,
-              first_name: first.patient_name?.split(' ')[0] || 'there',
-              last_name: first.patient_name?.split(' ').slice(1).join(' ') || '',
-              phone: first.patient_phone,
-              email: first.patient_email
-            };
-
-            for (const p of patientProtocols) {
-              const { data: logs } = await supabase
-                .from('injection_logs')
-                .select('*')
-                .eq('protocol_id', p.id)
-                .order('day_number', { ascending: true });
-
-              const totalDays = p.total_sessions || p.total_days || 10;
-              const sessions = [];
-              const startDate = p.start_date ? new Date(p.start_date) : new Date();
-
-              for (let i = 1; i <= totalDays; i++) {
-                const sessionDate = new Date(startDate);
-                sessionDate.setDate(startDate.getDate() + i - 1);
-                const log = logs?.find(l => l.day_number === i);
-                
-                sessions.push({
-                  id: log?.id || `day-${i}`,
-                  session_number: i,
-                  scheduled_date: sessionDate.toISOString().split('T')[0],
-                  status: log?.completed ? 'completed' : 'scheduled',
-                  completed_at: log?.completed_at
-                });
-              }
-
-              protocols.push({
-                id: p.id,
-                protocol_name: p.program_name || `${totalDays}-Day Recovery Protocol`,
-                medication: p.primary_peptide,
-                dosage: p.dose_amount,
-                frequency: p.dose_frequency || 'daily',
-                delivery_method: 'take_home',
-                start_date: p.start_date,
-                end_date: p.end_date,
-                total_sessions: totalDays,
-                sessions_completed: logs?.filter(l => l.completed).length || 0,
-                status: p.status,
-                category: 'peptide',
-                checkin_type: 'recovery',
-                checkin_due: true,
-                sessions
-              });
-            }
-          }
-        }
-      } catch (e) {
-        // Table might not exist, that's ok
-        console.log('patient_portal_tokens table not found');
       }
     }
 

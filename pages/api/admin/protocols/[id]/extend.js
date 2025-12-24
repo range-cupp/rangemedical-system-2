@@ -63,14 +63,17 @@ export default async function handler(req, res) {
     const currentTotal = protocol.total_sessions || protocol.total_days || 0;
     const newTotal = currentTotal + days;
 
-    // Update protocol
+    // Update protocol - also set status back to active
     if (isOldTable) {
       await supabase
         .from('protocols')
         .update({
           end_date: newEndDate.toISOString().split('T')[0],
           total_sessions: newTotal,
-          total_days: newTotal
+          total_days: newTotal,
+          duration_days: newTotal,
+          status: 'active',
+          updated_at: new Date().toISOString()
         })
         .eq('id', id);
     } else {
@@ -79,6 +82,7 @@ export default async function handler(req, res) {
         .update({
           end_date: newEndDate.toISOString().split('T')[0],
           total_sessions: newTotal,
+          status: 'active',
           updated_at: new Date().toISOString()
         })
         .eq('id', id);

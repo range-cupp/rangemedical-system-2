@@ -507,7 +507,8 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
 
   const fetchProtocols = async () => {
     try {
-      const res = await fetch(`/api/admin/protocols?ghl_contact_id=${purchase.ghl_contact_id}&status=active`);
+      // Fetch both active AND completed protocols so we can extend completed ones
+      const res = await fetch(`/api/admin/protocols?ghl_contact_id=${purchase.ghl_contact_id}&status=active,completed`);
       if (res.ok) {
         const data = await res.json();
         const list = data.protocols || data;
@@ -529,7 +530,14 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
           return keywords.some(k => searchStr.includes(k.toLowerCase()));
         });
         
-        setProtocols(filtered.length > 0 ? filtered : list);
+        // Sort: active first, then completed, most recent first
+        const sorted = (filtered.length > 0 ? filtered : list).sort((a, b) => {
+          if (a.status === 'active' && b.status !== 'active') return -1;
+          if (b.status === 'active' && a.status !== 'active') return 1;
+          return new Date(b.end_date || b.start_date) - new Date(a.end_date || a.start_date);
+        });
+        
+        setProtocols(sorted);
       }
     } catch (err) {
       console.error('Error fetching protocols:', err);
@@ -628,10 +636,15 @@ function AddToProtocolModal({ purchase, onClose, onSuccess }) {
                   <option value="">Choose a protocol...</option>
                   {protocols.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.program_name || p.primary_peptide || 'Protocol'} - Started {new Date(p.start_date).toLocaleDateString()}
+                      {p.status === 'completed' ? '✓ ' : '● '}{p.program_name || p.primary_peptide || 'Protocol'} ({p.status}) - Ended {new Date(p.end_date || p.start_date).toLocaleDateString()}
                     </option>
                   ))}
                 </select>
+                {selectedProtocolId && protocols.find(p => p.id === selectedProtocolId)?.status === 'completed' && (
+                  <p style={{ fontSize: '12px', color: '#16a34a', marginTop: '8px' }}>
+                    ✓ This will reactivate the completed protocol
+                  </p>
+                )}
               </div>
 
               {/* Extension Amount */}

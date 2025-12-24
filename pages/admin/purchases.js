@@ -41,31 +41,68 @@ const PROTOCOL_TYPES = {
     ],
     deliveryMethods: ['take_home', 'in_clinic']
   },
-  hrt: {
-    name: 'HRT - Testosterone',
+  hrt_male: {
+    name: 'HRT - Testosterone (Male)',
     category: 'HRT',
-    medications: ['Testosterone Cypionate'],
-    dosages: [
-      { value: '0.3ml/60mg', label: '0.3ml / 60mg' },
-      { value: '0.4ml/80mg', label: '0.4ml / 80mg' },
-      { value: '0.5ml/100mg', label: '0.5ml / 100mg' }
-    ],
+    medications: ['Testosterone Cypionate 200mg/ml'],
+    dosages: ['0.3ml / 60mg', '0.4ml / 80mg', '0.5ml / 100mg'],
     frequencies: [{ value: '2x_weekly', label: '2x per week' }],
-    supplyTypes: [
-      { value: 'prefilled', label: 'Prefilled Syringes (8/month)' },
-      { value: 'vial', label: 'Vial (10ml)' }
-    ],
     deliveryMethods: ['take_home', 'in_clinic'],
     ongoing: true
   },
-  weight_loss: {
-    name: 'Weight Loss',
+  hrt_female: {
+    name: 'HRT - Testosterone (Female)',
+    category: 'HRT',
+    medications: ['Testosterone Cypionate 100mg/ml'],
+    dosages: ['0.1ml / 10mg', '0.2ml / 20mg', '0.3ml / 30mg', '0.4ml / 40mg', '0.5ml / 50mg'],
+    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
+    deliveryMethods: ['take_home', 'in_clinic'],
+    ongoing: true
+  },
+  weight_loss_semaglutide: {
+    name: 'Weight Loss - Semaglutide',
     category: 'Weight Loss',
-    medications: ['Semaglutide', 'Tirzepatide', 'Retatrutide'],
-    dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.5mg'],
+    medications: ['Semaglutide'],
+    dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'],
     frequencies: [{ value: 'weekly', label: 'Once per week' }],
     deliveryMethods: ['take_home', 'in_clinic'],
     ongoing: true
+  },
+  weight_loss_tirzepatide: {
+    name: 'Weight Loss - Tirzepatide',
+    category: 'Weight Loss',
+    medications: ['Tirzepatide'],
+    dosages: ['2.5mg', '5.0mg', '7.5mg', '10.0mg', '12.5mg'],
+    frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    deliveryMethods: ['take_home', 'in_clinic'],
+    ongoing: true
+  },
+  weight_loss_retatrutide: {
+    name: 'Weight Loss - Retatrutide',
+    category: 'Weight Loss',
+    medications: ['Retatrutide'],
+    dosages: ['2mg', '4mg', '6mg', '8mg', '10mg', '12mg'],
+    frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    deliveryMethods: ['take_home', 'in_clinic'],
+    ongoing: true
+  },
+  single_injection: {
+    name: 'Single Injection',
+    category: 'Injection',
+    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione 200mg', 'NAD+ 50mg', 'NAD+ 75mg', 'NAD+ 100mg', 'NAD+ 125mg', 'NAD+ 150mg'],
+    sessions: [1],
+    frequencies: [{ value: 'single', label: 'Single injection' }],
+    deliveryMethods: ['in_clinic'],
+    hasDosageNotes: true
+  },
+  injection_pack: {
+    name: 'Injection Pack',
+    category: 'Injection',
+    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione 200mg', 'NAD+ 50mg', 'NAD+ 75mg', 'NAD+ 100mg', 'NAD+ 125mg', 'NAD+ 150mg'],
+    sessions: [5, 10, 20],
+    frequencies: [{ value: 'per_session', label: 'Per session' }],
+    deliveryMethods: ['in_clinic'],
+    hasDosageNotes: true
   },
   red_light: {
     name: 'Red Light Therapy',
@@ -87,25 +124,18 @@ const PROTOCOL_TYPES = {
     sessions: [1, 5, 10],
     frequencies: [{ value: 'per_session', label: 'Per session' }],
     deliveryMethods: ['in_clinic']
-  },
-  injection_pack: {
-    name: 'Injection Pack',
-    category: 'Injection',
-    sessions: [1, 5, 10],
-    frequencies: [{ value: 'per_session', label: 'Per session' }],
-    deliveryMethods: ['in_clinic']
   }
 };
 
 // Map purchase category to protocol type
 const CATEGORY_TO_TYPE = {
   'Peptide': 'peptide',
-  'HRT': 'hrt',
-  'Weight Loss': 'weight_loss',
+  'HRT': 'hrt_male',
+  'Weight Loss': 'weight_loss_semaglutide',
   'Red Light': 'red_light',
   'Hyperbaric': 'hbot',
   'IV Therapy': 'iv_therapy',
-  'Injection': 'injection_pack'
+  'Injection': 'single_injection'
 };
 
 // ============================================
@@ -127,6 +157,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     
     medication: '',
     dosage: '',
+    dosageNotes: '',
     frequency: PROTOCOL_TYPES[initialType]?.frequencies?.[0]?.value || 'daily',
     deliveryMethod: PROTOCOL_TYPES[initialType]?.deliveryMethods?.[0] || 'take_home',
     
@@ -141,6 +172,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const selectedType = PROTOCOL_TYPES[form.protocolType];
   const isSessionBased = !!selectedType?.sessions;
   const isOngoing = selectedType?.ongoing;
+  const hasDosageNotes = selectedType?.hasDosageNotes;
 
   const handleTypeChange = (type) => {
     const typeConfig = PROTOCOL_TYPES[type];
@@ -149,6 +181,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       protocolType: type,
       medication: '',
       dosage: '',
+      dosageNotes: '',
       frequency: typeConfig?.frequencies?.[0]?.value || 'daily',
       deliveryMethod: typeConfig?.deliveryMethods?.[0] || 'take_home',
       duration: typeConfig?.durations?.[0]?.value || 10,
@@ -172,12 +205,16 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         'peptide': form.duration == 10 ? 'recovery_jumpstart_10day' : 
                    form.duration == 30 ? 'month_program_30day' : 
                    form.duration == 28 ? 'maintenance_4week' : 'recovery_jumpstart_10day',
-        'hrt': 'hrt_male_membership',
-        'weight_loss': 'weight_loss_program',
+        'hrt_male': 'hrt_male_membership',
+        'hrt_female': 'hrt_female_membership',
+        'weight_loss_semaglutide': 'weight_loss_program',
+        'weight_loss_tirzepatide': 'weight_loss_program',
+        'weight_loss_retatrutide': 'weight_loss_program',
+        'single_injection': 'injection_pack',
+        'injection_pack': 'injection_pack',
         'red_light': 'red_light_sessions',
         'hbot': 'hbot_sessions',
-        'iv_therapy': 'iv_therapy',
-        'injection_pack': 'injection_pack'
+        'iv_therapy': 'iv_therapy'
       };
 
       // Build protocol data matching existing database schema
@@ -194,7 +231,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         
         // Medication details
         primary_peptide: form.medication,
-        dose_amount: form.dosage,
+        dose_amount: form.dosage || form.dosageNotes || '',
         dose_frequency: form.frequency,
         injection_location: form.deliveryMethod,
         
@@ -204,8 +241,9 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         total_sessions: isSessionBased ? parseInt(form.totalSessions) : (isOngoing ? null : parseInt(form.duration)),
         end_date: calculateEndDate(),
         
-        // Standard fields
-        notes: form.notes,
+        // Standard fields - include dosageNotes in notes if present
+        notes: form.dosageNotes ? `Dosage: ${form.dosageNotes}${form.notes ? '\n' + form.notes : ''}` : form.notes,
+        special_instructions: form.dosageNotes || '',
         reminders_enabled: !isSessionBased,
         status: 'active',
         amount: purchase.amount
@@ -235,18 +273,26 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const buildProtocolName = () => {
     if (form.protocolType === 'peptide') {
       return `${form.duration}-Day Recovery Protocol`;
-    } else if (form.protocolType === 'hrt') {
-      return 'HRT Protocol';
-    } else if (form.protocolType === 'weight_loss') {
-      return `Weight Loss - ${form.medication || 'Semaglutide'}`;
+    } else if (form.protocolType === 'hrt_male') {
+      return 'HRT Protocol (Male)';
+    } else if (form.protocolType === 'hrt_female') {
+      return 'HRT Protocol (Female)';
+    } else if (form.protocolType === 'weight_loss_semaglutide') {
+      return `Weight Loss - Semaglutide ${form.dosage || ''}`;
+    } else if (form.protocolType === 'weight_loss_tirzepatide') {
+      return `Weight Loss - Tirzepatide ${form.dosage || ''}`;
+    } else if (form.protocolType === 'weight_loss_retatrutide') {
+      return `Weight Loss - Retatrutide ${form.dosage || ''}`;
+    } else if (form.protocolType === 'single_injection') {
+      return `Single Injection - ${form.medication || 'Injection'}`;
+    } else if (form.protocolType === 'injection_pack') {
+      return `Injection Pack (${form.totalSessions}) - ${form.medication || 'Injections'}`;
     } else if (form.protocolType === 'red_light') {
       return `Red Light Therapy (${form.totalSessions} sessions)`;
     } else if (form.protocolType === 'hbot') {
       return `HBOT (${form.totalSessions} sessions)`;
     } else if (form.protocolType === 'iv_therapy') {
       return `IV Therapy (${form.totalSessions} sessions)`;
-    } else if (form.protocolType === 'injection_pack') {
-      return `Injection Pack (${form.totalSessions} sessions)`;
     }
     return 'Protocol';
   };
@@ -345,21 +391,37 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                     ))}
                   </select>
                 </div>
-                <div style={modalStyles.field}>
-                  <label style={modalStyles.label}>Dosage</label>
-                  <select
-                    value={form.dosage}
-                    onChange={e => setForm({ ...form, dosage: e.target.value })}
-                    style={modalStyles.select}
-                  >
-                    <option value="">Select...</option>
-                    {Array.isArray(selectedType.dosages) && selectedType.dosages.map(d => (
-                      typeof d === 'string' 
-                        ? <option key={d} value={d}>{d}</option>
-                        : <option key={d.value} value={d.value}>{d.label}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Show dropdown for types with predefined dosages */}
+                {selectedType.dosages && !hasDosageNotes && (
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Dosage</label>
+                    <select
+                      value={form.dosage}
+                      onChange={e => setForm({ ...form, dosage: e.target.value })}
+                      style={modalStyles.select}
+                    >
+                      <option value="">Select...</option>
+                      {Array.isArray(selectedType.dosages) && selectedType.dosages.map(d => (
+                        typeof d === 'string' 
+                          ? <option key={d} value={d}>{d}</option>
+                          : <option key={d.value} value={d.value}>{d.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {/* Show text input for types where clinic writes in dosage */}
+                {hasDosageNotes && (
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Dosage (write in)</label>
+                    <input
+                      type="text"
+                      value={form.dosageNotes}
+                      onChange={e => setForm({ ...form, dosageNotes: e.target.value })}
+                      style={modalStyles.input}
+                      placeholder="e.g., 1ml, 200mg, etc."
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}

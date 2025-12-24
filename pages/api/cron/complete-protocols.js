@@ -1,0 +1,112 @@
+// /pages/api/cron/complete-protocols.js
+// Auto-complete protocols that have passed their end date
+// Run daily via Vercel Cron or external scheduler
+// Range Medical
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  // Allow GET for easy testing, POST for cron
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Optional: Verify cron secret for security
+  const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
+  if (process.env.CRON_SECRET && cronSecret !== process.env.CRON_SECRET) {
+    // Allow without secret for now, but log it
+    console.log('Cron called without secret');
+  }
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  let completed = 0;
+  let errors = [];
+
+  try {
+    // Find active protocols where end_date is yesterday or earlier
+    const { data: expiredProtocols, error: fetchError } = await supabase
+      .from('protocols')
+      .select('id, patient_name, program_name, end_date')
+      .eq('status', 'active')
+      .lte('end_date', yesterdayStr);
+
+    if (fetchError) {
+      console.error('Error fetching expired protocols:', fetchError);
+      errors.push(fetchError.message);
+    }
+
+    if (expiredProtocols && expiredProtocols.length > 0) {
+      console.log(`Found ${expiredProtocols.length} protocols to complete`);
+
+      // Update each to completed
+      for (const protocol of expiredProtocols) {
+        const { error: updateError } = await supabase
+          .from('protocols')
+          .update({ 
+            status: 'completed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', protocol.id);
+
+        if (updateError) {
+          console.error(`Failed to complete protocol ${protocol.id}:`, updateError);
+          errors.push(`${protocol.patient_name}: ${updateError.message}`);
+        } else {
+          console.log(`Completed: ${protocol.patient_name} - ${protocol.program_name} (ended ${protocol.end_date})`);
+          completed++;
+        }
+      }
+    }
+
+    // Also check patient_protocols table if it exists
+    try {
+      const { data: newExpired, error: newFetchError } = await supabase
+        .from('patient_protocols')
+        .select('id, patient_name, protocol_name, end_date')
+        .eq('status', 'active')
+        .lte('end_date', yesterdayStr);
+
+      if (!newFetchError && newExpired && newExpired.length > 0) {
+        for (const protocol of newExpired) {
+          const { error: updateError } = await supabase
+            .from('patient_protocols')
+            .update({ 
+              status: 'completed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', protocol.id);
+
+          if (!updateError) {
+            completed++;
+          }
+        }
+      }
+    } catch (e) {
+      // Table might not exist, that's ok
+    }
+
+    return res.status(200).json({
+      success: true,
+      completed,
+      errors: errors.length > 0 ? errors : undefined,
+      checked_date: yesterdayStr,
+      run_at: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Cron job error:', error);
+    return res.status(500).json({ 
+      error: 'Server error', 
+      details: error.message 
+    });
+  }
+}

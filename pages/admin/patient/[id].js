@@ -1023,12 +1023,27 @@ function ProtocolsTab({ protocols = [] }) {
   const completed = protocols.filter(p => p.status === 'completed');
   const other = protocols.filter(p => !['active', 'completed'].includes(p.status));
 
+  // Calculate current day from start date
+  const calculateCurrentDay = (startDate) => {
+    if (!startDate) return null;
+    const start = new Date(startDate);
+    const today = new Date();
+    start.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    const diffTime = today - start;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  };
+
   const ProtocolCard = ({ protocol }) => {
     const isActive = protocol.status === 'active';
-    const today = new Date();
-    const endDate = protocol.end_date ? new Date(protocol.end_date) : null;
-    const daysLeft = endDate ? Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))) : null;
+    const isCompleted = protocol.status === 'completed';
     const isInClinic = protocol.injection_location === 'in_clinic';
+    
+    const totalDays = protocol.total_sessions || protocol.duration_days || protocol.total_days || 10;
+    const currentDay = calculateCurrentDay(protocol.start_date);
+    const isProtocolComplete = currentDay > totalDays;
+    const daysRemaining = totalDays - currentDay;
 
     return (
       <div style={{
@@ -1037,6 +1052,7 @@ function ProtocolsTab({ protocols = [] }) {
         borderRadius: '8px',
         border: isActive ? '2px solid black' : '1px solid #e5e5e5'
       }}>
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div>
             <div style={{ fontWeight: '600', fontSize: '15px' }}>{protocol.program_name || protocol.program_type}</div>
@@ -1064,56 +1080,62 @@ function ProtocolsTab({ protocols = [] }) {
               fontSize: '11px',
               fontWeight: '600',
               textTransform: 'uppercase',
-              background: isActive ? '#000' : '#e5e5e5',
-              color: isActive ? '#fff' : '#666'
+              background: isActive ? '#dcfce7' : '#e5e5e5',
+              color: isActive ? '#166534' : '#666'
             }}>
               {protocol.status}
             </span>
           </div>
         </div>
 
-        {/* Stats */}
-        {isActive && (
-          <div style={{ display: 'flex', gap: '24px', marginBottom: '12px' }}>
-            {daysLeft !== null && (
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: '600' }}>{daysLeft}</div>
-                <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Days Left</div>
+        {/* BIG Day Display */}
+        <div style={{ 
+          background: isCompleted || isProtocolComplete ? '#f0fdf4' : '#f5f5f5', 
+          borderRadius: '8px', 
+          padding: '16px', 
+          textAlign: 'center',
+          marginBottom: '12px'
+        }}>
+          {isCompleted || isProtocolComplete ? (
+            <>
+              <div style={{ fontSize: '32px', marginBottom: '4px' }}>✓</div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>Protocol Complete</div>
+            </>
+          ) : currentDay < 1 ? (
+            <>
+              <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>Starts</div>
+              <div style={{ fontSize: '20px', fontWeight: '600' }}>{formatDate(protocol.start_date)}</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Current Day</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '36px', fontWeight: '700', lineHeight: 1 }}>{currentDay}</span>
+                <span style={{ fontSize: '20px', color: '#999' }}>/</span>
+                <span style={{ fontSize: '24px', fontWeight: '300', color: '#999' }}>{totalDays}</span>
               </div>
-            )}
-            {protocol.total_sessions ? (
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                  {protocol.injections_completed || 0}
-                  <span style={{ fontSize: '14px', fontWeight: '400', color: '#666' }}> / {protocol.total_sessions}</span>
-                </div>
-                <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Sessions</div>
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                {daysRemaining === 0 ? 'Last day!' : `${daysRemaining} days remaining`}
               </div>
-            ) : protocol.injections_completed !== undefined && protocol.injections_completed !== null ? (
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: '600' }}>{protocol.injections_completed || 0}</div>
-                <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Logged</div>
-              </div>
-            ) : null}
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
         {/* Dates */}
         <div style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
           {protocol.start_date && <span>Started: {formatDate(protocol.start_date)}</span>}
           {protocol.end_date && <span style={{ marginLeft: '16px' }}>Ends: {formatDate(protocol.end_date)}</span>}
-          {!protocol.end_date && protocol.start_date && <span style={{ marginLeft: '16px' }}>Ongoing</span>}
         </div>
 
         {/* Dosing Info */}
         {(protocol.dose_amount || protocol.dose_frequency) && (
           <div style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
             {protocol.dose_amount && <span>Dose: {protocol.dose_amount}</span>}
-            {protocol.dose_frequency && <span style={{ marginLeft: '16px' }}>Frequency: {protocol.dose_frequency}</span>}
+            {protocol.dose_frequency && <span style={{ marginLeft: '16px' }}>Freq: {protocol.dose_frequency}</span>}
           </div>
         )}
 
-        {/* Action Buttons */}
+        {/* Action Button */}
         <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
           <Link
             href={`/admin/protocols/${protocol.id}`}

@@ -1,5 +1,5 @@
 // /pages/admin/protocols/[id].js
-// Protocol Detail - Single source of truth for viewing/editing protocols
+// Protocol Detail - Same UI as Purchases Create modal
 // Range Medical
 
 import { useState, useEffect } from 'react';
@@ -8,51 +8,84 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 // ============================================
-// PROTOCOL TYPE CONFIGURATIONS
+// PROTOCOL TYPE SYSTEM (Same as Purchases page)
 // ============================================
 const PROTOCOL_TYPES = {
   peptide: {
     name: 'Recovery Peptide',
-    programTypes: ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week'],
+    programTypes: ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'peptide'],
     medications: ['BPC-157 / TB-500', 'BPC-157', 'TB-500'],
     dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
     frequencies: [
       { value: 'daily', label: 'Once daily' },
       { value: '2x_daily', label: 'Twice daily' }
     ],
+    durations: [
+      { value: 10, label: '10 days' },
+      { value: 30, label: '30 days' },
+      { value: 60, label: '60 days' },
+      { value: 90, label: '90 days' }
+    ],
     hasCalendar: true
   },
   hrt: {
-    name: 'HRT',
-    programTypes: ['hrt_male_membership', 'hrt_female_membership', 'hrt_injection'],
+    name: 'HRT - Testosterone',
+    programTypes: ['hrt_male_membership', 'hrt_female_membership', 'hrt_injection', 'hrt'],
     medications: ['Testosterone Cypionate'],
     dosages: ['0.3ml / 60mg', '0.4ml / 80mg', '0.5ml / 100mg'],
     frequencies: [{ value: '2x_weekly', label: '2x per week' }],
-    hasCalendar: false
+    hasCalendar: false,
+    ongoing: true
   },
   weight_loss: {
     name: 'Weight Loss',
-    programTypes: ['weight_loss_program', 'weight_loss_injection'],
+    programTypes: ['weight_loss_program', 'weight_loss_injection', 'weight_loss'],
     medications: ['Semaglutide', 'Tirzepatide', 'Retatrutide'],
     dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.5mg'],
     frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    hasCalendar: false,
+    ongoing: true
+  },
+  red_light: {
+    name: 'Red Light Therapy',
+    programTypes: ['red_light_sessions', 'red_light'],
+    sessions: [1, 5, 10, 20],
+    frequencies: [{ value: 'per_session', label: 'Per session' }],
     hasCalendar: false
   },
-  sessions: {
-    name: 'Session-Based',
-    programTypes: ['iv_therapy', 'hbot_sessions', 'red_light_sessions', 'injection_pack'],
+  hbot: {
+    name: 'Hyperbaric Oxygen Therapy',
+    programTypes: ['hbot_sessions', 'hbot'],
+    sessions: [1, 5, 10, 20],
+    frequencies: [{ value: 'per_session', label: 'Per session' }],
+    hasCalendar: false
+  },
+  iv_therapy: {
+    name: 'IV Therapy',
+    programTypes: ['iv_therapy'],
+    sessions: [1, 5, 10],
+    frequencies: [{ value: 'per_session', label: 'Per session' }],
+    hasCalendar: false
+  },
+  injection_pack: {
+    name: 'Injection Pack',
+    programTypes: ['injection_pack', 'injection'],
+    sessions: [1, 5, 10],
+    frequencies: [{ value: 'per_session', label: 'Per session' }],
     hasCalendar: false
   }
 };
 
 // Detect type from program_type
 function detectProtocolType(programType) {
+  if (!programType) return 'peptide';
+  const pt = programType.toLowerCase();
   for (const [key, config] of Object.entries(PROTOCOL_TYPES)) {
-    if (config.programTypes?.includes(programType)) {
+    if (config.programTypes?.some(t => pt.includes(t.toLowerCase()) || t.toLowerCase().includes(pt))) {
       return key;
     }
   }
-  return 'peptide'; // default
+  return 'peptide';
 }
 
 export default function ProtocolDetail() {
@@ -86,28 +119,30 @@ export default function ProtocolDetail() {
       if (!res.ok) throw new Error('Protocol not found');
       
       const data = await res.json();
-      setProtocol(data.protocol || data);
+      const p = data.protocol || data;
+      setProtocol(p);
       setSessions(data.sessions || []);
       
-      // Initialize form with protocol data
-      const p = data.protocol || data;
+      // Detect protocol type
+      const detectedType = detectProtocolType(p.program_type);
+      
+      // Initialize form
       setForm({
-        patient_name: p.patient_name || '',
-        patient_phone: p.patient_phone || '',
-        patient_email: p.patient_email || '',
-        program_name: p.program_name || '',
-        program_type: p.program_type || '',
-        primary_peptide: p.primary_peptide || '',
-        dose_amount: p.dose_amount || '',
-        dose_frequency: p.dose_frequency || 'daily',
-        injection_location: p.injection_location || 'take_home',
-        start_date: p.start_date || '',
-        end_date: p.end_date || '',
-        duration_days: p.duration_days || p.total_sessions || 10,
-        total_sessions: p.total_sessions || p.duration_days || 10,
+        protocolType: detectedType,
+        patientName: p.patient_name || '',
+        patientPhone: p.patient_phone || '',
+        patientEmail: p.patient_email || '',
+        medication: p.primary_peptide || '',
+        dosage: p.dose_amount || '',
+        frequency: p.dose_frequency || 'daily',
+        deliveryMethod: p.injection_location || 'take_home',
+        startDate: p.start_date || '',
+        endDate: p.end_date || '',
+        duration: p.duration_days || p.total_sessions || 10,
+        totalSessions: p.total_sessions || p.duration_days || 10,
         status: p.status || 'active',
-        special_instructions: p.special_instructions || '',
-        notes: p.notes || ''
+        notes: p.notes || '',
+        specialInstructions: p.special_instructions || ''
       });
     } catch (err) {
       setError(err.message);
@@ -116,18 +151,57 @@ export default function ProtocolDetail() {
     }
   };
 
+  const selectedType = PROTOCOL_TYPES[form.protocolType];
+  const isSessionBased = !!selectedType?.sessions;
+  const isOngoing = selectedType?.ongoing;
+
+  const handleTypeChange = (type) => {
+    const typeConfig = PROTOCOL_TYPES[type];
+    setForm(prev => ({
+      ...prev,
+      protocolType: type,
+      frequency: typeConfig?.frequencies?.[0]?.value || 'daily',
+      deliveryMethod: typeConfig?.sessions ? 'in_clinic' : prev.deliveryMethod
+    }));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError('');
     setSuccess('');
 
     try {
+      // Map type to database program_type
+      const programTypeMap = {
+        'peptide': form.duration == 10 ? 'recovery_jumpstart_10day' : 
+                   form.duration == 30 ? 'month_program_30day' : 'recovery_jumpstart_10day',
+        'hrt': 'hrt_male_membership',
+        'weight_loss': 'weight_loss_program',
+        'red_light': 'red_light_sessions',
+        'hbot': 'hbot_sessions',
+        'iv_therapy': 'iv_therapy',
+        'injection_pack': 'injection_pack'
+      };
+
       const res = await fetch(`/api/admin/protocols?id=${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          updated_at: new Date().toISOString()
+          patient_name: form.patientName,
+          patient_phone: form.patientPhone,
+          patient_email: form.patientEmail,
+          program_type: programTypeMap[form.protocolType] || protocol.program_type,
+          primary_peptide: form.medication,
+          dose_amount: form.dosage,
+          dose_frequency: form.frequency,
+          injection_location: form.deliveryMethod,
+          start_date: form.startDate,
+          end_date: form.endDate,
+          duration_days: isSessionBased ? null : parseInt(form.duration),
+          total_sessions: isSessionBased ? parseInt(form.totalSessions) : parseInt(form.duration),
+          status: form.status,
+          notes: form.notes,
+          special_instructions: form.specialInstructions
         })
       });
 
@@ -138,7 +212,7 @@ export default function ProtocolDetail() {
 
       setSuccess('Protocol updated successfully');
       setIsEditing(false);
-      fetchProtocol(); // Refresh data
+      fetchProtocol();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -155,7 +229,7 @@ export default function ProtocolDetail() {
       });
 
       if (res.ok) {
-        fetchProtocol(); // Refresh
+        fetchProtocol();
       }
     } catch (err) {
       console.error('Failed to toggle session:', err);
@@ -197,9 +271,6 @@ export default function ProtocolDetail() {
     }
   };
 
-  const protocolType = protocol ? detectProtocolType(protocol.program_type) : 'peptide';
-  const typeConfig = PROTOCOL_TYPES[protocolType];
-
   // Calculate progress
   const totalDays = protocol?.total_sessions || protocol?.duration_days || 10;
   const completedCount = sessions.filter(s => s.status === 'completed' || s.completed).length || protocol?.injections_completed || 0;
@@ -221,7 +292,7 @@ export default function ProtocolDetail() {
   if (error && !protocol) {
     return (
       <div style={styles.container}>
-        <div style={styles.error}>{error}</div>
+        <div style={styles.errorBox}>{error}</div>
         <Link href="/admin/protocols" style={styles.backLink}>← Back to Protocols</Link>
       </div>
     );
@@ -239,7 +310,7 @@ export default function ProtocolDetail() {
           <div>
             <Link href="/admin/protocols" style={styles.backLink}>← Back to Protocols</Link>
             <h1 style={styles.title}>{protocol?.patient_name}</h1>
-            <p style={styles.subtitle}>{protocol?.program_name || 'Protocol'}</p>
+            <p style={styles.subtitle}>{protocol?.program_name || PROTOCOL_TYPES[form.protocolType]?.name || 'Protocol'}</p>
           </div>
           <div style={styles.headerActions}>
             {protocol?.ghl_contact_id && (
@@ -253,7 +324,7 @@ export default function ProtocolDetail() {
               </button>
             ) : (
               <>
-                <button onClick={() => setIsEditing(false)} style={styles.cancelBtn}>Cancel</button>
+                <button onClick={() => { setIsEditing(false); fetchProtocol(); }} style={styles.cancelBtn}>Cancel</button>
                 <button onClick={handleSave} disabled={saving} style={styles.saveBtn}>
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -267,7 +338,7 @@ export default function ProtocolDetail() {
         {success && <div style={styles.successAlert}>{success}</div>}
 
         <div style={styles.content}>
-          {/* Left Column - Details */}
+          {/* Main Column */}
           <div style={styles.mainCol}>
             {/* Status Card */}
             <div style={styles.card}>
@@ -294,172 +365,211 @@ export default function ProtocolDetail() {
                   </span>
                 </div>
               </div>
-              
-              {/* Progress Bar */}
               <div style={styles.progressBar}>
                 <div style={{ ...styles.progressFill, width: `${progressPercent}%` }} />
               </div>
             </div>
 
-            {/* Protocol Details */}
+            {/* Protocol Details / Edit Form */}
             <div style={styles.card}>
-              <h2 style={styles.cardTitle}>Protocol Details</h2>
+              <h2 style={styles.cardTitle}>{isEditing ? 'Edit Protocol' : 'Protocol Details'}</h2>
               
               {isEditing ? (
-                <div style={styles.formGrid}>
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>Patient Name</label>
-                    <input
-                      type="text"
-                      value={form.patient_name}
-                      onChange={e => setForm({ ...form, patient_name: e.target.value })}
-                      style={styles.input}
-                    />
+                /* EDIT MODE - Same UI as Purchases Create */
+                <div>
+                  {/* Patient Section */}
+                  <div style={styles.section}>
+                    <h3 style={styles.sectionTitle}>Patient</h3>
+                    <div style={styles.grid}>
+                      <div style={styles.field}>
+                        <label style={styles.fieldLabel}>Name *</label>
+                        <input
+                          type="text"
+                          value={form.patientName}
+                          onChange={e => setForm({ ...form, patientName: e.target.value })}
+                          style={styles.input}
+                        />
+                      </div>
+                      <div style={styles.field}>
+                        <label style={styles.fieldLabel}>Phone</label>
+                        <input
+                          type="tel"
+                          value={form.patientPhone}
+                          onChange={e => setForm({ ...form, patientPhone: e.target.value })}
+                          style={styles.input}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>Phone</label>
-                    <input
-                      type="tel"
-                      value={form.patient_phone}
-                      onChange={e => setForm({ ...form, patient_phone: e.target.value })}
-                      style={styles.input}
-                    />
+
+                  {/* Protocol Type Section */}
+                  <div style={styles.section}>
+                    <h3 style={styles.sectionTitle}>Protocol Type</h3>
+                    <div style={styles.typeGrid}>
+                      {Object.entries(PROTOCOL_TYPES).map(([key, type]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => handleTypeChange(key)}
+                          style={{
+                            ...styles.typeBtn,
+                            background: form.protocolType === key ? '#000' : '#fff',
+                            color: form.protocolType === key ? '#fff' : '#000',
+                            borderColor: form.protocolType === key ? '#000' : '#ddd'
+                          }}
+                        >
+                          {type.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>Email</label>
-                    <input
-                      type="email"
-                      value={form.patient_email}
-                      onChange={e => setForm({ ...form, patient_email: e.target.value })}
-                      style={styles.input}
-                    />
+
+                  {/* Medication Section (only for types with medications) */}
+                  {selectedType?.medications && (
+                    <div style={styles.section}>
+                      <h3 style={styles.sectionTitle}>Medication</h3>
+                      <div style={styles.grid}>
+                        <div style={styles.field}>
+                          <label style={styles.fieldLabel}>Medication</label>
+                          <select
+                            value={form.medication}
+                            onChange={e => setForm({ ...form, medication: e.target.value })}
+                            style={styles.select}
+                          >
+                            <option value="">Select...</option>
+                            {selectedType.medications.map(m => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div style={styles.field}>
+                          <label style={styles.fieldLabel}>Dosage</label>
+                          <select
+                            value={form.dosage}
+                            onChange={e => setForm({ ...form, dosage: e.target.value })}
+                            style={styles.select}
+                          >
+                            <option value="">Select...</option>
+                            {selectedType.dosages?.map(d => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Schedule Section */}
+                  <div style={styles.section}>
+                    <h3 style={styles.sectionTitle}>Schedule</h3>
+                    <div style={styles.grid}>
+                      <div style={styles.field}>
+                        <label style={styles.fieldLabel}>Frequency</label>
+                        <select
+                          value={form.frequency}
+                          onChange={e => setForm({ ...form, frequency: e.target.value })}
+                          style={styles.select}
+                        >
+                          {selectedType?.frequencies?.map(f => (
+                            <option key={f.value} value={f.value}>{f.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={styles.field}>
+                        <label style={styles.fieldLabel}>Delivery</label>
+                        <select
+                          value={form.deliveryMethod}
+                          onChange={e => setForm({ ...form, deliveryMethod: e.target.value })}
+                          style={styles.select}
+                        >
+                          <option value="take_home">Take Home</option>
+                          <option value="in_clinic">In Clinic</option>
+                        </select>
+                      </div>
+                      <div style={styles.field}>
+                        <label style={styles.fieldLabel}>Start Date</label>
+                        <input
+                          type="date"
+                          value={form.startDate}
+                          onChange={e => setForm({ ...form, startDate: e.target.value })}
+                          style={styles.input}
+                        />
+                      </div>
+                      
+                      {/* Duration for peptides */}
+                      {selectedType?.durations && (
+                        <div style={styles.field}>
+                          <label style={styles.fieldLabel}>Duration</label>
+                          <select
+                            value={form.duration}
+                            onChange={e => setForm({ ...form, duration: e.target.value })}
+                            style={styles.select}
+                          >
+                            {selectedType.durations.map(d => (
+                              <option key={d.value} value={d.value}>{d.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Sessions for therapy */}
+                      {selectedType?.sessions && (
+                        <div style={styles.field}>
+                          <label style={styles.fieldLabel}>Total Sessions</label>
+                          <select
+                            value={form.totalSessions}
+                            onChange={e => setForm({ ...form, totalSessions: e.target.value })}
+                            style={styles.select}
+                          >
+                            {selectedType.sessions.map(s => (
+                              <option key={s} value={s}>{s} sessions</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>Status</label>
-                    <select
-                      value={form.status}
-                      onChange={e => setForm({ ...form, status: e.target.value })}
-                      style={styles.select}
-                    >
-                      <option value="active">Active</option>
-                      <option value="completed">Completed</option>
-                      <option value="paused">Paused</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
+
+                  {/* Status Section */}
+                  <div style={styles.section}>
+                    <h3 style={styles.sectionTitle}>Status</h3>
+                    <div style={styles.grid}>
+                      <div style={styles.field}>
+                        <label style={styles.fieldLabel}>Protocol Status</label>
+                        <select
+                          value={form.status}
+                          onChange={e => setForm({ ...form, status: e.target.value })}
+                          style={styles.select}
+                        >
+                          <option value="active">Active</option>
+                          <option value="completed">Completed</option>
+                          <option value="paused">Paused</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div style={{ ...styles.field, gridColumn: '1 / -1' }}>
-                    <label style={styles.fieldLabel}>Medication</label>
-                    {typeConfig?.medications ? (
-                      <select
-                        value={form.primary_peptide}
-                        onChange={e => setForm({ ...form, primary_peptide: e.target.value })}
-                        style={styles.select}
-                      >
-                        <option value="">Select...</option>
-                        {typeConfig.medications.map(m => (
-                          <option key={m} value={m}>{m}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={form.primary_peptide}
-                        onChange={e => setForm({ ...form, primary_peptide: e.target.value })}
-                        style={styles.input}
+
+                  {/* Notes Section */}
+                  <div style={styles.section}>
+                    <div style={styles.field}>
+                      <label style={styles.fieldLabel}>Notes</label>
+                      <textarea
+                        value={form.notes}
+                        onChange={e => setForm({ ...form, notes: e.target.value })}
+                        style={{ ...styles.input, minHeight: '80px' }}
+                        placeholder="Optional notes..."
                       />
-                    )}
-                  </div>
-                  
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>Dosage</label>
-                    {typeConfig?.dosages ? (
-                      <select
-                        value={form.dose_amount}
-                        onChange={e => setForm({ ...form, dose_amount: e.target.value })}
-                        style={styles.select}
-                      >
-                        <option value="">Select...</option>
-                        {typeConfig.dosages.map(d => (
-                          <option key={d} value={d}>{d}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={form.dose_amount}
-                        onChange={e => setForm({ ...form, dose_amount: e.target.value })}
-                        style={styles.input}
-                      />
-                    )}
-                  </div>
-                  
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>Frequency</label>
-                    <select
-                      value={form.dose_frequency}
-                      onChange={e => setForm({ ...form, dose_frequency: e.target.value })}
-                      style={styles.select}
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="2x_daily">Twice Daily</option>
-                      <option value="2x_weekly">2x per Week</option>
-                      <option value="weekly">Weekly</option>
-                    </select>
-                  </div>
-                  
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>Delivery</label>
-                    <select
-                      value={form.injection_location}
-                      onChange={e => setForm({ ...form, injection_location: e.target.value })}
-                      style={styles.select}
-                    >
-                      <option value="take_home">Take Home</option>
-                      <option value="in_clinic">In Clinic</option>
-                    </select>
-                  </div>
-                  
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>Start Date</label>
-                    <input
-                      type="date"
-                      value={form.start_date}
-                      onChange={e => setForm({ ...form, start_date: e.target.value })}
-                      style={styles.input}
-                    />
-                  </div>
-                  
-                  <div style={styles.field}>
-                    <label style={styles.fieldLabel}>End Date</label>
-                    <input
-                      type="date"
-                      value={form.end_date}
-                      onChange={e => setForm({ ...form, end_date: e.target.value })}
-                      style={styles.input}
-                    />
-                  </div>
-                  
-                  <div style={{ ...styles.field, gridColumn: '1 / -1' }}>
-                    <label style={styles.fieldLabel}>Special Instructions</label>
-                    <textarea
-                      value={form.special_instructions}
-                      onChange={e => setForm({ ...form, special_instructions: e.target.value })}
-                      style={{ ...styles.input, minHeight: '80px' }}
-                    />
-                  </div>
-                  
-                  <div style={{ ...styles.field, gridColumn: '1 / -1' }}>
-                    <label style={styles.fieldLabel}>Notes</label>
-                    <textarea
-                      value={form.notes}
-                      onChange={e => setForm({ ...form, notes: e.target.value })}
-                      style={{ ...styles.input, minHeight: '80px' }}
-                    />
+                    </div>
                   </div>
                 </div>
               ) : (
+                /* VIEW MODE */
                 <div style={styles.detailsGrid}>
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>Type</div>
+                    <div style={styles.detailValue}>{PROTOCOL_TYPES[form.protocolType]?.name || '—'}</div>
+                  </div>
                   <div style={styles.detailItem}>
                     <div style={styles.detailLabel}>Medication</div>
                     <div style={styles.detailValue}>{protocol?.primary_peptide || '—'}</div>
@@ -490,20 +600,10 @@ export default function ProtocolDetail() {
                     <div style={styles.detailLabel}>Phone</div>
                     <div style={styles.detailValue}>{protocol?.patient_phone || '—'}</div>
                   </div>
-                  <div style={styles.detailItem}>
-                    <div style={styles.detailLabel}>Email</div>
-                    <div style={styles.detailValue}>{protocol?.patient_email || '—'}</div>
-                  </div>
-                  {protocol?.special_instructions && (
-                    <div style={{ ...styles.detailItem, gridColumn: '1 / -1' }}>
-                      <div style={styles.detailLabel}>Special Instructions</div>
-                      <div style={styles.detailValue}>{protocol.special_instructions}</div>
-                    </div>
-                  )}
                   {protocol?.notes && (
                     <div style={{ ...styles.detailItem, gridColumn: '1 / -1' }}>
                       <div style={styles.detailLabel}>Notes</div>
-                      <div style={styles.detailValue} style={{ whiteSpace: 'pre-wrap' }}>{protocol.notes}</div>
+                      <div style={{ ...styles.detailValue, whiteSpace: 'pre-wrap' }}>{protocol.notes}</div>
                     </div>
                   )}
                 </div>
@@ -511,7 +611,7 @@ export default function ProtocolDetail() {
             </div>
 
             {/* Injection Calendar */}
-            {typeConfig?.hasCalendar !== false && (
+            {selectedType?.hasCalendar !== false && !isEditing && (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>Injection Calendar</h2>
                 <p style={styles.cardSubtitle}>Click a day to mark as complete</p>
@@ -543,9 +643,8 @@ export default function ProtocolDetail() {
             )}
           </div>
 
-          {/* Right Column - Actions */}
+          {/* Side Column - Actions */}
           <div style={styles.sideCol}>
-            {/* Quick Actions */}
             <div style={styles.card}>
               <h2 style={styles.cardTitle}>Quick Actions</h2>
               
@@ -583,10 +682,9 @@ export default function ProtocolDetail() {
               </div>
             </div>
 
-            {/* Portal Link */}
             {protocol?.access_token && (
               <div style={styles.card}>
-                <h2 style={styles.cardTitle}>Patient Portal Link</h2>
+                <h2 style={styles.cardTitle}>Portal Link</h2>
                 <div style={styles.linkBox}>
                   <code style={styles.linkCode}>
                     /portal/{protocol.access_token.substring(0, 8)}...
@@ -610,313 +708,80 @@ export default function ProtocolDetail() {
   );
 }
 
-// Helper functions
+// Helpers
 function formatDate(dateStr) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric'
-  });
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatFrequency(freq) {
   const map = {
-    'daily': 'Daily',
-    '2x_daily': 'Twice Daily',
-    '2x_weekly': '2x per Week',
+    'daily': 'Once daily',
+    '2x_daily': 'Twice daily',
+    '2x_weekly': '2x per week',
     'weekly': 'Weekly',
-    '3x_weekly': '3x per Week'
+    'per_session': 'Per session'
   };
   return map[freq] || freq || '—';
 }
 
 // Styles
 const styles = {
-  container: {
-    minHeight: '100vh',
-    background: '#f5f5f5',
-    fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
-  },
-  loading: {
-    padding: '60px',
-    textAlign: 'center',
-    color: '#666'
-  },
-  error: {
-    padding: '20px',
-    margin: '20px',
-    background: '#fee2e2',
-    color: '#dc2626',
-    borderRadius: '8px'
-  },
-  header: {
-    background: '#000',
-    color: '#fff',
-    padding: '20px 24px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start'
-  },
-  backLink: {
-    color: 'rgba(255,255,255,0.7)',
-    textDecoration: 'none',
-    fontSize: '14px',
-    display: 'block',
-    marginBottom: '8px'
-  },
-  title: {
-    margin: 0,
-    fontSize: '24px',
-    fontWeight: '600'
-  },
-  subtitle: {
-    margin: '4px 0 0',
-    fontSize: '14px',
-    opacity: 0.8
-  },
-  headerActions: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center'
-  },
-  linkBtn: {
-    padding: '10px 16px',
-    background: 'rgba(255,255,255,0.1)',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.2)',
-    borderRadius: '6px',
-    textDecoration: 'none',
-    fontSize: '14px'
-  },
-  editBtn: {
-    padding: '10px 20px',
-    background: '#fff',
-    color: '#000',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  cancelBtn: {
-    padding: '10px 16px',
-    background: 'rgba(255,255,255,0.1)',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.2)',
-    borderRadius: '6px',
-    fontSize: '14px',
-    cursor: 'pointer'
-  },
-  saveBtn: {
-    padding: '10px 20px',
-    background: '#22c55e',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  errorAlert: {
-    margin: '16px 24px 0',
-    padding: '12px 16px',
-    background: '#fee2e2',
-    color: '#dc2626',
-    borderRadius: '8px',
-    fontSize: '14px'
-  },
-  successAlert: {
-    margin: '16px 24px 0',
-    padding: '12px 16px',
-    background: '#dcfce7',
-    color: '#166534',
-    borderRadius: '8px',
-    fontSize: '14px'
-  },
-  content: {
-    padding: '24px',
-    display: 'grid',
-    gridTemplateColumns: '1fr 320px',
-    gap: '24px',
-    maxWidth: '1400px'
-  },
-  mainCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px'
-  },
-  sideCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px'
-  },
-  card: {
-    background: '#fff',
-    borderRadius: '12px',
-    padding: '24px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-  },
-  cardTitle: {
-    margin: '0 0 16px',
-    fontSize: '16px',
-    fontWeight: '600'
-  },
-  cardSubtitle: {
-    margin: '-12px 0 16px',
-    fontSize: '13px',
-    color: '#666'
-  },
-  statusRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px'
-  },
-  bigNumber: {
-    fontSize: '32px',
-    fontWeight: '700',
-    lineHeight: 1
-  },
-  label: {
-    fontSize: '12px',
-    color: '#666',
-    marginTop: '4px'
-  },
-  statusBadge: {
-    padding: '6px 12px',
-    borderRadius: '20px',
-    fontSize: '13px',
-    fontWeight: '500',
-    textTransform: 'capitalize'
-  },
-  progressBar: {
-    height: '8px',
-    background: '#e5e5e5',
-    borderRadius: '4px',
-    overflow: 'hidden'
-  },
-  progressFill: {
-    height: '100%',
-    background: '#000',
-    borderRadius: '4px',
-    transition: 'width 0.3s'
-  },
-  formGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px'
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  fieldLabel: {
-    fontSize: '12px',
-    fontWeight: '500',
-    color: '#666',
-    marginBottom: '6px'
-  },
-  input: {
-    padding: '10px 12px',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontFamily: 'inherit'
-  },
-  select: {
-    padding: '10px 12px',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    fontSize: '14px',
-    background: '#fff'
-  },
-  detailsGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px'
-  },
+  container: { minHeight: '100vh', background: '#f5f5f5', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' },
+  loading: { padding: '60px', textAlign: 'center', color: '#666' },
+  errorBox: { padding: '20px', margin: '20px', background: '#fee2e2', color: '#dc2626', borderRadius: '8px' },
+  header: { background: '#000', color: '#fff', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
+  backLink: { color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', display: 'block', marginBottom: '8px' },
+  title: { margin: 0, fontSize: '24px', fontWeight: '600' },
+  subtitle: { margin: '4px 0 0', fontSize: '14px', opacity: 0.8 },
+  headerActions: { display: 'flex', gap: '12px', alignItems: 'center' },
+  linkBtn: { padding: '10px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', textDecoration: 'none', fontSize: '14px' },
+  editBtn: { padding: '10px 20px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },
+  cancelBtn: { padding: '10px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' },
+  saveBtn: { padding: '10px 20px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },
+  errorAlert: { margin: '16px 24px 0', padding: '12px 16px', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', fontSize: '14px' },
+  successAlert: { margin: '16px 24px 0', padding: '12px 16px', background: '#dcfce7', color: '#166534', borderRadius: '8px', fontSize: '14px' },
+  content: { padding: '24px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px', maxWidth: '1400px' },
+  mainCol: { display: 'flex', flexDirection: 'column', gap: '24px' },
+  sideCol: { display: 'flex', flexDirection: 'column', gap: '24px' },
+  card: { background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  cardTitle: { margin: '0 0 16px', fontSize: '16px', fontWeight: '600' },
+  cardSubtitle: { margin: '-12px 0 16px', fontSize: '13px', color: '#666' },
+  statusRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+  bigNumber: { fontSize: '32px', fontWeight: '700', lineHeight: 1 },
+  label: { fontSize: '12px', color: '#666', marginTop: '4px' },
+  statusBadge: { padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '500', textTransform: 'capitalize' },
+  progressBar: { height: '8px', background: '#e5e5e5', borderRadius: '4px', overflow: 'hidden' },
+  progressFill: { height: '100%', background: '#000', borderRadius: '4px', transition: 'width 0.3s' },
+  
+  // Form styles (matching Purchases page)
+  section: { marginBottom: '24px' },
+  sectionTitle: { fontSize: '12px', fontWeight: '600', color: '#666', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
+  field: { display: 'flex', flexDirection: 'column' },
+  fieldLabel: { fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#666' },
+  input: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit' },
+  select: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', background: '#fff' },
+  typeGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' },
+  typeBtn: { padding: '12px 8px', border: '1px solid', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' },
+  
+  // View mode
+  detailsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
   detailItem: {},
-  detailLabel: {
-    fontSize: '12px',
-    color: '#666',
-    marginBottom: '4px'
-  },
-  detailValue: {
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  calendarGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))',
-    gap: '8px'
-  },
-  calendarDay: {
-    aspectRatio: '1',
-    border: '2px solid',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    fontFamily: 'inherit'
-  },
-  dayNumber: {
-    fontSize: '16px',
-    fontWeight: '600'
-  },
-  checkmark: {
-    fontSize: '12px',
-    marginTop: '2px'
-  },
-  actionStack: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px'
-  },
-  actionBtn: {
-    padding: '12px 16px',
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    textAlign: 'center'
-  },
-  actionBtnSecondary: {
-    padding: '12px 16px',
-    background: '#f5f5f5',
-    color: '#000',
-    border: '1px solid #e5e5e5',
-    borderRadius: '8px',
-    fontSize: '14px',
-    textDecoration: 'none',
-    textAlign: 'center',
-    display: 'block'
-  },
-  linkBox: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center'
-  },
-  linkCode: {
-    flex: 1,
-    padding: '10px',
-    background: '#f5f5f5',
-    borderRadius: '6px',
-    fontSize: '12px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-  },
-  copyBtn: {
-    padding: '10px 16px',
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '12px',
-    cursor: 'pointer'
-  }
+  detailLabel: { fontSize: '12px', color: '#666', marginBottom: '4px' },
+  detailValue: { fontSize: '14px', fontWeight: '500' },
+  
+  // Calendar
+  calendarGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', gap: '8px' },
+  calendarDay: { aspectRatio: '1', border: '2px solid', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' },
+  dayNumber: { fontSize: '16px', fontWeight: '600' },
+  checkmark: { fontSize: '12px', marginTop: '2px' },
+  
+  // Actions
+  actionStack: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  actionBtn: { padding: '12px 16px', background: '#000', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', textAlign: 'center' },
+  actionBtnSecondary: { padding: '12px 16px', background: '#f5f5f5', color: '#000', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '14px', textDecoration: 'none', textAlign: 'center', display: 'block' },
+  linkBox: { display: 'flex', gap: '8px', alignItems: 'center' },
+  linkCode: { flex: 1, padding: '10px', background: '#f5f5f5', borderRadius: '6px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' },
+  copyBtn: { padding: '10px 16px', background: '#000', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }
 };

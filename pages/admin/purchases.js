@@ -167,7 +167,20 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     setError(null);
 
     try {
-      // Build protocol data matching new system
+      // Map new types to database-allowed program_type values
+      const programTypeMap = {
+        'peptide': form.duration == 10 ? 'recovery_jumpstart_10day' : 
+                   form.duration == 30 ? 'month_program_30day' : 
+                   form.duration == 28 ? 'maintenance_4week' : 'recovery_jumpstart_10day',
+        'hrt': 'hrt_male_membership',
+        'weight_loss': 'weight_loss_program',
+        'red_light': 'red_light_sessions',
+        'hbot': 'hbot_sessions',
+        'iv_therapy': 'iv_therapy',
+        'injection_pack': 'injection_pack'
+      };
+
+      // Build protocol data matching existing database schema
       const protocolData = {
         ghl_contact_id: form.ghlContactId || null,
         patient_name: form.patientName,
@@ -175,10 +188,9 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         patient_phone: form.patientPhone,
         purchase_id: purchase.id,
         
-        // New fields
-        protocol_type: form.protocolType,
+        // Use mapped program_type for database constraint
         program_name: buildProtocolName(),
-        program_type: form.protocolType,
+        program_type: programTypeMap[form.protocolType] || 'recovery_jumpstart_10day',
         
         // Medication details
         primary_peptide: form.medication,
@@ -191,9 +203,6 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         duration_days: isSessionBased ? null : (isOngoing ? null : parseInt(form.duration)),
         total_sessions: isSessionBased ? parseInt(form.totalSessions) : (isOngoing ? null : parseInt(form.duration)),
         end_date: calculateEndDate(),
-        
-        // HRT specific
-        supply_type: form.supplyType || null,
         
         // Standard fields
         notes: form.notes,

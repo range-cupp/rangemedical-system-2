@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/complete-protocols",
       "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/send-reminders",
-      "schedule": "30 18 * * *"
     }
   ]
 }

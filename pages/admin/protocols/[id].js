@@ -25,21 +25,61 @@ const PROTOCOL_TYPES = {
       { value: 90, label: '90 days' }
     ]
   },
-  hrt: {
-    name: 'HRT - Testosterone',
-    programTypes: ['hrt_male_membership', 'hrt_female_membership', 'hrt_injection', 'hrt'],
-    medications: ['Testosterone Cypionate'],
+  hrt_male: {
+    name: 'HRT - Testosterone (Male)',
+    programTypes: ['hrt_male_membership', 'hrt_male'],
+    medications: ['Testosterone Cypionate 200mg/ml'],
     dosages: ['0.3ml / 60mg', '0.4ml / 80mg', '0.5ml / 100mg'],
     frequencies: [{ value: '2x_weekly', label: '2x per week' }],
     ongoing: true
   },
-  weight_loss: {
-    name: 'Weight Loss',
-    programTypes: ['weight_loss_program', 'weight_loss_injection', 'weight_loss'],
-    medications: ['Semaglutide', 'Tirzepatide', 'Retatrutide'],
-    dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.5mg'],
+  hrt_female: {
+    name: 'HRT - Testosterone (Female)',
+    programTypes: ['hrt_female_membership', 'hrt_female'],
+    medications: ['Testosterone Cypionate 100mg/ml'],
+    dosages: ['0.1ml / 10mg', '0.2ml / 20mg', '0.3ml / 30mg', '0.4ml / 40mg', '0.5ml / 50mg'],
+    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
+    ongoing: true
+  },
+  weight_loss_semaglutide: {
+    name: 'Weight Loss - Semaglutide',
+    programTypes: ['weight_loss_program', 'weight_loss_semaglutide'],
+    medications: ['Semaglutide'],
+    dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'],
     frequencies: [{ value: 'weekly', label: 'Once per week' }],
     ongoing: true
+  },
+  weight_loss_tirzepatide: {
+    name: 'Weight Loss - Tirzepatide',
+    programTypes: ['weight_loss_tirzepatide'],
+    medications: ['Tirzepatide'],
+    dosages: ['2.5mg', '5.0mg', '7.5mg', '10.0mg', '12.5mg'],
+    frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    ongoing: true
+  },
+  weight_loss_retatrutide: {
+    name: 'Weight Loss - Retatrutide',
+    programTypes: ['weight_loss_retatrutide'],
+    medications: ['Retatrutide'],
+    dosages: ['2mg', '4mg', '6mg', '8mg', '10mg', '12mg'],
+    frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    ongoing: true
+  },
+  single_injection: {
+    name: 'Single Injection',
+    programTypes: ['single_injection'],
+    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione 200mg', 'NAD+ 50mg', 'NAD+ 75mg', 'NAD+ 100mg', 'NAD+ 125mg', 'NAD+ 150mg'],
+    sessions: [1],
+    frequencies: [{ value: 'single', label: 'Single injection' }],
+    hasDosageNotes: true
+  },
+  injection_pack: {
+    name: 'Injection Pack',
+    programTypes: ['injection_pack', 'injection'],
+    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione 200mg', 'NAD+ 50mg', 'NAD+ 75mg', 'NAD+ 100mg', 'NAD+ 125mg', 'NAD+ 150mg'],
+    sessions: [5, 10, 20],
+    frequencies: [{ value: 'per_session', label: 'Per session' }],
+    hasDosageNotes: true
   },
   red_light: {
     name: 'Red Light Therapy',
@@ -58,18 +98,27 @@ const PROTOCOL_TYPES = {
     programTypes: ['iv_therapy'],
     sessions: [1, 5, 10],
     frequencies: [{ value: 'per_session', label: 'Per session' }]
-  },
-  injection_pack: {
-    name: 'Injection Pack',
-    programTypes: ['injection_pack', 'injection'],
-    sessions: [1, 5, 10],
-    frequencies: [{ value: 'per_session', label: 'Per session' }]
   }
 };
 
-function detectProtocolType(programType) {
+function detectProtocolType(programType, medication) {
   if (!programType) return 'peptide';
   const pt = programType.toLowerCase();
+  const med = (medication || '').toLowerCase();
+  
+  // Check weight loss by medication first
+  if (pt.includes('weight_loss') || med.includes('semaglutide') || med.includes('tirzepatide') || med.includes('retatrutide')) {
+    if (med.includes('tirzepatide')) return 'weight_loss_tirzepatide';
+    if (med.includes('retatrutide')) return 'weight_loss_retatrutide';
+    return 'weight_loss_semaglutide';
+  }
+  
+  // Check HRT by gender hint
+  if (pt.includes('hrt')) {
+    if (pt.includes('female') || med.includes('100mg/ml')) return 'hrt_female';
+    return 'hrt_male';
+  }
+  
   for (const [key, config] of Object.entries(PROTOCOL_TYPES)) {
     if (config.programTypes?.some(t => pt.includes(t.toLowerCase()))) {
       return key;
@@ -114,7 +163,7 @@ export default function ProtocolDetail() {
       const p = data.protocol || data;
       setProtocol(p);
       
-      const detectedType = detectProtocolType(p.program_type);
+      const detectedType = detectProtocolType(p.program_type, p.primary_peptide);
       setForm({
         protocolType: detectedType,
         patientName: p.patient_name || '',
@@ -509,9 +558,11 @@ export default function ProtocolDetail() {
             <div style={styles.card}>
               <h2 style={styles.cardTitle}>Actions</h2>
               <div style={styles.actionStack}>
-                <a href={`/portal/${protocol?.id}`} target="_blank" style={styles.actionBtn}>
-                  👁️ View Patient Portal
-                </a>
+                {protocol?.ghl_contact_id && (
+                  <a href={`/admin/patient/${protocol.ghl_contact_id}`} target="_blank" style={styles.actionBtn}>
+                    👁️ View Patient Portal
+                  </a>
+                )}
                 {protocol?.patient_phone && (
                   <>
                     <a href={`tel:${protocol.patient_phone}`} style={styles.actionBtnSecondary}>📞 Call</a>
@@ -521,18 +572,20 @@ export default function ProtocolDetail() {
               </div>
             </div>
 
-            <div style={styles.card}>
-              <h2 style={styles.cardTitle}>Portal Link</h2>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/portal/${protocol?.id}`);
-                  setSuccess('Copied!');
-                }}
-                style={styles.copyBtn}
-              >
-                📋 Copy Link
-              </button>
-            </div>
+            {protocol?.ghl_contact_id && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>Portal Link</h2>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/admin/patient/${protocol.ghl_contact_id}`);
+                    setSuccess('Copied!');
+                  }}
+                  style={styles.copyBtn}
+                >
+                  📋 Copy Link
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

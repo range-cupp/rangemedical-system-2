@@ -1,6 +1,5 @@
 // /pages/api/admin/protocols/[id]/session.js
-// Mark session complete (admin side)
-// Range Medical
+// Toggle session completion - Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,133 +15,89 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { session_id, status } = req.body;
+  const { session_number } = req.body;
+
+  if (!session_number) {
+    return res.status(400).json({ error: 'session_number required' });
+  }
 
   try {
-    // Check if this is a generated session ID
-    if (session_id?.startsWith('generated-')) {
-      const sessionNumber = parseInt(session_id.replace('generated-', ''));
-      
-      // Check if session exists in protocol_sessions
-      const { data: existing } = await supabase
-        .from('protocol_sessions')
-        .select('id')
-        .eq('protocol_id', id)
-        .eq('session_number', sessionNumber)
-        .maybeSingle();
-
-      if (existing) {
-        // Update existing
-        await supabase
-          .from('protocol_sessions')
-          .update({
-            status,
-            completed_at: status === 'completed' ? new Date().toISOString() : null,
-            completed_by: 'staff'
-          })
-          .eq('id', existing.id);
-      } else {
-        // Create new session record
-        const { data: protocol } = await supabase
-          .from('protocols')
-          .select('start_date')
-          .eq('id', id)
-          .maybeSingle();
-
-        let scheduledDate = null;
-        if (protocol?.start_date) {
-          const start = new Date(protocol.start_date);
-          start.setDate(start.getDate() + sessionNumber - 1);
-          scheduledDate = start.toISOString().split('T')[0];
-        }
-
-        await supabase
-          .from('protocol_sessions')
-          .insert({
-            protocol_id: id,
-            session_number: sessionNumber,
-            scheduled_date: scheduledDate,
-            status,
-            completed_at: status === 'completed' ? new Date().toISOString() : null,
-            completed_by: 'staff'
-          });
-      }
-
-      // Also update old injection_logs for backward compatibility
-      const { data: existingLog } = await supabase
-        .from('injection_logs')
-        .select('id, completed')
-        .eq('protocol_id', id)
-        .eq('day_number', sessionNumber)
-        .maybeSingle();
-
-      if (existingLog) {
-        await supabase
-          .from('injection_logs')
-          .update({
-            completed: status === 'completed',
-            completed_at: status === 'completed' ? new Date().toISOString().split('T')[0] : null
-          })
-          .eq('id', existingLog.id);
-      } else {
-        await supabase
-          .from('injection_logs')
-          .insert({
-            protocol_id: id,
-            day_number: sessionNumber,
-            completed: status === 'completed',
-            completed_at: status === 'completed' ? new Date().toISOString().split('T')[0] : null
-          });
-      }
-    } else {
-      // Update by session ID
-      await supabase
-        .from('protocol_sessions')
-        .update({
-          status,
-          completed_at: status === 'completed' ? new Date().toISOString() : null,
-          completed_by: 'staff'
-        })
-        .eq('id', session_id);
-    }
-
-    // Update protocol completed count
-    const { data: completedSessions } = await supabase
-      .from('protocol_sessions')
-      .select('id')
+    // Check if log exists for this day
+    const { data: existingLog } = await supabase
+      .from('injection_logs')
+      .select('*')
       .eq('protocol_id', id)
-      .eq('status', 'completed');
+      .eq('day_number', session_number)
+      .maybeSingle();
 
-    // Try patient_protocols first
-    const { error: newError } = await supabase
-      .from('patient_protocols')
-      .update({
-        sessions_completed: completedSessions?.length || 0,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id);
+    const today = new Date().toISOString().split('T')[0];
 
-    // Also update old protocols table
-    if (newError) {
-      // Count from injection_logs for old table
-      const { data: completedLogs } = await supabase
-        .from('injection_logs')
-        .select('id')
-        .eq('protocol_id', id)
-        .eq('completed', true);
-
+    if (existingLog) {
+      // Toggle completion
+      const newCompleted = !existingLog.completed;
+      
       await supabase
-        .from('protocols')
+        .from('injection_logs')
         .update({
-          injections_completed: completedLogs?.length || 0
+          completed: newCompleted,
+          completed_at: newCompleted ? today : null
         })
-        .eq('id', id);
-    }
+        .eq('id', existingLog.id);
 
-    return res.status(200).json({ success: true });
+      // Update protocol completed count
+      await updateProtocolCount(id);
+
+      return res.status(200).json({
+        success: true,
+        completed: newCompleted,
+        session_number
+      });
+    } else {
+      // Create new log as completed
+      await supabase
+        .from('injection_logs')
+        .insert({
+          protocol_id: id,
+          day_number: session_number,
+          completed: true,
+          completed_at: today
+        });
+
+      // Update protocol completed count
+      await updateProtocolCount(id);
+
+      return res.status(200).json({
+        success: true,
+        completed: true,
+        session_number
+      });
+    }
 
   } catch (error) {
-    console.error('Session update error:', error);
+    console.error('Session toggle error:', error);
     return res.status(500).json({ error: 'Server error' });
   }
+}
+
+async function updateProtocolCount(protocolId) {
+  // Count completed logs
+  const { data: completedLogs } = await supabase
+    .from('injection_logs')
+    .select('id')
+    .eq('protocol_id', protocolId)
+    .eq('completed', true);
+
+  const count = completedLogs?.length || 0;
+
+  // Update old table
+  await supabase
+    .from('protocols')
+    .update({ injections_completed: count })
+    .eq('id', protocolId);
+
+  // Also try new table
+  await supabase
+    .from('patient_protocols')
+    .update({ sessions_completed: count })
+    .eq('id', protocolId);
 }

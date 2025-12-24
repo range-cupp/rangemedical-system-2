@@ -1,11 +1,59 @@
 // /pages/admin/protocols/[id].js
-// Protocol Detail View
+// Protocol Detail - Single source of truth for viewing/editing protocols
 // Range Medical
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import Link from 'next/link';
+
+// ============================================
+// PROTOCOL TYPE CONFIGURATIONS
+// ============================================
+const PROTOCOL_TYPES = {
+  peptide: {
+    name: 'Recovery Peptide',
+    programTypes: ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week'],
+    medications: ['BPC-157 / TB-500', 'BPC-157', 'TB-500'],
+    dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
+    frequencies: [
+      { value: 'daily', label: 'Once daily' },
+      { value: '2x_daily', label: 'Twice daily' }
+    ],
+    hasCalendar: true
+  },
+  hrt: {
+    name: 'HRT',
+    programTypes: ['hrt_male_membership', 'hrt_female_membership', 'hrt_injection'],
+    medications: ['Testosterone Cypionate'],
+    dosages: ['0.3ml / 60mg', '0.4ml / 80mg', '0.5ml / 100mg'],
+    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
+    hasCalendar: false
+  },
+  weight_loss: {
+    name: 'Weight Loss',
+    programTypes: ['weight_loss_program', 'weight_loss_injection'],
+    medications: ['Semaglutide', 'Tirzepatide', 'Retatrutide'],
+    dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.5mg'],
+    frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    hasCalendar: false
+  },
+  sessions: {
+    name: 'Session-Based',
+    programTypes: ['iv_therapy', 'hbot_sessions', 'red_light_sessions', 'injection_pack'],
+    hasCalendar: false
+  }
+};
+
+// Detect type from program_type
+function detectProtocolType(programType) {
+  for (const [key, config] of Object.entries(PROTOCOL_TYPES)) {
+    if (config.programTypes?.includes(programType)) {
+      return key;
+    }
+  }
+  return 'peptide'; // default
+}
 
 export default function ProtocolDetail() {
   const router = useRouter();
@@ -13,10 +61,17 @@ export default function ProtocolDetail() {
   
   const [protocol, setProtocol] = useState(null);
   const [sessions, setSessions] = useState([]);
-  const [checkins, setCheckins] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  // Edit mode
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({});
+  
+  // SMS sending
+  const [sendingText, setSendingText] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -24,13 +79,36 @@ export default function ProtocolDetail() {
 
   const fetchProtocol = async () => {
     setLoading(true);
+    setError('');
+    
     try {
       const res = await fetch(`/api/admin/protocols/${id}`);
       if (!res.ok) throw new Error('Protocol not found');
+      
       const data = await res.json();
-      setProtocol(data.protocol);
+      setProtocol(data.protocol || data);
       setSessions(data.sessions || []);
-      setCheckins(data.checkins || []);
+      
+      // Initialize form with protocol data
+      const p = data.protocol || data;
+      setForm({
+        patient_name: p.patient_name || '',
+        patient_phone: p.patient_phone || '',
+        patient_email: p.patient_email || '',
+        program_name: p.program_name || '',
+        program_type: p.program_type || '',
+        primary_peptide: p.primary_peptide || '',
+        dose_amount: p.dose_amount || '',
+        dose_frequency: p.dose_frequency || 'daily',
+        injection_location: p.injection_location || 'take_home',
+        start_date: p.start_date || '',
+        end_date: p.end_date || '',
+        duration_days: p.duration_days || p.total_sessions || 10,
+        total_sessions: p.total_sessions || p.duration_days || 10,
+        status: p.status || 'active',
+        special_instructions: p.special_instructions || '',
+        notes: p.notes || ''
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -38,398 +116,807 @@ export default function ProtocolDetail() {
     }
   };
 
-  const markSession = async (sessionId, status) => {
-    await fetch(`/api/admin/protocols/${id}/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, status })
-    });
-    fetchProtocol();
+  const handleSave = async () => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch(`/api/admin/protocols?id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          updated_at: new Date().toISOString()
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to save');
+      }
+
+      setSuccess('Protocol updated successfully');
+      setIsEditing(false);
+      fetchProtocol(); // Refresh data
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const sendPortalLink = async () => {
-    setSending(true);
-    const token = protocol.access_token;
-    const phone = protocol.patient_phone;
-    const name = protocol.patient_name?.split(' ')[0] || 'there';
-    
-    if (!phone) {
-      alert('No phone number on file');
-      setSending(false);
+  const handleSessionToggle = async (sessionNumber) => {
+    try {
+      const res = await fetch(`/api/admin/protocols/${id}/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_number: sessionNumber })
+      });
+
+      if (res.ok) {
+        fetchProtocol(); // Refresh
+      }
+    } catch (err) {
+      console.error('Failed to toggle session:', err);
+    }
+  };
+
+  const handleSendPortalLink = async () => {
+    if (!protocol?.patient_phone) {
+      setError('No phone number on file');
       return;
     }
 
-    const message = `Hi ${name}! Here's your Range Medical portal to track your progress: https://app.range-medical.com/portal/${token}`;
-    
-    // Try GHL API or fallback to SMS link
+    setSendingText(true);
+    setError('');
+    setSuccess('');
+
     try {
       const res = await fetch('/api/admin/send-patient-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          phone, 
-          message,
-          contact_id: protocol.ghl_contact_id
+        body: JSON.stringify({
+          patient_name: protocol.patient_name,
+          patient_phone: protocol.patient_phone,
+          access_token: protocol.access_token,
+          ghl_contact_id: protocol.ghl_contact_id,
+          message_type: 'portal'
         })
       });
-      
+
       if (res.ok) {
-        alert('Portal link sent!');
+        setSuccess('Portal link sent!');
       } else {
-        // Fallback to SMS link
-        window.open(`sms:${phone}?body=${encodeURIComponent(message)}`);
+        throw new Error('Failed to send');
       }
-    } catch {
-      window.open(`sms:${phone}?body=${encodeURIComponent(message)}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSendingText(false);
     }
-    setSending(false);
   };
 
-  const extendProtocol = async () => {
-    const days = prompt('How many days to extend?', '10');
-    if (!days) return;
-    
-    await fetch(`/api/admin/protocols/${id}/extend`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ days: parseInt(days) })
-    });
-    fetchProtocol();
-  };
+  const protocolType = protocol ? detectProtocolType(protocol.program_type) : 'peptide';
+  const typeConfig = PROTOCOL_TYPES[protocolType];
 
-  if (loading) return <div style={styles.loading}>Loading...</div>;
-  if (error) return <div style={styles.error}>{error} <Link href="/admin/protocols">← Back</Link></div>;
-  if (!protocol) return <div style={styles.error}>Protocol not found</div>;
+  // Calculate progress
+  const totalDays = protocol?.total_sessions || protocol?.duration_days || 10;
+  const completedCount = sessions.filter(s => s.status === 'completed' || s.completed).length || protocol?.injections_completed || 0;
+  const progressPercent = Math.round((completedCount / totalDays) * 100);
 
-  const today = new Date().toISOString().split('T')[0];
-  const completedCount = sessions.filter(s => s.status === 'completed').length;
+  // Days remaining
+  const today = new Date();
+  const endDate = protocol?.end_date ? new Date(protocol.end_date) : null;
+  const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : null;
+
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.loading}>Loading protocol...</div>
+      </div>
+    );
+  }
+
+  if (error && !protocol) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.error}>{error}</div>
+        <Link href="/admin/protocols" style={styles.backLink}>← Back to Protocols</Link>
+      </div>
+    );
+  }
 
   return (
     <>
-      <Head><title>{protocol.patient_name} - Protocol | Range Medical</title></Head>
+      <Head>
+        <title>{protocol?.patient_name || 'Protocol'} | Range Medical</title>
+      </Head>
+
       <div style={styles.container}>
+        {/* Header */}
         <header style={styles.header}>
           <div>
-            <Link href="/admin/protocols" style={styles.backLink}>← Protocols</Link>
-            <h1 style={styles.title}>{protocol.patient_name}</h1>
+            <Link href="/admin/protocols" style={styles.backLink}>← Back to Protocols</Link>
+            <h1 style={styles.title}>{protocol?.patient_name}</h1>
+            <p style={styles.subtitle}>{protocol?.program_name || 'Protocol'}</p>
           </div>
           <div style={styles.headerActions}>
-            <button onClick={sendPortalLink} disabled={sending} style={styles.sendBtn}>
-              {sending ? 'Sending...' : '📱 Send Portal Link'}
-            </button>
-            <a 
-              href={`/portal/${protocol.access_token}`} 
-              target="_blank" 
-              rel="noopener"
-              style={styles.viewBtn}
-            >
-              👁 View Portal
-            </a>
+            {protocol?.ghl_contact_id && (
+              <Link href={`/admin/patient/${protocol.ghl_contact_id}`} style={styles.linkBtn}>
+                View Patient
+              </Link>
+            )}
+            {!isEditing ? (
+              <button onClick={() => setIsEditing(true)} style={styles.editBtn}>
+                Edit Protocol
+              </button>
+            ) : (
+              <>
+                <button onClick={() => setIsEditing(false)} style={styles.cancelBtn}>Cancel</button>
+                <button onClick={handleSave} disabled={saving} style={styles.saveBtn}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </>
+            )}
           </div>
         </header>
 
-        <main style={styles.main}>
-          {/* Protocol Info */}
-          <section style={styles.card}>
-            <div style={styles.cardHeader}>
+        {/* Alerts */}
+        {error && <div style={styles.errorAlert}>{error}</div>}
+        {success && <div style={styles.successAlert}>{success}</div>}
+
+        <div style={styles.content}>
+          {/* Left Column - Details */}
+          <div style={styles.mainCol}>
+            {/* Status Card */}
+            <div style={styles.card}>
+              <div style={styles.statusRow}>
+                <div>
+                  <div style={styles.bigNumber}>{daysLeft !== null ? daysLeft : '—'}</div>
+                  <div style={styles.label}>Days Left</div>
+                </div>
+                <div>
+                  <div style={styles.bigNumber}>{completedCount}/{totalDays}</div>
+                  <div style={styles.label}>Completed</div>
+                </div>
+                <div>
+                  <div style={styles.bigNumber}>{progressPercent}%</div>
+                  <div style={styles.label}>Progress</div>
+                </div>
+                <div>
+                  <span style={{
+                    ...styles.statusBadge,
+                    background: protocol?.status === 'active' ? '#dcfce7' : '#f3f4f6',
+                    color: protocol?.status === 'active' ? '#166534' : '#666'
+                  }}>
+                    {protocol?.status || 'active'}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div style={styles.progressBar}>
+                <div style={{ ...styles.progressFill, width: `${progressPercent}%` }} />
+              </div>
+            </div>
+
+            {/* Protocol Details */}
+            <div style={styles.card}>
               <h2 style={styles.cardTitle}>Protocol Details</h2>
-              <span style={{
-                ...styles.statusBadge,
-                background: protocol.status === 'active' ? '#dcfce7' : '#fef3c7',
-                color: protocol.status === 'active' ? '#166534' : '#92400e'
-              }}>
-                {protocol.status}
-              </span>
-            </div>
-            
-            <div style={styles.infoGrid}>
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>Protocol</span>
-                <span style={styles.infoValue}>{protocol.protocol_name}</span>
-              </div>
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>Medication</span>
-                <span style={styles.infoValue}>{protocol.medication || '-'}</span>
-              </div>
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>Dosage</span>
-                <span style={styles.infoValue}>{protocol.dosage || '-'}</span>
-              </div>
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>Frequency</span>
-                <span style={styles.infoValue}>{formatFrequency(protocol.frequency)}</span>
-              </div>
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>Delivery</span>
-                <span style={styles.infoValue}>{protocol.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home'}</span>
-              </div>
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>Start Date</span>
-                <span style={styles.infoValue}>{formatDate(protocol.start_date)}</span>
-              </div>
-              {protocol.end_date && (
-                <div style={styles.infoItem}>
-                  <span style={styles.infoLabel}>End Date</span>
-                  <span style={styles.infoValue}>{formatDate(protocol.end_date)}</span>
-                </div>
-              )}
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>Progress</span>
-                <span style={styles.infoValue}>
-                  {completedCount} / {protocol.total_sessions || sessions.length || '∞'} completed
-                </span>
-              </div>
-            </div>
-
-            {/* Contact Info */}
-            <div style={styles.contactRow}>
-              {protocol.patient_phone && (
-                <>
-                  <a href={`tel:${protocol.patient_phone}`} style={styles.contactLink}>📞 {protocol.patient_phone}</a>
-                  <a href={`sms:${protocol.patient_phone}`} style={styles.contactLink}>💬 Text</a>
-                </>
-              )}
-              {protocol.patient_email && (
-                <a href={`mailto:${protocol.patient_email}`} style={styles.contactLink}>✉️ {protocol.patient_email}</a>
-              )}
-            </div>
-          </section>
-
-          {/* Supply Tracking (HRT) */}
-          {protocol.supply_type && (
-            <section style={styles.card}>
-              <h2 style={styles.cardTitle}>Supply Status</h2>
-              <div style={styles.supplyInfo}>
-                <div style={styles.supplyMain}>
-                  <span style={styles.supplyValue}>{protocol.supply_remaining || 0}</span>
-                  <span style={styles.supplyLabel}>
-                    {protocol.supply_type === 'vial' ? 'ml remaining' : 'injections remaining'}
-                  </span>
-                </div>
-                {protocol.supply_dispensed_date && (
-                  <div style={styles.supplyMeta}>
-                    Dispensed: {formatDate(protocol.supply_dispensed_date)}
+              
+              {isEditing ? (
+                <div style={styles.formGrid}>
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>Patient Name</label>
+                    <input
+                      type="text"
+                      value={form.patient_name}
+                      onChange={e => setForm({ ...form, patient_name: e.target.value })}
+                      style={styles.input}
+                    />
                   </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* Dose Tracking (Weight Loss) */}
-          {protocol.current_dose && (
-            <section style={styles.card}>
-              <h2 style={styles.cardTitle}>Titration Tracking</h2>
-              <div style={styles.doseInfo}>
-                <div>
-                  <span style={styles.doseValue}>{protocol.current_dose}</span>
-                  <span style={styles.doseLabel}>Current Dose</span>
-                </div>
-                <div>
-                  <span style={styles.doseValue}>{protocol.injections_at_current_dose || 0}</span>
-                  <span style={styles.doseLabel}>Injections at this dose</span>
-                </div>
-              </div>
-              {protocol.injections_at_current_dose >= 4 && (
-                <div style={styles.titrationAlert}>
-                  ⚠️ Consider titration - 4+ injections at current dose
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* Lab Status */}
-          {(protocol.baseline_labs_due || protocol.followup_labs_due) && (
-            <section style={styles.card}>
-              <h2 style={styles.cardTitle}>Lab Work</h2>
-              <div style={styles.labList}>
-                <div style={styles.labItem}>
-                  <span style={protocol.baseline_labs_completed ? styles.labDone : styles.labPending}>
-                    {protocol.baseline_labs_completed ? '✓' : '○'}
-                  </span>
-                  <span>Baseline Labs</span>
-                  {protocol.baseline_labs_date && (
-                    <span style={styles.labDate}>{formatDate(protocol.baseline_labs_date)}</span>
-                  )}
-                  {!protocol.baseline_labs_completed && (
-                    <button 
-                      onClick={() => markLabComplete('baseline')}
-                      style={styles.markLabBtn}
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>Phone</label>
+                    <input
+                      type="tel"
+                      value={form.patient_phone}
+                      onChange={e => setForm({ ...form, patient_phone: e.target.value })}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>Email</label>
+                    <input
+                      type="email"
+                      value={form.patient_email}
+                      onChange={e => setForm({ ...form, patient_email: e.target.value })}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>Status</label>
+                    <select
+                      value={form.status}
+                      onChange={e => setForm({ ...form, status: e.target.value })}
+                      style={styles.select}
                     >
-                      Mark Complete
-                    </button>
-                  )}
-                </div>
-                <div style={styles.labItem}>
-                  <span style={protocol.followup_labs_completed ? styles.labDone : styles.labPending}>
-                    {protocol.followup_labs_completed ? '✓' : '○'}
-                  </span>
-                  <span>Follow-up Labs</span>
-                  {protocol.followup_labs_due && !protocol.followup_labs_completed && (
-                    <span style={styles.labDate}>Due: {formatDate(protocol.followup_labs_due)}</span>
-                  )}
-                  {!protocol.followup_labs_completed && (
-                    <button 
-                      onClick={() => markLabComplete('followup')}
-                      style={styles.markLabBtn}
-                    >
-                      Mark Complete
-                    </button>
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Sessions / Injections */}
-          {sessions.length > 0 && (
-            <section style={styles.card}>
-              <div style={styles.cardHeader}>
-                <h2 style={styles.cardTitle}>
-                  {protocol.protocol_name?.includes('Recovery') ? 'Injections' : 'Sessions'}
-                </h2>
-                {protocol.end_date && (
-                  <button onClick={extendProtocol} style={styles.extendBtn}>+ Extend</button>
-                )}
-              </div>
-              <div style={styles.sessionGrid}>
-                {sessions.map((s, i) => {
-                  const isPast = s.scheduled_date < today;
-                  const isToday = s.scheduled_date === today;
-                  const done = s.status === 'completed';
+                      <option value="active">Active</option>
+                      <option value="completed">Completed</option>
+                      <option value="paused">Paused</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
                   
-                  return (
-                    <button
-                      key={s.id || i}
-                      onClick={() => markSession(s.id, done ? 'scheduled' : 'completed')}
-                      style={{
-                        ...styles.sessionCard,
-                        background: done ? '#000' : '#fff',
-                        color: done ? '#fff' : '#000',
-                        borderColor: isToday ? '#000' : '#e5e5e5',
-                        borderWidth: isToday ? '2px' : '1px'
-                      }}
+                  <div style={{ ...styles.field, gridColumn: '1 / -1' }}>
+                    <label style={styles.fieldLabel}>Medication</label>
+                    {typeConfig?.medications ? (
+                      <select
+                        value={form.primary_peptide}
+                        onChange={e => setForm({ ...form, primary_peptide: e.target.value })}
+                        style={styles.select}
+                      >
+                        <option value="">Select...</option>
+                        {typeConfig.medications.map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={form.primary_peptide}
+                        onChange={e => setForm({ ...form, primary_peptide: e.target.value })}
+                        style={styles.input}
+                      />
+                    )}
+                  </div>
+                  
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>Dosage</label>
+                    {typeConfig?.dosages ? (
+                      <select
+                        value={form.dose_amount}
+                        onChange={e => setForm({ ...form, dose_amount: e.target.value })}
+                        style={styles.select}
+                      >
+                        <option value="">Select...</option>
+                        {typeConfig.dosages.map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={form.dose_amount}
+                        onChange={e => setForm({ ...form, dose_amount: e.target.value })}
+                        style={styles.input}
+                      />
+                    )}
+                  </div>
+                  
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>Frequency</label>
+                    <select
+                      value={form.dose_frequency}
+                      onChange={e => setForm({ ...form, dose_frequency: e.target.value })}
+                      style={styles.select}
                     >
-                      <div style={styles.sessionNum}>Day {s.session_number}</div>
-                      <div style={styles.sessionDate}>{formatDateShort(s.scheduled_date)}</div>
-                      {done && <div style={styles.sessionCheck}>✓</div>}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Symptom Check-ins */}
-          {checkins.length > 0 && (
-            <section style={styles.card}>
-              <h2 style={styles.cardTitle}>Symptom History</h2>
-              <div style={styles.checkinList}>
-                {checkins.map((c, i) => (
-                  <div key={c.id || i} style={styles.checkinItem}>
-                    <div style={styles.checkinDate}>{formatDate(c.checkin_date)}</div>
-                    <div style={styles.checkinScores}>
-                      {c.pain_score != null && <span>Pain: {c.pain_score}</span>}
-                      {c.mobility_score != null && <span>Mobility: {c.mobility_score}</span>}
-                      {c.energy_score != null && <span>Energy: {c.energy_score}</span>}
-                      {c.sleep_score != null && <span>Sleep: {c.sleep_score}</span>}
-                      {c.weight != null && <span>Weight: {c.weight} lbs</span>}
+                      <option value="daily">Daily</option>
+                      <option value="2x_daily">Twice Daily</option>
+                      <option value="2x_weekly">2x per Week</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </div>
+                  
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>Delivery</label>
+                    <select
+                      value={form.injection_location}
+                      onChange={e => setForm({ ...form, injection_location: e.target.value })}
+                      style={styles.select}
+                    >
+                      <option value="take_home">Take Home</option>
+                      <option value="in_clinic">In Clinic</option>
+                    </select>
+                  </div>
+                  
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>Start Date</label>
+                    <input
+                      type="date"
+                      value={form.start_date}
+                      onChange={e => setForm({ ...form, start_date: e.target.value })}
+                      style={styles.input}
+                    />
+                  </div>
+                  
+                  <div style={styles.field}>
+                    <label style={styles.fieldLabel}>End Date</label>
+                    <input
+                      type="date"
+                      value={form.end_date}
+                      onChange={e => setForm({ ...form, end_date: e.target.value })}
+                      style={styles.input}
+                    />
+                  </div>
+                  
+                  <div style={{ ...styles.field, gridColumn: '1 / -1' }}>
+                    <label style={styles.fieldLabel}>Special Instructions</label>
+                    <textarea
+                      value={form.special_instructions}
+                      onChange={e => setForm({ ...form, special_instructions: e.target.value })}
+                      style={{ ...styles.input, minHeight: '80px' }}
+                    />
+                  </div>
+                  
+                  <div style={{ ...styles.field, gridColumn: '1 / -1' }}>
+                    <label style={styles.fieldLabel}>Notes</label>
+                    <textarea
+                      value={form.notes}
+                      onChange={e => setForm({ ...form, notes: e.target.value })}
+                      style={{ ...styles.input, minHeight: '80px' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div style={styles.detailsGrid}>
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>Medication</div>
+                    <div style={styles.detailValue}>{protocol?.primary_peptide || '—'}</div>
+                  </div>
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>Dosage</div>
+                    <div style={styles.detailValue}>{protocol?.dose_amount || '—'}</div>
+                  </div>
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>Frequency</div>
+                    <div style={styles.detailValue}>{formatFrequency(protocol?.dose_frequency)}</div>
+                  </div>
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>Delivery</div>
+                    <div style={styles.detailValue}>
+                      {protocol?.injection_location === 'take_home' ? '🏠 Take Home' : '🏥 In Clinic'}
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>Start Date</div>
+                    <div style={styles.detailValue}>{formatDate(protocol?.start_date)}</div>
+                  </div>
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>End Date</div>
+                    <div style={styles.detailValue}>{formatDate(protocol?.end_date)}</div>
+                  </div>
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>Phone</div>
+                    <div style={styles.detailValue}>{protocol?.patient_phone || '—'}</div>
+                  </div>
+                  <div style={styles.detailItem}>
+                    <div style={styles.detailLabel}>Email</div>
+                    <div style={styles.detailValue}>{protocol?.patient_email || '—'}</div>
+                  </div>
+                  {protocol?.special_instructions && (
+                    <div style={{ ...styles.detailItem, gridColumn: '1 / -1' }}>
+                      <div style={styles.detailLabel}>Special Instructions</div>
+                      <div style={styles.detailValue}>{protocol.special_instructions}</div>
+                    </div>
+                  )}
+                  {protocol?.notes && (
+                    <div style={{ ...styles.detailItem, gridColumn: '1 / -1' }}>
+                      <div style={styles.detailLabel}>Notes</div>
+                      <div style={styles.detailValue} style={{ whiteSpace: 'pre-wrap' }}>{protocol.notes}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-          {/* Notes */}
-          {protocol.notes && (
-            <section style={styles.card}>
-              <h2 style={styles.cardTitle}>Notes</h2>
-              <p style={styles.notes}>{protocol.notes}</p>
-            </section>
-          )}
-        </main>
+            {/* Injection Calendar */}
+            {typeConfig?.hasCalendar !== false && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>Injection Calendar</h2>
+                <p style={styles.cardSubtitle}>Click a day to mark as complete</p>
+                
+                <div style={styles.calendarGrid}>
+                  {Array.from({ length: totalDays }, (_, i) => {
+                    const dayNum = i + 1;
+                    const session = sessions.find(s => s.session_number === dayNum || s.day_number === dayNum);
+                    const isComplete = session?.status === 'completed' || session?.completed;
+                    
+                    return (
+                      <button
+                        key={dayNum}
+                        onClick={() => handleSessionToggle(dayNum)}
+                        style={{
+                          ...styles.calendarDay,
+                          background: isComplete ? '#000' : '#fff',
+                          color: isComplete ? '#fff' : '#000',
+                          borderColor: isComplete ? '#000' : '#ddd'
+                        }}
+                      >
+                        <div style={styles.dayNumber}>{dayNum}</div>
+                        {isComplete && <div style={styles.checkmark}>✓</div>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Actions */}
+          <div style={styles.sideCol}>
+            {/* Quick Actions */}
+            <div style={styles.card}>
+              <h2 style={styles.cardTitle}>Quick Actions</h2>
+              
+              <div style={styles.actionStack}>
+                <button
+                  onClick={handleSendPortalLink}
+                  disabled={sendingText || !protocol?.patient_phone}
+                  style={styles.actionBtn}
+                >
+                  {sendingText ? 'Sending...' : '📱 Send Portal Link'}
+                </button>
+                
+                {protocol?.access_token && (
+                  <a
+                    href={`/portal/${protocol.access_token}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={styles.actionBtnSecondary}
+                  >
+                    👁️ View Patient Portal
+                  </a>
+                )}
+                
+                {protocol?.patient_phone && (
+                  <a href={`tel:${protocol.patient_phone}`} style={styles.actionBtnSecondary}>
+                    📞 Call Patient
+                  </a>
+                )}
+                
+                {protocol?.patient_phone && (
+                  <a href={`sms:${protocol.patient_phone}`} style={styles.actionBtnSecondary}>
+                    💬 Text Patient
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Portal Link */}
+            {protocol?.access_token && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>Patient Portal Link</h2>
+                <div style={styles.linkBox}>
+                  <code style={styles.linkCode}>
+                    /portal/{protocol.access_token.substring(0, 8)}...
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://app.range-medical.com/portal/${protocol.access_token}`);
+                      setSuccess('Link copied!');
+                    }}
+                    style={styles.copyBtn}
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );
 }
 
-function formatDate(d) {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+// Helper functions
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric'
+  });
 }
 
-function formatDateShort(d) {
-  if (!d) return '';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function formatFrequency(f) {
+function formatFrequency(freq) {
   const map = {
-    daily: 'Daily',
-    '2x_daily': 'Twice daily',
-    '2x_weekly': '2x per week',
-    weekly: 'Weekly',
-    per_session: 'Per session'
+    'daily': 'Daily',
+    '2x_daily': 'Twice Daily',
+    '2x_weekly': '2x per Week',
+    'weekly': 'Weekly',
+    '3x_weekly': '3x per Week'
   };
-  return map[f] || f || '-';
+  return map[freq] || freq || '—';
 }
 
+// Styles
 const styles = {
-  container: { minHeight: '100vh', background: '#f5f5f5', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' },
-  loading: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  error: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' },
-
-  header: { background: '#000', color: '#fff', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  backLink: { color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' },
-  title: { fontSize: '20px', fontWeight: '600', margin: '4px 0 0' },
-  headerActions: { display: 'flex', gap: '12px' },
-  sendBtn: { padding: '8px 16px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
-  viewBtn: { padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', textDecoration: 'none' },
-
-  main: { maxWidth: '900px', margin: '0 auto', padding: '24px' },
-
-  card: { background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
-  cardTitle: { fontSize: '16px', fontWeight: '600', margin: 0 },
-  statusBadge: { padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500', textTransform: 'capitalize' },
-
-  infoGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' },
-  infoItem: { display: 'flex', flexDirection: 'column' },
-  infoLabel: { fontSize: '12px', color: '#666', marginBottom: '4px' },
-  infoValue: { fontSize: '15px', fontWeight: '500' },
-
-  contactRow: { display: 'flex', gap: '24px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' },
-  contactLink: { color: '#000', textDecoration: 'none', fontSize: '14px' },
-
-  supplyInfo: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  supplyMain: { display: 'flex', alignItems: 'baseline', gap: '8px' },
-  supplyValue: { fontSize: '36px', fontWeight: '700' },
-  supplyLabel: { fontSize: '14px', color: '#666' },
-  supplyMeta: { fontSize: '13px', color: '#666' },
-
-  doseInfo: { display: 'flex', gap: '48px' },
-  doseValue: { display: 'block', fontSize: '28px', fontWeight: '700' },
-  doseLabel: { display: 'block', fontSize: '13px', color: '#666' },
-  titrationAlert: { marginTop: '16px', padding: '12px', background: '#fef3c7', borderRadius: '8px', fontSize: '14px', color: '#92400e' },
-
-  labList: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  labItem: { display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px' },
-  labDone: { color: '#16a34a', fontSize: '18px' },
-  labPending: { color: '#999', fontSize: '18px' },
-  labDate: { color: '#666', marginLeft: 'auto' },
-  markLabBtn: { padding: '4px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' },
-
-  extendBtn: { padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' },
-  sessionGrid: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' },
-  sessionCard: { padding: '12px', border: '1px solid', borderRadius: '8px', cursor: 'pointer', textAlign: 'center' },
-  sessionNum: { fontSize: '13px', fontWeight: '600' },
-  sessionDate: { fontSize: '11px', opacity: 0.7, marginTop: '2px' },
-  sessionCheck: { marginTop: '4px' },
-
-  checkinList: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  checkinItem: { padding: '12px', background: '#fafafa', borderRadius: '8px' },
-  checkinDate: { fontSize: '13px', fontWeight: '600', marginBottom: '8px' },
-  checkinScores: { display: 'flex', gap: '16px', fontSize: '13px', color: '#666', flexWrap: 'wrap' },
-
-  notes: { fontSize: '14px', color: '#666', margin: 0, lineHeight: 1.6 }
+  container: {
+    minHeight: '100vh',
+    background: '#f5f5f5',
+    fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+  },
+  loading: {
+    padding: '60px',
+    textAlign: 'center',
+    color: '#666'
+  },
+  error: {
+    padding: '20px',
+    margin: '20px',
+    background: '#fee2e2',
+    color: '#dc2626',
+    borderRadius: '8px'
+  },
+  header: {
+    background: '#000',
+    color: '#fff',
+    padding: '20px 24px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
+  },
+  backLink: {
+    color: 'rgba(255,255,255,0.7)',
+    textDecoration: 'none',
+    fontSize: '14px',
+    display: 'block',
+    marginBottom: '8px'
+  },
+  title: {
+    margin: 0,
+    fontSize: '24px',
+    fontWeight: '600'
+  },
+  subtitle: {
+    margin: '4px 0 0',
+    fontSize: '14px',
+    opacity: 0.8
+  },
+  headerActions: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center'
+  },
+  linkBtn: {
+    padding: '10px 16px',
+    background: 'rgba(255,255,255,0.1)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.2)',
+    borderRadius: '6px',
+    textDecoration: 'none',
+    fontSize: '14px'
+  },
+  editBtn: {
+    padding: '10px 20px',
+    background: '#fff',
+    color: '#000',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  },
+  cancelBtn: {
+    padding: '10px 16px',
+    background: 'rgba(255,255,255,0.1)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.2)',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  saveBtn: {
+    padding: '10px 20px',
+    background: '#22c55e',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  },
+  errorAlert: {
+    margin: '16px 24px 0',
+    padding: '12px 16px',
+    background: '#fee2e2',
+    color: '#dc2626',
+    borderRadius: '8px',
+    fontSize: '14px'
+  },
+  successAlert: {
+    margin: '16px 24px 0',
+    padding: '12px 16px',
+    background: '#dcfce7',
+    color: '#166534',
+    borderRadius: '8px',
+    fontSize: '14px'
+  },
+  content: {
+    padding: '24px',
+    display: 'grid',
+    gridTemplateColumns: '1fr 320px',
+    gap: '24px',
+    maxWidth: '1400px'
+  },
+  mainCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px'
+  },
+  sideCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px'
+  },
+  card: {
+    background: '#fff',
+    borderRadius: '12px',
+    padding: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  },
+  cardTitle: {
+    margin: '0 0 16px',
+    fontSize: '16px',
+    fontWeight: '600'
+  },
+  cardSubtitle: {
+    margin: '-12px 0 16px',
+    fontSize: '13px',
+    color: '#666'
+  },
+  statusRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px'
+  },
+  bigNumber: {
+    fontSize: '32px',
+    fontWeight: '700',
+    lineHeight: 1
+  },
+  label: {
+    fontSize: '12px',
+    color: '#666',
+    marginTop: '4px'
+  },
+  statusBadge: {
+    padding: '6px 12px',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '500',
+    textTransform: 'capitalize'
+  },
+  progressBar: {
+    height: '8px',
+    background: '#e5e5e5',
+    borderRadius: '4px',
+    overflow: 'hidden'
+  },
+  progressFill: {
+    height: '100%',
+    background: '#000',
+    borderRadius: '4px',
+    transition: 'width 0.3s'
+  },
+  formGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px'
+  },
+  field: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  fieldLabel: {
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: '6px'
+  },
+  input: {
+    padding: '10px 12px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontFamily: 'inherit'
+  },
+  select: {
+    padding: '10px 12px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    fontSize: '14px',
+    background: '#fff'
+  },
+  detailsGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px'
+  },
+  detailItem: {},
+  detailLabel: {
+    fontSize: '12px',
+    color: '#666',
+    marginBottom: '4px'
+  },
+  detailValue: {
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  calendarGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))',
+    gap: '8px'
+  },
+  calendarDay: {
+    aspectRatio: '1',
+    border: '2px solid',
+    borderRadius: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    fontFamily: 'inherit'
+  },
+  dayNumber: {
+    fontSize: '16px',
+    fontWeight: '600'
+  },
+  checkmark: {
+    fontSize: '12px',
+    marginTop: '2px'
+  },
+  actionStack: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px'
+  },
+  actionBtn: {
+    padding: '12px 16px',
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    textAlign: 'center'
+  },
+  actionBtnSecondary: {
+    padding: '12px 16px',
+    background: '#f5f5f5',
+    color: '#000',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    fontSize: '14px',
+    textDecoration: 'none',
+    textAlign: 'center',
+    display: 'block'
+  },
+  linkBox: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  linkCode: {
+    flex: 1,
+    padding: '10px',
+    background: '#f5f5f5',
+    borderRadius: '6px',
+    fontSize: '12px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
+  copyBtn: {
+    padding: '10px 16px',
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    cursor: 'pointer'
+  }
 };

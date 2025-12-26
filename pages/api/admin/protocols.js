@@ -154,7 +154,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { patient_id, ghl_contact_id, status, search, limit, sort, direction } = req.query;
 
-    let query = supabase.from('protocols').select('*');
+    let query = supabase.from('protocols').select('*', { count: 'exact' });
 
     if (patient_id) {
       query = query.eq('patient_id', patient_id);
@@ -174,28 +174,24 @@ export default async function handler(req, res) {
     if (search) {
       query = query.or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%,program_name.ilike.%${search}%`);
     }
-    if (limit) {
-      query = query.limit(parseInt(limit));
-    }
+    
+    // Always set explicit limit to override Supabase default of 1000
+    const maxLimit = limit ? parseInt(limit) : 10000;
+    query = query.limit(maxLimit);
 
     // Sorting
-    const sortField = sort || 'end_date';
+    const sortField = sort || 'created_at';
     const sortAscending = direction !== 'desc';
     
-    // Handle null values for end_date
-    if (sortField === 'end_date') {
-      query = query.order('end_date', { ascending: sortAscending, nullsFirst: false });
-    } else {
-      query = query.order(sortField, { ascending: sortAscending });
-    }
+    query = query.order(sortField, { ascending: sortAscending, nullsFirst: false });
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch protocols' });
+      return res.status(500).json({ error: 'Failed to fetch protocols', details: error.message });
     }
 
-    return res.status(200).json({ protocols: data });
+    return res.status(200).json({ protocols: data, total: count });
   }
 
   // PUT - Update protocol

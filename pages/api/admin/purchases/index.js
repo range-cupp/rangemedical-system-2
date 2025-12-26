@@ -18,7 +18,6 @@ export default async function handler(req, res) {
       let query = supabase
         .from('purchases')
         .select('*', { count: 'exact' })
-        .order('payment_date', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       // Category filter
@@ -35,7 +34,7 @@ export default async function handler(req, res) {
       if (days && days !== 'all') {
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - parseInt(days));
-        query = query.gte('payment_date', daysAgo.toISOString().split('T')[0]);
+        query = query.gte('created_at', daysAgo.toISOString());
       }
 
       // Search
@@ -51,7 +50,7 @@ export default async function handler(req, res) {
 
       if (error) {
         console.error('Purchases fetch error:', error);
-        return res.status(500).json({ error: 'Failed to fetch purchases' });
+        return res.status(500).json({ error: 'Failed to fetch purchases', details: error.message });
       }
 
       // Calculate stats
@@ -66,7 +65,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
       console.error('Purchases API error:', error);
-      return res.status(500).json({ error: 'Server error' });
+      return res.status(500).json({ error: 'Server error', details: error.message });
     }
   }
 

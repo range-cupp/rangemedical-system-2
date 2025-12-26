@@ -29,7 +29,7 @@ export default function ProtocolsPage() {
 
   const fetchProtocols = async () => {
     try {
-      const res = await fetch('/api/admin/protocols?limit=500');
+      const res = await fetch('/api/admin/protocols');
       if (res.ok) {
         const data = await res.json();
         setProtocols(data.protocols || data || []);

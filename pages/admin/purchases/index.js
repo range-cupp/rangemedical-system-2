@@ -90,7 +90,15 @@ const PROTOCOL_TYPES = {
     category: 'Injection',
     medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
     injections: [5, 10, 12, 20, 24],
-    frequencies: [{ value: 'per_session', label: 'Per session' }],
+    frequencies: [
+      { value: '1x_weekly', label: '1x per week' },
+      { value: '2x_weekly', label: '2x per week' },
+      { value: '3x_weekly', label: '3x per week' },
+      { value: '4x_weekly', label: '4x per week' },
+      { value: '5x_weekly', label: '5x per week' },
+      { value: '6x_weekly', label: '6x per week' },
+      { value: '7x_weekly', label: '7x per week' }
+    ],
     hasDosageNotes: true
   },
   red_light: {

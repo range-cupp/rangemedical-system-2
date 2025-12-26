@@ -1,328 +1,409 @@
 // /pages/admin/utilities.js
-// Admin Utilities Page - Range Medical
-// Tools for data management and maintenance
+// Admin Utilities - Sync purchases from GHL CSV
+// Range Medical
 
 import { useState } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
+import AdminNav from '../../components/AdminNav';
 
-export default function AdminUtilities() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
+// Parse CSV
+function parseCSV(content) {
+  const lines = content.split('\n');
+  const headers = parseCSVLine(lines[0]);
+  const records = [];
   
-  // Link Forms state
-  const [linkingForms, setLinkingForms] = useState(false);
-  const [linkFormsResult, setLinkFormsResult] = useState(null);
-  
-  // Link Contacts state
-  const [linkingContacts, setLinkingContacts] = useState(false);
-  const [linkContactsResult, setLinkContactsResult] = useState(null);
-  
-  // Backfill Patients state
-  const [backfilling, setBackfilling] = useState(false);
-  const [backfillResult, setBackfillResult] = useState(null);
-
-  const handleLogin = () => {
-    if (password === 'range2024') {
-      setIsAuthenticated(true);
-    } else {
-      alert('Invalid password');
-    }
-  };
-
-  const handleLinkForms = async () => {
-    if (!confirm('This will link all unlinked consents and intakes to patient records. Continue?')) {
-      return;
-    }
-    
-    setLinkingForms(true);
-    setLinkFormsResult(null);
-    
-    try {
-      const res = await fetch('/api/admin/link-forms', { method: 'POST' });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setLinkFormsResult(data);
-      } else {
-        alert('Error: ' + (data.error || 'Failed to link forms'));
-      }
-    } catch (err) {
-      alert('Error: ' + err.message);
-    } finally {
-      setLinkingForms(false);
-    }
-  };
-
-  const handleLinkContacts = async () => {
-    if (!confirm('This will link all unlinked purchases and protocols to patient records. Continue?')) {
-      return;
-    }
-    
-    setLinkingContacts(true);
-    setLinkContactsResult(null);
-    
-    try {
-      const res = await fetch('/api/admin/purchases/link-contacts', { method: 'POST' });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setLinkContactsResult(data);
-      } else {
-        alert('Error: ' + (data.error || 'Failed to link contacts'));
-      }
-    } catch (err) {
-      alert('Error: ' + err.message);
-    } finally {
-      setLinkingContacts(false);
-    }
-  };
-
-  const handleBackfillPatients = async () => {
-    if (!confirm('This will create patient records from intakes that do not have linked patients. Continue?')) {
-      return;
-    }
-    
-    setBackfilling(true);
-    setBackfillResult(null);
-    
-    try {
-      const res = await fetch('/api/admin/backfill-patients-from-intakes', { method: 'POST' });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setBackfillResult(data);
-      } else {
-        alert('Error: ' + (data.error || 'Failed to backfill patients'));
-      }
-    } catch (err) {
-      alert('Error: ' + err.message);
-    } finally {
-      setBackfilling(false);
-    }
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Head>
-          <title>Admin Utilities | Range Medical</title>
-        </Head>
-        <div style={{ 
-          minHeight: '100vh', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          background: '#f5f5f5'
-        }}>
-          <div style={{ 
-            background: 'white', 
-            padding: '40px', 
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            width: '100%',
-            maxWidth: '360px'
-          }}>
-            <h1 style={{ margin: '0 0 24px', fontSize: '24px', fontWeight: '600' }}>Admin Utilities</h1>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '1px solid #e5e5e5',
-                borderRadius: '8px',
-                fontSize: '14px',
-                marginBottom: '16px',
-                boxSizing: 'border-box'
-              }}
-            />
-            <button
-              onClick={handleLogin}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: '#000',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-            >
-              Login
-            </button>
-          </div>
-        </div>
-      </>
-    );
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const values = parseCSVLine(lines[i]);
+    const record = {};
+    headers.forEach((h, idx) => {
+      record[h] = values[idx] || '';
+    });
+    records.push(record);
   }
+  return records;
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().split('T')[0];
+}
+
+export default function UtilitiesPage() {
+  const [file, setFile] = useState(null);
+  const [status, setStatus] = useState('');
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+    setResult(null);
+    setStatus('');
+  };
+
+  const processCSV = async (dryRun = true) => {
+    if (!file) {
+      setStatus('Please select a CSV file');
+      return;
+    }
+
+    setLoading(true);
+    setStatus(dryRun ? 'Analyzing CSV...' : 'Syncing purchases...');
+
+    try {
+      const content = await file.text();
+      const records = parseCSV(content);
+
+      // Filter: no calendar, only succeeded
+      const valid = records.filter(r => 
+        r['Source type'] !== 'calendar' && 
+        r['Status'] === 'succeeded'
+      );
+
+      const calendarCount = records.filter(r => r['Source type'] === 'calendar').length;
+
+      // Map to purchase format
+      const purchases = valid.map(r => ({
+        ghl_transaction_id: r['Internal transaction id'],
+        ghl_contact_id: r['Customer id'],
+        patient_name: r['Customer name'],
+        patient_email: r['Customer email'],
+        patient_phone: r['Customer phone'],
+        item_name: r['Line item name'],
+        amount: parseFloat(r['Total amount paid']) || 0,
+        list_price: parseFloat(r['Sub total']) || null,
+        quantity: parseInt(r['Line item quantity']) || 1,
+        source: r['Source type'] || 'ghl',
+        purchase_date: parseDate(r['Transaction date']),
+        ghl_source_type: r['Source type']
+      }));
+
+      // Call sync API
+      const res = await fetch('/api/admin/purchases/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchases, dryRun })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Sync failed');
+      }
+
+      setResult({
+        ...data,
+        csvTotal: records.length,
+        calendarSkipped: calendarCount,
+        validRecords: valid.length,
+        totalAmount: purchases.reduce((sum, p) => sum + p.amount, 0)
+      });
+      setStatus(dryRun ? 'Analysis complete' : 'Sync complete!');
+
+    } catch (err) {
+      setStatus(`Error: ${err.message}`);
+      setResult(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteCalendar = async () => {
+    if (!confirm('Delete all calendar source transactions from the database?')) {
+      return;
+    }
+
+    setLoading(true);
+    setStatus('Deleting calendar transactions...');
+
+    try {
+      const res = await fetch('/api/admin/purchases/sync', {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Delete failed');
+      }
+
+      setStatus(`Deleted ${data.deleted} calendar transactions`);
+      setResult(null);
+
+    } catch (err) {
+      setStatus(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
       <Head>
-        <title>Admin Utilities | Range Medical</title>
+        <title>Utilities | Range Medical</title>
       </Head>
-      
-      <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-        {/* Header */}
-        <header style={{ background: 'white', borderBottom: '1px solid #e5e5e5', padding: '16px 24px' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Admin Utilities</h1>
-            <Link href="/admin/protocols" style={{ color: '#666', fontSize: '14px', textDecoration: 'none' }}>
-              ← Back to Dashboard
-            </Link>
-          </div>
-        </header>
 
-        {/* Content */}
-        <main style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
-          
-          {/* Link Forms Card */}
-          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', marginBottom: '24px', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0' }}>
-              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Link Forms to Patients</h2>
-              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#888' }}>
-                Connect unlinked consents and medical intakes to patient records
-              </p>
-            </div>
-            <div style={{ padding: '20px 24px' }}>
-              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#666' }}>
-                This will find all consents and intakes that don't have a patient_id and attempt to match them 
-                to patients using GHL Contact ID, email, or phone number.
-              </p>
-              
-              <button
-                onClick={handleLinkForms}
-                disabled={linkingForms}
-                style={{
-                  padding: '10px 20px',
-                  background: linkingForms ? '#ccc' : '#000',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: linkingForms ? 'wait' : 'pointer'
-                }}
-              >
-                {linkingForms ? 'Linking...' : 'Link Forms'}
-              </button>
-              
-              {linkFormsResult && (
-                <div style={{ marginTop: '16px', padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a', marginBottom: '8px' }}>✓ Complete</div>
-                  <div style={{ fontSize: '13px', color: '#666' }}>
-                    <div>Consents: Found {linkFormsResult.results?.consents?.found || 0}, Linked {linkFormsResult.results?.consents?.linked || 0}</div>
-                    <div>Intakes: Found {linkFormsResult.results?.intakes?.found || 0}, Linked {linkFormsResult.results?.intakes?.linked || 0}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+      <div style={styles.container}>
+        <AdminNav title="Utilities" subtitle="Admin tools" />
 
-          {/* Link Contacts Card */}
-          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', marginBottom: '24px', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0' }}>
-              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Link Purchases to Patients</h2>
-              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#888' }}>
-                Connect unlinked purchases to patient records
-              </p>
-            </div>
-            <div style={{ padding: '20px 24px' }}>
-              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#666' }}>
-                This will find all purchases without a GHL Contact ID and attempt to match them 
-                to patients using name matching (including nicknames).
-              </p>
-              
-              <button
-                onClick={handleLinkContacts}
-                disabled={linkingContacts}
-                style={{
-                  padding: '10px 20px',
-                  background: linkingContacts ? '#ccc' : '#000',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: linkingContacts ? 'wait' : 'pointer'
-                }}
-              >
-                {linkingContacts ? 'Linking...' : 'Link Purchases'}
-              </button>
-              
-              {linkContactsResult && (
-                <div style={{ marginTop: '16px', padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a', marginBottom: '8px' }}>✓ Complete</div>
-                  <div style={{ fontSize: '13px', color: '#666' }}>
-                    Updated {linkContactsResult.updated || 0} purchases, Skipped {linkContactsResult.skipped || 0}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Info Card */}
-          <div style={{ background: '#fffbeb', borderRadius: '12px', border: '1px solid #fef3c7', padding: '20px 24px', marginBottom: '24px' }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: '600', color: '#92400e' }}>💡 Automatic Linking</h3>
-            <p style={{ margin: 0, fontSize: '13px', color: '#92400e' }}>
-              New form submissions are automatically linked to patients when they come in via webhooks. 
-              A daily cron job also runs to catch any forms that may have been missed.
+        <main style={styles.main}>
+          {/* Sync Purchases Card */}
+          <div style={styles.card}>
+            <h2 style={styles.cardTitle}>Sync GHL Purchases</h2>
+            <p style={styles.cardDesc}>
+              Upload a GHL transactions CSV export to sync purchases. Calendar source transactions are automatically excluded.
             </p>
-          </div>
 
-          {/* Backfill Patients Card */}
-          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e5e5', marginBottom: '24px', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0' }}>
-              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Create Patients from Intakes</h2>
-              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#888' }}>
-                Create patient records from existing intake forms
-              </p>
+            <div style={styles.uploadArea}>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                style={styles.fileInput}
+                id="csvFile"
+              />
+              <label htmlFor="csvFile" style={styles.fileLabel}>
+                {file ? file.name : 'Choose CSV file...'}
+              </label>
             </div>
-            <div style={{ padding: '20px 24px' }}>
-              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#666' }}>
-                This will scan all intakes and create patient records for any that don't have one. 
-                Useful for intakes submitted before patient creation was automatic.
-              </p>
-              
+
+            <div style={styles.buttonRow}>
               <button
-                onClick={handleBackfillPatients}
-                disabled={backfilling}
-                style={{
-                  padding: '10px 20px',
-                  background: backfilling ? '#ccc' : '#000',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: backfilling ? 'wait' : 'pointer'
-                }}
+                onClick={() => processCSV(true)}
+                disabled={loading || !file}
+                style={styles.btnSecondary}
               >
-                {backfilling ? 'Processing...' : 'Create Patients from Intakes'}
+                {loading ? 'Processing...' : 'Analyze (Dry Run)'}
               </button>
-              
-              {backfillResult && (
-                <div style={{ marginTop: '16px', padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a', marginBottom: '8px' }}>✓ Complete</div>
-                  <div style={{ fontSize: '13px', color: '#666' }}>
-                    <div>Intakes processed: {backfillResult.results?.intakesProcessed || 0}</div>
-                    <div>New patients created: {backfillResult.results?.patientsCreated || 0}</div>
-                    <div>Linked to existing: {backfillResult.results?.patientsLinked || 0}</div>
-                    <div>Already linked: {backfillResult.results?.alreadyLinked || 0}</div>
+              <button
+                onClick={() => processCSV(false)}
+                disabled={loading || !file}
+                style={styles.btnPrimary}
+              >
+                {loading ? 'Syncing...' : 'Sync Purchases'}
+              </button>
+            </div>
+
+            {status && (
+              <div style={{
+                ...styles.status,
+                background: status.includes('Error') ? '#fee2e2' : 
+                            status.includes('complete') ? '#dcfce7' : '#f5f5f5',
+                color: status.includes('Error') ? '#dc2626' : 
+                       status.includes('complete') ? '#166534' : '#666'
+              }}>
+                {status}
+              </div>
+            )}
+
+            {result && (
+              <div style={styles.resultBox}>
+                <h3 style={styles.resultTitle}>
+                  {result.dryRun ? 'Analysis Results' : 'Sync Results'}
+                </h3>
+                <div style={styles.resultGrid}>
+                  <div style={styles.resultItem}>
+                    <div style={styles.resultValue}>{result.csvTotal?.toLocaleString()}</div>
+                    <div style={styles.resultLabel}>CSV Records</div>
+                  </div>
+                  <div style={styles.resultItem}>
+                    <div style={styles.resultValue}>{result.calendarSkipped?.toLocaleString()}</div>
+                    <div style={styles.resultLabel}>Calendar (Skipped)</div>
+                  </div>
+                  <div style={styles.resultItem}>
+                    <div style={styles.resultValue}>{result.validRecords?.toLocaleString()}</div>
+                    <div style={styles.resultLabel}>Valid Records</div>
+                  </div>
+                  <div style={styles.resultItem}>
+                    <div style={styles.resultValue}>${result.totalAmount?.toLocaleString()}</div>
+                    <div style={styles.resultLabel}>Total Amount</div>
                   </div>
                 </div>
-              )}
-            </div>
+                
+                <div style={styles.divider} />
+                
+                <div style={styles.resultGrid}>
+                  <div style={styles.resultItem}>
+                    <div style={styles.resultValue}>{result.existing?.toLocaleString()}</div>
+                    <div style={styles.resultLabel}>Existing in DB</div>
+                  </div>
+                  <div style={styles.resultItem}>
+                    <div style={{ ...styles.resultValue, color: '#166534' }}>
+                      {(result.toInsert || result.inserted || 0).toLocaleString()}
+                    </div>
+                    <div style={styles.resultLabel}>
+                      {result.dryRun ? 'Will Insert' : 'Inserted'}
+                    </div>
+                  </div>
+                  <div style={styles.resultItem}>
+                    <div style={styles.resultValue}>{result.duplicates?.toLocaleString() || result.duplicatesSkipped?.toLocaleString() || 0}</div>
+                    <div style={styles.resultLabel}>Duplicates</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          
+
+          {/* Delete Calendar Card */}
+          <div style={styles.card}>
+            <h2 style={styles.cardTitle}>Delete Calendar Transactions</h2>
+            <p style={styles.cardDesc}>
+              Remove any existing calendar source transactions from the database.
+            </p>
+            <button
+              onClick={deleteCalendar}
+              disabled={loading}
+              style={styles.btnDanger}
+            >
+              Delete Calendar Transactions
+            </button>
+          </div>
         </main>
       </div>
     </>
   );
 }
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    background: '#f5f5f5',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  },
+  main: {
+    maxWidth: '800px',
+    margin: '0 auto',
+    padding: '24px'
+  },
+  card: {
+    background: '#fff',
+    borderRadius: '12px',
+    padding: '24px',
+    marginBottom: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  },
+  cardTitle: {
+    margin: '0 0 8px',
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  cardDesc: {
+    margin: '0 0 20px',
+    fontSize: '14px',
+    color: '#666'
+  },
+  uploadArea: {
+    marginBottom: '16px'
+  },
+  fileInput: {
+    display: 'none'
+  },
+  fileLabel: {
+    display: 'block',
+    padding: '40px',
+    border: '2px dashed #ddd',
+    borderRadius: '8px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#666',
+    transition: 'border-color 0.2s'
+  },
+  buttonRow: {
+    display: 'flex',
+    gap: '12px'
+  },
+  btnPrimary: {
+    padding: '12px 24px',
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  btnSecondary: {
+    padding: '12px 24px',
+    background: '#f5f5f5',
+    color: '#000',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  btnDanger: {
+    padding: '12px 24px',
+    background: '#dc2626',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  status: {
+    marginTop: '16px',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    fontSize: '14px'
+  },
+  resultBox: {
+    marginTop: '20px',
+    padding: '20px',
+    background: '#fafafa',
+    borderRadius: '8px'
+  },
+  resultTitle: {
+    margin: '0 0 16px',
+    fontSize: '14px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    color: '#666'
+  },
+  resultGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '16px'
+  },
+  resultItem: {
+    textAlign: 'center'
+  },
+  resultValue: {
+    fontSize: '24px',
+    fontWeight: '700'
+  },
+  resultLabel: {
+    fontSize: '11px',
+    color: '#666',
+    marginTop: '4px'
+  },
+  divider: {
+    height: '1px',
+    background: '#e5e5e5',
+    margin: '16px 0'
+  }
+};

@@ -266,10 +266,36 @@ export default function ProtocolDetail() {
   };
 
   // Calculations
-  const totalDays = protocol?.total_sessions || protocol?.duration_days || 10;
+  const isInjectionProtocol = (protocol?.program_type || '').includes('injection') || 
+                              (protocol?.program_name || '').toLowerCase().includes('injection');
+  
+  // For injection protocols: total = total_sessions (injection count)
+  // For day protocols: total = duration_days
+  const totalUnits = protocol?.total_sessions || protocol?.duration_days || 10;
+  const totalDays = protocol?.duration_days || protocol?.total_sessions || 10;
   const currentDay = calculateCurrentDay(protocol?.start_date);
+  
+  // Calculate current injection based on frequency
+  const getFrequencyPerWeek = (freq) => {
+    if (!freq) return 1;
+    const match = freq.match(/(\d+)x/);
+    if (match) return parseInt(match[1]);
+    if (freq === 'daily') return 7;
+    if (freq === '2x_daily') return 14;
+    if (freq === 'weekly') return 1;
+    if (freq === '2x_weekly') return 2;
+    return 1;
+  };
+  
+  const frequencyPerWeek = getFrequencyPerWeek(protocol?.dose_frequency);
+  const currentInjection = isInjectionProtocol 
+    ? Math.min(Math.ceil(currentDay * frequencyPerWeek / 7), totalUnits)
+    : currentDay;
+  
   const isActive = protocol?.status === 'active';
-  const isComplete = currentDay > totalDays;
+  const isComplete = isInjectionProtocol 
+    ? currentInjection >= totalUnits 
+    : currentDay > totalDays;
 
   if (loading) {
     return <div style={styles.loadingContainer}><div style={styles.loading}>Loading...</div></div>;
@@ -317,13 +343,15 @@ export default function ProtocolDetail() {
             {/* BIG DAY DISPLAY */}
             {!isEditing && (
               <div style={styles.dayCard}>
-                <div style={styles.dayLabel}>CURRENT DAY</div>
+                <div style={styles.dayLabel}>
+                  {isInjectionProtocol ? 'CURRENT INJECTION' : 'CURRENT DAY'}
+                </div>
                 <div style={styles.dayDisplay}>
                   <span style={styles.currentDay}>
-                    {isComplete ? '✓' : (currentDay > 0 ? currentDay : '—')}
+                    {isComplete ? '✓' : (isInjectionProtocol ? (currentInjection > 0 ? currentInjection : '—') : (currentDay > 0 ? currentDay : '—'))}
                   </span>
                   <span style={styles.dayDivider}>/</span>
-                  <span style={styles.totalDays}>{totalDays}</span>
+                  <span style={styles.totalDays}>{totalUnits}</span>
                 </div>
                 <div style={styles.dayStatus}>
                   {isComplete ? (
@@ -332,7 +360,10 @@ export default function ProtocolDetail() {
                     <span style={styles.notStartedText}>Not Started Yet</span>
                   ) : (
                     <span style={styles.activeText}>
-                      {totalDays - currentDay} days remaining
+                      {isInjectionProtocol 
+                        ? `${totalUnits - currentInjection} injections remaining`
+                        : `${totalDays - currentDay} days remaining`
+                      }
                     </span>
                   )}
                 </div>
@@ -357,36 +388,44 @@ export default function ProtocolDetail() {
             {/* Calendar Grid */}
             {!isEditing && !isSessionBased && (
               <div style={styles.card}>
-                <h2 style={styles.cardTitle}>Injection Calendar</h2>
+                <h2 style={styles.cardTitle}>
+                  {isInjectionProtocol ? 'Injection Tracker' : 'Injection Calendar'}
+                </h2>
                 <div style={styles.calendarGrid}>
-                  {Array.from({ length: totalDays }, (_, i) => {
-                    const dayNum = i + 1;
-                    const isPast = currentDay > dayNum;
-                    const isToday = currentDay === dayNum;
-                    const isFuture = currentDay < dayNum;
+                  {Array.from({ length: isInjectionProtocol ? totalUnits : totalDays }, (_, i) => {
+                    const num = i + 1;
+                    const isPast = isInjectionProtocol 
+                      ? currentInjection > num 
+                      : currentDay > num;
+                    const isCurrent = isInjectionProtocol 
+                      ? currentInjection === num 
+                      : currentDay === num;
+                    const isFuture = isInjectionProtocol 
+                      ? currentInjection < num 
+                      : currentDay < num;
                     
                     return (
                       <div
-                        key={dayNum}
+                        key={num}
                         style={{
                           ...styles.calendarDay,
-                          background: isToday ? '#000' : isPast ? '#22c55e' : '#fff',
-                          color: isToday || isPast ? '#fff' : '#000',
-                          borderColor: isToday ? '#000' : isPast ? '#22c55e' : '#e5e5e5',
+                          background: isCurrent ? '#000' : isPast ? '#22c55e' : '#fff',
+                          color: isCurrent || isPast ? '#fff' : '#000',
+                          borderColor: isCurrent ? '#000' : isPast ? '#22c55e' : '#e5e5e5',
                           opacity: isFuture ? 0.5 : 1
                         }}
                       >
-                        <div style={styles.dayNumber}>{dayNum}</div>
+                        <div style={styles.dayNumber}>{num}</div>
                         {isPast && <div style={styles.checkmark}>✓</div>}
-                        {isToday && <div style={styles.todayLabel}>TODAY</div>}
+                        {isCurrent && <div style={styles.todayLabel}>{isInjectionProtocol ? 'NEXT' : 'TODAY'}</div>}
                       </div>
                     );
                   })}
                 </div>
                 <div style={styles.legend}>
-                  <span><span style={styles.legendDot} /> Past</span>
-                  <span><span style={{ ...styles.legendDot, background: '#000' }} /> Today</span>
-                  <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Future</span>
+                  <span><span style={styles.legendDot} /> {isInjectionProtocol ? 'Complete' : 'Past'}</span>
+                  <span><span style={{ ...styles.legendDot, background: '#000' }} /> {isInjectionProtocol ? 'Next' : 'Today'}</span>
+                  <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> {isInjectionProtocol ? 'Upcoming' : 'Future'}</span>
                 </div>
               </div>
             )}

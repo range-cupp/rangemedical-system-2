@@ -19,12 +19,12 @@ export default function Dashboard() {
   const fetchDashboard = async () => {
     try {
       // Fetch protocols for stats
-      const protocolsRes = await fetch('/api/admin/protocols?limit=500');
+      const protocolsRes = await fetch('/api/admin/protocols');
       const protocolsData = await protocolsRes.json();
       const protocols = protocolsData.protocols || protocolsData || [];
 
       // Fetch purchases
-      const purchasesRes = await fetch('/api/admin/purchases?limit=500');
+      const purchasesRes = await fetch('/api/admin/purchases');
       const purchasesData = await purchasesRes.json();
       const purchases = purchasesData.purchases || purchasesData || [];
 

@@ -1,0 +1,848 @@
+// /pages/admin/purchases/index.js
+// Purchases - Clean UI with Protocol Creation
+// Range Medical
+
+import { useState, useEffect } from 'react';
+import Head from 'next/head';
+import Link from 'next/link';
+import AdminNav from '../../../components/AdminNav';
+
+// Protocol Types Configuration
+const PROTOCOL_TYPES = {
+  peptide: {
+    name: 'Recovery Peptide',
+    category: 'Peptide',
+    medications: ['BPC-157 / TB-500', 'BPC-157', 'TB-500'],
+    dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
+    frequencies: [
+      { value: 'daily', label: 'Once daily' },
+      { value: '2x_daily', label: 'Twice daily' }
+    ],
+    durations: [
+      { value: 10, label: '10 days' },
+      { value: 30, label: '30 days' },
+      { value: 60, label: '60 days' },
+      { value: 90, label: '90 days' }
+    ]
+  },
+  hrt_male: {
+    name: 'HRT - Male',
+    category: 'HRT',
+    medications: ['Testosterone Cypionate 200mg/ml'],
+    dosages: ['0.3ml / 60mg', '0.4ml / 80mg', '0.5ml / 100mg'],
+    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
+    ongoing: true
+  },
+  hrt_female: {
+    name: 'HRT - Female',
+    category: 'HRT',
+    medications: ['Testosterone Cypionate 100mg/ml'],
+    dosages: ['0.1ml / 10mg', '0.2ml / 20mg', '0.3ml / 30mg', '0.4ml / 40mg', '0.5ml / 50mg'],
+    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
+    ongoing: true
+  },
+  weight_loss_semaglutide: {
+    name: 'Semaglutide',
+    category: 'Weight Loss',
+    medications: ['Semaglutide'],
+    dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'],
+    frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    ongoing: true
+  },
+  weight_loss_tirzepatide: {
+    name: 'Tirzepatide',
+    category: 'Weight Loss',
+    medications: ['Tirzepatide'],
+    dosages: ['2.5mg', '5.0mg', '7.5mg', '10.0mg', '12.5mg'],
+    frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    ongoing: true
+  },
+  weight_loss_retatrutide: {
+    name: 'Retatrutide',
+    category: 'Weight Loss',
+    medications: ['Retatrutide'],
+    dosages: ['2mg', '4mg', '6mg', '8mg', '10mg', '12mg'],
+    frequencies: [{ value: 'weekly', label: 'Once per week' }],
+    ongoing: true
+  },
+  single_injection: {
+    name: 'Single Injection',
+    category: 'Injection',
+    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione 200mg', 'NAD+ 50mg', 'NAD+ 75mg', 'NAD+ 100mg', 'NAD+ 125mg', 'NAD+ 150mg'],
+    sessions: [1],
+    frequencies: [{ value: 'single', label: 'Single injection' }],
+    hasDosageNotes: true
+  },
+  injection_pack: {
+    name: 'Injection Pack',
+    category: 'Injection',
+    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione 200mg', 'NAD+ 50mg', 'NAD+ 75mg', 'NAD+ 100mg', 'NAD+ 125mg', 'NAD+ 150mg'],
+    sessions: [5, 10, 20],
+    frequencies: [{ value: 'per_session', label: 'Per session' }],
+    hasDosageNotes: true
+  },
+  red_light: {
+    name: 'Red Light Therapy',
+    category: 'Red Light',
+    sessions: [1, 5, 10, 20],
+    frequencies: [{ value: 'per_session', label: 'Per session' }]
+  },
+  hbot: {
+    name: 'HBOT',
+    category: 'Hyperbaric',
+    sessions: [1, 5, 10, 20],
+    frequencies: [{ value: 'per_session', label: 'Per session' }]
+  },
+  iv_therapy: {
+    name: 'IV Therapy',
+    category: 'IV Therapy',
+    sessions: [1, 5, 10],
+    frequencies: [{ value: 'per_session', label: 'Per session' }]
+  }
+};
+
+const CATEGORY_TO_TYPE = {
+  'Peptide': 'peptide',
+  'HRT': 'hrt_male',
+  'Weight Loss': 'weight_loss_semaglutide',
+  'Red Light': 'red_light',
+  'Hyperbaric': 'hbot',
+  'IV Therapy': 'iv_therapy',
+  'Injection': 'single_injection'
+};
+
+export default function PurchasesPage() {
+  const [purchases, setPurchases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('unassigned');
+  const [createModal, setCreateModal] = useState(null);
+
+  useEffect(() => {
+    fetchPurchases();
+  }, []);
+
+  const fetchPurchases = async () => {
+    try {
+      const res = await fetch('/api/admin/purchases?limit=500');
+      if (res.ok) {
+        const data = await res.json();
+        setPurchases(data.purchases || data || []);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter purchases
+  const filtered = purchases.filter(p => {
+    // Status filter
+    if (filter === 'unassigned' && p.protocol_id) return false;
+    if (filter === 'assigned' && !p.protocol_id) return false;
+    
+    // Search filter
+    if (search) {
+      const s = search.toLowerCase();
+      return (
+        (p.patient_name || '').toLowerCase().includes(s) ||
+        (p.item_name || '').toLowerCase().includes(s)
+      );
+    }
+    return true;
+  });
+
+  // Sort by date (newest first)
+  const sorted = [...filtered].sort((a, b) => 
+    new Date(b.payment_date || b.created_at || 0) - new Date(a.payment_date || a.created_at || 0)
+  );
+
+  const unassignedCount = purchases.filter(p => !p.protocol_id).length;
+  const totalCount = purchases.length;
+
+  return (
+    <>
+      <Head>
+        <title>Purchases | Range Medical</title>
+      </Head>
+
+      <div style={styles.container}>
+        <AdminNav 
+          title="Purchases" 
+          subtitle={`${unassignedCount} unassigned / ${totalCount} total`} 
+        />
+
+        <main style={styles.main}>
+          {/* Toolbar */}
+          <div style={styles.toolbar}>
+            <input
+              type="text"
+              placeholder="Search by patient or item..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={styles.searchInput}
+            />
+            <div style={styles.filterGroup}>
+              <button
+                onClick={() => setFilter('unassigned')}
+                style={{
+                  ...styles.filterBtn,
+                  background: filter === 'unassigned' ? '#000' : '#fff',
+                  color: filter === 'unassigned' ? '#fff' : '#000'
+                }}
+              >
+                Unassigned
+              </button>
+              <button
+                onClick={() => setFilter('assigned')}
+                style={{
+                  ...styles.filterBtn,
+                  background: filter === 'assigned' ? '#000' : '#fff',
+                  color: filter === 'assigned' ? '#fff' : '#000'
+                }}
+              >
+                Assigned
+              </button>
+              <button
+                onClick={() => setFilter('all')}
+                style={{
+                  ...styles.filterBtn,
+                  background: filter === 'all' ? '#000' : '#fff',
+                  color: filter === 'all' ? '#fff' : '#000'
+                }}
+              >
+                All
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div style={styles.tableCard}>
+            {loading ? (
+              <div style={styles.loading}>Loading purchases...</div>
+            ) : sorted.length === 0 ? (
+              <div style={styles.empty}>No purchases found</div>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Date</th>
+                    <th style={styles.th}>Patient</th>
+                    <th style={styles.th}>Item</th>
+                    <th style={styles.th}>Category</th>
+                    <th style={styles.th}>Amount</th>
+                    <th style={styles.th}>Protocol</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map(purchase => (
+                    <tr key={purchase.id} style={styles.tr}>
+                      <td style={styles.td}>
+                        {purchase.payment_date ? new Date(purchase.payment_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        }) : '—'}
+                      </td>
+                      <td style={styles.td}>
+                        <div style={styles.patientName}>{purchase.patient_name || 'Unknown'}</div>
+                      </td>
+                      <td style={styles.td}>{purchase.item_name}</td>
+                      <td style={styles.td}>
+                        <span style={styles.categoryBadge}>{purchase.category || '—'}</span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={styles.amount}>${purchase.amount}</span>
+                      </td>
+                      <td style={styles.td}>
+                        {purchase.protocol_id ? (
+                          <Link href={`/admin/protocols/${purchase.protocol_id}`} style={styles.protocolLink}>
+                            View Protocol →
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={() => setCreateModal(purchase)}
+                            style={styles.createBtn}
+                          >
+                            + Create Protocol
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </main>
+
+        {/* Create Protocol Modal */}
+        {createModal && (
+          <CreateProtocolModal
+            purchase={createModal}
+            onClose={() => setCreateModal(null)}
+            onSuccess={() => {
+              setCreateModal(null);
+              fetchPurchases();
+            }}
+          />
+        )}
+      </div>
+    </>
+  );
+}
+
+// Create Protocol Modal Component
+function CreateProtocolModal({ purchase, onClose, onSuccess }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const initialType = CATEGORY_TO_TYPE[purchase?.category] || 'peptide';
+  
+  const [form, setForm] = useState({
+    protocolType: initialType,
+    patientName: purchase?.patient_name || '',
+    patientPhone: purchase?.patient_phone || '',
+    patientEmail: purchase?.patient_email || '',
+    ghlContactId: purchase?.ghl_contact_id || '',
+    medication: '',
+    dosage: '',
+    dosageNotes: '',
+    frequency: PROTOCOL_TYPES[initialType]?.frequencies?.[0]?.value || 'daily',
+    deliveryMethod: 'take_home',
+    startDate: new Date().toISOString().split('T')[0],
+    duration: PROTOCOL_TYPES[initialType]?.durations?.[0]?.value || 10,
+    totalSessions: PROTOCOL_TYPES[initialType]?.sessions?.[0] || 1,
+    notes: ''
+  });
+
+  const selectedType = PROTOCOL_TYPES[form.protocolType];
+  const isSessionBased = !!selectedType?.sessions;
+  const isOngoing = selectedType?.ongoing;
+  const hasDosageNotes = selectedType?.hasDosageNotes;
+
+  const handleTypeChange = (type) => {
+    const typeConfig = PROTOCOL_TYPES[type];
+    setForm(prev => ({
+      ...prev,
+      protocolType: type,
+      medication: '',
+      dosage: '',
+      dosageNotes: '',
+      frequency: typeConfig?.frequencies?.[0]?.value || 'daily',
+      duration: typeConfig?.durations?.[0]?.value || 10,
+      totalSessions: typeConfig?.sessions?.[0] || 1
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!form.patientName?.trim()) {
+      setError('Patient name is required');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const programTypeMap = {
+        'peptide': form.duration == 10 ? 'recovery_jumpstart_10day' : 
+                   form.duration == 30 ? 'month_program_30day' : 'recovery_jumpstart_10day',
+        'hrt_male': 'hrt_male_membership',
+        'hrt_female': 'hrt_female_membership',
+        'weight_loss_semaglutide': 'weight_loss_program',
+        'weight_loss_tirzepatide': 'weight_loss_program',
+        'weight_loss_retatrutide': 'weight_loss_program',
+        'single_injection': 'injection_pack',
+        'injection_pack': 'injection_pack',
+        'red_light': 'red_light_sessions',
+        'hbot': 'hbot_sessions',
+        'iv_therapy': 'iv_therapy'
+      };
+
+      const buildProtocolName = () => {
+        const type = form.protocolType;
+        if (type === 'peptide') return `${form.duration}-Day Recovery Protocol`;
+        if (type === 'hrt_male') return 'HRT Protocol (Male)';
+        if (type === 'hrt_female') return 'HRT Protocol (Female)';
+        if (type.startsWith('weight_loss')) return `Weight Loss - ${form.medication} ${form.dosage}`;
+        if (type === 'single_injection') return `Single Injection - ${form.medication}`;
+        if (type === 'injection_pack') return `Injection Pack (${form.totalSessions}) - ${form.medication}`;
+        if (type === 'red_light') return `Red Light Therapy (${form.totalSessions} sessions)`;
+        if (type === 'hbot') return `HBOT (${form.totalSessions} sessions)`;
+        if (type === 'iv_therapy') return `IV Therapy (${form.totalSessions} sessions)`;
+        return 'Protocol';
+      };
+
+      const calculateEndDate = () => {
+        if (isOngoing || isSessionBased) return null;
+        if (!form.startDate || !form.duration) return null;
+        const start = new Date(form.startDate);
+        start.setDate(start.getDate() + parseInt(form.duration) - 1);
+        return start.toISOString().split('T')[0];
+      };
+
+      const protocolData = {
+        ghl_contact_id: form.ghlContactId || null,
+        patient_name: form.patientName,
+        patient_email: form.patientEmail,
+        patient_phone: form.patientPhone,
+        purchase_id: purchase.id,
+        program_name: buildProtocolName(),
+        program_type: programTypeMap[form.protocolType] || 'recovery_jumpstart_10day',
+        primary_peptide: form.medication,
+        dose_amount: form.dosage || form.dosageNotes || '',
+        dose_frequency: form.frequency,
+        injection_location: form.deliveryMethod,
+        start_date: form.startDate,
+        duration_days: isSessionBased ? parseInt(form.totalSessions) : (isOngoing ? 30 : parseInt(form.duration)),
+        total_sessions: isSessionBased ? parseInt(form.totalSessions) : (isOngoing ? null : parseInt(form.duration)),
+        end_date: calculateEndDate(),
+        notes: form.dosageNotes ? `Dosage: ${form.dosageNotes}${form.notes ? '\n' + form.notes : ''}` : form.notes,
+        status: 'active',
+        amount: purchase.amount
+      };
+
+      const res = await fetch('/api/admin/protocols', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(protocolData)
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.details || data.error || 'Failed to create protocol');
+      }
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={modalStyles.overlay} onClick={onClose}>
+      <div style={modalStyles.modal} onClick={e => e.stopPropagation()}>
+        <div style={modalStyles.header}>
+          <div>
+            <h2 style={modalStyles.title}>Create Protocol</h2>
+            <p style={modalStyles.subtitle}>{purchase.item_name} (${purchase.amount})</p>
+          </div>
+          <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
+        </div>
+
+        <div style={modalStyles.body}>
+          {error && <div style={modalStyles.error}>{error}</div>}
+
+          {/* Patient */}
+          <div style={modalStyles.section}>
+            <h3 style={modalStyles.sectionTitle}>Patient</h3>
+            <div style={modalStyles.grid}>
+              <div style={modalStyles.field}>
+                <label style={modalStyles.label}>Name *</label>
+                <input
+                  type="text"
+                  value={form.patientName}
+                  onChange={e => setForm({ ...form, patientName: e.target.value })}
+                  style={modalStyles.input}
+                />
+              </div>
+              <div style={modalStyles.field}>
+                <label style={modalStyles.label}>Phone</label>
+                <input
+                  type="tel"
+                  value={form.patientPhone}
+                  onChange={e => setForm({ ...form, patientPhone: e.target.value })}
+                  style={modalStyles.input}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Protocol Type */}
+          <div style={modalStyles.section}>
+            <h3 style={modalStyles.sectionTitle}>Protocol Type</h3>
+            <div style={modalStyles.typeGrid}>
+              {Object.entries(PROTOCOL_TYPES).map(([key, type]) => (
+                <button
+                  key={key}
+                  onClick={() => handleTypeChange(key)}
+                  style={{
+                    ...modalStyles.typeBtn,
+                    background: form.protocolType === key ? '#000' : '#f5f5f5',
+                    color: form.protocolType === key ? '#fff' : '#000'
+                  }}
+                >
+                  {type.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Medication */}
+          {selectedType?.medications && (
+            <div style={modalStyles.section}>
+              <h3 style={modalStyles.sectionTitle}>Medication</h3>
+              <div style={modalStyles.grid}>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Medication</label>
+                  <select
+                    value={form.medication}
+                    onChange={e => setForm({ ...form, medication: e.target.value })}
+                    style={modalStyles.select}
+                  >
+                    <option value="">Select...</option>
+                    {selectedType.medications.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                {selectedType.dosages && !hasDosageNotes && (
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Dosage</label>
+                    <select
+                      value={form.dosage}
+                      onChange={e => setForm({ ...form, dosage: e.target.value })}
+                      style={modalStyles.select}
+                    >
+                      <option value="">Select...</option>
+                      {selectedType.dosages.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {hasDosageNotes && (
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Dosage (write in)</label>
+                    <input
+                      type="text"
+                      value={form.dosageNotes}
+                      onChange={e => setForm({ ...form, dosageNotes: e.target.value })}
+                      style={modalStyles.input}
+                      placeholder="e.g., 1ml, 200mg"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Schedule */}
+          <div style={modalStyles.section}>
+            <h3 style={modalStyles.sectionTitle}>Schedule</h3>
+            <div style={modalStyles.grid}>
+              <div style={modalStyles.field}>
+                <label style={modalStyles.label}>Frequency</label>
+                <select
+                  value={form.frequency}
+                  onChange={e => setForm({ ...form, frequency: e.target.value })}
+                  style={modalStyles.select}
+                >
+                  {selectedType?.frequencies?.map(f => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={modalStyles.field}>
+                <label style={modalStyles.label}>Start Date</label>
+                <input
+                  type="date"
+                  value={form.startDate}
+                  onChange={e => setForm({ ...form, startDate: e.target.value })}
+                  style={modalStyles.input}
+                />
+              </div>
+              {selectedType?.durations && (
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Duration</label>
+                  <select
+                    value={form.duration}
+                    onChange={e => setForm({ ...form, duration: e.target.value })}
+                    style={modalStyles.select}
+                  >
+                    {selectedType.durations.map(d => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {selectedType?.sessions && (
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Sessions</label>
+                  <select
+                    value={form.totalSessions}
+                    onChange={e => setForm({ ...form, totalSessions: e.target.value })}
+                    style={modalStyles.select}
+                  >
+                    {selectedType.sessions.map(s => (
+                      <option key={s} value={s}>{s} session{s > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={modalStyles.footer}>
+          <button onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
+          <button onClick={handleSubmit} disabled={saving} style={modalStyles.submitBtn}>
+            {saving ? 'Creating...' : 'Create Protocol'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    background: '#f5f5f5',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  },
+  main: {
+    maxWidth: '1400px',
+    margin: '0 auto',
+    padding: '24px'
+  },
+  toolbar: {
+    display: 'flex',
+    gap: '16px',
+    marginBottom: '16px',
+    alignItems: 'center'
+  },
+  searchInput: {
+    flex: 1,
+    maxWidth: '400px',
+    padding: '10px 14px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    fontSize: '14px',
+    background: '#fff'
+  },
+  filterGroup: {
+    display: 'flex',
+    gap: '4px',
+    background: '#fff',
+    padding: '4px',
+    borderRadius: '8px',
+    border: '1px solid #e5e5e5'
+  },
+  filterBtn: {
+    padding: '6px 14px',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  tableCard: {
+    background: '#fff',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  },
+  loading: {
+    padding: '40px',
+    textAlign: 'center',
+    color: '#666'
+  },
+  empty: {
+    padding: '40px',
+    textAlign: 'center',
+    color: '#666'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse'
+  },
+  th: {
+    textAlign: 'left',
+    padding: '12px 16px',
+    fontSize: '11px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    color: '#666',
+    borderBottom: '1px solid #e5e5e5',
+    background: '#fafafa'
+  },
+  tr: {
+    borderBottom: '1px solid #f0f0f0'
+  },
+  td: {
+    padding: '12px 16px',
+    fontSize: '14px'
+  },
+  patientName: {
+    fontWeight: '500'
+  },
+  categoryBadge: {
+    display: 'inline-block',
+    padding: '2px 8px',
+    background: '#f5f5f5',
+    borderRadius: '4px',
+    fontSize: '12px'
+  },
+  amount: {
+    fontWeight: '600'
+  },
+  protocolLink: {
+    color: '#2563eb',
+    textDecoration: 'none',
+    fontSize: '13px'
+  },
+  createBtn: {
+    padding: '6px 12px',
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  }
+};
+
+const modalStyles = {
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px'
+  },
+  modal: {
+    background: '#fff',
+    borderRadius: '12px',
+    width: '100%',
+    maxWidth: '600px',
+    maxHeight: '90vh',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  header: {
+    padding: '16px 20px',
+    borderBottom: '1px solid #e5e5e5',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  title: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  subtitle: {
+    margin: '2px 0 0',
+    fontSize: '13px',
+    color: '#666'
+  },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    cursor: 'pointer',
+    color: '#666'
+  },
+  body: {
+    padding: '20px',
+    overflow: 'auto',
+    flex: 1
+  },
+  error: {
+    padding: '12px',
+    background: '#fee2e2',
+    color: '#dc2626',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    fontSize: '14px'
+  },
+  section: {
+    marginBottom: '20px'
+  },
+  sectionTitle: {
+    fontSize: '12px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    color: '#666',
+    marginBottom: '10px'
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px'
+  },
+  field: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  label: {
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: '4px'
+  },
+  input: {
+    padding: '10px 12px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    fontSize: '14px'
+  },
+  select: {
+    padding: '10px 12px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    fontSize: '14px',
+    background: '#fff'
+  },
+  typeGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '8px'
+  },
+  typeBtn: {
+    padding: '10px 8px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    fontSize: '11px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    textAlign: 'center'
+  },
+  footer: {
+    padding: '16px 20px',
+    borderTop: '1px solid #e5e5e5',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px'
+  },
+  cancelBtn: {
+    padding: '10px 20px',
+    background: '#f5f5f5',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  submitBtn: {
+    padding: '10px 20px',
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  }
+};

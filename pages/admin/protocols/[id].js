@@ -69,7 +69,7 @@ const PROTOCOL_TYPES = {
     name: 'Single Injection',
     programTypes: ['single_injection'],
     medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
-    sessions: [1],
+    injections: [1],
     frequencies: [{ value: 'single', label: 'Single injection' }],
     hasDosageNotes: true
   },
@@ -77,7 +77,7 @@ const PROTOCOL_TYPES = {
     name: 'Injection Pack',
     programTypes: ['injection_pack', 'injection'],
     medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
-    sessions: [5, 10, 20],
+    injections: [5, 10, 12, 20, 24],
     frequencies: [{ value: 'per_session', label: 'Per session' }],
     hasDosageNotes: true
   },
@@ -188,6 +188,7 @@ export default function ProtocolDetail() {
 
   const selectedType = PROTOCOL_TYPES[form.protocolType];
   const isSessionBased = !!selectedType?.sessions;
+  const isInjectionBased = !!selectedType?.injections;
 
   const handleTypeChange = (type) => {
     const typeConfig = PROTOCOL_TYPES[type];
@@ -195,7 +196,7 @@ export default function ProtocolDetail() {
       ...prev,
       protocolType: type,
       frequency: typeConfig?.frequencies?.[0]?.value || 'daily',
-      deliveryMethod: typeConfig?.sessions ? 'in_clinic' : prev.deliveryMethod
+      deliveryMethod: (typeConfig?.sessions || typeConfig?.injections) ? 'in_clinic' : prev.deliveryMethod
     }));
   };
 
@@ -494,11 +495,18 @@ export default function ProtocolDetail() {
                           {selectedType.durations.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                         </select>
                       </div>
+                    ) : selectedType?.injections ? (
+                      <div style={styles.field}>
+                        <label style={styles.label}>Injections</label>
+                        <select value={form.totalSessions} onChange={e => setForm({ ...form, totalSessions: e.target.value })} style={styles.select}>
+                          {selectedType.injections.map(s => <option key={s} value={s}>{s} injection{s > 1 ? 's' : ''}</option>)}
+                        </select>
+                      </div>
                     ) : selectedType?.sessions ? (
                       <div style={styles.field}>
                         <label style={styles.label}>Sessions</label>
                         <select value={form.totalSessions} onChange={e => setForm({ ...form, totalSessions: e.target.value })} style={styles.select}>
-                          {selectedType.sessions.map(s => <option key={s} value={s}>{s} sessions</option>)}
+                          {selectedType.sessions.map(s => <option key={s} value={s}>{s} session{s > 1 ? 's' : ''}</option>)}
                         </select>
                       </div>
                     ) : null}

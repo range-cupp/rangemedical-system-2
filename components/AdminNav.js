@@ -13,7 +13,8 @@ export default function AdminNav({ title, subtitle }) {
     { href: '/admin', label: 'Dashboard' },
     { href: '/admin/protocols', label: 'Protocols' },
     { href: '/admin/purchases', label: 'Purchases' },
-    { href: '/admin/patients', label: 'Patients' }
+    { href: '/admin/patients', label: 'Patients' },
+    { href: '/admin/utilities', label: 'Utilities' }
   ];
 
   const isActive = (href) => {

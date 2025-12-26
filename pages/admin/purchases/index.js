@@ -115,7 +115,7 @@ export default function PurchasesPage() {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('unassigned');
+  const [filter, setFilter] = useState('all');
   const [createModal, setCreateModal] = useState(null);
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function PurchasesPage() {
 
   const fetchPurchases = async () => {
     try {
-      const res = await fetch('/api/admin/purchases?limit=500');
+      const res = await fetch('/api/admin/purchases');
       if (res.ok) {
         const data = await res.json();
         setPurchases(data.purchases || data || []);
@@ -155,11 +155,12 @@ export default function PurchasesPage() {
 
   // Sort by date (newest first)
   const sorted = [...filtered].sort((a, b) => 
-    new Date(b.payment_date || b.created_at || 0) - new Date(a.payment_date || a.created_at || 0)
+    new Date(b.payment_date || b.purchase_date || b.created_at || 0) - new Date(a.payment_date || a.purchase_date || a.created_at || 0)
   );
 
   const unassignedCount = purchases.filter(p => !p.protocol_id).length;
   const totalCount = purchases.length;
+  const totalRevenue = purchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
   return (
     <>
@@ -170,7 +171,7 @@ export default function PurchasesPage() {
       <div style={styles.container}>
         <AdminNav 
           title="Purchases" 
-          subtitle={`${unassignedCount} unassigned / ${totalCount} total`} 
+          subtitle={`${totalCount} purchases · $${totalRevenue.toLocaleString()}`} 
         />
 
         <main style={styles.main}>
@@ -184,6 +185,16 @@ export default function PurchasesPage() {
               style={styles.searchInput}
             />
             <div style={styles.filterGroup}>
+              <button
+                onClick={() => setFilter('all')}
+                style={{
+                  ...styles.filterBtn,
+                  background: filter === 'all' ? '#000' : '#fff',
+                  color: filter === 'all' ? '#fff' : '#000'
+                }}
+              >
+                All
+              </button>
               <button
                 onClick={() => setFilter('unassigned')}
                 style={{
@@ -203,16 +214,6 @@ export default function PurchasesPage() {
                 }}
               >
                 Assigned
-              </button>
-              <button
-                onClick={() => setFilter('all')}
-                style={{
-                  ...styles.filterBtn,
-                  background: filter === 'all' ? '#000' : '#fff',
-                  color: filter === 'all' ? '#fff' : '#000'
-                }}
-              >
-                All
               </button>
             </div>
           </div>
@@ -239,9 +240,10 @@ export default function PurchasesPage() {
                   {sorted.map(purchase => (
                     <tr key={purchase.id} style={styles.tr}>
                       <td style={styles.td}>
-                        {purchase.payment_date ? new Date(purchase.payment_date).toLocaleDateString('en-US', {
+                        {(purchase.payment_date || purchase.purchase_date) ? new Date(purchase.payment_date || purchase.purchase_date).toLocaleDateString('en-US', {
                           month: 'short',
-                          day: 'numeric'
+                          day: 'numeric',
+                          year: 'numeric'
                         }) : '—'}
                       </td>
                       <td style={styles.td}>

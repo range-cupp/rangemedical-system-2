@@ -155,6 +155,7 @@ export default function PurchasesPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [createModal, setCreateModal] = useState(null);
+  const [addToExistingModal, setAddToExistingModal] = useState(null);
 
   useEffect(() => {
     fetchPurchases();
@@ -300,12 +301,20 @@ export default function PurchasesPage() {
                             View Protocol →
                           </Link>
                         ) : (
-                          <button
-                            onClick={() => setCreateModal(purchase)}
-                            style={styles.createBtn}
-                          >
-                            + Create Protocol
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              onClick={() => setCreateModal(purchase)}
+                              style={styles.createBtn}
+                            >
+                              + Create
+                            </button>
+                            <button
+                              onClick={() => setAddToExistingModal(purchase)}
+                              style={styles.addToExistingBtn}
+                            >
+                              + Add to Existing
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -323,6 +332,18 @@ export default function PurchasesPage() {
             onClose={() => setCreateModal(null)}
             onSuccess={() => {
               setCreateModal(null);
+              fetchPurchases();
+            }}
+          />
+        )}
+
+        {/* Add to Existing Protocol Modal */}
+        {addToExistingModal && (
+          <AddToExistingModal
+            purchase={addToExistingModal}
+            onClose={() => setAddToExistingModal(null)}
+            onSuccess={() => {
+              setAddToExistingModal(null);
               fetchPurchases();
             }}
           />
@@ -693,6 +714,182 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   );
 }
 
+// Add to Existing Protocol Modal Component
+function AddToExistingModal({ purchase, onClose, onSuccess }) {
+  const [loading, setLoading] = useState(true);
+  const [protocols, setProtocols] = useState([]);
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [sessionsToAdd, setSessionsToAdd] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchPatientProtocols();
+  }, []);
+
+  const fetchPatientProtocols = async () => {
+    try {
+      // Fetch protocols for this patient by name or contact ID
+      const searchParam = purchase.ghl_contact_id || purchase.patient_name;
+      const res = await fetch(`/api/admin/protocols?search=${encodeURIComponent(searchParam)}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Filter to only active protocols for this patient
+        const patientProtocols = (data.protocols || data || []).filter(p => 
+          (p.ghl_contact_id === purchase.ghl_contact_id || 
+           (p.patient_name || '').toLowerCase() === (purchase.patient_name || '').toLowerCase()) &&
+          p.status === 'active'
+        );
+        setProtocols(patientProtocols);
+      }
+    } catch (err) {
+      console.error('Error fetching protocols:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedProtocol) {
+      setError('Please select a protocol');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      // Update the protocol to add sessions
+      const newTotalSessions = (selectedProtocol.total_sessions || 0) + sessionsToAdd;
+      
+      const res = await fetch(`/api/admin/protocols/${selectedProtocol.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          total_sessions: newTotalSessions
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to update protocol');
+
+      // Link purchase to protocol
+      const purchaseRes = await fetch(`/api/admin/purchases/${purchase.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          protocol_id: selectedProtocol.id
+        })
+      });
+
+      if (!purchaseRes.ok) throw new Error('Failed to link purchase');
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={modalStyles.overlay} onClick={onClose}>
+      <div style={{ ...modalStyles.modal, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+        <div style={modalStyles.header}>
+          <div>
+            <h2 style={modalStyles.title}>Add to Existing Protocol</h2>
+            <p style={modalStyles.subtitle}>{purchase?.item_name} (${purchase?.amount})</p>
+          </div>
+          <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
+        </div>
+
+        <div style={modalStyles.body}>
+          {error && <div style={modalStyles.error}>{error}</div>}
+
+          <div style={modalStyles.section}>
+            <h3 style={modalStyles.sectionTitle}>Patient</h3>
+            <p style={{ margin: '4px 0', fontWeight: '500' }}>{purchase?.patient_name}</p>
+          </div>
+
+          <div style={modalStyles.section}>
+            <h3 style={modalStyles.sectionTitle}>Select Protocol</h3>
+            {loading ? (
+              <p style={{ color: '#666' }}>Loading protocols...</p>
+            ) : protocols.length === 0 ? (
+              <p style={{ color: '#666' }}>No active protocols found for this patient. Create a new protocol instead.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {protocols.map(protocol => (
+                  <button
+                    key={protocol.id}
+                    onClick={() => setSelectedProtocol(protocol)}
+                    style={{
+                      padding: '12px 16px',
+                      border: selectedProtocol?.id === protocol.id ? '2px solid #000' : '1px solid #e5e5e5',
+                      borderRadius: '8px',
+                      background: selectedProtocol?.id === protocol.id ? '#f5f5f5' : '#fff',
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                      {protocol.program_name || protocol.program_type}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {protocol.total_sessions || 0} sessions • Started {new Date(protocol.start_date).toLocaleDateString()}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {selectedProtocol && (
+            <div style={modalStyles.section}>
+              <h3 style={modalStyles.sectionTitle}>Sessions to Add</h3>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[1, 5, 10, 20].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setSessionsToAdd(n)}
+                    style={{
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: sessionsToAdd === n ? '#000' : '#f5f5f5',
+                      color: sessionsToAdd === n ? '#fff' : '#000',
+                      fontWeight: '500'
+                    }}
+                  >
+                    +{n}
+                  </button>
+                ))}
+              </div>
+              <p style={{ marginTop: '12px', fontSize: '13px', color: '#666' }}>
+                New total: {(selectedProtocol.total_sessions || 0) + sessionsToAdd} sessions
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div style={modalStyles.footer}>
+          <button onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
+          <button 
+            onClick={handleSubmit} 
+            disabled={saving || !selectedProtocol || protocols.length === 0} 
+            style={{
+              ...modalStyles.submitBtn,
+              opacity: (!selectedProtocol || protocols.length === 0) ? 0.5 : 1
+            }}
+          >
+            {saving ? 'Adding...' : `Add ${sessionsToAdd} Session${sessionsToAdd > 1 ? 's' : ''}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const styles = {
   container: {
     minHeight: '100vh',
@@ -795,6 +992,16 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  addToExistingBtn: {
+    padding: '6px 12px',
+    background: '#fff',
+    color: '#000',
+    border: '1px solid #e5e5e5',
     borderRadius: '6px',
     fontSize: '12px',
     fontWeight: '500',

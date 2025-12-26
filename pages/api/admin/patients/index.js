@@ -37,29 +37,8 @@ export default async function handler(req, res) {
 
     if (purchasesError) throw purchasesError;
 
-    // Build patient map - prioritize ghl_contact_id, then normalized name
+    // Build patient map - ALWAYS keyed by normalized name
     const patientMap = new Map();
-    const nameToContactId = new Map(); // Track which names map to which contact IDs
-
-    // Helper to get or create patient entry
-    const getPatientKey = (record) => {
-      const normalizedName = normalizeName(record.patient_name);
-      
-      // If we have a contact ID, use it
-      if (record.ghl_contact_id) {
-        // Also remember this name maps to this contact ID
-        nameToContactId.set(normalizedName, record.ghl_contact_id);
-        return record.ghl_contact_id;
-      }
-      
-      // Check if this name already has a known contact ID
-      if (nameToContactId.has(normalizedName)) {
-        return nameToContactId.get(normalizedName);
-      }
-      
-      // Use normalized name as fallback key
-      return `name:${normalizedName}`;
-    };
 
     // Process all records
     const allRecords = [
@@ -68,17 +47,19 @@ export default async function handler(req, res) {
     ];
 
     allRecords.forEach(record => {
-      if (!record.patient_name || record.patient_name === 'Unknown') return;
+      if (!record.patient_name || record.patient_name.toLowerCase() === 'unknown') return;
       
-      const key = getPatientKey(record);
+      // Always use normalized name as key
+      const key = normalizeName(record.patient_name);
+      if (!key) return;
       
       if (!patientMap.has(key)) {
         patientMap.set(key, {
           id: key,
-          ghl_contact_id: record.ghl_contact_id || null,
-          name: record.patient_name, // Keep original casing
-          phone: record.patient_phone || null,
-          email: record.patient_email || null,
+          ghl_contact_id: null,
+          name: record.patient_name, // Keep original casing from first record
+          phone: null,
+          email: null,
           protocol_count: 0,
           purchase_count: 0
         });
@@ -93,7 +74,7 @@ export default async function handler(req, res) {
         patient.purchase_count++;
       }
       
-      // Update contact info if we have better data
+      // Update contact info - prefer records that have more data
       if (record.ghl_contact_id && !patient.ghl_contact_id) {
         patient.ghl_contact_id = record.ghl_contact_id;
       }
@@ -102,6 +83,11 @@ export default async function handler(req, res) {
       }
       if (record.patient_email && !patient.email) {
         patient.email = record.patient_email;
+      }
+      
+      // Update name to prefer properly capitalized version
+      if (record.patient_name && record.patient_name !== record.patient_name.toLowerCase()) {
+        patient.name = record.patient_name;
       }
     });
 

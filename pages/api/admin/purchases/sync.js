@@ -64,14 +64,14 @@ export default async function handler(req, res) {
     // Get existing purchases for deduplication
     const { data: existing, error: fetchError } = await supabase
       .from('purchases')
-      .select('id, patient_name, item_name, payment_date, amount, created_at');
+      .select('id, patient_name, item_name, purchase_date, amount, created_at');
 
     if (fetchError) throw fetchError;
 
     // Build lookup set using patient + item + date + amount combo
     const existingByCombo = new Set(
       existing.map(e => {
-        const date = e.payment_date || (e.created_at ? e.created_at.split('T')[0] : '');
+        const date = e.purchase_date || (e.created_at ? e.created_at.split('T')[0] : '');
         return `${(e.patient_name || '').toLowerCase()}|${(e.item_name || '').toLowerCase()}|${date}|${e.amount}`;
       })
     );
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
         quantity: parseInt(p.quantity) || 1,
         category: categorizeItem(p.item_name),
         source: p.source || 'ghl',
-        payment_date: p.purchase_date || p.payment_date || null,
+        purchase_date: p.purchase_date || p.payment_date || null,
         created_at: new Date().toISOString()
       });
 

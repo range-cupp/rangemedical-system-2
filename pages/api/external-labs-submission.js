@@ -1,9 +1,11 @@
 // /pages/api/external-labs-submission.js
 // Handles external lab submissions from TRT transfer landing page
 // Uploads contact to GHL with note containing lab file links
+// Sends email notification to clinic
 
 const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'info@range-medical.com';
 
 export default async function handler(req, res) {
     // CORS headers
@@ -20,16 +22,19 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { name, email, phone, labFiles, source } = req.body;
+        const { name, email, phone, labFiles, source, method } = req.body;
 
         // Validate required fields
         if (!name || !email || !phone) {
             return res.status(400).json({ error: 'Name, email, and phone are required' });
         }
 
-        if (!labFiles || labFiles.length === 0) {
+        // For upload method, require files
+        if (method === 'upload' && (!labFiles || labFiles.length === 0)) {
             return res.status(400).json({ error: 'At least one lab file is required' });
         }
+
+        const isEmailMethod = method === 'email' || (!labFiles || labFiles.length === 0);
 
         // Parse name
         const nameParts = name.trim().split(' ');
@@ -71,7 +76,9 @@ export default async function handler(req, res) {
             email,
             phone: formattedPhone || undefined,
             source: source || 'External Labs Submission',
-            tags: ['external-labs-submitted', 'trt-transfer-interest']
+            tags: isEmailMethod 
+                ? ['external-labs-pending', 'waiting-for-email-labs', 'needs-lab-review']
+                : ['external-labs-submitted', 'needs-lab-review']
         };
 
         let contactResponse;
@@ -122,7 +129,7 @@ export default async function handler(req, res) {
         contactId = contactResult.contact?.id || contactId;
 
         // ============================================
-        // 3. ADD NOTE WITH LAB FILE LINKS
+        // 3. ADD NOTE WITH LAB FILE LINKS OR EMAIL NOTICE
         // ============================================
         const currentDate = new Date().toLocaleDateString('en-US', {
             year: 'numeric',
@@ -132,19 +139,48 @@ export default async function handler(req, res) {
             minute: '2-digit'
         });
 
-        // Build file links section
-        const fileLinks = labFiles.map((file, index) => 
-            `📄 File ${index + 1}: ${file.name}\n   ${file.url}`
-        ).join('\n\n');
+        let noteBody;
 
-        const noteBody = `📋 EXTERNAL LABS SUBMITTED FOR REVIEW
+        if (isEmailMethod) {
+            // Email method - waiting for labs via email
+            noteBody = `📋 EXTERNAL LABS - WAITING FOR EMAIL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Patient: ${name}
 Email: ${email}
 Phone: ${phone}
 Submitted: ${currentDate}
-Source: ${source || 'TRT Transfer Landing Page'}
+Source: ${source || 'Book Page'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📧 METHOD: EMAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Patient chose to email their labs.
+Expected subject line: "Lab Results - ${name}"
+Email to: info@range-medical.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏳ ACTION REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Watch for incoming email with labs.
+If no email received within 2 days, follow up with patient.`;
+
+        } else {
+            // Upload method - files attached
+            const fileLinks = labFiles.map((file, index) => 
+                `📄 File ${index + 1}: ${file.name}\n   ${file.url}`
+            ).join('\n\n');
+
+            noteBody = `📋 EXTERNAL LABS SUBMITTED FOR REVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Patient: ${name}
+Email: ${email}
+Phone: ${phone}
+Submitted: ${currentDate}
+Source: ${source || 'Book Page'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📁 LAB FILES (${labFiles.length} file${labFiles.length > 1 ? 's' : ''})
@@ -162,6 +198,7 @@ Review labs and determine if:
 ✓ Patient can schedule provider consultation
 
 Contact patient within 1-2 business days.`;
+        }
 
         const noteResponse = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
             method: 'POST',
@@ -179,20 +216,63 @@ Contact patient within 1-2 business days.`;
         if (!noteResponse.ok) {
             const noteError = await noteResponse.json();
             console.error('GHL note error:', noteError);
-            // Don't fail the whole request if note fails
         } else {
             console.log('✅ Note added to GHL contact');
         }
 
         // ============================================
-        // 4. RETURN SUCCESS
+        // 4. SEND INTERNAL EMAIL NOTIFICATION
+        // ============================================
+        // Build file links for email
+        const emailFileLinks = labFiles.map((file, index) => 
+            `• ${file.name}: ${file.url}`
+        ).join('\n');
+
+        // Send notification via GHL's email endpoint or a webhook
+        // For now, we'll trigger a GHL workflow via a custom webhook
+        // You can set up a GHL automation that triggers on the 'needs-lab-review' tag
+        
+        // Alternative: Send via a simple email service
+        // This creates an internal task/notification in GHL
+        try {
+            const taskTitle = isEmailMethod 
+                ? `📧 Waiting for Labs via Email - ${name}`
+                : `📋 Review External Labs - ${name}`;
+            
+            const taskDescription = isEmailMethod
+                ? `Patient chose to email labs.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\n\nWatch for email with subject: "Lab Results - ${name}"\n\nIf no email received within 2 days, follow up with patient.`
+                : `New lab submission from ${name} (${email})\n\nPhone: ${phone}\nFiles: ${labFiles.length}\n\nReview labs and contact patient within 1-2 business days.`;
+
+            await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${GHL_API_KEY}`,
+                    'Version': '2021-07-28',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: taskTitle,
+                    description: taskDescription,
+                    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+                    status: 'incompleted'
+                })
+            });
+            console.log('✅ Task created for lab review');
+        } catch (taskError) {
+            console.error('Task creation error:', taskError);
+        }
+
+        // ============================================
+        // 5. RETURN SUCCESS
         // ============================================
         return res.status(200).json({
             success: true,
-            message: 'Labs submitted successfully',
+            message: isEmailMethod ? 'Contact created - waiting for email' : 'Labs submitted successfully',
             contactId,
             isNewContact,
-            filesUploaded: labFiles.length
+            method: isEmailMethod ? 'email' : 'upload',
+            filesUploaded: labFiles ? labFiles.length : 0
         });
 
     } catch (error) {

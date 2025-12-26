@@ -47,7 +47,11 @@ const PROTOCOL_TYPES = {
     medications: ['Semaglutide'],
     dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'],
     frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    ongoing: true
+    injections: [
+      { value: 4, label: '4 injections (1 month)' },
+      { value: 8, label: '8 injections (2 months)' },
+      { value: 12, label: '12 injections (3 months)' }
+    ]
   },
   weight_loss_tirzepatide: {
     name: 'Tirzepatide',
@@ -55,7 +59,11 @@ const PROTOCOL_TYPES = {
     medications: ['Tirzepatide'],
     dosages: ['2.5mg', '5.0mg', '7.5mg', '10.0mg', '12.5mg'],
     frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    ongoing: true
+    injections: [
+      { value: 4, label: '4 injections (1 month)' },
+      { value: 8, label: '8 injections (2 months)' },
+      { value: 12, label: '12 injections (3 months)' }
+    ]
   },
   weight_loss_retatrutide: {
     name: 'Retatrutide',
@@ -63,7 +71,11 @@ const PROTOCOL_TYPES = {
     medications: ['Retatrutide'],
     dosages: ['2mg', '4mg', '6mg', '8mg', '10mg', '12mg'],
     frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    ongoing: true
+    injections: [
+      { value: 4, label: '4 injections (1 month)' },
+      { value: 8, label: '8 injections (2 months)' },
+      { value: 12, label: '12 injections (3 months)' }
+    ]
   },
   single_injection: {
     name: 'Single Injection',
@@ -315,11 +327,13 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     startDate: new Date().toISOString().split('T')[0],
     duration: PROTOCOL_TYPES[initialType]?.durations?.[0]?.value || 10,
     totalSessions: PROTOCOL_TYPES[initialType]?.sessions?.[0] || 1,
+    totalInjections: PROTOCOL_TYPES[initialType]?.injections?.[0]?.value || 4,
     notes: ''
   });
 
   const selectedType = PROTOCOL_TYPES[form.protocolType];
   const isSessionBased = !!selectedType?.sessions;
+  const isInjectionBased = !!selectedType?.injections;
   const isOngoing = selectedType?.ongoing;
   const hasDosageNotes = selectedType?.hasDosageNotes;
 
@@ -333,7 +347,8 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       dosageNotes: '',
       frequency: typeConfig?.frequencies?.[0]?.value || 'daily',
       duration: typeConfig?.durations?.[0]?.value || 10,
-      totalSessions: typeConfig?.sessions?.[0] || 1
+      totalSessions: typeConfig?.sessions?.[0] || 1,
+      totalInjections: typeConfig?.injections?.[0]?.value || 4
     }));
   };
 
@@ -367,7 +382,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         if (type === 'peptide') return `${form.duration}-Day Recovery Protocol`;
         if (type === 'hrt_male') return 'HRT Protocol (Male)';
         if (type === 'hrt_female') return 'HRT Protocol (Female)';
-        if (type.startsWith('weight_loss')) return `Weight Loss - ${form.medication} ${form.dosage}`;
+        if (type.startsWith('weight_loss')) return `Weight Loss - ${form.medication} ${form.dosage} (${form.totalInjections} injections)`;
         if (type === 'single_injection') return `Single Injection - ${form.medication}`;
         if (type === 'injection_pack') return `Injection Pack (${form.totalSessions}) - ${form.medication}`;
         if (type === 'red_light') return `Red Light Therapy (${form.totalSessions} sessions)`;
@@ -377,11 +392,34 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       };
 
       const calculateEndDate = () => {
-        if (isOngoing || isSessionBased) return null;
+        if (isOngoing) return null;
+        if (isSessionBased && !form.startDate) return null;
+        if (isInjectionBased) {
+          // Weekly injections: 4 injections = ~28 days
+          const start = new Date(form.startDate);
+          start.setDate(start.getDate() + (parseInt(form.totalInjections) * 7) - 1);
+          return start.toISOString().split('T')[0];
+        }
         if (!form.startDate || !form.duration) return null;
         const start = new Date(form.startDate);
         start.setDate(start.getDate() + parseInt(form.duration) - 1);
         return start.toISOString().split('T')[0];
+      };
+
+      // Calculate duration_days based on protocol type
+      const getDurationDays = () => {
+        if (isInjectionBased) return parseInt(form.totalInjections) * 7; // Weekly injections
+        if (isSessionBased) return parseInt(form.totalSessions);
+        if (isOngoing) return 30;
+        return parseInt(form.duration);
+      };
+
+      // Calculate total_sessions based on protocol type
+      const getTotalSessions = () => {
+        if (isInjectionBased) return parseInt(form.totalInjections);
+        if (isSessionBased) return parseInt(form.totalSessions);
+        if (isOngoing) return null;
+        return parseInt(form.duration);
       };
 
       const protocolData = {
@@ -397,8 +435,8 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         dose_frequency: form.frequency,
         injection_location: form.deliveryMethod,
         start_date: form.startDate,
-        duration_days: isSessionBased ? parseInt(form.totalSessions) : (isOngoing ? 30 : parseInt(form.duration)),
-        total_sessions: isSessionBased ? parseInt(form.totalSessions) : (isOngoing ? null : parseInt(form.duration)),
+        duration_days: getDurationDays(),
+        total_sessions: getTotalSessions(),
         end_date: calculateEndDate(),
         notes: form.dosageNotes ? `Dosage: ${form.dosageNotes}${form.notes ? '\n' + form.notes : ''}` : form.notes,
         status: 'active',
@@ -581,6 +619,20 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                   >
                     {selectedType.sessions.map(s => (
                       <option key={s} value={s}>{s} session{s > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {selectedType?.injections && (
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Injections</label>
+                  <select
+                    value={form.totalInjections}
+                    onChange={e => setForm({ ...form, totalInjections: e.target.value })}
+                    style={modalStyles.select}
+                  >
+                    {selectedType.injections.map(i => (
+                      <option key={i.value} value={i.value}>{i.label}</option>
                     ))}
                   </select>
                 </div>

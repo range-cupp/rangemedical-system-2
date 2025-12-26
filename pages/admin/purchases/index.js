@@ -81,7 +81,7 @@ const PROTOCOL_TYPES = {
     name: 'Single Injection',
     category: 'Injection',
     medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
-    sessions: [1],
+    injections: [1],
     frequencies: [{ value: 'single', label: 'Single injection' }],
     hasDosageNotes: true
   },
@@ -89,7 +89,7 @@ const PROTOCOL_TYPES = {
     name: 'Injection Pack',
     category: 'Injection',
     medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
-    sessions: [5, 10, 20],
+    injections: [5, 10, 12, 20, 24],
     frequencies: [{ value: 'per_session', label: 'Per session' }],
     hasDosageNotes: true
   },
@@ -313,6 +313,12 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 
   const initialType = CATEGORY_TO_TYPE[purchase?.category] || 'peptide';
   
+  // Handle both object {value, label} and plain number formats for injections
+  const getInitialInjections = () => {
+    const firstInjection = PROTOCOL_TYPES[initialType]?.injections?.[0];
+    return typeof firstInjection === 'object' ? firstInjection.value : (firstInjection || 4);
+  };
+
   const [form, setForm] = useState({
     protocolType: initialType,
     patientName: purchase?.patient_name || '',
@@ -327,7 +333,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     startDate: new Date().toISOString().split('T')[0],
     duration: PROTOCOL_TYPES[initialType]?.durations?.[0]?.value || 10,
     totalSessions: PROTOCOL_TYPES[initialType]?.sessions?.[0] || 1,
-    totalInjections: PROTOCOL_TYPES[initialType]?.injections?.[0]?.value || 4,
+    totalInjections: getInitialInjections(),
     notes: ''
   });
 
@@ -339,6 +345,10 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 
   const handleTypeChange = (type) => {
     const typeConfig = PROTOCOL_TYPES[type];
+    // Handle both object {value, label} and plain number formats for injections
+    const firstInjection = typeConfig?.injections?.[0];
+    const injectionValue = typeof firstInjection === 'object' ? firstInjection.value : firstInjection;
+    
     setForm(prev => ({
       ...prev,
       protocolType: type,
@@ -348,7 +358,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       frequency: typeConfig?.frequencies?.[0]?.value || 'daily',
       duration: typeConfig?.durations?.[0]?.value || 10,
       totalSessions: typeConfig?.sessions?.[0] || 1,
-      totalInjections: typeConfig?.injections?.[0]?.value || 4
+      totalInjections: injectionValue || 4
     }));
   };
 
@@ -384,7 +394,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         if (type === 'hrt_female') return 'HRT Protocol (Female)';
         if (type.startsWith('weight_loss')) return `Weight Loss - ${form.medication} ${form.dosage} (${form.totalInjections} injections)`;
         if (type === 'single_injection') return `Single Injection - ${form.medication}`;
-        if (type === 'injection_pack') return `Injection Pack (${form.totalSessions}) - ${form.medication}`;
+        if (type === 'injection_pack') return `Injection Pack (${form.totalInjections} injections) - ${form.medication}`;
         if (type === 'red_light') return `Red Light Therapy (${form.totalSessions} sessions)`;
         if (type === 'hbot') return `HBOT (${form.totalSessions} sessions)`;
         if (type === 'iv_therapy') return `IV Therapy (${form.totalSessions} sessions)`;
@@ -631,9 +641,12 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                     onChange={e => setForm({ ...form, totalInjections: e.target.value })}
                     style={modalStyles.select}
                   >
-                    {selectedType.injections.map(i => (
-                      <option key={i.value} value={i.value}>{i.label}</option>
-                    ))}
+                    {selectedType.injections.map(i => {
+                      // Handle both object format {value, label} and plain number format
+                      const val = typeof i === 'object' ? i.value : i;
+                      const label = typeof i === 'object' ? i.label : `${i} injection${i > 1 ? 's' : ''}`;
+                      return <option key={val} value={val}>{label}</option>;
+                    })}
                   </select>
                 </div>
               )}

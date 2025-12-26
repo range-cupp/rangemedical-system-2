@@ -68,7 +68,7 @@ const PROTOCOL_TYPES = {
   single_injection: {
     name: 'Single Injection',
     programTypes: ['single_injection'],
-    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione 200mg', 'NAD+ 50mg', 'NAD+ 75mg', 'NAD+ 100mg', 'NAD+ 125mg', 'NAD+ 150mg'],
+    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
     sessions: [1],
     frequencies: [{ value: 'single', label: 'Single injection' }],
     hasDosageNotes: true
@@ -76,7 +76,7 @@ const PROTOCOL_TYPES = {
   injection_pack: {
     name: 'Injection Pack',
     programTypes: ['injection_pack', 'injection'],
-    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione 200mg', 'NAD+ 50mg', 'NAD+ 75mg', 'NAD+ 100mg', 'NAD+ 125mg', 'NAD+ 150mg'],
+    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
     sessions: [5, 10, 20],
     frequencies: [{ value: 'per_session', label: 'Per session' }],
     hasDosageNotes: true
@@ -447,10 +447,20 @@ export default function ProtocolDetail() {
                       </div>
                       <div style={styles.field}>
                         <label style={styles.label}>Dosage</label>
-                        <select value={form.dosage} onChange={e => setForm({ ...form, dosage: e.target.value })} style={styles.select}>
-                          <option value="">Select...</option>
-                          {selectedType.dosages?.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
+                        {selectedType.hasDosageNotes ? (
+                          <input 
+                            type="text" 
+                            value={form.dosage} 
+                            onChange={e => setForm({ ...form, dosage: e.target.value })} 
+                            style={styles.input}
+                            placeholder="e.g., 100mg, 1ml"
+                          />
+                        ) : (
+                          <select value={form.dosage} onChange={e => setForm({ ...form, dosage: e.target.value })} style={styles.select}>
+                            <option value="">Select...</option>
+                            {selectedType.dosages?.map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                        )}
                       </div>
                     </div>
                   </div>

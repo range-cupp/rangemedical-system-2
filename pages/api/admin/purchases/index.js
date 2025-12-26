@@ -17,8 +17,9 @@ export default async function handler(req, res) {
     try {
       let query = supabase
         .from('purchases')
-        .select('*')
-        .order('purchase_date', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('payment_date', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
 
       // Category filter
       if (category && category !== 'All') {
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
       if (days && days !== 'all') {
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - parseInt(days));
-        query = query.gte('purchase_date', daysAgo.toISOString().split('T')[0]);
+        query = query.gte('payment_date', daysAgo.toISOString().split('T')[0]);
       }
 
       // Search
@@ -42,12 +43,11 @@ export default async function handler(req, res) {
         query = query.or(`patient_name.ilike.%${search}%,item_name.ilike.%${search}%,patient_email.ilike.%${search}%`);
       }
 
-      // Limit
-      if (limit) {
-        query = query.limit(parseInt(limit));
-      }
+      // Limit - use provided limit or fetch all (up to 10000)
+      const maxLimit = limit ? parseInt(limit) : 10000;
+      query = query.limit(maxLimit);
 
-      const { data: purchases, error } = await query;
+      const { data: purchases, error, count } = await query;
 
       if (error) {
         console.error('Purchases fetch error:', error);
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
       }
 
       // Calculate stats
-      const total = purchases?.length || 0;
+      const total = count || purchases?.length || 0;
       const revenue = purchases?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
 
       return res.status(200).json({

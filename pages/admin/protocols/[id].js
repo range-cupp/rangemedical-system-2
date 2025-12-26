@@ -104,6 +104,24 @@ const PROTOCOL_TYPES = {
   iv_therapy: {
     name: 'IV Therapy',
     programTypes: ['iv_therapy'],
+    medications: [
+      'Range IV',
+      'NAD+ IV 250mg',
+      'NAD+ IV 500mg',
+      'NAD+ IV 750mg',
+      'NAD+ IV 1000mg',
+      'Glutathione IV 1g',
+      'Glutathione IV 2g',
+      'Glutathione IV 3g',
+      'Vitamin C IV 25g',
+      'Vitamin C IV 50g',
+      'Vitamin C IV 75g',
+      'Methylene Blue IV',
+      'MB + Vit C + Mag Combo',
+      'Exosome IV',
+      'BYO IV',
+      'Hydration IV'
+    ],
     sessions: [1, 5, 10],
     frequencies: [{ value: 'per_session', label: 'Per session' }]
   }

@@ -9,6 +9,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Normalize name for matching
+function normalizeName(name) {
+  if (!name) return '';
+  return name.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -31,59 +37,82 @@ export default async function handler(req, res) {
 
     if (purchasesError) throw purchasesError;
 
-    // Build patient map - keyed by ghl_contact_id or name if no contact_id
+    // Build patient map - prioritize ghl_contact_id, then normalized name
     const patientMap = new Map();
+    const nameToContactId = new Map(); // Track which names map to which contact IDs
 
-    // Process protocols
-    protocols.forEach(p => {
-      const key = p.ghl_contact_id || `name:${p.patient_name}`;
+    // Helper to get or create patient entry
+    const getPatientKey = (record) => {
+      const normalizedName = normalizeName(record.patient_name);
+      
+      // If we have a contact ID, use it
+      if (record.ghl_contact_id) {
+        // Also remember this name maps to this contact ID
+        nameToContactId.set(normalizedName, record.ghl_contact_id);
+        return record.ghl_contact_id;
+      }
+      
+      // Check if this name already has a known contact ID
+      if (nameToContactId.has(normalizedName)) {
+        return nameToContactId.get(normalizedName);
+      }
+      
+      // Use normalized name as fallback key
+      return `name:${normalizedName}`;
+    };
+
+    // Process all records
+    const allRecords = [
+      ...protocols.map(p => ({ ...p, source: 'protocol' })),
+      ...purchases.map(p => ({ ...p, source: 'purchase' }))
+    ];
+
+    allRecords.forEach(record => {
+      if (!record.patient_name || record.patient_name === 'Unknown') return;
+      
+      const key = getPatientKey(record);
+      
       if (!patientMap.has(key)) {
         patientMap.set(key, {
           id: key,
-          ghl_contact_id: p.ghl_contact_id,
-          name: p.patient_name,
-          phone: p.patient_phone,
-          email: p.patient_email,
+          ghl_contact_id: record.ghl_contact_id || null,
+          name: record.patient_name, // Keep original casing
+          phone: record.patient_phone || null,
+          email: record.patient_email || null,
           protocol_count: 0,
           purchase_count: 0
         });
       }
+      
       const patient = patientMap.get(key);
-      patient.protocol_count++;
-      // Update contact info if we have better data
-      if (p.patient_phone && !patient.phone) patient.phone = p.patient_phone;
-      if (p.patient_email && !patient.email) patient.email = p.patient_email;
-      if (p.ghl_contact_id && !patient.ghl_contact_id) patient.ghl_contact_id = p.ghl_contact_id;
-    });
-
-    // Process purchases
-    purchases.forEach(p => {
-      const key = p.ghl_contact_id || `name:${p.patient_name}`;
-      if (!patientMap.has(key)) {
-        patientMap.set(key, {
-          id: key,
-          ghl_contact_id: p.ghl_contact_id,
-          name: p.patient_name,
-          phone: p.patient_phone,
-          email: p.patient_email,
-          protocol_count: 0,
-          purchase_count: 0
-        });
+      
+      // Update counts
+      if (record.source === 'protocol') {
+        patient.protocol_count++;
+      } else {
+        patient.purchase_count++;
       }
-      const patient = patientMap.get(key);
-      patient.purchase_count++;
+      
       // Update contact info if we have better data
-      if (p.patient_phone && !patient.phone) patient.phone = p.patient_phone;
-      if (p.patient_email && !patient.email) patient.email = p.patient_email;
-      if (p.ghl_contact_id && !patient.ghl_contact_id) patient.ghl_contact_id = p.ghl_contact_id;
+      if (record.ghl_contact_id && !patient.ghl_contact_id) {
+        patient.ghl_contact_id = record.ghl_contact_id;
+      }
+      if (record.patient_phone && !patient.phone) {
+        patient.phone = record.patient_phone;
+      }
+      if (record.patient_email && !patient.email) {
+        patient.email = record.patient_email;
+      }
     });
 
     // Convert to array and sort by name
     const patients = Array.from(patientMap.values())
-      .filter(p => p.name && p.name !== 'Unknown')
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-    return res.status(200).json({ patients });
+    return res.status(200).json({ 
+      patients,
+      total: patients.length
+    });
 
   } catch (error) {
     console.error('Patients API error:', error);

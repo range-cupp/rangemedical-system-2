@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       const { data, error } = await supabase
         .from('purchases')
         .delete()
-        .or('source.eq.calendar,ghl_source_type.eq.calendar')
+        .eq('source', 'calendar')
         .select('id');
 
       if (error) throw error;
@@ -64,17 +64,16 @@ export default async function handler(req, res) {
     // Get existing purchases for deduplication
     const { data: existing, error: fetchError } = await supabase
       .from('purchases')
-      .select('id, ghl_payment_id, patient_name, item_name, payment_date, amount');
+      .select('id, patient_name, item_name, payment_date, amount, created_at');
 
     if (fetchError) throw fetchError;
 
-    // Build lookup sets
-    const existingByTransactionId = new Set(
-      existing.filter(e => e.ghl_payment_id).map(e => e.ghl_payment_id)
-    );
-    
+    // Build lookup set using patient + item + date + amount combo
     const existingByCombo = new Set(
-      existing.map(e => `${(e.patient_name || '').toLowerCase()}|${(e.item_name || '').toLowerCase()}|${e.payment_date}|${e.amount}`)
+      existing.map(e => {
+        const date = e.payment_date || (e.created_at ? e.created_at.split('T')[0] : '');
+        return `${(e.patient_name || '').toLowerCase()}|${(e.item_name || '').toLowerCase()}|${date}|${e.amount}`;
+      })
     );
 
     // Filter to only new purchases
@@ -87,14 +86,9 @@ export default async function handler(req, res) {
         return;
       }
 
-      // Check if already exists
-      const transactionId = p.ghl_transaction_id || p.ghl_payment_id;
-      if (transactionId && existingByTransactionId.has(transactionId)) {
-        duplicates.push({ reason: 'transaction_id', ...p });
-        return;
-      }
-
-      const combo = `${(p.patient_name || '').toLowerCase()}|${(p.item_name || '').toLowerCase()}|${p.purchase_date || p.payment_date}|${p.amount}`;
+      // Check if already exists by combo
+      const date = p.purchase_date || p.payment_date || '';
+      const combo = `${(p.patient_name || '').toLowerCase()}|${(p.item_name || '').toLowerCase()}|${date}|${p.amount}`;
       if (existingByCombo.has(combo)) {
         duplicates.push({ reason: 'combo', ...p });
         return;
@@ -102,7 +96,6 @@ export default async function handler(req, res) {
 
       // Add to insert list
       toInsert.push({
-        ghl_payment_id: transactionId,
         ghl_contact_id: p.ghl_contact_id,
         patient_name: p.patient_name,
         patient_email: p.patient_email,
@@ -113,9 +106,12 @@ export default async function handler(req, res) {
         quantity: parseInt(p.quantity) || 1,
         category: categorizeItem(p.item_name),
         source: p.source || 'ghl',
-        payment_date: p.purchase_date || p.payment_date,
+        payment_date: p.purchase_date || p.payment_date || null,
         created_at: new Date().toISOString()
       });
+
+      // Add to set to prevent duplicates within the same batch
+      existingByCombo.add(combo);
     });
 
     if (dryRun) {

@@ -213,7 +213,7 @@ export default function ProtocolDetail() {
   };
 
   const selectedType = PROTOCOL_TYPES[form.protocolType];
-  const isSessionBased = !!selectedType?.sessions;
+  const isFormSessionBased = !!selectedType?.sessions;
   const isInjectionBased = !!selectedType?.injections;
 
   const handleTypeChange = (type) => {
@@ -287,6 +287,15 @@ export default function ProtocolDetail() {
   const isInjectionProtocol = (protocol?.program_type || '').includes('injection') || 
                               (protocol?.program_name || '').toLowerCase().includes('injection');
   
+  // Session-based protocols (HBOT, Red Light, IV Therapy, Injection Packs)
+  const isSessionBased = ['hbot', 'hbot_sessions', 'red_light', 'red_light_sessions', 'rlt', 
+                          'iv_therapy', 'iv', 'iv_sessions', 'injection_pack'].includes(protocol?.program_type);
+  
+  // For session-based: track sessions_completed vs total_sessions
+  const totalSessions = protocol?.total_sessions || 0;
+  const sessionsCompleted = protocol?.sessions_completed || 0;
+  const sessionsRemaining = totalSessions - sessionsCompleted;
+  
   // For injection protocols: total = total_sessions (injection count)
   // For day protocols: total = duration_days
   const totalUnits = protocol?.total_sessions || protocol?.duration_days || 10;
@@ -311,9 +320,11 @@ export default function ProtocolDetail() {
     : currentDay;
   
   const isActive = protocol?.status === 'active';
-  const isComplete = isInjectionProtocol 
-    ? currentInjection >= totalUnits 
-    : currentDay > totalDays;
+  const isComplete = isSessionBased 
+    ? sessionsRemaining <= 0
+    : (isInjectionProtocol 
+        ? currentInjection >= totalUnits 
+        : currentDay > totalDays);
 
   if (loading) {
     return <div style={styles.loadingContainer}><div style={styles.loading}>Loading...</div></div>;
@@ -358,22 +369,32 @@ export default function ProtocolDetail() {
         <div style={styles.content}>
           {/* Left: Main Content */}
           <div style={styles.mainCol}>
-            {/* BIG DAY DISPLAY */}
+            {/* BIG DAY/SESSION DISPLAY */}
             {!isEditing && (
               <div style={styles.dayCard}>
                 <div style={styles.dayLabel}>
-                  {isInjectionProtocol ? 'CURRENT INJECTION' : 'CURRENT DAY'}
+                  {isSessionBased ? 'SESSIONS USED' : (isInjectionProtocol ? 'CURRENT INJECTION' : 'CURRENT DAY')}
                 </div>
                 <div style={styles.dayDisplay}>
                   <span style={styles.currentDay}>
-                    {isComplete ? '✓' : (isInjectionProtocol ? (currentInjection > 0 ? currentInjection : '—') : (currentDay > 0 ? currentDay : '—'))}
+                    {isComplete ? '✓' : (
+                      isSessionBased ? sessionsCompleted : (
+                        isInjectionProtocol ? (currentInjection > 0 ? currentInjection : '—') : (currentDay > 0 ? currentDay : '—')
+                      )
+                    )}
                   </span>
                   <span style={styles.dayDivider}>/</span>
-                  <span style={styles.totalDays}>{totalUnits}</span>
+                  <span style={styles.totalDays}>{isSessionBased ? totalSessions : totalUnits}</span>
                 </div>
                 <div style={styles.dayStatus}>
                   {isComplete ? (
-                    <span style={styles.completeText}>Protocol Complete</span>
+                    <span style={styles.completeText}>
+                      {isSessionBased ? 'All Sessions Used' : 'Protocol Complete'}
+                    </span>
+                  ) : isSessionBased ? (
+                    <span style={styles.activeText}>
+                      {sessionsRemaining} session{sessionsRemaining !== 1 ? 's' : ''} remaining
+                    </span>
                   ) : currentDay < 1 ? (
                     <span style={styles.notStartedText}>Not Started Yet</span>
                   ) : (
@@ -403,7 +424,43 @@ export default function ProtocolDetail() {
               </div>
             )}
 
-            {/* Calendar Grid */}
+            {/* Session Grid for HBOT/RLT/IV */}
+            {!isEditing && isSessionBased && totalSessions > 0 && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>Session Tracker</h2>
+                <div style={styles.calendarGrid}>
+                  {Array.from({ length: totalSessions }, (_, i) => {
+                    const num = i + 1;
+                    const isUsed = num <= sessionsCompleted;
+                    const isNext = num === sessionsCompleted + 1;
+                    
+                    return (
+                      <div
+                        key={num}
+                        style={{
+                          ...styles.calendarDay,
+                          background: isUsed ? '#22c55e' : isNext ? '#000' : '#fff',
+                          color: isUsed || isNext ? '#fff' : '#000',
+                          borderColor: isUsed ? '#22c55e' : isNext ? '#000' : '#e5e5e5',
+                          opacity: !isUsed && !isNext ? 0.5 : 1
+                        }}
+                      >
+                        <div style={styles.dayNumber}>{num}</div>
+                        {isUsed && <div style={styles.checkmark}>✓</div>}
+                        {isNext && <div style={styles.todayLabel}>NEXT</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={styles.legend}>
+                  <span><span style={styles.legendDot} /> Used</span>
+                  <span><span style={{ ...styles.legendDot, background: '#000' }} /> Next</span>
+                  <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Available</span>
+                </div>
+              </div>
+            )}
+
+            {/* Calendar Grid for Injection/Day protocols */}
             {!isEditing && !isSessionBased && (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>

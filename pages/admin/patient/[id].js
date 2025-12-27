@@ -884,7 +884,7 @@ function OverviewTab({ patient, weightLogs, onWeightAdded }) {
 // ============================================
 // PURCHASES TAB - Main workflow hub
 // ============================================
-function PurchasesTab({ patient, onCreateProtocol, onRefresh }) {
+function PurchasesTab({ patient, onCreateProtocol, onAddToExisting, onRefresh }) {
   const purchases = patient.purchases || [];
   const unassigned = purchases.filter(p => !p.protocol_id);
   const assigned = purchases.filter(p => p.protocol_id);
@@ -932,6 +932,21 @@ function PurchasesTab({ patient, onCreateProtocol, onRefresh }) {
                     }}
                   >
                     Create Protocol
+                  </button>
+                  <button
+                    onClick={() => onAddToExisting(purchase)}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#fff',
+                      color: '#000',
+                      border: '1px solid #e5e5e5',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Add to Existing
                   </button>
                 </div>
               </div>
@@ -988,20 +1003,36 @@ function PurchasesTab({ patient, onCreateProtocol, onRefresh }) {
                       {p.protocol_id ? (
                         <span style={{ fontSize: '12px', color: '#16a34a' }}>✓ Assigned</span>
                       ) : (
-                        <button
-                          onClick={() => onCreateProtocol(p)}
-                          style={{
-                            padding: '4px 12px',
-                            background: '#000',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Create Protocol
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => onCreateProtocol(p)}
+                            style={{
+                              padding: '4px 10px',
+                              background: '#000',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Create
+                          </button>
+                          <button
+                            onClick={() => onAddToExisting(p)}
+                            style={{
+                              padding: '4px 10px',
+                              background: '#fff',
+                              color: '#000',
+                              border: '1px solid #e5e5e5',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            + Existing
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -1836,6 +1867,235 @@ function CreateProtocolModal({ purchase, patient, onClose, onSuccess }) {
 }
 
 // ============================================
+// ADD TO EXISTING PROTOCOL MODAL
+// ============================================
+function AddToExistingModal({ purchase, patient, onClose, onSuccess }) {
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [sessionsToAdd, setSessionsToAdd] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Filter to active protocols for this patient
+  const activeProtocols = (patient?.protocols || []).filter(p => p.status === 'active');
+
+  const handleSubmit = async () => {
+    if (!selectedProtocol) {
+      setError('Please select a protocol');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      // Update the protocol to add sessions
+      const newTotalSessions = (selectedProtocol.total_sessions || 0) + sessionsToAdd;
+      
+      const res = await fetch(`/api/admin/protocols/${selectedProtocol.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          total_sessions: newTotalSessions
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to update protocol');
+
+      // Link purchase to protocol
+      const purchaseRes = await fetch(`/api/admin/purchases/${purchase.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          protocol_id: selectedProtocol.id
+        })
+      });
+
+      if (!purchaseRes.ok) throw new Error('Failed to link purchase');
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '20px'
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '12px',
+        width: '100%',
+        maxWidth: '500px',
+        maxHeight: '90vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }} onClick={e => e.stopPropagation()}>
+        
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid #e5e5e5',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Add to Existing Protocol</h2>
+            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#666' }}>
+              {purchase?.item_name} (${purchase?.amount})
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            color: '#666'
+          }}>×</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+          {error && (
+            <div style={{
+              padding: '12px',
+              background: '#fee2e2',
+              color: '#b91c1c',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px'
+            }}>{error}</div>
+          )}
+
+          {/* Patient */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Patient</h3>
+            <p style={{ margin: '4px 0', fontWeight: '500' }}>{patient?.name}</p>
+          </div>
+
+          {/* Select Protocol */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Select Protocol</h3>
+            {activeProtocols.length === 0 ? (
+              <p style={{ color: '#666', fontSize: '14px' }}>No active protocols found. Create a new protocol instead.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {activeProtocols.map(protocol => (
+                  <button
+                    key={protocol.id}
+                    onClick={() => setSelectedProtocol(protocol)}
+                    style={{
+                      padding: '12px 16px',
+                      border: selectedProtocol?.id === protocol.id ? '2px solid #000' : '1px solid #e5e5e5',
+                      borderRadius: '8px',
+                      background: selectedProtocol?.id === protocol.id ? '#f5f5f5' : '#fff',
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                      {protocol.program_name || protocol.program_type}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {protocol.total_sessions || 0} sessions • Started {formatDate(protocol.start_date)}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sessions to Add */}
+          {selectedProtocol && (
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Sessions to Add</h3>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[1, 5, 10, 20].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setSessionsToAdd(n)}
+                    style={{
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: sessionsToAdd === n ? '#000' : '#f5f5f5',
+                      color: sessionsToAdd === n ? '#fff' : '#000',
+                      fontWeight: '500'
+                    }}
+                  >
+                    +{n}
+                  </button>
+                ))}
+              </div>
+              <p style={{ marginTop: '12px', fontSize: '13px', color: '#666' }}>
+                New total: {(selectedProtocol.total_sessions || 0) + sessionsToAdd} sessions
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '16px 20px',
+          borderTop: '1px solid #e5e5e5',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '12px'
+        }}>
+          <button onClick={onClose} style={{
+            padding: '10px 20px',
+            background: '#fff',
+            color: '#000',
+            border: '1px solid #e5e5e5',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}>Cancel</button>
+          <button 
+            onClick={handleSubmit} 
+            disabled={saving || !selectedProtocol || activeProtocols.length === 0}
+            style={{
+              padding: '10px 20px',
+              background: '#000',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              opacity: (!selectedProtocol || activeProtocols.length === 0) ? 0.5 : 1
+            }}
+          >
+            {saving ? 'Adding...' : `Add ${sessionsToAdd} Session${sessionsToAdd > 1 ? 's' : ''}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // EDIT PROTOCOL MODAL
 // ============================================
 // Medications/Peptides list for dropdowns
@@ -2289,6 +2549,7 @@ export default function PatientProfilePage() {
 
   // Modal states
   const [createProtocolPurchase, setCreateProtocolPurchase] = useState(null);
+  const [addToExistingPurchase, setAddToExistingPurchase] = useState(null);
   const [editingProtocol, setEditingProtocol] = useState(null);
   const [notesProtocol, setNotesProtocol] = useState(null);
 
@@ -2394,6 +2655,15 @@ export default function PatientProfilePage() {
         />
       )}
 
+      {addToExistingPurchase && (
+        <AddToExistingModal
+          purchase={addToExistingPurchase}
+          patient={patient}
+          onClose={() => setAddToExistingPurchase(null)}
+          onSuccess={handleProtocolCreated}
+        />
+      )}
+
       <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
         {/* Header */}
         <header style={{ background: 'white', borderBottom: '1px solid #e5e5e5', padding: '16px 24px' }}>
@@ -2453,6 +2723,7 @@ export default function PatientProfilePage() {
             <PurchasesTab
               patient={patient}
               onCreateProtocol={(purchase) => setCreateProtocolPurchase(purchase)}
+              onAddToExisting={(purchase) => setAddToExistingPurchase(purchase)}
               onRefresh={fetchPatient}
             />
           )}

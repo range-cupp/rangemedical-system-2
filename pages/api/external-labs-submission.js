@@ -1,5 +1,5 @@
 // /pages/api/external-labs-submission.js
-// Handles external lab submissions from TRT transfer landing page
+// Handles external lab submissions from booking page
 // Uploads contact to GHL with note containing lab file links
 // Sends email notification to clinic
 
@@ -22,11 +22,14 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { name, email, phone, labFiles, source, method } = req.body;
+        const { firstName, lastName, email, phone, labFiles, source, method } = req.body;
 
         // Validate required fields
-        if (!name || !email || !phone) {
-            return res.status(400).json({ error: 'Name, email, and phone are required' });
+        if (!firstName || !lastName || !email || !phone) {
+            return res.status(400).json({ 
+                error: 'First name, last name, email, and phone are required',
+                required: ['firstName', 'lastName', 'email', 'phone']
+            });
         }
 
         // For upload method, require files
@@ -36,10 +39,8 @@ export default async function handler(req, res) {
 
         const isEmailMethod = method === 'email' || (!labFiles || labFiles.length === 0);
 
-        // Parse name
-        const nameParts = name.trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
+        // Build full name for display
+        const fullName = `${firstName} ${lastName}`.trim();
 
         // Format phone
         let formattedPhone = phone.replace(/\D/g, '');
@@ -146,7 +147,7 @@ export default async function handler(req, res) {
             noteBody = `📋 EXTERNAL LABS - WAITING FOR EMAIL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Patient: ${name}
+Patient: ${fullName}
 Email: ${email}
 Phone: ${phone}
 Submitted: ${currentDate}
@@ -157,7 +158,7 @@ Source: ${source || 'Book Page'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Patient chose to email their labs.
-Expected subject line: "Lab Results - ${name}"
+Expected subject line: "Lab Results - ${fullName}"
 Email to: info@range-medical.com
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -176,7 +177,7 @@ If no email received within 2 days, follow up with patient.`;
             noteBody = `📋 EXTERNAL LABS SUBMITTED FOR REVIEW
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Patient: ${name}
+Patient: ${fullName}
 Email: ${email}
 Phone: ${phone}
 Submitted: ${currentDate}
@@ -221,27 +222,16 @@ Contact patient within 1-2 business days.`;
         }
 
         // ============================================
-        // 4. SEND INTERNAL EMAIL NOTIFICATION
+        // 4. CREATE TASK FOR FOLLOW-UP
         // ============================================
-        // Build file links for email
-        const emailFileLinks = labFiles.map((file, index) => 
-            `• ${file.name}: ${file.url}`
-        ).join('\n');
-
-        // Send notification via GHL's email endpoint or a webhook
-        // For now, we'll trigger a GHL workflow via a custom webhook
-        // You can set up a GHL automation that triggers on the 'needs-lab-review' tag
-        
-        // Alternative: Send via a simple email service
-        // This creates an internal task/notification in GHL
         try {
             const taskTitle = isEmailMethod 
-                ? `📧 Waiting for Labs via Email - ${name}`
-                : `📋 Review External Labs - ${name}`;
+                ? `📧 Waiting for Labs via Email - ${fullName}`
+                : `📋 Review External Labs - ${fullName}`;
             
             const taskDescription = isEmailMethod
-                ? `Patient chose to email labs.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\n\nWatch for email with subject: "Lab Results - ${name}"\n\nIf no email received within 2 days, follow up with patient.`
-                : `New lab submission from ${name} (${email})\n\nPhone: ${phone}\nFiles: ${labFiles.length}\n\nReview labs and contact patient within 1-2 business days.`;
+                ? `Patient chose to email labs.\n\nName: ${fullName}\nEmail: ${email}\nPhone: ${phone}\n\nWatch for email with subject: "Lab Results - ${fullName}"\n\nIf no email received within 2 days, follow up with patient.`
+                : `New lab submission from ${fullName} (${email})\n\nPhone: ${phone}\nFiles: ${labFiles.length}\n\nReview labs and contact patient within 1-2 business days.`;
 
             await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/tasks`, {
                 method: 'POST',

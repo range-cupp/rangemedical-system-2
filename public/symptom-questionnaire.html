@@ -811,8 +811,8 @@
 
         <div class="success-message" id="successMessage">
             <div class="success-icon">✓</div>
-            <h2 class="success-title">Questionnaire Submitted</h2>
-            <p class="success-text">Thank you! Your responses have been recorded and your provider will review them.</p>
+            <h2 class="success-title">Thank You!</h2>
+            <p class="success-text">Your questionnaire has been submitted successfully. Your provider will review your responses and follow up with you.</p>
         </div>
 
         <div class="provider-report" id="providerReport"></div>
@@ -1622,9 +1622,8 @@
                 } catch (ghlErr) { console.log('GHL sync error:', ghlErr); }
 
                 document.getElementById('loadingOverlay').classList.remove('visible');
-                document.querySelectorAll('.section-card, .patient-info-card, #progressContainer, #submitSection').forEach(el => { el.style.display = 'none'; });
+                document.querySelectorAll('.section-card, .patient-info-card, #progressContainer, #submitSection, .page-header').forEach(el => { el.style.display = 'none'; });
                 document.getElementById('successMessage').classList.add('visible');
-                showProviderReport(data, scores, pdfUrl);
 
             } catch (error) {
                 console.error('Submission error:', error);

@@ -1589,13 +1589,37 @@
                 const pdfUrl = await uploadToSupabase(pdfBlob, fileName);
                 console.log('PDF uploaded:', pdfUrl);
 
+                // Save to database
                 try {
                     await fetch(CONFIG.api.questionnaires, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ ...data, scores: scores, pdfUrl: pdfUrl })
                     });
-                } catch (apiErr) { console.log('API save skipped:', apiErr); }
+                    console.log('Saved to database');
+                } catch (apiErr) { console.log('Database save skipped:', apiErr); }
+
+                // Sync to GoHighLevel
+                try {
+                    const ghlResponse = await fetch(CONFIG.api.ghl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            firstName: data.firstName,
+                            lastName: data.lastName,
+                            email: data.email,
+                            phone: data.phone,
+                            dob: data.dob,
+                            sex: data.sex,
+                            goals: data.goals,
+                            scores: scores,
+                            pdfUrl: pdfUrl,
+                            submissionDate: data.submissionDate
+                        })
+                    });
+                    const ghlResult = await ghlResponse.json();
+                    console.log('Synced to GHL:', ghlResult);
+                } catch (ghlErr) { console.log('GHL sync error:', ghlErr); }
 
                 document.getElementById('loadingOverlay').classList.remove('visible');
                 document.querySelectorAll('.section-card, .patient-info-card, #progressContainer, #submitSection').forEach(el => { el.style.display = 'none'; });

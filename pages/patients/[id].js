@@ -670,6 +670,57 @@ export default function PatientProfile() {
             </div>
           </div>
         )}
+
+        {/* View Symptoms Modal */}
+        {showSymptomsModal && baselineSymptoms && (
+          <div style={styles.modalOverlay} onClick={() => setShowSymptomsModal(false)}>
+            <div style={{...styles.modal, maxWidth: '600px'}} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>Symptoms Questionnaire Responses</h3>
+                <button onClick={() => setShowSymptomsModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              
+              <div style={styles.modalBody}>
+                <div style={styles.symptomsMeta}>
+                  Submitted: {formatDate(baselineSymptoms.submitted_at)}
+                  {baselineSymptoms.overall_score && (
+                    <span style={styles.overallScore}>
+                      Overall Score: {baselineSymptoms.overall_score.toFixed(1)}/10
+                    </span>
+                  )}
+                </div>
+                
+                <div style={styles.symptomsGrid}>
+                  {baselineSymptoms.responses && Object.entries(baselineSymptoms.responses).map(([key, value]) => (
+                    <div key={key} style={styles.symptomItem}>
+                      <div style={styles.symptomLabel}>{getSymptomLabel(key)}</div>
+                      {typeof value === 'number' ? (
+                        <div style={styles.symptomScore}>
+                          <div style={styles.scoreBar}>
+                            <div style={{
+                              ...styles.scoreBarFill,
+                              width: `${(value / 10) * 100}%`,
+                              background: value >= 7 ? '#22c55e' : value >= 4 ? '#f59e0b' : '#ef4444'
+                            }} />
+                          </div>
+                          <span style={styles.scoreValue}>{value}/10</span>
+                        </div>
+                      ) : (
+                        <div style={styles.symptomText}>{value || '—'}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowSymptomsModal(false)} style={styles.cancelButton}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -1042,5 +1093,80 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500'
+  },
+  buttonGroup: {
+    display: 'flex',
+    gap: '6px'
+  },
+  scoreDisplay: {
+    marginLeft: '12px',
+    padding: '2px 8px',
+    background: '#f3f4f6',
+    borderRadius: '4px',
+    fontSize: '13px',
+    color: '#666'
+  },
+  symptomsMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '12px 0',
+    borderBottom: '1px solid #e5e7eb',
+    marginBottom: '16px',
+    fontSize: '14px',
+    color: '#666'
+  },
+  overallScore: {
+    fontWeight: '600',
+    color: '#000'
+  },
+  symptomsGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    maxHeight: '400px',
+    overflowY: 'auto'
+  },
+  symptomItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 0',
+    borderBottom: '1px solid #f3f4f6'
+  },
+  symptomLabel: {
+    fontSize: '14px',
+    fontWeight: '500',
+    flex: 1
+  },
+  symptomScore: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flex: 1
+  },
+  scoreBar: {
+    flex: 1,
+    height: '8px',
+    background: '#e5e7eb',
+    borderRadius: '4px',
+    overflow: 'hidden'
+  },
+  scoreBarFill: {
+    height: '100%',
+    borderRadius: '4px',
+    transition: 'width 0.3s'
+  },
+  scoreValue: {
+    fontSize: '13px',
+    fontWeight: '600',
+    minWidth: '40px',
+    textAlign: 'right'
+  },
+  symptomText: {
+    fontSize: '14px',
+    color: '#666',
+    flex: 1,
+    textAlign: 'right'
   }
 };

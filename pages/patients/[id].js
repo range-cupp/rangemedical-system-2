@@ -28,6 +28,14 @@ export default function PatientProfile() {
     customDose: '',
     notes: ''
   });
+  
+  const [showLabsModal, setShowLabsModal] = useState(false);
+  const [labForm, setLabForm] = useState({
+    labType: 'Baseline',
+    labPanel: 'Elite',
+    completedDate: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
 
   useEffect(() => {
     if (id) {
@@ -115,6 +123,39 @@ export default function PatientProfile() {
       fetchPatientProfile();
     } catch (error) {
       console.error('Error dismissing:', error);
+    }
+  }
+
+  async function handleAddLab() {
+    try {
+      const res = await fetch(`/api/patients/${id}/labs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          labType: labForm.labType,
+          labPanel: labForm.labPanel,
+          completedDate: labForm.completedDate,
+          status: 'completed',
+          notes: labForm.notes
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setShowLabsModal(false);
+        setLabForm({
+          labType: 'Baseline',
+          labPanel: 'Elite',
+          completedDate: new Date().toISOString().split('T')[0],
+          notes: ''
+        });
+        fetchPatientProfile();
+      } else {
+        alert('Error: ' + (data.error || 'Failed to add lab'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
     }
   }
 
@@ -221,7 +262,12 @@ export default function PatientProfile() {
           </div>
           <div style={styles.assessmentGrid}>
             <div style={styles.assessmentCard}>
-              <div style={styles.assessmentLabel}>Baseline Labs</div>
+              <div style={styles.assessmentHeader}>
+                <div style={styles.assessmentLabel}>Baseline Labs</div>
+                <button onClick={() => setShowLabsModal(true)} style={styles.smallButton}>
+                  + Add
+                </button>
+              </div>
               <div style={styles.assessmentValue}>
                 {latestLabs ? (
                   <>
@@ -235,7 +281,18 @@ export default function PatientProfile() {
               </div>
             </div>
             <div style={styles.assessmentCard}>
-              <div style={styles.assessmentLabel}>Symptoms Questionnaire</div>
+              <div style={styles.assessmentHeader}>
+                <div style={styles.assessmentLabel}>Symptoms Questionnaire</div>
+                <button 
+                  onClick={() => {
+                    const url = `https://app.range-medical.com/symptom-questionnaire?email=${encodeURIComponent(patient.email || '')}&name=${encodeURIComponent(patientName)}`;
+                    window.open(url, '_blank');
+                  }} 
+                  style={styles.smallButton}
+                >
+                  Send Link
+                </button>
+              </div>
               <div style={styles.assessmentValue}>
                 {baselineSymptoms ? (
                   <>
@@ -461,6 +518,79 @@ export default function PatientProfile() {
             </div>
           </div>
         )}
+
+        {/* Add Labs Modal */}
+        {showLabsModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowLabsModal(false)}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>Add Lab Results</h3>
+                <button onClick={() => setShowLabsModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              
+              <div style={styles.modalBody}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Lab Type</label>
+                  <select
+                    value={labForm.labType}
+                    onChange={e => setLabForm({...labForm, labType: e.target.value})}
+                    style={styles.select}
+                  >
+                    <option value="Baseline">Baseline</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Quarterly">Quarterly</option>
+                    <option value="Annual">Annual</option>
+                  </select>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Lab Panel</label>
+                  <select
+                    value={labForm.labPanel}
+                    onChange={e => setLabForm({...labForm, labPanel: e.target.value})}
+                    style={styles.select}
+                  >
+                    <option value="Elite">Elite Panel</option>
+                    <option value="Essential">Essential Panel</option>
+                    <option value="Metabolic">Metabolic Panel</option>
+                    <option value="Hormone">Hormone Panel</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Completed Date</label>
+                  <input
+                    type="date"
+                    value={labForm.completedDate}
+                    onChange={e => setLabForm({...labForm, completedDate: e.target.value})}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Notes</label>
+                  <textarea
+                    value={labForm.notes}
+                    onChange={e => setLabForm({...labForm, notes: e.target.value})}
+                    placeholder="Optional notes..."
+                    style={styles.textarea}
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowLabsModal(false)} style={styles.cancelButton}>
+                  Cancel
+                </button>
+                <button onClick={handleAddLab} style={styles.saveButton}>
+                  Add Lab
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -598,10 +728,24 @@ const styles = {
     borderRadius: '8px',
     border: '1px solid #e5e7eb'
   },
+  assessmentHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px'
+  },
   assessmentLabel: {
     fontSize: '14px',
-    color: '#666',
-    marginBottom: '8px'
+    color: '#666'
+  },
+  smallButton: {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    padding: '4px 10px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    color: '#333'
   },
   assessmentValue: {
     fontSize: '16px',

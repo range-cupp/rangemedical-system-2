@@ -36,6 +36,9 @@ export default function PatientProfile() {
     completedDate: new Date().toISOString().split('T')[0],
     notes: ''
   });
+  
+  const [showSymptomsModal, setShowSymptomsModal] = useState(false);
+  const [sendingSymptoms, setSendingSymptoms] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -157,6 +160,65 @@ export default function PatientProfile() {
     } catch (error) {
       alert('Error: ' + error.message);
     }
+  }
+
+  async function handleSendSymptoms() {
+    setSendingSymptoms(true);
+    try {
+      const res = await fetch(`/api/patients/${id}/send-symptoms`, {
+        method: 'POST'
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        if (data.link) {
+          // No GHL contact, show link to copy
+          const copyText = data.smsText || data.link;
+          await navigator.clipboard.writeText(copyText);
+          alert('Link copied to clipboard! Paste into your messaging app.');
+        } else {
+          alert('Symptoms questionnaire sent via SMS!');
+        }
+      } else {
+        alert('Error: ' + (data.error || 'Failed to send'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+    } finally {
+      setSendingSymptoms(false);
+    }
+  }
+
+  function copyQuestionnaireLink() {
+    const link = `https://app.range-medical.com/symptom-questionnaire?email=${encodeURIComponent(patient?.email || '')}&name=${encodeURIComponent(patientName)}`;
+    navigator.clipboard.writeText(link);
+    alert('Link copied!');
+  }
+
+  function getSymptomLabel(key) {
+    const labels = {
+      overall_health: 'Overall Health',
+      energy: 'Energy',
+      fatigue: 'Fatigue',
+      focus: 'Focus',
+      memory: 'Memory',
+      sleep_onset: 'Sleep Onset',
+      sleep_quality: 'Sleep Quality',
+      mood: 'Mood',
+      stress: 'Stress',
+      anxiety: 'Anxiety',
+      weight_satisfaction: 'Weight Satisfaction',
+      weight_loss_ease: 'Weight Loss Ease',
+      cravings: 'Cravings',
+      recovery: 'Recovery',
+      pain: 'Pain',
+      strength: 'Strength',
+      libido: 'Libido',
+      sexual_performance: 'Sexual Performance',
+      goals: 'Goals'
+    };
+    return labels[key] || key;
   }
 
   function openAssignModal(notification = null) {
@@ -283,15 +345,29 @@ export default function PatientProfile() {
             <div style={styles.assessmentCard}>
               <div style={styles.assessmentHeader}>
                 <div style={styles.assessmentLabel}>Symptoms Questionnaire</div>
-                <button 
-                  onClick={() => {
-                    const url = `https://app.range-medical.com/symptom-questionnaire?email=${encodeURIComponent(patient.email || '')}&name=${encodeURIComponent(patientName)}`;
-                    window.open(url, '_blank');
-                  }} 
-                  style={styles.smallButton}
-                >
-                  Send Link
-                </button>
+                <div style={styles.buttonGroup}>
+                  {baselineSymptoms && (
+                    <button 
+                      onClick={() => setShowSymptomsModal(true)} 
+                      style={styles.smallButton}
+                    >
+                      View
+                    </button>
+                  )}
+                  <button 
+                    onClick={handleSendSymptoms}
+                    disabled={sendingSymptoms}
+                    style={styles.smallButton}
+                  >
+                    {sendingSymptoms ? '...' : 'Send SMS'}
+                  </button>
+                  <button 
+                    onClick={copyQuestionnaireLink}
+                    style={styles.smallButton}
+                  >
+                    Copy Link
+                  </button>
+                </div>
               </div>
               <div style={styles.assessmentValue}>
                 {baselineSymptoms ? (
@@ -299,6 +375,9 @@ export default function PatientProfile() {
                     <span style={styles.checkmark}>✓</span>
                     Completed
                     <span style={styles.assessmentDate}>({formatDate(baselineSymptoms.submitted_at)})</span>
+                    {baselineSymptoms.overall_score && (
+                      <span style={styles.scoreDisplay}>Avg: {baselineSymptoms.overall_score.toFixed(1)}/10</span>
+                    )}
                   </>
                 ) : (
                   <span style={styles.pending}>Not completed</span>

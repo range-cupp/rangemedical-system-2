@@ -272,8 +272,8 @@ export default function PatientProfile() {
                 {latestLabs ? (
                   <>
                     <span style={styles.checkmark}>✓</span>
-                    {latestLabs.lab_panel || 'Completed'} 
-                    <span style={styles.assessmentDate}>({formatDate(latestLabs.completed_date)})</span>
+                    {latestLabs.panel_type || latestLabs.lab_panel || 'Completed'} 
+                    <span style={styles.assessmentDate}>({formatDate(latestLabs.test_date || latestLabs.completed_date)})</span>
                   </>
                 ) : (
                   <span style={styles.pending}>Not completed</span>

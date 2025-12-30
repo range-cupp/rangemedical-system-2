@@ -1,9 +1,7 @@
 // /pages/api/import/accessmedlabs.js
-// Import AccessMedLabs CSV - call this endpoint to run import
+// Import AccessMedLabs CSV - with duplicate protection and detailed errors
 
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import path from 'path';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
@@ -153,22 +151,38 @@ function parseNumeric(value) {
 async function findOrCreatePatient(firstName, lastName, email, phone) {
   const cleanEmail = email?.trim().toLowerCase();
   const cleanPhone = phone?.replace(/\D/g, '');
+  const cleanFirst = firstName?.trim();
+  const cleanLast = lastName?.trim();
   
-  if (cleanEmail) {
+  // Try to find by email first
+  if (cleanEmail && cleanEmail.length > 0) {
     const { data: existing } = await supabase
       .from('patients')
       .select('id')
       .ilike('email', cleanEmail)
       .single();
     
-    if (existing) return existing.id;
+    if (existing) return { id: existing.id, status: 'found_by_email' };
   }
   
+  // Try to find by name
+  if (cleanFirst && cleanLast) {
+    const { data: existingByName } = await supabase
+      .from('patients')
+      .select('id')
+      .ilike('first_name', cleanFirst)
+      .ilike('last_name', cleanLast)
+      .single();
+    
+    if (existingByName) return { id: existingByName.id, status: 'found_by_name' };
+  }
+  
+  // Create new patient
   const { data: newPatient, error } = await supabase
     .from('patients')
     .insert({
-      first_name: firstName?.trim() || null,
-      last_name: lastName?.trim() || null,
+      first_name: cleanFirst || null,
+      last_name: cleanLast || null,
       email: cleanEmail || null,
       phone: cleanPhone || null
     })
@@ -176,11 +190,10 @@ async function findOrCreatePatient(firstName, lastName, email, phone) {
     .single();
   
   if (error) {
-    console.error('Error creating patient:', error);
-    return null;
+    return { id: null, status: 'error', error: error.message };
   }
   
-  return newPatient.id;
+  return { id: newPatient.id, status: 'created' };
 }
 
 export default async function handler(req, res) {
@@ -188,15 +201,34 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'POST required' });
   }
 
-  const { csvData } = req.body;
+  const { csvData, previewOnly } = req.body;
   
   if (!csvData) {
     return res.status(400).json({ error: 'csvData required in body' });
   }
 
   const lines = csvData.split('\n');
-  const results = { imported: 0, errors: 0, skipped: 0, details: [] };
+  const results = { 
+    imported: 0, 
+    errors: 0, 
+    skipped: 0, 
+    duplicates: 0,
+    details: [],
+    errorDetails: []
+  };
   const seenOrders = new Set();
+
+  // First pass - get all existing order numbers to detect duplicates
+  const { data: existingLabs } = await supabase
+    .from('labs')
+    .select('notes')
+    .like('notes', 'Order #%');
+  
+  const existingOrderNumbers = new Set();
+  (existingLabs || []).forEach(lab => {
+    const match = lab.notes?.match(/Order #(\d+)/);
+    if (match) existingOrderNumbers.add(match[1].trim());
+  });
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
@@ -211,38 +243,93 @@ export default async function handler(req, res) {
     const phone = fields[9]?.trim();
     const collectionDate = fields[17]?.trim();
 
+    // Skip duplicate orders in same file
     if (seenOrders.has(orderNumber)) continue;
     seenOrders.add(orderNumber);
 
-    if (!firstName || !lastName) continue;
+    if (!firstName || !lastName) {
+      results.skipped++;
+      results.details.push({ 
+        name: 'Unknown', 
+        status: 'skipped',
+        reason: 'Missing name'
+      });
+      continue;
+    }
+
+    const fullName = `${firstName} ${lastName}`;
+
+    // Check if this order was already imported (DUPLICATE PROTECTION)
+    if (existingOrderNumbers.has(orderNumber)) {
+      results.duplicates++;
+      results.details.push({ 
+        name: fullName, 
+        status: 'duplicate',
+        reason: `Order #${orderNumber} already imported`
+      });
+      continue;
+    }
 
     const testDate = parseDate(collectionDate);
     if (!testDate) {
       results.skipped++;
+      results.details.push({ 
+        name: fullName, 
+        status: 'skipped',
+        reason: `Invalid date: ${collectionDate}`
+      });
       continue;
     }
 
-    const patientId = await findOrCreatePatient(firstName, lastName, email, phone);
-    if (!patientId) {
+    // If preview only, don't actually import
+    if (previewOnly) {
+      results.details.push({ 
+        name: fullName, 
+        date: testDate,
+        status: 'will_import'
+      });
+      results.imported++;
+      continue;
+    }
+
+    // Find or create patient
+    const patientResult = await findOrCreatePatient(firstName, lastName, email, phone);
+    
+    if (!patientResult.id) {
       results.errors++;
+      results.errorDetails.push({ 
+        name: fullName, 
+        email: email || '(no email)',
+        error: patientResult.error || 'Failed to create patient'
+      });
+      results.details.push({ 
+        name: fullName, 
+        status: 'error',
+        reason: patientResult.error || 'Failed to create patient'
+      });
       continue;
     }
 
-    // Check for existing lab
+    // Double check for existing lab (same patient + same date)
     const { data: existingLab } = await supabase
       .from('labs')
       .select('id')
-      .eq('patient_id', patientId)
+      .eq('patient_id', patientResult.id)
       .eq('test_date', testDate)
       .single();
 
     if (existingLab) {
-      results.skipped++;
+      results.duplicates++;
+      results.details.push({ 
+        name: fullName, 
+        status: 'duplicate',
+        reason: `Lab already exists for ${testDate}`
+      });
       continue;
     }
 
     const labData = {
-      patient_id: patientId,
+      patient_id: patientResult.id,
       test_date: testDate,
       panel_type: 'Elite',
       lab_provider: 'AccessMedLabs',
@@ -268,10 +355,24 @@ export default async function handler(req, res) {
 
     if (labError) {
       results.errors++;
-      results.details.push({ name: `${firstName} ${lastName}`, error: labError.message });
+      results.errorDetails.push({ 
+        name: fullName, 
+        email: email || '(no email)',
+        error: labError.message 
+      });
+      results.details.push({ 
+        name: fullName, 
+        status: 'error',
+        reason: labError.message
+      });
     } else {
       results.imported++;
-      results.details.push({ name: `${firstName} ${lastName}`, date: testDate, status: 'imported' });
+      results.details.push({ 
+        name: fullName, 
+        date: testDate, 
+        status: 'imported',
+        patientStatus: patientResult.status
+      });
     }
   }
 

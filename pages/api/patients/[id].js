@@ -106,7 +106,7 @@ async function getPatientProfile(patientId, res) {
       .from('labs')
       .select('*')
       .eq('patient_id', patientId)
-      .order('completed_date', { ascending: false, nullsFirst: false })
+      .order('test_date', { ascending: false, nullsFirst: false })
       .limit(1)
       .single();
 

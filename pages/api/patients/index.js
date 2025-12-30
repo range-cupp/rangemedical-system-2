@@ -1,87 +1,89 @@
-import { supabase } from '../../../lib/supabase';
+// /pages/api/patients/index.js
+// Patients List API - Search and list patients
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    try {
-      // Get all patients
-      const { data: patients, error: patientsError } = await supabase
-        .from('patients')
-        .select('*')
-        .order('name');
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-      if (patientsError) throw patientsError;
+  const { search, limit = 50, offset = 0 } = req.query;
 
-      // For each patient, get their protocols, labs, symptoms, measurements, and intakes
-      const patientsWithData = await Promise.all(
-        patients.map(async (patient) => {
-          // Get protocols
-          const { data: protocols } = await supabase
-            .from('protocols')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('start_date', { ascending: false });
+  try {
+    let query = supabase
+      .from('patients')
+      .select(`
+        id,
+        ghl_contact_id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        created_at
+      `, { count: 'exact' });
 
-          // Get labs
-          const { data: labs } = await supabase
-            .from('labs')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('lab_date', { ascending: false });
-
-          // Get symptoms
-          const { data: symptoms } = await supabase
-            .from('symptoms')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('symptom_date', { ascending: false });
-
-          // Get measurements
-          const { data: measurements } = await supabase
-            .from('measurements')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('measurement_date', { ascending: false });
-
-          // Get intake forms
-          const { data: intakes } = await supabase
-            .from('intakes')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('submitted_at', { ascending: false });
-
-          return {
-            ...patient,
-            protocols: protocols || [],
-            labs: labs || [],
-            symptoms: symptoms || [],
-            measurements: measurements || [],
-            intakes: intakes || []
-          };
-        })
-      );
-
-      res.status(200).json(patientsWithData);
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-      res.status(500).json({ error: error.message });
+    // Apply search filter
+    if (search) {
+      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
     }
-  } else if (req.method === 'POST') {
-    try {
-      const { name, email, phone, date_of_birth } = req.body;
 
-      const { data, error } = await supabase
-        .from('patients')
-        .insert([{ name, email, phone, date_of_birth }])
-        .select();
+    // Apply pagination
+    query = query
+      .order('created_at', { ascending: false })
+      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
-      if (error) throw error;
+    const { data: patients, error, count } = await query;
 
-      res.status(201).json(data[0]);
-    } catch (error) {
-      console.error('Error creating patient:', error);
-      res.status(500).json({ error: error.message });
-    }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    if (error) throw error;
+
+    // Get pending notification counts for each patient
+    const patientIds = patients.map(p => p.id);
+    const { data: notifications } = await supabase
+      .from('purchase_notifications')
+      .select('patient_id')
+      .in('patient_id', patientIds)
+      .eq('status', 'pending');
+
+    // Count notifications per patient
+    const notificationCounts = {};
+    notifications?.forEach(n => {
+      notificationCounts[n.patient_id] = (notificationCounts[n.patient_id] || 0) + 1;
+    });
+
+    // Get active protocol counts
+    const { data: protocols } = await supabase
+      .from('patient_protocols')
+      .select('patient_id')
+      .in('patient_id', patientIds)
+      .eq('status', 'active');
+
+    const protocolCounts = {};
+    protocols?.forEach(p => {
+      protocolCounts[p.patient_id] = (protocolCounts[p.patient_id] || 0) + 1;
+    });
+
+    // Enrich patients with counts
+    const enrichedPatients = patients.map(p => ({
+      ...p,
+      pendingNotifications: notificationCounts[p.id] || 0,
+      activeProtocols: protocolCounts[p.id] || 0
+    }));
+
+    return res.status(200).json({
+      patients: enrichedPatients,
+      total: count,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+  } catch (error) {
+    console.error('Error fetching patients:', error);
+    return res.status(500).json({ error: error.message });
   }
 }

@@ -82,9 +82,12 @@ function categorizePurchase(productName) {
   }
   
   // Weight Loss
-  if (/semaglutide|tirzepatide|ozempic|wegovy|mounjaro|zepbound|weight|glp|skinny/.test(name)) {
+  if (/semaglutide|tirzepatide|ozempic|wegovy|mounjaro|zepbound|weight|glp|skinny|retatrutide/.test(name)) {
     if (/tirzepatide|mounjaro|zepbound/.test(name)) {
       return { category: 'weight_loss', suggestedTemplate: 'Tirzepatide - 12 Week' };
+    }
+    if (/retatrutide/.test(name)) {
+      return { category: 'weight_loss', suggestedTemplate: 'Retatrutide - 12 Week' };
     }
     if (/tesofensine/.test(name)) {
       return { category: 'weight_loss', suggestedTemplate: 'Tesofensine Oral - 30 Day' };

@@ -39,6 +39,7 @@ export default function PatientProfile() {
   
   const [showSymptomsModal, setShowSymptomsModal] = useState(false);
   const [sendingSymptoms, setSendingSymptoms] = useState(false);
+  const [showViewLabsModal, setShowViewLabsModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -173,7 +174,6 @@ export default function PatientProfile() {
       
       if (res.ok && data.success) {
         if (data.link) {
-          // No GHL contact, show link to copy
           const copyText = data.smsText || data.link;
           await navigator.clipboard.writeText(copyText);
           alert('Link copied to clipboard! Paste into your messaging app.');
@@ -239,6 +239,139 @@ export default function PatientProfile() {
     if (!endDate) return null;
     const days = Math.ceil((new Date(endDate) - new Date()) / (1000 * 60 * 60 * 24));
     return days;
+  }
+
+  function formatLabValue(value, decimals = 1) {
+    if (value === null || value === undefined) return '—';
+    if (typeof value === 'number') {
+      return decimals === 0 ? Math.round(value) : value.toFixed(decimals);
+    }
+    return value;
+  }
+
+  function getLabValueColor(value, low, high) {
+    if (value === null || value === undefined) return '#666';
+    if (value < low || value > high) return '#ef4444';
+    return '#22c55e';
+  }
+
+  function getLabCategories() {
+    if (!latestLabs) return [];
+    
+    const categories = [
+      {
+        name: 'Hormones',
+        values: [
+          { label: 'Total Testosterone', value: latestLabs.total_testosterone, unit: 'ng/dL', low: 300, high: 1000 },
+          { label: 'Free Testosterone', value: latestLabs.free_testosterone, unit: 'pg/mL', low: 5, high: 25 },
+          { label: 'Estradiol', value: latestLabs.estradiol, unit: 'pg/mL', low: 10, high: 40 },
+          { label: 'DHEA-S', value: latestLabs.dhea_s, unit: 'µg/dL', low: 100, high: 500 },
+          { label: 'FSH', value: latestLabs.fsh, unit: 'mIU/mL', low: 1, high: 12 },
+          { label: 'LH', value: latestLabs.lh, unit: 'mIU/mL', low: 1, high: 9 },
+          { label: 'Progesterone', value: latestLabs.progesterone, unit: 'ng/mL', low: 0.2, high: 1.4 },
+          { label: 'SHBG', value: latestLabs.shbg, unit: 'nmol/L', low: 16, high: 55 },
+          { label: 'IGF-1', value: latestLabs.igf_1, unit: 'ng/mL', low: 100, high: 300 },
+          { label: 'Cortisol', value: latestLabs.cortisol, unit: 'µg/dL', low: 5, high: 25 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Thyroid',
+        values: [
+          { label: 'TSH', value: latestLabs.tsh, unit: 'µIU/mL', low: 0.4, high: 4.0 },
+          { label: 'Free T3', value: latestLabs.free_t3, unit: 'pg/mL', low: 2.3, high: 4.2 },
+          { label: 'Free T4', value: latestLabs.free_t4, unit: 'ng/dL', low: 0.8, high: 1.8 },
+          { label: 'TPO Antibody', value: latestLabs.tpo_antibody, unit: 'IU/mL', low: 0, high: 35 },
+          { label: 'Thyroglobulin Ab', value: latestLabs.thyroglobulin_antibody, unit: 'IU/mL', low: 0, high: 40 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Metabolic',
+        values: [
+          { label: 'Glucose', value: latestLabs.glucose, unit: 'mg/dL', low: 70, high: 100, decimals: 0 },
+          { label: 'HbA1c', value: latestLabs.hemoglobin_a1c, unit: '%', low: 4.0, high: 5.7 },
+          { label: 'Fasting Insulin', value: latestLabs.fasting_insulin, unit: 'µU/mL', low: 2, high: 20 },
+          { label: 'Uric Acid', value: latestLabs.uric_acid, unit: 'mg/dL', low: 3.5, high: 7.2 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Lipids',
+        values: [
+          { label: 'Total Cholesterol', value: latestLabs.total_cholesterol, unit: 'mg/dL', low: 125, high: 200, decimals: 0 },
+          { label: 'LDL', value: latestLabs.ldl_cholesterol, unit: 'mg/dL', low: 0, high: 100, decimals: 0 },
+          { label: 'HDL', value: latestLabs.hdl_cholesterol, unit: 'mg/dL', low: 40, high: 100, decimals: 0 },
+          { label: 'Triglycerides', value: latestLabs.triglycerides, unit: 'mg/dL', low: 0, high: 150, decimals: 0 },
+          { label: 'VLDL', value: latestLabs.vldl_cholesterol, unit: 'mg/dL', low: 0, high: 40, decimals: 0 },
+          { label: 'Apo B', value: latestLabs.apolipoprotein_b, unit: 'mg/dL', low: 40, high: 100, decimals: 0 },
+          { label: 'Apo A1', value: latestLabs.apolipoprotein_a1, unit: 'mg/dL', low: 120, high: 180, decimals: 0 },
+          { label: 'Lp(a)', value: latestLabs.lp_a, unit: 'mg/dL', low: 0, high: 30 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Inflammation',
+        values: [
+          { label: 'CRP (hs)', value: latestLabs.crp_hs, unit: 'mg/L', low: 0, high: 1.0 },
+          { label: 'Homocysteine', value: latestLabs.homocysteine, unit: 'µmol/L', low: 5, high: 15 },
+          { label: 'ESR', value: latestLabs.esr, unit: 'mm/hr', low: 0, high: 15, decimals: 0 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Vitamins & Minerals',
+        values: [
+          { label: 'Vitamin D', value: latestLabs.vitamin_d, unit: 'ng/mL', low: 30, high: 80 },
+          { label: 'Vitamin B12', value: latestLabs.vitamin_b12, unit: 'pg/mL', low: 200, high: 900, decimals: 0 },
+          { label: 'Folate', value: latestLabs.folate, unit: 'ng/mL', low: 3, high: 17 },
+          { label: 'Magnesium', value: latestLabs.magnesium, unit: 'mg/dL', low: 1.5, high: 2.5 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Iron Panel',
+        values: [
+          { label: 'Iron', value: latestLabs.iron, unit: 'µg/dL', low: 60, high: 170, decimals: 0 },
+          { label: 'Ferritin', value: latestLabs.ferritin, unit: 'ng/mL', low: 30, high: 300, decimals: 0 },
+          { label: 'TIBC', value: latestLabs.tibc, unit: 'µg/dL', low: 250, high: 400, decimals: 0 },
+          { label: 'Iron Saturation', value: latestLabs.iron_saturation, unit: '%', low: 20, high: 50, decimals: 0 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Liver',
+        values: [
+          { label: 'AST', value: latestLabs.ast, unit: 'U/L', low: 10, high: 40, decimals: 0 },
+          { label: 'ALT', value: latestLabs.alt, unit: 'U/L', low: 7, high: 56, decimals: 0 },
+          { label: 'Alk Phos', value: latestLabs.alkaline_phosphatase, unit: 'U/L', low: 44, high: 147, decimals: 0 },
+          { label: 'GGT', value: latestLabs.ggt, unit: 'U/L', low: 9, high: 48, decimals: 0 },
+          { label: 'Bilirubin', value: latestLabs.total_bilirubin, unit: 'mg/dL', low: 0.1, high: 1.2 },
+          { label: 'Albumin', value: latestLabs.albumin, unit: 'g/dL', low: 3.5, high: 5.5 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Kidney',
+        values: [
+          { label: 'BUN', value: latestLabs.bun, unit: 'mg/dL', low: 7, high: 25, decimals: 0 },
+          { label: 'Creatinine', value: latestLabs.creatinine, unit: 'mg/dL', low: 0.6, high: 1.2 },
+          { label: 'eGFR', value: latestLabs.egfr, unit: 'mL/min', low: 60, high: 120, decimals: 0 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'CBC',
+        values: [
+          { label: 'WBC', value: latestLabs.wbc, unit: '10³/µL', low: 4.5, high: 11.0 },
+          { label: 'RBC', value: latestLabs.rbc, unit: '10⁶/µL', low: 4.5, high: 5.5 },
+          { label: 'Hemoglobin', value: latestLabs.hemoglobin, unit: 'g/dL', low: 13, high: 17 },
+          { label: 'Hematocrit', value: latestLabs.hematocrit, unit: '%', low: 38, high: 50 },
+          { label: 'Platelets', value: latestLabs.platelets, unit: '10³/µL', low: 150, high: 400, decimals: 0 },
+          { label: 'MCV', value: latestLabs.mcv, unit: 'fL', low: 80, high: 100 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+      {
+        name: 'Prostate',
+        values: [
+          { label: 'PSA Total', value: latestLabs.psa_total, unit: 'ng/mL', low: 0, high: 4.0 },
+          { label: 'PSA Free', value: latestLabs.psa_free, unit: 'ng/mL', low: 0, high: 1.0 },
+        ].filter(v => v.value !== null && v.value !== undefined)
+      },
+    ];
+
+    return categories.filter(cat => cat.values.length > 0);
   }
 
   if (loading) {
@@ -326,9 +459,19 @@ export default function PatientProfile() {
             <div style={styles.assessmentCard}>
               <div style={styles.assessmentHeader}>
                 <div style={styles.assessmentLabel}>Baseline Labs</div>
-                <button onClick={() => setShowLabsModal(true)} style={styles.smallButton}>
-                  + Add
-                </button>
+                <div style={styles.buttonGroup}>
+                  {latestLabs && (
+                    <button 
+                      onClick={() => setShowViewLabsModal(true)} 
+                      style={styles.smallButton}
+                    >
+                      View
+                    </button>
+                  )}
+                  <button onClick={() => setShowLabsModal(true)} style={styles.smallButton}>
+                    + Add
+                  </button>
+                </div>
               </div>
               <div style={styles.assessmentValue}>
                 {latestLabs ? (
@@ -431,18 +574,10 @@ export default function PatientProfile() {
                           </span>
                         </div>
                       )}
-                      {protocol.total_sessions && (
-                        <div style={styles.protocolStat}>
-                          <span style={styles.statLabel}>Sessions</span>
-                          <span style={styles.statValue}>
-                            {protocol.sessions_completed}/{protocol.total_sessions}
-                          </span>
-                        </div>
-                      )}
                     </div>
                     {protocol.medication && (
                       <div style={styles.protocolMedication}>
-                        {protocol.medication} {protocol.dose && `• ${protocol.dose}`} {protocol.frequency && `• ${protocol.frequency}`}
+                        {protocol.medication} {protocol.dose && `• ${protocol.dose}`}
                       </div>
                     )}
                   </div>
@@ -499,38 +634,15 @@ export default function PatientProfile() {
                     style={styles.select}
                   >
                     <option value="">Select a template...</option>
-                    
-                    {templates.grouped?.peptide?.length > 0 && (
-                      <optgroup label="Peptides">
-                        {templates.grouped.peptide.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
+                    {Object.entries(templates.grouped || {}).map(([category, categoryTemplates]) => (
+                      <optgroup key={category} label={category.toUpperCase()}>
+                        {categoryTemplates.map(t => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} ({t.duration_days} days)
+                          </option>
                         ))}
                       </optgroup>
-                    )}
-                    
-                    {templates.grouped?.weight_loss?.length > 0 && (
-                      <optgroup label="Weight Loss">
-                        {templates.grouped.weight_loss.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </optgroup>
-                    )}
-                    
-                    {templates.grouped?.hrt?.length > 0 && (
-                      <optgroup label="HRT">
-                        {templates.grouped.hrt.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </optgroup>
-                    )}
-                    
-                    {templates.grouped?.therapy?.length > 0 && (
-                      <optgroup label="Therapies">
-                        {templates.grouped.therapy.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </optgroup>
-                    )}
+                    ))}
                   </select>
                 </div>
 
@@ -544,37 +656,14 @@ export default function PatientProfile() {
                   />
                 </div>
 
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Custom Medication (optional)</label>
-                    <input
-                      type="text"
-                      value={assignForm.customMedication}
-                      onChange={e => setAssignForm({...assignForm, customMedication: e.target.value})}
-                      placeholder="Override template medication"
-                      style={styles.input}
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Custom Dose (optional)</label>
-                    <input
-                      type="text"
-                      value={assignForm.customDose}
-                      onChange={e => setAssignForm({...assignForm, customDose: e.target.value})}
-                      placeholder="Override template dose"
-                      style={styles.input}
-                    />
-                  </div>
-                </div>
-
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes</label>
+                  <label style={styles.label}>Notes (optional)</label>
                   <textarea
                     value={assignForm.notes}
                     onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
-                    placeholder="Optional notes..."
-                    style={styles.textarea}
+                    placeholder="Any special instructions..."
                     rows={3}
+                    style={styles.textarea}
                   />
                 </div>
               </div>
@@ -588,7 +677,7 @@ export default function PatientProfile() {
                   disabled={!assignForm.templateId}
                   style={{
                     ...styles.saveButton,
-                    opacity: assignForm.templateId ? 1 : 0.5
+                    opacity: !assignForm.templateId ? 0.5 : 1
                   }}
                 >
                   Assign Protocol
@@ -598,7 +687,7 @@ export default function PatientProfile() {
           </div>
         )}
 
-        {/* Add Labs Modal */}
+        {/* Add Lab Modal */}
         {showLabsModal && (
           <div style={styles.modalOverlay} onClick={() => setShowLabsModal(false)}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
@@ -608,33 +697,31 @@ export default function PatientProfile() {
               </div>
               
               <div style={styles.modalBody}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Lab Type</label>
-                  <select
-                    value={labForm.labType}
-                    onChange={e => setLabForm({...labForm, labType: e.target.value})}
-                    style={styles.select}
-                  >
-                    <option value="Baseline">Baseline</option>
-                    <option value="Follow-up">Follow-up</option>
-                    <option value="Quarterly">Quarterly</option>
-                    <option value="Annual">Annual</option>
-                  </select>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Lab Panel</label>
-                  <select
-                    value={labForm.labPanel}
-                    onChange={e => setLabForm({...labForm, labPanel: e.target.value})}
-                    style={styles.select}
-                  >
-                    <option value="Elite">Elite Panel</option>
-                    <option value="Essential">Essential Panel</option>
-                    <option value="Metabolic">Metabolic Panel</option>
-                    <option value="Hormone">Hormone Panel</option>
-                    <option value="Other">Other</option>
-                  </select>
+                <div style={styles.formRow}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Lab Type</label>
+                    <select
+                      value={labForm.labType}
+                      onChange={e => setLabForm({...labForm, labType: e.target.value})}
+                      style={styles.select}
+                    >
+                      <option value="Baseline">Baseline</option>
+                      <option value="Follow-up">Follow-up</option>
+                      <option value="Recheck">Recheck</option>
+                    </select>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Panel</label>
+                    <select
+                      value={labForm.labPanel}
+                      onChange={e => setLabForm({...labForm, labPanel: e.target.value})}
+                      style={styles.select}
+                    >
+                      <option value="Elite">Elite</option>
+                      <option value="Essential">Essential</option>
+                      <option value="Basic">Basic</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div style={styles.formGroup}>
@@ -648,13 +735,13 @@ export default function PatientProfile() {
                 </div>
 
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes</label>
+                  <label style={styles.label}>Notes (optional)</label>
                   <textarea
                     value={labForm.notes}
                     onChange={e => setLabForm({...labForm, notes: e.target.value})}
-                    placeholder="Optional notes..."
-                    style={styles.textarea}
+                    placeholder="Any notes about this lab..."
                     rows={3}
+                    style={styles.textarea}
                   />
                 </div>
               </div>
@@ -674,49 +761,113 @@ export default function PatientProfile() {
         {/* View Symptoms Modal */}
         {showSymptomsModal && baselineSymptoms && (
           <div style={styles.modalOverlay} onClick={() => setShowSymptomsModal(false)}>
-            <div style={{...styles.modal, maxWidth: '600px'}} onClick={e => e.stopPropagation()}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
               <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Symptoms Questionnaire Responses</h3>
+                <h3 style={styles.modalTitle}>Symptoms Questionnaire</h3>
                 <button onClick={() => setShowSymptomsModal(false)} style={styles.closeButton}>×</button>
               </div>
               
               <div style={styles.modalBody}>
                 <div style={styles.symptomsMeta}>
-                  Submitted: {formatDate(baselineSymptoms.submitted_at)}
+                  <span>Submitted: {formatDate(baselineSymptoms.submitted_at)}</span>
                   {baselineSymptoms.overall_score && (
                     <span style={styles.overallScore}>
-                      Overall Score: {baselineSymptoms.overall_score.toFixed(1)}/10
+                      Overall: {baselineSymptoms.overall_score.toFixed(1)}/10
                     </span>
                   )}
                 </div>
                 
                 <div style={styles.symptomsGrid}>
-                  {baselineSymptoms.responses && Object.entries(baselineSymptoms.responses).map(([key, value]) => (
-                    <div key={key} style={styles.symptomItem}>
-                      <div style={styles.symptomLabel}>{getSymptomLabel(key)}</div>
-                      {typeof value === 'number' ? (
-                        <div style={styles.symptomScore}>
-                          <div style={styles.scoreBar}>
-                            <div style={{
-                              ...styles.scoreBarFill,
-                              width: `${(value / 10) * 100}%`,
-                              background: value >= 7 ? '#22c55e' : value >= 4 ? '#f59e0b' : '#ef4444'
-                            }} />
+                  {Object.entries(baselineSymptoms).map(([key, value]) => {
+                    if (['id', 'patient_id', 'submitted_at', 'overall_score', 'goals', 'created_at', 'updated_at'].includes(key)) return null;
+                    if (value === null) return null;
+                    
+                    const isNumeric = typeof value === 'number';
+                    
+                    return (
+                      <div key={key} style={styles.symptomItem}>
+                        <span style={styles.symptomLabel}>{getSymptomLabel(key)}</span>
+                        {isNumeric ? (
+                          <div style={styles.symptomScore}>
+                            <div style={styles.scoreBar}>
+                              <div style={{
+                                ...styles.scoreBarFill,
+                                width: `${(value / 10) * 100}%`,
+                                background: value < 4 ? '#ef4444' : value < 7 ? '#f59e0b' : '#22c55e'
+                              }} />
+                            </div>
+                            <span style={styles.scoreValue}>{value}/10</span>
                           </div>
-                          <span style={styles.scoreValue}>{value}/10</span>
-                        </div>
-                      ) : (
-                        <div style={styles.symptomText}>{value || '—'}</div>
-                      )}
+                        ) : (
+                          <span style={styles.symptomText}>{value}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  
+                  {baselineSymptoms.goals && (
+                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+                      <div style={styles.symptomLabel}>Goals</div>
+                      <p style={{ margin: '8px 0 0 0', color: '#666', lineHeight: '1.5' }}>
+                        {baselineSymptoms.goals}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW LABS MODAL */}
+        {showViewLabsModal && latestLabs && (
+          <div style={styles.modalOverlay} onClick={() => setShowViewLabsModal(false)}>
+            <div style={styles.labsModal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>
+                  Lab Results — {latestLabs.panel_type || 'Panel'} 
+                  <span style={{ fontWeight: 'normal', color: '#666', marginLeft: '8px' }}>
+                    {formatDate(latestLabs.test_date || latestLabs.completed_date)}
+                  </span>
+                </h3>
+                <button onClick={() => setShowViewLabsModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              
+              <div style={styles.labsModalBody}>
+                {latestLabs.lab_provider && (
+                  <div style={styles.labProviderBadge}>
+                    Lab: {latestLabs.lab_provider}
+                    {latestLabs.notes && ` • ${latestLabs.notes}`}
+                  </div>
+                )}
+                
+                <div style={styles.labCategoriesGrid}>
+                  {getLabCategories().map(category => (
+                    <div key={category.name} style={styles.labCategory}>
+                      <h4 style={styles.labCategoryTitle}>{category.name}</h4>
+                      <div style={styles.labValues}>
+                        {category.values.map(lab => (
+                          <div key={lab.label} style={styles.labRow}>
+                            <span style={styles.labLabel}>{lab.label}</span>
+                            <span style={{
+                              ...styles.labValue,
+                              color: getLabValueColor(lab.value, lab.low, lab.high)
+                            }}>
+                              {formatLabValue(lab.value, lab.decimals ?? 1)}
+                              <span style={styles.labUnit}>{lab.unit}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div style={styles.modalFooter}>
-                <button onClick={() => setShowSymptomsModal(false)} style={styles.cancelButton}>
-                  Close
-                </button>
+                
+                {getLabCategories().length === 0 && (
+                  <div style={styles.emptyState}>
+                    No detailed lab values available for this panel.
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -746,7 +897,7 @@ const styles = {
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: '32px',
     paddingBottom: '16px',
     borderBottom: '1px solid #e5e7eb'
@@ -759,23 +910,24 @@ const styles = {
   backButton: {
     background: 'none',
     border: 'none',
-    color: '#666',
     cursor: 'pointer',
-    fontSize: '14px'
+    fontSize: '14px',
+    color: '#666'
   },
   patientName: {
     fontSize: '28px',
     fontWeight: '600',
     margin: 0
   },
-  headerRight: {},
+  headerRight: {
+    textAlign: 'right'
+  },
   contactInfo: {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
-    fontSize: '14px',
     color: '#666',
-    textAlign: 'right'
+    fontSize: '14px'
   },
   section: {
     marginBottom: '32px'
@@ -812,17 +964,19 @@ const styles = {
     alignItems: 'center',
     padding: '16px',
     background: '#fef3c7',
-    border: '1px solid #f59e0b',
-    borderRadius: '8px'
+    borderRadius: '8px',
+    border: '1px solid #f59e0b'
   },
-  notificationInfo: {},
+  notificationInfo: {
+    flex: 1
+  },
   notificationProduct: {
     fontWeight: '600',
     marginBottom: '4px'
   },
   notificationMeta: {
     fontSize: '14px',
-    color: '#666'
+    color: '#92400e'
   },
   notificationActions: {
     display: 'flex',
@@ -835,8 +989,7 @@ const styles = {
     padding: '8px 16px',
     borderRadius: '6px',
     cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
+    fontSize: '14px'
   },
   dismissButton: {
     background: '#fff',
@@ -849,7 +1002,7 @@ const styles = {
   },
   assessmentGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
+    gridTemplateColumns: '1fr 1fr',
     gap: '16px'
   },
   assessmentCard: {
@@ -999,12 +1152,24 @@ const styles = {
     maxHeight: '90vh',
     overflow: 'auto'
   },
+  labsModal: {
+    background: '#fff',
+    borderRadius: '12px',
+    width: '100%',
+    maxWidth: '800px',
+    maxHeight: '90vh',
+    overflow: 'auto'
+  },
   modalHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '16px 24px',
-    borderBottom: '1px solid #e5e7eb'
+    borderBottom: '1px solid #e5e7eb',
+    position: 'sticky',
+    top: 0,
+    background: '#fff',
+    zIndex: 1
   },
   modalTitle: {
     fontSize: '18px',
@@ -1027,6 +1192,62 @@ const styles = {
   },
   modalBody: {
     padding: '24px'
+  },
+  labsModalBody: {
+    padding: '24px'
+  },
+  labProviderBadge: {
+    display: 'inline-block',
+    padding: '6px 12px',
+    background: '#f3f4f6',
+    borderRadius: '6px',
+    fontSize: '13px',
+    color: '#666',
+    marginBottom: '20px'
+  },
+  labCategoriesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '20px'
+  },
+  labCategory: {
+    background: '#f9fafb',
+    borderRadius: '8px',
+    padding: '16px',
+    border: '1px solid #e5e7eb'
+  },
+  labCategoryTitle: {
+    margin: '0 0 12px 0',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#333',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  labValues: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  labRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontSize: '14px'
+  },
+  labLabel: {
+    color: '#666'
+  },
+  labValue: {
+    fontWeight: '600',
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '4px'
+  },
+  labUnit: {
+    fontSize: '11px',
+    fontWeight: 'normal',
+    color: '#999'
   },
   formGroup: {
     marginBottom: '16px',

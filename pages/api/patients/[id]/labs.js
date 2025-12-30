@@ -28,7 +28,7 @@ async function getLabs(patientId, res) {
       .from('labs')
       .select('*')
       .eq('patient_id', patientId)
-      .order('completed_date', { ascending: false, nullsFirst: false });
+      .order('test_date', { ascending: false, nullsFirst: false });
 
     if (error) throw error;
 
@@ -52,12 +52,12 @@ async function addLab(patientId, data, res) {
       .insert({
         patient_id: patientId,
         ghl_contact_id: patient?.ghl_contact_id,
-        lab_type: data.labType,         // 'Baseline', 'Follow-up', 'Quarterly'
-        lab_panel: data.labPanel,       // 'Essential', 'Elite'
-        service_type: data.serviceType, // 'hrt', 'weight_loss', 'general'
-        ordered_date: data.orderedDate,
+        lab_type: data.labType,           // 'Baseline', 'Follow-up', 'Quarterly'
+        panel_type: data.labPanel,        // 'Essential', 'Elite' - matches existing column
+        lab_panel: data.labPanel,         // Also set the new column
+        test_date: data.completedDate,    // Required NOT NULL column
         completed_date: data.completedDate,
-        results_received_date: data.resultsDate,
+        service_type: data.serviceType,
         status: data.status || 'completed',
         notes: data.notes
       })

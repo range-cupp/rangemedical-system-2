@@ -22,7 +22,8 @@ export default async function handler(req, res) {
       startDate,
       notes,
       peptideId,
-      selectedDose
+      selectedDose,
+      vialDuration
     } = req.body;
 
     if (!patientId || !templateId) {
@@ -52,18 +53,21 @@ export default async function handler(req, res) {
       }
     }
 
-    // Calculate end date (null for Vial protocols)
+    // Calculate end date (use vialDuration if provided, otherwise template duration)
     const start = new Date(startDate);
     let endDate = null;
-    if (template.duration_days) {
+    const durationDays = vialDuration || template.duration_days;
+    if (durationDays) {
       endDate = new Date(start);
-      endDate.setDate(endDate.getDate() + template.duration_days);
+      endDate.setDate(endDate.getDate() + durationDays);
     }
 
     // Build protocol name
     let protocolName = template.name;
     if (peptideData) {
-      protocolName = `${peptideData.name} - ${template.duration_days ? template.duration_days + ' Day' : 'Vial'}`;
+      const duration = vialDuration || template.duration_days;
+      const isVial = template.name.includes('Vial');
+      protocolName = `${peptideData.name} - ${isVial ? 'Vial' : duration + ' Day'}`;
     }
 
     // Create the patient protocol

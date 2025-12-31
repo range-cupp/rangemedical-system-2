@@ -668,7 +668,7 @@ export default function PatientProfile() {
                       <optgroup key={category} label={category.toUpperCase()}>
                         {categoryTemplates.map(t => (
                           <option key={t.id} value={t.id}>
-                            {t.name} {t.name.includes('Vial') ? '' : `(${t.duration_days} days)`}
+                            {t.name} {t.name === 'Peptide Vial' ? '' : `(${t.duration_days} days)`}
                           </option>
                         ))}
                       </optgroup>
@@ -676,8 +676,8 @@ export default function PatientProfile() {
                   </select>
                 </div>
 
-                {/* Show duration picker for Vial */}
-                {assignForm.templateId && templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name?.includes('Vial') && (
+                {/* Show duration picker for Peptide Vial */}
+                {assignForm.templateId && templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name === 'Peptide Vial' && (
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Vial Duration *</label>
                     <select
@@ -787,14 +787,14 @@ export default function PatientProfile() {
                   disabled={
                     !assignForm.templateId || 
                     (templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (!selectedPeptide || !assignForm.selectedDose)) ||
-                    (templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name?.includes('Vial') && !assignForm.vialDuration)
+                    (templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name === 'Peptide Vial' && !assignForm.vialDuration)
                   }
                   style={{
                     ...styles.saveButton,
                     opacity: (
                       !assignForm.templateId || 
                       (templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (!selectedPeptide || !assignForm.selectedDose)) ||
-                      (templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name?.includes('Vial') && !assignForm.vialDuration)
+                      (templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name === 'Peptide Vial' && !assignForm.vialDuration)
                     ) ? 0.5 : 1
                   }}
                 >

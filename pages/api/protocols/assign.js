@@ -66,8 +66,8 @@ export default async function handler(req, res) {
     let protocolName = template.name;
     if (peptideData) {
       const duration = vialDuration || template.duration_days;
-      const isVial = template.name.includes('Vial');
-      protocolName = `${peptideData.name} - ${isVial ? 'Vial' : duration + ' Day'}`;
+      const isVial = template.name === 'Peptide Vial';
+      protocolName = `${peptideData.name} - ${isVial ? `Vial (${vialDuration} Day)` : duration + ' Day'}`;
     }
 
     // Create the patient protocol

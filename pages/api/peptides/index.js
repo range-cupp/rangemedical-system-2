@@ -1,12 +1,5 @@
 // /pages/api/peptides/index.js
-// Get all peptides grouped by category
-
 import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -14,6 +7,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Missing Supabase credentials' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { data: peptides, error } = await supabase
       .from('peptides')
       .select('*')
@@ -21,54 +23,27 @@ export default async function handler(req, res) {
       .order('category')
       .order('name');
 
-    if (error) throw error;
+    if (error) {
+      return res.status(500).json({ error: error.message, details: error });
+    }
 
     // Group by category
-    const grouped = peptides.reduce((acc, peptide) => {
-      if (!acc[peptide.category]) {
-        acc[peptide.category] = [];
+    const grouped = {};
+    peptides.forEach(peptide => {
+      if (!grouped[peptide.category]) {
+        grouped[peptide.category] = [];
       }
-      acc[peptide.category].push(peptide);
-      return acc;
-    }, {});
-
-    // Define category order
-    const categoryOrder = [
-      'Weight Loss',
-      'Recovery',
-      'Growth Hormone',
-      'Sexual Health',
-      'HRT Support',
-      'Immune',
-      'Cognitive',
-      'Sleep',
-      'Longevity',
-      'Skin/Hair',
-      'Metabolic',
-      'Mitochondrial',
-      'Neuropathy',
-      'Cardiovascular',
-      'Joint',
-      'Muscle',
-      'Oncology Support'
-    ];
-
-    // Sort grouped object by category order
-    const sortedGrouped = {};
-    categoryOrder.forEach(cat => {
-      if (grouped[cat]) {
-        sortedGrouped[cat] = grouped[cat];
-      }
+      grouped[peptide.category].push(peptide);
     });
 
     res.status(200).json({
       peptides,
-      grouped: sortedGrouped,
+      grouped,
       count: peptides.length
     });
 
   } catch (error) {
-    console.error('Error fetching peptides:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Peptides API error:', error);
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 }

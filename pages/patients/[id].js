@@ -25,7 +25,8 @@ export default function PatientProfile() {
     templateId: '',
     startDate: new Date().toISOString().split('T')[0],
     notes: '',
-    selectedDose: ''
+    selectedDose: '',
+    vialDuration: ''
   });
   
   const [showLabsModal, setShowLabsModal] = useState(false);
@@ -110,7 +111,8 @@ export default function PatientProfile() {
           startDate: assignForm.startDate,
           notes: assignForm.notes || null,
           peptideId: selectedPeptide?.id || null,
-          selectedDose: assignForm.selectedDose || null
+          selectedDose: assignForm.selectedDose || null,
+          vialDuration: assignForm.vialDuration ? parseInt(assignForm.vialDuration) : null
         })
       });
       
@@ -124,7 +126,8 @@ export default function PatientProfile() {
           templateId: '',
           startDate: new Date().toISOString().split('T')[0],
           notes: '',
-          selectedDose: ''
+          selectedDose: '',
+          vialDuration: ''
         });
         fetchPatientProfile();
       } else {
@@ -244,7 +247,8 @@ export default function PatientProfile() {
       templateId: '',
       startDate: new Date().toISOString().split('T')[0],
       notes: '',
-      selectedDose: ''
+      selectedDose: '',
+      vialDuration: ''
     });
     setShowAssignModal(true);
   }
@@ -654,7 +658,7 @@ export default function PatientProfile() {
                   <select
                     value={assignForm.templateId}
                     onChange={e => {
-                      setAssignForm({...assignForm, templateId: e.target.value});
+                      setAssignForm({...assignForm, templateId: e.target.value, vialDuration: ''});
                       setSelectedPeptide(null);
                     }}
                     style={styles.select}
@@ -664,13 +668,30 @@ export default function PatientProfile() {
                       <optgroup key={category} label={category.toUpperCase()}>
                         {categoryTemplates.map(t => (
                           <option key={t.id} value={t.id}>
-                            {t.name} {t.duration_days ? `(${t.duration_days} days)` : '(ongoing)'}
+                            {t.name} {t.name.includes('Vial') ? '' : `(${t.duration_days} days)`}
                           </option>
                         ))}
                       </optgroup>
                     ))}
                   </select>
                 </div>
+
+                {/* Show duration picker for Vial */}
+                {assignForm.templateId && templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name?.includes('Vial') && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Vial Duration *</label>
+                    <select
+                      value={assignForm.vialDuration || ''}
+                      onChange={e => setAssignForm({...assignForm, vialDuration: e.target.value})}
+                      style={styles.select}
+                    >
+                      <option value="">Select duration...</option>
+                      <option value="10">10 Days</option>
+                      <option value="20">20 Days</option>
+                      <option value="30">30 Days</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Show peptide selector for peptide protocols */}
                 {assignForm.templateId && templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (
@@ -763,10 +784,18 @@ export default function PatientProfile() {
                 </button>
                 <button 
                   onClick={handleAssignProtocol}
-                  disabled={!assignForm.templateId || (templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (!selectedPeptide || !assignForm.selectedDose))}
+                  disabled={
+                    !assignForm.templateId || 
+                    (templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (!selectedPeptide || !assignForm.selectedDose)) ||
+                    (templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name?.includes('Vial') && !assignForm.vialDuration)
+                  }
                   style={{
                     ...styles.saveButton,
-                    opacity: (!assignForm.templateId || (templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (!selectedPeptide || !assignForm.selectedDose))) ? 0.5 : 1
+                    opacity: (
+                      !assignForm.templateId || 
+                      (templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (!selectedPeptide || !assignForm.selectedDose)) ||
+                      (templates.grouped?.peptide?.find(t => t.id === assignForm.templateId)?.name?.includes('Vial') && !assignForm.vialDuration)
+                    ) ? 0.5 : 1
                   }}
                 >
                   Assign Protocol

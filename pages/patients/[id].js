@@ -24,9 +24,8 @@ export default function PatientProfile() {
   const [assignForm, setAssignForm] = useState({
     templateId: '',
     startDate: new Date().toISOString().split('T')[0],
-    customMedication: '',
-    customDose: '',
-    notes: ''
+    notes: '',
+    selectedDose: ''
   });
   
   const [showLabsModal, setShowLabsModal] = useState(false);
@@ -40,11 +39,16 @@ export default function PatientProfile() {
   const [showSymptomsModal, setShowSymptomsModal] = useState(false);
   const [sendingSymptoms, setSendingSymptoms] = useState(false);
   const [showViewLabsModal, setShowViewLabsModal] = useState(false);
+  
+  // Peptide selection
+  const [peptides, setPeptides] = useState({ grouped: {} });
+  const [selectedPeptide, setSelectedPeptide] = useState(null);
 
   useEffect(() => {
     if (id) {
       fetchPatientProfile();
       fetchTemplates();
+      fetchPeptides();
     }
   }, [id]);
 
@@ -81,6 +85,18 @@ export default function PatientProfile() {
     }
   }
 
+  async function fetchPeptides() {
+    try {
+      const res = await fetch('/api/peptides');
+      const data = await res.json();
+      if (res.ok) {
+        setPeptides(data);
+      }
+    } catch (error) {
+      console.error('Error fetching peptides:', error);
+    }
+  }
+
   async function handleAssignProtocol() {
     try {
       const res = await fetch('/api/protocols/assign', {
@@ -92,9 +108,9 @@ export default function PatientProfile() {
           notificationId: selectedNotification?.id,
           purchaseId: selectedNotification?.purchase_id,
           startDate: assignForm.startDate,
-          customMedication: assignForm.customMedication || null,
-          customDose: assignForm.customDose || null,
-          notes: assignForm.notes || null
+          notes: assignForm.notes || null,
+          peptideId: selectedPeptide?.id || null,
+          selectedDose: assignForm.selectedDose || null
         })
       });
       
@@ -103,12 +119,12 @@ export default function PatientProfile() {
       if (res.ok && data.success) {
         setShowAssignModal(false);
         setSelectedNotification(null);
+        setSelectedPeptide(null);
         setAssignForm({
           templateId: '',
           startDate: new Date().toISOString().split('T')[0],
-          customMedication: '',
-          customDose: '',
-          notes: ''
+          notes: '',
+          selectedDose: ''
         });
         fetchPatientProfile();
       } else {
@@ -223,6 +239,13 @@ export default function PatientProfile() {
 
   function openAssignModal(notification = null) {
     setSelectedNotification(notification);
+    setSelectedPeptide(null);
+    setAssignForm({
+      templateId: '',
+      startDate: new Date().toISOString().split('T')[0],
+      notes: '',
+      selectedDose: ''
+    });
     setShowAssignModal(true);
   }
 
@@ -630,7 +653,10 @@ export default function PatientProfile() {
                   <label style={styles.label}>Protocol Template *</label>
                   <select
                     value={assignForm.templateId}
-                    onChange={e => setAssignForm({...assignForm, templateId: e.target.value})}
+                    onChange={e => {
+                      setAssignForm({...assignForm, templateId: e.target.value});
+                      setSelectedPeptide(null);
+                    }}
                     style={styles.select}
                   >
                     <option value="">Select a template...</option>
@@ -638,13 +664,76 @@ export default function PatientProfile() {
                       <optgroup key={category} label={category.toUpperCase()}>
                         {categoryTemplates.map(t => (
                           <option key={t.id} value={t.id}>
-                            {t.name} ({t.duration_days} days)
+                            {t.name} {t.duration_days ? `(${t.duration_days} days)` : '(ongoing)'}
                           </option>
                         ))}
                       </optgroup>
                     ))}
                   </select>
                 </div>
+
+                {/* Show peptide selector for peptide protocols */}
+                {assignForm.templateId && templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Select Peptide *</label>
+                      <select
+                        value={selectedPeptide?.id || ''}
+                        onChange={e => {
+                          const peptide = peptides.peptides?.find(p => p.id === e.target.value);
+                          setSelectedPeptide(peptide || null);
+                          setAssignForm({...assignForm, selectedDose: ''});
+                        }}
+                        style={styles.select}
+                      >
+                        <option value="">Select a peptide...</option>
+                        {Object.entries(peptides.grouped || {}).map(([category, categoryPeptides]) => (
+                          <optgroup key={category} label={category}>
+                            {categoryPeptides.map(p => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Show dose dropdown when peptide selected */}
+                    {selectedPeptide && (
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Select Dose *</label>
+                          <select
+                            value={assignForm.selectedDose || ''}
+                            onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
+                            style={styles.select}
+                          >
+                            <option value="">Select a dose...</option>
+                            {selectedPeptide.dose_options?.map(dose => (
+                              <option key={dose} value={dose}>
+                                {dose}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={styles.peptideInfo}>
+                          <div style={styles.peptideInfoRow}>
+                            <span style={styles.peptideInfoLabel}>Frequency:</span>
+                            <span>{selectedPeptide.frequency}</span>
+                          </div>
+                          {selectedPeptide.notes && (
+                            <div style={styles.peptideInfoRow}>
+                              <span style={styles.peptideInfoLabel}>Notes:</span>
+                              <span>{selectedPeptide.notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Start Date</label>
@@ -674,10 +763,10 @@ export default function PatientProfile() {
                 </button>
                 <button 
                   onClick={handleAssignProtocol}
-                  disabled={!assignForm.templateId}
+                  disabled={!assignForm.templateId || (templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (!selectedPeptide || !assignForm.selectedDose))}
                   style={{
                     ...styles.saveButton,
-                    opacity: !assignForm.templateId ? 0.5 : 1
+                    opacity: (!assignForm.templateId || (templates.grouped?.peptide?.some(t => t.id === assignForm.templateId) && (!selectedPeptide || !assignForm.selectedDose))) ? 0.5 : 1
                   }}
                 >
                   Assign Protocol
@@ -1389,5 +1478,22 @@ const styles = {
     color: '#666',
     flex: 1,
     textAlign: 'right'
+  },
+  peptideInfo: {
+    background: '#f0fdf4',
+    border: '1px solid #86efac',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    marginBottom: '16px'
+  },
+  peptideInfoRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '14px',
+    padding: '4px 0'
+  },
+  peptideInfoLabel: {
+    color: '#166534',
+    fontWeight: '500'
   }
 };

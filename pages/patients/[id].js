@@ -172,15 +172,24 @@ export default function PatientProfile() {
     setUploadError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', uploadForm.file);
-      formData.append('panelType', uploadForm.panelType);
-      formData.append('collectionDate', uploadForm.collectionDate);
-      formData.append('notes', uploadForm.notes);
+      // Convert file to base64
+      const reader = new FileReader();
+      const fileData = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(uploadForm.file);
+      });
 
       const res = await fetch(`/api/patients/${id}/upload-lab`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData,
+          fileName: uploadForm.file.name,
+          panelType: uploadForm.panelType,
+          collectionDate: uploadForm.collectionDate,
+          notes: uploadForm.notes
+        }),
       });
 
       const data = await res.json();

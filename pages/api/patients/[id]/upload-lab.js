@@ -1,13 +1,13 @@
 // /pages/api/patients/[id]/upload-lab.js
-// Upload lab PDF for a patient
+// Upload lab PDF for a patient - No external dependencies version
 
 import { createClient } from '@supabase/supabase-js';
-import formidable from 'formidable';
-import fs from 'fs';
 
 export const config = {
   api: {
-    bodyParser: false, // Disable body parser for file uploads
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
   },
 };
 
@@ -28,30 +28,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse the multipart form data
-    const form = formidable({
-      maxFileSize: 10 * 1024 * 1024, // 10MB limit
-      filter: ({ mimetype }) => mimetype === 'application/pdf',
-    });
+    const { fileData, fileName, panelType, collectionDate, notes } = req.body;
 
-    const [fields, files] = await new Promise((resolve, reject) => {
-      form.parse(req, (err, fields, files) => {
-        if (err) reject(err);
-        else resolve([fields, files]);
-      });
-    });
-
-    const file = files.file?.[0] || files.file;
-    if (!file) {
-      return res.status(400).json({ error: 'No PDF file uploaded' });
+    if (!fileData || !fileName) {
+      return res.status(400).json({ error: 'File data and name are required' });
     }
 
-    // Read the file
-    const fileBuffer = fs.readFileSync(file.filepath);
-    
+    // Convert base64 to buffer
+    const base64Data = fileData.replace(/^data:application\/pdf;base64,/, '');
+    const fileBuffer = Buffer.from(base64Data, 'base64');
+
     // Generate unique filename
     const timestamp = Date.now();
-    const safeName = file.originalFilename?.replace(/[^a-zA-Z0-9.-]/g, '_') || 'lab-results.pdf';
+    const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filePath = `${patientId}/${timestamp}-${safeName}`;
 
     // Upload to Supabase Storage
@@ -67,23 +56,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to upload file', details: uploadError.message });
     }
 
-    // Get field values (handle both array and string formats from formidable)
-    const panelType = Array.isArray(fields.panelType) ? fields.panelType[0] : fields.panelType;
-    const collectionDate = Array.isArray(fields.collectionDate) ? fields.collectionDate[0] : fields.collectionDate;
-    const notes = Array.isArray(fields.notes) ? fields.notes[0] : fields.notes;
-
     // Create database record
     const { data: docRecord, error: dbError } = await supabase
       .from('lab_documents')
       .insert({
         patient_id: patientId,
-        file_name: file.originalFilename || safeName,
+        file_name: fileName,
         file_path: filePath,
-        file_size: file.size,
+        file_size: fileBuffer.length,
         panel_type: panelType || null,
         collection_date: collectionDate || null,
         notes: notes || null,
-        uploaded_by: 'staff', // Could be enhanced with actual user info
+        uploaded_by: 'staff',
       })
       .select()
       .single();
@@ -94,9 +78,6 @@ export default async function handler(req, res) {
       await supabase.storage.from('lab-documents').remove([filePath]);
       return res.status(500).json({ error: 'Failed to save document record', details: dbError.message });
     }
-
-    // Clean up temp file
-    fs.unlinkSync(file.filepath);
 
     return res.status(200).json({
       success: true,

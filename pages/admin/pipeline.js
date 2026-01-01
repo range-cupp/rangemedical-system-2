@@ -16,7 +16,9 @@ export default function Pipeline() {
   
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAddCompletedModal, setShowAddCompletedModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
   
   const [templates, setTemplates] = useState([]);
   const [peptides, setPeptides] = useState([]);
@@ -39,6 +41,16 @@ export default function Pipeline() {
     frequency: '',
     startDate: '',
     endDate: '',
+    notes: ''
+  });
+
+  const [editForm, setEditForm] = useState({
+    peptideId: '',
+    selectedDose: '',
+    frequency: '',
+    startDate: '',
+    endDate: '',
+    status: '',
     notes: ''
   });
 
@@ -151,6 +163,40 @@ export default function Pipeline() {
       }
     } catch (error) {
       console.error('Error adding completed protocol:', error);
+    }
+  };
+
+  const openEditModal = (protocol) => {
+    setSelectedProtocol(protocol);
+    setEditForm({
+      peptideId: '',
+      selectedDose: protocol.selected_dose || '',
+      frequency: protocol.frequency || '',
+      startDate: protocol.start_date || '',
+      endDate: protocol.end_date || '',
+      status: protocol.status || 'active',
+      notes: protocol.notes || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditProtocol = async () => {
+    try {
+      const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+
+      if (res.ok) {
+        setShowEditModal(false);
+        fetchData();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update protocol');
+      }
+    } catch (error) {
+      console.error('Error updating protocol:', error);
     }
   };
 
@@ -321,6 +367,12 @@ export default function Pipeline() {
                           <span>Ongoing</span>
                         )}
                         {protocol.frequency && <span style={styles.frequencyBadge}>{protocol.frequency}</span>}
+                        <button 
+                          onClick={() => openEditModal(protocol)}
+                          style={styles.editButton}
+                        >
+                          Edit
+                        </button>
                       </div>
                     </div>
                   );
@@ -351,9 +403,7 @@ export default function Pipeline() {
                 {completedProtocols.map(protocol => (
                   <div key={protocol.id} style={{...styles.card, opacity: 0.8}}>
                     <div style={styles.cardMain}>
-                      <Link href={`/patients/${protocol.patient_id}`} style={styles.patientLink}>
-                        {protocol.patient_name}
-                      </Link>
+                      <div style={styles.patientName}>{protocol.patient_name}</div>
                       <div style={styles.productName}>
                         {protocol.program_name || protocol.medication}
                         {protocol.selected_dose && ` • ${protocol.selected_dose}`}
@@ -362,8 +412,14 @@ export default function Pipeline() {
                         {formatDate(protocol.start_date)} → {formatDate(protocol.end_date)}
                       </div>
                     </div>
-                    <div style={styles.cardStatus}>
+                    <div style={styles.cardActions}>
                       <span style={styles.completed}>✓ Complete</span>
+                      <button 
+                        onClick={() => openEditModal(protocol)}
+                        style={styles.editButton}
+                      >
+                        Edit
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -625,6 +681,110 @@ export default function Pipeline() {
             </div>
           </div>
         )}
+
+        {/* Edit Protocol Modal */}
+        {showEditModal && selectedProtocol && (
+          <div style={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>Edit Protocol</h3>
+                <button onClick={() => setShowEditModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              
+              <div style={styles.modalBody}>
+                <div style={styles.purchasePreview}>
+                  <strong>{selectedProtocol.patient_name}</strong>
+                  <div>{selectedProtocol.medication || selectedProtocol.program_name}</div>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Dose</label>
+                  <input 
+                    type="text"
+                    value={editForm.selectedDose}
+                    onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                    placeholder="e.g. 500mcg/500mcg"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Frequency</label>
+                  <select 
+                    value={editForm.frequency}
+                    onChange={e => setEditForm({...editForm, frequency: e.target.value})}
+                    style={styles.select}
+                  >
+                    <option value="">Select frequency...</option>
+                    <option value="2x daily">2x daily</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Every other day">Every other day</option>
+                    <option value="2x weekly">2x weekly</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="5 days on, 2 off">5 days on, 2 off</option>
+                    <option value="As needed">As needed</option>
+                  </select>
+                </div>
+
+                <div style={styles.formRow}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Start Date</label>
+                    <input 
+                      type="date"
+                      value={editForm.startDate}
+                      onChange={e => setEditForm({...editForm, startDate: e.target.value})}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>End Date</label>
+                    <input 
+                      type="date"
+                      value={editForm.endDate}
+                      onChange={e => setEditForm({...editForm, endDate: e.target.value})}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Status</label>
+                  <select 
+                    value={editForm.status}
+                    onChange={e => setEditForm({...editForm, status: e.target.value})}
+                    style={styles.select}
+                  >
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="paused">Paused</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Notes</label>
+                  <textarea 
+                    value={editForm.notes}
+                    onChange={e => setEditForm({...editForm, notes: e.target.value})}
+                    placeholder="Any notes..."
+                    style={styles.textarea}
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowEditModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button 
+                  onClick={handleEditProtocol}
+                  style={styles.primaryButton}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -860,6 +1020,16 @@ const styles = {
     padding: '2px 8px',
     borderRadius: '4px',
     fontSize: '12px'
+  },
+  editButton: {
+    background: 'none',
+    border: '1px solid #d1d5db',
+    padding: '4px 12px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    color: '#666',
+    marginLeft: '8px'
   },
   emptyState: {
     textAlign: 'center',

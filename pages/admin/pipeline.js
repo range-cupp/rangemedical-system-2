@@ -653,6 +653,7 @@ export default function Pipeline() {
                             <option value="Every other day">Every other day</option>
                             <option value="2x weekly">2x weekly</option>
                             <option value="Weekly">Weekly</option>
+                            <option value="Every 5 days">Every 5 days</option>
                             <option value="5 days on, 2 off">5 days on, 2 off</option>
                             <option value="As needed">As needed</option>
                           </select>
@@ -820,7 +821,8 @@ export default function Pipeline() {
                         <option value="Every other day">Every other day</option>
                         <option value="2x weekly">2x weekly</option>
                         <option value="Weekly">Weekly</option>
-                        <option value="5 days on, 2 off">5 days on, 2 off</option>
+                        <option value="Every 5 days">Every 5 days</option>
+                            <option value="5 days on, 2 off">5 days on, 2 off</option>
                       </select>
                     </div>
                   </>
@@ -930,7 +932,8 @@ export default function Pipeline() {
                     <option value="Every other day">Every other day</option>
                     <option value="2x weekly">2x weekly</option>
                     <option value="Weekly">Weekly</option>
-                    <option value="5 days on, 2 off">5 days on, 2 off</option>
+                    <option value="Every 5 days">Every 5 days</option>
+                            <option value="5 days on, 2 off">5 days on, 2 off</option>
                     <option value="As needed">As needed</option>
                   </select>
                 </div>

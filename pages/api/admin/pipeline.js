@@ -1,5 +1,6 @@
 // /pages/api/admin/pipeline.js
-// Pipeline API - Fixed with correct column names
+// Pipeline API - Returns purchases needing protocols, active, and completed
+// WITH auto-completion of expired protocols
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,21 +17,46 @@ export default async function handler(req, res) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
+    // AUTO-COMPLETE: Update all protocols that are past their end date
+    // Only for day-based protocols (not session-based packs)
+    await supabase
+      .from('protocols')
+      .update({ 
+        status: 'completed',
+        updated_at: new Date().toISOString()
+      })
+      .eq('status', 'active')
+      .lt('end_date', today)
+      .is('total_sessions', null);  // Only day-based, not session-based
+
     // Get purchases that need protocols (not dismissed, no protocol assigned)
-    // Using correct column names: patient_name, item_name, amount
     const { data: needsProtocol, error: purchasesError } = await supabase
       .from('purchases')
-      .select('*')
-      .eq('protocol_created', false)
-      .eq('dismissed', false)
-      .order('purchase_date', { ascending: false });
+      .select(`
+        id,
+        product_name,
+        item_name,
+        amount_paid,
+        amount,
+        purchase_date,
+        patient_id,
+        ghl_contact_id,
+        protocol_created,
+        dismissed,
+        patients (
+          id,
+          name
+        )
+      `)
+      .order('purchase_date', { ascending: false })
+      .limit(100);
 
     if (purchasesError) {
       console.error('Purchases error:', purchasesError);
     }
 
-    // Get active protocols (not completed, end_date >= today or no end_date)
-    const { data: activeProtocols, error: activeError } = await supabase
+    // Get ALL protocols
+    const { data: allProtocols, error: protocolsError } = await supabase
       .from('protocols')
       .select(`
         id,
@@ -42,62 +68,37 @@ export default async function handler(req, res) {
         end_date,
         status,
         patient_id,
+        total_sessions,
+        sessions_used,
         patients (
           id,
           name
         )
       `)
-      .or(`end_date.gte.${today},end_date.is.null`)
-      .neq('status', 'completed')
-      .order('start_date', { ascending: false });
+      .order('start_date', { ascending: false })
+      .limit(200);
 
-    if (activeError) {
-      console.error('Active protocols error:', activeError);
+    if (protocolsError) {
+      console.error('Protocols error:', protocolsError);
     }
 
-    // Get completed protocols
-    const { data: completedProtocols, error: completedError } = await supabase
-      .from('protocols')
-      .select(`
-        id,
-        program_name,
-        medication,
-        selected_dose,
-        frequency,
-        start_date,
-        end_date,
-        status,
-        patient_id,
-        patients (
-          id,
-          name
-        )
-      `)
-      .or(`status.eq.completed,end_date.lt.${today}`)
-      .order('end_date', { ascending: false });
+    // Separate active vs completed
+    const activeProtocols = [];
+    const completedProtocols = [];
 
-    if (completedError) {
-      console.error('Completed protocols error:', completedError);
-    }
-
-    // Format purchases - use correct column names
-    const formatPurchase = (p) => ({
-      id: p.id,
-      product_name: p.item_name || p.original_item_name || 'Unknown Item',
-      amount_paid: p.amount || 0,
-      purchase_date: p.purchase_date,
-      patient_id: p.patient_id,
-      patient_name: p.patient_name || 'Unknown',
-      ghl_contact_id: p.ghl_contact_id,
-      category: p.category
-    });
-
-    const formatProtocol = (p) => {
-      const endDate = p.end_date ? new Date(p.end_date) : null;
-      const todayDate = new Date();
-      const daysRemaining = endDate ? Math.ceil((endDate - todayDate) / (1000 * 60 * 60 * 24)) : null;
+    (allProtocols || []).forEach(p => {
+      // Completed if:
+      // - status is 'completed' or 'cancelled'
+      // - OR end_date is in the past (for day-based)
+      // - OR sessions_used >= total_sessions (for session-based)
       
-      return {
+      const isCompleted = 
+        p.status === 'completed' || 
+        p.status === 'cancelled' ||
+        (p.end_date && p.end_date < today && !p.total_sessions) ||
+        (p.total_sessions && p.sessions_used >= p.total_sessions);
+
+      const formatted = {
         id: p.id,
         program_name: p.program_name,
         medication: p.medication,
@@ -108,14 +109,42 @@ export default async function handler(req, res) {
         status: p.status,
         patient_id: p.patient_id,
         patient_name: p.patients?.name || 'Unknown',
-        days_remaining: daysRemaining
+        total_sessions: p.total_sessions,
+        sessions_used: p.sessions_used
       };
-    };
+
+      if (isCompleted) {
+        completedProtocols.push(formatted);
+      } else if (p.status === 'active' || p.status === 'paused') {
+        // Calculate days remaining for active protocols
+        const endDate = p.end_date ? new Date(p.end_date) : null;
+        const daysRemaining = endDate 
+          ? Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24))
+          : null;
+        activeProtocols.push({ ...formatted, days_remaining: daysRemaining });
+      }
+    });
+
+    // Format purchases - filter to only those needing protocols
+    const formatPurchase = (p) => ({
+      id: p.id,
+      product_name: p.item_name || p.product_name,
+      amount_paid: p.amount || p.amount_paid,
+      purchase_date: p.purchase_date,
+      patient_id: p.patient_id,
+      ghl_contact_id: p.ghl_contact_id,
+      patient_name: p.patients?.name || 'Unknown'
+    });
+
+    // Filter to only purchases that actually need protocols
+    const filteredPurchases = (needsProtocol || []).filter(p => 
+      p.protocol_created !== true && p.dismissed !== true
+    );
 
     return res.status(200).json({
-      needsProtocol: (needsProtocol || []).map(formatPurchase),
-      activeProtocols: (activeProtocols || []).map(formatProtocol),
-      completedProtocols: (completedProtocols || []).map(formatProtocol)
+      needsProtocol: filteredPurchases.map(formatPurchase),
+      activeProtocols,
+      completedProtocols
     });
 
   } catch (error) {

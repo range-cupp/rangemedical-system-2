@@ -402,6 +402,11 @@ export default function Pipeline() {
       <div style={styles.container}>
         <div style={styles.header}>
           <h1 style={styles.title}>Pipeline</h1>
+          <div style={styles.navLinks}>
+            <Link href="/admin/patients" style={styles.navLink}>
+              All Patients →
+            </Link>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -453,9 +458,15 @@ export default function Pipeline() {
                 {needsProtocol.map(purchase => (
                   <div key={purchase.id} style={styles.card}>
                     <div style={styles.cardMain}>
-                      <Link href={`/admin/patient/${purchase.patient_id}`} style={{ textDecoration: 'none' }}>
-                        <div style={{...styles.patientName, cursor: 'pointer'}}>{purchase.patient_name}</div>
-                      </Link>
+                      {purchase.patient_id ? (
+                        <Link href={`/admin/patient/${purchase.patient_id}`} style={{ textDecoration: 'none' }}>
+                          <div style={styles.patientName}>{purchase.patient_name}</div>
+                        </Link>
+                      ) : (
+                        <div style={{...styles.patientName, color: '#9ca3af', textDecoration: 'none', cursor: 'default'}}>
+                          {purchase.patient_name || 'Unknown'}
+                        </div>
+                      )}
                       <div style={styles.productName}>{purchase.product_name}</div>
                       <div style={styles.meta}>
                         ${purchase.amount_paid?.toFixed(2)} • {formatDate(purchase.purchase_date)}
@@ -1100,7 +1111,24 @@ const styles = {
     color: '#666'
   },
   header: {
-    marginBottom: '24px'
+    marginBottom: '24px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  navLinks: {
+    display: 'flex',
+    gap: '16px'
+  },
+  navLink: {
+    color: '#000',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontWeight: '500',
+    padding: '8px 16px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    transition: 'background 0.2s'
   },
   title: {
     fontSize: '28px',
@@ -1188,7 +1216,14 @@ const styles = {
   patientName: {
     fontSize: '16px',
     fontWeight: '600',
-    color: '#000'
+    color: '#000',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    textDecorationColor: '#ccc',
+    textUnderlineOffset: '2px'
+  },
+  patientNameHover: {
+    color: '#1d4ed8'
   },
   productName: {
     fontSize: '14px',

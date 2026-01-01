@@ -41,6 +41,7 @@ export default async function handler(req, res) {
         purchase_date,
         patient_id,
         ghl_contact_id,
+        category,
         protocol_created,
         dismissed,
         patients (
@@ -48,8 +49,7 @@ export default async function handler(req, res) {
           name
         )
       `)
-      .order('purchase_date', { ascending: false })
-      .limit(100);
+      .order('purchase_date', { ascending: false });
 
     if (purchasesError) {
       console.error('Purchases error:', purchasesError);
@@ -157,13 +157,16 @@ export default async function handler(req, res) {
         purchase_date: p.purchase_date,
         patient_id: patientId,
         ghl_contact_id: p.ghl_contact_id,
+        category: p.category,
         patient_name: patientName || 'Unknown'
       };
     };
 
     // Filter to only purchases that actually need protocols
+    // Keep purchases where protocol_created is false/null/undefined AND dismissed is false/null/undefined
     const filteredPurchases = (needsProtocol || []).filter(p => 
-      p.protocol_created !== true && p.dismissed !== true
+      (p.protocol_created === false || p.protocol_created === null || p.protocol_created === undefined) &&
+      (p.dismissed === false || p.dismissed === null || p.dismissed === undefined)
     );
 
     return res.status(200).json({

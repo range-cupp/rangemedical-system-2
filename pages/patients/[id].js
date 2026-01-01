@@ -1,29 +1,33 @@
-// /pages/admin/pipeline.js
-// Simple Pipeline - The Starting Point
-// Range Medical
+// /pages/patients/[id].js
+// Patient Profile Page - Range Assessment System
+// WITH Lab Documents PDF Upload Feature
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
 
-export default function Pipeline() {
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('needs-protocol');
+export default function PatientProfile() {
+  const router = useRouter();
+  const { id } = router.query;
   
-  const [needsProtocol, setNeedsProtocol] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [patient, setPatient] = useState(null);
   const [activeProtocols, setActiveProtocols] = useState([]);
   const [completedProtocols, setCompletedProtocols] = useState([]);
+  const [pendingNotifications, setPendingNotifications] = useState([]);
+  const [baselineSymptoms, setBaselineSymptoms] = useState(null);
+  const [latestLabs, setLatestLabs] = useState(null);
+  const [labResults, setLabResults] = useState([]);
+  const [stats, setStats] = useState({});
   
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [showAddCompletedModal, setShowAddCompletedModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedPurchase, setSelectedPurchase] = useState(null);
-  const [selectedProtocol, setSelectedProtocol] = useState(null);
+  // Lab documents state
+  const [labDocuments, setLabDocuments] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
   
-  const [templates, setTemplates] = useState([]);
+  const [templates, setTemplates] = useState({ grouped: {} });
   const [peptides, setPeptides] = useState([]);
-  const [patients, setPatients] = useState([]);
-  
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
   const [assignForm, setAssignForm] = useState({
     templateId: '',
     peptideId: '',
@@ -32,24 +36,24 @@ export default function Pipeline() {
     startDate: new Date().toISOString().split('T')[0],
     notes: ''
   });
-
-  const [existingPacks, setExistingPacks] = useState([]);
-  const [addToPackMode, setAddToPackMode] = useState(false);
-  const [selectedPackId, setSelectedPackId] = useState('');
   
-  const [completedForm, setCompletedForm] = useState({
-    patientId: '',
-    templateId: '',
-    peptideId: '',
-    selectedDose: '',
-    frequency: '',
-    startDate: '',
-    endDate: '',
+  const [showLabsModal, setShowLabsModal] = useState(false);
+  const [labForm, setLabForm] = useState({
+    labType: 'Baseline',
+    labPanel: 'Elite',
+    completedDate: new Date().toISOString().split('T')[0],
     notes: ''
   });
-
+  
+  const [showViewLabsModal, setShowViewLabsModal] = useState(false);
+  const [showSymptomsModal, setShowSymptomsModal] = useState(false);
+  const [sendingSymptoms, setSendingSymptoms] = useState(false);
+  const [symptomsSent, setSymptomsSent] = useState(false);
+  
+  // Edit protocol state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [editForm, setEditForm] = useState({
-    peptideId: '',
     selectedDose: '',
     frequency: '',
     startDate: '',
@@ -57,36 +61,89 @@ export default function Pipeline() {
     status: '',
     notes: ''
   });
+  
+  // Lab upload state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    file: null,
+    panelType: 'Elite',
+    collectionDate: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+  const [uploadError, setUploadError] = useState(null);
+  const fileInputRef = useRef(null);
 
+  // Load patient data
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (id) {
+      fetchPatient();
+      fetchTemplates();
+      fetchPeptides();
+      fetchLabDocuments();
+    }
+  }, [id]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchPatient = async () => {
     try {
-      const [pipelineRes, templatesRes, peptidesRes, patientsRes] = await Promise.all([
-        fetch('/api/admin/pipeline'),
-        fetch('/api/protocols/templates'),
-        fetch('/api/peptides'),
-        fetch('/api/admin/patients?limit=500')
-      ]);
+      setLoading(true);
+      const res = await fetch(`/api/patients/${id}`);
+      const data = await res.json();
       
-      const pipelineData = await pipelineRes.json();
-      const templatesData = await templatesRes.json();
-      const peptidesData = await peptidesRes.json();
-      const patientsData = await patientsRes.json();
-      
-      setNeedsProtocol(pipelineData.needsProtocol || []);
-      setActiveProtocols(pipelineData.activeProtocols || []);
-      setCompletedProtocols(pipelineData.completedProtocols || []);
-      setTemplates(templatesData.templates || []);
-      setPeptides(peptidesData.peptides || []);
-      setPatients(patientsData.patients || []);
+      if (data.patient) {
+        setPatient(data.patient);
+        setActiveProtocols(data.activeProtocols || []);
+        setCompletedProtocols(data.completedProtocols || []);
+        setPendingNotifications(data.pendingNotifications || []);
+        setBaselineSymptoms(data.baselineSymptoms);
+        setLatestLabs(data.latestLabs);
+        setLabResults(data.labResults || []);
+        setStats(data.stats || {});
+      }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching patient:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await fetch('/api/protocols/templates');
+      const data = await res.json();
+      if (data.grouped) {
+        setTemplates(data);
+      }
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+  };
+
+  const fetchPeptides = async () => {
+    try {
+      const res = await fetch('/api/peptides');
+      const data = await res.json();
+      if (data.peptides) {
+        setPeptides(data.peptides);
+      }
+    } catch (error) {
+      console.error('Error fetching peptides:', error);
+    }
+  };
+
+  const fetchLabDocuments = async () => {
+    if (!id) return;
+    try {
+      setLoadingDocs(true);
+      const res = await fetch(`/api/patients/${id}/lab-documents`);
+      const data = await res.json();
+      if (data.documents) {
+        setLabDocuments(data.documents);
+      }
+    } catch (error) {
+      console.error('Error fetching lab documents:', error);
+    } finally {
+      setLoadingDocs(false);
     }
   };
 
@@ -99,8 +156,105 @@ export default function Pipeline() {
     });
   };
 
-  const openAssignModal = async (purchase) => {
-    setSelectedPurchase(purchase);
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  // Lab document handlers
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setUploadForm({ ...uploadForm, file });
+      setUploadError(null);
+    } else {
+      setUploadError('Please select a PDF file');
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    if (!uploadForm.file) {
+      setUploadError('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      const fileData = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(uploadForm.file);
+      });
+
+      const res = await fetch(`/api/patients/${id}/upload-lab`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData,
+          fileName: uploadForm.file.name,
+          panelType: uploadForm.panelType,
+          collectionDate: uploadForm.collectionDate,
+          notes: uploadForm.notes
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      // Refresh documents list
+      await fetchLabDocuments();
+      
+      // Reset form and close modal
+      setUploadForm({
+        file: null,
+        panelType: 'Elite',
+        collectionDate: new Date().toISOString().split('T')[0],
+        notes: ''
+      });
+      setShowUploadModal(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (documentId) => {
+    if (!confirm('Are you sure you want to delete this document?')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/patients/${id}/lab-documents`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId }),
+      });
+
+      if (res.ok) {
+        setLabDocuments(labDocuments.filter(d => d.id !== documentId));
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  // Protocol assignment handlers
+  const openAssignModal = (notification = null) => {
+    setSelectedNotification(notification);
     setAssignForm({
       templateId: '',
       peptideId: '',
@@ -109,30 +263,6 @@ export default function Pipeline() {
       startDate: new Date().toISOString().split('T')[0],
       notes: ''
     });
-    setAddToPackMode(false);
-    setSelectedPackId('');
-    setExistingPacks([]);
-
-    // Check if this is an injection and patient has existing packs
-    const isInjection = purchase.category === 'Injection' || 
-                        purchase.item_name?.toLowerCase().includes('injection');
-    
-    if (isInjection && (purchase.patient_id || purchase.ghl_contact_id)) {
-      try {
-        const params = new URLSearchParams();
-        if (purchase.patient_id) params.set('patient_id', purchase.patient_id);
-        if (purchase.ghl_contact_id) params.set('ghl_contact_id', purchase.ghl_contact_id);
-        
-        const res = await fetch(`/api/protocols/active-packs?${params}`);
-        const data = await res.json();
-        if (data.packs?.length > 0) {
-          setExistingPacks(data.packs);
-        }
-      } catch (err) {
-        console.error('Error fetching packs:', err);
-      }
-    }
-
     setShowAssignModal(true);
   };
 
@@ -142,92 +272,88 @@ export default function Pipeline() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patientId: selectedPurchase.patient_id,
-          ghlContactId: selectedPurchase.ghl_contact_id,
-          patientName: selectedPurchase.patient_name,
-          purchaseId: selectedPurchase.id,
+          patientId: id,
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
           selectedDose: assignForm.selectedDose,
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
-          notes: assignForm.notes
+          notes: assignForm.notes,
+          purchaseId: selectedNotification?.id
         })
       });
 
       if (res.ok) {
         setShowAssignModal(false);
-        fetchData();
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to assign protocol');
+        fetchPatient();
       }
     } catch (error) {
       console.error('Error assigning protocol:', error);
     }
   };
 
-  const handleAddToPack = async () => {
-    if (!selectedPackId) {
-      alert('Please select a pack');
-      return;
-    }
-
+  const handleDismissNotification = async (notificationId) => {
     try {
-      const res = await fetch(`/api/protocols/${selectedPackId}/add-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          purchaseId: selectedPurchase.id,
-          sessionCount: 1
-        })
-      });
-
-      const data = await res.json();
-      
-      if (res.ok) {
-        setShowAssignModal(false);
-        fetchData();
-        alert(data.message || 'Session added to pack');
-      } else {
-        alert(data.error || 'Failed to add session');
-      }
+      await fetch(`/api/purchases/${notificationId}/dismiss`, { method: 'POST' });
+      setPendingNotifications(pendingNotifications.filter(n => n.id !== notificationId));
     } catch (error) {
-      console.error('Error adding to pack:', error);
+      console.error('Error dismissing notification:', error);
     }
   };
 
-  const handleAddCompleted = async () => {
+  const handleAddLabs = async () => {
     try {
-      const res = await fetch('/api/protocols/add-completed', {
+      const res = await fetch(`/api/patients/${id}/labs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(completedForm)
+        body: JSON.stringify(labForm)
       });
-
+      
       if (res.ok) {
-        setShowAddCompletedModal(false);
-        setCompletedForm({
-          patientId: '',
-          templateId: '',
-          peptideId: '',
-          selectedDose: '',
-          frequency: '',
-          startDate: '',
-          endDate: '',
-          notes: ''
-        });
-        fetchData();
+        setShowLabsModal(false);
+        fetchPatient();
       }
     } catch (error) {
-      console.error('Error adding completed protocol:', error);
+      console.error('Error adding labs:', error);
     }
+  };
+
+  const handleSendSymptoms = async () => {
+    setSendingSymptoms(true);
+    try {
+      const res = await fetch('/api/symptoms/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: id,
+          phone: patient?.phone,
+          name: patient?.name
+        })
+      });
+      
+      if (res.ok) {
+        setSymptomsSent(true);
+        setTimeout(() => {
+          setShowSymptomsModal(false);
+          setSymptomsSent(false);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error sending symptoms:', error);
+    } finally {
+      setSendingSymptoms(false);
+    }
+  };
+
+  const copySymptomLink = () => {
+    const link = `https://app.range-medical.com/symptom-questionnaire?patient=${id}&name=${encodeURIComponent(patient?.name || '')}`;
+    navigator.clipboard.writeText(link);
+    alert('Link copied!');
   };
 
   const openEditModal = (protocol) => {
     setSelectedProtocol(protocol);
     setEditForm({
-      peptideId: '',
       selectedDose: protocol.selected_dose || '',
       frequency: protocol.frequency || '',
       startDate: protocol.start_date || '',
@@ -248,7 +374,7 @@ export default function Pipeline() {
 
       if (res.ok) {
         setShowEditModal(false);
-        fetchData();
+        fetchPatient();
       } else {
         const error = await res.json();
         alert(error.error || 'Failed to update protocol');
@@ -258,545 +384,531 @@ export default function Pipeline() {
     }
   };
 
-  const handleDismiss = async (purchaseId) => {
-    if (!confirm('Dismiss this purchase? It won\'t show in the pipeline anymore.')) return;
-    
-    try {
-      await fetch(`/api/purchases/${purchaseId}/dismiss`, { method: 'POST' });
-      setNeedsProtocol(needsProtocol.filter(p => p.id !== purchaseId));
-    } catch (error) {
-      console.error('Error dismissing:', error);
+  const getSelectedTemplate = () => {
+    if (!assignForm.templateId) return null;
+    for (const category of Object.values(templates.grouped || {})) {
+      const found = category.find(t => t.id === assignForm.templateId);
+      if (found) return found;
     }
+    return null;
   };
 
-  const getSelectedTemplate = (form) => {
-    return templates.find(t => t.id === form.templateId);
+  const getSelectedPeptide = () => {
+    if (!assignForm.peptideId) return null;
+    return peptides.find(p => p.id === assignForm.peptideId);
   };
 
-  const getSelectedPeptide = (form) => {
-    return peptides.find(p => p.id === form.peptideId);
-  };
-
-  const isPeptideTemplate = (form) => {
-    const template = getSelectedTemplate(form);
+  const isPeptideTemplate = () => {
+    const template = getSelectedTemplate();
     return template?.name?.toLowerCase().includes('peptide');
   };
 
-  const counts = {
-    needsProtocol: needsProtocol.length,
-    active: activeProtocols.length,
-    completed: completedProtocols.length
+  // Lab results display helpers
+  const getLabCategories = () => {
+    if (!labResults || labResults.length === 0) return [];
+    
+    const categories = {
+      'Hormones': ['testosterone_total', 'testosterone_free', 'estradiol', 'dhea_s', 'fsh', 'lh', 'igf_1', 'cortisol'],
+      'Thyroid': ['tsh', 'free_t3', 'free_t4', 'tpo_antibodies', 'thyroglobulin_ab'],
+      'Metabolic': ['glucose', 'hba1c', 'fasting_insulin', 'uric_acid'],
+      'Lipids': ['total_cholesterol', 'ldl', 'hdl', 'triglycerides', 'apo_b', 'lp_a'],
+      'Inflammation': ['crp_hs', 'homocysteine', 'esr'],
+      'Vitamins': ['vitamin_d', 'b12', 'folate', 'magnesium'],
+      'Iron Panel': ['iron', 'ferritin', 'tibc', 'iron_saturation'],
+      'Liver': ['ast', 'alt', 'alk_phos', 'ggt', 'bilirubin', 'albumin'],
+      'Kidney': ['bun', 'creatinine', 'egfr'],
+      'CBC': ['wbc', 'rbc', 'hemoglobin', 'hematocrit', 'platelets'],
+      'Prostate': ['psa_total', 'psa_free']
+    };
+
+    const result = [];
+    for (const [category, keys] of Object.entries(categories)) {
+      const values = [];
+      for (const key of keys) {
+        const lab = labResults.find(l => l.test_name?.toLowerCase().replace(/[^a-z0-9]/g, '_') === key || l.test_code === key);
+        if (lab && lab.result_value) {
+          values.push(lab);
+        }
+      }
+      if (values.length > 0) {
+        result.push({ category, values });
+      }
+    }
+    return result;
   };
 
   if (loading) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.loading}>Loading pipeline...</div>
-      </div>
-    );
+    return <div style={styles.loading}>Loading...</div>;
+  }
+
+  if (!patient) {
+    return <div style={styles.error}>Patient not found</div>;
   }
 
   return (
     <>
       <Head>
-        <title>Pipeline | Range Medical</title>
+        <title>{patient.name} | Range Medical</title>
       </Head>
       
       <div style={styles.container}>
+        {/* Header */}
         <div style={styles.header}>
-          <h1 style={styles.title}>Pipeline</h1>
+          <div style={styles.headerLeft}>
+            <button onClick={() => router.back()} style={styles.backButton}>
+              ← Back
+            </button>
+            <h1 style={styles.patientName}>{patient.name}</h1>
+          </div>
+          <div style={styles.headerRight}>
+            <div style={styles.contactInfo}>
+              {patient.email && <span>{patient.email}</span>}
+              {patient.phone && <span>{patient.phone}</span>}
+            </div>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div style={styles.tabs}>
-          <button 
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'needs-protocol' ? styles.tabActive : {})
-            }}
-            onClick={() => setActiveTab('needs-protocol')}
-          >
-            Needs Protocol
-            {counts.needsProtocol > 0 && (
-              <span style={styles.badge}>{counts.needsProtocol}</span>
-            )}
-          </button>
-          <button 
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'active' ? styles.tabActive : {})
-            }}
-            onClick={() => setActiveTab('active')}
-          >
-            Active
-            <span style={styles.badgeGreen}>{counts.active}</span>
-          </button>
-          <button 
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'completed' ? styles.tabActive : {})
-            }}
-            onClick={() => setActiveTab('completed')}
-          >
-            Completed
-            <span style={styles.badgeGray}>{counts.completed}</span>
-          </button>
-        </div>
-
-        {/* Needs Protocol Tab */}
-        {activeTab === 'needs-protocol' && (
-          <div style={styles.section}>
-            {needsProtocol.length === 0 ? (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyIcon}>✓</div>
-                <div>All caught up! No purchases waiting for protocols.</div>
-              </div>
-            ) : (
-              <div style={styles.list}>
-                {needsProtocol.map(purchase => (
-                  <div key={purchase.id} style={styles.card}>
-                    <div style={styles.cardMain}>
-                      <div style={styles.patientName}>{purchase.patient_name}</div>
-                      <div style={styles.productName}>{purchase.product_name}</div>
-                      <div style={styles.meta}>
-                        ${purchase.amount_paid?.toFixed(2)} • {formatDate(purchase.purchase_date)}
-                        {purchase.category && ` • ${purchase.category}`}
-                      </div>
-                    </div>
-                    <div style={styles.cardActions}>
-                      <button 
-                        onClick={() => openAssignModal(purchase)}
-                        style={styles.primaryButton}
-                      >
-                        Start Protocol
-                      </button>
-                      <button 
-                        onClick={() => handleDismiss(purchase.id)}
-                        style={styles.dismissButton}
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Active Tab */}
-        {activeTab === 'active' && (
-          <div style={styles.section}>
-            {activeProtocols.length === 0 ? (
-              <div style={styles.emptyState}>
-                No active protocols
-              </div>
-            ) : (
-              <div style={styles.activeGrid}>
-                {activeProtocols.map(protocol => {
-                  const isSessionBased = protocol.total_sessions && protocol.total_sessions > 0;
-                  const totalDays = protocol.end_date && protocol.start_date 
-                    ? Math.ceil((new Date(protocol.end_date) - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
-                    : null;
-                  const daysPassed = protocol.start_date
-                    ? Math.ceil((new Date() - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
-                    : 0;
-                  const currentDay = Math.min(daysPassed, totalDays || daysPassed);
-                  
-                  // Calculate progress - either by sessions or by days
-                  const progressPercent = isSessionBased 
-                    ? ((protocol.sessions_used || 0) / protocol.total_sessions) * 100
-                    : (totalDays ? Math.min((currentDay / totalDays) * 100, 100) : 0);
-                  
-                  return (
-                    <div key={protocol.id} style={styles.activeCard}>
-                      <div style={styles.activeCardHeader}>
-                        <span style={styles.activePatientName}>{protocol.patient_name}</span>
-                      </div>
-                      <div style={styles.activeProtocolInfo}>
-                        <span style={styles.protocolDot}>●</span>
-                        <span>{protocol.medication || protocol.program_name}</span>
-                        {protocol.selected_dose && <span> - {protocol.selected_dose}</span>}
-                      </div>
-                      <div style={styles.progressBar}>
-                        <div style={{...styles.progressFill, width: `${progressPercent}%`}}></div>
-                      </div>
-                      <div style={styles.activeCardFooter}>
-                        {isSessionBased ? (
-                          <span style={styles.sessionsBadge}>
-                            {protocol.sessions_used || 0} of {protocol.total_sessions} used
-                          </span>
-                        ) : totalDays ? (
-                          <span>Day {currentDay} of {totalDays}</span>
-                        ) : (
-                          <span>Ongoing</span>
-                        )}
-                        {protocol.frequency && <span style={styles.frequencyBadge}>{protocol.frequency}</span>}
-                        <button 
-                          onClick={() => openEditModal(protocol)}
-                          style={styles.editButton}
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Completed Tab */}
-        {activeTab === 'completed' && (
+        {/* Pending Notifications */}
+        {pendingNotifications.length > 0 && (
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
-              <button 
-                onClick={() => setShowAddCompletedModal(true)}
-                style={styles.secondaryButton}
-              >
-                + Add Historical Protocol
-              </button>
+              <h2 style={styles.sectionTitle}>
+                Pending Purchases ({pendingNotifications.length})
+              </h2>
             </div>
-            
-            {completedProtocols.length === 0 ? (
-              <div style={styles.emptyState}>
-                No completed protocols yet
-              </div>
-            ) : (
-              <div style={styles.list}>
-                {completedProtocols.map(protocol => (
-                  <div key={protocol.id} style={{...styles.card, opacity: 0.8}}>
-                    <div style={styles.cardMain}>
-                      <div style={styles.patientName}>{protocol.patient_name}</div>
-                      <div style={styles.productName}>
-                        {protocol.program_name || protocol.medication}
-                        {protocol.selected_dose && ` • ${protocol.selected_dose}`}
-                      </div>
-                      <div style={styles.meta}>
-                        {formatDate(protocol.start_date)} → {formatDate(protocol.end_date)}
-                      </div>
-                    </div>
-                    <div style={styles.cardActions}>
-                      <span style={styles.completed}>✓ Complete</span>
-                      <button 
-                        onClick={() => openEditModal(protocol)}
-                        style={styles.editButton}
-                      >
-                        Edit
-                      </button>
+            <div style={styles.notificationsList}>
+              {pendingNotifications.map(notif => (
+                <div key={notif.id} style={styles.notificationCard}>
+                  <div style={styles.notificationInfo}>
+                    <div style={styles.notificationProduct}>{notif.product_name}</div>
+                    <div style={styles.notificationMeta}>
+                      ${notif.amount_paid?.toFixed(2)} • {formatDate(notif.purchase_date)}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div style={styles.notificationActions}>
+                    <button 
+                      onClick={() => openAssignModal(notif)}
+                      style={styles.assignButton}
+                    >
+                      Assign Protocol
+                    </button>
+                    <button 
+                      onClick={() => handleDismissNotification(notif.id)}
+                      style={styles.dismissButton}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Assign Protocol Modal */}
-        {showAssignModal && (
-          <div style={styles.modalOverlay} onClick={() => setShowAssignModal(false)}>
-            <div style={styles.modal} onClick={e => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Start Protocol</h3>
-                <button onClick={() => setShowAssignModal(false)} style={styles.closeButton}>×</button>
-              </div>
-              
-              <div style={styles.modalBody}>
-                <div style={styles.purchasePreview}>
-                  <strong>{selectedPurchase?.patient_name}</strong>
-                  <div>{selectedPurchase?.product_name}</div>
-                  <div style={styles.meta}>${selectedPurchase?.amount_paid?.toFixed(2)} • {selectedPurchase?.category}</div>
-                </div>
-
-                {/* Show Add to Pack option if packs exist */}
-                {existingPacks.length > 0 && (
-                  <div style={styles.packOption}>
-                    <div style={styles.packToggle}>
-                      <button 
-                        onClick={() => setAddToPackMode(false)}
-                        style={addToPackMode ? styles.toggleInactive : styles.toggleActive}
-                      >
-                        New Protocol
-                      </button>
-                      <button 
-                        onClick={() => setAddToPackMode(true)}
-                        style={addToPackMode ? styles.toggleActive : styles.toggleInactive}
-                      >
-                        Add to Existing Pack
-                      </button>
-                    </div>
-
-                    {addToPackMode && (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Select Pack</label>
-                        <select 
-                          value={selectedPackId}
-                          onChange={e => setSelectedPackId(e.target.value)}
-                          style={styles.select}
-                        >
-                          <option value="">Choose pack...</option>
-                          {existingPacks.map(pack => (
-                            <option key={pack.id} value={pack.id}>
-                              {pack.program_name} - {pack.sessions_used || 0} of {pack.total_sessions} used
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {!addToPackMode && (
-                  <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Protocol Template *</label>
-                      <select 
-                        value={assignForm.templateId}
-                        onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
-                        style={styles.select}
-                      >
-                        <option value="">Select template...</option>
-                        {templates.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                {isPeptideTemplate(assignForm) && (
-                  <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Peptide *</label>
-                      <select 
-                        value={assignForm.peptideId}
-                        onChange={e => setAssignForm({...assignForm, peptideId: e.target.value, selectedDose: ''})}
-                        style={styles.select}
-                      >
-                        <option value="">Select peptide...</option>
-                        {peptides.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {getSelectedPeptide(assignForm)?.dose_options?.length > 0 && (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Dose *</label>
-                        <select 
-                          value={assignForm.selectedDose}
-                          onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
-                          style={styles.select}
-                        >
-                          <option value="">Select dose...</option>
-                          {getSelectedPeptide(assignForm).dose_options.map(dose => (
-                            <option key={dose} value={dose}>{dose}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Frequency</label>
-                      <select 
-                        value={assignForm.frequency}
-                        onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
-                        style={styles.select}
-                      >
-                        <option value="">Select frequency...</option>
-                        <option value="2x daily">2x daily</option>
-                        <option value="Daily">Daily</option>
-                        <option value="Every other day">Every other day</option>
-                        <option value="2x weekly">2x weekly</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="5 days on, 2 off">5 days on, 2 off</option>
-                        <option value="As needed">As needed</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {!addToPackMode && (
-                  <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Start Date</label>
-                      <input 
-                        type="date"
-                        value={assignForm.startDate}
-                        onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
-                        style={styles.input}
-                      />
-                    </div>
-
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Notes</label>
-                      <textarea 
-                        value={assignForm.notes}
-                        onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
-                        placeholder="Any notes..."
-                        style={styles.textarea}
-                        rows={2}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div style={styles.modalFooter}>
-                <button onClick={() => setShowAssignModal(false)} style={styles.cancelButton}>Cancel</button>
-                {addToPackMode ? (
-                  <button 
-                    onClick={handleAddToPack}
-                    disabled={!selectedPackId}
-                    style={styles.primaryButton}
-                  >
-                    Add to Pack
+        {/* Range Assessment */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Range Assessment</h2>
+          </div>
+          <div style={styles.assessmentGrid}>
+            {/* Baseline Labs Card */}
+            <div style={styles.assessmentCard}>
+              <div style={styles.assessmentHeader}>
+                <div style={styles.assessmentLabel}>Baseline Labs</div>
+                <div style={styles.buttonGroup}>
+                  {latestLabs && (
+                    <button 
+                      onClick={() => setShowViewLabsModal(true)} 
+                      style={styles.smallButton}
+                    >
+                      View
+                    </button>
+                  )}
+                  <button onClick={() => setShowLabsModal(true)} style={styles.smallButton}>
+                    + Add
                   </button>
+                </div>
+              </div>
+              <div style={styles.assessmentValue}>
+                {latestLabs ? (
+                  <span style={styles.completedBadge}>
+                    ✓ {latestLabs.lab_panel || 'Complete'} ({formatDate(latestLabs.completed_date || latestLabs.test_date)})
+                  </span>
                 ) : (
-                  <button 
-                    onClick={handleAssignProtocol}
-                    disabled={!assignForm.templateId}
-                    style={styles.primaryButton}
-                  >
-                    Start Protocol
+                  <span style={styles.pendingBadge}>Not completed</span>
+                )}
+              </div>
+            </div>
+
+            {/* Symptoms Card */}
+            <div style={styles.assessmentCard}>
+              <div style={styles.assessmentHeader}>
+                <div style={styles.assessmentLabel}>Symptoms Questionnaire</div>
+                <div style={styles.buttonGroup}>
+                  <button onClick={() => setShowSymptomsModal(true)} style={styles.smallButton}>
+                    Send SMS
                   </button>
+                  <button onClick={copySymptomLink} style={styles.smallButton}>
+                    Copy Link
+                  </button>
+                </div>
+              </div>
+              <div style={styles.assessmentValue}>
+                {baselineSymptoms ? (
+                  <span style={styles.completedBadge}>
+                    ✓ Complete ({formatDate(baselineSymptoms.submitted_at)})
+                  </span>
+                ) : (
+                  <span style={styles.pendingBadge}>Not completed</span>
                 )}
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Add Completed Modal */}
-        {showAddCompletedModal && (
-          <div style={styles.modalOverlay} onClick={() => setShowAddCompletedModal(false)}>
+        {/* Lab Documents Section */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Lab Documents</h2>
+            <button 
+              style={styles.addButton}
+              onClick={() => setShowUploadModal(true)}
+            >
+              + Upload PDF
+            </button>
+          </div>
+          
+          {loadingDocs ? (
+            <div style={styles.emptyState}>Loading documents...</div>
+          ) : labDocuments.length === 0 ? (
+            <div style={styles.emptyState}>
+              No lab documents uploaded yet. Click "Upload PDF" to add lab results.
+            </div>
+          ) : (
+            <div style={styles.documentList}>
+              {labDocuments.map((doc) => (
+                <div key={doc.id} style={styles.documentCard}>
+                  <div style={styles.documentIcon}>📄</div>
+                  <div style={styles.documentInfo}>
+                    <div style={styles.documentName}>{doc.file_name}</div>
+                    <div style={styles.documentMeta}>
+                      {doc.panel_type && <span style={styles.docBadge}>{doc.panel_type}</span>}
+                      <span>{formatDate(doc.collection_date)}</span>
+                      <span style={styles.fileSize}>{formatFileSize(doc.file_size)}</span>
+                    </div>
+                    {doc.notes && <div style={styles.documentNotes}>{doc.notes}</div>}
+                  </div>
+                  <div style={styles.documentActions}>
+                    {doc.url && (
+                      <a 
+                        href={doc.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={styles.viewDocButton}
+                      >
+                        View
+                      </a>
+                    )}
+                    <button 
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      style={styles.deleteDocButton}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Active Protocols */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Active Protocols</h2>
+            <button onClick={() => openAssignModal()} style={styles.addButton}>
+              + Add Protocol
+            </button>
+          </div>
+          {activeProtocols.length === 0 ? (
+            <div style={styles.emptyState}>No active protocols</div>
+          ) : (
+            <div style={styles.protocolsList}>
+              {activeProtocols.map(protocol => (
+                <div key={protocol.id} style={styles.protocolCard}>
+                  <div style={styles.protocolInfo}>
+                    <div style={styles.protocolName}>{protocol.program_name || protocol.medication}</div>
+                    <div style={styles.protocolMeta}>
+                      {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                      {protocol.frequency && <span> • {protocol.frequency}</span>}
+                    </div>
+                    <div style={styles.protocolDates}>
+                      Started {formatDate(protocol.start_date)}
+                      {protocol.end_date && ` • Ends ${formatDate(protocol.end_date)}`}
+                    </div>
+                  </div>
+                  <div style={styles.protocolActions}>
+                    {protocol.days_remaining > 0 ? (
+                      <span style={styles.daysRemaining}>{protocol.days_remaining} days left</span>
+                    ) : (
+                      <span style={styles.protocolComplete}>Complete</span>
+                    )}
+                    <button onClick={() => openEditModal(protocol)} style={styles.editProtocolButton}>Edit</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Completed Protocols */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Completed Protocols</h2>
+          </div>
+          {completedProtocols.length === 0 ? (
+            <div style={styles.emptyState}>No completed protocols</div>
+          ) : (
+            <div style={styles.protocolsList}>
+              {completedProtocols.map(protocol => (
+                <div key={protocol.id} style={{...styles.protocolCard, background: '#f9fafb'}}>
+                  <div style={styles.protocolInfo}>
+                    <div style={styles.protocolName}>{protocol.program_name || protocol.medication}</div>
+                    <div style={styles.protocolMeta}>
+                      {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                      {protocol.frequency && <span> • {protocol.frequency}</span>}
+                    </div>
+                    <div style={styles.protocolDates}>
+                      {formatDate(protocol.start_date)} → {formatDate(protocol.end_date)}
+                    </div>
+                  </div>
+                  <div style={styles.protocolActions}>
+                    <span style={styles.protocolComplete}>✓ Complete</span>
+                    <button onClick={() => openEditModal(protocol)} style={styles.editProtocolButton}>Edit</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Add Labs Modal */}
+        {showLabsModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowLabsModal(false)}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
               <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Add Historical Protocol</h3>
-                <button onClick={() => setShowAddCompletedModal(false)} style={styles.closeButton}>×</button>
+                <h3 style={styles.modalTitle}>Add Lab Results</h3>
+                <button onClick={() => setShowLabsModal(false)} style={styles.closeButton}>×</button>
               </div>
-              
               <div style={styles.modalBody}>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Patient *</label>
+                  <label style={styles.label}>Lab Type</label>
                   <select 
-                    value={completedForm.patientId}
-                    onChange={e => setCompletedForm({...completedForm, patientId: e.target.value})}
+                    value={labForm.labType} 
+                    onChange={e => setLabForm({...labForm, labType: e.target.value})}
                     style={styles.select}
                   >
-                    <option value="">Select patient...</option>
-                    {patients.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
+                    <option value="Baseline">Baseline</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Quarterly">Quarterly</option>
+                    <option value="Annual">Annual</option>
                   </select>
                 </div>
-
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Protocol Template *</label>
+                  <label style={styles.label}>Lab Panel</label>
                   <select 
-                    value={completedForm.templateId}
-                    onChange={e => setCompletedForm({...completedForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
+                    value={labForm.labPanel} 
+                    onChange={e => setLabForm({...labForm, labPanel: e.target.value})}
                     style={styles.select}
                   >
-                    <option value="">Select template...</option>
-                    {templates.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
+                    <option value="Elite">Elite</option>
+                    <option value="Essential">Essential</option>
+                    <option value="Metabolic">Metabolic</option>
+                    <option value="Hormone">Hormone</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
-
-                {isPeptideTemplate(completedForm) && (
-                  <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Peptide</label>
-                      <select 
-                        value={completedForm.peptideId}
-                        onChange={e => setCompletedForm({...completedForm, peptideId: e.target.value, selectedDose: ''})}
-                        style={styles.select}
-                      >
-                        <option value="">Select peptide...</option>
-                        {peptides.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {getSelectedPeptide(completedForm)?.dose_options?.length > 0 && (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Dose</label>
-                        <select 
-                          value={completedForm.selectedDose}
-                          onChange={e => setCompletedForm({...completedForm, selectedDose: e.target.value})}
-                          style={styles.select}
-                        >
-                          <option value="">Select dose...</option>
-                          {getSelectedPeptide(completedForm).dose_options.map(dose => (
-                            <option key={dose} value={dose}>{dose}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Frequency</label>
-                      <select 
-                        value={completedForm.frequency}
-                        onChange={e => setCompletedForm({...completedForm, frequency: e.target.value})}
-                        style={styles.select}
-                      >
-                        <option value="">Select frequency...</option>
-                        <option value="2x daily">2x daily</option>
-                        <option value="Daily">Daily</option>
-                        <option value="Every other day">Every other day</option>
-                        <option value="2x weekly">2x weekly</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="5 days on, 2 off">5 days on, 2 off</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Start Date *</label>
-                    <input 
-                      type="date"
-                      value={completedForm.startDate}
-                      onChange={e => setCompletedForm({...completedForm, startDate: e.target.value})}
-                      style={styles.input}
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>End Date *</label>
-                    <input 
-                      type="date"
-                      value={completedForm.endDate}
-                      onChange={e => setCompletedForm({...completedForm, endDate: e.target.value})}
-                      style={styles.input}
-                    />
-                  </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Completed Date</label>
+                  <input 
+                    type="date" 
+                    value={labForm.completedDate}
+                    onChange={e => setLabForm({...labForm, completedDate: e.target.value})}
+                    style={styles.input}
+                  />
                 </div>
-
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Notes</label>
                   <textarea 
-                    value={completedForm.notes}
-                    onChange={e => setCompletedForm({...completedForm, notes: e.target.value})}
+                    value={labForm.notes}
+                    onChange={e => setLabForm({...labForm, notes: e.target.value})}
                     placeholder="Any notes..."
                     style={styles.textarea}
-                    rows={2}
+                    rows={3}
                   />
                 </div>
               </div>
-
               <div style={styles.modalFooter}>
-                <button onClick={() => setShowAddCompletedModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button onClick={() => setShowLabsModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button onClick={handleAddLabs} style={styles.submitButton}>Save Labs</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View Labs Modal */}
+        {showViewLabsModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowViewLabsModal(false)}>
+            <div style={{...styles.modal, maxWidth: '800px'}} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>
+                  Lab Results — {latestLabs?.lab_panel || 'Panel'} {formatDate(latestLabs?.completed_date || latestLabs?.test_date)}
+                </h3>
+                <button onClick={() => setShowViewLabsModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              <div style={styles.modalBody}>
+                {getLabCategories().length > 0 ? (
+                  <div style={styles.labCategoriesGrid}>
+                    {getLabCategories().map(cat => (
+                      <div key={cat.category} style={styles.labCategory}>
+                        <h4 style={styles.labCategoryTitle}>{cat.category}</h4>
+                        <div style={styles.labValues}>
+                          {cat.values.map(lab => (
+                            <div key={lab.id} style={styles.labRow}>
+                              <span style={styles.labName}>{lab.test_name}</span>
+                              <span style={{
+                                ...styles.labValue,
+                                color: lab.flag === 'H' || lab.flag === 'L' ? '#dc2626' : '#059669'
+                              }}>
+                                {lab.result_value} {lab.unit}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={styles.emptyState}>
+                    No detailed lab values available for this panel.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Lab Document Modal */}
+        {showUploadModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowUploadModal(false)}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>Upload Lab PDF</h3>
+                <button onClick={() => setShowUploadModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              <div style={styles.modalBody}>
+                {uploadError && <div style={styles.errorBox}>{uploadError}</div>}
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>PDF File *</label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleFileSelect}
+                    style={styles.fileInput}
+                  />
+                  {uploadForm.file && (
+                    <div style={styles.selectedFile}>
+                      Selected: {uploadForm.file.name}
+                    </div>
+                  )}
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Panel Type</label>
+                  <select
+                    value={uploadForm.panelType}
+                    onChange={(e) => setUploadForm({ ...uploadForm, panelType: e.target.value })}
+                    style={styles.select}
+                  >
+                    <option value="Elite">Elite</option>
+                    <option value="Essential">Essential</option>
+                    <option value="Metabolic">Metabolic</option>
+                    <option value="Hormone">Hormone</option>
+                    <option value="Thyroid">Thyroid</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Collection Date</label>
+                  <input
+                    type="date"
+                    value={uploadForm.collectionDate}
+                    onChange={(e) => setUploadForm({ ...uploadForm, collectionDate: e.target.value })}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Notes (optional)</label>
+                  <textarea
+                    value={uploadForm.notes}
+                    onChange={(e) => setUploadForm({ ...uploadForm, notes: e.target.value })}
+                    placeholder="Any notes about these lab results..."
+                    style={styles.textarea}
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowUploadModal(false)} style={styles.cancelButton}>Cancel</button>
                 <button 
-                  onClick={handleAddCompleted}
-                  disabled={!completedForm.patientId || !completedForm.templateId || !completedForm.startDate || !completedForm.endDate}
-                  style={styles.primaryButton}
+                  onClick={handleUploadDocument}
+                  disabled={uploading || !uploadForm.file}
+                  style={styles.submitButton}
                 >
-                  Add Protocol
+                  {uploading ? 'Uploading...' : 'Upload'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Symptoms Modal */}
+        {showSymptomsModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowSymptomsModal(false)}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>Send Symptoms Questionnaire</h3>
+                <button onClick={() => setShowSymptomsModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              <div style={styles.modalBody}>
+                {symptomsSent ? (
+                  <div style={styles.successMessage}>
+                    ✓ SMS sent successfully!
+                  </div>
+                ) : (
+                  <>
+                    <p>Send symptoms questionnaire link to:</p>
+                    <p style={{fontWeight: '600'}}>{patient.phone || 'No phone number'}</p>
+                  </>
+                )}
+              </div>
+              {!symptomsSent && (
+                <div style={styles.modalFooter}>
+                  <button onClick={() => setShowSymptomsModal(false)} style={styles.cancelButton}>Cancel</button>
+                  <button 
+                    onClick={handleSendSymptoms}
+                    disabled={sendingSymptoms || !patient.phone}
+                    style={styles.submitButton}
+                  >
+                    {sendingSymptoms ? 'Sending...' : 'Send SMS'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -811,9 +923,8 @@ export default function Pipeline() {
               </div>
               
               <div style={styles.modalBody}>
-                <div style={styles.purchasePreview}>
-                  <strong>{selectedProtocol.patient_name}</strong>
-                  <div>{selectedProtocol.medication || selectedProtocol.program_name}</div>
+                <div style={styles.editPreview}>
+                  <strong>{selectedProtocol.program_name || selectedProtocol.medication}</strong>
                 </div>
 
                 <div style={styles.formGroup}>
@@ -896,9 +1007,130 @@ export default function Pipeline() {
                 <button onClick={() => setShowEditModal(false)} style={styles.cancelButton}>Cancel</button>
                 <button 
                   onClick={handleEditProtocol}
-                  style={styles.primaryButton}
+                  style={styles.submitButton}
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assign Protocol Modal */}
+        {showAssignModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowAssignModal(false)}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>Assign Protocol</h3>
+                <button onClick={() => setShowAssignModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              <div style={styles.modalBody}>
+                {selectedNotification && (
+                  <div style={styles.notificationPreview}>
+                    <strong>{selectedNotification.product_name}</strong>
+                    <span> • ${selectedNotification.amount_paid?.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Protocol Template *</label>
+                  <select 
+                    value={assignForm.templateId}
+                    onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
+                    style={styles.select}
+                  >
+                    <option value="">Select template...</option>
+                    {Object.entries(templates.grouped || {}).map(([category, temps]) => (
+                      <optgroup key={category} label={category}>
+                        {temps.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+                {isPeptideTemplate() && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Select Peptide *</label>
+                      <select 
+                        value={assignForm.peptideId}
+                        onChange={e => setAssignForm({...assignForm, peptideId: e.target.value, selectedDose: ''})}
+                        style={styles.select}
+                      >
+                        <option value="">Select peptide...</option>
+                        {peptides.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {getSelectedPeptide()?.dose_options?.length > 0 && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Select Dose *</label>
+                        <select 
+                          value={assignForm.selectedDose}
+                          onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
+                          style={styles.select}
+                        >
+                          <option value="">Select a dose...</option>
+                          {getSelectedPeptide().dose_options.map(dose => (
+                            <option key={dose} value={dose}>{dose}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Frequency</label>
+                      <select 
+                        value={assignForm.frequency}
+                        onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
+                        style={styles.select}
+                      >
+                        <option value="">Select frequency...</option>
+                        <option value="2x daily">2x daily</option>
+                        <option value="Daily">Daily</option>
+                        <option value="Every other day">Every other day</option>
+                        <option value="2x weekly">2x weekly</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="5 days on, 2 off">5 days on, 2 off</option>
+                        <option value="As needed">As needed</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Start Date</label>
+                  <input 
+                    type="date"
+                    value={assignForm.startDate}
+                    onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Notes</label>
+                  <textarea 
+                    value={assignForm.notes}
+                    onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
+                    placeholder="Any special instructions..."
+                    style={styles.textarea}
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowAssignModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button 
+                  onClick={handleAssignProtocol}
+                  disabled={!assignForm.templateId}
+                  style={styles.submitButton}
+                >
+                  Assign Protocol
                 </button>
               </div>
             </div>
@@ -909,6 +1141,9 @@ export default function Pipeline() {
   );
 }
 
+// ============================================
+// STYLES
+// ============================================
 const styles = {
   container: {
     maxWidth: '900px',
@@ -921,113 +1156,61 @@ const styles = {
     padding: '48px',
     color: '#666'
   },
-  header: {
-    marginBottom: '24px'
+  error: {
+    textAlign: 'center',
+    padding: '48px',
+    color: '#ef4444'
   },
-  title: {
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '32px',
+    paddingBottom: '16px',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  },
+  backButton: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#666'
+  },
+  patientName: {
     fontSize: '28px',
     fontWeight: '600',
     margin: 0
   },
-  tabs: {
-    display: 'flex',
-    gap: '4px',
-    marginBottom: '24px',
-    borderBottom: '1px solid #e5e7eb',
-    paddingBottom: '0'
+  headerRight: {
+    textAlign: 'right'
   },
-  tab: {
-    padding: '12px 20px',
-    background: 'none',
-    border: 'none',
-    borderBottom: '2px solid transparent',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#666',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '-1px'
-  },
-  tabActive: {
-    color: '#000',
-    borderBottomColor: '#000'
-  },
-  badge: {
-    background: '#fef3c7',
-    color: '#b45309',
-    padding: '2px 8px',
-    borderRadius: '10px',
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  badgeGreen: {
-    background: '#d1fae5',
-    color: '#059669',
-    padding: '2px 8px',
-    borderRadius: '10px',
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  badgeGray: {
-    background: '#f3f4f6',
-    color: '#6b7280',
-    padding: '2px 8px',
-    borderRadius: '10px',
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  section: {},
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginBottom: '16px'
-  },
-  list: {
+  contactInfo: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px'
+    gap: '4px',
+    color: '#666',
+    fontSize: '14px'
   },
-  card: {
+  section: {
+    marginBottom: '32px'
+  },
+  sectionHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '16px 20px',
-    background: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb'
+    marginBottom: '16px'
   },
-  cardMain: {
-    flex: 1
-  },
-  patientLink: {
-    fontSize: '16px',
+  sectionTitle: {
+    fontSize: '18px',
     fontWeight: '600',
-    color: '#000',
-    textDecoration: 'none'
+    margin: 0
   },
-  patientName: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#000'
-  },
-  productName: {
-    fontSize: '14px',
-    color: '#374151',
-    marginTop: '4px'
-  },
-  meta: {
-    fontSize: '13px',
-    color: '#9ca3af',
-    marginTop: '4px'
-  },
-  cardActions: {
-    display: 'flex',
-    gap: '8px'
-  },
-  cardStatus: {},
-  primaryButton: {
+  addButton: {
     background: '#000',
     color: '#fff',
     border: 'none',
@@ -1035,171 +1218,244 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '500'
-  },
-  secondaryButton: {
-    background: '#fff',
-    color: '#000',
-    border: '1px solid #000',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  dismissButton: {
-    background: 'none',
-    color: '#9ca3af',
-    border: '1px solid #e5e7eb',
-    padding: '8px 12px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px'
-  },
-  daysLeft: {
-    background: '#dbeafe',
-    color: '#1d4ed8',
-    padding: '6px 12px',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500'
-  },
-  ending: {
-    background: '#fef3c7',
-    color: '#b45309',
-    padding: '6px 12px',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500'
-  },
-  completed: {
-    color: '#059669',
-    fontWeight: '500'
-  },
-  // Active protocol card styles
-  activeGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
-  },
-  activeCard: {
-    background: '#fff',
-    borderRadius: '12px',
-    border: '1px solid #e5e7eb',
-    padding: '16px 20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px'
-  },
-  activeCardHeader: {
-    minWidth: '150px'
-  },
-  activePatientName: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#000'
-  },
-  activeProtocolInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    color: '#374151',
-    flex: 1
-  },
-  protocolDot: {
-    color: '#10b981',
-    fontSize: '12px'
-  },
-  progressBar: {
-    width: '150px',
-    height: '6px',
-    background: '#e5e7eb',
-    borderRadius: '3px',
-    overflow: 'hidden'
-  },
-  progressFill: {
-    height: '100%',
-    background: '#10b981',
-    borderRadius: '3px',
-    transition: 'width 0.3s ease'
-  },
-  activeCardFooter: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    fontSize: '13px',
-    color: '#6b7280',
-    minWidth: '180px',
-    justifyContent: 'flex-end'
-  },
-  frequencyBadge: {
-    background: '#f3f4f6',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '12px'
-  },
-  editButton: {
-    background: 'none',
-    border: '1px solid #d1d5db',
-    padding: '4px 12px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    cursor: 'pointer',
-    color: '#666',
-    marginLeft: '8px'
-  },
-  packOption: {
-    marginBottom: '16px',
-    padding: '12px',
-    background: '#f9fafb',
-    borderRadius: '8px'
-  },
-  packToggle: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '12px'
-  },
-  toggleActive: {
-    flex: 1,
-    padding: '8px 12px',
-    border: '2px solid #000',
-    background: '#000',
-    color: '#fff',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '500'
-  },
-  toggleInactive: {
-    flex: 1,
-    padding: '8px 12px',
-    border: '2px solid #d1d5db',
-    background: '#fff',
-    color: '#666',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px'
-  },
-  sessionsBadge: {
-    background: '#dbeafe',
-    color: '#1d4ed8',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    fontSize: '12px',
     fontWeight: '500'
   },
   emptyState: {
     textAlign: 'center',
-    padding: '48px 24px',
-    color: '#9ca3af',
+    padding: '32px',
+    color: '#999',
     background: '#f9fafb',
     borderRadius: '8px'
   },
-  emptyIcon: {
-    fontSize: '32px',
+  // Assessment styles
+  assessmentGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '16px'
+  },
+  assessmentCard: {
+    padding: '16px',
+    background: '#fff',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  assessmentHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: '12px'
+  },
+  assessmentLabel: {
+    fontWeight: '600',
+    fontSize: '14px'
+  },
+  assessmentValue: {
+    fontSize: '14px'
+  },
+  buttonGroup: {
+    display: 'flex',
+    gap: '8px'
+  },
+  smallButton: {
+    background: '#fff',
+    border: '1px solid #d1d5db',
+    padding: '4px 12px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '13px'
+  },
+  completedBadge: {
+    color: '#059669',
+    fontWeight: '500'
+  },
+  pendingBadge: {
+    color: '#f59e0b'
+  },
+  // Document styles
+  documentList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  documentCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 16px',
+    background: '#fff',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  documentIcon: {
+    fontSize: '24px'
+  },
+  documentInfo: {
+    flex: 1
+  },
+  documentName: {
+    fontWeight: '500',
+    marginBottom: '4px'
+  },
+  documentMeta: {
+    display: 'flex',
+    gap: '12px',
+    fontSize: '13px',
+    color: '#666'
+  },
+  docBadge: {
+    background: '#e5e7eb',
+    padding: '2px 8px',
+    borderRadius: '4px',
+    fontWeight: '500'
+  },
+  fileSize: {
+    color: '#999'
+  },
+  documentNotes: {
+    marginTop: '4px',
+    fontSize: '13px',
+    color: '#666',
+    fontStyle: 'italic'
+  },
+  documentActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  viewDocButton: {
+    background: '#fff',
+    color: '#000',
+    border: '1px solid #000',
+    padding: '6px 12px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    textDecoration: 'none'
+  },
+  deleteDocButton: {
+    background: 'none',
+    border: 'none',
+    color: '#999',
+    fontSize: '20px',
+    cursor: 'pointer',
+    padding: '4px 8px'
+  },
+  // Notification styles
+  notificationsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  notificationCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px',
+    background: '#fef3c7',
+    borderRadius: '8px',
+    border: '1px solid #f59e0b'
+  },
+  notificationInfo: {
+    flex: 1
+  },
+  notificationProduct: {
+    fontWeight: '600',
+    marginBottom: '4px'
+  },
+  notificationMeta: {
+    fontSize: '14px',
+    color: '#666'
+  },
+  notificationActions: {
+    display: 'flex',
+    gap: '8px'
+  },
+  assignButton: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  dismissButton: {
+    background: '#fff',
+    color: '#666',
+    border: '1px solid #d1d5db',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  // Protocol styles
+  protocolsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  protocolCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px',
+    background: '#fff',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  protocolInfo: {
+    flex: 1
+  },
+  protocolName: {
+    fontWeight: '600',
+    marginBottom: '4px'
+  },
+  protocolMeta: {
+    fontSize: '14px',
+    color: '#666',
+    marginBottom: '4px'
+  },
+  protocolDates: {
+    fontSize: '13px',
+    color: '#999'
+  },
+  protocolStatus: {},
+  protocolActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  editProtocolButton: {
+    background: 'none',
+    border: '1px solid #d1d5db',
+    padding: '4px 12px',
+    borderRadius: '4px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    color: '#666'
+  },
+  editPreview: {
+    background: '#f9fafb',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    marginBottom: '16px'
+  },
+  formRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px'
+  },
+  daysRemaining: {
+    background: '#dbeafe',
+    color: '#1d4ed8',
+    padding: '4px 12px',
+    borderRadius: '4px',
+    fontSize: '13px',
+    fontWeight: '500'
+  },
+  protocolComplete: {
+    color: '#059669',
+    fontWeight: '500'
   },
   // Modal styles
   modalOverlay: {
@@ -1251,19 +1507,8 @@ const styles = {
     padding: '16px 20px',
     borderTop: '1px solid #e5e7eb'
   },
-  purchasePreview: {
-    background: '#f9fafb',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    marginBottom: '20px'
-  },
   formGroup: {
     marginBottom: '16px'
-  },
-  formRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px'
   },
   label: {
     display: 'block',
@@ -1297,6 +1542,27 @@ const styles = {
     boxSizing: 'border-box',
     resize: 'vertical'
   },
+  fileInput: {
+    width: '100%',
+    padding: '10px',
+    border: '2px dashed #d1d5db',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    boxSizing: 'border-box'
+  },
+  selectedFile: {
+    marginTop: '8px',
+    fontSize: '13px',
+    color: '#059669'
+  },
+  errorBox: {
+    background: '#fef2f2',
+    color: '#dc2626',
+    padding: '12px',
+    borderRadius: '6px',
+    marginBottom: '16px',
+    fontSize: '14px'
+  },
   cancelButton: {
     background: '#fff',
     color: '#000',
@@ -1305,5 +1571,63 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px'
+  },
+  submitButton: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  successMessage: {
+    textAlign: 'center',
+    padding: '20px',
+    color: '#059669',
+    fontSize: '16px',
+    fontWeight: '500'
+  },
+  notificationPreview: {
+    background: '#f3f4f6',
+    padding: '12px',
+    borderRadius: '6px',
+    marginBottom: '16px'
+  },
+  // Lab results modal styles
+  labCategoriesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '20px'
+  },
+  labCategory: {
+    background: '#f9fafb',
+    padding: '16px',
+    borderRadius: '8px'
+  },
+  labCategoryTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    marginBottom: '12px',
+    paddingBottom: '8px',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  labValues: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  labRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontSize: '13px'
+  },
+  labName: {
+    color: '#666'
+  },
+  labValue: {
+    fontWeight: '600'
   }
 };

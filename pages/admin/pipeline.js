@@ -35,6 +35,102 @@ export default function Pipeline() {
     injectionDose: ''
   });
 
+  // Cascading dropdown state
+  const [templateCategory, setTemplateCategory] = useState('');
+  const [templateLocation, setTemplateLocation] = useState('');
+  const [templatePackSize, setTemplatePackSize] = useState('');
+
+  // Template categories configuration
+  const TEMPLATE_CATEGORIES = [
+    { id: 'injection', name: 'Injection Therapy', hasLocation: true, hasPackSize: true },
+    { id: 'peptide-10', name: 'Peptide Therapy - 10 Day', hasLocation: false, hasPackSize: false },
+    { id: 'peptide-20', name: 'Peptide Therapy - 20 Day', hasLocation: false, hasPackSize: false },
+    { id: 'peptide-30', name: 'Peptide Therapy - 30 Day', hasLocation: false, hasPackSize: false },
+    { id: 'peptide-vial', name: 'Peptide Vial', hasLocation: false, hasPackSize: false },
+    { id: 'iv', name: 'IV Therapy', hasLocation: false, hasPackSize: false },
+    { id: 'other', name: 'Other', hasLocation: false, hasPackSize: false }
+  ];
+
+  const TEMPLATE_LOCATIONS = [
+    { id: 'in-clinic', name: 'In Clinic' },
+    { id: 'take-home', name: 'Take Home' }
+  ];
+
+  const TEMPLATE_PACK_SIZES = [
+    { id: 'single', name: 'Single' },
+    { id: 'double', name: 'Double' },
+    { id: '10-pack', name: '10 Pack' },
+    { id: '12-pack', name: '12 Pack' }
+  ];
+
+  // Find template based on cascading selection
+  const findTemplateFromCascade = (category, location, packSize) => {
+    if (!category) return null;
+    
+    let searchName = '';
+    
+    if (category === 'injection' && location && packSize) {
+      const locStr = location === 'in-clinic' ? 'In Clinic' : 'Take Home';
+      const packStr = packSize === 'single' ? 'Single' : 
+                      packSize === 'double' ? 'Double' : 
+                      packSize === '10-pack' ? '10 Pack' : '12 Pack';
+      searchName = `Injection Therapy - ${packStr} (${locStr})`;
+    } else if (category === 'peptide-10') {
+      searchName = 'Peptide Therapy - 10 Day';
+    } else if (category === 'peptide-20') {
+      searchName = 'Peptide Therapy - 20 Day';
+    } else if (category === 'peptide-30') {
+      searchName = 'Peptide Therapy - 30 Day';
+    } else if (category === 'peptide-vial') {
+      searchName = 'Peptide Therapy - Vial';
+    } else if (category === 'iv') {
+      searchName = 'IV Therapy';
+    }
+    
+    const template = templates.find(t => 
+      t.name.toLowerCase() === searchName.toLowerCase()
+    );
+    return template;
+  };
+
+  // Update template when cascade changes
+  const handleCategoryChange = (category) => {
+    setTemplateCategory(category);
+    setTemplateLocation('');
+    setTemplatePackSize('');
+    
+    const cat = TEMPLATE_CATEGORIES.find(c => c.id === category);
+    if (cat && !cat.hasLocation && !cat.hasPackSize) {
+      const template = findTemplateFromCascade(category, '', '');
+      if (template) {
+        setAssignForm({...assignForm, templateId: template.id, peptideId: '', selectedDose: ''});
+      }
+    } else {
+      setAssignForm({...assignForm, templateId: '', peptideId: '', selectedDose: ''});
+    }
+  };
+
+  const handleLocationChange = (location) => {
+    setTemplateLocation(location);
+    setTemplatePackSize('');
+    setAssignForm({...assignForm, templateId: '', peptideId: '', selectedDose: ''});
+  };
+
+  const handlePackSizeChange = (packSize) => {
+    setTemplatePackSize(packSize);
+    const template = findTemplateFromCascade(templateCategory, templateLocation, packSize);
+    if (template) {
+      setAssignForm({...assignForm, templateId: template.id, peptideId: '', selectedDose: ''});
+    }
+  };
+
+  // Reset cascade when modal closes
+  const resetCascade = () => {
+    setTemplateCategory('');
+    setTemplateLocation('');
+    setTemplatePackSize('');
+  };
+
   const [existingPacks, setExistingPacks] = useState([]);
   const [addToPackMode, setAddToPackMode] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState('');
@@ -238,6 +334,7 @@ export default function Pipeline() {
 
       if (res.ok) {
         setShowAssignModal(false);
+        resetCascade();
         fetchData();
       } else {
         const error = await res.json();
@@ -630,11 +727,11 @@ export default function Pipeline() {
 
         {/* Assign Protocol Modal */}
         {showAssignModal && (
-          <div style={styles.modalOverlay} onClick={() => setShowAssignModal(false)}>
+          <div style={styles.modalOverlay} onClick={() => { setShowAssignModal(false); resetCascade(); }}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
               <div style={styles.modalHeader}>
                 <h3 style={styles.modalTitle}>Start Protocol</h3>
-                <button onClick={() => setShowAssignModal(false)} style={styles.closeButton}>×</button>
+                <button onClick={() => { setShowAssignModal(false); resetCascade(); }} style={styles.closeButton}>×</button>
               </div>
               
               <div style={styles.modalBody}>
@@ -684,19 +781,80 @@ export default function Pipeline() {
 
                 {!addToPackMode && (
                   <>
+                    {/* Cascading Template Selection */}
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Protocol Template *</label>
+                      <label style={styles.label}>Protocol Type *</label>
                       <select 
-                        value={assignForm.templateId}
-                        onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
+                        value={templateCategory}
+                        onChange={e => handleCategoryChange(e.target.value)}
                         style={styles.select}
                       >
-                        <option value="">Select template...</option>
-                        {templates.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
+                        <option value="">Select type...</option>
+                        {TEMPLATE_CATEGORIES.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
                       </select>
                     </div>
+
+                    {templateCategory === 'injection' && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Location *</label>
+                        <select 
+                          value={templateLocation}
+                          onChange={e => handleLocationChange(e.target.value)}
+                          style={styles.select}
+                        >
+                          <option value="">Select location...</option>
+                          {TEMPLATE_LOCATIONS.map(loc => (
+                            <option key={loc.id} value={loc.id}>{loc.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {templateCategory === 'injection' && templateLocation && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Pack Size *</label>
+                        <select 
+                          value={templatePackSize}
+                          onChange={e => handlePackSizeChange(e.target.value)}
+                          style={styles.select}
+                        >
+                          <option value="">Select pack size...</option>
+                          {TEMPLATE_PACK_SIZES.map(size => (
+                            <option key={size.id} value={size.id}>{size.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Show selected template confirmation */}
+                    {assignForm.templateId && templateCategory !== 'other' && (
+                      <div style={styles.templateConfirm}>
+                        ✓ {templates.find(t => t.id === assignForm.templateId)?.name}
+                      </div>
+                    )}
+
+                    {/* Other category shows full template list */}
+                    {templateCategory === 'other' && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Select Template *</label>
+                        <select 
+                          value={assignForm.templateId}
+                          onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
+                          style={styles.select}
+                        >
+                          <option value="">Select template...</option>
+                          {templates.filter(t => 
+                            !t.name.includes('Injection Therapy') && 
+                            !t.name.includes('Peptide Therapy') &&
+                            !t.name.includes('Peptide Vial')
+                          ).map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     {isPeptideTemplate(assignForm) && (
                       <>
@@ -805,7 +963,7 @@ export default function Pipeline() {
               </div>
 
               <div style={styles.modalFooter}>
-                <button onClick={() => setShowAssignModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button onClick={() => { setShowAssignModal(false); resetCascade(); }} style={styles.cancelButton}>Cancel</button>
                 {addToPackMode ? (
                   <button 
                     onClick={handleAddToPack}
@@ -1526,5 +1684,15 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px'
+  },
+  templateConfirm: {
+    background: '#f0fdf4',
+    border: '1px solid #86efac',
+    color: '#15803d',
+    padding: '10px 14px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    marginBottom: '12px'
   }
 };

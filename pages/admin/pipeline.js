@@ -43,6 +43,7 @@ export default function Pipeline() {
   // Template categories configuration
   const TEMPLATE_CATEGORIES = [
     { id: 'injection', name: 'Injection Therapy', hasLocation: true, hasPackSize: true },
+    { id: 'peptide-7', name: 'Peptide Therapy - 7 Day', hasLocation: false, hasPackSize: false },
     { id: 'peptide-10', name: 'Peptide Therapy - 10 Day', hasLocation: false, hasPackSize: false },
     { id: 'peptide-20', name: 'Peptide Therapy - 20 Day', hasLocation: false, hasPackSize: false },
     { id: 'peptide-30', name: 'Peptide Therapy - 30 Day', hasLocation: false, hasPackSize: false },
@@ -75,6 +76,8 @@ export default function Pipeline() {
                       packSize === 'double' ? 'Double' : 
                       packSize === '10-pack' ? '10 Pack' : '12 Pack';
       searchName = `Injection Therapy - ${packStr} (${locStr})`;
+    } else if (category === 'peptide-7') {
+      searchName = 'Peptide Therapy - 7 Day';
     } else if (category === 'peptide-10') {
       searchName = 'Peptide Therapy - 10 Day';
     } else if (category === 'peptide-20') {

@@ -57,7 +57,10 @@ export default function Pipeline() {
     startDate: '',
     endDate: '',
     status: '',
-    notes: ''
+    notes: '',
+    medication: '',
+    sessionsUsed: 0,
+    totalSessions: null
   });
 
   const INJECTION_MEDICATIONS = [
@@ -253,13 +256,15 @@ export default function Pipeline() {
   const openEditModal = (protocol) => {
     setSelectedProtocol(protocol);
     setEditForm({
-      peptideId: '',
+      medication: protocol.medication || '',
       selectedDose: protocol.selected_dose || '',
       frequency: protocol.frequency || '',
       startDate: protocol.start_date || '',
       endDate: protocol.end_date || '',
       status: protocol.status || 'active',
-      notes: protocol.notes || ''
+      notes: protocol.notes || '',
+      sessionsUsed: protocol.sessions_used || 0,
+      totalSessions: protocol.total_sessions || null
     });
     setShowEditModal(true);
   };
@@ -269,7 +274,16 @@ export default function Pipeline() {
       const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify({
+          medication: editForm.medication,
+          selectedDose: editForm.selectedDose,
+          frequency: editForm.frequency,
+          startDate: editForm.startDate,
+          endDate: editForm.endDate,
+          status: editForm.status,
+          notes: editForm.notes,
+          sessionsUsed: editForm.sessionsUsed
+        })
       });
 
       if (res.ok) {
@@ -871,8 +885,26 @@ export default function Pipeline() {
               <div style={styles.modalBody}>
                 <div style={styles.purchasePreview}>
                   <strong>{selectedProtocol.patient_name}</strong>
-                  <div>{selectedProtocol.medication || selectedProtocol.program_name}</div>
+                  <div>{selectedProtocol.program_name}</div>
+                  {selectedProtocol.medication && <div style={{color: '#666'}}>{selectedProtocol.medication}</div>}
                 </div>
+
+                {/* Medication picker for injections */}
+                {selectedProtocol.program_name?.toLowerCase().includes('injection') && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Medication</label>
+                    <select 
+                      value={editForm.medication}
+                      onChange={e => setEditForm({...editForm, medication: e.target.value})}
+                      style={styles.select}
+                    >
+                      <option value="">Select medication...</option>
+                      {INJECTION_MEDICATIONS.map(med => (
+                        <option key={med} value={med}>{med}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Dose</label>
@@ -880,7 +912,7 @@ export default function Pipeline() {
                     type="text"
                     value={editForm.selectedDose}
                     onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
-                    placeholder="e.g. 500mcg/500mcg"
+                    placeholder="e.g. 500mcg, 100mg"
                     style={styles.input}
                   />
                 </div>
@@ -903,26 +935,44 @@ export default function Pipeline() {
                   </select>
                 </div>
 
-                <div style={styles.formRow}>
+                {/* Sessions tracking for packs */}
+                {editForm.totalSessions && (
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Start Date</label>
+                    <label style={styles.label}>Sessions Used (of {editForm.totalSessions})</label>
                     <input 
-                      type="date"
-                      value={editForm.startDate}
-                      onChange={e => setEditForm({...editForm, startDate: e.target.value})}
+                      type="number"
+                      min="0"
+                      max={editForm.totalSessions}
+                      value={editForm.sessionsUsed}
+                      onChange={e => setEditForm({...editForm, sessionsUsed: parseInt(e.target.value) || 0})}
                       style={styles.input}
                     />
                   </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>End Date</label>
-                    <input 
-                      type="date"
-                      value={editForm.endDate}
-                      onChange={e => setEditForm({...editForm, endDate: e.target.value})}
-                      style={styles.input}
-                    />
+                )}
+
+                {/* Date fields only for non-session protocols */}
+                {!editForm.totalSessions && (
+                  <div style={styles.formRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Start Date</label>
+                      <input 
+                        type="date"
+                        value={editForm.startDate}
+                        onChange={e => setEditForm({...editForm, startDate: e.target.value})}
+                        style={styles.input}
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>End Date</label>
+                      <input 
+                        type="date"
+                        value={editForm.endDate}
+                        onChange={e => setEditForm({...editForm, endDate: e.target.value})}
+                        style={styles.input}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Status</label>

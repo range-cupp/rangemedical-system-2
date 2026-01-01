@@ -148,6 +148,37 @@ export default function PatientProfile() {
     }
   };
 
+  const handleDeleteLabOrder = async (orderId) => {
+    if (!confirm('Delete this lab order?')) return;
+    
+    try {
+      const res = await fetch(`/api/lab-orders/${orderId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setPendingLabOrders(pendingLabOrders.filter(o => o.id !== orderId));
+      }
+    } catch (error) {
+      console.error('Error deleting lab order:', error);
+    }
+  };
+
+  const handleMarkLabComplete = async (orderId) => {
+    try {
+      const res = await fetch(`/api/lab-orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
+      if (res.ok) {
+        setPendingLabOrders(pendingLabOrders.filter(o => o.id !== orderId));
+        alert('Lab order marked as complete. Upload the results using "+ Upload Results"');
+      }
+    } catch (error) {
+      console.error('Error updating lab order:', error);
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -262,7 +293,20 @@ export default function PatientProfile() {
                     <span style={styles.labOrderType}>{order.order_type}</span>
                     <span style={styles.labOrderDate}>Ordered {formatDate(order.order_date)}</span>
                   </div>
-                  <span style={styles.pendingBadge}>Awaiting Results</span>
+                  <div style={styles.labOrderActions}>
+                    <button 
+                      onClick={() => handleMarkLabComplete(order.id)}
+                      style={styles.completeButton}
+                    >
+                      ✓ Complete
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteLabOrder(order.id)}
+                      style={styles.deleteLabButton}
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -611,6 +655,31 @@ const styles = {
     borderRadius: '12px',
     fontSize: '12px',
     fontWeight: '500'
+  },
+  labOrderActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  completeButton: {
+    background: '#22c55e',
+    color: '#fff',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    fontWeight: '500'
+  },
+  deleteLabButton: {
+    background: 'none',
+    border: '1px solid #fca5a5',
+    color: '#dc2626',
+    padding: '4px 10px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: '600'
   },
   labDocList: {
     display: 'flex',

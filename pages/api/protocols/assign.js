@@ -1,11 +1,11 @@
 // /pages/api/protocols/assign.js
-// Assign a protocol to a patient - with peptide support
+// Assign a protocol to a patient from a purchase
 
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
@@ -14,105 +14,131 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { 
-      patientId, 
-      templateId, 
-      notificationId,
+    const {
+      patientId,
+      ghlContactId,
+      patientName,
       purchaseId,
-      startDate,
-      notes,
+      templateId,
       peptideId,
       selectedDose,
-      vialDuration
+      frequency,
+      startDate,
+      notes
     } = req.body;
 
-    if (!patientId || !templateId) {
-      return res.status(400).json({ error: 'Patient ID and template ID are required' });
+    if (!templateId) {
+      return res.status(400).json({ error: 'Template is required' });
     }
 
-    // Get template details
-    const { data: template, error: templateError } = await supabase
+    // Find or determine patient_id
+    let finalPatientId = patientId;
+
+    if (!finalPatientId && ghlContactId) {
+      // Try to find patient by ghl_contact_id
+      const { data: existingPatient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('ghl_contact_id', ghlContactId)
+        .single();
+
+      if (existingPatient) {
+        finalPatientId = existingPatient.id;
+      } else {
+        // Create a new patient record
+        const { data: newPatient, error: createError } = await supabase
+          .from('patients')
+          .insert({
+            ghl_contact_id: ghlContactId,
+            name: patientName || 'Unknown Patient',
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating patient:', createError);
+          return res.status(500).json({ error: 'Failed to create patient record' });
+        }
+
+        finalPatientId = newPatient.id;
+      }
+    }
+
+    if (!finalPatientId) {
+      return res.status(400).json({ error: 'Could not determine patient' });
+    }
+
+    // Get template info
+    const { data: template } = await supabase
       .from('protocol_templates')
       .select('*')
       .eq('id', templateId)
       .single();
 
-    if (templateError) throw templateError;
+    if (!template) {
+      return res.status(400).json({ error: 'Template not found' });
+    }
 
-    // Get peptide details if provided
-    let peptideData = null;
+    // Get peptide info if provided
+    let peptideName = null;
     if (peptideId) {
-      const { data: peptide, error: peptideError } = await supabase
+      const { data: peptide } = await supabase
         .from('peptides')
-        .select('*')
+        .select('name')
         .eq('id', peptideId)
         .single();
-      
-      if (!peptideError) {
-        peptideData = peptide;
-      }
+      peptideName = peptide?.name;
     }
 
-    // Calculate end date (use vialDuration if provided, otherwise template duration)
-    const start = new Date(startDate);
+    // Calculate end date based on template duration
     let endDate = null;
-    const durationDays = vialDuration || template.duration_days;
-    if (durationDays) {
-      endDate = new Date(start);
-      endDate.setDate(endDate.getDate() + durationDays);
+    if (template.duration_days && startDate) {
+      const start = new Date(startDate);
+      start.setDate(start.getDate() + template.duration_days);
+      endDate = start.toISOString().split('T')[0];
     }
 
-    // Build protocol name
-    let protocolName = template.name;
-    if (peptideData) {
-      const duration = vialDuration || template.duration_days;
-      const isVial = template.name === 'Peptide Vial';
-      protocolName = `${peptideData.name} - ${isVial ? `Vial (${vialDuration} Day)` : duration + ' Day'}`;
-    }
-
-    // Create the patient protocol
+    // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
-      .from('patient_protocols')
+      .from('protocols')
       .insert({
-        patient_id: patientId,
-        template_id: templateId,
-        purchase_id: purchaseId || null,
-        protocol_name: protocolName,
-        category: template.category,
-        status: 'active',
+        patient_id: finalPatientId,
+        program_name: template.name,
+        program_type: template.program_type || 'other',
+        medication: peptideName,
+        selected_dose: selectedDose || null,
+        frequency: frequency || null,
         start_date: startDate,
-        end_date: endDate?.toISOString().split('T')[0] || null,
-        medication: peptideData?.name || template.medication,
-        dose: selectedDose || template.dose,
-        frequency: peptideData?.frequency || template.frequency,
-        notes: notes || peptideData?.notes,
-        peptide_id: peptideId || null,
-        selected_dose: selectedDose || null
+        end_date: endDate,
+        status: 'active',
+        notes: notes || null,
+        created_at: new Date().toISOString()
       })
       .select()
       .single();
 
-    if (protocolError) throw protocolError;
-
-    // Mark notification as processed if provided
-    if (notificationId) {
-      await supabase
-        .from('purchase_notifications')
-        .update({ 
-          status: 'processed',
-          processed_at: new Date().toISOString()
-        })
-        .eq('id', notificationId);
+    if (protocolError) {
+      console.error('Error creating protocol:', protocolError);
+      return res.status(500).json({ error: 'Failed to create protocol', details: protocolError.message });
     }
 
-    res.status(200).json({ 
-      success: true, 
-      protocol,
-      message: `Protocol assigned: ${protocolName}`
-    });
+    // Mark purchase as having protocol created
+    if (purchaseId) {
+      await supabase
+        .from('purchases')
+        .update({ 
+          protocol_created: true,
+          protocol_id: protocol.id,
+          patient_id: finalPatientId
+        })
+        .eq('id', purchaseId);
+    }
+
+    return res.status(200).json({ success: true, protocol });
 
   } catch (error) {
-    console.error('Error assigning protocol:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Assign protocol error:', error);
+    return res.status(500).json({ error: 'Server error' });
   }
 }

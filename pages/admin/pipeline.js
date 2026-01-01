@@ -103,6 +103,8 @@ export default function Pipeline() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: selectedPurchase.patient_id,
+          ghlContactId: selectedPurchase.ghl_contact_id,
+          patientName: selectedPurchase.patient_name,
           purchaseId: selectedPurchase.id,
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
@@ -116,6 +118,9 @@ export default function Pipeline() {
       if (res.ok) {
         setShowAssignModal(false);
         fetchData();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to assign protocol');
       }
     } catch (error) {
       console.error('Error assigning protocol:', error);
@@ -247,12 +252,11 @@ export default function Pipeline() {
                 {needsProtocol.map(purchase => (
                   <div key={purchase.id} style={styles.card}>
                     <div style={styles.cardMain}>
-                      <Link href={`/patients/${purchase.patient_id}`} style={styles.patientLink}>
-                        {purchase.patient_name}
-                      </Link>
+                      <div style={styles.patientName}>{purchase.patient_name}</div>
                       <div style={styles.productName}>{purchase.product_name}</div>
                       <div style={styles.meta}>
                         ${purchase.amount_paid?.toFixed(2)} • {formatDate(purchase.purchase_date)}
+                        {purchase.category && ` • ${purchase.category}`}
                       </div>
                     </div>
                     <div style={styles.cardActions}>
@@ -369,7 +373,7 @@ export default function Pipeline() {
                 <div style={styles.purchasePreview}>
                   <strong>{selectedPurchase?.patient_name}</strong>
                   <div>{selectedPurchase?.product_name}</div>
-                  <div style={styles.meta}>${selectedPurchase?.amount_paid?.toFixed(2)}</div>
+                  <div style={styles.meta}>${selectedPurchase?.amount_paid?.toFixed(2)} • {selectedPurchase?.category}</div>
                 </div>
 
                 <div style={styles.formGroup}>
@@ -711,6 +715,11 @@ const styles = {
     fontWeight: '600',
     color: '#000',
     textDecoration: 'none'
+  },
+  patientName: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#000'
   },
   productName: {
     fontSize: '14px',

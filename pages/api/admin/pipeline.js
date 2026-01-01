@@ -23,8 +23,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('protocol_created', false)
       .eq('dismissed', false)
-      .order('purchase_date', { ascending: false })
-      .limit(50);
+      .order('purchase_date', { ascending: false });
 
     if (purchasesError) {
       console.error('Purchases error:', purchasesError);
@@ -50,8 +49,7 @@ export default async function handler(req, res) {
       `)
       .or(`end_date.gte.${today},end_date.is.null`)
       .neq('status', 'completed')
-      .order('start_date', { ascending: false })
-      .limit(100);
+      .order('start_date', { ascending: false });
 
     if (activeError) {
       console.error('Active protocols error:', activeError);
@@ -76,8 +74,7 @@ export default async function handler(req, res) {
         )
       `)
       .or(`status.eq.completed,end_date.lt.${today}`)
-      .order('end_date', { ascending: false })
-      .limit(100);
+      .order('end_date', { ascending: false });
 
     if (completedError) {
       console.error('Completed protocols error:', completedError);

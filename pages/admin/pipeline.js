@@ -310,22 +310,18 @@ export default function Pipeline() {
                         {protocol.selected_dose && <span> - {protocol.selected_dose}</span>}
                       </div>
                       {totalDays && (
-                        <>
-                          <div style={styles.progressBar}>
-                            <div style={{...styles.progressFill, width: `${progressPercent}%`}}></div>
-                          </div>
-                          <div style={styles.activeCardFooter}>
-                            <span>Day {currentDay} of {totalDays}</span>
-                            {protocol.frequency && <span style={styles.frequencyBadge}>{protocol.frequency}</span>}
-                          </div>
-                        </>
-                      )}
-                      {!totalDays && (
-                        <div style={styles.activeCardFooter}>
-                          <span>Ongoing</span>
-                          {protocol.frequency && <span style={styles.frequencyBadge}>{protocol.frequency}</span>}
+                        <div style={styles.progressBar}>
+                          <div style={{...styles.progressFill, width: `${progressPercent}%`}}></div>
                         </div>
                       )}
+                      <div style={styles.activeCardFooter}>
+                        {totalDays ? (
+                          <span>Day {currentDay} of {totalDays}</span>
+                        ) : (
+                          <span>Ongoing</span>
+                        )}
+                        {protocol.frequency && <span style={styles.frequencyBadge}>{protocol.frequency}</span>}
+                      </div>
                     </div>
                   );
                 })}
@@ -803,19 +799,22 @@ const styles = {
   },
   // Active protocol card styles
   activeGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '16px'
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
   },
   activeCard: {
     background: '#fff',
     borderRadius: '12px',
     border: '1px solid #e5e7eb',
-    padding: '16px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+    padding: '16px 20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px'
   },
   activeCardHeader: {
-    marginBottom: '8px'
+    minWidth: '150px'
   },
   activePatientName: {
     fontSize: '16px',
@@ -828,18 +827,18 @@ const styles = {
     gap: '8px',
     fontSize: '14px',
     color: '#374151',
-    marginBottom: '12px'
+    flex: 1
   },
   protocolDot: {
     color: '#10b981',
     fontSize: '12px'
   },
   progressBar: {
+    width: '150px',
     height: '6px',
     background: '#e5e7eb',
     borderRadius: '3px',
-    overflow: 'hidden',
-    marginBottom: '8px'
+    overflow: 'hidden'
   },
   progressFill: {
     height: '100%',
@@ -849,10 +848,12 @@ const styles = {
   },
   activeCardFooter: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: '16px',
     fontSize: '13px',
-    color: '#6b7280'
+    color: '#6b7280',
+    minWidth: '180px',
+    justifyContent: 'flex-end'
   },
   frequencyBadge: {
     background: '#f3f4f6',

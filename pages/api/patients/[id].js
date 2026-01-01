@@ -1,6 +1,6 @@
 // /pages/api/patients/[id].js
-// Patient profile API - returns patient info, protocols, labs, etc.
-// WITH auto-completion of expired protocols
+// Patient profile API - returns patient info, protocols, labs, lab orders, etc.
+// Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -56,11 +56,6 @@ export default async function handler(req, res) {
       const completedProtocols = [];
 
       (allProtocols || []).forEach(p => {
-        // Completed if:
-        // - status is 'completed', 'cancelled'
-        // - OR end_date is in the past (for day-based)
-        // - OR sessions_used >= total_sessions (for session-based)
-        
         const isCompleted = 
           p.status === 'completed' || 
           p.status === 'cancelled' ||
@@ -70,7 +65,6 @@ export default async function handler(req, res) {
         if (isCompleted) {
           completedProtocols.push(p);
         } else if (p.status === 'active' || p.status === 'paused') {
-          // Calculate days remaining for active protocols
           const endDate = p.end_date ? new Date(p.end_date) : null;
           const daysRemaining = endDate 
             ? Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24))
@@ -114,13 +108,20 @@ export default async function handler(req, res) {
         amount_paid: n.amount || n.amount_paid
       }));
 
-      // Get latest labs
+      // Get pending lab orders
+      const { data: pendingLabOrders } = await supabase
+        .from('lab_orders')
+        .select('*, purchases(*)')
+        .eq('patient_id', id)
+        .eq('status', 'pending')
+        .order('order_date', { ascending: false });
+
+      // Get completed labs (from labs table)
       const { data: labs } = await supabase
         .from('labs')
         .select('*')
         .eq('patient_id', id)
-        .order('test_date', { ascending: false })
-        .limit(1);
+        .order('test_date', { ascending: false });
 
       // Get lab results for detailed view
       const { data: labResults } = await supabase
@@ -142,13 +143,16 @@ export default async function handler(req, res) {
         activeProtocols,
         completedProtocols,
         pendingNotifications: mappedNotifications,
+        pendingLabOrders: pendingLabOrders || [],
+        labs: labs || [],
         latestLabs: labs?.[0] || null,
         labResults: labResults || [],
         baselineSymptoms: symptoms?.[0] || null,
         stats: {
           totalProtocols: (activeProtocols?.length || 0) + (completedProtocols?.length || 0),
           activeCount: activeProtocols?.length || 0,
-          completedCount: completedProtocols?.length || 0
+          completedCount: completedProtocols?.length || 0,
+          pendingLabsCount: pendingLabOrders?.length || 0
         }
       });
 

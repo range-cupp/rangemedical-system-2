@@ -34,8 +34,28 @@ export default function PatientProfile() {
     selectedDose: '',
     frequency: '',
     startDate: new Date().toISOString().split('T')[0],
-    notes: ''
+    notes: '',
+    injectionMedication: '',
+    injectionDose: ''
   });
+  
+  // Pack tracking state
+  const [existingPacks, setExistingPacks] = useState([]);
+  const [addToPackMode, setAddToPackMode] = useState(false);
+  const [selectedPackId, setSelectedPackId] = useState('');
+
+  const INJECTION_MEDICATIONS = [
+    'Amino Blend',
+    'B12',
+    'B-Complex',
+    'Biotin',
+    'Vitamin D3',
+    'NAC',
+    'BCAA',
+    'L-Carnitine',
+    'Glutathione',
+    'NAD+'
+  ];
   
   const [showLabsModal, setShowLabsModal] = useState(false);
   const [labForm, setLabForm] = useState({
@@ -54,12 +74,15 @@ export default function PatientProfile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [editForm, setEditForm] = useState({
+    medication: '',
     selectedDose: '',
     frequency: '',
     startDate: '',
     endDate: '',
     status: '',
-    notes: ''
+    notes: '',
+    sessionsUsed: 0,
+    totalSessions: null
   });
   
   // Lab upload state
@@ -257,7 +280,7 @@ export default function PatientProfile() {
   };
 
   // Protocol assignment handlers
-  const openAssignModal = (notification = null) => {
+  const openAssignModal = async (notification = null) => {
     setSelectedNotification(notification);
     setAssignForm({
       templateId: '',
@@ -265,13 +288,43 @@ export default function PatientProfile() {
       selectedDose: '',
       frequency: '',
       startDate: new Date().toISOString().split('T')[0],
-      notes: ''
+      notes: '',
+      injectionMedication: '',
+      injectionDose: ''
     });
+    setAddToPackMode(false);
+    setSelectedPackId('');
+    setExistingPacks([]);
+
+    // Check if patient has existing packs for injection purchases
+    const isInjection = notification?.category === 'Injection' || 
+                        notification?.product_name?.toLowerCase().includes('injection');
+    
+    if (isInjection && (id || patient?.ghl_contact_id)) {
+      try {
+        const params = new URLSearchParams();
+        if (id) params.set('patient_id', id);
+        if (patient?.ghl_contact_id) params.set('ghl_contact_id', patient.ghl_contact_id);
+        
+        const res = await fetch(`/api/protocols/active-packs?${params}`);
+        const data = await res.json();
+        if (data.packs?.length > 0) {
+          setExistingPacks(data.packs);
+        }
+      } catch (err) {
+        console.error('Error fetching packs:', err);
+      }
+    }
+
     setShowAssignModal(true);
   };
 
   const handleAssignProtocol = async () => {
     try {
+      // Determine if injection template
+      const template = getSelectedTemplate();
+      const isInjection = template?.name?.toLowerCase().includes('injection');
+      
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -279,7 +332,8 @@ export default function PatientProfile() {
           patientId: id,
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
-          selectedDose: assignForm.selectedDose,
+          selectedDose: isInjection ? assignForm.injectionDose : assignForm.selectedDose,
+          medication: isInjection ? assignForm.injectionMedication : null,
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes,
@@ -288,6 +342,46 @@ export default function PatientProfile() {
       });
 
       if (res.ok) {
+        setShowAssignModal(false);
+        fetchPatient();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to assign protocol');
+      }
+    } catch (error) {
+      console.error('Error assigning protocol:', error);
+    }
+  };
+
+  const handleAddToPack = async () => {
+    if (!selectedPackId) {
+      alert('Please select a pack');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/protocols/${selectedPackId}/add-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purchaseId: selectedNotification?.id,
+          sessionCount: 1
+        })
+      });
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        setShowAssignModal(false);
+        fetchPatient();
+        alert(data.message || 'Session added to pack');
+      } else {
+        alert(data.error || 'Failed to add session');
+      }
+    } catch (error) {
+      console.error('Error adding to pack:', error);
+    }
+  };
         setShowAssignModal(false);
         fetchPatient();
       }
@@ -358,12 +452,15 @@ export default function PatientProfile() {
   const openEditModal = (protocol) => {
     setSelectedProtocol(protocol);
     setEditForm({
+      medication: protocol.medication || '',
       selectedDose: protocol.selected_dose || '',
       frequency: protocol.frequency || '',
       startDate: protocol.start_date || '',
       endDate: protocol.end_date || '',
       status: protocol.status || 'active',
-      notes: protocol.notes || ''
+      notes: protocol.notes || '',
+      sessionsUsed: protocol.sessions_used || 0,
+      totalSessions: protocol.total_sessions || null
     });
     setShowEditModal(true);
   };
@@ -373,7 +470,16 @@ export default function PatientProfile() {
       const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify({
+          medication: editForm.medication,
+          selectedDose: editForm.selectedDose,
+          frequency: editForm.frequency,
+          startDate: editForm.startDate,
+          endDate: editForm.endDate,
+          status: editForm.status,
+          notes: editForm.notes,
+          sessionsUsed: editForm.sessionsUsed
+        })
       });
 
       if (res.ok) {
@@ -405,6 +511,11 @@ export default function PatientProfile() {
   const isPeptideTemplate = () => {
     const template = getSelectedTemplate();
     return template?.name?.toLowerCase().includes('peptide');
+  };
+
+  const isInjectionTemplate = () => {
+    const template = getSelectedTemplate();
+    return template?.name?.toLowerCase().includes('injection');
   };
 
   // Lab results display helpers
@@ -928,8 +1039,26 @@ export default function PatientProfile() {
               
               <div style={styles.modalBody}>
                 <div style={styles.editPreview}>
-                  <strong>{selectedProtocol.program_name || selectedProtocol.medication}</strong>
+                  <strong>{selectedProtocol.program_name}</strong>
+                  {selectedProtocol.medication && <div>{selectedProtocol.medication}</div>}
                 </div>
+
+                {/* Medication picker for injections */}
+                {selectedProtocol.program_name?.toLowerCase().includes('injection') && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Medication</label>
+                    <select 
+                      value={editForm.medication}
+                      onChange={e => setEditForm({...editForm, medication: e.target.value})}
+                      style={styles.select}
+                    >
+                      <option value="">Select medication...</option>
+                      {INJECTION_MEDICATIONS.map(med => (
+                        <option key={med} value={med}>{med}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Dose</label>
@@ -937,7 +1066,7 @@ export default function PatientProfile() {
                     type="text"
                     value={editForm.selectedDose}
                     onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
-                    placeholder="e.g. 500mcg/500mcg"
+                    placeholder="e.g. 500mcg, 100mg"
                     style={styles.input}
                   />
                 </div>
@@ -960,26 +1089,44 @@ export default function PatientProfile() {
                   </select>
                 </div>
 
-                <div style={styles.formRow}>
+                {/* Sessions tracking for packs */}
+                {editForm.totalSessions && (
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Start Date</label>
+                    <label style={styles.label}>Sessions Used (of {editForm.totalSessions})</label>
                     <input 
-                      type="date"
-                      value={editForm.startDate}
-                      onChange={e => setEditForm({...editForm, startDate: e.target.value})}
+                      type="number"
+                      min="0"
+                      max={editForm.totalSessions}
+                      value={editForm.sessionsUsed}
+                      onChange={e => setEditForm({...editForm, sessionsUsed: parseInt(e.target.value) || 0})}
                       style={styles.input}
                     />
                   </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>End Date</label>
-                    <input 
-                      type="date"
-                      value={editForm.endDate}
-                      onChange={e => setEditForm({...editForm, endDate: e.target.value})}
-                      style={styles.input}
-                    />
+                )}
+
+                {/* Date fields only for non-session protocols */}
+                {!editForm.totalSessions && (
+                  <div style={styles.formRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Start Date</label>
+                      <input 
+                        type="date"
+                        value={editForm.startDate}
+                        onChange={e => setEditForm({...editForm, startDate: e.target.value})}
+                        style={styles.input}
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>End Date</label>
+                      <input 
+                        type="date"
+                        value={editForm.endDate}
+                        onChange={e => setEditForm({...editForm, endDate: e.target.value})}
+                        style={styles.input}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Status</label>
@@ -1035,107 +1182,188 @@ export default function PatientProfile() {
                     <span> • ${selectedNotification.amount_paid?.toFixed(2)}</span>
                   </div>
                 )}
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Protocol Template *</label>
-                  <select 
-                    value={assignForm.templateId}
-                    onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
-                    style={styles.select}
-                  >
-                    <option value="">Select template...</option>
-                    {Object.entries(templates.grouped || {}).map(([category, temps]) => (
-                      <optgroup key={category} label={category}>
-                        {temps.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
 
-                {isPeptideTemplate() && (
-                  <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Select Peptide *</label>
-                      <select 
-                        value={assignForm.peptideId}
-                        onChange={e => setAssignForm({...assignForm, peptideId: e.target.value, selectedDose: ''})}
-                        style={styles.select}
+                {/* Show Add to Pack option if packs exist */}
+                {existingPacks.length > 0 && (
+                  <div style={styles.packOption}>
+                    <div style={styles.packToggle}>
+                      <button 
+                        onClick={() => setAddToPackMode(false)}
+                        style={addToPackMode ? styles.toggleInactive : styles.toggleActive}
                       >
-                        <option value="">Select peptide...</option>
-                        {peptides.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
+                        New Protocol
+                      </button>
+                      <button 
+                        onClick={() => setAddToPackMode(true)}
+                        style={addToPackMode ? styles.toggleActive : styles.toggleInactive}
+                      >
+                        Add to Existing Pack
+                      </button>
                     </div>
 
-                    {getSelectedPeptide()?.dose_options?.length > 0 && (
+                    {addToPackMode && (
                       <div style={styles.formGroup}>
-                        <label style={styles.label}>Select Dose *</label>
+                        <label style={styles.label}>Select Pack</label>
                         <select 
-                          value={assignForm.selectedDose}
-                          onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
+                          value={selectedPackId}
+                          onChange={e => setSelectedPackId(e.target.value)}
                           style={styles.select}
                         >
-                          <option value="">Select a dose...</option>
-                          {getSelectedPeptide().dose_options.map(dose => (
-                            <option key={dose} value={dose}>{dose}</option>
+                          <option value="">Choose pack...</option>
+                          {existingPacks.map(pack => (
+                            <option key={pack.id} value={pack.id}>
+                              {pack.program_name} - {pack.sessions_used || 0} of {pack.total_sessions} used
+                            </option>
                           ))}
                         </select>
                       </div>
                     )}
+                  </div>
+                )}
 
+                {!addToPackMode && (
+                  <>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Frequency</label>
+                      <label style={styles.label}>Protocol Template *</label>
                       <select 
-                        value={assignForm.frequency}
-                        onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
+                        value={assignForm.templateId}
+                        onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', injectionMedication: '', injectionDose: ''})}
                         style={styles.select}
                       >
-                        <option value="">Select frequency...</option>
-                        <option value="2x daily">2x daily</option>
-                        <option value="Daily">Daily</option>
-                        <option value="Every other day">Every other day</option>
-                        <option value="2x weekly">2x weekly</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="5 days on, 2 off">5 days on, 2 off</option>
-                        <option value="As needed">As needed</option>
+                        <option value="">Select template...</option>
+                        {Object.entries(templates.grouped || {}).map(([category, temps]) => (
+                          <optgroup key={category} label={category}>
+                            {temps.map(t => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </optgroup>
+                        ))}
                       </select>
+                    </div>
+
+                    {isPeptideTemplate() && (
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Select Peptide *</label>
+                          <select 
+                            value={assignForm.peptideId}
+                            onChange={e => setAssignForm({...assignForm, peptideId: e.target.value, selectedDose: ''})}
+                            style={styles.select}
+                          >
+                            <option value="">Select peptide...</option>
+                            {peptides.map(p => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {getSelectedPeptide()?.dose_options?.length > 0 && (
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Select Dose *</label>
+                            <select 
+                              value={assignForm.selectedDose}
+                              onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
+                              style={styles.select}
+                            >
+                              <option value="">Select a dose...</option>
+                              {getSelectedPeptide().dose_options.map(dose => (
+                                <option key={dose} value={dose}>{dose}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Frequency</label>
+                          <select 
+                            value={assignForm.frequency}
+                            onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
+                            style={styles.select}
+                          >
+                            <option value="">Select frequency...</option>
+                            <option value="2x daily">2x daily</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Every other day">Every other day</option>
+                            <option value="2x weekly">2x weekly</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="5 days on, 2 off">5 days on, 2 off</option>
+                            <option value="As needed">As needed</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+
+                    {isInjectionTemplate() && (
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Medication *</label>
+                          <select 
+                            value={assignForm.injectionMedication}
+                            onChange={e => setAssignForm({...assignForm, injectionMedication: e.target.value})}
+                            style={styles.select}
+                          >
+                            <option value="">Select medication...</option>
+                            {INJECTION_MEDICATIONS.map(med => (
+                              <option key={med} value={med}>{med}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Dose</label>
+                          <input 
+                            type="text"
+                            value={assignForm.injectionDose}
+                            onChange={e => setAssignForm({...assignForm, injectionDose: e.target.value})}
+                            placeholder="e.g. 100mg, 200mg"
+                            style={styles.input}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Start Date</label>
+                      <input 
+                        type="date"
+                        value={assignForm.startDate}
+                        onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
+                        style={styles.input}
+                      />
+                    </div>
+
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Notes</label>
+                      <textarea 
+                        value={assignForm.notes}
+                        onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
+                        placeholder="Any special instructions..."
+                        style={styles.textarea}
+                        rows={3}
+                      />
                     </div>
                   </>
                 )}
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Start Date</label>
-                  <input 
-                    type="date"
-                    value={assignForm.startDate}
-                    onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
-                    style={styles.input}
-                  />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes</label>
-                  <textarea 
-                    value={assignForm.notes}
-                    onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
-                    placeholder="Any special instructions..."
-                    style={styles.textarea}
-                    rows={3}
-                  />
-                </div>
               </div>
               <div style={styles.modalFooter}>
                 <button onClick={() => setShowAssignModal(false)} style={styles.cancelButton}>Cancel</button>
-                <button 
-                  onClick={handleAssignProtocol}
-                  disabled={!assignForm.templateId}
-                  style={styles.submitButton}
-                >
-                  Assign Protocol
-                </button>
+                {addToPackMode ? (
+                  <button 
+                    onClick={handleAddToPack}
+                    disabled={!selectedPackId}
+                    style={styles.submitButton}
+                  >
+                    Add to Pack
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleAssignProtocol}
+                    disabled={!assignForm.templateId}
+                    style={styles.submitButton}
+                  >
+                    Assign Protocol
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1598,6 +1826,38 @@ const styles = {
     padding: '12px',
     borderRadius: '6px',
     marginBottom: '16px'
+  },
+  packOption: {
+    marginBottom: '16px',
+    padding: '12px',
+    background: '#f9fafb',
+    borderRadius: '8px'
+  },
+  packToggle: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '12px'
+  },
+  toggleActive: {
+    flex: 1,
+    padding: '8px 12px',
+    border: '2px solid #000',
+    background: '#000',
+    color: '#fff',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '500'
+  },
+  toggleInactive: {
+    flex: 1,
+    padding: '8px 12px',
+    border: '2px solid #d1d5db',
+    background: '#fff',
+    color: '#666',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px'
   },
   // Lab results modal styles
   labCategoriesGrid: {

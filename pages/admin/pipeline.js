@@ -45,6 +45,7 @@ export default function Pipeline() {
     { id: 'injection', name: 'Injection Therapy', hasLocation: true, hasPackSize: true },
     { id: 'peptide-7', name: 'Peptide Therapy - 7 Day', hasLocation: false, hasPackSize: false },
     { id: 'peptide-10', name: 'Peptide Therapy - 10 Day', hasLocation: false, hasPackSize: false },
+    { id: 'peptide-14', name: 'Peptide Therapy - 14 Day', hasLocation: false, hasPackSize: false },
     { id: 'peptide-20', name: 'Peptide Therapy - 20 Day', hasLocation: false, hasPackSize: false },
     { id: 'peptide-30', name: 'Peptide Therapy - 30 Day', hasLocation: false, hasPackSize: false },
     { id: 'peptide-vial', name: 'Peptide Vial', hasLocation: false, hasPackSize: false },
@@ -80,6 +81,8 @@ export default function Pipeline() {
       searchName = 'Peptide Therapy - 7 Day';
     } else if (category === 'peptide-10') {
       searchName = 'Peptide Therapy - 10 Day';
+    } else if (category === 'peptide-14') {
+      searchName = 'Peptide Therapy - 14 Day';
     } else if (category === 'peptide-20') {
       searchName = 'Peptide Therapy - 20 Day';
     } else if (category === 'peptide-30') {

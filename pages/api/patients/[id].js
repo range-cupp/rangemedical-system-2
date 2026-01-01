@@ -1,5 +1,6 @@
 // /pages/api/patients/[id].js
 // Patient profile API - returns patient info, protocols, labs, etc.
+// WITH auto-completion of expired protocols
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -30,21 +31,53 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Patient not found' });
       }
 
-      // Get active protocols
-      const { data: activeProtocols } = await supabase
+      // AUTO-COMPLETE: Update protocols that are past their end date
+      // Only for day-based protocols (not session-based packs)
+      await supabase
+        .from('protocols')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('patient_id', id)
+        .eq('status', 'active')
+        .lt('end_date', today)
+        .is('total_sessions', null);  // Only day-based, not session-based
+
+      // Get ALL protocols for this patient
+      const { data: allProtocols } = await supabase
         .from('protocols')
         .select('*')
         .eq('patient_id', id)
-        .neq('status', 'completed')
         .order('start_date', { ascending: false });
 
-      // Get completed protocols
-      const { data: completedProtocols } = await supabase
-        .from('protocols')
-        .select('*')
-        .eq('patient_id', id)
-        .eq('status', 'completed')
-        .order('end_date', { ascending: false });
+      // Separate active vs completed
+      const activeProtocols = [];
+      const completedProtocols = [];
+
+      (allProtocols || []).forEach(p => {
+        // Completed if:
+        // - status is 'completed', 'cancelled'
+        // - OR end_date is in the past (for day-based)
+        // - OR sessions_used >= total_sessions (for session-based)
+        
+        const isCompleted = 
+          p.status === 'completed' || 
+          p.status === 'cancelled' ||
+          (p.end_date && p.end_date < today && !p.total_sessions) ||
+          (p.total_sessions && p.sessions_used >= p.total_sessions);
+
+        if (isCompleted) {
+          completedProtocols.push(p);
+        } else if (p.status === 'active' || p.status === 'paused') {
+          // Calculate days remaining for active protocols
+          const endDate = p.end_date ? new Date(p.end_date) : null;
+          const daysRemaining = endDate 
+            ? Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24))
+            : null;
+          activeProtocols.push({ ...p, days_remaining: daysRemaining });
+        }
+      });
 
       // Get pending purchases (notifications)
       const { data: pendingNotifications } = await supabase
@@ -74,15 +107,11 @@ export default async function handler(req, res) {
         index === self.findIndex(t => t.id === item.id)
       );
 
-      // Format notifications with correct field names
-      const formattedNotifications = uniqueNotifications.map(n => ({
-        id: n.id,
-        product_name: n.item_name || n.product_name || 'Unknown',
-        amount_paid: n.amount || n.amount_paid || 0,
-        purchase_date: n.purchase_date,
-        patient_id: n.patient_id,
-        ghl_contact_id: n.ghl_contact_id,
-        category: n.category
+      // Map product_name for display
+      const mappedNotifications = uniqueNotifications.map(n => ({
+        ...n,
+        product_name: n.item_name || n.product_name,
+        amount_paid: n.amount || n.amount_paid
       }));
 
       // Get latest labs
@@ -108,20 +137,11 @@ export default async function handler(req, res) {
         .order('submitted_at', { ascending: false })
         .limit(1);
 
-      // Calculate days remaining for active protocols
-      const formattedActive = (activeProtocols || []).map(p => {
-        const endDate = p.end_date ? new Date(p.end_date) : null;
-        const daysRemaining = endDate 
-          ? Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24))
-          : null;
-        return { ...p, days_remaining: daysRemaining };
-      });
-
       return res.status(200).json({
         patient,
-        activeProtocols: formattedActive,
-        completedProtocols: completedProtocols || [],
-        pendingNotifications: formattedNotifications,
+        activeProtocols,
+        completedProtocols,
+        pendingNotifications: mappedNotifications,
         latestLabs: labs?.[0] || null,
         labResults: labResults || [],
         baselineSymptoms: symptoms?.[0] || null,

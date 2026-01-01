@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       templateId,
       peptideId,
       selectedDose,
+      medication,
       frequency,
       startDate,
       notes
@@ -80,15 +81,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Template not found' });
     }
 
-    // Get peptide info if provided
-    let peptideName = null;
-    if (peptideId) {
+    // Get peptide info if provided, or use direct medication
+    let medicationName = medication || null;
+    if (!medicationName && peptideId) {
       const { data: peptide } = await supabase
         .from('peptides')
         .select('name')
         .eq('id', peptideId)
         .single();
-      peptideName = peptide?.name;
+      medicationName = peptide?.name;
     }
 
     // Calculate end date based on template duration
@@ -132,7 +133,7 @@ export default async function handler(req, res) {
         patient_id: finalPatientId,
         program_name: template.name,
         program_type: template.program_type || template.category || 'other',
-        medication: peptideName,
+        medication: medicationName,
         selected_dose: selectedDose || null,
         frequency: frequency || null,
         start_date: startDate,

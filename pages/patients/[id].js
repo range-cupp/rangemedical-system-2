@@ -382,13 +382,6 @@ export default function PatientProfile() {
       console.error('Error adding to pack:', error);
     }
   };
-        setShowAssignModal(false);
-        fetchPatient();
-      }
-    } catch (error) {
-      console.error('Error assigning protocol:', error);
-    }
-  };
 
   const handleDismissNotification = async (notificationId) => {
     try {

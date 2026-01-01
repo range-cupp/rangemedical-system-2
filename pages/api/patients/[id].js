@@ -74,6 +74,17 @@ export default async function handler(req, res) {
         index === self.findIndex(t => t.id === item.id)
       );
 
+      // Format notifications with correct field names
+      const formattedNotifications = uniqueNotifications.map(n => ({
+        id: n.id,
+        product_name: n.item_name || n.product_name || 'Unknown',
+        amount_paid: n.amount || n.amount_paid || 0,
+        purchase_date: n.purchase_date,
+        patient_id: n.patient_id,
+        ghl_contact_id: n.ghl_contact_id,
+        category: n.category
+      }));
+
       // Get latest labs
       const { data: labs } = await supabase
         .from('labs')
@@ -110,7 +121,7 @@ export default async function handler(req, res) {
         patient,
         activeProtocols: formattedActive,
         completedProtocols: completedProtocols || [],
-        pendingNotifications: uniqueNotifications,
+        pendingNotifications: formattedNotifications,
         latestLabs: labs?.[0] || null,
         labResults: labResults || [],
         baselineSymptoms: symptoms?.[0] || null,

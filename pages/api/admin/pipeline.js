@@ -55,6 +55,20 @@ export default async function handler(req, res) {
       console.error('Purchases error:', purchasesError);
     }
 
+    // Get all patients for ghl_contact_id lookup
+    const { data: allPatients } = await supabase
+      .from('patients')
+      .select('id, name, ghl_contact_id')
+      .not('ghl_contact_id', 'is', null);
+
+    // Create lookup map
+    const patientsByGhl = {};
+    (allPatients || []).forEach(p => {
+      if (p.ghl_contact_id) {
+        patientsByGhl[p.ghl_contact_id] = p;
+      }
+    });
+
     // Get ALL protocols
     const { data: allProtocols, error: protocolsError } = await supabase
       .from('protocols')
@@ -125,16 +139,27 @@ export default async function handler(req, res) {
       }
     });
 
-    // Format purchases - filter to only those needing protocols
-    const formatPurchase = (p) => ({
-      id: p.id,
-      product_name: p.item_name || p.product_name,
-      amount_paid: p.amount || p.amount_paid,
-      purchase_date: p.purchase_date,
-      patient_id: p.patient_id,
-      ghl_contact_id: p.ghl_contact_id,
-      patient_name: p.patients?.name || 'Unknown'
-    });
+    // Format purchases - look up patient name by ghl_contact_id if needed
+    const formatPurchase = (p) => {
+      // Try direct join first, then ghl_contact_id lookup
+      let patientName = p.patients?.name;
+      let patientId = p.patient_id;
+      
+      if (!patientName && p.ghl_contact_id && patientsByGhl[p.ghl_contact_id]) {
+        patientName = patientsByGhl[p.ghl_contact_id].name;
+        patientId = patientsByGhl[p.ghl_contact_id].id;
+      }
+
+      return {
+        id: p.id,
+        product_name: p.item_name || p.product_name,
+        amount_paid: p.amount || p.amount_paid,
+        purchase_date: p.purchase_date,
+        patient_id: patientId,
+        ghl_contact_id: p.ghl_contact_id,
+        patient_name: patientName || 'Unknown'
+      };
+    };
 
     // Filter to only purchases that actually need protocols
     const filteredPurchases = (needsProtocol || []).filter(p => 

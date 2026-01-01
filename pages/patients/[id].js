@@ -149,10 +149,14 @@ export default function PatientProfile() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    // Parse as local date to avoid timezone shift
+    const [year, month, day] = dateStr.split('T')[0].split('-');
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'America/Los_Angeles'
     });
   };
 

@@ -104,8 +104,26 @@ export default async function handler(req, res) {
                             template.duration_days === 1 ||
                             template.duration_days === 0;
     
-    const protocolStatus = isSingleSession ? 'completed' : 'active';
-    const protocolEndDate = isSingleSession ? startDate : endDate;
+    // Check if this is a session-based pack
+    const isPackProtocol = template.total_sessions && template.total_sessions > 2;
+    
+    let protocolStatus = 'active';
+    let protocolEndDate = endDate;
+    let totalSessions = null;
+    let sessionsUsed = 0;
+
+    if (isSingleSession) {
+      protocolStatus = 'completed';
+      protocolEndDate = startDate;
+      totalSessions = template.total_sessions || 1;
+      sessionsUsed = template.total_sessions || 1;
+    } else if (isPackProtocol) {
+      // Pack protocol - no end date, track by sessions
+      protocolStatus = 'active';
+      protocolEndDate = null;
+      totalSessions = template.total_sessions;
+      sessionsUsed = 0;
+    }
 
     // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
@@ -113,13 +131,15 @@ export default async function handler(req, res) {
       .insert({
         patient_id: finalPatientId,
         program_name: template.name,
-        program_type: template.program_type || 'other',
+        program_type: template.program_type || template.category || 'other',
         medication: peptideName,
         selected_dose: selectedDose || null,
         frequency: frequency || null,
         start_date: startDate,
         end_date: protocolEndDate,
         status: protocolStatus,
+        total_sessions: totalSessions,
+        sessions_used: sessionsUsed,
         notes: notes || null,
         created_at: new Date().toISOString()
       })

@@ -32,6 +32,10 @@ export default function Pipeline() {
     startDate: new Date().toISOString().split('T')[0],
     notes: ''
   });
+
+  const [existingPacks, setExistingPacks] = useState([]);
+  const [addToPackMode, setAddToPackMode] = useState(false);
+  const [selectedPackId, setSelectedPackId] = useState('');
   
   const [completedForm, setCompletedForm] = useState({
     patientId: '',
@@ -88,14 +92,18 @@ export default function Pipeline() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    // Parse as local date to avoid timezone shift
+    const [year, month, day] = dateStr.split('T')[0].split('-');
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'America/Los_Angeles'
     });
   };
 
-  const openAssignModal = (purchase) => {
+  const openAssignModal = async (purchase) => {
     setSelectedPurchase(purchase);
     setAssignForm({
       templateId: '',
@@ -105,6 +113,30 @@ export default function Pipeline() {
       startDate: new Date().toISOString().split('T')[0],
       notes: ''
     });
+    setAddToPackMode(false);
+    setSelectedPackId('');
+    setExistingPacks([]);
+
+    // Check if this is an injection and patient has existing packs
+    const isInjection = purchase.category === 'Injection' || 
+                        purchase.item_name?.toLowerCase().includes('injection');
+    
+    if (isInjection && (purchase.patient_id || purchase.ghl_contact_id)) {
+      try {
+        const params = new URLSearchParams();
+        if (purchase.patient_id) params.set('patient_id', purchase.patient_id);
+        if (purchase.ghl_contact_id) params.set('ghl_contact_id', purchase.ghl_contact_id);
+        
+        const res = await fetch(`/api/protocols/active-packs?${params}`);
+        const data = await res.json();
+        if (data.packs?.length > 0) {
+          setExistingPacks(data.packs);
+        }
+      } catch (err) {
+        console.error('Error fetching packs:', err);
+      }
+    }
+
     setShowAssignModal(true);
   };
 
@@ -136,6 +168,36 @@ export default function Pipeline() {
       }
     } catch (error) {
       console.error('Error assigning protocol:', error);
+    }
+  };
+
+  const handleAddToPack = async () => {
+    if (!selectedPackId) {
+      alert('Please select a pack');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/protocols/${selectedPackId}/add-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purchaseId: selectedPurchase.id,
+          sessionCount: 1
+        })
+      });
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        setShowAssignModal(false);
+        fetchData();
+        alert(data.message || 'Session added to pack');
+      } else {
+        alert(data.error || 'Failed to add session');
+      }
+    } catch (error) {
+      console.error('Error adding to pack:', error);
     }
   };
 
@@ -336,6 +398,7 @@ export default function Pipeline() {
             ) : (
               <div style={styles.activeGrid}>
                 {activeProtocols.map(protocol => {
+                  const isSessionBased = protocol.total_sessions && protocol.total_sessions > 0;
                   const totalDays = protocol.end_date && protocol.start_date 
                     ? Math.ceil((new Date(protocol.end_date) - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
                     : null;
@@ -343,7 +406,11 @@ export default function Pipeline() {
                     ? Math.ceil((new Date() - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
                     : 0;
                   const currentDay = Math.min(daysPassed, totalDays || daysPassed);
-                  const progressPercent = totalDays ? Math.min((currentDay / totalDays) * 100, 100) : 0;
+                  
+                  // Calculate progress - either by sessions or by days
+                  const progressPercent = isSessionBased 
+                    ? ((protocol.sessions_used || 0) / protocol.total_sessions) * 100
+                    : (totalDays ? Math.min((currentDay / totalDays) * 100, 100) : 0);
                   
                   return (
                     <div key={protocol.id} style={styles.activeCard}>
@@ -355,13 +422,15 @@ export default function Pipeline() {
                         <span>{protocol.medication || protocol.program_name}</span>
                         {protocol.selected_dose && <span> - {protocol.selected_dose}</span>}
                       </div>
-                      {totalDays && (
-                        <div style={styles.progressBar}>
-                          <div style={{...styles.progressFill, width: `${progressPercent}%`}}></div>
-                        </div>
-                      )}
+                      <div style={styles.progressBar}>
+                        <div style={{...styles.progressFill, width: `${progressPercent}%`}}></div>
+                      </div>
                       <div style={styles.activeCardFooter}>
-                        {totalDays ? (
+                        {isSessionBased ? (
+                          <span style={styles.sessionsBadge}>
+                            {protocol.sessions_used || 0} of {protocol.total_sessions} used
+                          </span>
+                        ) : totalDays ? (
                           <span>Day {currentDay} of {totalDays}</span>
                         ) : (
                           <span>Ongoing</span>
@@ -444,19 +513,59 @@ export default function Pipeline() {
                   <div style={styles.meta}>${selectedPurchase?.amount_paid?.toFixed(2)} • {selectedPurchase?.category}</div>
                 </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Protocol Template *</label>
-                  <select 
-                    value={assignForm.templateId}
-                    onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
-                    style={styles.select}
-                  >
-                    <option value="">Select template...</option>
-                    {templates.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Show Add to Pack option if packs exist */}
+                {existingPacks.length > 0 && (
+                  <div style={styles.packOption}>
+                    <div style={styles.packToggle}>
+                      <button 
+                        onClick={() => setAddToPackMode(false)}
+                        style={addToPackMode ? styles.toggleInactive : styles.toggleActive}
+                      >
+                        New Protocol
+                      </button>
+                      <button 
+                        onClick={() => setAddToPackMode(true)}
+                        style={addToPackMode ? styles.toggleActive : styles.toggleInactive}
+                      >
+                        Add to Existing Pack
+                      </button>
+                    </div>
+
+                    {addToPackMode && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Select Pack</label>
+                        <select 
+                          value={selectedPackId}
+                          onChange={e => setSelectedPackId(e.target.value)}
+                          style={styles.select}
+                        >
+                          <option value="">Choose pack...</option>
+                          {existingPacks.map(pack => (
+                            <option key={pack.id} value={pack.id}>
+                              {pack.program_name} - {pack.sessions_used || 0} of {pack.total_sessions} used
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!addToPackMode && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Protocol Template *</label>
+                      <select 
+                        value={assignForm.templateId}
+                        onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
+                        style={styles.select}
+                      >
+                        <option value="">Select template...</option>
+                        {templates.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
 
                 {isPeptideTemplate(assignForm) && (
                   <>
@@ -510,37 +619,51 @@ export default function Pipeline() {
                   </>
                 )}
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Start Date</label>
-                  <input 
-                    type="date"
-                    value={assignForm.startDate}
-                    onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
-                    style={styles.input}
-                  />
-                </div>
+                {!addToPackMode && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Start Date</label>
+                      <input 
+                        type="date"
+                        value={assignForm.startDate}
+                        onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
+                        style={styles.input}
+                      />
+                    </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes</label>
-                  <textarea 
-                    value={assignForm.notes}
-                    onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
-                    placeholder="Any notes..."
-                    style={styles.textarea}
-                    rows={2}
-                  />
-                </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Notes</label>
+                      <textarea 
+                        value={assignForm.notes}
+                        onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
+                        placeholder="Any notes..."
+                        style={styles.textarea}
+                        rows={2}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div style={styles.modalFooter}>
                 <button onClick={() => setShowAssignModal(false)} style={styles.cancelButton}>Cancel</button>
-                <button 
-                  onClick={handleAssignProtocol}
-                  disabled={!assignForm.templateId}
-                  style={styles.primaryButton}
-                >
-                  Start Protocol
-                </button>
+                {addToPackMode ? (
+                  <button 
+                    onClick={handleAddToPack}
+                    disabled={!selectedPackId}
+                    style={styles.primaryButton}
+                  >
+                    Add to Pack
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleAssignProtocol}
+                    disabled={!assignForm.templateId}
+                    style={styles.primaryButton}
+                  >
+                    Start Protocol
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1030,6 +1153,46 @@ const styles = {
     cursor: 'pointer',
     color: '#666',
     marginLeft: '8px'
+  },
+  packOption: {
+    marginBottom: '16px',
+    padding: '12px',
+    background: '#f9fafb',
+    borderRadius: '8px'
+  },
+  packToggle: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '12px'
+  },
+  toggleActive: {
+    flex: 1,
+    padding: '8px 12px',
+    border: '2px solid #000',
+    background: '#000',
+    color: '#fff',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '500'
+  },
+  toggleInactive: {
+    flex: 1,
+    padding: '8px 12px',
+    border: '2px solid #d1d5db',
+    background: '#fff',
+    color: '#666',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px'
+  },
+  sessionsBadge: {
+    background: '#dbeafe',
+    color: '#1d4ed8',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500'
   },
   emptyState: {
     textAlign: 'center',

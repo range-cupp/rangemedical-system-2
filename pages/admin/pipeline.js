@@ -98,6 +98,11 @@ export default function Pipeline() {
 
   // Handle marking a purchase as a lab order
   const handleMarkAsLabOrder = async (purchase) => {
+    if (!purchase.patient_id) {
+      alert('Cannot create lab order: Patient not linked. Please link this purchase to a patient first.');
+      return;
+    }
+    
     try {
       const res = await fetch('/api/lab-orders/create', {
         method: 'POST',
@@ -113,10 +118,13 @@ export default function Pipeline() {
         // Remove from needs protocol list
         setNeedsProtocol(needsProtocol.filter(p => p.id !== purchase.id));
       } else {
-        console.error('Failed to create lab order');
+        const error = await res.json();
+        console.error('Failed to create lab order:', error);
+        alert('Failed to create lab order');
       }
     } catch (error) {
       console.error('Error creating lab order:', error);
+      alert('Error creating lab order');
     }
   };
 

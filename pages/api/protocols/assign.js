@@ -99,6 +99,14 @@ export default async function handler(req, res) {
       endDate = start.toISOString().split('T')[0];
     }
 
+    // Check if this is a single session (IV Single, injection, etc.) - auto-complete
+    const isSingleSession = template.name?.toLowerCase().includes('single') || 
+                            template.duration_days === 1 ||
+                            template.duration_days === 0;
+    
+    const protocolStatus = isSingleSession ? 'completed' : 'active';
+    const protocolEndDate = isSingleSession ? startDate : endDate;
+
     // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
@@ -110,8 +118,8 @@ export default async function handler(req, res) {
         selected_dose: selectedDose || null,
         frequency: frequency || null,
         start_date: startDate,
-        end_date: endDate,
-        status: 'active',
+        end_date: protocolEndDate,
+        status: protocolStatus,
         notes: notes || null,
         created_at: new Date().toISOString()
       })

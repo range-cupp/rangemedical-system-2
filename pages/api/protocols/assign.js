@@ -127,16 +127,11 @@ export default async function handler(req, res) {
     if (purchaseId) {
       const { error: updateError } = await supabase
         .from('purchases')
-        .update({ 
-          protocol_created: true,
-          protocol_id: protocol.id,
-          patient_id: finalPatientId
-        })
+        .update({ protocol_created: true })
         .eq('id', purchaseId);
       
       if (updateError) {
         console.error('Error updating purchase:', updateError);
-        // Still return success since protocol was created
       }
     }
 

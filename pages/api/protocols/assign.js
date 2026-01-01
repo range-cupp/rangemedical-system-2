@@ -125,7 +125,7 @@ export default async function handler(req, res) {
 
     // Mark purchase as having protocol created
     if (purchaseId) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('purchases')
         .update({ 
           protocol_created: true,
@@ -133,6 +133,11 @@ export default async function handler(req, res) {
           patient_id: finalPatientId
         })
         .eq('id', purchaseId);
+      
+      if (updateError) {
+        console.error('Error updating purchase:', updateError);
+        // Still return success since protocol was created
+      }
     }
 
     return res.status(200).json({ success: true, protocol });

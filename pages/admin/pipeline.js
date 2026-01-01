@@ -530,9 +530,15 @@ export default function Pipeline() {
                   return (
                     <div key={protocol.id} style={styles.activeCard}>
                       <div style={styles.activeCardHeader}>
-                        <Link href={`/patients/${protocol.patient_id}`} style={styles.patientLink}>
-                          {protocol.patient_name}
-                        </Link>
+                        {protocol.patient_id ? (
+                          <Link href={`/admin/patient/${protocol.patient_id}`} style={{ textDecoration: 'none' }}>
+                            <span style={styles.patientName}>{protocol.patient_name}</span>
+                          </Link>
+                        ) : (
+                          <span style={{...styles.patientName, color: '#9ca3af', textDecoration: 'none', cursor: 'default'}}>
+                            {protocol.patient_name || 'Unknown'}
+                          </span>
+                        )}
                       </div>
                       <div style={styles.activeProtocolInfo}>
                         <span style={styles.protocolDot}>●</span>
@@ -589,9 +595,15 @@ export default function Pipeline() {
                 {completedProtocols.map(protocol => (
                   <div key={protocol.id} style={{...styles.card, opacity: 0.8}}>
                     <div style={styles.cardMain}>
-                      <Link href={`/patients/${protocol.patient_id}`} style={styles.patientLink}>
-                        {protocol.patient_name}
-                      </Link>
+                      {protocol.patient_id ? (
+                        <Link href={`/admin/patient/${protocol.patient_id}`} style={{ textDecoration: 'none' }}>
+                          <div style={styles.patientName}>{protocol.patient_name}</div>
+                        </Link>
+                      ) : (
+                        <div style={{...styles.patientName, color: '#9ca3af', textDecoration: 'none', cursor: 'default'}}>
+                          {protocol.patient_name || 'Unknown'}
+                        </div>
+                      )}
                       <div style={styles.productName}>
                         {protocol.program_name || protocol.medication}
                         {protocol.selected_dose && ` • ${protocol.selected_dose}`}
@@ -1207,12 +1219,6 @@ const styles = {
   cardMain: {
     flex: 1
   },
-  patientLink: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#000',
-    textDecoration: 'none'
-  },
   patientName: {
     fontSize: '16px',
     fontWeight: '600',
@@ -1221,9 +1227,6 @@ const styles = {
     textDecoration: 'underline',
     textDecorationColor: '#ccc',
     textUnderlineOffset: '2px'
-  },
-  patientNameHover: {
-    color: '#1d4ed8'
   },
   productName: {
     fontSize: '14px',
@@ -1317,19 +1320,6 @@ const styles = {
   },
   activeCardHeader: {
     minWidth: '150px'
-  },
-  activePatientName: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#000'
-  },
-  patientLink: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#000',
-    textDecoration: 'none',
-    cursor: 'pointer',
-    borderBottom: '1px solid transparent'
   },
   activeProtocolInfo: {
     display: 'flex',

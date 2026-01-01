@@ -1,5 +1,5 @@
 // /pages/api/admin/pipeline.js
-// Pipeline API - Returns purchases needing protocols, active, and completed
+// Pipeline API - Fixed with correct column names
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -17,21 +17,12 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().split('T')[0];
 
     // Get purchases that need protocols (not dismissed, no protocol assigned)
+    // Using correct column names: patient_name, item_name, amount
     const { data: needsProtocol, error: purchasesError } = await supabase
       .from('purchases')
-      .select(`
-        id,
-        product_name,
-        amount_paid,
-        purchase_date,
-        patient_id,
-        patients (
-          id,
-          name
-        )
-      `)
-      .is('protocol_created', false)
-      .is('dismissed', false)
+      .select('*')
+      .eq('protocol_created', false)
+      .eq('dismissed', false)
       .order('purchase_date', { ascending: false })
       .limit(50);
 
@@ -92,20 +83,22 @@ export default async function handler(req, res) {
       console.error('Completed protocols error:', completedError);
     }
 
-    // Format the data
+    // Format purchases - use correct column names
     const formatPurchase = (p) => ({
       id: p.id,
-      product_name: p.product_name,
-      amount_paid: p.amount_paid,
+      product_name: p.item_name || p.original_item_name || 'Unknown Item',
+      amount_paid: p.amount || 0,
       purchase_date: p.purchase_date,
       patient_id: p.patient_id,
-      patient_name: p.patients?.name || 'Unknown'
+      patient_name: p.patient_name || 'Unknown',
+      ghl_contact_id: p.ghl_contact_id,
+      category: p.category
     });
 
     const formatProtocol = (p) => {
       const endDate = p.end_date ? new Date(p.end_date) : null;
-      const today = new Date();
-      const daysRemaining = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : null;
+      const todayDate = new Date();
+      const daysRemaining = endDate ? Math.ceil((endDate - todayDate) / (1000 * 60 * 60 * 24)) : null;
       
       return {
         id: p.id,

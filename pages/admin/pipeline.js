@@ -567,60 +567,58 @@ export default function Pipeline() {
                       </select>
                     </div>
 
-                {isPeptideTemplate(assignForm) && (
-                  <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Peptide *</label>
-                      <select 
-                        value={assignForm.peptideId}
-                        onChange={e => setAssignForm({...assignForm, peptideId: e.target.value, selectedDose: ''})}
-                        style={styles.select}
-                      >
-                        <option value="">Select peptide...</option>
-                        {peptides.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {isPeptideTemplate(assignForm) && (
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Peptide *</label>
+                          <select 
+                            value={assignForm.peptideId}
+                            onChange={e => setAssignForm({...assignForm, peptideId: e.target.value, selectedDose: ''})}
+                            style={styles.select}
+                          >
+                            <option value="">Select peptide...</option>
+                            {peptides.map(p => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                        </div>
 
-                    {getSelectedPeptide(assignForm)?.dose_options?.length > 0 && (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Dose *</label>
-                        <select 
-                          value={assignForm.selectedDose}
-                          onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
-                          style={styles.select}
-                        >
-                          <option value="">Select dose...</option>
-                          {getSelectedPeptide(assignForm).dose_options.map(dose => (
-                            <option key={dose} value={dose}>{dose}</option>
-                          ))}
-                        </select>
-                      </div>
+                        {getSelectedPeptide(assignForm)?.dose_options?.length > 0 && (
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Dose *</label>
+                            <select 
+                              value={assignForm.selectedDose}
+                              onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
+                              style={styles.select}
+                            >
+                              <option value="">Select dose...</option>
+                              {getSelectedPeptide(assignForm).dose_options.map(dose => (
+                                <option key={dose} value={dose}>{dose}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Frequency</label>
+                          <select 
+                            value={assignForm.frequency}
+                            onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
+                            style={styles.select}
+                          >
+                            <option value="">Select frequency...</option>
+                            <option value="2x daily">2x daily</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Every other day">Every other day</option>
+                            <option value="2x weekly">2x weekly</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="5 days on, 2 off">5 days on, 2 off</option>
+                            <option value="As needed">As needed</option>
+                          </select>
+                        </div>
+                      </>
                     )}
 
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Frequency</label>
-                      <select 
-                        value={assignForm.frequency}
-                        onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
-                        style={styles.select}
-                      >
-                        <option value="">Select frequency...</option>
-                        <option value="2x daily">2x daily</option>
-                        <option value="Daily">Daily</option>
-                        <option value="Every other day">Every other day</option>
-                        <option value="2x weekly">2x weekly</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="5 days on, 2 off">5 days on, 2 off</option>
-                        <option value="As needed">As needed</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {!addToPackMode && (
-                  <>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Start Date</label>
                       <input 

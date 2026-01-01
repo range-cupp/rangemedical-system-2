@@ -1,5 +1,5 @@
 // /pages/api/patients/[id].js
-// Patient Profile API - Returns complete patient data for profile view
+// Patient profile API - returns patient info, protocols, labs, etc.
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -11,160 +11,121 @@ const supabase = createClient(
 export default async function handler(req, res) {
   const { id } = req.query;
 
-  if (req.method === 'GET') {
-    return getPatientProfile(id, res);
+  if (!id) {
+    return res.status(400).json({ error: 'Patient ID required' });
   }
-  
-  if (req.method === 'PUT') {
-    return updatePatient(id, req.body, res);
+
+  if (req.method === 'GET') {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Get patient
+      const { data: patient, error: patientError } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (patientError || !patient) {
+        return res.status(404).json({ error: 'Patient not found' });
+      }
+
+      // Get active protocols
+      const { data: activeProtocols } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('patient_id', id)
+        .neq('status', 'completed')
+        .order('start_date', { ascending: false });
+
+      // Get completed protocols
+      const { data: completedProtocols } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('patient_id', id)
+        .eq('status', 'completed')
+        .order('end_date', { ascending: false });
+
+      // Get pending purchases (notifications)
+      const { data: pendingNotifications } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('patient_id', id)
+        .eq('protocol_created', false)
+        .eq('dismissed', false)
+        .order('purchase_date', { ascending: false });
+
+      // Also check by ghl_contact_id if patient has one
+      let additionalNotifications = [];
+      if (patient.ghl_contact_id) {
+        const { data: ghlPurchases } = await supabase
+          .from('purchases')
+          .select('*')
+          .eq('ghl_contact_id', patient.ghl_contact_id)
+          .eq('protocol_created', false)
+          .eq('dismissed', false)
+          .order('purchase_date', { ascending: false });
+        additionalNotifications = ghlPurchases || [];
+      }
+
+      // Merge and dedupe notifications
+      const allNotifications = [...(pendingNotifications || []), ...additionalNotifications];
+      const uniqueNotifications = allNotifications.filter((item, index, self) =>
+        index === self.findIndex(t => t.id === item.id)
+      );
+
+      // Get latest labs
+      const { data: labs } = await supabase
+        .from('labs')
+        .select('*')
+        .eq('patient_id', id)
+        .order('test_date', { ascending: false })
+        .limit(1);
+
+      // Get lab results for detailed view
+      const { data: labResults } = await supabase
+        .from('lab_results')
+        .select('*')
+        .eq('patient_id', id)
+        .order('test_date', { ascending: false });
+
+      // Get baseline symptoms
+      const { data: symptoms } = await supabase
+        .from('symptom_responses')
+        .select('*')
+        .eq('patient_id', id)
+        .order('submitted_at', { ascending: false })
+        .limit(1);
+
+      // Calculate days remaining for active protocols
+      const formattedActive = (activeProtocols || []).map(p => {
+        const endDate = p.end_date ? new Date(p.end_date) : null;
+        const daysRemaining = endDate 
+          ? Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24))
+          : null;
+        return { ...p, days_remaining: daysRemaining };
+      });
+
+      return res.status(200).json({
+        patient,
+        activeProtocols: formattedActive,
+        completedProtocols: completedProtocols || [],
+        pendingNotifications: uniqueNotifications,
+        latestLabs: labs?.[0] || null,
+        labResults: labResults || [],
+        baselineSymptoms: symptoms?.[0] || null,
+        stats: {
+          totalProtocols: (activeProtocols?.length || 0) + (completedProtocols?.length || 0),
+          activeCount: activeProtocols?.length || 0,
+          completedCount: completedProtocols?.length || 0
+        }
+      });
+
+    } catch (error) {
+      console.error('Patient API error:', error);
+      return res.status(500).json({ error: 'Server error' });
+    }
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
-}
-
-async function getPatientProfile(patientId, res) {
-  try {
-    // Get patient basic info
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('id', patientId)
-      .single();
-
-    if (patientError || !patient) {
-      return res.status(404).json({ error: 'Patient not found' });
-    }
-
-    // Get active protocols
-    const { data: activeProtocols } = await supabase
-      .from('patient_protocols')
-      .select(`
-        id,
-        protocol_name,
-        category,
-        medication,
-        dose,
-        frequency,
-        start_date,
-        end_date,
-        duration_days,
-        total_sessions,
-        sessions_completed,
-        expected_doses,
-        logged_doses,
-        compliance_percent,
-        next_checkin_date,
-        baseline_labs_required,
-        baseline_labs_completed,
-        followup_labs_due,
-        followup_labs_completed,
-        status,
-        created_at
-      `)
-      .eq('patient_id', patientId)
-      .eq('status', 'active')
-      .order('start_date', { ascending: false });
-
-    // Get completed protocols (last 10)
-    const { data: completedProtocols } = await supabase
-      .from('patient_protocols')
-      .select(`
-        id,
-        protocol_name,
-        category,
-        start_date,
-        end_date,
-        compliance_percent,
-        status
-      `)
-      .eq('patient_id', patientId)
-      .eq('status', 'completed')
-      .order('end_date', { ascending: false })
-      .limit(10);
-
-    // Get pending notifications
-    const { data: pendingNotifications } = await supabase
-      .from('purchase_notifications')
-      .select('*')
-      .eq('patient_id', patientId)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-
-    // Get baseline symptoms (most recent core questionnaire)
-    const { data: baselineSymptoms } = await supabase
-      .from('symptom_responses')
-      .select('*')
-      .eq('patient_id', patientId)
-      .eq('questionnaire_name', 'core')
-      .eq('response_type', 'baseline')
-      .order('submitted_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    // Get latest labs
-    const { data: latestLabs } = await supabase
-      .from('labs')
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('test_date', { ascending: false, nullsFirst: false })
-      .limit(1)
-      .single();
-
-    // Get recent purchases
-    const { data: recentPurchases } = await supabase
-      .from('purchases')
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('purchase_date', { ascending: false })
-      .limit(10);
-
-    // Calculate stats
-    const totalProtocols = (activeProtocols?.length || 0) + (completedProtocols?.length || 0);
-    const avgCompliance = completedProtocols?.length > 0
-      ? Math.round(completedProtocols.reduce((sum, p) => sum + (p.compliance_percent || 0), 0) / completedProtocols.length)
-      : null;
-
-    return res.status(200).json({
-      patient,
-      activeProtocols: activeProtocols || [],
-      completedProtocols: completedProtocols || [],
-      pendingNotifications: pendingNotifications || [],
-      baselineSymptoms,
-      latestLabs,
-      recentPurchases: recentPurchases || [],
-      stats: {
-        totalProtocols,
-        avgCompliance,
-        hasBaselineSymptoms: !!baselineSymptoms,
-        hasBaselineLabs: !!latestLabs
-      }
-    });
-
-  } catch (error) {
-    console.error('Error fetching patient profile:', error);
-    return res.status(500).json({ error: error.message });
-  }
-}
-
-async function updatePatient(patientId, data, res) {
-  try {
-    const { data: patient, error } = await supabase
-      .from('patients')
-      .update({
-        first_name: data.first_name,
-        last_name: data.last_name,
-        email: data.email,
-        phone: data.phone,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', patientId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return res.status(200).json({ success: true, patient });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
 }

@@ -30,7 +30,9 @@ export default function Pipeline() {
     selectedDose: '',
     frequency: '',
     startDate: new Date().toISOString().split('T')[0],
-    notes: ''
+    notes: '',
+    injectionMedication: '',
+    injectionDose: ''
   });
 
   const [existingPacks, setExistingPacks] = useState([]);
@@ -57,6 +59,19 @@ export default function Pipeline() {
     status: '',
     notes: ''
   });
+
+  const INJECTION_MEDICATIONS = [
+    'Amino Blend',
+    'B12',
+    'B-Complex',
+    'Biotin',
+    'Vitamin D3',
+    'NAC',
+    'BCAA',
+    'L-Carnitine',
+    'Glutathione',
+    'NAD+'
+  ];
 
   useEffect(() => {
     fetchData();
@@ -111,7 +126,9 @@ export default function Pipeline() {
       selectedDose: '',
       frequency: '',
       startDate: new Date().toISOString().split('T')[0],
-      notes: ''
+      notes: '',
+      injectionMedication: '',
+      injectionDose: ''
     });
     setAddToPackMode(false);
     setSelectedPackId('');
@@ -142,6 +159,10 @@ export default function Pipeline() {
 
   const handleAssignProtocol = async () => {
     try {
+      // Use injection medication if it's an injection template
+      const template = templates.find(t => t.id === assignForm.templateId);
+      const isInjection = template?.name?.toLowerCase().includes('injection');
+      
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -152,7 +173,8 @@ export default function Pipeline() {
           purchaseId: selectedPurchase.id,
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
-          selectedDose: assignForm.selectedDose,
+          selectedDose: isInjection ? assignForm.injectionDose : assignForm.selectedDose,
+          medication: isInjection ? assignForm.injectionMedication : null,
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes
@@ -284,6 +306,11 @@ export default function Pipeline() {
   const isPeptideTemplate = (form) => {
     const template = getSelectedTemplate(form);
     return template?.name?.toLowerCase().includes('peptide');
+  };
+
+  const isInjectionTemplate = (form) => {
+    const template = getSelectedTemplate(form);
+    return template?.name?.toLowerCase().includes('injection');
   };
 
   const counts = {
@@ -615,6 +642,35 @@ export default function Pipeline() {
                             <option value="5 days on, 2 off">5 days on, 2 off</option>
                             <option value="As needed">As needed</option>
                           </select>
+                        </div>
+                      </>
+                    )}
+
+                    {isInjectionTemplate(assignForm) && (
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Medication *</label>
+                          <select 
+                            value={assignForm.injectionMedication}
+                            onChange={e => setAssignForm({...assignForm, injectionMedication: e.target.value})}
+                            style={styles.select}
+                          >
+                            <option value="">Select medication...</option>
+                            {INJECTION_MEDICATIONS.map(med => (
+                              <option key={med} value={med}>{med}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Dose</label>
+                          <input 
+                            type="text"
+                            value={assignForm.injectionDose}
+                            onChange={e => setAssignForm({...assignForm, injectionDose: e.target.value})}
+                            placeholder="e.g. 100mg, 200mg"
+                            style={styles.input}
+                          />
                         </div>
                       </>
                     )}

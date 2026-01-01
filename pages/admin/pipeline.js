@@ -76,6 +76,50 @@ export default function Pipeline() {
     'NAD+'
   ];
 
+  // Check if a purchase is a lab/blood draw purchase
+  const isLabPurchase = (purchase) => {
+    const name = (purchase.product_name || purchase.item_name || '').toLowerCase();
+    return name.includes('blood') || 
+           name.includes('lab') || 
+           name.includes('panel') || 
+           name.includes('draw') ||
+           name.includes('elite') ||
+           name.includes('essential');
+  };
+
+  // Determine lab order type from product name
+  const getLabOrderType = (purchase) => {
+    const name = (purchase.product_name || purchase.item_name || '').toLowerCase();
+    if (name.includes('elite')) return 'Elite Panel';
+    if (name.includes('essential')) return 'Essential Panel';
+    if (name.includes('panel')) return 'Lab Panel';
+    return 'Blood Draw';
+  };
+
+  // Handle marking a purchase as a lab order
+  const handleMarkAsLabOrder = async (purchase) => {
+    try {
+      const res = await fetch('/api/lab-orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purchaseId: purchase.id,
+          patientId: purchase.patient_id,
+          orderType: getLabOrderType(purchase)
+        })
+      });
+
+      if (res.ok) {
+        // Remove from needs protocol list
+        setNeedsProtocol(needsProtocol.filter(p => p.id !== purchase.id));
+      } else {
+        console.error('Failed to create lab order');
+      }
+    } catch (error) {
+      console.error('Error creating lab order:', error);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -401,7 +445,9 @@ export default function Pipeline() {
                 {needsProtocol.map(purchase => (
                   <div key={purchase.id} style={styles.card}>
                     <div style={styles.cardMain}>
-                      <div style={styles.patientName}>{purchase.patient_name}</div>
+                      <Link href={`/admin/patient/${purchase.patient_id}`} style={{ textDecoration: 'none' }}>
+                        <div style={{...styles.patientName, cursor: 'pointer'}}>{purchase.patient_name}</div>
+                      </Link>
                       <div style={styles.productName}>{purchase.product_name}</div>
                       <div style={styles.meta}>
                         ${purchase.amount_paid?.toFixed(2)} • {formatDate(purchase.purchase_date)}
@@ -409,12 +455,21 @@ export default function Pipeline() {
                       </div>
                     </div>
                     <div style={styles.cardActions}>
-                      <button 
-                        onClick={() => openAssignModal(purchase)}
-                        style={styles.primaryButton}
-                      >
-                        Start Protocol
-                      </button>
+                      {isLabPurchase(purchase) ? (
+                        <button 
+                          onClick={() => handleMarkAsLabOrder(purchase)}
+                          style={styles.labButton}
+                        >
+                          Mark as Lab Order
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => openAssignModal(purchase)}
+                          style={styles.primaryButton}
+                        >
+                          Start Protocol
+                        </button>
+                      )}
                       <button 
                         onClick={() => handleDismiss(purchase.id)}
                         style={styles.dismissButton}
@@ -1170,6 +1225,16 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px'
+  },
+  labButton: {
+    background: '#1d4ed8',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
   },
   daysLeft: {
     background: '#dbeafe',

@@ -616,26 +616,34 @@ export default function PatientProfile() {
         </div>
 
         {/* Completed Protocols */}
-        {completedProtocols.length > 0 && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>Completed Protocols</h2>
-            </div>
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Completed Protocols</h2>
+          </div>
+          {completedProtocols.length === 0 ? (
+            <div style={styles.emptyState}>No completed protocols</div>
+          ) : (
             <div style={styles.protocolsList}>
               {completedProtocols.map(protocol => (
-                <div key={protocol.id} style={{...styles.protocolCard, opacity: 0.7}}>
+                <div key={protocol.id} style={{...styles.protocolCard, background: '#f9fafb'}}>
                   <div style={styles.protocolInfo}>
                     <div style={styles.protocolName}>{protocol.program_name || protocol.medication}</div>
+                    <div style={styles.protocolMeta}>
+                      {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                      {protocol.frequency && <span> • {protocol.frequency}</span>}
+                    </div>
                     <div style={styles.protocolDates}>
-                      {formatDate(protocol.start_date)} - {formatDate(protocol.end_date)}
+                      {formatDate(protocol.start_date)} → {formatDate(protocol.end_date)}
                     </div>
                   </div>
-                  <span style={styles.protocolComplete}>✓ Complete</span>
+                  <div style={styles.protocolStatus}>
+                    <span style={styles.protocolComplete}>✓ Complete</span>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Add Labs Modal */}
         {showLabsModal && (

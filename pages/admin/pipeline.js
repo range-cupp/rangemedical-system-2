@@ -79,7 +79,8 @@ export default function Pipeline() {
     { id: 'single', name: 'Single' },
     { id: 'double', name: 'Double' },
     { id: '10-pack', name: '10 Pack' },
-    { id: '12-pack', name: '12 Pack' }
+    { id: '12-pack', name: '12 Pack' },
+    { id: 'month-supply', name: 'Month Supply' }
   ];
 
   // HRT Options
@@ -170,7 +171,8 @@ export default function Pipeline() {
       const locStr = location === 'in-clinic' ? 'In Clinic' : 'Take Home';
       const packStr = packSize === 'single' ? 'Single' : 
                       packSize === 'double' ? 'Double' : 
-                      packSize === '10-pack' ? '10 Pack' : '12 Pack';
+                      packSize === '10-pack' ? '10 Pack' : 
+                      packSize === '12-pack' ? '12 Pack' : 'Month Supply';
       searchName = `Injection Therapy - ${packStr} (${locStr})`;
     } else if (category === 'peptide-7') {
       searchName = 'Peptide Therapy - 7 Day';

@@ -735,11 +735,23 @@ export default function PatientProfile() {
                 </div>
               </div>
               <div style={styles.pdfContent}>
-                <iframe 
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(selectedPdf.file_url)}&embedded=true`}
+                <object 
+                  data={selectedPdf.file_url}
+                  type="application/pdf"
                   style={styles.pdfIframe}
-                  title="Lab Results PDF"
-                />
+                >
+                  <div style={styles.pdfFallback}>
+                    <p style={{marginBottom: '16px'}}>Unable to display PDF in browser.</p>
+                    <a 
+                      href={selectedPdf.file_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={styles.downloadButton}
+                    >
+                      Download PDF
+                    </a>
+                  </div>
+                </object>
               </div>
             </div>
           </>
@@ -1281,5 +1293,23 @@ const styles = {
     width: '100%',
     height: '100%',
     border: 'none'
+  },
+  pdfFallback: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    color: '#666',
+    fontSize: '16px'
+  },
+  downloadButton: {
+    background: '#000',
+    color: '#fff',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontWeight: '500'
   }
 };

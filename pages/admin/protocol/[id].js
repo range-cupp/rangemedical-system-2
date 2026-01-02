@@ -23,10 +23,13 @@ const INJECTION_MEDICATIONS = [
 const FREQUENCY_OPTIONS = [
   { value: '2x daily', label: '2x Daily' },
   { value: 'daily', label: 'Daily' },
+  { value: '5x/week', label: '5x/Week' },
+  { value: '4x/week', label: '4x/Week' },
+  { value: '3x/week', label: '3x/Week' },
   { value: 'every other day', label: 'Every Other Day' },
-  { value: 'every 5 days', label: 'Every 5 Days' },
-  { value: '2x weekly', label: '2x Weekly' },
+  { value: '2x/week', label: '2x/Week' },
   { value: 'weekly', label: 'Weekly' },
+  { value: 'every 5 days', label: 'Every 5 Days' },
   { value: 'as needed', label: 'As Needed' }
 ];
 
@@ -217,22 +220,34 @@ export default function ProtocolDetail() {
       const total = protocol.total_sessions || 12;
       const freq = (protocol.frequency || '').toLowerCase();
       
-      // Calculate days per injection based on frequency
-      let daysPerInjection = 1;
-      if (freq.includes('every other day') || freq.includes('every 2 days')) {
-        daysPerInjection = 2;
+      // Calculate injections per week based on frequency
+      let injectionsPerWeek = 7; // default to daily
+      
+      if (freq.includes('daily') && !freq.includes('2x')) {
+        injectionsPerWeek = 7;
+      } else if (freq.includes('2x daily') || freq.includes('twice daily')) {
+        injectionsPerWeek = 14;
+      } else if (freq.includes('every other day') || freq.includes('every 2 days')) {
+        injectionsPerWeek = 3.5;
       } else if (freq.includes('every 3 days')) {
-        daysPerInjection = 3;
+        injectionsPerWeek = 7 / 3; // ~2.33
       } else if (freq.includes('every 5 days')) {
-        daysPerInjection = 5;
-      } else if (freq.includes('weekly') || freq.includes('once a week')) {
-        daysPerInjection = 7;
-      } else if (freq.includes('2x weekly') || freq.includes('twice a week')) {
-        daysPerInjection = 3.5;
+        injectionsPerWeek = 7 / 5; // 1.4
+      } else if (freq.includes('weekly') || freq.includes('once a week') || freq.includes('1x/week') || freq.includes('1x week')) {
+        injectionsPerWeek = 1;
+      } else if (freq.includes('2x/week') || freq.includes('2x week') || freq.includes('twice a week') || freq.includes('2x weekly')) {
+        injectionsPerWeek = 2;
+      } else if (freq.includes('3x/week') || freq.includes('3x week') || freq.includes('3x weekly')) {
+        injectionsPerWeek = 3;
+      } else if (freq.includes('4x/week') || freq.includes('4x week')) {
+        injectionsPerWeek = 4;
+      } else if (freq.includes('5x/week') || freq.includes('5x week')) {
+        injectionsPerWeek = 5;
       }
       
-      // Total supply duration
-      const supplyDays = Math.floor(total * daysPerInjection);
+      // Calculate total weeks of supply, then convert to days
+      const weeksOfSupply = total / injectionsPerWeek;
+      const supplyDays = Math.round(weeksOfSupply * 7);
       
       // Calculate refill date
       const startDate = protocol.start_date ? new Date(protocol.start_date + 'T00:00:00') : new Date();
@@ -248,8 +263,10 @@ export default function ProtocolDetail() {
         type: 'refill',
         total,
         supplyDays,
+        weeksOfSupply: Math.round(weeksOfSupply * 10) / 10, // Round to 1 decimal
         refillDate,
         daysUntilRefill,
+        frequency: protocol.frequency,
         label: 'Injections'
       };
     } else {
@@ -421,7 +438,7 @@ export default function ProtocolDetail() {
             <div style={styles.detailsCard}>
               <div style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
                 <p style={{ margin: '0 0 8px 0' }}>
-                  <strong>{stats.total} injections</strong> at <strong>{protocol.frequency}</strong> = <strong>{stats.supplyDays} day supply</strong>
+                  <strong>{stats.total} injections</strong> at <strong>{stats.frequency}</strong> = <strong>~{stats.weeksOfSupply} weeks</strong> ({stats.supplyDays} days)
                 </p>
                 {stats.daysUntilRefill <= 7 && stats.daysUntilRefill > 0 && (
                   <p style={{ margin: 0, color: '#dc2626', fontWeight: '500' }}>

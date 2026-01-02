@@ -83,7 +83,7 @@ export default function Pipeline() {
       const [templatesRes, peptidesRes, patientsRes] = await Promise.all([
         fetch('/api/protocol-templates'),
         fetch('/api/peptides'),
-        fetch('/api/patients')
+        fetch('/api/admin/patients')
       ]);
       
       const templatesData = await templatesRes.json();
@@ -92,7 +92,8 @@ export default function Pipeline() {
       
       setTemplates(Array.isArray(templatesData) ? templatesData : []);
       setPeptides(Array.isArray(peptidesData) ? peptidesData : []);
-      setPatients(Array.isArray(patientsData) ? patientsData : []);
+      // Handle both array response and {patients: []} response
+      setPatients(Array.isArray(patientsData) ? patientsData : (patientsData.patients || []));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -289,9 +290,10 @@ export default function Pipeline() {
   const filteredPatients = patients.filter(p => {
     if (!patientSearch) return true;
     const search = patientSearch.toLowerCase();
-    const name = (p.name || `${p.first_name || ''} ${p.last_name || ''}`).toLowerCase();
+    const name = (p.name || p.patient_name || `${p.first_name || ''} ${p.last_name || ''}`).toLowerCase();
     const email = (p.email || '').toLowerCase();
-    return name.includes(search) || email.includes(search);
+    const phone = (p.phone || '').toLowerCase();
+    return name.includes(search) || email.includes(search) || phone.includes(search);
   });
 
   const counts = {
@@ -340,7 +342,7 @@ export default function Pipeline() {
           <button 
             style={{
               ...styles.tab,
-              ...(activeTab === 'active' ? styles.tabActive : {})
+              ...(activeTab === 'active' ? styles.tabActiveGreen : {})
             }}
             onClick={() => setActiveTab('active')}
           >
@@ -571,30 +573,36 @@ export default function Pipeline() {
                   {patientSearch ? 'No patients match your search' : 'No patients found'}
                 </div>
               ) : (
-                filteredPatients.map(patient => (
-                  <div key={patient.id} style={styles.card}>
-                    <div style={styles.cardInfo}>
-                      <Link 
-                        href={`/admin/patient/${patient.id}`}
-                        style={styles.patientName}
-                      >
-                        {patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || 'Unknown'}
-                      </Link>
-                      <div style={styles.meta}>
-                        {patient.email && <span>{patient.email}</span>}
-                        {patient.phone && <span> • {patient.phone}</span>}
+                filteredPatients.map(patient => {
+                  const patientId = patient.id || patient.ghl_contact_id;
+                  const patientName = patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.patient_name || 'Unknown';
+                  return (
+                    <div key={patientId} style={styles.card}>
+                      <div style={styles.cardInfo}>
+                        <Link 
+                          href={`/admin/patient/${patientId}`}
+                          style={styles.patientName}
+                        >
+                          {patientName}
+                        </Link>
+                        <div style={styles.meta}>
+                          {patient.email && <span>{patient.email}</span>}
+                          {patient.phone && <span> • {patient.phone}</span>}
+                          {patient.protocol_count > 0 && <span> • {patient.protocol_count} protocols</span>}
+                          {patient.purchase_count > 0 && <span> • {patient.purchase_count} purchases</span>}
+                        </div>
+                      </div>
+                      <div style={styles.cardActions}>
+                        <Link 
+                          href={`/admin/patient/${patientId}`}
+                          style={styles.viewButton}
+                        >
+                          View Profile
+                        </Link>
                       </div>
                     </div>
-                    <div style={styles.cardActions}>
-                      <Link 
-                        href={`/admin/patient/${patient.id}`}
-                        style={styles.viewButton}
-                      >
-                        View Profile
-                      </Link>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
@@ -793,11 +801,15 @@ export default function Pipeline() {
                   onChange={(e) => setCompletedForm({ ...completedForm, patientId: e.target.value })}
                 >
                   <option value="">Select patient...</option>
-                  {patients.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim()}
-                    </option>
-                  ))}
+                  {patients.map(p => {
+                    const patientId = p.id || p.ghl_contact_id;
+                    const patientName = p.name || p.patient_name || `${p.first_name || ''} ${p.last_name || ''}`.trim();
+                    return (
+                      <option key={patientId} value={patientId}>
+                        {patientName}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -968,6 +980,10 @@ const styles = {
   tabActive: {
     color: '#111',
     borderBottomColor: '#111',
+  },
+  tabActiveGreen: {
+    color: '#16a34a',
+    borderBottomColor: '#22c55e',
   },
   badge: {
     padding: '2px 8px',

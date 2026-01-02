@@ -227,7 +227,12 @@ export default function Pipeline() {
 
   const fetchExistingPacks = async (patientId, category) => {
     try {
-      const res = await fetch(`/api/protocols?patient_id=${patientId}&status=active&category=${category}`);
+      const res = await fetch(`/api/protocols?patient_id=${patientId}&status=active&category=${encodeURIComponent(category || '')}`);
+      if (!res.ok) {
+        console.log('Could not fetch existing packs:', res.status);
+        setExistingPacks([]);
+        return;
+      }
       const data = await res.json();
       setExistingPacks(Array.isArray(data) ? data.filter(p => p.total_sessions && p.sessions_used < p.total_sessions) : []);
     } catch (error) {

@@ -158,7 +158,6 @@ export default async function handler(req, res) {
         .from('purchases')
         .update({ 
           protocol_id: protocol.id,
-          has_protocol: true,
           protocol_created: true
         })
         .eq('id', purchaseId);

@@ -911,10 +911,13 @@ export default function Pipeline() {
                   <option value="">Select frequency...</option>
                   <option value="2x daily">2x Daily</option>
                   <option value="daily">Daily</option>
+                  <option value="5x/week">5x/Week</option>
+                  <option value="4x/week">4x/Week</option>
+                  <option value="3x/week">3x/Week</option>
                   <option value="every other day">Every Other Day</option>
-                  <option value="every 5 days">Every 5 Days</option>
-                  <option value="2x weekly">2x Weekly</option>
+                  <option value="2x/week">2x/Week</option>
                   <option value="weekly">Weekly</option>
+                  <option value="every 5 days">Every 5 Days</option>
                   <option value="as needed">As Needed</option>
                 </select>
               </div>
@@ -1132,10 +1135,14 @@ export default function Pipeline() {
                   <option value="">Select frequency...</option>
                   <option value="2x daily">2x Daily</option>
                   <option value="daily">Daily</option>
+                  <option value="5x/week">5x/Week</option>
+                  <option value="4x/week">4x/Week</option>
+                  <option value="3x/week">3x/Week</option>
                   <option value="every other day">Every Other Day</option>
-                  <option value="every 5 days">Every 5 Days</option>
-                  <option value="2x weekly">2x Weekly</option>
+                  <option value="2x/week">2x/Week</option>
                   <option value="weekly">Weekly</option>
+                  <option value="every 5 days">Every 5 Days</option>
+                  <option value="as needed">As Needed</option>
                 </select>
               </div>
 

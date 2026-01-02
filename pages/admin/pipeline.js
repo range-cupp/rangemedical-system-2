@@ -886,7 +886,24 @@ export default function Pipeline() {
               </div>
             ) : (
               <div style={styles.activeList}>
-                {activeProtocols.map(protocol => {
+                {/* Sort protocols by urgency: lowest days/sessions remaining first */}
+                {[...activeProtocols].sort((a, b) => {
+                  const now = new Date();
+                  
+                  // Calculate days remaining for protocol a
+                  const aEndDate = a.end_date ? new Date(a.end_date) : null;
+                  const aDaysRemaining = aEndDate ? Math.ceil((aEndDate - now) / (1000 * 60 * 60 * 24)) : null;
+                  const aSessionsRemaining = a.total_sessions ? (a.total_sessions - (a.sessions_used || 0)) : null;
+                  const aUrgency = aDaysRemaining !== null ? aDaysRemaining : (aSessionsRemaining !== null ? aSessionsRemaining * 7 : 9999);
+                  
+                  // Calculate days remaining for protocol b
+                  const bEndDate = b.end_date ? new Date(b.end_date) : null;
+                  const bDaysRemaining = bEndDate ? Math.ceil((bEndDate - now) / (1000 * 60 * 60 * 24)) : null;
+                  const bSessionsRemaining = b.total_sessions ? (b.total_sessions - (b.sessions_used || 0)) : null;
+                  const bUrgency = bDaysRemaining !== null ? bDaysRemaining : (bSessionsRemaining !== null ? bSessionsRemaining * 7 : 9999);
+                  
+                  return aUrgency - bUrgency;
+                }).map(protocol => {
                   const isTakeHome = protocol.delivery_method === 'take_home';
                   const isSessionBased = protocol.total_sessions && protocol.total_sessions > 0 && !isTakeHome;
                   const isWeightLoss = protocol.program_name?.toLowerCase().includes('weight') ||

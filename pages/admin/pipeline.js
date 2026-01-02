@@ -32,6 +32,8 @@ export default function Pipeline() {
   
   const [assignForm, setAssignForm] = useState({
     category: '',
+    protocolType: '',
+    deliveryMethod: '',
     templateId: '',
     peptideId: '',
     selectedDose: '',
@@ -44,6 +46,8 @@ export default function Pipeline() {
   const [completedForm, setCompletedForm] = useState({
     patientId: '',
     category: '',
+    protocolType: '',
+    deliveryMethod: '',
     templateId: '',
     peptideId: '',
     selectedDose: '',
@@ -192,6 +196,8 @@ export default function Pipeline() {
     setSelectedPurchase(purchase);
     setAssignForm({
       category: '',
+      protocolType: '',
+      deliveryMethod: '',
       templateId: '',
       peptideId: '',
       selectedDose: '',
@@ -289,6 +295,8 @@ export default function Pipeline() {
         setCompletedForm({
           patientId: '',
           category: '',
+          protocolType: '',
+          deliveryMethod: '',
           templateId: '',
           peptideId: '',
           selectedDose: '',
@@ -354,6 +362,80 @@ export default function Pipeline() {
       day: 'numeric', 
       year: 'numeric',
       timeZone: 'America/Los_Angeles'
+    });
+  };
+
+  // Helper functions for 3-step template selection
+  const parseTemplateName = (name) => {
+    // Extract protocol type and delivery method from template name
+    // e.g., "Injection Therapy - 12 Pack (Take Home)" -> { type: "12 Pack", delivery: "Take Home" }
+    // e.g., "Peptide Therapy - 10 Day" -> { type: "10 Day", delivery: null }
+    
+    const deliveryMatch = name.match(/\((In Clinic|Take Home)\)/i);
+    const delivery = deliveryMatch ? deliveryMatch[1] : null;
+    
+    // Remove category prefix and delivery suffix to get protocol type
+    let type = name
+      .replace(/^(Injection Therapy|Peptide Therapy|HBOT|HRT|Red Light|Weight Loss)\s*-?\s*/i, '')
+      .replace(/\s*\((In Clinic|Take Home)\)\s*/i, '')
+      .trim();
+    
+    return { type, delivery };
+  };
+
+  const getProtocolTypes = (category) => {
+    const categoryTemplates = templates.filter(t => t.category === category);
+    const types = new Set();
+    
+    categoryTemplates.forEach(t => {
+      const { type } = parseTemplateName(t.name);
+      if (type) types.add(type);
+    });
+    
+    return [...types].sort();
+  };
+
+  const hasDeliveryOptions = (category, protocolType) => {
+    const categoryTemplates = templates.filter(t => t.category === category);
+    const matchingTemplates = categoryTemplates.filter(t => {
+      const { type } = parseTemplateName(t.name);
+      return type === protocolType;
+    });
+    
+    // Check if any have delivery options
+    return matchingTemplates.some(t => {
+      const { delivery } = parseTemplateName(t.name);
+      return delivery !== null;
+    });
+  };
+
+  const getDeliveryOptions = (category, protocolType) => {
+    const categoryTemplates = templates.filter(t => t.category === category);
+    const options = new Set();
+    
+    categoryTemplates.forEach(t => {
+      const { type, delivery } = parseTemplateName(t.name);
+      if (type === protocolType && delivery) {
+        options.add(delivery);
+      }
+    });
+    
+    return [...options].sort();
+  };
+
+  const findTemplate = (category, protocolType, deliveryMethod) => {
+    return templates.find(t => {
+      if (t.category !== category) return false;
+      const { type, delivery } = parseTemplateName(t.name);
+      if (type !== protocolType) return false;
+      if (deliveryMethod && delivery !== deliveryMethod) return false;
+      if (!deliveryMethod && delivery) return false; // Skip templates with delivery if we don't want one
+      return true;
+    }) || templates.find(t => {
+      // Fallback: just match category and type
+      if (t.category !== category) return false;
+      const { type } = parseTemplateName(t.name);
+      return type === protocolType;
     });
   };
 
@@ -698,32 +780,61 @@ export default function Pipeline() {
                 <select
                   style={styles.select}
                   value={assignForm.category}
-                  onChange={(e) => setAssignForm({ ...assignForm, category: e.target.value, templateId: '', peptideId: '', selectedDose: '', medication: '' })}
+                  onChange={(e) => setAssignForm({ ...assignForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '', medication: '' })}
                 >
                   <option value="">Select category...</option>
-                  {[...new Set(templates.map(t => t.category))].sort().map(cat => (
-                    <option key={cat} value={cat}>{cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : 'Other'}</option>
+                  {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => (
+                    <option key={cat} value={cat}>
+                      {cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    </option>
                   ))}
                 </select>
               </div>
 
               {assignForm.category && (
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Protocol Template</label>
+                  <label style={styles.label}>Protocol</label>
                   <select
                     style={styles.select}
-                    value={assignForm.templateId}
-                    onChange={(e) => setAssignForm({ ...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', medication: '' })}
+                    value={assignForm.protocolType}
+                    onChange={(e) => setAssignForm({ ...assignForm, protocolType: e.target.value, deliveryMethod: '', templateId: '' })}
                   >
-                    <option value="">Select template...</option>
-                    {templates
-                      .filter(t => t.category === assignForm.category)
-                      .map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
+                    <option value="">Select protocol...</option>
+                    {getProtocolTypes(assignForm.category).map(pt => (
+                      <option key={pt} value={pt}>{pt}</option>
+                    ))}
                   </select>
                 </div>
               )}
+
+              {assignForm.protocolType && hasDeliveryOptions(assignForm.category, assignForm.protocolType) && (
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Delivery Method</label>
+                  <select
+                    style={styles.select}
+                    value={assignForm.deliveryMethod}
+                    onChange={(e) => {
+                      const method = e.target.value;
+                      const template = findTemplate(assignForm.category, assignForm.protocolType, method);
+                      setAssignForm({ ...assignForm, deliveryMethod: method, templateId: template?.id || '' });
+                    }}
+                  >
+                    <option value="">Select delivery...</option>
+                    {getDeliveryOptions(assignForm.category, assignForm.protocolType).map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {assignForm.protocolType && !hasDeliveryOptions(assignForm.category, assignForm.protocolType) && (() => {
+                // Auto-select template when no delivery options
+                const template = findTemplate(assignForm.category, assignForm.protocolType, null);
+                if (template && assignForm.templateId !== template.id) {
+                  setTimeout(() => setAssignForm(prev => ({ ...prev, templateId: template.id })), 0);
+                }
+                return null;
+              })()}
 
               {isPeptideTemplate(assignForm) && (
                 <>
@@ -912,32 +1023,60 @@ export default function Pipeline() {
                 <select
                   style={styles.select}
                   value={completedForm.category}
-                  onChange={(e) => setCompletedForm({ ...completedForm, category: e.target.value, templateId: '', peptideId: '', selectedDose: '' })}
+                  onChange={(e) => setCompletedForm({ ...completedForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '' })}
                 >
                   <option value="">Select category...</option>
-                  {[...new Set(templates.map(t => t.category))].sort().map(cat => (
-                    <option key={cat} value={cat}>{cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : 'Other'}</option>
+                  {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => (
+                    <option key={cat} value={cat}>
+                      {cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    </option>
                   ))}
                 </select>
               </div>
 
               {completedForm.category && (
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Protocol Template</label>
+                  <label style={styles.label}>Protocol</label>
                   <select
                     style={styles.select}
-                    value={completedForm.templateId}
-                    onChange={(e) => setCompletedForm({ ...completedForm, templateId: e.target.value, peptideId: '', selectedDose: '' })}
+                    value={completedForm.protocolType}
+                    onChange={(e) => setCompletedForm({ ...completedForm, protocolType: e.target.value, deliveryMethod: '', templateId: '' })}
                   >
-                    <option value="">Select template...</option>
-                    {templates
-                      .filter(t => t.category === completedForm.category)
-                      .map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
+                    <option value="">Select protocol...</option>
+                    {getProtocolTypes(completedForm.category).map(pt => (
+                      <option key={pt} value={pt}>{pt}</option>
+                    ))}
                   </select>
                 </div>
               )}
+
+              {completedForm.protocolType && hasDeliveryOptions(completedForm.category, completedForm.protocolType) && (
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Delivery Method</label>
+                  <select
+                    style={styles.select}
+                    value={completedForm.deliveryMethod}
+                    onChange={(e) => {
+                      const method = e.target.value;
+                      const template = findTemplate(completedForm.category, completedForm.protocolType, method);
+                      setCompletedForm({ ...completedForm, deliveryMethod: method, templateId: template?.id || '' });
+                    }}
+                  >
+                    <option value="">Select delivery...</option>
+                    {getDeliveryOptions(completedForm.category, completedForm.protocolType).map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {completedForm.protocolType && !hasDeliveryOptions(completedForm.category, completedForm.protocolType) && (() => {
+                const template = findTemplate(completedForm.category, completedForm.protocolType, null);
+                if (template && completedForm.templateId !== template.id) {
+                  setTimeout(() => setCompletedForm(prev => ({ ...prev, templateId: template.id })), 0);
+                }
+                return null;
+              })()}
 
               {isPeptideTemplate(completedForm) && (
                 <>

@@ -15,11 +15,22 @@ export default function ProtocolDetail() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [logForm, setLogForm] = useState({
     log_date: new Date().toISOString().split('T')[0],
     log_type: 'injection',
     weight: '',
     notes: ''
+  });
+  const [editForm, setEditForm] = useState({
+    medication: '',
+    selected_dose: '',
+    frequency: '',
+    start_date: '',
+    end_date: '',
+    status: '',
+    notes: '',
+    sessions_used: 0
   });
 
   useEffect(() => {
@@ -102,6 +113,49 @@ export default function ProtocolDetail() {
     }
   };
 
+  const openEditModal = () => {
+    setEditForm({
+      medication: protocol.medication || '',
+      selected_dose: protocol.selected_dose || '',
+      frequency: protocol.frequency || '',
+      start_date: protocol.start_date || '',
+      end_date: protocol.end_date || '',
+      status: protocol.status || 'active',
+      notes: protocol.notes || '',
+      sessions_used: protocol.sessions_used || 0
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      const res = await fetch(`/api/protocols/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          medication: editForm.medication,
+          selectedDose: editForm.selected_dose,
+          frequency: editForm.frequency,
+          startDate: editForm.start_date,
+          endDate: editForm.end_date,
+          status: editForm.status,
+          notes: editForm.notes,
+          sessionsUsed: editForm.sessions_used
+        })
+      });
+
+      if (res.ok) {
+        setShowEditModal(false);
+        fetchProtocol();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update protocol');
+      }
+    } catch (error) {
+      console.error('Error updating protocol:', error);
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -172,12 +226,17 @@ export default function ProtocolDetail() {
               {protocol.frequency && ` • ${protocol.frequency}`}
             </p>
           </div>
-          <span style={{
-            ...styles.statusBadge,
-            background: protocol.status === 'active' ? '#22c55e' : '#9ca3af'
-          }}>
-            {protocol.status}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button onClick={openEditModal} style={styles.editButton}>
+              Edit
+            </button>
+            <span style={{
+              ...styles.statusBadge,
+              background: protocol.status === 'active' ? '#22c55e' : '#9ca3af'
+            }}>
+              {protocol.status}
+            </span>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -457,6 +516,124 @@ export default function ProtocolDetail() {
             </div>
           </div>
         )}
+
+        {/* Edit Protocol Modal */}
+        {showEditModal && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>Edit Protocol</h3>
+                <button onClick={() => setShowEditModal(false)} style={styles.closeButton}>×</button>
+              </div>
+
+              <div style={styles.modalBody}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Medication</label>
+                  <input 
+                    type="text"
+                    value={editForm.medication}
+                    onChange={e => setEditForm({...editForm, medication: e.target.value})}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Dose</label>
+                  <input 
+                    type="text"
+                    value={editForm.selected_dose}
+                    onChange={e => setEditForm({...editForm, selected_dose: e.target.value})}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Frequency</label>
+                  <select 
+                    value={editForm.frequency}
+                    onChange={e => setEditForm({...editForm, frequency: e.target.value})}
+                    style={styles.input}
+                  >
+                    <option value="">None</option>
+                    <option value="Daily">Daily</option>
+                    <option value="2x/day">2x per day</option>
+                    <option value="3x/week">3x per week</option>
+                    <option value="2x/week">2x per week</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="Every 2 weeks">Every 2 weeks</option>
+                  </select>
+                </div>
+
+                <div style={styles.formRow}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Start Date</label>
+                    <input 
+                      type="date"
+                      value={editForm.start_date}
+                      onChange={e => setEditForm({...editForm, start_date: e.target.value})}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>End Date / Supply Runs Out</label>
+                    <input 
+                      type="date"
+                      value={editForm.end_date}
+                      onChange={e => setEditForm({...editForm, end_date: e.target.value})}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                {isSessionBased && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      {isWeightLoss ? 'Injections Used' : 'Sessions Used'} (of {protocol.total_sessions})
+                    </label>
+                    <input 
+                      type="number"
+                      min="0"
+                      max={protocol.total_sessions}
+                      value={editForm.sessions_used}
+                      onChange={e => setEditForm({...editForm, sessions_used: parseInt(e.target.value) || 0})}
+                      style={styles.input}
+                    />
+                  </div>
+                )}
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Status</label>
+                  <select 
+                    value={editForm.status}
+                    onChange={e => setEditForm({...editForm, status: e.target.value})}
+                    style={styles.input}
+                  >
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Notes</label>
+                  <textarea 
+                    value={editForm.notes}
+                    onChange={e => setEditForm({...editForm, notes: e.target.value})}
+                    style={styles.textarea}
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowEditModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button onClick={handleEditSubmit} style={styles.submitButton}>
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -514,6 +691,20 @@ const styles = {
     fontSize: '13px',
     fontWeight: '500',
     textTransform: 'capitalize'
+  },
+  editButton: {
+    padding: '8px 16px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  formRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px'
   },
   statsGrid: {
     display: 'grid',

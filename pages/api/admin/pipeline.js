@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     // Filter to only purchases that need protocols
     // Keep purchases where protocol_created is NOT true AND dismissed is NOT true
     const needsProtocol = (allPurchases || []).filter(p => {
-      const hasProtocol = p.protocol_created === true || p.has_protocol === true;
+      const hasProtocol = p.protocol_created === true;
       const isDismissed = p.dismissed === true;
       return !hasProtocol && !isDismissed;
     });

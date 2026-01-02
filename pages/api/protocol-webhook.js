@@ -21,19 +21,27 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const payload = req.body;
+  
+  // Log EVERY incoming webhook
+  await supabase.from('webhook_logs').insert({
+    source: 'ghl',
+    payload: payload,
+    status: 'received',
+    created_at: new Date().toISOString()
+  });
+
   try {
-    const payload = req.body;
-    
-    // Log incoming webhook for debugging
     console.log('=== GHL Webhook Received ===');
     console.log(JSON.stringify(payload, null, 2));
 
     // Extract contact info from various GHL payload formats
     const contactId = payload.contact_id || payload.contactId || payload.contact?.id || 
-                      payload.customData?.contact_id || payload.data?.contact_id;
+                      payload.customData?.contact_id || payload.data?.contact_id ||
+                      payload.contactId || payload.contact_id;
     
     const contactName = payload.contact_name || payload.contactName || payload.contact?.name || 
-                        payload.full_name || payload.fullName ||
+                        payload.full_name || payload.fullName || payload.name ||
                         `${payload.first_name || payload.firstName || payload.contact?.first_name || ''} ${payload.last_name || payload.lastName || payload.contact?.last_name || ''}`.trim();
     
     const contactEmail = payload.contact_email || payload.contactEmail || payload.contact?.email || payload.email;
@@ -41,6 +49,13 @@ export default async function handler(req, res) {
 
     if (!contactId) {
       console.log('No contact_id in payload');
+      await supabase.from('webhook_logs').insert({
+        source: 'ghl',
+        payload: payload,
+        status: 'skipped',
+        error_message: 'No contact_id found in payload',
+        created_at: new Date().toISOString()
+      });
       return res.status(200).json({ status: 'skipped', reason: 'no contact_id' });
     }
 
@@ -64,6 +79,8 @@ export default async function handler(req, res) {
       // Create new patient
       const newPatientData = {
         name: contactName || 'Unknown',
+        first_name: contactName ? contactName.split(' ')[0] : 'Unknown',
+        last_name: contactName ? contactName.split(' ').slice(1).join(' ') : '',
         email: contactEmail || null,
         phone: contactPhone || null,
         ghl_contact_id: contactId,
@@ -107,13 +124,16 @@ export default async function handler(req, res) {
     // STEP 2: Extract purchase/invoice info
     // GHL sends different formats depending on the trigger
     const items = payload.items || payload.line_items || payload.lineItems || 
-                  payload.invoice?.items || payload.data?.items || [];
+                  payload.invoice?.items || payload.data?.items || 
+                  payload.invoice?.lineItems || [];
     const invoiceId = payload.invoice_id || payload.invoiceId || payload.id || 
-                      payload.invoice?.id || payload.data?.invoice_id;
+                      payload.invoice?.id || payload.data?.invoice_id ||
+                      payload._id;
     const totalAmount = parseFloat(payload.amount || payload.total || payload.amount_paid || 
-                                   payload.invoice?.total || payload.data?.amount || 0);
+                                   payload.invoice?.total || payload.data?.amount || 
+                                   payload.amountPaid || 0);
     const paymentDate = payload.payment_date || payload.paymentDate || payload.created_at || 
-                        payload.date || new Date().toISOString();
+                        payload.date || payload.createdAt || new Date().toISOString();
 
     console.log('Items:', items.length);
     console.log('Invoice ID:', invoiceId);
@@ -124,8 +144,10 @@ export default async function handler(req, res) {
     // If there are line items, create a purchase for each
     if (items.length > 0) {
       for (const item of items) {
-        const itemName = item.name || item.title || item.product_name || item.description || 'Unknown Item';
-        const itemAmount = parseFloat(item.amount || item.price || item.unit_price || item.total || 0);
+        const itemName = item.name || item.title || item.product_name || item.productName || 
+                         item.description || item.product?.name || 'Unknown Item';
+        const itemAmount = parseFloat(item.amount || item.price || item.unit_price || 
+                                      item.unitPrice || item.total || 0);
         const itemQty = parseInt(item.quantity || item.qty || 1);
 
         // Check for duplicate (same contact, same item, same date)
@@ -141,6 +163,9 @@ export default async function handler(req, res) {
         if (!existingPurchase) {
           const purchaseData = {
             patient_id: patient?.id || null,
+            patient_name: contactName || patient?.name || 'Unknown',
+            patient_email: contactEmail || patient?.email || null,
+            patient_phone: contactPhone || patient?.phone || null,
             ghl_contact_id: contactId,
             item_name: itemName,
             product_name: itemName,
@@ -171,7 +196,8 @@ export default async function handler(req, res) {
     } else if (totalAmount > 0) {
       // Single item payment (no line items array)
       const itemName = payload.product_name || payload.productName || payload.name || 
-                       payload.title || payload.description || 'Payment';
+                       payload.title || payload.description || 
+                       payload.product?.name || 'Payment';
       
       const purchaseDate = paymentDate.split('T')[0];
       
@@ -187,6 +213,9 @@ export default async function handler(req, res) {
       if (!existingPurchase) {
         const purchaseData = {
           patient_id: patient?.id || null,
+          patient_name: contactName || patient?.name || 'Unknown',
+          patient_email: contactEmail || patient?.email || null,
+          patient_phone: contactPhone || patient?.phone || null,
           ghl_contact_id: contactId,
           item_name: itemName,
           product_name: itemName,
@@ -213,6 +242,14 @@ export default async function handler(req, res) {
       }
     }
 
+    // Log success
+    await supabase.from('webhook_logs').insert({
+      source: 'ghl',
+      payload: { contact_id: contactId, purchases_created: purchasesCreated, patient_name: patient?.name },
+      status: 'success',
+      created_at: new Date().toISOString()
+    });
+
     console.log('=== Webhook Complete ===');
     console.log('Patient:', patient?.name || 'Unknown');
     console.log('Purchases created:', purchasesCreated);
@@ -227,6 +264,16 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Webhook error:', error);
+    
+    // Log error
+    await supabase.from('webhook_logs').insert({
+      source: 'ghl',
+      payload: payload,
+      status: 'error',
+      error_message: error.message,
+      created_at: new Date().toISOString()
+    });
+    
     return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 }

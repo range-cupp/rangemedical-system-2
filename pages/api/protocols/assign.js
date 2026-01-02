@@ -1,10 +1,11 @@
 // /pages/api/protocols/assign.js
 // Assign a protocol to a patient from a purchase
+// Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
@@ -26,17 +27,9 @@ export default async function handler(req, res) {
       frequency,
       startDate,
       notes,
-      // HRT specific
-      hrtGender,
-      hrtSupplyType,
-      // Weight Loss specific
-      startWeight,
-      goalWeight,
-      // Session-based
-      totalSessions: requestedTotalSessions,
-      // Supply duration for take-home
-      supplyDuration,
-      deliveryMethod
+      deliveryMethod,
+      totalSessions,
+      supplyDuration
     } = req.body;
 
     if (!templateId) {
@@ -47,7 +40,6 @@ export default async function handler(req, res) {
     let finalPatientId = patientId;
 
     if (!finalPatientId && ghlContactId) {
-      // Try to find patient by ghl_contact_id
       const { data: existingPatient } = await supabase
         .from('patients')
         .select('id')
@@ -57,7 +49,6 @@ export default async function handler(req, res) {
       if (existingPatient) {
         finalPatientId = existingPatient.id;
       } else {
-        // Create a new patient record
         const { data: newPatient, error: createError } = await supabase
           .from('patients')
           .insert({
@@ -81,17 +72,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Could not determine patient' });
     }
 
-    // Update patient with weight info if provided (for weight loss)
-    if (startWeight || goalWeight) {
-      await supabase
-        .from('patients')
-        .update({
-          start_weight: startWeight ? parseFloat(startWeight) : undefined,
-          goal_weight: goalWeight ? parseFloat(goalWeight) : undefined
-        })
-        .eq('id', finalPatientId);
-    }
-
     // Get template info
     const { data: template } = await supabase
       .from('protocol_templates')
@@ -103,7 +83,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Template not found' });
     }
 
-    // Get peptide info if provided, or use direct medication
+    // Get peptide info if provided
     let medicationName = medication || null;
     if (!medicationName && peptideId) {
       const { data: peptide } = await supabase
@@ -114,111 +94,95 @@ export default async function handler(req, res) {
       medicationName = peptide?.name;
     }
 
-    // Calculate end date based on template duration or supply duration
+    // Calculate end date
     let endDate = null;
-    const isTakeHome = deliveryMethod === 'take_home';
-    
     if (supplyDuration && startDate) {
-      // For take-home with supply duration
+      // For take-home with custom supply duration
       const start = new Date(startDate);
       start.setDate(start.getDate() + parseInt(supplyDuration));
       endDate = start.toISOString().split('T')[0];
     } else if (template.duration_days && startDate) {
+      // From template
       const start = new Date(startDate);
       start.setDate(start.getDate() + template.duration_days);
       endDate = start.toISOString().split('T')[0];
     }
 
-    // Check if this is a single session (IV Single, injection, etc.) - auto-complete
-    const isSingleSession = template.name?.toLowerCase().includes('single') || 
-                            template.duration_days === 1 ||
-                            template.duration_days === 0;
+    // Determine total sessions from template or request
+    let finalTotalSessions = totalSessions || template.total_sessions || null;
     
-    // Check if this is a session-based pack (in-clinic injections)
-    const isPackProtocol = (template.total_sessions && template.total_sessions > 1) || 
-                           requestedTotalSessions > 1;
-    
-    let protocolStatus = 'active';
-    let protocolEndDate = endDate;
-    let totalSessions = requestedTotalSessions || template.total_sessions || null;
-    let sessionsUsed = 0;
-
-    if (isSingleSession) {
-      protocolStatus = 'completed';
-      protocolEndDate = startDate;
-      totalSessions = template.total_sessions || 1;
-      sessionsUsed = template.total_sessions || 1;
-    } else if (isTakeHome && supplyDuration) {
-      // Take-home protocols track by time, not sessions
-      protocolStatus = 'active';
-      protocolEndDate = endDate;
-      totalSessions = null;
-      sessionsUsed = null;
-    } else if (isPackProtocol) {
-      // Pack protocol - no end date, track by sessions
-      protocolStatus = 'active';
-      protocolEndDate = null;
-      sessionsUsed = 0;
+    // Parse from template name if session-based
+    if (!finalTotalSessions && template.name) {
+      const packMatch = template.name.match(/(\d+)\s*Pack/i);
+      if (packMatch) {
+        finalTotalSessions = parseInt(packMatch[1]);
+      }
     }
 
-    // Build notes with additional info
-    let finalNotes = notes || '';
-    if (hrtGender || hrtSupplyType) {
-      const hrtInfo = [];
-      if (hrtGender) hrtInfo.push(`Gender: ${hrtGender}`);
-      if (hrtSupplyType) hrtInfo.push(`Supply: ${hrtSupplyType}`);
-      finalNotes = finalNotes ? `${finalNotes}\n${hrtInfo.join(', ')}` : hrtInfo.join(', ');
+    // Check if single session
+    const isSingle = template.name?.toLowerCase().includes('single');
+    if (isSingle) {
+      finalTotalSessions = 1;
     }
-    if (startWeight || goalWeight) {
-      const wlInfo = [];
-      if (startWeight) wlInfo.push(`Start: ${startWeight}lbs`);
-      if (goalWeight) wlInfo.push(`Goal: ${goalWeight}lbs`);
-      finalNotes = finalNotes ? `${finalNotes}\n${wlInfo.join(', ')}` : wlInfo.join(', ');
-    }
+
+    // Get patient info for protocol record
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('name, phone, email, ghl_contact_id')
+      .eq('id', finalPatientId)
+      .single();
 
     // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
       .insert({
         patient_id: finalPatientId,
+        ghl_contact_id: patient?.ghl_contact_id || ghlContactId,
+        patient_name: patient?.name || patientName,
+        patient_phone: patient?.phone,
+        patient_email: patient?.email,
         program_name: template.name,
-        program_type: template.program_type || template.category || 'other',
+        category: template.category,
         medication: medicationName,
         selected_dose: selectedDose || null,
-        frequency: frequency || null,
-        start_date: startDate,
-        end_date: protocolEndDate,
-        status: protocolStatus,
-        total_sessions: totalSessions,
-        sessions_used: sessionsUsed,
+        frequency: frequency || template.frequency,
         delivery_method: deliveryMethod || null,
-        notes: finalNotes || null,
+        start_date: startDate,
+        end_date: endDate,
+        duration_days: template.duration_days,
+        total_sessions: finalTotalSessions,
+        sessions_used: 0,
+        status: isSingle ? 'completed' : 'active',
+        notes: notes,
         created_at: new Date().toISOString()
       })
       .select()
       .single();
 
     if (protocolError) {
-      console.error('Error creating protocol:', protocolError);
-      return res.status(500).json({ error: 'Failed to create protocol', details: protocolError.message });
+      console.error('Protocol creation error:', protocolError);
+      throw protocolError;
     }
 
-    // Mark purchase as having protocol created
+    // Mark purchase as having a protocol
     if (purchaseId) {
-      const { error: updateError } = await supabase
+      await supabase
         .from('purchases')
-        .update({ protocol_created: true })
+        .update({ 
+          protocol_id: protocol.id,
+          has_protocol: true
+        })
         .eq('id', purchaseId);
-      
-      if (updateError) {
-        console.error('Error updating purchase:', updateError);
-      }
     }
 
-    return res.status(200).json({ success: true, protocol });
+    res.status(200).json({ 
+      success: true, 
+      protocol,
+      message: `Protocol created: ${template.name}`
+    });
 
   } catch (error) {
-    console.error('Assign protocol error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    console.error('Error assigning protocol:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 }

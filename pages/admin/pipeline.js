@@ -506,6 +506,8 @@ export default function Pipeline() {
       const isWeightLoss = templateCategory === 'weight-loss';
       const isRedLight = templateCategory === 'red-light';
       const isHbot = templateCategory === 'hbot';
+      const isTakeHome = templateLocation === 'take-home';
+      const isInClinic = templateLocation === 'in-clinic';
       
       // Build medication and dose based on protocol type
       let medication = null;
@@ -520,6 +522,26 @@ export default function Pipeline() {
       } else if (isWeightLoss) {
         medication = WL_MEDICATIONS.find(m => m.id === wlMedication)?.name || wlMedication;
         selectedDose = WL_DOSES[wlMedication]?.find(d => d.id === wlDose)?.name || wlDose;
+      }
+
+      // Calculate sessions for in-clinic injections
+      let totalSessions = null;
+      if (isInjection && isInClinic) {
+        totalSessions = templatePackSize === 'single' ? 1 : 
+                        templatePackSize === 'double' ? 2 : 
+                        templatePackSize === '4-pack' ? 4 :
+                        templatePackSize === '10-pack' ? 10 : 
+                        templatePackSize === '12-pack' ? 12 : null;
+      } else if (isRedLight || isHbot) {
+        totalSessions = sessionPackSize === 'single' ? 1 : 
+                        sessionPackSize === '5-pack' ? 5 : 
+                        sessionPackSize === '10-pack' ? 10 : 20;
+      }
+
+      // Calculate duration for take-home injections
+      let supplyDuration = null;
+      if (isInjection && isTakeHome && assignForm.supplyDuration) {
+        supplyDuration = parseInt(assignForm.supplyDuration);
       }
       
       const res = await fetch('/api/protocols/assign', {
@@ -543,11 +565,11 @@ export default function Pipeline() {
           // Weight Loss specific
           startWeight: isWeightLoss ? assignForm.startWeight : null,
           goalWeight: isWeightLoss ? assignForm.goalWeight : null,
-          // Session-based
-          totalSessions: (isRedLight || isHbot) ? 
-            (sessionPackSize === 'single' ? 1 : 
-             sessionPackSize === '5-pack' ? 5 : 
-             sessionPackSize === '10-pack' ? 10 : 20) : null
+          // Session-based (in-clinic injections, red light, hbot)
+          totalSessions: totalSessions,
+          // Supply duration (take-home injections)
+          supplyDuration: supplyDuration,
+          deliveryMethod: isTakeHome ? 'take_home' : (isInClinic ? 'in_clinic' : null)
         })
       });
 
@@ -1065,6 +1087,24 @@ export default function Pipeline() {
                             <option key={size.id} value={size.id}>{size.name}</option>
                           ))}
                         </select>
+                      </div>
+                    )}
+
+                    {/* Supply Duration for Take-Home Injections */}
+                    {templateCategory === 'injection' && templateLocation === 'take-home' && templatePackSize && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Supply Duration (days) *</label>
+                        <input 
+                          type="number"
+                          min="1"
+                          value={assignForm.supplyDuration || ''}
+                          onChange={e => setAssignForm({...assignForm, supplyDuration: e.target.value})}
+                          placeholder="e.g., 30 for 1 month"
+                          style={styles.input}
+                        />
+                        <div style={{fontSize: '12px', color: '#666', marginTop: '4px'}}>
+                          How many days will this supply last?
+                        </div>
                       </div>
                     )}
 

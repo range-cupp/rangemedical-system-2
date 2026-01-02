@@ -875,11 +875,13 @@ export default function Pipeline() {
                           </span>
                         )}
                       </div>
-                      <div style={styles.activeProtocolInfo}>
-                        <span style={styles.protocolDot}>●</span>
-                        <span>{protocol.medication || protocol.program_name}</span>
-                        {protocol.selected_dose && <span> - {protocol.selected_dose}</span>}
-                      </div>
+                      <Link href={`/admin/protocol/${protocol.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{...styles.activeProtocolInfo, cursor: 'pointer'}}>
+                          <span style={styles.protocolDot}>●</span>
+                          <span>{protocol.medication || protocol.program_name}</span>
+                          {protocol.selected_dose && <span> - {protocol.selected_dose}</span>}
+                        </div>
+                      </Link>
                       <div style={styles.progressBar}>
                         <div style={{...styles.progressFill, width: `${progressPercent}%`}}></div>
                       </div>

@@ -1,5 +1,5 @@
 // /pages/admin/protocol/[id].js
-// Protocol Detail Page - Track injections, sessions, and weight
+// Protocol Detail Page - Shows delivery method and proper tracking
 // Range Medical
 
 import { useState, useEffect } from 'react';
@@ -7,110 +7,73 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 
+// Injection medications list - SHARED CONFIG
+const INJECTION_MEDICATIONS = [
+  'NAD+ 100mg',
+  'NAD+ 200mg',
+  'B12',
+  'Glutathione',
+  'Vitamin D',
+  'Biotin',
+  'Lipo-C',
+  'Skinny Shot',
+  'Toradol'
+];
+
+const FREQUENCY_OPTIONS = [
+  { value: '2x daily', label: '2x Daily' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'every other day', label: 'Every Other Day' },
+  { value: 'every 5 days', label: 'Every 5 Days' },
+  { value: '2x weekly', label: '2x Weekly' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'as needed', label: 'As Needed' }
+];
+
 export default function ProtocolDetail() {
   const router = useRouter();
   const { id } = router.query;
-  
+
   const [protocol, setProtocol] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   const [logForm, setLogForm] = useState({
     log_date: new Date().toISOString().split('T')[0],
-    log_type: 'injection',
-    weight: '',
     notes: ''
   });
+
   const [editForm, setEditForm] = useState({
     medication: '',
     selected_dose: '',
     frequency: '',
+    delivery_method: '',
     start_date: '',
     end_date: '',
     status: '',
     notes: '',
     sessions_used: 0,
-    delivery_method: ''
+    total_sessions: 0
   });
 
   useEffect(() => {
-    if (id) {
-      fetchProtocol();
-      fetchLogs();
-    }
+    if (id) fetchProtocol();
   }, [id]);
 
   const fetchProtocol = async () => {
     try {
       const res = await fetch(`/api/protocols/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProtocol(data);
-      }
+      if (!res.ok) throw new Error('Protocol not found');
+      const data = await res.json();
+      setProtocol(data.protocol || data);
+      setLogs(data.logs || []);
     } catch (error) {
       console.error('Error fetching protocol:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchLogs = async () => {
-    try {
-      const res = await fetch(`/api/protocols/${id}/logs`);
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data);
-      }
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-    }
-  };
-
-  const handleLogSubmit = async () => {
-    try {
-      const res = await fetch(`/api/protocols/${id}/logs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...logForm,
-          patient_id: protocol.patient_id
-        })
-      });
-
-      if (res.ok) {
-        setShowLogModal(false);
-        setLogForm({
-          log_date: new Date().toISOString().split('T')[0],
-          log_type: 'injection',
-          weight: '',
-          notes: ''
-        });
-        fetchProtocol(); // Refresh to get updated sessions_used
-        fetchLogs();
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to log');
-      }
-    } catch (error) {
-      console.error('Error logging:', error);
-    }
-  };
-
-  const handleDeleteLog = async (logId) => {
-    if (!confirm('Delete this log entry?')) return;
-    
-    try {
-      const res = await fetch(`/api/protocols/${id}/logs/${logId}`, {
-        method: 'DELETE'
-      });
-
-      if (res.ok) {
-        fetchProtocol();
-        fetchLogs();
-      }
-    } catch (error) {
-      console.error('Error deleting log:', error);
     }
   };
 
@@ -119,43 +82,60 @@ export default function ProtocolDetail() {
       medication: protocol.medication || '',
       selected_dose: protocol.selected_dose || '',
       frequency: protocol.frequency || '',
-      start_date: protocol.start_date || '',
-      end_date: protocol.end_date || '',
+      delivery_method: protocol.delivery_method || '',
+      start_date: protocol.start_date ? protocol.start_date.split('T')[0] : '',
+      end_date: protocol.end_date ? protocol.end_date.split('T')[0] : '',
       status: protocol.status || 'active',
       notes: protocol.notes || '',
       sessions_used: protocol.sessions_used || 0,
-      delivery_method: protocol.delivery_method || ''
+      total_sessions: protocol.total_sessions || 0
     });
     setShowEditModal(true);
   };
 
   const handleEditSubmit = async () => {
+    setSaving(true);
     try {
       const res = await fetch(`/api/protocols/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          medication: editForm.medication,
-          selectedDose: editForm.selected_dose,
-          frequency: editForm.frequency,
-          startDate: editForm.start_date,
-          endDate: editForm.end_date,
-          status: editForm.status,
-          notes: editForm.notes,
-          sessionsUsed: editForm.sessions_used,
-          deliveryMethod: editForm.delivery_method
-        })
+        body: JSON.stringify(editForm)
       });
 
       if (res.ok) {
         setShowEditModal(false);
         fetchProtocol();
       } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to update protocol');
+        alert('Failed to save');
       }
     } catch (error) {
-      console.error('Error updating protocol:', error);
+      console.error('Error saving:', error);
+      alert('Error saving protocol');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogSession = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${id}/log-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logForm)
+      });
+
+      if (res.ok) {
+        setShowLogModal(false);
+        setLogForm({ log_date: new Date().toISOString().split('T')[0], notes: '' });
+        fetchProtocol();
+      } else {
+        alert('Failed to log session');
+      }
+    } catch (error) {
+      console.error('Error logging session:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -164,223 +144,269 @@ export default function ProtocolDetail() {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'America/Los_Angeles'
     });
   };
 
-  const isWeightLoss = protocol?.program_name?.toLowerCase().includes('weight') ||
-                       protocol?.medication?.toLowerCase().includes('semaglutide') ||
-                       protocol?.medication?.toLowerCase().includes('tirzepatide') ||
-                       protocol?.medication?.toLowerCase().includes('retatrutide');
-
-  const isTakeHome = protocol?.delivery_method === 'take_home';
-  const isInClinic = protocol?.delivery_method === 'in_clinic';
-  const isSessionBased = protocol?.total_sessions && protocol.total_sessions > 0 && !isTakeHome;
-  const sessionsUsed = protocol?.sessions_used || 0;
-  const sessionsRemaining = isSessionBased ? protocol.total_sessions - sessionsUsed : null;
+  // Determine tracking type
+  const isSessionBased = protocol?.total_sessions > 0;
   
-  // Calculate days remaining for take-home protocols
-  const daysRemaining = protocol?.end_date 
-    ? Math.ceil((new Date(protocol.end_date) - new Date()) / (1000 * 60 * 60 * 24))
-    : null;
-  const isLowSupply = isTakeHome && daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0;
-  const isExpired = isTakeHome && daysRemaining !== null && daysRemaining <= 0;
+  // Get delivery method - check field first, then parse from program_name
+  const getDeliveryMethod = () => {
+    if (protocol?.delivery_method === 'take_home') return 'take_home';
+    if (protocol?.delivery_method === 'in_clinic') return 'in_clinic';
+    
+    // Parse from program_name
+    const programName = (protocol?.program_name || '').toLowerCase();
+    if (programName.includes('take home')) return 'take_home';
+    if (programName.includes('in clinic') || programName.includes('in-clinic')) return 'in_clinic';
+    
+    return null;
+  };
   
-  // Calculate if titration time (4th injection for weight loss)
-  const isTitrationTime = isWeightLoss && sessionsUsed === 3;
-  const isAtTitration = isWeightLoss && sessionsUsed >= 4;
+  const deliveryMethodValue = getDeliveryMethod();
+  const isTakeHome = deliveryMethodValue === 'take_home';
+  const isInClinic = deliveryMethodValue === 'in_clinic';
+  
+  // Get display title
+  const getDisplayTitle = () => {
+    if (!protocol) return '';
+    const medication = protocol.medication || '';
+    const programName = protocol.program_name || '';
+    
+    // If medication exists, use it as primary title
+    if (medication) return medication;
+    return programName;
+  };
 
-  // Get injection logs and weigh-in logs separately
-  const injectionLogs = logs.filter(l => l.log_type === 'injection' || l.log_type === 'session');
-  const weighInLogs = logs.filter(l => l.log_type === 'weigh_in');
+  // Get delivery method display
+  const getDeliveryDisplay = () => {
+    if (isTakeHome) return 'Take Home';
+    if (isInClinic) return 'In Clinic';
+    return '';
+  };
 
-  // Calculate weight change if we have weigh-ins
-  const latestWeight = weighInLogs[0]?.weight;
-  const firstWeight = weighInLogs[weighInLogs.length - 1]?.weight;
-  const weightChange = latestWeight && firstWeight ? (latestWeight - firstWeight).toFixed(1) : null;
+  // Calculate tracking stats
+  const getTrackingStats = () => {
+    // Determine label based on category
+    const category = (protocol.category || '').toLowerCase();
+    const isInjectionCategory = category === 'injection';
+    const isRLT = category === 'red_light' || category === 'rlt';
+    const isHBOT = category === 'hbot';
+    
+    // Use "Injections" for injection category, "Sessions" for RLT/HBOT
+    const inClinicLabel = isInjectionCategory ? 'Injections' : 'Sessions';
+    const logButtonText = isInjectionCategory ? '+ Log Injection' : '+ Log Session';
+    
+    if (isSessionBased && isInClinic) {
+      // In Clinic: Track sessions/injections
+      const used = protocol.sessions_used || 0;
+      const total = protocol.total_sessions || 0;
+      const left = total - used;
+      return {
+        type: 'sessions',
+        used,
+        total,
+        left,
+        label: inClinicLabel,
+        logButtonText
+      };
+    } else if (isSessionBased && isTakeHome) {
+      // Take Home: Calculate refill date based on frequency
+      const total = protocol.total_sessions || 12;
+      const freq = (protocol.frequency || '').toLowerCase();
+      
+      // Calculate days per injection based on frequency
+      let daysPerInjection = 1;
+      if (freq.includes('every other day') || freq.includes('every 2 days')) {
+        daysPerInjection = 2;
+      } else if (freq.includes('every 3 days')) {
+        daysPerInjection = 3;
+      } else if (freq.includes('every 5 days')) {
+        daysPerInjection = 5;
+      } else if (freq.includes('weekly') || freq.includes('once a week')) {
+        daysPerInjection = 7;
+      } else if (freq.includes('2x weekly') || freq.includes('twice a week')) {
+        daysPerInjection = 3.5;
+      }
+      
+      // Total supply duration
+      const supplyDays = Math.floor(total * daysPerInjection);
+      
+      // Calculate refill date
+      const startDate = protocol.start_date ? new Date(protocol.start_date + 'T00:00:00') : new Date();
+      const refillDate = new Date(startDate);
+      refillDate.setDate(refillDate.getDate() + supplyDays);
+      
+      // Days until refill
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const daysUntilRefill = Math.ceil((refillDate - today) / (1000 * 60 * 60 * 24));
+      
+      return {
+        type: 'refill',
+        total,
+        supplyDays,
+        refillDate,
+        daysUntilRefill,
+        label: 'Injections'
+      };
+    } else {
+      // Time-based tracking
+      const start = protocol.start_date ? new Date(protocol.start_date) : null;
+      const end = protocol.end_date ? new Date(protocol.end_date) : null;
+      const today = new Date();
+      
+      if (start && end) {
+        const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+        const daysElapsed = Math.ceil((today - start) / (1000 * 60 * 60 * 24));
+        const daysLeft = Math.max(0, Math.ceil((end - today) / (1000 * 60 * 60 * 24)));
+        
+        return {
+          type: 'days',
+          used: Math.min(daysElapsed, totalDays),
+          total: totalDays,
+          left: daysLeft,
+          label: 'Days'
+        };
+      }
+      
+      return null;
+    }
+  };
 
   if (loading) {
-    return <div style={styles.loading}>Loading...</div>;
+    return (
+      <div style={styles.container}>
+        <div style={styles.loading}>Loading protocol...</div>
+      </div>
+    );
   }
 
   if (!protocol) {
-    return <div style={styles.error}>Protocol not found</div>;
+    return (
+      <div style={styles.container}>
+        <div style={styles.error}>Protocol not found</div>
+      </div>
+    );
   }
+
+  const stats = getTrackingStats();
+  const deliveryMethod = getDeliveryDisplay();
 
   return (
     <>
       <Head>
-        <title>{protocol.medication || protocol.program_name} - Protocol Detail</title>
+        <title>{getDisplayTitle()} | Range Medical</title>
       </Head>
 
       <div style={styles.container}>
         {/* Back Link */}
-        <Link href={protocol.patient_id ? `/admin/patient/${protocol.patient_id}` : '/admin/pipeline'} style={styles.backLink}>
-          ← Back to {protocol.patient_id ? 'Patient' : 'Pipeline'}
+        <Link href={protocol.patient_id ? `/admin/patient/${protocol.patient_id}` : '/admin/pipeline?tab=active'} style={styles.backLink}>
+          ← Back to Patient
         </Link>
 
         {/* Header */}
         <div style={styles.header}>
           <div>
-            <h1 style={styles.title}>{protocol.medication || protocol.program_name}</h1>
-            <p style={styles.subtitle}>
-              {protocol.patients?.name || protocol.patient_name || 'Unknown Patient'}
-              {protocol.selected_dose && ` • ${protocol.selected_dose}`}
+            <h1 style={styles.title}>{getDisplayTitle()}</h1>
+            <div style={styles.subtitle}>
+              {protocol.patient_name || 'Unknown Patient'}
               {protocol.frequency && ` • ${protocol.frequency}`}
-            </p>
+              {deliveryMethod && ` • ${deliveryMethod}`}
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={openEditModal} style={styles.editButton}>
-              Edit
-            </button>
+          <div style={styles.headerActions}>
+            <button onClick={openEditModal} style={styles.editButton}>Edit</button>
             <span style={{
               ...styles.statusBadge,
-              background: protocol.status === 'active' ? '#22c55e' : '#9ca3af'
+              backgroundColor: protocol.status === 'active' ? '#dcfce7' : '#e5e7eb',
+              color: protocol.status === 'active' ? '#166534' : '#374151'
             }}>
-              {protocol.status}
+              {protocol.status === 'active' ? 'Active' : protocol.status}
             </span>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div style={styles.statsGrid}>
-          {/* For in-clinic session-based protocols */}
-          {isSessionBased && (
-            <>
-              <div style={styles.statCard}>
-                <div style={styles.statValue}>{sessionsUsed}</div>
-                <div style={styles.statLabel}>
-                  {isWeightLoss ? 'Injections Given' : 'Sessions Used'}
-                </div>
-              </div>
-              <div style={styles.statCard}>
-                <div style={{
-                  ...styles.statValue,
-                  color: sessionsRemaining <= 1 ? '#dc2626' : '#000'
-                }}>
-                  {sessionsRemaining}
-                </div>
-                <div style={styles.statLabel}>
-                  {isWeightLoss ? 'Injections Left' : 'Sessions Left'}
-                </div>
-              </div>
-            </>
-          )}
-          
-          {/* For take-home time-based protocols */}
-          {isTakeHome && (
-            <>
-              <div style={styles.statCard}>
-                <div style={{
-                  ...styles.statValue,
-                  color: isLowSupply ? '#f59e0b' : (isExpired ? '#dc2626' : '#000')
-                }}>
-                  {daysRemaining !== null ? (daysRemaining > 0 ? daysRemaining : 0) : '—'}
-                </div>
-                <div style={styles.statLabel}>Days Remaining</div>
-              </div>
-              <div style={styles.statCard}>
-                <div style={styles.statValue}>{formatDate(protocol.end_date)}</div>
-                <div style={styles.statLabel}>Supply Runs Out</div>
-              </div>
-            </>
-          )}
+        {/* Tracking Stats */}
+        {stats && stats.type === 'sessions' && (
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{stats.used}</div>
+              <div style={styles.statLabel}>{stats.label} Used</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{stats.left}</div>
+              <div style={styles.statLabel}>{stats.label} Left</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{formatDate(protocol.start_date)}</div>
+              <div style={styles.statLabel}>Started</div>
+            </div>
+          </div>
+        )}
 
-          {isWeightLoss && (
+        {stats && stats.type === 'refill' && (
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{stats.total}</div>
+              <div style={styles.statLabel}>Injections</div>
+            </div>
             <div style={styles.statCard}>
               <div style={{
                 ...styles.statValue,
-                color: weightChange < 0 ? '#22c55e' : weightChange > 0 ? '#dc2626' : '#000'
+                color: stats.daysUntilRefill <= 7 ? '#dc2626' : stats.daysUntilRefill <= 14 ? '#f59e0b' : '#111'
               }}>
-                {weightChange !== null ? `${weightChange > 0 ? '+' : ''}${weightChange} lbs` : '—'}
+                {stats.daysUntilRefill > 0 ? stats.daysUntilRefill : 0}
               </div>
-              <div style={styles.statLabel}>Weight Change</div>
+              <div style={styles.statLabel}>Days Until Refill</div>
             </div>
-          )}
-          <div style={styles.statCard}>
-            <div style={styles.statValue}>{formatDate(protocol.start_date)}</div>
-            <div style={styles.statLabel}>Started</div>
-          </div>
-        </div>
-
-        {/* Low Supply Alert for Take-Home */}
-        {isLowSupply && (
-          <div style={styles.lowSupplyAlert}>
-            ⚠️ <strong>Low supply!</strong> Only {daysRemaining} days remaining — time to schedule refill
-          </div>
-        )}
-        {isExpired && (
-          <div style={styles.expiredAlert}>
-            ❌ <strong>Supply exhausted</strong> — Patient needs refill
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{formatDate(stats.refillDate)}</div>
+              <div style={styles.statLabel}>Refill Due</div>
+            </div>
           </div>
         )}
 
-        {/* Titration Alert (for weight loss in-clinic) */}
-        {isTitrationTime && (
-          <div style={styles.titrationAlert}>
-            ⚠️ <strong>Next injection is #4</strong> — Discuss dose titration with patient before administering
-          </div>
-        )}
-        {isAtTitration && (
-          <div style={styles.completedAlert}>
-            ✓ 4 injections completed at {protocol.selected_dose} — Ready for dose increase or renewal
+        {stats && stats.type === 'days' && (
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{stats.used}</div>
+              <div style={styles.statLabel}>Days Elapsed</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{stats.left}</div>
+              <div style={styles.statLabel}>Days Left</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{formatDate(protocol.start_date)}</div>
+              <div style={styles.statLabel}>Started</div>
+            </div>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div style={styles.actionBar}>
-          {/* Only show Log Injection/Session for in-clinic protocols */}
-          {!isTakeHome && (
-            <button 
-              onClick={() => {
-                setLogForm({ ...logForm, log_type: 'injection' });
-                setShowLogModal(true);
-              }}
-              style={styles.primaryButton}
-              disabled={sessionsRemaining === 0}
-            >
-              + Log {isWeightLoss ? 'Injection' : 'Session'}
-            </button>
-          )}
-          {isWeightLoss && (
-            <button 
-              onClick={() => {
-                setLogForm({ ...logForm, log_type: 'weigh_in' });
-                setShowLogModal(true);
-              }}
-              style={styles.secondaryButton}
-            >
-              + Log Weigh-In
-            </button>
-          )}
-        </div>
+        {/* Log Button - Only for In Clinic */}
+        {isSessionBased && isInClinic && protocol.status === 'active' && (
+          <button onClick={() => setShowLogModal(true)} style={styles.logButton}>
+            {stats?.logButtonText || '+ Log Session'}
+          </button>
+        )}
 
-        {/* Injection/Session History - only for in-clinic protocols */}
-        {!isTakeHome && (
+        {/* History Section - Only for In Clinic */}
+        {isInClinic && (
           <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>
-              {isWeightLoss ? 'Injection History' : 'Session History'}
-            </h2>
-            {injectionLogs.length === 0 ? (
-              <div style={styles.emptyState}>No {isWeightLoss ? 'injections' : 'sessions'} logged yet</div>
+            <h2 style={styles.sectionTitle}>{stats?.label || 'Session'} History</h2>
+            {logs.length === 0 ? (
+              <div style={styles.emptyState}>
+                No {(stats?.label || 'sessions').toLowerCase()} logged yet
+              </div>
             ) : (
-              <div style={styles.logList}>
-                {injectionLogs.map((log, index) => (
-                  <div key={log.id} style={styles.logCard}>
-                    <div style={styles.logNumber}>#{injectionLogs.length - index}</div>
-                    <div style={styles.logContent}>
-                      <div style={styles.logDate}>{formatDate(log.log_date)}</div>
-                      {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
-                    </div>
-                    {(injectionLogs.length - index) === 4 && isWeightLoss && (
-                      <span style={styles.titrationBadge}>Titration Point</span>
-                    )}
-                    <button 
-                      onClick={() => handleDeleteLog(log.id)}
-                      style={styles.deleteLogBtn}
-                    >
-                      ×
-                    </button>
+              <div style={styles.logsList}>
+                {logs.map((log, i) => (
+                  <div key={log.id || i} style={styles.logItem}>
+                    <div style={styles.logDate}>{formatDate(log.log_date || log.created_at)}</div>
+                    {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
                   </div>
                 ))}
               </div>
@@ -388,132 +414,101 @@ export default function ProtocolDetail() {
           </div>
         )}
 
-        {/* Weight History (for weight loss only) */}
-        {isWeightLoss && (
+        {/* Take Home Info */}
+        {isTakeHome && stats?.type === 'refill' && (
           <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>Weight History</h2>
-            {weighInLogs.length === 0 ? (
-              <div style={styles.emptyState}>No weigh-ins logged yet</div>
-            ) : (
-              <div style={styles.logList}>
-                {weighInLogs.map((log) => (
-                  <div key={log.id} style={styles.logCard}>
-                    <div style={styles.weightValue}>{log.weight} lbs</div>
-                    <div style={styles.logContent}>
-                      <div style={styles.logDate}>{formatDate(log.log_date)}</div>
-                      {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
-                    </div>
-                    <button 
-                      onClick={() => handleDeleteLog(log.id)}
-                      style={styles.deleteLogBtn}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+            <h2 style={styles.sectionTitle}>Supply Info</h2>
+            <div style={styles.detailsCard}>
+              <div style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
+                <p style={{ margin: '0 0 8px 0' }}>
+                  <strong>{stats.total} injections</strong> at <strong>{protocol.frequency}</strong> = <strong>{stats.supplyDays} day supply</strong>
+                </p>
+                {stats.daysUntilRefill <= 7 && stats.daysUntilRefill > 0 && (
+                  <p style={{ margin: 0, color: '#dc2626', fontWeight: '500' }}>
+                    ⚠️ Refill needed soon - only {stats.daysUntilRefill} days left
+                  </p>
+                )}
+                {stats.daysUntilRefill <= 0 && (
+                  <p style={{ margin: 0, color: '#dc2626', fontWeight: '500' }}>
+                    ⚠️ Supply has run out - refill overdue
+                  </p>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 
         {/* Protocol Details */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Protocol Details</h2>
-          <div style={styles.detailsGrid}>
-            <div style={styles.detailItem}>
-              <span style={styles.detailLabel}>Program</span>
-              <span style={styles.detailValue}>{protocol.program_name}</span>
+          <div style={styles.detailsCard}>
+            <div style={styles.detailsGrid}>
+              <div style={styles.detailItem}>
+                <div style={styles.detailLabel}>PROGRAM</div>
+                <div style={styles.detailValue}>{protocol.program_name || '-'}</div>
+              </div>
+              <div style={styles.detailItem}>
+                <div style={styles.detailLabel}>MEDICATION</div>
+                <div style={styles.detailValue}>{protocol.medication || '-'}</div>
+              </div>
+              <div style={styles.detailItem}>
+                <div style={styles.detailLabel}>FREQUENCY</div>
+                <div style={styles.detailValue}>{protocol.frequency || '-'}</div>
+              </div>
+              <div style={styles.detailItem}>
+                <div style={styles.detailLabel}>DELIVERY</div>
+                <div style={styles.detailValue}>{deliveryMethod || '-'}</div>
+              </div>
+              {protocol.selected_dose && (
+                <div style={styles.detailItem}>
+                  <div style={styles.detailLabel}>DOSE</div>
+                  <div style={styles.detailValue}>{protocol.selected_dose}</div>
+                </div>
+              )}
+              {protocol.notes && (
+                <div style={{ ...styles.detailItem, gridColumn: '1 / -1' }}>
+                  <div style={styles.detailLabel}>NOTES</div>
+                  <div style={styles.detailValue}>{protocol.notes}</div>
+                </div>
+              )}
             </div>
-            {protocol.medication && (
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>Medication</span>
-                <span style={styles.detailValue}>{protocol.medication}</span>
-              </div>
-            )}
-            {protocol.selected_dose && (
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>Dose</span>
-                <span style={styles.detailValue}>{protocol.selected_dose}</span>
-              </div>
-            )}
-            {protocol.frequency && (
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>Frequency</span>
-                <span style={styles.detailValue}>{protocol.frequency}</span>
-              </div>
-            )}
-            {protocol.notes && (
-              <div style={{...styles.detailItem, gridColumn: '1 / -1'}}>
-                <span style={styles.detailLabel}>Notes</span>
-                <span style={styles.detailValue}>{protocol.notes}</span>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Log Modal */}
+        {/* Log Modal - Only for In Clinic */}
         {showLogModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>
-                  Log {logForm.log_type === 'weigh_in' ? 'Weigh-In' : (isWeightLoss ? 'Injection' : 'Session')}
-                </h3>
-                <button onClick={() => setShowLogModal(false)} style={styles.closeButton}>×</button>
+              <h2 style={styles.modalTitle}>
+                {stats?.label === 'Injections' ? 'Log Injection' : 'Log Session'}
+              </h2>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Date</label>
+                <input
+                  type="date"
+                  style={styles.input}
+                  value={logForm.log_date}
+                  onChange={(e) => setLogForm({ ...logForm, log_date: e.target.value })}
+                />
               </div>
 
-              <div style={styles.modalBody}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Date *</label>
-                  <input 
-                    type="date"
-                    value={logForm.log_date}
-                    onChange={e => setLogForm({...logForm, log_date: e.target.value})}
-                    style={styles.input}
-                  />
-                </div>
-
-                {logForm.log_type === 'weigh_in' && (
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Weight (lbs) *</label>
-                    <input 
-                      type="number"
-                      step="0.1"
-                      value={logForm.weight}
-                      onChange={e => setLogForm({...logForm, weight: e.target.value})}
-                      placeholder="Enter weight..."
-                      style={styles.input}
-                    />
-                  </div>
-                )}
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes</label>
-                  <textarea 
-                    value={logForm.notes}
-                    onChange={e => setLogForm({...logForm, notes: e.target.value})}
-                    placeholder="Any notes..."
-                    style={styles.textarea}
-                    rows={3}
-                  />
-                </div>
-
-                {/* Show titration warning when logging 4th injection */}
-                {logForm.log_type === 'injection' && isWeightLoss && sessionsUsed === 3 && (
-                  <div style={styles.titrationWarning}>
-                    ⚠️ This will be injection #4 — confirm titration was discussed
-                  </div>
-                )}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Notes (optional)</label>
+                <textarea
+                  style={styles.textarea}
+                  value={logForm.notes}
+                  onChange={(e) => setLogForm({ ...logForm, notes: e.target.value })}
+                  placeholder="Any notes..."
+                />
               </div>
 
-              <div style={styles.modalFooter}>
-                <button onClick={() => setShowLogModal(false)} style={styles.cancelButton}>Cancel</button>
-                <button 
-                  onClick={handleLogSubmit}
-                  style={styles.submitButton}
-                  disabled={logForm.log_type === 'weigh_in' && !logForm.weight}
-                >
-                  Log {logForm.log_type === 'weigh_in' ? 'Weight' : (isWeightLoss ? 'Injection' : 'Session')}
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowLogModal(false)} style={styles.cancelButton}>
+                  Cancel
+                </button>
+                <button onClick={handleLogSession} style={styles.submitButton} disabled={saving}>
+                  {saving ? 'Logging...' : 'Log'}
                 </button>
               </div>
             </div>
@@ -524,127 +519,123 @@ export default function ProtocolDetail() {
         {showEditModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Edit Protocol</h3>
-                <button onClick={() => setShowEditModal(false)} style={styles.closeButton}>×</button>
+              <h2 style={styles.modalTitle}>Edit Protocol</h2>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Medication</label>
+                <select
+                  style={styles.select}
+                  value={editForm.medication}
+                  onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })}
+                >
+                  <option value="">Select medication...</option>
+                  {INJECTION_MEDICATIONS.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
               </div>
 
-              <div style={styles.modalBody}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Frequency</label>
+                <select
+                  style={styles.select}
+                  value={editForm.frequency}
+                  onChange={(e) => setEditForm({ ...editForm, frequency: e.target.value })}
+                >
+                  <option value="">Select frequency...</option>
+                  {FREQUENCY_OPTIONS.map(f => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Delivery Method</label>
+                <select
+                  style={styles.select}
+                  value={editForm.delivery_method}
+                  onChange={(e) => setEditForm({ ...editForm, delivery_method: e.target.value })}
+                >
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic</option>
+                  <option value="take_home">Take Home</option>
+                </select>
+              </div>
+
+              <div style={styles.formRow}>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Medication</label>
-                  <input 
-                    type="text"
-                    value={editForm.medication}
-                    onChange={e => setEditForm({...editForm, medication: e.target.value})}
+                  <label style={styles.label}>Start Date</label>
+                  <input
+                    type="date"
                     style={styles.input}
+                    value={editForm.start_date}
+                    onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
                   />
                 </div>
-
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Dose</label>
-                  <input 
-                    type="text"
-                    value={editForm.selected_dose}
-                    onChange={e => setEditForm({...editForm, selected_dose: e.target.value})}
+                  <label style={styles.label}>End Date</label>
+                  <input
+                    type="date"
                     style={styles.input}
+                    value={editForm.end_date}
+                    onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })}
                   />
                 </div>
+              </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Delivery Method</label>
-                  <select 
-                    value={editForm.delivery_method}
-                    onChange={e => setEditForm({...editForm, delivery_method: e.target.value})}
-                    style={styles.input}
-                  >
-                    <option value="">Not specified</option>
-                    <option value="in_clinic">In Clinic</option>
-                    <option value="take_home">Take Home</option>
-                  </select>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Frequency</label>
-                  <select 
-                    value={editForm.frequency}
-                    onChange={e => setEditForm({...editForm, frequency: e.target.value})}
-                    style={styles.input}
-                  >
-                    <option value="">None</option>
-                    <option value="Daily">Daily</option>
-                    <option value="2x/day">2x per day</option>
-                    <option value="3x/week">3x per week</option>
-                    <option value="2x/week">2x per week</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Every 2 weeks">Every 2 weeks</option>
-                  </select>
-                </div>
-
+              {isSessionBased && (
                 <div style={styles.formRow}>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Start Date</label>
-                    <input 
-                      type="date"
-                      value={editForm.start_date}
-                      onChange={e => setEditForm({...editForm, start_date: e.target.value})}
-                      style={styles.input}
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>End Date / Supply Runs Out</label>
-                    <input 
-                      type="date"
-                      value={editForm.end_date}
-                      onChange={e => setEditForm({...editForm, end_date: e.target.value})}
-                      style={styles.input}
-                    />
-                  </div>
-                </div>
-
-                {isSessionBased && (
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>
-                      {isWeightLoss ? 'Injections Used' : 'Sessions Used'} (of {protocol.total_sessions})
-                    </label>
-                    <input 
+                    <label style={styles.label}>Sessions Used</label>
+                    <input
                       type="number"
-                      min="0"
-                      max={protocol.total_sessions}
-                      value={editForm.sessions_used}
-                      onChange={e => setEditForm({...editForm, sessions_used: parseInt(e.target.value) || 0})}
                       style={styles.input}
+                      value={editForm.sessions_used}
+                      onChange={(e) => setEditForm({ ...editForm, sessions_used: parseInt(e.target.value) || 0 })}
                     />
                   </div>
-                )}
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Status</label>
-                  <select 
-                    value={editForm.status}
-                    onChange={e => setEditForm({...editForm, status: e.target.value})}
-                    style={styles.input}
-                  >
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Total Sessions</label>
+                    <input
+                      type="number"
+                      style={styles.input}
+                      value={editForm.total_sessions}
+                      onChange={(e) => setEditForm({ ...editForm, total_sessions: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
                 </div>
+              )}
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes</label>
-                  <textarea 
-                    value={editForm.notes}
-                    onChange={e => setEditForm({...editForm, notes: e.target.value})}
-                    style={styles.textarea}
-                    rows={3}
-                  />
-                </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Status</label>
+                <select
+                  style={styles.select}
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                >
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="paused">Paused</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
               </div>
 
-              <div style={styles.modalFooter}>
-                <button onClick={() => setShowEditModal(false)} style={styles.cancelButton}>Cancel</button>
-                <button onClick={handleEditSubmit} style={styles.submitButton}>
-                  Save Changes
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Notes</label>
+                <textarea
+                  style={styles.textarea}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder="Any notes..."
+                />
+              </div>
+
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowEditModal(false)} style={styles.cancelButton}>
+                  Cancel
+                </button>
+                <button onClick={handleEditSubmit} style={styles.submitButton} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -657,255 +648,159 @@ export default function ProtocolDetail() {
 
 const styles = {
   container: {
-    maxWidth: '900px',
+    maxWidth: '800px',
     margin: '0 auto',
-    padding: '24px'
+    padding: '40px 20px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   loading: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    fontSize: '18px',
-    color: '#666'
+    textAlign: 'center',
+    padding: '60px',
+    color: '#6b7280',
   },
   error: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    fontSize: '18px',
-    color: '#dc2626'
+    textAlign: 'center',
+    padding: '60px',
+    color: '#dc2626',
   },
   backLink: {
-    display: 'inline-block',
-    color: '#666',
+    color: '#6b7280',
     textDecoration: 'none',
-    marginBottom: '16px',
-    fontSize: '14px'
+    fontSize: '14px',
+    display: 'inline-block',
+    marginBottom: '20px',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '24px'
+    marginBottom: '30px',
   },
   title: {
     fontSize: '28px',
     fontWeight: '600',
-    margin: '0 0 4px 0'
+    margin: '0 0 8px 0',
+    color: '#111',
   },
   subtitle: {
-    color: '#666',
-    margin: 0,
-    fontSize: '15px'
+    fontSize: '14px',
+    color: '#6b7280',
   },
-  statusBadge: {
-    padding: '6px 16px',
-    borderRadius: '20px',
-    color: 'white',
-    fontSize: '13px',
-    fontWeight: '500',
-    textTransform: 'capitalize'
+  headerActions: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center',
   },
   editButton: {
     padding: '8px 16px',
+    backgroundColor: 'white',
+    color: '#111',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    background: '#fff',
+    borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '500'
+    fontWeight: '500',
   },
-  formRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px'
+  statusBadge: {
+    padding: '6px 12px',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '500',
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+    gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '16px',
-    marginBottom: '24px'
+    marginBottom: '24px',
   },
   statCard: {
-    background: '#fff',
+    padding: '24px',
+    backgroundColor: 'white',
     border: '1px solid #e5e7eb',
     borderRadius: '12px',
-    padding: '20px',
-    textAlign: 'center'
+    textAlign: 'center',
   },
   statValue: {
-    fontSize: '28px',
+    fontSize: '32px',
     fontWeight: '600',
-    marginBottom: '4px'
+    color: '#111',
+    marginBottom: '4px',
   },
   statLabel: {
     fontSize: '13px',
-    color: '#666'
+    color: '#6b7280',
   },
-  titrationAlert: {
-    background: '#fef3c7',
-    border: '1px solid #f59e0b',
-    borderRadius: '8px',
-    padding: '16px',
-    marginBottom: '24px',
-    color: '#92400e',
-    fontSize: '14px'
-  },
-  completedAlert: {
-    background: '#dcfce7',
-    border: '1px solid #22c55e',
-    borderRadius: '8px',
-    padding: '16px',
-    marginBottom: '24px',
-    color: '#166534',
-    fontSize: '14px'
-  },
-  lowSupplyAlert: {
-    background: '#fef3c7',
-    border: '1px solid #f59e0b',
-    borderRadius: '8px',
-    padding: '16px',
-    marginBottom: '24px',
-    color: '#92400e',
-    fontSize: '14px'
-  },
-  expiredAlert: {
-    background: '#fee2e2',
-    border: '1px solid #dc2626',
-    borderRadius: '8px',
-    padding: '16px',
-    marginBottom: '24px',
-    color: '#dc2626',
-    fontSize: '14px'
-  },
-  actionBar: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '32px'
-  },
-  primaryButton: {
-    background: '#000',
-    color: '#fff',
+  logButton: {
+    padding: '12px 24px',
+    backgroundColor: '#111',
+    color: 'white',
     border: 'none',
-    padding: '12px 24px',
     borderRadius: '8px',
+    cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    cursor: 'pointer'
-  },
-  secondaryButton: {
-    background: '#fff',
-    color: '#000',
-    border: '1px solid #e5e7eb',
-    padding: '12px 24px',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
+    marginBottom: '32px',
   },
   section: {
-    marginBottom: '32px'
+    marginBottom: '32px',
   },
   sectionTitle: {
     fontSize: '18px',
     fontWeight: '600',
-    marginBottom: '16px'
+    marginBottom: '16px',
+    color: '#111',
   },
   emptyState: {
-    padding: '32px',
+    padding: '40px',
+    backgroundColor: '#f9fafb',
+    borderRadius: '12px',
     textAlign: 'center',
-    color: '#9ca3af',
-    background: '#f9fafb',
-    borderRadius: '8px'
+    color: '#6b7280',
   },
-  logList: {
+  logsList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px'
+    gap: '8px',
   },
-  logCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '16px',
-    background: '#fff',
+  logItem: {
+    padding: '12px 16px',
+    backgroundColor: 'white',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px'
-  },
-  logNumber: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    background: '#f3f4f6',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '600',
-    fontSize: '14px',
-    flexShrink: 0
-  },
-  weightValue: {
-    fontSize: '18px',
-    fontWeight: '600',
-    minWidth: '80px'
-  },
-  logContent: {
-    flex: 1
+    borderRadius: '8px',
   },
   logDate: {
+    fontSize: '14px',
     fontWeight: '500',
-    marginBottom: '2px'
+    color: '#111',
   },
   logNotes: {
     fontSize: '13px',
-    color: '#666'
+    color: '#6b7280',
+    marginTop: '4px',
   },
-  titrationBadge: {
-    padding: '4px 10px',
-    background: '#fef3c7',
-    color: '#92400e',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: '500'
-  },
-  deleteLogBtn: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
+  detailsCard: {
+    padding: '24px',
+    backgroundColor: 'white',
     border: '1px solid #e5e7eb',
-    background: '#fff',
-    color: '#9ca3af',
-    cursor: 'pointer',
-    fontSize: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
+    borderRadius: '12px',
   },
   detailsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '16px',
-    background: '#fff',
-    border: '1px solid #e5e7eb',
-    borderRadius: '12px',
-    padding: '20px'
+    gap: '20px',
   },
-  detailItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
+  detailItem: {},
   detailLabel: {
-    fontSize: '12px',
-    color: '#9ca3af',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#6b7280',
     textTransform: 'uppercase',
-    letterSpacing: '0.5px'
+    letterSpacing: '0.5px',
+    marginBottom: '4px',
   },
   detailValue: {
-    fontSize: '15px',
-    fontWeight: '500'
+    fontSize: '14px',
+    color: '#111',
   },
   modalOverlay: {
     position: 'fixed',
@@ -913,57 +808,41 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000
+    zIndex: 1000,
   },
   modal: {
-    background: '#fff',
-    borderRadius: '12px',
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    padding: '32px',
     width: '100%',
-    maxWidth: '450px',
+    maxWidth: '480px',
     maxHeight: '90vh',
-    overflow: 'auto'
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '20px',
-    borderBottom: '1px solid #e5e7eb'
+    overflowY: 'auto',
   },
   modalTitle: {
-    margin: 0,
-    fontSize: '18px',
-    fontWeight: '600'
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    fontSize: '24px',
-    cursor: 'pointer',
-    color: '#9ca3af'
-  },
-  modalBody: {
-    padding: '20px'
-  },
-  modalFooter: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '12px',
-    padding: '20px',
-    borderTop: '1px solid #e5e7eb'
+    fontSize: '20px',
+    fontWeight: '600',
+    marginBottom: '24px',
+    color: '#111',
   },
   formGroup: {
-    marginBottom: '16px'
+    marginBottom: '16px',
+  },
+  formRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
   },
   label: {
     display: 'block',
-    marginBottom: '6px',
     fontSize: '14px',
-    fontWeight: '500'
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '6px',
   },
   input: {
     width: '100%',
@@ -971,7 +850,15 @@ const styles = {
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
     fontSize: '14px',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+  },
+  select: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    backgroundColor: 'white',
   },
   textarea: {
     width: '100%',
@@ -979,33 +866,35 @@ const styles = {
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
     fontSize: '14px',
+    minHeight: '80px',
+    resize: 'vertical',
     boxSizing: 'border-box',
-    resize: 'vertical'
   },
-  titrationWarning: {
-    background: '#fef3c7',
-    border: '1px solid #f59e0b',
-    borderRadius: '8px',
-    padding: '12px',
-    color: '#92400e',
-    fontSize: '13px'
+  modalActions: {
+    display: 'flex',
+    gap: '12px',
+    marginTop: '24px',
   },
   cancelButton: {
-    padding: '10px 20px',
+    flex: 1,
+    padding: '12px',
+    backgroundColor: 'white',
+    color: '#374151',
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: '14px'
-  },
-  submitButton: {
-    padding: '10px 20px',
-    border: 'none',
-    borderRadius: '8px',
-    background: '#000',
-    color: '#fff',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '500'
-  }
+    fontWeight: '500',
+  },
+  submitButton: {
+    flex: 1,
+    padding: '12px',
+    backgroundColor: '#111',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
 };

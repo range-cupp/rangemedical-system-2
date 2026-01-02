@@ -2,7 +2,7 @@
 // Pipeline with URL-based tabs for proper back button behavior
 // Includes Patients tab
 // Range Medical
-// UPDATED: 2026-01-02 11:15 - Added Peptide delivery method dropdown
+// UPDATED: 2026-01-02 11:25 - Fixed case sensitivity for Peptide delivery method
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -435,11 +435,15 @@ export default function Pipeline() {
   };
 
   const isPeptideTemplate = (form) => {
-    return form.category === 'peptide';
+    // For peptide, also require delivery method to be selected
+    if (form.category?.toLowerCase() === 'peptide') {
+      return !!form.deliveryMethod;
+    }
+    return false;
   };
 
   const isInjectionTemplate = (form) => {
-    return form.category === 'injection';
+    return form.category?.toLowerCase() === 'injection';
   };
 
   const formatDate = (dateStr) => {
@@ -484,7 +488,7 @@ export default function Pipeline() {
 
   const hasDeliveryOptions = (category, protocolType) => {
     // Peptide protocols ALWAYS need delivery method selection
-    if (category === 'Peptide') {
+    if (category?.toLowerCase() === 'peptide') {
       return true;
     }
     
@@ -503,7 +507,7 @@ export default function Pipeline() {
 
   const getDeliveryOptions = (category, protocolType) => {
     // Peptide protocols always have both options
-    if (category === 'Peptide') {
+    if (category?.toLowerCase() === 'peptide') {
       return ['In Clinic', 'Take Home'];
     }
     
@@ -523,7 +527,7 @@ export default function Pipeline() {
   const findTemplate = (category, protocolType, deliveryMethod) => {
     // For Peptide, the template name doesn't include delivery method
     // So we just match category and type
-    if (category === 'Peptide') {
+    if (category?.toLowerCase() === 'peptide') {
       return templates.find(t => {
         if (t.category !== category) return false;
         const { type } = parseTemplateName(t.name);
@@ -926,7 +930,7 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {assignForm.protocolType && (assignForm.category === 'Peptide' || hasDeliveryOptions(assignForm.category, assignForm.protocolType)) && (
+              {assignForm.protocolType && (assignForm.category?.toLowerCase() === 'peptide' || hasDeliveryOptions(assignForm.category, assignForm.protocolType)) && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delivery Method</label>
                   <select
@@ -939,7 +943,7 @@ export default function Pipeline() {
                     }}
                   >
                     <option value="">Select delivery...</option>
-                    {(assignForm.category === 'Peptide' ? ['In Clinic', 'Take Home'] : getDeliveryOptions(assignForm.category, assignForm.protocolType)).map(d => (
+                    {(assignForm.category?.toLowerCase() === 'peptide' ? ['In Clinic', 'Take Home'] : getDeliveryOptions(assignForm.category, assignForm.protocolType)).map(d => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
@@ -1164,7 +1168,7 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {completedForm.protocolType && (completedForm.category === 'Peptide' || hasDeliveryOptions(completedForm.category, completedForm.protocolType)) && (
+              {completedForm.protocolType && (completedForm.category?.toLowerCase() === 'peptide' || hasDeliveryOptions(completedForm.category, completedForm.protocolType)) && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delivery Method</label>
                   <select
@@ -1177,7 +1181,7 @@ export default function Pipeline() {
                     }}
                   >
                     <option value="">Select delivery...</option>
-                    {(completedForm.category === 'Peptide' ? ['In Clinic', 'Take Home'] : getDeliveryOptions(completedForm.category, completedForm.protocolType)).map(d => (
+                    {(completedForm.category?.toLowerCase() === 'peptide' ? ['In Clinic', 'Take Home'] : getDeliveryOptions(completedForm.category, completedForm.protocolType)).map(d => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>

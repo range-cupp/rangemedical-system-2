@@ -318,11 +318,15 @@ export default function Pipeline() {
     setWlMedication('');
     setWlDose('');
     setSessionPackSize('');
+    setSelectedPackId('');
+    setExtendDays('');
+    setAddToPackMode(false);
   };
 
   const [existingPacks, setExistingPacks] = useState([]);
   const [addToPackMode, setAddToPackMode] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState('');
+  const [extendDays, setExtendDays] = useState('');
   
   const [completedForm, setCompletedForm] = useState({
     patientId: '',
@@ -592,24 +596,55 @@ export default function Pipeline() {
       return;
     }
 
-    try {
-      const res = await fetch(`/api/protocols/${selectedPackId}/add-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          purchaseId: selectedPurchase.id,
-          sessionCount: 1
-        })
-      });
+    const selectedPack = existingPacks.find(p => p.id === selectedPackId);
+    const isTakeHome = selectedPack?.delivery_method === 'take_home';
 
-      const data = await res.json();
-      
-      if (res.ok) {
-        setShowAssignModal(false);
-        fetchData();
-        alert(data.message || 'Session added to pack');
+    try {
+      if (isTakeHome) {
+        // Extend take-home pack by days
+        if (!extendDays || extendDays <= 0) {
+          alert('Please enter number of days to extend');
+          return;
+        }
+        const res = await fetch(`/api/protocols/${selectedPackId}/extend`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            purchaseId: selectedPurchase.id,
+            extendDays: parseInt(extendDays)
+          })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+          setShowAssignModal(false);
+          setExtendDays('');
+          fetchData();
+          alert(data.message || 'Supply extended');
+        } else {
+          alert(data.error || 'Failed to extend supply');
+        }
       } else {
-        alert(data.error || 'Failed to add session');
+        // Add session to in-clinic pack
+        const res = await fetch(`/api/protocols/${selectedPackId}/add-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            purchaseId: selectedPurchase.id,
+            sessionCount: 1
+          })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+          setShowAssignModal(false);
+          fetchData();
+          alert(data.message || 'Session added to pack');
+        } else {
+          alert(data.error || 'Failed to add session');
+        }
       }
     } catch (error) {
       console.error('Error adding to pack:', error);
@@ -1030,12 +1065,34 @@ export default function Pipeline() {
                           style={styles.select}
                         >
                           <option value="">Choose pack...</option>
-                          {existingPacks.map(pack => (
-                            <option key={pack.id} value={pack.id}>
-                              {pack.program_name} - {pack.sessions_used || 0} of {pack.total_sessions} used
-                            </option>
-                          ))}
+                          {existingPacks.map(pack => {
+                            const isTakeHome = pack.delivery_method === 'take_home';
+                            const daysLeft = pack.end_date ? Math.ceil((new Date(pack.end_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                            return (
+                              <option key={pack.id} value={pack.id}>
+                                {pack.program_name} - {pack.medication || ''} 
+                                {isTakeHome 
+                                  ? ` (${daysLeft} days left)` 
+                                  : ` (${pack.sessions_used || 0}/${pack.total_sessions} used)`
+                                }
+                              </option>
+                            );
+                          })}
                         </select>
+                        {/* Show extend days input for take-home packs */}
+                        {selectedPackId && existingPacks.find(p => p.id === selectedPackId)?.delivery_method === 'take_home' && (
+                          <div style={{marginTop: '12px'}}>
+                            <label style={styles.label}>Extend Supply By (days)</label>
+                            <input 
+                              type="number"
+                              min="1"
+                              value={extendDays || ''}
+                              onChange={e => setExtendDays(e.target.value)}
+                              placeholder="e.g., 30"
+                              style={styles.input}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1417,10 +1474,12 @@ export default function Pipeline() {
                 {addToPackMode ? (
                   <button 
                     onClick={handleAddToPack}
-                    disabled={!selectedPackId}
+                    disabled={!selectedPackId || (existingPacks.find(p => p.id === selectedPackId)?.delivery_method === 'take_home' && !extendDays)}
                     style={styles.primaryButton}
                   >
-                    Add to Pack
+                    {existingPacks.find(p => p.id === selectedPackId)?.delivery_method === 'take_home' 
+                      ? 'Extend Supply' 
+                      : 'Add Session'}
                   </button>
                 ) : (
                   <button 

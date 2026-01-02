@@ -290,6 +290,9 @@ export default function Pipeline() {
       return;
     }
     
+    // Log what we're sending
+    console.log('Creating protocol with purchaseId:', selectedPurchase.id);
+    
     try {
       // Convert delivery method to database format
       let deliveryMethodDb = null;
@@ -299,31 +302,37 @@ export default function Pipeline() {
         deliveryMethodDb = 'take_home';
       }
       
+      const payload = {
+        patientId: selectedPurchase.patient_id,
+        ghlContactId: selectedPurchase.ghl_contact_id,
+        patientName: selectedPurchase.patient_name,
+        purchaseId: selectedPurchase.id,
+        templateId: assignForm.templateId,
+        peptideId: assignForm.peptideId,
+        selectedDose: assignForm.selectedDose,
+        frequency: assignForm.frequency,
+        startDate: assignForm.startDate,
+        notes: assignForm.notes,
+        medication: assignForm.medication,
+        deliveryMethod: deliveryMethodDb
+      };
+      
+      console.log('Sending payload:', payload);
+      
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientId: selectedPurchase.patient_id,
-          ghlContactId: selectedPurchase.ghl_contact_id,
-          patientName: selectedPurchase.patient_name,
-          purchaseId: selectedPurchase.id,
-          templateId: assignForm.templateId,
-          peptideId: assignForm.peptideId,
-          selectedDose: assignForm.selectedDose,
-          frequency: assignForm.frequency,
-          startDate: assignForm.startDate,
-          notes: assignForm.notes,
-          medication: assignForm.medication,
-          deliveryMethod: deliveryMethodDb
-        })
+        body: JSON.stringify(payload)
       });
+
+      const result = await res.json();
+      console.log('Response:', result);
 
       if (res.ok) {
         setShowAssignModal(false);
         fetchData();
       } else {
-        const error = await res.json();
-        alert('Error creating protocol: ' + (error.error || 'Unknown error'));
+        alert('Error creating protocol: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error assigning protocol:', error);

@@ -75,6 +75,50 @@ export default function Pipeline() {
     fetchData();
   }, []);
 
+  // Auto-set templateId when category/protocolType/deliveryMethod change
+  useEffect(() => {
+    if (!assignForm.category || !assignForm.protocolType) return;
+    
+    const needsDelivery = hasDeliveryOptions(assignForm.category, assignForm.protocolType);
+    
+    if (needsDelivery && !assignForm.deliveryMethod) {
+      // Needs delivery method but not selected yet
+      return;
+    }
+    
+    // Find the matching template
+    const template = findTemplate(
+      assignForm.category, 
+      assignForm.protocolType, 
+      needsDelivery ? assignForm.deliveryMethod : null
+    );
+    
+    if (template && template.id !== assignForm.templateId) {
+      setAssignForm(prev => ({ ...prev, templateId: template.id }));
+    }
+  }, [assignForm.category, assignForm.protocolType, assignForm.deliveryMethod, templates]);
+
+  // Auto-set templateId for completed form
+  useEffect(() => {
+    if (!completedForm.category || !completedForm.protocolType) return;
+    
+    const needsDelivery = hasDeliveryOptions(completedForm.category, completedForm.protocolType);
+    
+    if (needsDelivery && !completedForm.deliveryMethod) {
+      return;
+    }
+    
+    const template = findTemplate(
+      completedForm.category, 
+      completedForm.protocolType, 
+      needsDelivery ? completedForm.deliveryMethod : null
+    );
+    
+    if (template && template.id !== completedForm.templateId) {
+      setCompletedForm(prev => ({ ...prev, templateId: template.id }));
+    }
+  }, [completedForm.category, completedForm.protocolType, completedForm.deliveryMethod, templates]);
+
   const fetchData = async () => {
     try {
       // Fetch pipeline data from the single endpoint
@@ -235,6 +279,11 @@ export default function Pipeline() {
   };
 
   const handleAssignProtocol = async () => {
+    if (!assignForm.templateId) {
+      alert('Please select a protocol type');
+      return;
+    }
+    
     try {
       // Convert delivery method to database format
       let deliveryMethodDb = null;
@@ -249,6 +298,8 @@ export default function Pipeline() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: selectedPurchase.patient_id,
+          ghlContactId: selectedPurchase.ghl_contact_id,
+          patientName: selectedPurchase.patient_name,
           purchaseId: selectedPurchase.id,
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
@@ -264,9 +315,13 @@ export default function Pipeline() {
       if (res.ok) {
         setShowAssignModal(false);
         fetchData();
+      } else {
+        const error = await res.json();
+        alert('Error creating protocol: ' + (error.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error assigning protocol:', error);
+      alert('Error creating protocol: ' + error.message);
     }
   };
 
@@ -836,15 +891,6 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {assignForm.protocolType && !hasDeliveryOptions(assignForm.category, assignForm.protocolType) && (() => {
-                // Auto-select template when no delivery options
-                const template = findTemplate(assignForm.category, assignForm.protocolType, null);
-                if (template && assignForm.templateId !== template.id) {
-                  setTimeout(() => setAssignForm(prev => ({ ...prev, templateId: template.id })), 0);
-                }
-                return null;
-              })()}
-
               {isPeptideTemplate(assignForm) && (
                 <>
                   <div style={styles.formGroup}>
@@ -1082,14 +1128,6 @@ export default function Pipeline() {
                   </select>
                 </div>
               )}
-
-              {completedForm.protocolType && !hasDeliveryOptions(completedForm.category, completedForm.protocolType) && (() => {
-                const template = findTemplate(completedForm.category, completedForm.protocolType, null);
-                if (template && completedForm.templateId !== template.id) {
-                  setTimeout(() => setCompletedForm(prev => ({ ...prev, templateId: template.id })), 0);
-                }
-                return null;
-              })()}
 
               {isPeptideTemplate(completedForm) && (
                 <>

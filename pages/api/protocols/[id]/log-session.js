@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       .insert({
         protocol_id: id,
         patient_id: protocol.patient_id,
-        log_type: 'session',
+        log_type: 'injection',
         log_date: log_date || new Date().toISOString().split('T')[0],
         notes: notes || null
       });

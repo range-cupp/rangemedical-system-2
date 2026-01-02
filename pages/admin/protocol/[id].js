@@ -142,9 +142,50 @@ export default function ProtocolDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm('Delete this protocol? This will unlink any associated purchases.')) return;
+    
+    try {
+      const res = await fetch(`/api/protocols/${id}/delete`, { method: 'DELETE' });
+      if (res.ok) {
+        // Redirect back to pipeline
+        router.push('/admin/pipeline?tab=active');
+      } else {
+        const error = await res.json();
+        alert('Error deleting protocol: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting protocol:', error);
+      alert('Error deleting protocol');
+    }
+  };
+
+  const handleDeleteLog = async (logId) => {
+    if (!logId) return;
+    if (!confirm('Delete this session log entry?')) return;
+    
+    try {
+      const res = await fetch(`/api/protocols/${id}/logs/${logId}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchProtocol(); // Refresh data
+      } else {
+        const error = await res.json();
+        alert('Error deleting log: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting log:', error);
+      alert('Error deleting log');
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    // If it's a date-only string (YYYY-MM-DD), add time to prevent timezone shift
+    let dateToFormat = dateStr;
+    if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      dateToFormat = dateStr + 'T12:00:00';
+    }
+    return new Date(dateToFormat).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -336,6 +377,7 @@ export default function ProtocolDetail() {
           </div>
           <div style={styles.headerActions}>
             <button onClick={openEditModal} style={styles.editButton}>Edit</button>
+            <button onClick={handleDelete} style={styles.deleteButton}>Delete</button>
             <span style={{
               ...styles.statusBadge,
               backgroundColor: protocol.status === 'active' ? '#dcfce7' : '#e5e7eb',
@@ -411,25 +453,41 @@ export default function ProtocolDetail() {
         )}
 
         {/* History Section - Only for In Clinic */}
-        {isInClinic && (
-          <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>{stats?.label || 'Session'} History</h2>
-            {logs.length === 0 ? (
-              <div style={styles.emptyState}>
-                No {(stats?.label || 'sessions').toLowerCase()} logged yet
-              </div>
-            ) : (
-              <div style={styles.logsList}>
-                {logs.map((log, i) => (
-                  <div key={log.id || i} style={styles.logItem}>
-                    <div style={styles.logDate}>{formatDate(log.log_date || log.created_at)}</div>
-                    {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {isInClinic && (() => {
+          // Filter to only show injection/session logs, not weigh_ins
+          const sessionLogs = logs.filter(log => 
+            log.log_type === 'injection' || log.log_type === 'session' || !log.log_type
+          );
+          
+          return (
+            <div style={styles.section}>
+              <h2 style={styles.sectionTitle}>{stats?.label || 'Session'} History</h2>
+              {sessionLogs.length === 0 ? (
+                <div style={styles.emptyState}>
+                  No {(stats?.label || 'sessions').toLowerCase()} logged yet
+                </div>
+              ) : (
+                <div style={styles.logsList}>
+                  {sessionLogs.map((log, i) => (
+                    <div key={log.id || i} style={styles.logItem}>
+                      <div style={{ flex: 1 }}>
+                        <div style={styles.logDate}>{formatDate(log.log_date || log.created_at)}</div>
+                        {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
+                      </div>
+                      <button
+                        onClick={() => handleDeleteLog(log.id)}
+                        style={styles.deleteLogButton}
+                        title="Delete this entry"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Take Home Info */}
         {isTakeHome && stats?.type === 'refill' && (
@@ -718,6 +776,16 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500',
   },
+  deleteButton: {
+    padding: '8px 16px',
+    backgroundColor: 'white',
+    color: '#dc2626',
+    border: '1px solid #fecaca',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
   statusBadge: {
     padding: '6px 12px',
     borderRadius: '20px',
@@ -784,6 +852,9 @@ const styles = {
     backgroundColor: 'white',
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
   },
   logDate: {
     fontSize: '14px',
@@ -794,6 +865,20 @@ const styles = {
     fontSize: '13px',
     color: '#6b7280',
     marginTop: '4px',
+  },
+  deleteLogButton: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    border: '1px solid #fecaca',
+    backgroundColor: 'white',
+    color: '#dc2626',
+    fontSize: '18px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   detailsCard: {
     padding: '24px',

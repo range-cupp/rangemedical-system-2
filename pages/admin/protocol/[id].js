@@ -116,9 +116,18 @@ export default function ProtocolDetail() {
                        protocol?.medication?.toLowerCase().includes('tirzepatide') ||
                        protocol?.medication?.toLowerCase().includes('retatrutide');
 
-  const isSessionBased = protocol?.total_sessions && protocol.total_sessions > 0;
+  const isTakeHome = protocol?.delivery_method === 'take_home';
+  const isInClinic = protocol?.delivery_method === 'in_clinic';
+  const isSessionBased = protocol?.total_sessions && protocol.total_sessions > 0 && !isTakeHome;
   const sessionsUsed = protocol?.sessions_used || 0;
   const sessionsRemaining = isSessionBased ? protocol.total_sessions - sessionsUsed : null;
+  
+  // Calculate days remaining for take-home protocols
+  const daysRemaining = protocol?.end_date 
+    ? Math.ceil((new Date(protocol.end_date) - new Date()) / (1000 * 60 * 60 * 24))
+    : null;
+  const isLowSupply = isTakeHome && daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0;
+  const isExpired = isTakeHome && daysRemaining !== null && daysRemaining <= 0;
   
   // Calculate if titration time (4th injection for weight loss)
   const isTitrationTime = isWeightLoss && sessionsUsed === 3;
@@ -173,25 +182,48 @@ export default function ProtocolDetail() {
 
         {/* Stats Cards */}
         <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statValue}>
-              {isSessionBased ? sessionsUsed : 'N/A'}
-            </div>
-            <div style={styles.statLabel}>
-              {isWeightLoss ? 'Injections Given' : 'Sessions Used'}
-            </div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={{
-              ...styles.statValue,
-              color: sessionsRemaining <= 1 ? '#dc2626' : '#000'
-            }}>
-              {sessionsRemaining !== null ? sessionsRemaining : 'N/A'}
-            </div>
-            <div style={styles.statLabel}>
-              {isWeightLoss ? 'Injections Left' : 'Sessions Left'}
-            </div>
-          </div>
+          {/* For in-clinic session-based protocols */}
+          {isSessionBased && (
+            <>
+              <div style={styles.statCard}>
+                <div style={styles.statValue}>{sessionsUsed}</div>
+                <div style={styles.statLabel}>
+                  {isWeightLoss ? 'Injections Given' : 'Sessions Used'}
+                </div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={{
+                  ...styles.statValue,
+                  color: sessionsRemaining <= 1 ? '#dc2626' : '#000'
+                }}>
+                  {sessionsRemaining}
+                </div>
+                <div style={styles.statLabel}>
+                  {isWeightLoss ? 'Injections Left' : 'Sessions Left'}
+                </div>
+              </div>
+            </>
+          )}
+          
+          {/* For take-home time-based protocols */}
+          {isTakeHome && (
+            <>
+              <div style={styles.statCard}>
+                <div style={{
+                  ...styles.statValue,
+                  color: isLowSupply ? '#f59e0b' : (isExpired ? '#dc2626' : '#000')
+                }}>
+                  {daysRemaining !== null ? (daysRemaining > 0 ? daysRemaining : 0) : '—'}
+                </div>
+                <div style={styles.statLabel}>Days Remaining</div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={styles.statValue}>{formatDate(protocol.end_date)}</div>
+                <div style={styles.statLabel}>Supply Runs Out</div>
+              </div>
+            </>
+          )}
+
           {isWeightLoss && (
             <div style={styles.statCard}>
               <div style={{
@@ -209,7 +241,19 @@ export default function ProtocolDetail() {
           </div>
         </div>
 
-        {/* Titration Alert */}
+        {/* Low Supply Alert for Take-Home */}
+        {isLowSupply && (
+          <div style={styles.lowSupplyAlert}>
+            ⚠️ <strong>Low supply!</strong> Only {daysRemaining} days remaining — time to schedule refill
+          </div>
+        )}
+        {isExpired && (
+          <div style={styles.expiredAlert}>
+            ❌ <strong>Supply exhausted</strong> — Patient needs refill
+          </div>
+        )}
+
+        {/* Titration Alert (for weight loss in-clinic) */}
         {isTitrationTime && (
           <div style={styles.titrationAlert}>
             ⚠️ <strong>Next injection is #4</strong> — Discuss dose titration with patient before administering
@@ -223,16 +267,19 @@ export default function ProtocolDetail() {
 
         {/* Action Buttons */}
         <div style={styles.actionBar}>
-          <button 
-            onClick={() => {
-              setLogForm({ ...logForm, log_type: 'injection' });
-              setShowLogModal(true);
-            }}
-            style={styles.primaryButton}
-            disabled={sessionsRemaining === 0}
-          >
-            + Log {isWeightLoss ? 'Injection' : 'Session'}
-          </button>
+          {/* Only show Log Injection/Session for in-clinic protocols */}
+          {!isTakeHome && (
+            <button 
+              onClick={() => {
+                setLogForm({ ...logForm, log_type: 'injection' });
+                setShowLogModal(true);
+              }}
+              style={styles.primaryButton}
+              disabled={sessionsRemaining === 0}
+            >
+              + Log {isWeightLoss ? 'Injection' : 'Session'}
+            </button>
+          )}
           {isWeightLoss && (
             <button 
               onClick={() => {
@@ -246,36 +293,38 @@ export default function ProtocolDetail() {
           )}
         </div>
 
-        {/* Injection/Session History */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>
-            {isWeightLoss ? 'Injection History' : 'Session History'}
-          </h2>
-          {injectionLogs.length === 0 ? (
-            <div style={styles.emptyState}>No {isWeightLoss ? 'injections' : 'sessions'} logged yet</div>
-          ) : (
-            <div style={styles.logList}>
-              {injectionLogs.map((log, index) => (
-                <div key={log.id} style={styles.logCard}>
-                  <div style={styles.logNumber}>#{injectionLogs.length - index}</div>
-                  <div style={styles.logContent}>
-                    <div style={styles.logDate}>{formatDate(log.log_date)}</div>
-                    {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
+        {/* Injection/Session History - only for in-clinic protocols */}
+        {!isTakeHome && (
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>
+              {isWeightLoss ? 'Injection History' : 'Session History'}
+            </h2>
+            {injectionLogs.length === 0 ? (
+              <div style={styles.emptyState}>No {isWeightLoss ? 'injections' : 'sessions'} logged yet</div>
+            ) : (
+              <div style={styles.logList}>
+                {injectionLogs.map((log, index) => (
+                  <div key={log.id} style={styles.logCard}>
+                    <div style={styles.logNumber}>#{injectionLogs.length - index}</div>
+                    <div style={styles.logContent}>
+                      <div style={styles.logDate}>{formatDate(log.log_date)}</div>
+                      {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
+                    </div>
+                    {(injectionLogs.length - index) === 4 && isWeightLoss && (
+                      <span style={styles.titrationBadge}>Titration Point</span>
+                    )}
+                    <button 
+                      onClick={() => handleDeleteLog(log.id)}
+                      style={styles.deleteLogBtn}
+                    >
+                      ×
+                    </button>
                   </div>
-                  {(injectionLogs.length - index) === 4 && isWeightLoss && (
-                    <span style={styles.titrationBadge}>Titration Point</span>
-                  )}
-                  <button 
-                    onClick={() => handleDeleteLog(log.id)}
-                    style={styles.deleteLogBtn}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Weight History (for weight loss only) */}
         {isWeightLoss && (
@@ -504,6 +553,24 @@ const styles = {
     padding: '16px',
     marginBottom: '24px',
     color: '#166534',
+    fontSize: '14px'
+  },
+  lowSupplyAlert: {
+    background: '#fef3c7',
+    border: '1px solid #f59e0b',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '24px',
+    color: '#92400e',
+    fontSize: '14px'
+  },
+  expiredAlert: {
+    background: '#fee2e2',
+    border: '1px solid #dc2626',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '24px',
+    color: '#dc2626',
     fontSize: '14px'
   },
   actionBar: {

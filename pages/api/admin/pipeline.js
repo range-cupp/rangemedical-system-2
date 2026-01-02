@@ -38,6 +38,26 @@ export default async function handler(req, res) {
 
     console.log('Needs protocol count:', needsProtocol.length);
 
+    // Get all unique ghl_contact_ids from purchases that don't have patient_id
+    const ghlContactIds = [...new Set(
+      needsProtocol
+        .filter(p => !p.patient_id && p.ghl_contact_id)
+        .map(p => p.ghl_contact_id)
+    )];
+
+    // Look up patients by ghl_contact_id
+    let patientByGhl = {};
+    if (ghlContactIds.length > 0) {
+      const { data: patients } = await supabase
+        .from('patients')
+        .select('id, name, ghl_contact_id')
+        .in('ghl_contact_id', ghlContactIds);
+      
+      (patients || []).forEach(p => {
+        patientByGhl[p.ghl_contact_id] = { id: p.id, name: p.name };
+      });
+    }
+
     // Get all protocols
     const { data: allProtocols, error: protocolsError } = await supabase
       .from('protocols')
@@ -107,16 +127,29 @@ export default async function handler(req, res) {
     });
 
     // Format purchases for response
-    const formatPurchase = (p) => ({
-      id: p.id,
-      product_name: p.item_name || p.product_name,
-      amount_paid: p.amount || p.amount_paid,
-      purchase_date: p.purchase_date,
-      patient_id: p.patient_id,
-      ghl_contact_id: p.ghl_contact_id,
-      patient_name: p.patient_name || 'Unknown',
-      category: p.category
-    });
+    const formatPurchase = (p) => {
+      // Try to get patient_id from purchase, or look up from ghl_contact_id
+      let patientId = p.patient_id;
+      let patientName = p.patient_name;
+      
+      if (!patientId && p.ghl_contact_id && patientByGhl[p.ghl_contact_id]) {
+        patientId = patientByGhl[p.ghl_contact_id].id;
+        if (!patientName || patientName === 'Unknown') {
+          patientName = patientByGhl[p.ghl_contact_id].name;
+        }
+      }
+      
+      return {
+        id: p.id,
+        product_name: p.item_name || p.product_name,
+        amount_paid: p.amount || p.amount_paid,
+        purchase_date: p.purchase_date,
+        patient_id: patientId,
+        ghl_contact_id: p.ghl_contact_id,
+        patient_name: patientName || 'Unknown',
+        category: p.category
+      };
+    };
 
     return res.status(200).json({
       needsProtocol: needsProtocol.map(formatPurchase),

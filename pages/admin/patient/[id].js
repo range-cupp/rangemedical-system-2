@@ -48,7 +48,21 @@ export default function PatientProfile() {
     category: 'Peptide'
   });
 
+  // PDF Viewer state
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [selectedPdf, setSelectedPdf] = useState(null);
+
   const PURCHASE_CATEGORIES = ['Peptide', 'IV', 'Injection', 'Weight Loss', 'HRT', 'Labs', 'Red Light', 'HBOT', 'Other'];
+
+  const openPdfViewer = (doc) => {
+    setSelectedPdf(doc);
+    setShowPdfViewer(true);
+  };
+
+  const closePdfViewer = () => {
+    setShowPdfViewer(false);
+    setSelectedPdf(null);
+  };
 
   useEffect(() => {
     if (id) {
@@ -326,6 +340,12 @@ export default function PatientProfile() {
     <>
       <Head>
         <title>{patient.first_name} {patient.last_name} | Range Medical</title>
+        <style>{`
+          @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+          }
+        `}</style>
       </Head>
 
       <div style={styles.container}>
@@ -458,14 +478,12 @@ export default function PatientProfile() {
                       </div>
                     </div>
                     <div style={styles.labDocActions}>
-                      <a 
-                        href={doc.file_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
+                      <button 
+                        onClick={() => openPdfViewer(doc)}
                         style={styles.viewButton}
                       >
                         View PDF
-                      </a>
+                      </button>
                       <button 
                         onClick={() => handleDeleteLabDocument(doc.id)}
                         style={styles.deleteButton}
@@ -687,6 +705,44 @@ export default function PatientProfile() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* PDF Viewer Slide-out Panel */}
+        {showPdfViewer && selectedPdf && (
+          <>
+            <div style={styles.pdfOverlay} onClick={closePdfViewer} />
+            <div style={styles.pdfSlidePanel}>
+              <div style={styles.pdfHeader}>
+                <div>
+                  <h3 style={styles.pdfTitle}>
+                    {selectedPdf.panel_type || 'Lab Results'} Panel
+                  </h3>
+                  <p style={styles.pdfMeta}>
+                    {formatDate(selectedPdf.collection_date || selectedPdf.uploaded_at)}
+                    {selectedPdf.lab_provider && ` • ${selectedPdf.lab_provider}`}
+                  </p>
+                </div>
+                <div style={styles.pdfHeaderActions}>
+                  <a 
+                    href={selectedPdf.file_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={styles.openNewTabBtn}
+                  >
+                    Open in New Tab ↗
+                  </a>
+                  <button onClick={closePdfViewer} style={styles.closePdfBtn}>×</button>
+                </div>
+              </div>
+              <div style={styles.pdfContent}>
+                <iframe 
+                  src={selectedPdf.file_url}
+                  style={styles.pdfIframe}
+                  title="Lab Results PDF"
+                />
+              </div>
+            </div>
+          </>
         )}
       </div>
     </>
@@ -923,7 +979,9 @@ const styles = {
     padding: '6px 12px',
     borderRadius: '6px',
     fontSize: '13px',
-    textDecoration: 'none'
+    textDecoration: 'none',
+    border: 'none',
+    cursor: 'pointer'
   },
   deleteButton: {
     background: 'none',
@@ -1148,5 +1206,80 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     fontSize: '14px'
+  },
+  // PDF Slide Panel Styles
+  pdfOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.4)',
+    zIndex: 1000
+  },
+  pdfSlidePanel: {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    width: '70%',
+    maxWidth: '900px',
+    height: '100vh',
+    background: '#fff',
+    boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
+    zIndex: 1001,
+    display: 'flex',
+    flexDirection: 'column',
+    animation: 'slideIn 0.3s ease-out'
+  },
+  pdfHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: '20px 24px',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#f9fafb'
+  },
+  pdfTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  pdfMeta: {
+    margin: '4px 0 0 0',
+    fontSize: '14px',
+    color: '#666'
+  },
+  pdfHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  openNewTabBtn: {
+    background: '#f3f4f6',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    textDecoration: 'none',
+    cursor: 'pointer'
+  },
+  closePdfBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '28px',
+    cursor: 'pointer',
+    color: '#666',
+    padding: '0 8px',
+    lineHeight: 1
+  },
+  pdfContent: {
+    flex: 1,
+    overflow: 'hidden'
+  },
+  pdfIframe: {
+    width: '100%',
+    height: '100%',
+    border: 'none'
   }
 };

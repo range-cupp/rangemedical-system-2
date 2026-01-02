@@ -88,60 +88,85 @@ export default function Pipeline() {
       
       setCompletedProtocols(pipelineData.completedProtocols || []);
       
-      // Fetch templates, peptides, and patients for modals
-      const [templatesRes, peptidesRes] = await Promise.all([
-        fetch('/api/protocol-templates'),
-        fetch('/api/peptides')
-      ]);
+      // Extract unique patients from pipeline data
+      const patientMap = new Map();
       
-      const templatesData = await templatesRes.json();
-      const peptidesData = await peptidesRes.json();
-      
-      setTemplates(Array.isArray(templatesData) ? templatesData : []);
-      setPeptides(Array.isArray(peptidesData) ? peptidesData : []);
-      
-      // Try multiple patient endpoints
-      let patientsLoaded = false;
-      
-      // Try /api/admin/patients first
-      try {
-        const patientsRes = await fetch('/api/admin/patients');
-        if (patientsRes.ok) {
-          const patientsData = await patientsRes.json();
-          if (patientsData && patientsData.patients && Array.isArray(patientsData.patients)) {
-            setPatients(patientsData.patients);
-            patientsLoaded = true;
-          } else if (Array.isArray(patientsData)) {
-            setPatients(patientsData);
-            patientsLoaded = true;
+      // From purchases needing protocol
+      (pipelineData.needsProtocol || []).forEach(p => {
+        const key = p.patient_id || p.ghl_contact_id || p.patient_name;
+        if (key && p.patient_name && p.patient_name !== 'Unknown') {
+          if (!patientMap.has(key)) {
+            patientMap.set(key, {
+              id: p.patient_id || p.ghl_contact_id,
+              name: p.patient_name,
+              ghl_contact_id: p.ghl_contact_id,
+              purchase_count: 0,
+              protocol_count: 0
+            });
           }
+          patientMap.get(key).purchase_count++;
+        }
+      });
+      
+      // From active protocols
+      (pipelineData.activeProtocols || []).forEach(p => {
+        const key = p.patient_id || p.ghl_contact_id || p.patient_name;
+        if (key && p.patient_name && p.patient_name !== 'Unknown') {
+          if (!patientMap.has(key)) {
+            patientMap.set(key, {
+              id: p.patient_id || p.ghl_contact_id,
+              name: p.patient_name,
+              ghl_contact_id: p.ghl_contact_id,
+              purchase_count: 0,
+              protocol_count: 0
+            });
+          }
+          patientMap.get(key).protocol_count++;
+        }
+      });
+      
+      // From completed protocols
+      (pipelineData.completedProtocols || []).forEach(p => {
+        const key = p.patient_id || p.ghl_contact_id || p.patient_name;
+        if (key && p.patient_name && p.patient_name !== 'Unknown') {
+          if (!patientMap.has(key)) {
+            patientMap.set(key, {
+              id: p.patient_id || p.ghl_contact_id,
+              name: p.patient_name,
+              ghl_contact_id: p.ghl_contact_id,
+              purchase_count: 0,
+              protocol_count: 0
+            });
+          }
+          patientMap.get(key).protocol_count++;
+        }
+      });
+      
+      // Convert to array and sort by name
+      const extractedPatients = Array.from(patientMap.values())
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      
+      setPatients(extractedPatients);
+      
+      // Fetch templates and peptides for modals (optional - don't crash if they fail)
+      try {
+        const templatesRes = await fetch('/api/protocol-templates');
+        if (templatesRes.ok) {
+          const templatesData = await templatesRes.json();
+          setTemplates(Array.isArray(templatesData) ? templatesData : []);
         }
       } catch (e) {
-        console.log('Admin patients API not available');
+        console.log('Could not load templates');
       }
       
-      // Fallback to /api/patients
-      if (!patientsLoaded) {
-        try {
-          const patientsRes = await fetch('/api/patients');
-          if (patientsRes.ok) {
-            const patientsData = await patientsRes.json();
-            if (Array.isArray(patientsData)) {
-              setPatients(patientsData);
-              patientsLoaded = true;
-            } else if (patientsData.patients) {
-              setPatients(patientsData.patients);
-              patientsLoaded = true;
-            }
-          }
-        } catch (e) {
-          console.log('Patients API not available');
+      try {
+        const peptidesRes = await fetch('/api/peptides');
+        if (peptidesRes.ok) {
+          const peptidesData = await peptidesRes.json();
+          setPeptides(Array.isArray(peptidesData) ? peptidesData : []);
         }
-      }
-      
-      if (!patientsLoaded) {
-        console.error('Could not load patients from any endpoint');
-        setPatients([]);
+      } catch (e) {
+        console.log('Could not load peptides');
       }
     } catch (error) {
       console.error('Error fetching data:', error);

@@ -888,17 +888,24 @@ export default function Pipeline() {
               <div style={styles.activeList}>
                 {/* Sort protocols by urgency: lowest days/sessions remaining first */}
                 {[...activeProtocols].sort((a, b) => {
-                  const now = new Date();
+                  // Helper to parse date as local
+                  const parseLocal = (dateStr) => {
+                    if (!dateStr) return null;
+                    const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+                    return new Date(year, month - 1, day);
+                  };
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
                   
                   // Calculate days remaining for protocol a
-                  const aEndDate = a.end_date ? new Date(a.end_date) : null;
-                  const aDaysRemaining = aEndDate ? Math.ceil((aEndDate - now) / (1000 * 60 * 60 * 24)) : null;
+                  const aEndDate = parseLocal(a.end_date);
+                  const aDaysRemaining = aEndDate ? Math.round((aEndDate - today) / (1000 * 60 * 60 * 24)) : null;
                   const aSessionsRemaining = a.total_sessions ? (a.total_sessions - (a.sessions_used || 0)) : null;
                   const aUrgency = aDaysRemaining !== null ? aDaysRemaining : (aSessionsRemaining !== null ? aSessionsRemaining * 7 : 9999);
                   
                   // Calculate days remaining for protocol b
-                  const bEndDate = b.end_date ? new Date(b.end_date) : null;
-                  const bDaysRemaining = bEndDate ? Math.ceil((bEndDate - now) / (1000 * 60 * 60 * 24)) : null;
+                  const bEndDate = parseLocal(b.end_date);
+                  const bDaysRemaining = bEndDate ? Math.round((bEndDate - today) / (1000 * 60 * 60 * 24)) : null;
                   const bSessionsRemaining = b.total_sessions ? (b.total_sessions - (b.sessions_used || 0)) : null;
                   const bUrgency = bDaysRemaining !== null ? bDaysRemaining : (bSessionsRemaining !== null ? bSessionsRemaining * 7 : 9999);
                   
@@ -912,19 +919,28 @@ export default function Pipeline() {
                                        protocol.medication?.toLowerCase().includes('retatrutide');
                   const isInjectionPack = protocol.program_name?.toLowerCase().includes('injection') && isSessionBased;
                   
-                  // Time calculations
-                  const now = new Date();
-                  const startDate = protocol.start_date ? new Date(protocol.start_date) : null;
-                  const endDate = protocol.end_date ? new Date(protocol.end_date) : null;
+                  // Time calculations - parse dates as local to avoid timezone issues
+                  const parseLocalDate = (dateStr) => {
+                    if (!dateStr) return null;
+                    const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+                    return new Date(year, month - 1, day);
+                  };
+                  
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0); // Normalize to midnight
+                  
+                  const startDate = parseLocalDate(protocol.start_date);
+                  const endDate = parseLocalDate(protocol.end_date);
+                  
                   const totalDays = endDate && startDate 
-                    ? Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+                    ? Math.round((endDate - startDate) / (1000 * 60 * 60 * 24))
                     : null;
                   const daysRemaining = endDate 
-                    ? Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))
+                    ? Math.round((endDate - today) / (1000 * 60 * 60 * 24))
                     : null;
                   const daysPassed = startDate
-                    ? Math.ceil((now - startDate) / (1000 * 60 * 60 * 24))
-                    : 0;
+                    ? Math.round((today - startDate) / (1000 * 60 * 60 * 24)) + 1  // +1 because day 1 is the start day
+                    : 1;
                   
                   // Session tracking
                   const sessionsUsed = protocol.sessions_used || 0;

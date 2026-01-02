@@ -736,7 +736,7 @@ export default function PatientProfile() {
               </div>
               <div style={styles.pdfContent}>
                 <iframe 
-                  src={selectedPdf.file_url}
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(selectedPdf.file_url)}&embedded=true`}
                   style={styles.pdfIframe}
                   title="Lab Results PDF"
                 />

@@ -31,6 +31,7 @@ export default function Pipeline() {
   const [existingPacks, setExistingPacks] = useState([]);
   
   const [assignForm, setAssignForm] = useState({
+    category: '',
     templateId: '',
     peptideId: '',
     selectedDose: '',
@@ -42,6 +43,7 @@ export default function Pipeline() {
   
   const [completedForm, setCompletedForm] = useState({
     patientId: '',
+    category: '',
     templateId: '',
     peptideId: '',
     selectedDose: '',
@@ -189,6 +191,7 @@ export default function Pipeline() {
   const openAssignModal = async (purchase) => {
     setSelectedPurchase(purchase);
     setAssignForm({
+      category: '',
       templateId: '',
       peptideId: '',
       selectedDose: '',
@@ -285,6 +288,7 @@ export default function Pipeline() {
         setShowAddCompletedModal(false);
         setCompletedForm({
           patientId: '',
+          category: '',
           templateId: '',
           peptideId: '',
           selectedDose: '',
@@ -336,13 +340,11 @@ export default function Pipeline() {
   };
 
   const isPeptideTemplate = (form) => {
-    const template = getSelectedTemplate(form);
-    return template?.name?.toLowerCase().includes('peptide');
+    return form.category === 'peptide';
   };
 
   const isInjectionTemplate = (form) => {
-    const template = getSelectedTemplate(form);
-    return template?.name?.toLowerCase().includes('injection');
+    return form.category === 'injection';
   };
 
   const formatDate = (dateStr) => {
@@ -692,18 +694,36 @@ export default function Pipeline() {
               </p>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Protocol Template</label>
+                <label style={styles.label}>Category</label>
                 <select
                   style={styles.select}
-                  value={assignForm.templateId}
-                  onChange={(e) => setAssignForm({ ...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', medication: '' })}
+                  value={assignForm.category}
+                  onChange={(e) => setAssignForm({ ...assignForm, category: e.target.value, templateId: '', peptideId: '', selectedDose: '', medication: '' })}
                 >
-                  <option value="">Select template...</option>
-                  {templates.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                  <option value="">Select category...</option>
+                  {[...new Set(templates.map(t => t.category))].sort().map(cat => (
+                    <option key={cat} value={cat}>{cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : 'Other'}</option>
                   ))}
                 </select>
               </div>
+
+              {assignForm.category && (
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Protocol Template</label>
+                  <select
+                    style={styles.select}
+                    value={assignForm.templateId}
+                    onChange={(e) => setAssignForm({ ...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', medication: '' })}
+                  >
+                    <option value="">Select template...</option>
+                    {templates
+                      .filter(t => t.category === assignForm.category)
+                      .map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
 
               {isPeptideTemplate(assignForm) && (
                 <>
@@ -888,18 +908,36 @@ export default function Pipeline() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Protocol Template</label>
+                <label style={styles.label}>Category</label>
                 <select
                   style={styles.select}
-                  value={completedForm.templateId}
-                  onChange={(e) => setCompletedForm({ ...completedForm, templateId: e.target.value, peptideId: '', selectedDose: '' })}
+                  value={completedForm.category}
+                  onChange={(e) => setCompletedForm({ ...completedForm, category: e.target.value, templateId: '', peptideId: '', selectedDose: '' })}
                 >
-                  <option value="">Select template...</option>
-                  {templates.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                  <option value="">Select category...</option>
+                  {[...new Set(templates.map(t => t.category))].sort().map(cat => (
+                    <option key={cat} value={cat}>{cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : 'Other'}</option>
                   ))}
                 </select>
               </div>
+
+              {completedForm.category && (
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Protocol Template</label>
+                  <select
+                    style={styles.select}
+                    value={completedForm.templateId}
+                    onChange={(e) => setCompletedForm({ ...completedForm, templateId: e.target.value, peptideId: '', selectedDose: '' })}
+                  >
+                    <option value="">Select template...</option>
+                    {templates
+                      .filter(t => t.category === completedForm.category)
+                      .map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
 
               {isPeptideTemplate(completedForm) && (
                 <>

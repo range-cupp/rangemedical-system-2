@@ -1,10 +1,11 @@
 // /pages/api/patients/index.js
-// Patients List API - Search and list patients
+// Simple Patients API - queries patients table directly
+// Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
@@ -13,77 +14,59 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { search, limit = 50, offset = 0 } = req.query;
-
   try {
-    let query = supabase
+    // Query patients table directly
+    const { data: patients, error } = await supabase
       .from('patients')
-      .select(`
-        id,
-        ghl_contact_id,
-        first_name,
-        last_name,
-        email,
-        phone,
-        created_at
-      `, { count: 'exact' });
+      .select('id, name, first_name, last_name, email, phone, ghl_contact_id, created_at')
+      .order('name', { ascending: true });
 
-    // Apply search filter
-    if (search) {
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+    if (error) {
+      console.error('Patients query error:', error);
+      
+      // If patients table doesn't exist, try aggregating from purchases
+      const { data: purchases, error: purchasesError } = await supabase
+        .from('purchases')
+        .select('patient_id, patient_name, ghl_contact_id')
+        .not('patient_name', 'is', null);
+      
+      if (purchasesError) {
+        throw purchasesError;
+      }
+      
+      // Dedupe by patient_id or name
+      const patientMap = new Map();
+      purchases.forEach(p => {
+        const key = p.patient_id || p.ghl_contact_id || p.patient_name;
+        if (key && !patientMap.has(key)) {
+          patientMap.set(key, {
+            id: p.patient_id || p.ghl_contact_id,
+            name: p.patient_name,
+            ghl_contact_id: p.ghl_contact_id
+          });
+        }
+      });
+      
+      const uniquePatients = Array.from(patientMap.values())
+        .filter(p => p.name && p.name !== 'Unknown')
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      
+      return res.status(200).json(uniquePatients);
     }
 
-    // Apply pagination
-    query = query
-      .order('created_at', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+    // Format patients - ensure consistent structure
+    const formattedPatients = patients.map(p => ({
+      id: p.id,
+      name: p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown',
+      email: p.email,
+      phone: p.phone,
+      ghl_contact_id: p.ghl_contact_id
+    })).filter(p => p.name !== 'Unknown');
 
-    const { data: patients, error, count } = await query;
-
-    if (error) throw error;
-
-    // Get pending notification counts for each patient
-    const patientIds = patients.map(p => p.id);
-    const { data: notifications } = await supabase
-      .from('purchase_notifications')
-      .select('patient_id')
-      .in('patient_id', patientIds)
-      .eq('status', 'pending');
-
-    // Count notifications per patient
-    const notificationCounts = {};
-    notifications?.forEach(n => {
-      notificationCounts[n.patient_id] = (notificationCounts[n.patient_id] || 0) + 1;
-    });
-
-    // Get active protocol counts
-    const { data: protocols } = await supabase
-      .from('patient_protocols')
-      .select('patient_id')
-      .in('patient_id', patientIds)
-      .eq('status', 'active');
-
-    const protocolCounts = {};
-    protocols?.forEach(p => {
-      protocolCounts[p.patient_id] = (protocolCounts[p.patient_id] || 0) + 1;
-    });
-
-    // Enrich patients with counts
-    const enrichedPatients = patients.map(p => ({
-      ...p,
-      pendingNotifications: notificationCounts[p.id] || 0,
-      activeProtocols: protocolCounts[p.id] || 0
-    }));
-
-    return res.status(200).json({
-      patients: enrichedPatients,
-      total: count,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
+    return res.status(200).json(formattedPatients);
 
   } catch (error) {
-    console.error('Error fetching patients:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Patients API error:', error);
+    return res.status(500).json({ error: 'Server error', details: error.message });
   }
 }

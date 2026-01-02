@@ -47,7 +47,8 @@ export default async function handler(req, res) {
         endDate,
         status,
         notes,
-        sessionsUsed
+        sessionsUsed,
+        deliveryMethod
       } = req.body;
 
       console.log('Update protocol request:', { id, body: req.body });
@@ -64,6 +65,7 @@ export default async function handler(req, res) {
       if (endDate !== undefined) updates.end_date = endDate || null;
       if (status !== undefined) updates.status = status;
       if (notes !== undefined) updates.notes = notes || null;
+      if (deliveryMethod !== undefined) updates.delivery_method = deliveryMethod || null;
       if (sessionsUsed !== undefined && sessionsUsed !== '' && sessionsUsed !== null) {
         updates.sessions_used = parseInt(sessionsUsed) || 0;
       }

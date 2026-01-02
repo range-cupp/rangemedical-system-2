@@ -154,13 +154,18 @@ export default async function handler(req, res) {
 
     // Mark purchase as having a protocol
     if (purchaseId) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('purchases')
         .update({ 
           protocol_id: protocol.id,
-          has_protocol: true
+          has_protocol: true,
+          protocol_created: true
         })
         .eq('id', purchaseId);
+      
+      if (updateError) {
+        console.error('Error updating purchase:', updateError);
+      }
     }
 
     res.status(200).json({ 

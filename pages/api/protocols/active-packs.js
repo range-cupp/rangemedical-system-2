@@ -43,13 +43,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ packs: [] });
     }
 
-    // Get active packs (session-based protocols with remaining sessions)
+    // Get active packs (session-based protocols with remaining sessions OR take-home with time remaining)
     const { data: packs, error } = await supabase
       .from('protocols')
       .select('*')
       .in('patient_id', patientIds)
       .eq('status', 'active')
-      .not('total_sessions', 'is', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -57,11 +56,19 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch packs' });
     }
 
-    // Filter to only packs with remaining sessions
+    // Filter to packs that can have sessions/time added
     const availablePacks = (packs || []).filter(pack => {
-      const used = pack.sessions_used || 0;
-      const total = pack.total_sessions || 0;
-      return used < total;
+      // Session-based: has remaining sessions
+      if (pack.total_sessions) {
+        const used = pack.sessions_used || 0;
+        const total = pack.total_sessions || 0;
+        return used < total;
+      }
+      // Take-home: still active (has time remaining)
+      if (pack.delivery_method === 'take_home' && pack.end_date) {
+        return new Date(pack.end_date) > new Date();
+      }
+      return false;
     });
 
     return res.status(200).json({ packs: availablePacks });

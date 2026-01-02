@@ -830,6 +830,7 @@ export default function Pipeline() {
               <div style={styles.activeGrid}>
                 {activeProtocols.map(protocol => {
                   const isSessionBased = protocol.total_sessions && protocol.total_sessions > 0;
+                  const isWeightLoss = protocol.program_name?.toLowerCase().includes('weight');
                   const totalDays = protocol.end_date && protocol.start_date 
                     ? Math.ceil((new Date(protocol.end_date) - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
                     : null;
@@ -843,6 +844,13 @@ export default function Pipeline() {
                     ? ((protocol.sessions_used || 0) / protocol.total_sessions) * 100
                     : (totalDays ? Math.min((currentDay / totalDays) * 100, 100) : 0);
                   
+                  // For weight loss: calculate if injection is due (weekly = every 7 days)
+                  const sessionsUsed = protocol.sessions_used || 0;
+                  const daysSinceStart = daysPassed;
+                  const expectedInjections = Math.floor(daysSinceStart / 7) + 1;
+                  const injectionDue = isWeightLoss && sessionsUsed < expectedInjections && sessionsUsed < protocol.total_sessions;
+                  const isTitrationTime = isWeightLoss && sessionsUsed === 3; // Next injection is 4th
+                  
                   return (
                     <div key={protocol.id} style={styles.activeCard}>
                       <div style={styles.activeCardHeader}>
@@ -853,6 +861,17 @@ export default function Pipeline() {
                         ) : (
                           <span style={{...styles.patientName, color: '#9ca3af', textDecoration: 'none', cursor: 'default'}}>
                             {protocol.patient_name || 'Unknown'}
+                          </span>
+                        )}
+                        {/* Alerts */}
+                        {injectionDue && (
+                          <span style={{marginLeft: '8px', padding: '2px 8px', background: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
+                            💉 Due
+                          </span>
+                        )}
+                        {isTitrationTime && (
+                          <span style={{marginLeft: '8px', padding: '2px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
+                            ⚠️ 4th - Titrate
                           </span>
                         )}
                       </div>
@@ -867,7 +886,7 @@ export default function Pipeline() {
                       <div style={styles.activeCardFooter}>
                         {isSessionBased ? (
                           <span style={styles.sessionsBadge}>
-                            {protocol.sessions_used || 0} of {protocol.total_sessions} used
+                            {protocol.sessions_used || 0} of {protocol.total_sessions} {isWeightLoss ? 'injections' : 'sessions'}
                           </span>
                         ) : totalDays ? (
                           <span>Day {currentDay} of {totalDays}</span>
@@ -1575,10 +1594,12 @@ export default function Pipeline() {
                   </select>
                 </div>
 
-                {/* Sessions tracking for packs */}
+                {/* Sessions/Injections tracking for packs */}
                 {editForm.totalSessions && (
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Sessions Used (of {editForm.totalSessions})</label>
+                    <label style={styles.label}>
+                      {selectedProtocol?.program_name?.toLowerCase().includes('weight') ? 'Injections' : 'Sessions'} Used (of {editForm.totalSessions})
+                    </label>
                     <input 
                       type="number"
                       min="0"
@@ -1587,6 +1608,13 @@ export default function Pipeline() {
                       onChange={e => setEditForm({...editForm, sessionsUsed: parseInt(e.target.value) || 0})}
                       style={styles.input}
                     />
+                    {/* Titration alert for weight loss on 4th injection */}
+                    {selectedProtocol?.program_name?.toLowerCase().includes('weight') && 
+                     parseInt(editForm.sessionsUsed) === 4 && (
+                      <div style={{marginTop: '8px', padding: '8px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '13px', color: '#92400e'}}>
+                        ⚠️ 4th injection - discuss dose titration with patient
+                      </div>
+                    )}
                   </div>
                 )}
 

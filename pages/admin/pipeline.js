@@ -887,6 +887,7 @@ export default function Pipeline() {
                     <option value="Biotin">Biotin</option>
                     <option value="Lipo-C">Lipo-C</option>
                     <option value="Skinny Shot">Skinny Shot</option>
+                    <option value="Toradol">Toradol</option>
                   </select>
                 </div>
               )}

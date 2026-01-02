@@ -885,81 +885,197 @@ export default function Pipeline() {
                 No active protocols
               </div>
             ) : (
-              <div style={styles.activeGrid}>
+              <div style={styles.activeList}>
                 {activeProtocols.map(protocol => {
-                  const isSessionBased = protocol.total_sessions && protocol.total_sessions > 0;
-                  const isWeightLoss = protocol.program_name?.toLowerCase().includes('weight');
-                  const totalDays = protocol.end_date && protocol.start_date 
-                    ? Math.ceil((new Date(protocol.end_date) - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
+                  const isTakeHome = protocol.delivery_method === 'take_home';
+                  const isSessionBased = protocol.total_sessions && protocol.total_sessions > 0 && !isTakeHome;
+                  const isWeightLoss = protocol.program_name?.toLowerCase().includes('weight') ||
+                                       protocol.medication?.toLowerCase().includes('semaglutide') ||
+                                       protocol.medication?.toLowerCase().includes('tirzepatide') ||
+                                       protocol.medication?.toLowerCase().includes('retatrutide');
+                  const isInjectionPack = protocol.program_name?.toLowerCase().includes('injection') && isSessionBased;
+                  
+                  // Time calculations
+                  const now = new Date();
+                  const startDate = protocol.start_date ? new Date(protocol.start_date) : null;
+                  const endDate = protocol.end_date ? new Date(protocol.end_date) : null;
+                  const totalDays = endDate && startDate 
+                    ? Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
                     : null;
-                  const daysPassed = protocol.start_date
-                    ? Math.ceil((new Date() - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
+                  const daysRemaining = endDate 
+                    ? Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))
+                    : null;
+                  const daysPassed = startDate
+                    ? Math.ceil((now - startDate) / (1000 * 60 * 60 * 24))
                     : 0;
-                  const currentDay = Math.min(daysPassed, totalDays || daysPassed);
                   
-                  // Calculate progress - either by sessions or by days
-                  const progressPercent = isSessionBased 
-                    ? ((protocol.sessions_used || 0) / protocol.total_sessions) * 100
-                    : (totalDays ? Math.min((currentDay / totalDays) * 100, 100) : 0);
-                  
-                  // For weight loss: calculate if injection is due (weekly = every 7 days)
+                  // Session tracking
                   const sessionsUsed = protocol.sessions_used || 0;
-                  const daysSinceStart = daysPassed;
-                  const expectedInjections = Math.floor(daysSinceStart / 7) + 1;
-                  const injectionDue = isWeightLoss && sessionsUsed < expectedInjections && sessionsUsed < protocol.total_sessions;
-                  const isTitrationTime = isWeightLoss && sessionsUsed === 3; // Next injection is 4th
+                  const totalSessions = protocol.total_sessions || 0;
+                  const sessionsRemaining = totalSessions - sessionsUsed;
+                  
+                  // Progress calculation
+                  let progressPercent = 0;
+                  if (isSessionBased) {
+                    progressPercent = (sessionsUsed / totalSessions) * 100;
+                  } else if (totalDays && totalDays > 0) {
+                    progressPercent = Math.min((daysPassed / totalDays) * 100, 100);
+                  }
+                  
+                  // Status flags
+                  const isOverdue = daysRemaining !== null && daysRemaining < 0;
+                  const isLowSupply = isTakeHome && daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0;
+                  const isEndingSoon = !isTakeHome && daysRemaining !== null && daysRemaining <= 3 && daysRemaining > 0;
+                  
+                  // Weight loss specific
+                  const expectedInjections = isWeightLoss ? Math.floor(daysPassed / 7) + 1 : 0;
+                  const injectionDue = isWeightLoss && isSessionBased && sessionsUsed < expectedInjections && sessionsUsed < totalSessions;
+                  const isTitrationTime = isWeightLoss && sessionsUsed === 3;
+                  
+                  // Determine protocol type label
+                  let typeLabel = 'Protocol';
+                  let typeColor = '#6b7280';
+                  if (isWeightLoss) {
+                    typeLabel = 'Weight Loss';
+                    typeColor = '#8b5cf6';
+                  } else if (isInjectionPack) {
+                    typeLabel = 'Injection Pack';
+                    typeColor = '#3b82f6';
+                  } else if (isTakeHome) {
+                    typeLabel = 'Take Home';
+                    typeColor = '#10b981';
+                  } else if (protocol.program_name?.toLowerCase().includes('peptide')) {
+                    typeLabel = 'Peptide';
+                    typeColor = '#f59e0b';
+                  }
                   
                   return (
-                    <div key={protocol.id} style={styles.activeCard}>
-                      <div style={styles.activeCardHeader}>
-                        {protocol.patient_id ? (
-                          <Link href={`/admin/patient/${protocol.patient_id}`} style={{ textDecoration: 'none' }}>
-                            <span style={styles.patientName}>{protocol.patient_name}</span>
-                          </Link>
-                        ) : (
-                          <span style={{...styles.patientName, color: '#9ca3af', textDecoration: 'none', cursor: 'default'}}>
-                            {protocol.patient_name || 'Unknown'}
+                    <div key={protocol.id} style={{
+                      ...styles.activeCardNew,
+                      borderLeft: `4px solid ${typeColor}`
+                    }}>
+                      {/* Top Row: Patient + Type + Status */}
+                      <div style={styles.activeCardTop}>
+                        <div style={styles.activeCardLeft}>
+                          {protocol.patient_id ? (
+                            <Link href={`/admin/patient/${protocol.patient_id}`} style={{ textDecoration: 'none' }}>
+                              <span style={styles.activePatientName}>{protocol.patient_name}</span>
+                            </Link>
+                          ) : (
+                            <span style={{...styles.activePatientName, color: '#9ca3af'}}>
+                              {protocol.patient_name || 'Unknown'}
+                            </span>
+                          )}
+                          <span style={{...styles.typeLabel, background: `${typeColor}15`, color: typeColor}}>
+                            {typeLabel}
                           </span>
-                        )}
-                        {/* Alerts */}
-                        {injectionDue && (
-                          <span style={{marginLeft: '8px', padding: '2px 8px', background: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
-                            💉 Due
-                          </span>
-                        )}
-                        {isTitrationTime && (
-                          <span style={{marginLeft: '8px', padding: '2px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
-                            ⚠️ 4th - Titrate
-                          </span>
-                        )}
+                        </div>
+                        <div style={styles.activeCardRight}>
+                          {/* Status Badges */}
+                          {isOverdue && (
+                            <span style={styles.statusOverdue}>Overdue</span>
+                          )}
+                          {isLowSupply && (
+                            <span style={styles.statusWarning}>Low Supply</span>
+                          )}
+                          {isEndingSoon && (
+                            <span style={styles.statusWarning}>Ending Soon</span>
+                          )}
+                          {injectionDue && (
+                            <span style={styles.statusDue}>Injection Due</span>
+                          )}
+                          {isTitrationTime && (
+                            <span style={styles.statusTitration}>Titration</span>
+                          )}
+                          <button 
+                            onClick={() => openEditModal(protocol)}
+                            style={styles.editBtnSmall}
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </div>
+                      
+                      {/* Middle Row: Protocol Details */}
                       <Link href={`/admin/protocol/${protocol.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <div style={{...styles.activeProtocolInfo, cursor: 'pointer'}}>
-                          <span style={styles.protocolDot}>●</span>
-                          <span>{protocol.medication || protocol.program_name}</span>
-                          {protocol.selected_dose && <span> - {protocol.selected_dose}</span>}
+                        <div style={styles.activeCardMiddle}>
+                          <div style={styles.protocolName}>
+                            {protocol.medication || protocol.program_name}
+                          </div>
+                          <div style={styles.protocolMeta}>
+                            {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                            {protocol.selected_dose && protocol.frequency && <span> • </span>}
+                            {protocol.frequency && <span>{protocol.frequency}</span>}
+                          </div>
                         </div>
                       </Link>
-                      <div style={styles.progressBar}>
-                        <div style={{...styles.progressFill, width: `${progressPercent}%`}}></div>
-                      </div>
-                      <div style={styles.activeCardFooter}>
-                        {isSessionBased ? (
-                          <span style={styles.sessionsBadge}>
-                            {protocol.sessions_used || 0} of {protocol.total_sessions} {isWeightLoss ? 'injections' : 'sessions'}
-                          </span>
-                        ) : totalDays ? (
-                          <span>Day {currentDay} of {totalDays}</span>
-                        ) : (
-                          <span>Ongoing</span>
-                        )}
-                        {protocol.frequency && <span style={styles.frequencyBadge}>{protocol.frequency}</span>}
-                        <button 
-                          onClick={() => openEditModal(protocol)}
-                          style={styles.editButton}
-                        >
-                          Edit
-                        </button>
+                      
+                      {/* Bottom Row: Progress Tracking */}
+                      <div style={styles.activeCardBottom}>
+                        {/* Progress Bar */}
+                        <div style={styles.progressContainer}>
+                          <div style={styles.progressBarNew}>
+                            <div style={{
+                              ...styles.progressFillNew, 
+                              width: `${Math.min(progressPercent, 100)}%`,
+                              background: isOverdue ? '#ef4444' : (progressPercent >= 75 ? '#22c55e' : '#3b82f6')
+                            }}></div>
+                          </div>
+                        </div>
+                        
+                        {/* Tracking Info */}
+                        <div style={styles.trackingInfo}>
+                          {isSessionBased ? (
+                            // Session-based tracking
+                            <div style={styles.trackingGrid}>
+                              <div style={styles.trackingStat}>
+                                <span style={styles.trackingValue}>{sessionsUsed}</span>
+                                <span style={styles.trackingLabel}>{isWeightLoss ? 'Injections' : 'Sessions'}</span>
+                              </div>
+                              <div style={styles.trackingDivider}>/</div>
+                              <div style={styles.trackingStat}>
+                                <span style={styles.trackingValue}>{totalSessions}</span>
+                                <span style={styles.trackingLabel}>Total</span>
+                              </div>
+                              <div style={styles.trackingRemaining}>
+                                <span style={{
+                                  fontWeight: '600',
+                                  color: sessionsRemaining <= 1 ? '#dc2626' : '#22c55e'
+                                }}>
+                                  {sessionsRemaining} left
+                                </span>
+                              </div>
+                            </div>
+                          ) : isTakeHome || totalDays ? (
+                            // Time-based tracking
+                            <div style={styles.trackingGrid}>
+                              <div style={styles.trackingStat}>
+                                <span style={styles.trackingValue}>{daysPassed}</span>
+                                <span style={styles.trackingLabel}>Days In</span>
+                              </div>
+                              <div style={styles.trackingDivider}>/</div>
+                              <div style={styles.trackingStat}>
+                                <span style={styles.trackingValue}>{totalDays || '∞'}</span>
+                                <span style={styles.trackingLabel}>Total</span>
+                              </div>
+                              <div style={styles.trackingRemaining}>
+                                <span style={{
+                                  fontWeight: '600',
+                                  color: isOverdue ? '#dc2626' : (daysRemaining <= 7 ? '#f59e0b' : '#22c55e')
+                                }}>
+                                  {isOverdue 
+                                    ? `${Math.abs(daysRemaining)} days over` 
+                                    : `${daysRemaining} days left`
+                                  }
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={styles.trackingOngoing}>
+                              <span>Started {formatDate(protocol.start_date)}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -2071,6 +2187,159 @@ const styles = {
     cursor: 'pointer',
     color: '#666',
     marginLeft: '8px'
+  },
+  // New Active Protocol Styles
+  activeList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  activeCardNew: {
+    background: '#fff',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    padding: '16px 20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+  },
+  activeCardTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px'
+  },
+  activeCardLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px'
+  },
+  activeCardRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  activePatientName: {
+    fontWeight: '600',
+    fontSize: '15px',
+    color: '#111'
+  },
+  typeLabel: {
+    padding: '3px 10px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  statusOverdue: {
+    padding: '3px 10px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    background: '#fee2e2',
+    color: '#dc2626'
+  },
+  statusWarning: {
+    padding: '3px 10px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    background: '#fef3c7',
+    color: '#b45309'
+  },
+  statusDue: {
+    padding: '3px 10px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    background: '#dbeafe',
+    color: '#1d4ed8'
+  },
+  statusTitration: {
+    padding: '3px 10px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    background: '#fef3c7',
+    color: '#92400e'
+  },
+  editBtnSmall: {
+    background: '#fff',
+    border: '1px solid #d1d5db',
+    padding: '4px 12px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    color: '#666'
+  },
+  activeCardMiddle: {
+    marginBottom: '12px',
+    cursor: 'pointer'
+  },
+  protocolName: {
+    fontSize: '16px',
+    fontWeight: '500',
+    color: '#111',
+    marginBottom: '2px'
+  },
+  protocolMeta: {
+    fontSize: '13px',
+    color: '#6b7280'
+  },
+  activeCardBottom: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  },
+  progressContainer: {
+    flex: '0 0 120px'
+  },
+  progressBarNew: {
+    width: '100%',
+    height: '8px',
+    background: '#e5e7eb',
+    borderRadius: '4px',
+    overflow: 'hidden'
+  },
+  progressFillNew: {
+    height: '100%',
+    borderRadius: '4px',
+    transition: 'width 0.3s ease'
+  },
+  trackingInfo: {
+    flex: 1
+  },
+  trackingGrid: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  trackingStat: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  },
+  trackingValue: {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#111'
+  },
+  trackingLabel: {
+    fontSize: '11px',
+    color: '#9ca3af',
+    textTransform: 'uppercase'
+  },
+  trackingDivider: {
+    fontSize: '18px',
+    color: '#d1d5db',
+    fontWeight: '300'
+  },
+  trackingRemaining: {
+    marginLeft: 'auto',
+    fontSize: '14px'
+  },
+  trackingOngoing: {
+    fontSize: '13px',
+    color: '#6b7280'
   },
   packOption: {
     marginBottom: '16px',

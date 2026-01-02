@@ -1,5 +1,5 @@
 // /pages/api/lab-orders/[id].js
-// Lab Orders API - Delete and Update
+// Lab Order API - GET, PATCH, DELETE for individual lab orders
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -16,7 +16,59 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Lab order ID required' });
   }
 
-  // DELETE - Remove lab order
+  // GET - Get single lab order
+  if (req.method === 'GET') {
+    try {
+      const { data, error } = await supabase
+        .from('lab_orders')
+        .select('*, patients(name, email, phone)')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        return res.status(404).json({ error: 'Lab order not found' });
+      }
+
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error('Error:', error);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
+
+  // PATCH - Update lab order
+  if (req.method === 'PATCH') {
+    try {
+      const { status, order_type, notes } = req.body;
+
+      const updates = {
+        updated_at: new Date().toISOString()
+      };
+
+      if (status !== undefined) updates.status = status;
+      if (order_type !== undefined) updates.order_type = order_type;
+      if (notes !== undefined) updates.notes = notes;
+
+      const { data, error } = await supabase
+        .from('lab_orders')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Update error:', error);
+        return res.status(500).json({ error: 'Failed to update lab order', details: error.message });
+      }
+
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error('Error:', error);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
+
+  // DELETE - Delete lab order
   if (req.method === 'DELETE') {
     try {
       const { error } = await supabase
@@ -30,42 +82,6 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ success: true });
-    } catch (error) {
-      console.error('Error:', error);
-      return res.status(500).json({ error: 'Server error' });
-    }
-  }
-
-  // PATCH - Update lab order (e.g., mark as complete)
-  if (req.method === 'PATCH') {
-    try {
-      const { status, ...updates } = req.body;
-
-      const updateData = {
-        ...updates,
-        updated_at: new Date().toISOString()
-      };
-
-      if (status) {
-        updateData.status = status;
-        if (status === 'completed') {
-          updateData.completed_date = new Date().toISOString().split('T')[0];
-        }
-      }
-
-      const { data, error } = await supabase
-        .from('lab_orders')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Update error:', error);
-        return res.status(500).json({ error: 'Failed to update lab order' });
-      }
-
-      return res.status(200).json(data);
     } catch (error) {
       console.error('Error:', error);
       return res.status(500).json({ error: 'Server error' });

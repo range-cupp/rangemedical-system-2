@@ -25,7 +25,15 @@ export default async function handler(req, res) {
       medication,
       frequency,
       startDate,
-      notes
+      notes,
+      // HRT specific
+      hrtGender,
+      hrtSupplyType,
+      // Weight Loss specific
+      startWeight,
+      goalWeight,
+      // Session-based
+      totalSessions: requestedTotalSessions
     } = req.body;
 
     if (!templateId) {
@@ -70,6 +78,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Could not determine patient' });
     }
 
+    // Update patient with weight info if provided (for weight loss)
+    if (startWeight || goalWeight) {
+      await supabase
+        .from('patients')
+        .update({
+          start_weight: startWeight ? parseFloat(startWeight) : undefined,
+          goal_weight: goalWeight ? parseFloat(goalWeight) : undefined
+        })
+        .eq('id', finalPatientId);
+    }
+
     // Get template info
     const { data: template } = await supabase
       .from('protocol_templates')
@@ -106,11 +125,12 @@ export default async function handler(req, res) {
                             template.duration_days === 0;
     
     // Check if this is a session-based pack
-    const isPackProtocol = template.total_sessions && template.total_sessions > 2;
+    const isPackProtocol = (template.total_sessions && template.total_sessions > 1) || 
+                           requestedTotalSessions > 1;
     
     let protocolStatus = 'active';
     let protocolEndDate = endDate;
-    let totalSessions = null;
+    let totalSessions = requestedTotalSessions || template.total_sessions || null;
     let sessionsUsed = 0;
 
     if (isSingleSession) {
@@ -122,8 +142,22 @@ export default async function handler(req, res) {
       // Pack protocol - no end date, track by sessions
       protocolStatus = 'active';
       protocolEndDate = null;
-      totalSessions = template.total_sessions;
       sessionsUsed = 0;
+    }
+
+    // Build notes with additional info
+    let finalNotes = notes || '';
+    if (hrtGender || hrtSupplyType) {
+      const hrtInfo = [];
+      if (hrtGender) hrtInfo.push(`Gender: ${hrtGender}`);
+      if (hrtSupplyType) hrtInfo.push(`Supply: ${hrtSupplyType}`);
+      finalNotes = finalNotes ? `${finalNotes}\n${hrtInfo.join(', ')}` : hrtInfo.join(', ');
+    }
+    if (startWeight || goalWeight) {
+      const wlInfo = [];
+      if (startWeight) wlInfo.push(`Start: ${startWeight}lbs`);
+      if (goalWeight) wlInfo.push(`Goal: ${goalWeight}lbs`);
+      finalNotes = finalNotes ? `${finalNotes}\n${wlInfo.join(', ')}` : wlInfo.join(', ');
     }
 
     // Create the protocol
@@ -141,7 +175,7 @@ export default async function handler(req, res) {
         status: protocolStatus,
         total_sessions: totalSessions,
         sessions_used: sessionsUsed,
-        notes: notes || null,
+        notes: finalNotes || null,
         created_at: new Date().toISOString()
       })
       .select()

@@ -58,7 +58,7 @@ export default function PatientProfile() {
   const getPdfUrl = (doc) => {
     if (doc.file_url) return doc.file_url;
     if (doc.file_path) {
-      return `https://teivfptpozltpqwahgdl.supabase.co/storage/v1/object/public/lab-results/${doc.file_path}`;
+      return `https://teivfptpozltpqwahgdl.supabase.co/storage/v1/object/public/lab-documents/${doc.file_path}`;
     }
     return null;
   };

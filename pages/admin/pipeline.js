@@ -149,12 +149,6 @@ export default function Pipeline() {
       setLoading(false);
     }
   };
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchExistingPacks = async (patientId, category) => {
     try {

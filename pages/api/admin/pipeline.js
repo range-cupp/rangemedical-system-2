@@ -102,6 +102,10 @@ export default async function handler(req, res) {
     // Separate active and completed protocols
     const activeProtocols = [];
     const completedProtocols = [];
+    const protocolsToComplete = []; // Track protocols that need to be auto-completed
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     (allProtocols || []).forEach(protocol => {
       const formatted = {
@@ -112,18 +116,71 @@ export default async function handler(req, res) {
       if (protocol.status === 'completed') {
         completedProtocols.push(formatted);
       } else if (protocol.status === 'active') {
-        // Calculate days remaining
-        const endDate = protocol.end_date ? new Date(protocol.end_date) : null;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Check if protocol should be auto-completed
+        let shouldComplete = false;
         
-        let daysRemaining = null;
-        if (endDate) {
-          daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+        // Session-based: complete when sessions_used >= total_sessions
+        if (protocol.total_sessions && protocol.sessions_used >= protocol.total_sessions) {
+          shouldComplete = true;
         }
         
-        activeProtocols.push({ ...formatted, days_remaining: daysRemaining });
+        // Duration-based: complete when end_date has passed
+        const endDate = protocol.end_date ? new Date(protocol.end_date + 'T23:59:59') : null;
+        if (endDate && endDate < today) {
+          shouldComplete = true;
+        }
+        
+        if (shouldComplete) {
+          protocolsToComplete.push(protocol.id);
+          completedProtocols.push({ ...formatted, days_remaining: 0 });
+        } else {
+          // Calculate days remaining for sorting
+          let daysRemaining = null;
+          if (endDate) {
+            daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+          }
+          
+          // Calculate sessions remaining for session-based protocols
+          let sessionsRemaining = null;
+          if (protocol.total_sessions) {
+            sessionsRemaining = protocol.total_sessions - (protocol.sessions_used || 0);
+          }
+          
+          activeProtocols.push({ 
+            ...formatted, 
+            days_remaining: daysRemaining,
+            sessions_remaining: sessionsRemaining
+          });
+        }
       }
+    });
+
+    // Auto-complete protocols that are done
+    if (protocolsToComplete.length > 0) {
+      await supabase
+        .from('protocols')
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .in('id', protocolsToComplete);
+      
+      console.log(`Auto-completed ${protocolsToComplete.length} protocols`);
+    }
+
+    // Sort active protocols: 
+    // 1. Session-based by sessions remaining (lowest first)
+    // 2. Duration-based by days remaining (lowest first)
+    // 3. Nulls at the end
+    activeProtocols.sort((a, b) => {
+      // Get the relevant "remaining" value for each
+      const aRemaining = a.sessions_remaining ?? a.days_remaining ?? 9999;
+      const bRemaining = b.sessions_remaining ?? b.days_remaining ?? 9999;
+      return aRemaining - bRemaining;
+    });
+
+    // Sort completed protocols by end_date or created_at (most recent first)
+    completedProtocols.sort((a, b) => {
+      const aDate = new Date(a.end_date || a.created_at);
+      const bDate = new Date(b.end_date || b.created_at);
+      return bDate - aDate;
     });
 
     // Format purchases for response

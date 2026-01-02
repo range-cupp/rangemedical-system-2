@@ -33,7 +33,10 @@ export default async function handler(req, res) {
       startWeight,
       goalWeight,
       // Session-based
-      totalSessions: requestedTotalSessions
+      totalSessions: requestedTotalSessions,
+      // Supply duration for take-home
+      supplyDuration,
+      deliveryMethod
     } = req.body;
 
     if (!templateId) {
@@ -111,9 +114,16 @@ export default async function handler(req, res) {
       medicationName = peptide?.name;
     }
 
-    // Calculate end date based on template duration
+    // Calculate end date based on template duration or supply duration
     let endDate = null;
-    if (template.duration_days && startDate) {
+    const isTakeHome = deliveryMethod === 'take_home';
+    
+    if (supplyDuration && startDate) {
+      // For take-home with supply duration
+      const start = new Date(startDate);
+      start.setDate(start.getDate() + parseInt(supplyDuration));
+      endDate = start.toISOString().split('T')[0];
+    } else if (template.duration_days && startDate) {
       const start = new Date(startDate);
       start.setDate(start.getDate() + template.duration_days);
       endDate = start.toISOString().split('T')[0];
@@ -124,7 +134,7 @@ export default async function handler(req, res) {
                             template.duration_days === 1 ||
                             template.duration_days === 0;
     
-    // Check if this is a session-based pack
+    // Check if this is a session-based pack (in-clinic injections)
     const isPackProtocol = (template.total_sessions && template.total_sessions > 1) || 
                            requestedTotalSessions > 1;
     
@@ -138,6 +148,12 @@ export default async function handler(req, res) {
       protocolEndDate = startDate;
       totalSessions = template.total_sessions || 1;
       sessionsUsed = template.total_sessions || 1;
+    } else if (isTakeHome && supplyDuration) {
+      // Take-home protocols track by time, not sessions
+      protocolStatus = 'active';
+      protocolEndDate = endDate;
+      totalSessions = null;
+      sessionsUsed = null;
     } else if (isPackProtocol) {
       // Pack protocol - no end date, track by sessions
       protocolStatus = 'active';
@@ -175,6 +191,7 @@ export default async function handler(req, res) {
         status: protocolStatus,
         total_sessions: totalSessions,
         sessions_used: sessionsUsed,
+        delivery_method: deliveryMethod || null,
         notes: finalNotes || null,
         created_at: new Date().toISOString()
       })

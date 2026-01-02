@@ -1,807 +1,737 @@
-// =====================================================
-// RANGE MEDICAL - PROTOCOL DETAIL PAGE
 // /pages/admin/protocol/[id].js
-// Full protocol view with injection tracking
-// =====================================================
+// Protocol Detail Page - Track injections, sessions, and weight
+// Range Medical
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 
-export default function ProtocolDetailPage() {
+export default function ProtocolDetail() {
   const router = useRouter();
-  const { id: protocolId } = router.query;
+  const { id } = router.query;
   
-  const [loading, setLoading] = useState(true);
   const [protocol, setProtocol] = useState(null);
-  const [patient, setPatient] = useState(null);
-  const [injections, setInjections] = useState([]);
-  const [error, setError] = useState(null);
-  const [showLogForm, setShowLogForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    injection_date: new Date().toISOString().split('T')[0],
-    injection_site: 'abdomen',
-    location: 'in_clinic',
-    dose: '',
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logForm, setLogForm] = useState({
+    log_date: new Date().toISOString().split('T')[0],
+    log_type: 'injection',
+    weight: '',
     notes: ''
   });
 
   useEffect(() => {
-    if (protocolId) {
-      fetchProtocol(protocolId);
+    if (id) {
+      fetchProtocol();
+      fetchLogs();
     }
-  }, [protocolId]);
+  }, [id]);
 
-  const fetchProtocol = async (id) => {
+  const fetchProtocol = async () => {
     try {
-      setLoading(true);
-      const response = await fetch(`/api/admin/protocol/${id}`);
-      const result = await response.json();
-      
-      if (result.success) {
-        setProtocol(result.data.protocol);
-        setPatient(result.data.patient);
-        setInjections(result.data.injections || []);
-      } else {
-        setError(result.error || 'Protocol not found');
+      const res = await fetch(`/api/protocols/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProtocol(data);
       }
-    } catch (err) {
-      setError('Failed to load protocol');
+    } catch (error) {
+      console.error('Error fetching protocol:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogInjection = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-
+  const fetchLogs = async () => {
     try {
-      const response = await fetch('/api/admin/log-injection', {
+      const res = await fetch(`/api/protocols/${id}/logs`);
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(data);
+      }
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+    }
+  };
+
+  const handleLogSubmit = async () => {
+    try {
+      const res = await fetch(`/api/protocols/${id}/logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patient_id: patient.id,
-          injection_type: `peptide_${protocol.id}`,
-          ...formData
+          ...logForm,
+          patient_id: protocol.patient_id
         })
       });
 
-      const result = await response.json();
-      if (result.success) {
-        setShowLogForm(false);
-        setFormData({
-          ...formData,
-          injection_date: new Date().toISOString().split('T')[0],
-          notes: '',
-          dose: ''
+      if (res.ok) {
+        setShowLogModal(false);
+        setLogForm({
+          log_date: new Date().toISOString().split('T')[0],
+          log_type: 'injection',
+          weight: '',
+          notes: ''
         });
-        fetchProtocol(protocolId);
+        fetchProtocol(); // Refresh to get updated sessions_used
+        fetchLogs();
       } else {
-        alert('Error: ' + result.error);
+        const error = await res.json();
+        alert(error.error || 'Failed to log');
       }
-    } catch (err) {
-      alert('Error logging injection');
-    } finally {
-      setSubmitting(false);
+    } catch (error) {
+      console.error('Error logging:', error);
     }
   };
 
-  const handleStatusChange = async (newStatus) => {
-    if (!confirm(`Are you sure you want to mark this protocol as ${newStatus}?`)) return;
+  const handleDeleteLog = async (logId) => {
+    if (!confirm('Delete this log entry?')) return;
     
     try {
-      const response = await fetch(`/api/admin/protocol/status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ protocol_id: protocolId, status: newStatus })
+      const res = await fetch(`/api/protocols/${id}/logs/${logId}`, {
+        method: 'DELETE'
       });
 
-      const result = await response.json();
-      if (result.success) {
-        fetchProtocol(protocolId);
-      } else {
-        alert('Error updating status');
+      if (res.ok) {
+        fetchProtocol();
+        fetchLogs();
       }
-    } catch (err) {
-      alert('Error updating status');
+    } catch (error) {
+      console.error('Error deleting log:', error);
     }
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const isWeightLoss = protocol?.program_name?.toLowerCase().includes('weight') ||
+                       protocol?.medication?.toLowerCase().includes('semaglutide') ||
+                       protocol?.medication?.toLowerCase().includes('tirzepatide') ||
+                       protocol?.medication?.toLowerCase().includes('retatrutide');
+
+  const isSessionBased = protocol?.total_sessions && protocol.total_sessions > 0;
+  const sessionsUsed = protocol?.sessions_used || 0;
+  const sessionsRemaining = isSessionBased ? protocol.total_sessions - sessionsUsed : null;
+  
+  // Calculate if titration time (4th injection for weight loss)
+  const isTitrationTime = isWeightLoss && sessionsUsed === 3;
+  const isAtTitration = isWeightLoss && sessionsUsed >= 4;
+
+  // Get injection logs and weigh-in logs separately
+  const injectionLogs = logs.filter(l => l.log_type === 'injection' || l.log_type === 'session');
+  const weighInLogs = logs.filter(l => l.log_type === 'weigh_in');
+
+  // Calculate weight change if we have weigh-ins
+  const latestWeight = weighInLogs[0]?.weight;
+  const firstWeight = weighInLogs[weighInLogs.length - 1]?.weight;
+  const weightChange = latestWeight && firstWeight ? (latestWeight - firstWeight).toFixed(1) : null;
+
   if (loading) {
-    return (
-      <PageWrapper>
-        <div style={styles.loading}>
-          <div style={styles.spinner}></div>
-          <p>Loading protocol...</p>
-        </div>
-      </PageWrapper>
-    );
+    return <div style={styles.loading}>Loading...</div>;
   }
 
-  if (error || !protocol) {
-    return (
-      <PageWrapper>
-        <div style={styles.errorState}>
-          <h2>Protocol Not Found</h2>
-          <p>{error}</p>
-          <button onClick={() => router.back()} style={styles.backBtn}>
-            ← Go Back
-          </button>
-        </div>
-      </PageWrapper>
-    );
+  if (!protocol) {
+    return <div style={styles.error}>Protocol not found</div>;
   }
-
-  const isActive = protocol.status === 'active';
-  const today = new Date();
-  const endDate = protocol.end_date ? new Date(protocol.end_date) : null;
-  const startDate = protocol.start_date ? new Date(protocol.start_date) : null;
-  const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : null;
-  const totalDays = protocol.duration_days || 30;
-  const daysElapsed = startDate ? Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)) : 0;
-  const progressPercent = Math.min(100, Math.max(0, (daysElapsed / totalDays) * 100));
 
   return (
-    <PageWrapper>
-      {/* Header */}
-      <header style={styles.header}>
-        <div style={styles.headerLeft}>
-          <button onClick={() => router.back()} style={styles.backLink}>
-            ← Back to Patient
-          </button>
-          <h1 style={styles.protocolTitle}>{protocol.program_name}</h1>
-          <div style={styles.patientLink}>
-            Patient: <a href={`/admin/patient/${patient?.ghl_contact_id || patient?.id}`} style={styles.patientLinkText}>
-              {patient?.full_name || patient?.name}
-            </a>
+    <>
+      <Head>
+        <title>{protocol.medication || protocol.program_name} - Protocol Detail</title>
+      </Head>
+
+      <div style={styles.container}>
+        {/* Back Link */}
+        <Link href={protocol.patient_id ? `/admin/patient/${protocol.patient_id}` : '/admin/pipeline'} style={styles.backLink}>
+          ← Back to {protocol.patient_id ? 'Patient' : 'Pipeline'}
+        </Link>
+
+        {/* Header */}
+        <div style={styles.header}>
+          <div>
+            <h1 style={styles.title}>{protocol.medication || protocol.program_name}</h1>
+            <p style={styles.subtitle}>
+              {protocol.patients?.name || protocol.patient_name || 'Unknown Patient'}
+              {protocol.selected_dose && ` • ${protocol.selected_dose}`}
+              {protocol.frequency && ` • ${protocol.frequency}`}
+            </p>
           </div>
-        </div>
-        <div style={styles.headerRight}>
           <span style={{
             ...styles.statusBadge,
-            backgroundColor: isActive ? '#dcfce7' : protocol.status === 'completed' ? '#f3f4f6' : '#fee2e2',
-            color: isActive ? '#166534' : protocol.status === 'completed' ? '#666' : '#991b1b'
+            background: protocol.status === 'active' ? '#22c55e' : '#9ca3af'
           }}>
             {protocol.status}
           </span>
         </div>
-      </header>
 
-      <main style={styles.main}>
-        <div style={styles.contentGrid}>
-          {/* Left Column - Protocol Info */}
-          <div style={styles.leftColumn}>
-            {/* Progress Card */}
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Protocol Progress</h3>
-              <div style={styles.progressSection}>
-                <div style={styles.progressBar}>
-                  <div style={{...styles.progressFill, width: `${progressPercent}%`}} />
-                </div>
-                <div style={styles.progressLabels}>
-                  <span>Day {Math.max(0, daysElapsed)} of {totalDays}</span>
-                  {daysLeft !== null && daysLeft > 0 && <span>{daysLeft} days remaining</span>}
-                  {daysLeft !== null && daysLeft <= 0 && <span style={{color: '#ef4444'}}>Protocol ended</span>}
-                </div>
-              </div>
-              
-              <div style={styles.statsGrid}>
-                <div style={styles.statBox}>
-                  <div style={styles.statNumber}>{protocol.injections_completed || 0}</div>
-                  <div style={styles.statLabel}>Injections Logged</div>
-                </div>
-                <div style={styles.statBox}>
-                  <div style={styles.statNumber}>{totalDays}</div>
-                  <div style={styles.statLabel}>Total Days</div>
-                </div>
-              </div>
+        {/* Stats Cards */}
+        <div style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <div style={styles.statValue}>
+              {isSessionBased ? sessionsUsed : 'N/A'}
             </div>
-
-            {/* Protocol Details Card */}
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Protocol Details</h3>
-              
-              <div style={styles.detailSection}>
-                <div style={styles.detailLabel}>Program</div>
-                <div style={styles.detailValue}>{protocol.program_name}</div>
-              </div>
-
-              {protocol.program_type && (
-                <div style={styles.detailSection}>
-                  <div style={styles.detailLabel}>Type</div>
-                  <div style={styles.detailValue}>{protocol.program_type}</div>
-                </div>
-              )}
-
-              {(protocol.primary_peptide || protocol.secondary_peptide) && (
-                <div style={styles.detailSection}>
-                  <div style={styles.detailLabel}>Peptides</div>
-                  <div style={styles.detailValue}>
-                    {protocol.primary_peptide}
-                    {protocol.secondary_peptide && ` + ${protocol.secondary_peptide}`}
-                  </div>
-                </div>
-              )}
-
-              <div style={styles.detailSection}>
-                <div style={styles.detailLabel}>Dose</div>
-                <div style={styles.detailValue}>{protocol.dose_amount || '-'}</div>
-              </div>
-
-              <div style={styles.detailSection}>
-                <div style={styles.detailLabel}>Frequency</div>
-                <div style={styles.detailValue}>{protocol.dose_frequency || '-'}</div>
-              </div>
-
-              <div style={styles.detailSection}>
-                <div style={styles.detailLabel}>Start Date</div>
-                <div style={styles.detailValue}>{formatDate(protocol.start_date)}</div>
-              </div>
-
-              <div style={styles.detailSection}>
-                <div style={styles.detailLabel}>End Date</div>
-                <div style={styles.detailValue}>{formatDate(protocol.end_date)}</div>
-              </div>
-
-              {protocol.goal && (
-                <div style={styles.detailSection}>
-                  <div style={styles.detailLabel}>Goal</div>
-                  <div style={styles.detailValue}>{protocol.goal}</div>
-                </div>
-              )}
-
-              {protocol.special_instructions && (
-                <div style={styles.detailSection}>
-                  <div style={styles.detailLabel}>Instructions</div>
-                  <div style={styles.instructionsBox}>{protocol.special_instructions}</div>
-                </div>
-              )}
-            </div>
-
-            {/* Actions Card */}
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Actions</h3>
-              <div style={styles.actionsGrid}>
-                {isActive && (
-                  <button onClick={() => handleStatusChange('completed')} style={styles.completeBtn}>
-                    Mark as Completed
-                  </button>
-                )}
-                {protocol.status === 'completed' && (
-                  <button onClick={() => handleStatusChange('active')} style={styles.reactivateBtn}>
-                    Reactivate Protocol
-                  </button>
-                )}
-                {isActive && (
-                  <button onClick={() => handleStatusChange('cancelled')} style={styles.cancelBtn}>
-                    Cancel Protocol
-                  </button>
-                )}
-              </div>
+            <div style={styles.statLabel}>
+              {isWeightLoss ? 'Injections Given' : 'Sessions Used'}
             </div>
           </div>
+          <div style={styles.statCard}>
+            <div style={{
+              ...styles.statValue,
+              color: sessionsRemaining <= 1 ? '#dc2626' : '#000'
+            }}>
+              {sessionsRemaining !== null ? sessionsRemaining : 'N/A'}
+            </div>
+            <div style={styles.statLabel}>
+              {isWeightLoss ? 'Injections Left' : 'Sessions Left'}
+            </div>
+          </div>
+          {isWeightLoss && (
+            <div style={styles.statCard}>
+              <div style={{
+                ...styles.statValue,
+                color: weightChange < 0 ? '#22c55e' : weightChange > 0 ? '#dc2626' : '#000'
+              }}>
+                {weightChange !== null ? `${weightChange > 0 ? '+' : ''}${weightChange} lbs` : '—'}
+              </div>
+              <div style={styles.statLabel}>Weight Change</div>
+            </div>
+          )}
+          <div style={styles.statCard}>
+            <div style={styles.statValue}>{formatDate(protocol.start_date)}</div>
+            <div style={styles.statLabel}>Started</div>
+          </div>
+        </div>
 
-          {/* Right Column - Injection Log */}
-          <div style={styles.rightColumn}>
-            <div style={styles.card}>
-              <div style={styles.cardHeader}>
-                <h3 style={styles.cardTitleNoMargin}>Injection Log</h3>
-                {isActive && (
-                  <button onClick={() => setShowLogForm(!showLogForm)} style={styles.logBtn}>
-                    {showLogForm ? 'Cancel' : '+ Log Injection'}
+        {/* Titration Alert */}
+        {isTitrationTime && (
+          <div style={styles.titrationAlert}>
+            ⚠️ <strong>Next injection is #4</strong> — Discuss dose titration with patient before administering
+          </div>
+        )}
+        {isAtTitration && (
+          <div style={styles.completedAlert}>
+            ✓ 4 injections completed at {protocol.selected_dose} — Ready for dose increase or renewal
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div style={styles.actionBar}>
+          <button 
+            onClick={() => {
+              setLogForm({ ...logForm, log_type: 'injection' });
+              setShowLogModal(true);
+            }}
+            style={styles.primaryButton}
+            disabled={sessionsRemaining === 0}
+          >
+            + Log {isWeightLoss ? 'Injection' : 'Session'}
+          </button>
+          {isWeightLoss && (
+            <button 
+              onClick={() => {
+                setLogForm({ ...logForm, log_type: 'weigh_in' });
+                setShowLogModal(true);
+              }}
+              style={styles.secondaryButton}
+            >
+              + Log Weigh-In
+            </button>
+          )}
+        </div>
+
+        {/* Injection/Session History */}
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            {isWeightLoss ? 'Injection History' : 'Session History'}
+          </h2>
+          {injectionLogs.length === 0 ? (
+            <div style={styles.emptyState}>No {isWeightLoss ? 'injections' : 'sessions'} logged yet</div>
+          ) : (
+            <div style={styles.logList}>
+              {injectionLogs.map((log, index) => (
+                <div key={log.id} style={styles.logCard}>
+                  <div style={styles.logNumber}>#{injectionLogs.length - index}</div>
+                  <div style={styles.logContent}>
+                    <div style={styles.logDate}>{formatDate(log.log_date)}</div>
+                    {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
+                  </div>
+                  {(injectionLogs.length - index) === 4 && isWeightLoss && (
+                    <span style={styles.titrationBadge}>Titration Point</span>
+                  )}
+                  <button 
+                    onClick={() => handleDeleteLog(log.id)}
+                    style={styles.deleteLogBtn}
+                  >
+                    ×
                   </button>
-                )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Weight History (for weight loss only) */}
+        {isWeightLoss && (
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>Weight History</h2>
+            {weighInLogs.length === 0 ? (
+              <div style={styles.emptyState}>No weigh-ins logged yet</div>
+            ) : (
+              <div style={styles.logList}>
+                {weighInLogs.map((log) => (
+                  <div key={log.id} style={styles.logCard}>
+                    <div style={styles.weightValue}>{log.weight} lbs</div>
+                    <div style={styles.logContent}>
+                      <div style={styles.logDate}>{formatDate(log.log_date)}</div>
+                      {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteLog(log.id)}
+                      style={styles.deleteLogBtn}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Protocol Details */}
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>Protocol Details</h2>
+          <div style={styles.detailsGrid}>
+            <div style={styles.detailItem}>
+              <span style={styles.detailLabel}>Program</span>
+              <span style={styles.detailValue}>{protocol.program_name}</span>
+            </div>
+            {protocol.medication && (
+              <div style={styles.detailItem}>
+                <span style={styles.detailLabel}>Medication</span>
+                <span style={styles.detailValue}>{protocol.medication}</span>
+              </div>
+            )}
+            {protocol.selected_dose && (
+              <div style={styles.detailItem}>
+                <span style={styles.detailLabel}>Dose</span>
+                <span style={styles.detailValue}>{protocol.selected_dose}</span>
+              </div>
+            )}
+            {protocol.frequency && (
+              <div style={styles.detailItem}>
+                <span style={styles.detailLabel}>Frequency</span>
+                <span style={styles.detailValue}>{protocol.frequency}</span>
+              </div>
+            )}
+            {protocol.notes && (
+              <div style={{...styles.detailItem, gridColumn: '1 / -1'}}>
+                <span style={styles.detailLabel}>Notes</span>
+                <span style={styles.detailValue}>{protocol.notes}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Log Modal */}
+        {showLogModal && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>
+                  Log {logForm.log_type === 'weigh_in' ? 'Weigh-In' : (isWeightLoss ? 'Injection' : 'Session')}
+                </h3>
+                <button onClick={() => setShowLogModal(false)} style={styles.closeButton}>×</button>
               </div>
 
-              {/* Log Form */}
-              {showLogForm && (
-                <form onSubmit={handleLogInjection} style={styles.logForm}>
-                  <div style={styles.formRow}>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Date</label>
-                      <input
-                        type="date"
-                        value={formData.injection_date}
-                        onChange={e => setFormData({...formData, injection_date: e.target.value})}
-                        style={styles.input}
-                        required
-                      />
-                    </div>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Location</label>
-                      <select
-                        value={formData.location}
-                        onChange={e => setFormData({...formData, location: e.target.value})}
-                        style={styles.select}
-                      >
-                        <option value="in_clinic">In Clinic</option>
-                        <option value="take_home">Take Home</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div style={styles.formRow}>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Injection Site</label>
-                      <select
-                        value={formData.injection_site}
-                        onChange={e => setFormData({...formData, injection_site: e.target.value})}
-                        style={styles.select}
-                      >
-                        <option value="abdomen">Abdomen</option>
-                        <option value="thigh">Thigh</option>
-                        <option value="glute">Glute</option>
-                        <option value="deltoid">Deltoid</option>
-                      </select>
-                    </div>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Dose (optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g., 0.5ml"
-                        value={formData.dose}
-                        onChange={e => setFormData({...formData, dose: e.target.value})}
-                        style={styles.input}
-                      />
-                    </div>
-                  </div>
+              <div style={styles.modalBody}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Date *</label>
+                  <input 
+                    type="date"
+                    value={logForm.log_date}
+                    onChange={e => setLogForm({...logForm, log_date: e.target.value})}
+                    style={styles.input}
+                  />
+                </div>
+
+                {logForm.log_type === 'weigh_in' && (
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Notes (optional)</label>
-                    <input
-                      type="text"
-                      placeholder="Any notes..."
-                      value={formData.notes}
-                      onChange={e => setFormData({...formData, notes: e.target.value})}
+                    <label style={styles.label}>Weight (lbs) *</label>
+                    <input 
+                      type="number"
+                      step="0.1"
+                      value={logForm.weight}
+                      onChange={e => setLogForm({...logForm, weight: e.target.value})}
+                      placeholder="Enter weight..."
                       style={styles.input}
                     />
                   </div>
-                  <button type="submit" style={styles.submitBtn} disabled={submitting}>
-                    {submitting ? 'Saving...' : 'Log Injection'}
-                  </button>
-                </form>
-              )}
+                )}
 
-              {/* Injection History */}
-              {injections.length > 0 ? (
-                <div style={styles.injectionList}>
-                  {injections.map((log, i) => (
-                    <div key={i} style={styles.injectionItem}>
-                      <div style={styles.injectionDate}>
-                        {formatDate(log.injection_date)}
-                      </div>
-                      <div style={styles.injectionDetails}>
-                        <span style={styles.injectionSite}>{log.injection_site}</span>
-                        <span style={{
-                          ...styles.locationBadge,
-                          backgroundColor: log.location === 'in_clinic' ? '#dcfce7' : '#e0e7ff',
-                          color: log.location === 'in_clinic' ? '#166534' : '#4338ca'
-                        }}>
-                          {log.location === 'in_clinic' ? 'In Clinic' : 'Take Home'}
-                        </span>
-                        {log.dose && <span style={styles.injectionDose}>{log.dose}</span>}
-                      </div>
-                      {log.notes && <div style={styles.injectionNotes}>{log.notes}</div>}
-                      <div style={styles.injectionMeta}>
-                        Logged by {log.logged_by || 'unknown'}
-                      </div>
-                    </div>
-                  ))}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Notes</label>
+                  <textarea 
+                    value={logForm.notes}
+                    onChange={e => setLogForm({...logForm, notes: e.target.value})}
+                    placeholder="Any notes..."
+                    style={styles.textarea}
+                    rows={3}
+                  />
                 </div>
-              ) : (
-                <div style={styles.emptyInjections}>
-                  <p>No injections logged yet</p>
-                  {isActive && <p style={styles.emptyHint}>Click "+ Log Injection" to record the first one</p>}
-                </div>
-              )}
+
+                {/* Show titration warning when logging 4th injection */}
+                {logForm.log_type === 'injection' && isWeightLoss && sessionsUsed === 3 && (
+                  <div style={styles.titrationWarning}>
+                    ⚠️ This will be injection #4 — confirm titration was discussed
+                  </div>
+                )}
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowLogModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button 
+                  onClick={handleLogSubmit}
+                  style={styles.submitButton}
+                  disabled={logForm.log_type === 'weigh_in' && !logForm.weight}
+                >
+                  Log {logForm.log_type === 'weigh_in' ? 'Weight' : (isWeightLoss ? 'Injection' : 'Session')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
-    </PageWrapper>
-  );
-}
-
-// =====================================================
-// PAGE WRAPPER
-// =====================================================
-function PageWrapper({ children }) {
-  return (
-    <>
-      <Head>
-        <title>Protocol | Range Medical</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </Head>
-      <div style={styles.page}>
-        {children}
+        )}
       </div>
-      <style jsx global>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        body { margin: 0; padding: 0; }
-      `}</style>
     </>
   );
 }
 
-// =====================================================
-// UTILITIES
-// =====================================================
-function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
-
-// =====================================================
-// STYLES
-// =====================================================
 const styles = {
-  page: {
-    minHeight: '100vh',
-    backgroundColor: '#fafafa',
-    fontFamily: 'Inter, -apple-system, sans-serif'
+  container: {
+    maxWidth: '900px',
+    margin: '0 auto',
+    padding: '24px'
   },
   loading: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
     justifyContent: 'center',
-    height: '100vh',
-    color: '#666'
-  },
-  spinner: {
-    width: '32px',
-    height: '32px',
-    border: '3px solid #e5e5e5',
-    borderTopColor: '#000',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    marginBottom: '16px'
-  },
-  errorState: {
-    textAlign: 'center',
-    padding: '64px',
-    color: '#666'
-  },
-  backBtn: {
-    padding: '10px 20px',
-    backgroundColor: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    marginTop: '16px'
-  },
-  
-  // Header
-  header: {
-    backgroundColor: '#fff',
-    borderBottom: '1px solid #e5e5e5',
-    padding: '24px 32px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start'
-  },
-  headerLeft: {},
-  headerRight: {
-    display: 'flex',
     alignItems: 'center',
-    gap: '12px'
+    height: '100vh',
+    fontSize: '18px',
+    color: '#666'
+  },
+  error: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    fontSize: '18px',
+    color: '#dc2626'
   },
   backLink: {
-    background: 'none',
-    border: 'none',
+    display: 'inline-block',
     color: '#666',
-    fontSize: '14px',
-    cursor: 'pointer',
-    padding: 0,
-    marginBottom: '8px',
-    display: 'block'
+    textDecoration: 'none',
+    marginBottom: '16px',
+    fontSize: '14px'
   },
-  protocolTitle: {
-    fontSize: '24px',
-    fontWeight: '600',
-    margin: 0,
-    color: '#000'
-  },
-  patientLink: {
-    fontSize: '14px',
-    color: '#666',
-    marginTop: '4px'
-  },
-  patientLinkText: {
-    color: '#000',
-    fontWeight: '500',
-    textDecoration: 'none'
-  },
-  statusBadge: {
-    padding: '6px 14px',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: '600',
-    textTransform: 'uppercase'
-  },
-  
-  // Main Content
-  main: {
-    padding: '32px',
-    maxWidth: '1200px',
-    margin: '0 auto'
-  },
-  contentGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '24px'
-  },
-  leftColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px'
-  },
-  rightColumn: {},
-  
-  // Cards
-  card: {
-    backgroundColor: '#fff',
-    border: '1px solid #e5e5e5',
-    borderRadius: '12px',
-    padding: '24px'
-  },
-  cardHeader: {
+  header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px'
-  },
-  cardTitle: {
-    fontSize: '16px',
-    fontWeight: '600',
-    margin: '0 0 20px 0',
-    color: '#000'
-  },
-  cardTitleNoMargin: {
-    fontSize: '16px',
-    fontWeight: '600',
-    margin: 0,
-    color: '#000'
-  },
-  
-  // Progress Section
-  progressSection: {
+    alignItems: 'flex-start',
     marginBottom: '24px'
   },
-  progressBar: {
-    height: '8px',
-    backgroundColor: '#f0f0f0',
-    borderRadius: '4px',
-    overflow: 'hidden',
-    marginBottom: '8px'
+  title: {
+    fontSize: '28px',
+    fontWeight: '600',
+    margin: '0 0 4px 0'
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#000',
-    borderRadius: '4px',
-    transition: 'width 0.3s ease'
+  subtitle: {
+    color: '#666',
+    margin: 0,
+    fontSize: '15px'
   },
-  progressLabels: {
-    display: 'flex',
-    justifyContent: 'space-between',
+  statusBadge: {
+    padding: '6px 16px',
+    borderRadius: '20px',
+    color: 'white',
+    fontSize: '13px',
+    fontWeight: '500',
+    textTransform: 'capitalize'
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+    gap: '16px',
+    marginBottom: '24px'
+  },
+  statCard: {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    padding: '20px',
+    textAlign: 'center'
+  },
+  statValue: {
+    fontSize: '28px',
+    fontWeight: '600',
+    marginBottom: '4px'
+  },
+  statLabel: {
     fontSize: '13px',
     color: '#666'
   },
-  
-  // Stats Grid
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px'
-  },
-  statBox: {
-    backgroundColor: '#f9f9f9',
+  titrationAlert: {
+    background: '#fef3c7',
+    border: '1px solid #f59e0b',
     borderRadius: '8px',
     padding: '16px',
-    textAlign: 'center'
+    marginBottom: '24px',
+    color: '#92400e',
+    fontSize: '14px'
   },
-  statNumber: {
-    fontSize: '32px',
-    fontWeight: '700',
-    color: '#000'
+  completedAlert: {
+    background: '#dcfce7',
+    border: '1px solid #22c55e',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '24px',
+    color: '#166534',
+    fontSize: '14px'
   },
-  statLabel: {
-    fontSize: '12px',
-    color: '#666',
-    marginTop: '4px'
+  actionBar: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '32px'
   },
-  
-  // Detail Sections
-  detailSection: {
+  primaryButton: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  secondaryButton: {
+    background: '#fff',
+    color: '#000',
+    border: '1px solid #e5e7eb',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  section: {
+    marginBottom: '32px'
+  },
+  sectionTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
     marginBottom: '16px'
   },
-  detailLabel: {
-    fontSize: '12px',
-    fontWeight: '500',
-    color: '#666',
-    marginBottom: '4px',
-    textTransform: 'uppercase'
+  emptyState: {
+    padding: '32px',
+    textAlign: 'center',
+    color: '#9ca3af',
+    background: '#f9fafb',
+    borderRadius: '8px'
   },
-  detailValue: {
-    fontSize: '14px',
-    color: '#000'
-  },
-  instructionsBox: {
-    fontSize: '14px',
-    color: '#374151',
-    backgroundColor: '#f9f9f9',
-    padding: '12px',
-    borderRadius: '6px'
-  },
-  
-  // Actions
-  actionsGrid: {
+  logList: {
     display: 'flex',
     flexDirection: 'column',
     gap: '8px'
   },
-  completeBtn: {
-    padding: '10px 16px',
-    backgroundColor: '#166534',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  reactivateBtn: {
-    padding: '10px 16px',
-    backgroundColor: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  cancelBtn: {
-    padding: '10px 16px',
-    backgroundColor: '#fff',
-    color: '#991b1b',
-    border: '1px solid #fee2e2',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  
-  // Log Button
-  logBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  
-  // Log Form
-  logForm: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: '8px',
+  logCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
     padding: '16px',
-    marginBottom: '20px'
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px'
   },
-  formRow: {
+  logNumber: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    background: '#f3f4f6',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '600',
+    fontSize: '14px',
+    flexShrink: 0
+  },
+  weightValue: {
+    fontSize: '18px',
+    fontWeight: '600',
+    minWidth: '80px'
+  },
+  logContent: {
+    flex: 1
+  },
+  logDate: {
+    fontWeight: '500',
+    marginBottom: '2px'
+  },
+  logNotes: {
+    fontSize: '13px',
+    color: '#666'
+  },
+  titrationBadge: {
+    padding: '4px 10px',
+    background: '#fef3c7',
+    color: '#92400e',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  deleteLogBtn: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    border: '1px solid #e5e7eb',
+    background: '#fff',
+    color: '#9ca3af',
+    cursor: 'pointer',
+    fontSize: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  detailsGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '16px',
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    padding: '20px'
+  },
+  detailItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
+  detailLabel: {
+    fontSize: '12px',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  detailValue: {
+    fontSize: '15px',
+    fontWeight: '500'
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modal: {
+    background: '#fff',
+    borderRadius: '12px',
+    width: '100%',
+    maxWidth: '450px',
+    maxHeight: '90vh',
+    overflow: 'auto'
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  modalTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  closeButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    cursor: 'pointer',
+    color: '#9ca3af'
+  },
+  modalBody: {
+    padding: '20px'
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
     gap: '12px',
-    marginBottom: '12px'
+    padding: '20px',
+    borderTop: '1px solid #e5e7eb'
   },
   formGroup: {
-    marginBottom: '12px'
+    marginBottom: '16px'
   },
   label: {
     display: 'block',
-    fontSize: '12px',
-    fontWeight: '500',
     marginBottom: '6px',
-    color: '#374151'
+    fontSize: '14px',
+    fontWeight: '500'
   },
   input: {
     width: '100%',
-    padding: '8px 12px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    padding: '10px 12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
     fontSize: '14px',
-    outline: 'none',
     boxSizing: 'border-box'
   },
-  select: {
+  textarea: {
     width: '100%',
-    padding: '8px 12px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    padding: '10px 12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
     fontSize: '14px',
-    outline: 'none',
     boxSizing: 'border-box',
-    backgroundColor: '#fff'
+    resize: 'vertical'
   },
-  submitBtn: {
-    width: '100%',
-    padding: '10px',
-    backgroundColor: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  
-  // Injection List
-  injectionList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
-  },
-  injectionItem: {
+  titrationWarning: {
+    background: '#fef3c7',
+    border: '1px solid #f59e0b',
+    borderRadius: '8px',
     padding: '12px',
-    backgroundColor: '#f9f9f9',
-    borderRadius: '8px'
+    color: '#92400e',
+    fontSize: '13px'
   },
-  injectionDate: {
+  cancelButton: {
+    padding: '10px 20px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  submitButton: {
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '8px',
+    background: '#000',
+    color: '#fff',
+    cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '600',
-    marginBottom: '6px'
-  },
-  injectionDetails: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    flexWrap: 'wrap'
-  },
-  injectionSite: {
-    fontSize: '13px',
-    color: '#374151',
-    textTransform: 'capitalize'
-  },
-  locationBadge: {
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: '600'
-  },
-  injectionDose: {
-    fontSize: '13px',
-    color: '#666'
-  },
-  injectionNotes: {
-    fontSize: '13px',
-    color: '#666',
-    marginTop: '6px',
-    fontStyle: 'italic'
-  },
-  injectionMeta: {
-    fontSize: '11px',
-    color: '#999',
-    marginTop: '6px'
-  },
-  
-  // Empty State
-  emptyInjections: {
-    textAlign: 'center',
-    padding: '32px',
-    color: '#666'
-  },
-  emptyHint: {
-    fontSize: '13px',
-    color: '#999',
-    marginTop: '8px'
+    fontWeight: '500'
   }
 };

@@ -362,7 +362,8 @@ export default function Pipeline() {
     'BCAA',
     'L-Carnitine',
     'Glutathione',
-    'NAD+'
+    'NAD+',
+    'Toradol'
   ];
 
   // Check if a purchase is a lab/blood draw purchase
@@ -1373,9 +1374,21 @@ export default function Pipeline() {
                             style={styles.select}
                           >
                             <option value="">Select peptide...</option>
-                            {peptides.map(p => (
-                              <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
+                            {/* Group peptides by category */}
+                            {(() => {
+                              const categories = [...new Set(peptides.map(p => p.category || 'Other'))].sort();
+                              return categories.map(category => (
+                                <optgroup key={category} label={category}>
+                                  {peptides
+                                    .filter(p => (p.category || 'Other') === category)
+                                    .sort((a, b) => a.name.localeCompare(b.name))
+                                    .map(p => (
+                                      <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))
+                                  }
+                                </optgroup>
+                              ));
+                            })()}
                           </select>
                         </div>
 
@@ -1543,9 +1556,21 @@ export default function Pipeline() {
                         style={styles.select}
                       >
                         <option value="">Select peptide...</option>
-                        {peptides.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
+                        {/* Group peptides by category */}
+                        {(() => {
+                          const categories = [...new Set(peptides.map(p => p.category || 'Other'))].sort();
+                          return categories.map(category => (
+                            <optgroup key={category} label={category}>
+                              {peptides
+                                .filter(p => (p.category || 'Other') === category)
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .map(p => (
+                                  <option key={p.id} value={p.id}>{p.name}</option>
+                                ))
+                              }
+                            </optgroup>
+                          ));
+                        })()}
                       </select>
                     </div>
 

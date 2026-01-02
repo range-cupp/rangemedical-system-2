@@ -2,6 +2,7 @@
 // Pipeline with URL-based tabs for proper back button behavior
 // Includes Patients tab
 // Range Medical
+// UPDATED: 2026-01-02 11:15 - Added Peptide delivery method dropdown
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -925,11 +926,11 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {assignForm.protocolType && hasDeliveryOptions(assignForm.category, assignForm.protocolType) && (
+              {assignForm.protocolType && (assignForm.category === 'Peptide' || hasDeliveryOptions(assignForm.category, assignForm.protocolType)) && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delivery Method</label>
                   <select
-                    style={styles.select}
+                    style={{...styles.select, borderColor: !assignForm.deliveryMethod ? '#f87171' : '#e5e7eb'}}
                     value={assignForm.deliveryMethod}
                     onChange={(e) => {
                       const method = e.target.value;
@@ -938,7 +939,7 @@ export default function Pipeline() {
                     }}
                   >
                     <option value="">Select delivery...</option>
-                    {getDeliveryOptions(assignForm.category, assignForm.protocolType).map(d => (
+                    {(assignForm.category === 'Peptide' ? ['In Clinic', 'Take Home'] : getDeliveryOptions(assignForm.category, assignForm.protocolType)).map(d => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
@@ -1163,11 +1164,11 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {completedForm.protocolType && hasDeliveryOptions(completedForm.category, completedForm.protocolType) && (
+              {completedForm.protocolType && (completedForm.category === 'Peptide' || hasDeliveryOptions(completedForm.category, completedForm.protocolType)) && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delivery Method</label>
                   <select
-                    style={styles.select}
+                    style={{...styles.select, borderColor: !completedForm.deliveryMethod ? '#f87171' : '#e5e7eb'}}
                     value={completedForm.deliveryMethod}
                     onChange={(e) => {
                       const method = e.target.value;
@@ -1176,7 +1177,7 @@ export default function Pipeline() {
                     }}
                   >
                     <option value="">Select delivery...</option>
-                    {getDeliveryOptions(completedForm.category, completedForm.protocolType).map(d => (
+                    {(completedForm.category === 'Peptide' ? ['In Clinic', 'Take Home'] : getDeliveryOptions(completedForm.category, completedForm.protocolType)).map(d => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>

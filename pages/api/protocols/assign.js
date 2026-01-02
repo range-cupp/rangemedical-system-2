@@ -152,24 +152,32 @@ export default async function handler(req, res) {
       throw protocolError;
     }
 
-    // Mark purchase as having a protocol
+    // Mark purchase as having a protocol - THIS IS CRITICAL
     if (purchaseId) {
-      const { error: updateError } = await supabase
+      console.log('Updating purchase:', purchaseId, 'with protocol_id:', protocol.id);
+      
+      const { data: updatedPurchase, error: updateError } = await supabase
         .from('purchases')
         .update({ 
           protocol_id: protocol.id,
           protocol_created: true
         })
-        .eq('id', purchaseId);
+        .eq('id', purchaseId)
+        .select();
       
       if (updateError) {
         console.error('Error updating purchase:', updateError);
+      } else {
+        console.log('Purchase updated successfully:', updatedPurchase);
       }
+    } else {
+      console.warn('No purchaseId provided - purchase will remain in pipeline');
     }
 
     res.status(200).json({ 
       success: true, 
       protocol,
+      purchaseUpdated: !!purchaseId,
       message: `Protocol created: ${template.name}`
     });
 

@@ -38,6 +38,18 @@ export default function PatientProfile() {
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [editForm, setEditForm] = useState({});
 
+  // Purchase management state
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState(null);
+  const [purchaseForm, setPurchaseForm] = useState({
+    item_name: '',
+    amount: '',
+    purchase_date: new Date().toISOString().split('T')[0],
+    category: 'Peptide'
+  });
+
+  const PURCHASE_CATEGORIES = ['Peptide', 'IV', 'Injection', 'Weight Loss', 'HRT', 'Labs', 'Red Light', 'HBOT', 'Other'];
+
   useEffect(() => {
     if (id) {
       fetchPatientData();
@@ -176,6 +188,120 @@ export default function PatientProfile() {
       }
     } catch (error) {
       console.error('Error updating lab order:', error);
+    }
+  };
+
+  // Purchase management handlers
+  const openAddPurchase = () => {
+    setEditingPurchase(null);
+    setPurchaseForm({
+      item_name: '',
+      amount: '',
+      purchase_date: new Date().toISOString().split('T')[0],
+      category: 'Peptide'
+    });
+    setShowPurchaseModal(true);
+  };
+
+  const openEditPurchase = (purchase) => {
+    setEditingPurchase(purchase);
+    setPurchaseForm({
+      item_name: purchase.product_name || purchase.item_name || '',
+      amount: purchase.amount_paid || purchase.amount || '',
+      purchase_date: purchase.purchase_date || new Date().toISOString().split('T')[0],
+      category: purchase.category || 'Other'
+    });
+    setShowPurchaseModal(true);
+  };
+
+  const handleSavePurchase = async () => {
+    if (!purchaseForm.item_name) {
+      alert('Please enter a product name');
+      return;
+    }
+
+    try {
+      if (editingPurchase) {
+        // Update existing purchase
+        const res = await fetch(`/api/purchases/${editingPurchase.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item_name: purchaseForm.item_name,
+            product_name: purchaseForm.item_name,
+            amount: parseFloat(purchaseForm.amount) || 0,
+            amount_paid: parseFloat(purchaseForm.amount) || 0,
+            purchase_date: purchaseForm.purchase_date,
+            category: purchaseForm.category
+          })
+        });
+        if (res.ok) {
+          fetchPatientData();
+          setShowPurchaseModal(false);
+        } else {
+          alert('Failed to update purchase');
+        }
+      } else {
+        // Create new purchase
+        const res = await fetch('/api/purchases', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: id,
+            ghl_contact_id: patient?.ghl_contact_id,
+            patient_name: patient?.name,
+            item_name: purchaseForm.item_name,
+            product_name: purchaseForm.item_name,
+            amount: parseFloat(purchaseForm.amount) || 0,
+            amount_paid: parseFloat(purchaseForm.amount) || 0,
+            purchase_date: purchaseForm.purchase_date,
+            category: purchaseForm.category,
+            protocol_created: false,
+            dismissed: false
+          })
+        });
+        if (res.ok) {
+          fetchPatientData();
+          setShowPurchaseModal(false);
+        } else {
+          alert('Failed to create purchase');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving purchase:', error);
+      alert('Error saving purchase');
+    }
+  };
+
+  const handleDeletePurchase = async (purchaseId) => {
+    if (!confirm('Delete this purchase?')) return;
+
+    try {
+      const res = await fetch(`/api/purchases/${purchaseId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setPendingNotifications(pendingNotifications.filter(p => p.id !== purchaseId));
+      } else {
+        alert('Failed to delete purchase');
+      }
+    } catch (error) {
+      console.error('Error deleting purchase:', error);
+    }
+  };
+
+  const handleDismissPurchase = async (purchaseId) => {
+    try {
+      const res = await fetch(`/api/purchases/${purchaseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dismissed: true })
+      });
+      if (res.ok) {
+        setPendingNotifications(pendingNotifications.filter(p => p.id !== purchaseId));
+      }
+    } catch (error) {
+      console.error('Error dismissing purchase:', error);
     }
   };
 
@@ -383,21 +509,95 @@ export default function PatientProfile() {
         </div>
 
         {/* Purchase History Section */}
-        {pendingNotifications.length > 0 && (
-          <div style={styles.section}>
+        {/* Pending Purchases Section - Always show with add button */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>Pending Purchases</h2>
+            <button onClick={openAddPurchase} style={styles.addButton}>+ Add Purchase</button>
+          </div>
+          {pendingNotifications.length > 0 ? (
             <div style={styles.purchaseList}>
               {pendingNotifications.map(purchase => (
                 <div key={purchase.id} style={styles.purchaseCard}>
                   <div style={styles.purchaseInfo}>
-                    <span style={styles.purchaseName}>{purchase.product_name}</span>
+                    <span style={styles.purchaseName}>{purchase.product_name || purchase.item_name}</span>
                     <span style={styles.purchaseMeta}>
-                      ${purchase.amount_paid?.toFixed(2)} • {formatDate(purchase.purchase_date)}
+                      ${(purchase.amount_paid || purchase.amount || 0).toFixed(2)} • {formatDate(purchase.purchase_date)}
                     </span>
                   </div>
-                  <span style={styles.needsProtocolBadge}>Needs Protocol</span>
+                  <div style={styles.purchaseActions}>
+                    <button onClick={() => openEditPurchase(purchase)} style={styles.editBtn}>Edit</button>
+                    <button onClick={() => handleDismissPurchase(purchase.id)} style={styles.dismissBtn}>Dismiss</button>
+                    <button onClick={() => handleDeletePurchase(purchase.id)} style={styles.deleteBtn}>×</button>
+                  </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div style={styles.emptyState}>No pending purchases</div>
+          )}
+        </div>
+
+        {/* Purchase Add/Edit Modal */}
+        {showPurchaseModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowPurchaseModal(false)}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>{editingPurchase ? 'Edit Purchase' : 'Add Purchase'}</h3>
+                <button onClick={() => setShowPurchaseModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Product Name *</label>
+                <input 
+                  type="text"
+                  value={purchaseForm.item_name}
+                  onChange={(e) => setPurchaseForm({...purchaseForm, item_name: e.target.value})}
+                  placeholder="e.g. Peptide Recovery - 10 Day"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Amount ($)</label>
+                <input 
+                  type="number"
+                  value={purchaseForm.amount}
+                  onChange={(e) => setPurchaseForm({...purchaseForm, amount: e.target.value})}
+                  placeholder="0.00"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Purchase Date</label>
+                <input 
+                  type="date"
+                  value={purchaseForm.purchase_date}
+                  onChange={(e) => setPurchaseForm({...purchaseForm, purchase_date: e.target.value})}
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Category</label>
+                <select 
+                  value={purchaseForm.category}
+                  onChange={(e) => setPurchaseForm({...purchaseForm, category: e.target.value})}
+                  style={styles.select}
+                >
+                  {PURCHASE_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowPurchaseModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button onClick={handleSavePurchase} style={styles.primaryButton}>
+                  {editingPurchase ? 'Save Changes' : 'Add Purchase'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -767,6 +967,88 @@ const styles = {
     padding: '4px 10px',
     borderRadius: '12px',
     fontSize: '12px',
+    fontWeight: '500'
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px'
+  },
+  addButton: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    fontWeight: '500'
+  },
+  purchaseActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  editBtn: {
+    background: '#f3f4f6',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    padding: '5px 10px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer'
+  },
+  dismissBtn: {
+    background: '#fef3c7',
+    color: '#92400e',
+    border: 'none',
+    padding: '5px 10px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer'
+  },
+  deleteBtn: {
+    background: 'none',
+    border: '1px solid #fca5a5',
+    color: '#dc2626',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600'
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '24px',
+    color: '#9ca3af',
+    background: '#f9fafb',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    marginTop: '20px'
+  },
+  cancelButton: {
+    background: '#fff',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    padding: '10px 16px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  primaryButton: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '10px 16px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer',
     fontWeight: '500'
   },
   // Modal styles

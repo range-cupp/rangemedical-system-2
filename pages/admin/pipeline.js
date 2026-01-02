@@ -408,6 +408,23 @@ export default function Pipeline() {
     }
   };
 
+  const handleDeleteProtocol = async (protocolId) => {
+    if (!confirm('Delete this protocol? This will also unlink any associated purchases so they return to the pipeline.')) return;
+    
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}/delete`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchData();
+      } else {
+        const error = await res.json();
+        alert('Error deleting protocol: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting protocol:', error);
+      alert('Error deleting protocol');
+    }
+  };
+
   const getSelectedTemplate = (form) => {
     return templates.find(t => t.id === form.templateId);
   };
@@ -465,6 +482,11 @@ export default function Pipeline() {
   };
 
   const hasDeliveryOptions = (category, protocolType) => {
+    // Peptide protocols ALWAYS need delivery method selection
+    if (category === 'Peptide') {
+      return true;
+    }
+    
     const categoryTemplates = templates.filter(t => t.category === category);
     const matchingTemplates = categoryTemplates.filter(t => {
       const { type } = parseTemplateName(t.name);
@@ -479,6 +501,11 @@ export default function Pipeline() {
   };
 
   const getDeliveryOptions = (category, protocolType) => {
+    // Peptide protocols always have both options
+    if (category === 'Peptide') {
+      return ['In Clinic', 'Take Home'];
+    }
+    
     const categoryTemplates = templates.filter(t => t.category === category);
     const options = new Set();
     
@@ -493,6 +520,16 @@ export default function Pipeline() {
   };
 
   const findTemplate = (category, protocolType, deliveryMethod) => {
+    // For Peptide, the template name doesn't include delivery method
+    // So we just match category and type
+    if (category === 'Peptide') {
+      return templates.find(t => {
+        if (t.category !== category) return false;
+        const { type } = parseTemplateName(t.name);
+        return type === protocolType;
+      });
+    }
+    
     return templates.find(t => {
       if (t.category !== category) return false;
       const { type, delivery } = parseTemplateName(t.name);
@@ -727,6 +764,12 @@ export default function Pipeline() {
                       >
                         View
                       </Link>
+                      <button
+                        onClick={() => handleDeleteProtocol(protocol.id)}
+                        style={styles.deleteButton}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))
@@ -776,6 +819,12 @@ export default function Pipeline() {
                       >
                         View
                       </Link>
+                      <button
+                        onClick={() => handleDeleteProtocol(protocol.id)}
+                        style={styles.deleteButton}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))
@@ -1406,6 +1455,16 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500',
     textDecoration: 'none',
+  },
+  deleteButton: {
+    padding: '8px 16px',
+    backgroundColor: 'white',
+    color: '#dc2626',
+    border: '1px solid #fecaca',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
   },
   empty: {
     textAlign: 'center',

@@ -30,7 +30,8 @@ export default function ProtocolDetail() {
     end_date: '',
     status: '',
     notes: '',
-    sessions_used: 0
+    sessions_used: 0,
+    delivery_method: ''
   });
 
   useEffect(() => {
@@ -122,7 +123,8 @@ export default function ProtocolDetail() {
       end_date: protocol.end_date || '',
       status: protocol.status || 'active',
       notes: protocol.notes || '',
-      sessions_used: protocol.sessions_used || 0
+      sessions_used: protocol.sessions_used || 0,
+      delivery_method: protocol.delivery_method || ''
     });
     setShowEditModal(true);
   };
@@ -140,7 +142,8 @@ export default function ProtocolDetail() {
           endDate: editForm.end_date,
           status: editForm.status,
           notes: editForm.notes,
-          sessionsUsed: editForm.sessions_used
+          sessionsUsed: editForm.sessions_used,
+          deliveryMethod: editForm.delivery_method
         })
       });
 
@@ -545,6 +548,19 @@ export default function ProtocolDetail() {
                     onChange={e => setEditForm({...editForm, selected_dose: e.target.value})}
                     style={styles.input}
                   />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Delivery Method</label>
+                  <select 
+                    value={editForm.delivery_method}
+                    onChange={e => setEditForm({...editForm, delivery_method: e.target.value})}
+                    style={styles.input}
+                  >
+                    <option value="">Not specified</option>
+                    <option value="in_clinic">In Clinic</option>
+                    <option value="take_home">Take Home</option>
+                  </select>
                 </div>
 
                 <div style={styles.formGroup}>

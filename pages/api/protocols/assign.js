@@ -125,31 +125,19 @@ export default async function handler(req, res) {
       finalTotalSessions = 1;
     }
 
-    // Get patient info for protocol record
-    const { data: patient } = await supabase
-      .from('patients')
-      .select('name, phone, email, ghl_contact_id')
-      .eq('id', finalPatientId)
-      .single();
-
-    // Create the protocol
+    // Create the protocol - only use columns that exist in the table
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
       .insert({
         patient_id: finalPatientId,
-        ghl_contact_id: patient?.ghl_contact_id || ghlContactId,
-        patient_name: patient?.name || patientName,
-        patient_phone: patient?.phone,
-        patient_email: patient?.email,
         program_name: template.name,
-        category: template.category,
+        program_type: template.category,  // Use program_type instead of category
         medication: medicationName,
         selected_dose: selectedDose || null,
         frequency: frequency || template.frequency,
         delivery_method: deliveryMethod || null,
         start_date: startDate,
         end_date: endDate,
-        duration_days: template.duration_days,
         total_sessions: finalTotalSessions,
         sessions_used: 0,
         status: isSingle ? 'completed' : 'active',

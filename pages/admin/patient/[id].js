@@ -54,6 +54,15 @@ export default function PatientProfile() {
 
   const PURCHASE_CATEGORIES = ['Peptide', 'IV', 'Injection', 'Weight Loss', 'HRT', 'Labs', 'Red Light', 'HBOT', 'Other'];
 
+  // Helper to get full PDF URL from file_path
+  const getPdfUrl = (doc) => {
+    if (doc.file_url) return doc.file_url;
+    if (doc.file_path) {
+      return `https://teivfptpozltpqwahgdl.supabase.co/storage/v1/object/public/lab-results/${doc.file_path}`;
+    }
+    return null;
+  };
+
   const openPdfViewer = (doc) => {
     setSelectedPdf(doc);
     setShowPdfViewer(true);
@@ -724,7 +733,7 @@ export default function PatientProfile() {
                 </div>
                 <div style={styles.pdfHeaderActions}>
                   <a 
-                    href={selectedPdf.file_url} 
+                    href={getPdfUrl(selectedPdf)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     style={styles.openNewTabBtn}
@@ -736,14 +745,14 @@ export default function PatientProfile() {
               </div>
               <div style={styles.pdfContent}>
                 <object 
-                  data={selectedPdf.file_url}
+                  data={getPdfUrl(selectedPdf)}
                   type="application/pdf"
                   style={styles.pdfIframe}
                 >
                   <div style={styles.pdfFallback}>
                     <p style={{marginBottom: '16px'}}>Unable to display PDF in browser.</p>
                     <a 
-                      href={selectedPdf.file_url} 
+                      href={getPdfUrl(selectedPdf)} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       style={styles.downloadButton}

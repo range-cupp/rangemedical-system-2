@@ -76,24 +76,79 @@ export default function Pipeline() {
       const pipelineData = await pipelineRes.json();
       
       setNeedsProtocol(pipelineData.needsProtocol || []);
-      setActiveProtocols(pipelineData.activeProtocols || []);
+      
+      // Sort active protocols by days remaining (lowest first)
+      const sortedActive = (pipelineData.activeProtocols || []).sort((a, b) => {
+        // Handle null/undefined days_remaining - put them at the end
+        if (a.days_remaining === null || a.days_remaining === undefined) return 1;
+        if (b.days_remaining === null || b.days_remaining === undefined) return -1;
+        return a.days_remaining - b.days_remaining;
+      });
+      setActiveProtocols(sortedActive);
+      
       setCompletedProtocols(pipelineData.completedProtocols || []);
       
-      // Fetch templates and peptides for modals
-      const [templatesRes, peptidesRes, patientsRes] = await Promise.all([
+      // Fetch templates, peptides, and patients for modals
+      const [templatesRes, peptidesRes] = await Promise.all([
         fetch('/api/protocol-templates'),
-        fetch('/api/peptides'),
-        fetch('/api/admin/patients')
+        fetch('/api/peptides')
       ]);
       
       const templatesData = await templatesRes.json();
       const peptidesData = await peptidesRes.json();
-      const patientsData = await patientsRes.json();
       
       setTemplates(Array.isArray(templatesData) ? templatesData : []);
       setPeptides(Array.isArray(peptidesData) ? peptidesData : []);
-      // Handle both array response and {patients: []} response
-      setPatients(Array.isArray(patientsData) ? patientsData : (patientsData.patients || []));
+      
+      // Try multiple patient endpoints
+      let patientsLoaded = false;
+      
+      // Try /api/admin/patients first
+      try {
+        const patientsRes = await fetch('/api/admin/patients');
+        if (patientsRes.ok) {
+          const patientsData = await patientsRes.json();
+          if (patientsData && patientsData.patients && Array.isArray(patientsData.patients)) {
+            setPatients(patientsData.patients);
+            patientsLoaded = true;
+          } else if (Array.isArray(patientsData)) {
+            setPatients(patientsData);
+            patientsLoaded = true;
+          }
+        }
+      } catch (e) {
+        console.log('Admin patients API not available');
+      }
+      
+      // Fallback to /api/patients
+      if (!patientsLoaded) {
+        try {
+          const patientsRes = await fetch('/api/patients');
+          if (patientsRes.ok) {
+            const patientsData = await patientsRes.json();
+            if (Array.isArray(patientsData)) {
+              setPatients(patientsData);
+              patientsLoaded = true;
+            } else if (patientsData.patients) {
+              setPatients(patientsData.patients);
+              patientsLoaded = true;
+            }
+          }
+        } catch (e) {
+          console.log('Patients API not available');
+        }
+      }
+      
+      if (!patientsLoaded) {
+        console.error('Could not load patients from any endpoint');
+        setPatients([]);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {

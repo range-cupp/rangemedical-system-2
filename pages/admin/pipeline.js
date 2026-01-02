@@ -236,6 +236,14 @@ export default function Pipeline() {
 
   const handleAssignProtocol = async () => {
     try {
+      // Convert delivery method to database format
+      let deliveryMethodDb = null;
+      if (assignForm.deliveryMethod === 'In Clinic') {
+        deliveryMethodDb = 'in_clinic';
+      } else if (assignForm.deliveryMethod === 'Take Home') {
+        deliveryMethodDb = 'take_home';
+      }
+      
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -248,7 +256,8 @@ export default function Pipeline() {
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes,
-          medication: assignForm.medication
+          medication: assignForm.medication,
+          deliveryMethod: deliveryMethodDb
         })
       });
 

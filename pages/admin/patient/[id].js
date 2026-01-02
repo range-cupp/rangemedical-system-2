@@ -395,36 +395,59 @@ export default function PatientProfile() {
             <div style={styles.emptyState}>No active protocols</div>
           ) : (
             <div style={styles.protocolList}>
-              {activeProtocols.map(protocol => (
-                <div key={protocol.id} style={styles.protocolCard}>
-                  <div style={styles.protocolHeader}>
-                    <span style={styles.protocolName}>
-                      {protocol.medication || protocol.program_name}
-                    </span>
-                    <span style={styles.statusBadge}>Active</span>
-                  </div>
-                  <div style={styles.protocolDetails}>
-                    {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
-                    {protocol.frequency && <span> • {protocol.frequency}</span>}
-                  </div>
-                  <div style={styles.protocolMeta}>
-                    {protocol.start_date && <span>Started {formatDate(protocol.start_date)}</span>}
-                    {protocol.days_remaining !== null && (
-                      <span style={{
-                        marginLeft: '12px',
-                        color: protocol.days_remaining <= 3 ? '#dc2626' : '#666'
-                      }}>
-                        {protocol.days_remaining} days left
+              {activeProtocols.map(protocol => {
+                const isWeightLoss = protocol.program_name?.toLowerCase().includes('weight');
+                const sessionsUsed = protocol.sessions_used || 0;
+                const daysSinceStart = protocol.start_date
+                  ? Math.ceil((new Date() - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
+                  : 0;
+                const expectedInjections = Math.floor(daysSinceStart / 7) + 1;
+                const injectionDue = isWeightLoss && protocol.total_sessions && sessionsUsed < expectedInjections && sessionsUsed < protocol.total_sessions;
+                const isTitrationTime = isWeightLoss && sessionsUsed === 3;
+                
+                return (
+                  <div key={protocol.id} style={styles.protocolCard}>
+                    <div style={styles.protocolHeader}>
+                      <span style={styles.protocolName}>
+                        {protocol.medication || protocol.program_name}
                       </span>
-                    )}
-                    {protocol.total_sessions && (
-                      <span style={{ marginLeft: '12px' }}>
-                        {protocol.sessions_used || 0}/{protocol.total_sessions} sessions
-                      </span>
-                    )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {injectionDue && (
+                          <span style={{padding: '2px 8px', background: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
+                            💉 Due
+                          </span>
+                        )}
+                        {isTitrationTime && (
+                          <span style={{padding: '2px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
+                            ⚠️ Titrate
+                          </span>
+                        )}
+                        <span style={styles.statusBadge}>Active</span>
+                      </div>
+                    </div>
+                    <div style={styles.protocolDetails}>
+                      {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                      {protocol.frequency && <span> • {protocol.frequency}</span>}
+                    </div>
+                    <div style={styles.protocolMeta}>
+                      {protocol.start_date && <span>Started {formatDate(protocol.start_date)}</span>}
+                      {protocol.days_remaining !== null && (
+                        <span style={{
+                          marginLeft: '12px',
+                          color: protocol.days_remaining <= 3 ? '#dc2626' : '#666'
+                        }}>
+                          {protocol.days_remaining} days left
+                        </span>
+                      )}
+                      {protocol.total_sessions && (
+                        <span style={{ marginLeft: '12px' }}>
+                          {protocol.sessions_used || 0}/{protocol.total_sessions} {isWeightLoss ? 'injections' : 'sessions'}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 // /pages/admin/pipeline.js
 // Pipeline with URL-based tabs for proper back button behavior
+// Includes Patients tab
 // Range Medical
 
 import { useState, useEffect } from 'react';
@@ -17,6 +18,8 @@ export default function Pipeline() {
   const [needsProtocol, setNeedsProtocol] = useState([]);
   const [activeProtocols, setActiveProtocols] = useState([]);
   const [completedProtocols, setCompletedProtocols] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [patientSearch, setPatientSearch] = useState('');
   
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAddCompletedModal, setShowAddCompletedModal] = useState(false);
@@ -25,7 +28,6 @@ export default function Pipeline() {
   
   const [templates, setTemplates] = useState([]);
   const [peptides, setPeptides] = useState([]);
-  const [patients, setPatients] = useState([]);
   const [existingPacks, setExistingPacks] = useState([]);
   
   const [assignForm, setAssignForm] = useState({
@@ -69,26 +71,28 @@ export default function Pipeline() {
 
   const fetchData = async () => {
     try {
-      const [purchasesRes, protocolsRes, templatesRes, peptidesRes, patientsRes] = await Promise.all([
-        fetch('/api/purchases?needs_protocol=true'),
-        fetch('/api/protocols'),
+      // Fetch pipeline data from the single endpoint
+      const pipelineRes = await fetch('/api/admin/pipeline');
+      const pipelineData = await pipelineRes.json();
+      
+      setNeedsProtocol(pipelineData.needsProtocol || []);
+      setActiveProtocols(pipelineData.activeProtocols || []);
+      setCompletedProtocols(pipelineData.completedProtocols || []);
+      
+      // Fetch templates and peptides for modals
+      const [templatesRes, peptidesRes, patientsRes] = await Promise.all([
         fetch('/api/protocol-templates'),
         fetch('/api/peptides'),
         fetch('/api/patients')
       ]);
-
-      const purchases = await purchasesRes.json();
-      const protocols = await protocolsRes.json();
+      
       const templatesData = await templatesRes.json();
       const peptidesData = await peptidesRes.json();
       const patientsData = await patientsRes.json();
-
-      setNeedsProtocol(purchases.filter(p => !p.dismissed));
-      setActiveProtocols(protocols.filter(p => p.status === 'active'));
-      setCompletedProtocols(protocols.filter(p => p.status === 'completed'));
-      setTemplates(templatesData);
-      setPeptides(peptidesData);
-      setPatients(patientsData);
+      
+      setTemplates(Array.isArray(templatesData) ? templatesData : []);
+      setPeptides(Array.isArray(peptidesData) ? peptidesData : []);
+      setPatients(Array.isArray(patientsData) ? patientsData : []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -100,7 +104,7 @@ export default function Pipeline() {
     try {
       const res = await fetch(`/api/protocols?patient_id=${patientId}&status=active&category=${category}`);
       const data = await res.json();
-      setExistingPacks(data.filter(p => p.total_sessions && p.sessions_used < p.total_sessions));
+      setExistingPacks(Array.isArray(data) ? data.filter(p => p.total_sessions && p.sessions_used < p.total_sessions) : []);
     } catch (error) {
       console.error('Error fetching packs:', error);
       setExistingPacks([]);
@@ -120,7 +124,7 @@ export default function Pipeline() {
     });
     
     // Check for existing packs if this is a single session type
-    if (purchase.patient_id && isSingleSession(purchase.item_name)) {
+    if (purchase.patient_id && isSingleSession(purchase.product_name)) {
       await fetchExistingPacks(purchase.patient_id, purchase.category);
     } else {
       setExistingPacks([]);
@@ -281,10 +285,20 @@ export default function Pipeline() {
     return name.includes('blood draw') || name.includes('lab') || name.includes('panel');
   };
 
+  // Filter patients by search
+  const filteredPatients = patients.filter(p => {
+    if (!patientSearch) return true;
+    const search = patientSearch.toLowerCase();
+    const name = (p.name || `${p.first_name || ''} ${p.last_name || ''}`).toLowerCase();
+    const email = (p.email || '').toLowerCase();
+    return name.includes(search) || email.includes(search);
+  });
+
   const counts = {
     needsProtocol: needsProtocol.length,
     active: activeProtocols.length,
-    completed: completedProtocols.length
+    completed: completedProtocols.length,
+    patients: patients.length
   };
 
   if (loading) {
@@ -304,9 +318,6 @@ export default function Pipeline() {
       <div style={styles.container}>
         <div style={styles.header}>
           <h1 style={styles.title}>Pipeline</h1>
-          <Link href="/admin/patients" style={styles.allPatientsLink}>
-            All Patients →
-          </Link>
         </div>
 
         {/* Tabs */}
@@ -360,6 +371,23 @@ export default function Pipeline() {
               {counts.completed}
             </span>
           </button>
+          <button 
+            style={{
+              ...styles.tab,
+              ...(activeTab === 'patients' ? styles.tabActive : {})
+            }}
+            onClick={() => setActiveTab('patients')}
+          >
+            Patients
+            <span style={{
+              ...styles.badge,
+              backgroundColor: '#dbeafe',
+              color: '#1d4ed8',
+              ...(activeTab === 'patients' ? { backgroundColor: '#3b82f6', color: 'white' } : {})
+            }}>
+              {counts.patients}
+            </span>
+          </button>
         </div>
 
         {/* Content */}
@@ -382,15 +410,16 @@ export default function Pipeline() {
                           {purchase.patient_name || 'Unknown'}
                         </Link>
                       ) : (
-                        <span style={styles.patientNameUnlinked}>Unknown</span>
+                        <span style={styles.patientNameUnlinked}>{purchase.patient_name || 'Unknown'}</span>
                       )}
-                      <div style={styles.itemName}>{purchase.item_name}</div>
+                      <div style={styles.itemName}>{purchase.product_name}</div>
                       <div style={styles.meta}>
-                        {purchase.amount_paid ? `$${purchase.amount_paid.toFixed(2)}` : '$'} • {formatDate(purchase.purchase_date)} • {purchase.category}
+                        {purchase.amount_paid ? `$${purchase.amount_paid.toFixed(2)}` : '$'} • {formatDate(purchase.purchase_date)}
+                        {purchase.category && ` • ${purchase.category}`}
                       </div>
                     </div>
                     <div style={styles.cardActions}>
-                      {isLabPurchase(purchase.item_name) ? (
+                      {isLabPurchase(purchase.product_name) ? (
                         <button 
                           onClick={() => handleMarkAsLabOrder(purchase)}
                           style={styles.labButton}
@@ -399,7 +428,7 @@ export default function Pipeline() {
                         </button>
                       ) : (
                         <>
-                          {existingPacks.length > 0 && purchase.patient_id && isSingleSession(purchase.item_name) && (
+                          {existingPacks.length > 0 && purchase.patient_id && isSingleSession(purchase.product_name) && (
                             <button 
                               onClick={() => openAddToPackModal(purchase)}
                               style={styles.secondaryButton}
@@ -445,27 +474,27 @@ export default function Pipeline() {
                           {protocol.patient_name || 'Unknown'}
                         </Link>
                       ) : (
-                        <span style={styles.patientNameUnlinked}>Unknown</span>
+                        <span style={styles.patientNameUnlinked}>{protocol.patient_name || 'Unknown'}</span>
                       )}
                       <div style={styles.itemName}>
-                        {protocol.template_name}
-                        {protocol.peptide_name && ` - ${protocol.peptide_name}`}
+                        {protocol.program_name}
                         {protocol.medication && ` - ${protocol.medication}`}
+                        {protocol.selected_dose && ` (${protocol.selected_dose})`}
                       </div>
                       <div style={styles.meta}>
                         Started {formatDate(protocol.start_date)}
                         {protocol.total_sessions && (
                           <> • {protocol.sessions_used || 0}/{protocol.total_sessions} sessions</>
                         )}
-                        {protocol.total_days && (
-                          <> • Day {protocol.current_day || 1}/{protocol.total_days}</>
+                        {protocol.days_remaining !== null && protocol.days_remaining !== undefined && (
+                          <> • {protocol.days_remaining > 0 ? `${protocol.days_remaining} days left` : 'Ending today'}</>
                         )}
                       </div>
                     </div>
                     <div style={styles.cardActions}>
                       <Link 
                         href={`/admin/protocol/${protocol.id}`}
-                        style={styles.primaryButton}
+                        style={styles.viewButton}
                       >
                         View
                       </Link>
@@ -501,11 +530,11 @@ export default function Pipeline() {
                           {protocol.patient_name || 'Unknown'}
                         </Link>
                       ) : (
-                        <span style={styles.patientNameUnlinked}>Unknown</span>
+                        <span style={styles.patientNameUnlinked}>{protocol.patient_name || 'Unknown'}</span>
                       )}
                       <div style={styles.itemName}>
-                        {protocol.template_name}
-                        {protocol.peptide_name && ` - ${protocol.peptide_name}`}
+                        {protocol.program_name}
+                        {protocol.medication && ` - ${protocol.medication}`}
                       </div>
                       <div style={styles.meta}>
                         {formatDate(protocol.start_date)} - {formatDate(protocol.end_date)}
@@ -524,6 +553,51 @@ export default function Pipeline() {
               )}
             </div>
           )}
+
+          {/* Patients Tab */}
+          {activeTab === 'patients' && (
+            <div style={styles.list}>
+              <div style={styles.searchContainer}>
+                <input
+                  type="text"
+                  placeholder="Search patients..."
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                  style={styles.searchInput}
+                />
+              </div>
+              {filteredPatients.length === 0 ? (
+                <div style={styles.empty}>
+                  {patientSearch ? 'No patients match your search' : 'No patients found'}
+                </div>
+              ) : (
+                filteredPatients.map(patient => (
+                  <div key={patient.id} style={styles.card}>
+                    <div style={styles.cardInfo}>
+                      <Link 
+                        href={`/admin/patient/${patient.id}`}
+                        style={styles.patientName}
+                      >
+                        {patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || 'Unknown'}
+                      </Link>
+                      <div style={styles.meta}>
+                        {patient.email && <span>{patient.email}</span>}
+                        {patient.phone && <span> • {patient.phone}</span>}
+                      </div>
+                    </div>
+                    <div style={styles.cardActions}>
+                      <Link 
+                        href={`/admin/patient/${patient.id}`}
+                        style={styles.viewButton}
+                      >
+                        View Profile
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Assign Protocol Modal */}
@@ -532,7 +606,7 @@ export default function Pipeline() {
             <div style={styles.modal}>
               <h2 style={styles.modalTitle}>Start Protocol</h2>
               <p style={styles.modalSubtitle}>
-                {selectedPurchase.patient_name || 'Unknown'} - {selectedPurchase.item_name}
+                {selectedPurchase.patient_name || 'Unknown'} - {selectedPurchase.product_name}
               </p>
 
               <div style={styles.formGroup}>
@@ -667,7 +741,7 @@ export default function Pipeline() {
             <div style={styles.modal}>
               <h2 style={styles.modalTitle}>Add to Existing Pack</h2>
               <p style={styles.modalSubtitle}>
-                {selectedPurchase.patient_name} - {selectedPurchase.item_name}
+                {selectedPurchase.patient_name} - {selectedPurchase.product_name}
               </p>
 
               <div style={styles.formGroup}>
@@ -680,7 +754,7 @@ export default function Pipeline() {
                   <option value="">Select pack...</option>
                   {existingPacks.map(pack => (
                     <option key={pack.id} value={pack.id}>
-                      {pack.template_name} - {pack.sessions_used}/{pack.total_sessions} used
+                      {pack.program_name} - {pack.sessions_used}/{pack.total_sessions} used
                     </option>
                   ))}
                 </select>
@@ -721,7 +795,7 @@ export default function Pipeline() {
                   <option value="">Select patient...</option>
                   {patients.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.first_name} {p.last_name}
+                      {p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim()}
                     </option>
                   ))}
                 </select>
@@ -864,15 +938,6 @@ const styles = {
     fontWeight: '600',
     margin: 0,
     color: '#111',
-  },
-  allPatientsLink: {
-    padding: '10px 20px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    color: '#111',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '500',
   },
   loading: {
     textAlign: 'center',
@@ -1036,6 +1101,17 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
+  },
+  searchContainer: {
+    marginBottom: '16px',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '12px 16px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    boxSizing: 'border-box',
   },
   modalOverlay: {
     position: 'fixed',

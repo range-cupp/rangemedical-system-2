@@ -192,8 +192,8 @@ export default function ProtocolDetail() {
 
   // Calculate tracking stats
   const getTrackingStats = () => {
-    // Determine label based on category
-    const category = (protocol.category || '').toLowerCase();
+    // Determine label based on category/program_type
+    const category = (protocol.category || protocol.program_type || '').toLowerCase();
     const isInjectionCategory = category === 'injection';
     const isRLT = category === 'red_light' || category === 'rlt';
     const isHBOT = category === 'hbot';

@@ -16,41 +16,27 @@ export default async function handler(req, res) {
 
   try {
     // Get purchases that need protocols
-    // Filter: protocol_created is false/null AND dismissed is false/null
     const { data: allPurchases, error: purchasesError } = await supabase
       .from('purchases')
-      .select(`
-        id,
-        product_name,
-        item_name,
-        amount_paid,
-        amount,
-        purchase_date,
-        patient_id,
-        ghl_contact_id,
-        patient_name,
-        category,
-        protocol_created,
-        has_protocol,
-        dismissed,
-        patients (
-          id,
-          name
-        )
-      `)
+      .select('*')
       .order('purchase_date', { ascending: false });
 
     if (purchasesError) {
       console.error('Purchases error:', purchasesError);
+      return res.status(500).json({ error: 'Failed to fetch purchases', details: purchasesError.message });
     }
 
+    console.log('Total purchases fetched:', allPurchases?.length || 0);
+
     // Filter to only purchases that need protocols
-    const needsProtocol = (allPurchases || []).filter(p => 
-      // Not already has a protocol
-      (p.protocol_created !== true && p.has_protocol !== true) &&
-      // Not dismissed
-      (p.dismissed !== true)
-    );
+    // Keep purchases where protocol_created is NOT true AND dismissed is NOT true
+    const needsProtocol = (allPurchases || []).filter(p => {
+      const hasProtocol = p.protocol_created === true || p.has_protocol === true;
+      const isDismissed = p.dismissed === true;
+      return !hasProtocol && !isDismissed;
+    });
+
+    console.log('Needs protocol count:', needsProtocol.length);
 
     // Get all protocols
     const { data: allProtocols, error: protocolsError } = await supabase
@@ -128,7 +114,7 @@ export default async function handler(req, res) {
       purchase_date: p.purchase_date,
       patient_id: p.patient_id,
       ghl_contact_id: p.ghl_contact_id,
-      patient_name: p.patients?.name || p.patient_name || 'Unknown',
+      patient_name: p.patient_name || 'Unknown',
       category: p.category
     });
 

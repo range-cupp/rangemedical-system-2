@@ -39,6 +39,19 @@ export default function Pipeline() {
   const [templateCategory, setTemplateCategory] = useState('');
   const [templateLocation, setTemplateLocation] = useState('');
   const [templatePackSize, setTemplatePackSize] = useState('');
+  
+  // HRT specific state
+  const [hrtGender, setHrtGender] = useState('');
+  const [hrtSupplyType, setHrtSupplyType] = useState('');
+  const [hrtMedication, setHrtMedication] = useState('');
+  const [hrtDose, setHrtDose] = useState('');
+  
+  // Weight Loss specific state
+  const [wlMedication, setWlMedication] = useState('');
+  const [wlDose, setWlDose] = useState('');
+  
+  // Session-based therapy state (Red Light, HBOT)
+  const [sessionPackSize, setSessionPackSize] = useState('');
 
   // Template categories configuration
   const TEMPLATE_CATEGORIES = [
@@ -50,6 +63,10 @@ export default function Pipeline() {
     { id: 'peptide-30', name: 'Peptide Therapy - 30 Day', hasLocation: false, hasPackSize: false },
     { id: 'peptide-vial', name: 'Peptide Vial', hasLocation: false, hasPackSize: false },
     { id: 'iv', name: 'IV Therapy', hasLocation: false, hasPackSize: false },
+    { id: 'hrt', name: 'HRT Protocol', hasLocation: false, hasPackSize: false },
+    { id: 'weight-loss', name: 'Weight Loss Program', hasLocation: false, hasPackSize: false },
+    { id: 'red-light', name: 'Red Light Therapy', hasLocation: false, hasPackSize: false },
+    { id: 'hbot', name: 'Hyperbaric Oxygen Therapy', hasLocation: false, hasPackSize: false },
     { id: 'other', name: 'Other', hasLocation: false, hasPackSize: false }
   ];
 
@@ -63,6 +80,84 @@ export default function Pipeline() {
     { id: 'double', name: 'Double' },
     { id: '10-pack', name: '10 Pack' },
     { id: '12-pack', name: '12 Pack' }
+  ];
+
+  // HRT Options
+  const HRT_GENDERS = [
+    { id: 'male', name: 'Male' },
+    { id: 'female', name: 'Female' }
+  ];
+
+  const HRT_SUPPLY_TYPES = [
+    { id: 'vial', name: 'Vial (10-12 weeks)' },
+    { id: 'prefilled', name: 'Prefilled Syringes (Monthly)' }
+  ];
+
+  const HRT_MEDICATIONS = {
+    male: [
+      { id: 'testosterone-cypionate', name: 'Testosterone Cypionate' },
+      { id: 'testosterone-enanthate', name: 'Testosterone Enanthate' }
+    ],
+    female: [
+      { id: 'testosterone-cypionate', name: 'Testosterone Cypionate' },
+      { id: 'estradiol', name: 'Estradiol' },
+      { id: 'progesterone', name: 'Progesterone' }
+    ]
+  };
+
+  const HRT_DOSES = {
+    male: [
+      { id: '0.3ml-60mg', name: '0.3ml (60mg)' },
+      { id: '0.35ml-70mg', name: '0.35ml (70mg)' },
+      { id: '0.4ml-80mg', name: '0.4ml (80mg)' },
+      { id: '0.5ml-100mg', name: '0.5ml (100mg)' }
+    ],
+    female: [
+      { id: '0.1ml-10mg', name: '0.1ml (10mg)' },
+      { id: '0.15ml-15mg', name: '0.15ml (15mg)' },
+      { id: '0.2ml-20mg', name: '0.2ml (20mg)' },
+      { id: '0.25ml-25mg', name: '0.25ml (25mg)' }
+    ]
+  };
+
+  // Weight Loss Options
+  const WL_MEDICATIONS = [
+    { id: 'semaglutide', name: 'Semaglutide' },
+    { id: 'tirzepatide', name: 'Tirzepatide' },
+    { id: 'retatrutide', name: 'Retatrutide' }
+  ];
+
+  const WL_DOSES = {
+    semaglutide: [
+      { id: '0.25mg', name: '0.25mg' },
+      { id: '0.5mg', name: '0.5mg' },
+      { id: '1mg', name: '1mg' },
+      { id: '1.7mg', name: '1.7mg' },
+      { id: '2.4mg', name: '2.4mg' }
+    ],
+    tirzepatide: [
+      { id: '2.5mg', name: '2.5mg' },
+      { id: '5mg', name: '5mg' },
+      { id: '7.5mg', name: '7.5mg' },
+      { id: '10mg', name: '10mg' },
+      { id: '12.5mg', name: '12.5mg' },
+      { id: '15mg', name: '15mg' }
+    ],
+    retatrutide: [
+      { id: '1mg', name: '1mg' },
+      { id: '2mg', name: '2mg' },
+      { id: '4mg', name: '4mg' },
+      { id: '8mg', name: '8mg' },
+      { id: '12mg', name: '12mg' }
+    ]
+  };
+
+  // Session Pack Sizes (Red Light, HBOT)
+  const SESSION_PACK_SIZES = [
+    { id: 'single', name: 'Single Session' },
+    { id: '5-pack', name: '5 Pack' },
+    { id: '10-pack', name: '10 Pack' },
+    { id: '20-pack', name: '20 Pack' }
   ];
 
   // Find template based on cascading selection
@@ -91,6 +186,24 @@ export default function Pipeline() {
       searchName = 'Peptide Therapy - Vial';
     } else if (category === 'iv') {
       searchName = 'IV Therapy';
+    } else if (category === 'hrt' && hrtGender && hrtSupplyType) {
+      const genderStr = hrtGender === 'male' ? 'Male' : 'Female';
+      const supplyStr = hrtSupplyType === 'vial' ? 'Vial' : 'Prefilled';
+      searchName = `HRT - ${genderStr} - ${supplyStr}`;
+    } else if (category === 'weight-loss' && wlMedication) {
+      const medStr = wlMedication === 'semaglutide' ? 'Semaglutide' : 
+                     wlMedication === 'tirzepatide' ? 'Tirzepatide' : 'Retatrutide';
+      searchName = `Weight Loss - ${medStr}`;
+    } else if (category === 'red-light' && sessionPackSize) {
+      const packStr = sessionPackSize === 'single' ? 'Single' : 
+                      sessionPackSize === '5-pack' ? '5 Pack' : 
+                      sessionPackSize === '10-pack' ? '10 Pack' : '20 Pack';
+      searchName = `Red Light Therapy - ${packStr}`;
+    } else if (category === 'hbot' && sessionPackSize) {
+      const packStr = sessionPackSize === 'single' ? 'Single' : 
+                      sessionPackSize === '5-pack' ? '5 Pack' : 
+                      sessionPackSize === '10-pack' ? '10 Pack' : '20 Pack';
+      searchName = `HBOT - ${packStr}`;
     }
     
     const template = templates.find(t => 
@@ -104,9 +217,16 @@ export default function Pipeline() {
     setTemplateCategory(category);
     setTemplateLocation('');
     setTemplatePackSize('');
+    setHrtGender('');
+    setHrtSupplyType('');
+    setHrtMedication('');
+    setHrtDose('');
+    setWlMedication('');
+    setWlDose('');
+    setSessionPackSize('');
     
     const cat = TEMPLATE_CATEGORIES.find(c => c.id === category);
-    if (cat && !cat.hasLocation && !cat.hasPackSize) {
+    if (cat && !cat.hasLocation && !cat.hasPackSize && !['hrt', 'weight-loss', 'red-light', 'hbot', 'other'].includes(category)) {
       const template = findTemplateFromCascade(category, '', '');
       if (template) {
         setAssignForm({...assignForm, templateId: template.id, peptideId: '', selectedDose: ''});
@@ -130,11 +250,72 @@ export default function Pipeline() {
     }
   };
 
+  // HRT Handlers
+  const handleHrtGenderChange = (gender) => {
+    setHrtGender(gender);
+    setHrtSupplyType('');
+    setHrtMedication('');
+    setHrtDose('');
+    setAssignForm({...assignForm, templateId: '', peptideId: '', selectedDose: ''});
+  };
+
+  const handleHrtSupplyChange = (supply) => {
+    setHrtSupplyType(supply);
+    setAssignForm({...assignForm, templateId: '', peptideId: '', selectedDose: ''});
+    // Find template after supply type is selected
+    setTimeout(() => {
+      const genderStr = hrtGender === 'male' ? 'Male' : 'Female';
+      const supplyStr = supply === 'vial' ? 'Vial' : 'Prefilled';
+      const searchName = `HRT - ${genderStr} - ${supplyStr}`;
+      const template = templates.find(t => t.name.toLowerCase() === searchName.toLowerCase());
+      if (template) {
+        setAssignForm(prev => ({...prev, templateId: template.id}));
+      }
+    }, 0);
+  };
+
+  // Weight Loss Handlers
+  const handleWlMedicationChange = (medication) => {
+    setWlMedication(medication);
+    setWlDose('');
+    setAssignForm({...assignForm, templateId: '', peptideId: '', selectedDose: ''});
+    // Find template after medication is selected
+    setTimeout(() => {
+      const medStr = medication === 'semaglutide' ? 'Semaglutide' : 
+                     medication === 'tirzepatide' ? 'Tirzepatide' : 'Retatrutide';
+      const searchName = `Weight Loss - ${medStr}`;
+      const template = templates.find(t => t.name.toLowerCase() === searchName.toLowerCase());
+      if (template) {
+        setAssignForm(prev => ({...prev, templateId: template.id}));
+      }
+    }, 0);
+  };
+
+  // Session Pack Handler (Red Light, HBOT)
+  const handleSessionPackChange = (pack, type) => {
+    setSessionPackSize(pack);
+    const packStr = pack === 'single' ? 'Single' : 
+                    pack === '5-pack' ? '5 Pack' : 
+                    pack === '10-pack' ? '10 Pack' : '20 Pack';
+    const searchName = type === 'red-light' ? `Red Light Therapy - ${packStr}` : `HBOT - ${packStr}`;
+    const template = templates.find(t => t.name.toLowerCase() === searchName.toLowerCase());
+    if (template) {
+      setAssignForm({...assignForm, templateId: template.id, peptideId: '', selectedDose: ''});
+    }
+  };
+
   // Reset cascade when modal closes
   const resetCascade = () => {
     setTemplateCategory('');
     setTemplateLocation('');
     setTemplatePackSize('');
+    setHrtGender('');
+    setHrtSupplyType('');
+    setHrtMedication('');
+    setHrtDose('');
+    setWlMedication('');
+    setWlDose('');
+    setSessionPackSize('');
   };
 
   const [existingPacks, setExistingPacks] = useState([]);
@@ -319,6 +500,25 @@ export default function Pipeline() {
       // Use injection medication if it's an injection template
       const template = templates.find(t => t.id === assignForm.templateId);
       const isInjection = template?.name?.toLowerCase().includes('injection');
+      const isHrt = templateCategory === 'hrt';
+      const isWeightLoss = templateCategory === 'weight-loss';
+      const isRedLight = templateCategory === 'red-light';
+      const isHbot = templateCategory === 'hbot';
+      
+      // Build medication and dose based on protocol type
+      let medication = null;
+      let selectedDose = assignForm.selectedDose;
+      
+      if (isInjection) {
+        medication = assignForm.injectionMedication;
+        selectedDose = assignForm.injectionDose;
+      } else if (isHrt) {
+        medication = HRT_MEDICATIONS[hrtGender]?.find(m => m.id === hrtMedication)?.name || hrtMedication;
+        selectedDose = HRT_DOSES[hrtGender]?.find(d => d.id === hrtDose)?.name || hrtDose;
+      } else if (isWeightLoss) {
+        medication = WL_MEDICATIONS.find(m => m.id === wlMedication)?.name || wlMedication;
+        selectedDose = WL_DOSES[wlMedication]?.find(d => d.id === wlDose)?.name || wlDose;
+      }
       
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
@@ -330,11 +530,22 @@ export default function Pipeline() {
           purchaseId: selectedPurchase.id,
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
-          selectedDose: isInjection ? assignForm.injectionDose : assignForm.selectedDose,
-          medication: isInjection ? assignForm.injectionMedication : null,
+          selectedDose: selectedDose,
+          medication: medication,
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
-          notes: assignForm.notes
+          notes: assignForm.notes,
+          // HRT specific
+          hrtGender: isHrt ? hrtGender : null,
+          hrtSupplyType: isHrt ? hrtSupplyType : null,
+          // Weight Loss specific
+          startWeight: isWeightLoss ? assignForm.startWeight : null,
+          goalWeight: isWeightLoss ? assignForm.goalWeight : null,
+          // Session-based
+          totalSessions: (isRedLight || isHbot) ? 
+            (sessionPackSize === 'single' ? 1 : 
+             sessionPackSize === '5-pack' ? 5 : 
+             sessionPackSize === '10-pack' ? 10 : 20) : null
         })
       });
 
@@ -829,6 +1040,176 @@ export default function Pipeline() {
                           <option value="">Select pack size...</option>
                           {TEMPLATE_PACK_SIZES.map(size => (
                             <option key={size.id} value={size.id}>{size.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* HRT Protocol Inputs */}
+                    {templateCategory === 'hrt' && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Gender *</label>
+                        <select 
+                          value={hrtGender}
+                          onChange={e => handleHrtGenderChange(e.target.value)}
+                          style={styles.select}
+                        >
+                          <option value="">Select gender...</option>
+                          {HRT_GENDERS.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {templateCategory === 'hrt' && hrtGender && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Supply Type *</label>
+                        <select 
+                          value={hrtSupplyType}
+                          onChange={e => handleHrtSupplyChange(e.target.value)}
+                          style={styles.select}
+                        >
+                          <option value="">Select supply type...</option>
+                          {HRT_SUPPLY_TYPES.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {templateCategory === 'hrt' && hrtGender && hrtSupplyType && (
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Medication *</label>
+                          <select 
+                            value={hrtMedication}
+                            onChange={e => setHrtMedication(e.target.value)}
+                            style={styles.select}
+                          >
+                            <option value="">Select medication...</option>
+                            {(HRT_MEDICATIONS[hrtGender] || []).map(m => (
+                              <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Dose *</label>
+                          <select 
+                            value={hrtDose}
+                            onChange={e => setHrtDose(e.target.value)}
+                            style={styles.select}
+                          >
+                            <option value="">Select dose...</option>
+                            {(HRT_DOSES[hrtGender] || []).map(d => (
+                              <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Frequency *</label>
+                          <select 
+                            value={assignForm.frequency || ''}
+                            onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
+                            style={styles.select}
+                          >
+                            <option value="">Select frequency...</option>
+                            <option value="1x/week">1x per week</option>
+                            <option value="2x/week">2x per week</option>
+                            <option value="Every 2 weeks">Every 2 weeks</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Weight Loss Program Inputs */}
+                    {templateCategory === 'weight-loss' && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Medication *</label>
+                        <select 
+                          value={wlMedication}
+                          onChange={e => handleWlMedicationChange(e.target.value)}
+                          style={styles.select}
+                        >
+                          <option value="">Select medication...</option>
+                          {WL_MEDICATIONS.map(m => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {templateCategory === 'weight-loss' && wlMedication && (
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Starting Dose *</label>
+                          <select 
+                            value={wlDose}
+                            onChange={e => setWlDose(e.target.value)}
+                            style={styles.select}
+                          >
+                            <option value="">Select dose...</option>
+                            {(WL_DOSES[wlMedication] || []).map(d => (
+                              <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Starting Weight (lbs)</label>
+                          <input 
+                            type="number"
+                            value={assignForm.startWeight || ''}
+                            onChange={e => setAssignForm({...assignForm, startWeight: e.target.value})}
+                            placeholder="Enter weight..."
+                            style={styles.input}
+                          />
+                        </div>
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Goal Weight (lbs)</label>
+                          <input 
+                            type="number"
+                            value={assignForm.goalWeight || ''}
+                            onChange={e => setAssignForm({...assignForm, goalWeight: e.target.value})}
+                            placeholder="Enter goal weight..."
+                            style={styles.input}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Red Light Therapy Inputs */}
+                    {templateCategory === 'red-light' && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Package Size *</label>
+                        <select 
+                          value={sessionPackSize}
+                          onChange={e => handleSessionPackChange(e.target.value, 'red-light')}
+                          style={styles.select}
+                        >
+                          <option value="">Select package...</option>
+                          {SESSION_PACK_SIZES.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* HBOT Inputs */}
+                    {templateCategory === 'hbot' && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Package Size *</label>
+                        <select 
+                          value={sessionPackSize}
+                          onChange={e => handleSessionPackChange(e.target.value, 'hbot')}
+                          style={styles.select}
+                        >
+                          <option value="">Select package...</option>
+                          {SESSION_PACK_SIZES.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
                           ))}
                         </select>
                       </div>

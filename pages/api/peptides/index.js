@@ -1,8 +1,10 @@
 // /pages/api/peptides/index.js
+// Get all peptides
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
@@ -21,23 +23,10 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    // Group by category
-    const grouped = {};
-    peptides.forEach(peptide => {
-      if (!grouped[peptide.category]) {
-        grouped[peptide.category] = [];
-      }
-      grouped[peptide.category].push(peptide);
-    });
-
-    res.status(200).json({
-      peptides,
-      grouped,
-      count: peptides.length
-    });
+    return res.status(200).json(peptides || []);
 
   } catch (error) {
     console.error('Peptides API error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Server error', details: error.message });
   }
 }

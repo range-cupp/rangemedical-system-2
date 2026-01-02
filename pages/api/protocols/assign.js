@@ -154,12 +154,11 @@ export default async function handler(req, res) {
 
     // Mark purchase as having a protocol - THIS IS CRITICAL
     if (purchaseId) {
-      console.log('Updating purchase:', purchaseId, 'with protocol_id:', protocol.id);
+      console.log('Updating purchase:', purchaseId);
       
       const { data: updatedPurchase, error: updateError } = await supabase
         .from('purchases')
         .update({ 
-          protocol_id: protocol.id,
           protocol_created: true
         })
         .eq('id', purchaseId)

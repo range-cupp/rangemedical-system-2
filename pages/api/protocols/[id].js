@@ -50,22 +50,28 @@ export default async function handler(req, res) {
         sessionsUsed
       } = req.body;
 
+      console.log('Update protocol request:', { id, body: req.body });
+
       const updates = {
         updated_at: new Date().toISOString()
       };
 
       // Only add fields that were provided
-      if (medication !== undefined) updates.medication = medication;
-      if (selectedDose !== undefined) updates.selected_dose = selectedDose;
-      if (frequency !== undefined) updates.frequency = frequency;
-      if (startDate !== undefined) updates.start_date = startDate;
-      if (endDate !== undefined) updates.end_date = endDate;
+      if (medication !== undefined) updates.medication = medication || null;
+      if (selectedDose !== undefined) updates.selected_dose = selectedDose || null;
+      if (frequency !== undefined) updates.frequency = frequency || null;
+      if (startDate !== undefined) updates.start_date = startDate || null;
+      if (endDate !== undefined) updates.end_date = endDate || null;
       if (status !== undefined) updates.status = status;
-      if (notes !== undefined) updates.notes = notes;
-      if (sessionsUsed !== undefined) updates.sessions_used = parseInt(sessionsUsed) || 0;
+      if (notes !== undefined) updates.notes = notes || null;
+      if (sessionsUsed !== undefined && sessionsUsed !== '' && sessionsUsed !== null) {
+        updates.sessions_used = parseInt(sessionsUsed) || 0;
+      }
+
+      console.log('Updates to apply:', updates);
 
       // If sessions_used equals total_sessions, mark as completed
-      if (sessionsUsed !== undefined) {
+      if (sessionsUsed !== undefined && sessionsUsed !== '' && sessionsUsed !== null) {
         const { data: protocol } = await supabase
           .from('protocols')
           .select('total_sessions')
@@ -92,7 +98,7 @@ export default async function handler(req, res) {
       return res.status(200).json(data);
     } catch (error) {
       console.error('Error:', error);
-      return res.status(500).json({ error: 'Server error' });
+      return res.status(500).json({ error: 'Server error', details: error.message });
     }
   }
 

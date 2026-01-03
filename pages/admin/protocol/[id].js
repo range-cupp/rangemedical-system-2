@@ -68,6 +68,8 @@ export default function ProtocolDetail() {
   });
 
   const [showWeightModal, setShowWeightModal] = useState(false);
+  const [showExtendModal, setShowExtendModal] = useState(false);
+  const [extendWeeks, setExtendWeeks] = useState(4);
 
   const [editForm, setEditForm] = useState({
     medication: '',
@@ -226,6 +228,38 @@ export default function ProtocolDetail() {
       }
     } catch (error) {
       console.error('Error logging weight:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExtend = async () => {
+    setSaving(true);
+    try {
+      // Calculate new end date
+      const currentEndDate = protocol.end_date ? new Date(protocol.end_date) : new Date();
+      const newEndDate = new Date(currentEndDate);
+      newEndDate.setDate(newEndDate.getDate() + (extendWeeks * 7));
+      
+      const res = await fetch(`/api/protocols/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...protocol,
+          end_date: newEndDate.toISOString().split('T')[0],
+          status: 'active' // Reactivate if it was completed
+        })
+      });
+
+      if (res.ok) {
+        setShowExtendModal(false);
+        setExtendWeeks(4);
+        fetchProtocol();
+      } else {
+        alert('Failed to extend protocol');
+      }
+    } catch (error) {
+      console.error('Error extending protocol:', error);
     } finally {
       setSaving(false);
     }
@@ -470,6 +504,14 @@ export default function ProtocolDetail() {
           </div>
           <div style={styles.headerActions}>
             <button onClick={openEditModal} style={styles.editButton}>Edit</button>
+            {(isWeightLoss || protocol.end_date) && (
+              <button 
+                onClick={() => setShowExtendModal(true)} 
+                style={{...styles.editButton, backgroundColor: '#059669', marginLeft: '8px'}}
+              >
+                Extend
+              </button>
+            )}
             <button onClick={handleDelete} style={styles.deleteButton}>Delete</button>
             <span style={{
               ...styles.statusBadge,
@@ -760,6 +802,55 @@ export default function ProtocolDetail() {
                 </button>
                 <button onClick={handleLogWeight} style={{...styles.submitButton, backgroundColor: '#059669'}} disabled={saving}>
                   {saving ? 'Logging...' : 'Log Weight'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Extend Protocol Modal */}
+        {showExtendModal && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <h2 style={styles.modalTitle}>Extend Protocol</h2>
+              
+              <div style={{ marginBottom: '16px', color: '#666' }}>
+                Current end date: <strong>{formatDate(protocol.end_date) || 'Not set'}</strong>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Extend by</label>
+                <select
+                  style={styles.select}
+                  value={extendWeeks}
+                  onChange={(e) => setExtendWeeks(parseInt(e.target.value))}
+                >
+                  <option value={1}>1 week</option>
+                  <option value={2}>2 weeks</option>
+                  <option value={4}>4 weeks (1 month)</option>
+                  <option value={8}>8 weeks (2 months)</option>
+                  <option value={12}>12 weeks (3 months)</option>
+                  <option value={24}>24 weeks (6 months)</option>
+                </select>
+              </div>
+
+              <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px' }}>
+                New end date: <strong style={{ color: '#059669' }}>
+                  {(() => {
+                    const currentEndDate = protocol.end_date ? new Date(protocol.end_date) : new Date();
+                    const newEndDate = new Date(currentEndDate);
+                    newEndDate.setDate(newEndDate.getDate() + (extendWeeks * 7));
+                    return formatDate(newEndDate.toISOString());
+                  })()}
+                </strong>
+              </div>
+
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowExtendModal(false)} style={styles.cancelButton}>
+                  Cancel
+                </button>
+                <button onClick={handleExtend} style={{...styles.submitButton, backgroundColor: '#059669'}} disabled={saving}>
+                  {saving ? 'Extending...' : 'Extend Protocol'}
                 </button>
               </div>
             </div>

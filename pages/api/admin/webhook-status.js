@@ -3,9 +3,24 @@
 // Range Medical
 
 export default async function handler(req, res) {
-  const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
-  const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+  const GHL_API_KEY = process.env.GHL_API_KEY;
+  const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
   const WEBHOOK_URL = 'https://app.range-medical.com/api/protocol-webhook';
+
+  // Check if env vars are set
+  if (!GHL_API_KEY) {
+    return res.status(400).json({
+      error: 'GHL_API_KEY not configured',
+      hint: 'Add GHL_API_KEY to your Vercel environment variables'
+    });
+  }
+
+  if (!GHL_LOCATION_ID) {
+    return res.status(400).json({
+      error: 'GHL_LOCATION_ID not configured', 
+      hint: 'Add GHL_LOCATION_ID to your Vercel environment variables'
+    });
+  }
 
   try {
     // GET = Check current webhooks
@@ -20,7 +35,28 @@ export default async function handler(req, res) {
         }
       );
 
-      const webhooks = await listResponse.json();
+      const responseText = await listResponse.text();
+      console.log('GHL Response Status:', listResponse.status);
+      console.log('GHL Response:', responseText);
+
+      if (!listResponse.ok) {
+        return res.status(400).json({
+          error: 'GHL API error',
+          status: listResponse.status,
+          response: responseText,
+          hint: listResponse.status === 401 ? 'API key may be expired or invalid' : 'Check GHL API status'
+        });
+      }
+
+      let webhooks;
+      try {
+        webhooks = JSON.parse(responseText);
+      } catch (e) {
+        return res.status(400).json({
+          error: 'Invalid JSON from GHL',
+          response: responseText.substring(0, 500)
+        });
+      }
       
       // Find our webhook
       const ourWebhook = webhooks.webhooks?.find(w => w.url?.includes('protocol-webhook'));
@@ -28,9 +64,11 @@ export default async function handler(req, res) {
       return res.status(200).json({
         status: 'Webhook Status',
         location_id: GHL_LOCATION_ID,
+        api_key_set: !!GHL_API_KEY,
+        api_key_preview: GHL_API_KEY ? `${GHL_API_KEY.substring(0, 10)}...` : 'not set',
         expected_url: WEBHOOK_URL,
         webhooks_found: webhooks.webhooks?.length || 0,
-        our_webhook: ourWebhook || 'NOT FOUND',
+        our_webhook: ourWebhook || 'NOT FOUND - need to register',
         all_webhooks: webhooks.webhooks || []
       });
     }
@@ -48,7 +86,16 @@ export default async function handler(req, res) {
         }
       );
 
-      const existingWebhooks = await listResponse.json();
+      const listText = await listResponse.text();
+      let existingWebhooks;
+      try {
+        existingWebhooks = JSON.parse(listText);
+      } catch (e) {
+        return res.status(400).json({
+          error: 'Failed to parse GHL response',
+          response: listText.substring(0, 500)
+        });
+      }
       
       // Delete existing protocol-webhook if it exists
       for (const hook of (existingWebhooks.webhooks || [])) {
@@ -89,12 +136,24 @@ export default async function handler(req, res) {
         }
       );
 
-      const createResult = await createResponse.json();
-      console.log('Create webhook result:', JSON.stringify(createResult, null, 2));
+      const createText = await createResponse.text();
+      console.log('Create webhook response:', createText);
+
+      let createResult;
+      try {
+        createResult = JSON.parse(createText);
+      } catch (e) {
+        return res.status(400).json({
+          error: 'Failed to parse create response',
+          status: createResponse.status,
+          response: createText.substring(0, 500)
+        });
+      }
 
       if (!createResponse.ok) {
         return res.status(400).json({
           error: 'Failed to create webhook',
+          status: createResponse.status,
           details: createResult
         });
       }
@@ -112,7 +171,8 @@ export default async function handler(req, res) {
     console.error('Webhook status error:', error);
     return res.status(500).json({
       error: 'Failed to check/register webhook',
-      message: error.message
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }

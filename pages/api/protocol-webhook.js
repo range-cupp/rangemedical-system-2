@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     console.log('Timestamp:', new Date().toISOString());
     console.log('Payload:', JSON.stringify(payload, null, 2));
 
-    // Save raw webhook to debug table (if exists)
+    // Save raw webhook to debug table
     try {
       await supabase.from('webhook_logs').insert({
         source: 'ghl',
@@ -74,8 +74,9 @@ export default async function handler(req, res) {
         payload: payload,
         created_at: new Date().toISOString()
       });
+      console.log('Saved to webhook_logs');
     } catch (e) {
-      // Table might not exist, that's ok
+      console.log('Could not save to webhook_logs:', e.message);
     }
 
     // Extract contact info - GHL sends data in various formats
@@ -143,7 +144,18 @@ export default async function handler(req, res) {
       payload.total || 
       payload.amount ||
       payload.payment?.amount ||
+      payload.charge_amount ||
+      payload.chargeAmount ||
       0;
+
+    // Log all potential payment fields for debugging
+    console.log('=== Payment fields found ===');
+    console.log('invoice:', JSON.stringify(payload.invoice));
+    console.log('items:', JSON.stringify(invoiceItems));
+    console.log('total/amount:', totalAmount);
+    console.log('product_name:', payload.product_name || payload.productName);
+    console.log('charge_amount:', payload.charge_amount || payload.chargeAmount);
+    console.log('All keys:', Object.keys(payload));
 
     // If no contact ID, try to use email or phone to find patient
     if (!contactId && !contactEmail && !contactPhone) {
@@ -219,12 +231,19 @@ export default async function handler(req, res) {
     const purchaseDate = new Date().toISOString().split('T')[0];
     const purchases = [];
 
+    console.log('=== Creating purchases ===');
+    console.log('Invoice items count:', invoiceItems?.length || 0);
+    console.log('Total amount:', totalAmount);
+
     // If we have line items, create a purchase for each
     if (invoiceItems && invoiceItems.length > 0) {
+      console.log('Using line items to create purchases');
       for (const item of invoiceItems) {
         const itemName = item.name || item.product_name || item.productName || item.title || 'Unknown Product';
         const itemPrice = item.price || item.amount || item.unit_price || 0;
         const itemQty = item.quantity || item.qty || 1;
+        
+        console.log('Line item:', itemName, 'price:', itemPrice, 'qty:', itemQty);
         
         const purchase = {
           patient_id: patientId,
@@ -245,31 +264,40 @@ export default async function handler(req, res) {
         purchases.push(purchase);
       }
     } else {
+      console.log('No line items - creating single purchase from total');
       // No line items - create a single purchase from the invoice total
       const productName = 
         payload.product_name || 
         payload.productName ||
         payload.invoice?.name ||
         payload.description ||
+        payload.name ||
         'Payment';
       
-      const purchase = {
-        patient_id: patientId,
-        ghl_contact_id: contactId,
-        patient_name: contactName,
-        product_name: productName,
-        item_name: productName,
-        amount: totalAmount,
-        list_price: totalAmount,
-        purchase_date: purchaseDate,
-        source: 'ghl_webhook',
-        ghl_invoice_id: invoiceId,
-        category: categorizeProduct(productName),
-        protocol_created: false,
-        created_at: new Date().toISOString()
-      };
+      console.log('Product name:', productName, 'Amount:', totalAmount);
       
-      purchases.push(purchase);
+      // Only create if we have some amount or product name
+      if (totalAmount > 0 || productName !== 'Payment') {
+        const purchase = {
+          patient_id: patientId,
+          ghl_contact_id: contactId,
+          patient_name: contactName,
+          product_name: productName,
+          item_name: productName,
+          amount: totalAmount,
+          list_price: totalAmount,
+          purchase_date: purchaseDate,
+          source: 'ghl_webhook',
+          ghl_invoice_id: invoiceId,
+          category: categorizeProduct(productName),
+          protocol_created: false,
+          created_at: new Date().toISOString()
+        };
+        
+        purchases.push(purchase);
+      } else {
+        console.log('Skipping purchase - no amount and generic name');
+      }
     }
 
     // Insert all purchases

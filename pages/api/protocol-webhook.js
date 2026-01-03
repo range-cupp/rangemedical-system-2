@@ -2,320 +2,311 @@
 // GHL Payment Webhook - Creates purchases and links patients automatically
 // Range Medical
 // 
-// PATTERN: Always look up patient by ghl_contact_id, create if not exists
+// UPDATED: 2026-01-03 - Improved payload parsing
 
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Categorize product by name
+function categorizeProduct(productName) {
+  const name = (productName || '').toLowerCase();
+  
+  if (name.includes('lab') || name.includes('panel') || name.includes('blood')) {
+    return 'labs';
+  }
+  if (name.includes('iv ') || name.includes('iv-') || name.includes('infusion') || name.includes('drip')) {
+    return 'iv_therapy';
+  }
+  if (name.includes('injection') || name.includes('nad+') || name.includes('nad +')) {
+    return 'injection';
+  }
+  if (name.includes('peptide') || name.includes('bpc') || name.includes('tb500') || 
+      name.includes('semaglutide') || name.includes('tirzepatide') || name.includes('mots')) {
+    return 'peptide';
+  }
+  if (name.includes('hrt') || name.includes('hormone') || name.includes('testosterone')) {
+    return 'hrt';
+  }
+  if (name.includes('weight') || name.includes('ozempic') || name.includes('wegovy')) {
+    return 'weight_loss';
+  }
+  if (name.includes('membership') || name.includes('member')) {
+    return 'membership';
+  }
+  if (name.includes('consult') || name.includes('visit') || name.includes('appointment')) {
+    return 'consultation';
+  }
+  
+  return 'other';
+}
 
 export default async function handler(req, res) {
   // Allow GET for webhook verification
   if (req.method === 'GET') {
-    return res.status(200).json({ status: 'Webhook active', timestamp: new Date().toISOString() });
+    return res.status(200).json({ 
+      status: 'Webhook active', 
+      timestamp: new Date().toISOString(),
+      version: '2026-01-03'
+    });
   }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const payload = req.body;
-  
-  // Log EVERY incoming webhook
-  await supabase.from('webhook_logs').insert({
-    source: 'ghl',
-    payload: payload,
-    status: 'received',
-    created_at: new Date().toISOString()
-  });
-
   try {
+    const payload = req.body;
+    
+    // Log incoming webhook for debugging
     console.log('=== GHL Webhook Received ===');
-    console.log(JSON.stringify(payload, null, 2));
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Payload:', JSON.stringify(payload, null, 2));
 
-    // Extract contact info from various GHL payload formats
-    const contactId = payload.contact_id || payload.contactId || payload.contact?.id || 
-                      payload.customData?.contact_id || payload.data?.contact_id ||
-                      payload.contactId || payload.contact_id;
-    
-    const contactName = payload.contact_name || payload.contactName || payload.contact?.name || 
-                        payload.full_name || payload.fullName || payload.name ||
-                        `${payload.first_name || payload.firstName || payload.contact?.first_name || ''} ${payload.last_name || payload.lastName || payload.contact?.last_name || ''}`.trim();
-    
-    const contactEmail = payload.contact_email || payload.contactEmail || payload.contact?.email || payload.email;
-    const contactPhone = payload.contact_phone || payload.contactPhone || payload.contact?.phone || payload.phone;
-
-    if (!contactId) {
-      console.log('No contact_id in payload');
+    // Save raw webhook to debug table (if exists)
+    try {
       await supabase.from('webhook_logs').insert({
         source: 'ghl',
+        event_type: payload.type || payload.event || 'payment',
         payload: payload,
-        status: 'skipped',
-        error_message: 'No contact_id found in payload',
         created_at: new Date().toISOString()
       });
-      return res.status(200).json({ status: 'skipped', reason: 'no contact_id' });
+    } catch (e) {
+      // Table might not exist, that's ok
     }
 
-    console.log('Contact ID:', contactId);
-    console.log('Contact Name:', contactName);
+    // Extract contact info - GHL sends data in various formats
+    const contactId = 
+      payload.contact_id || 
+      payload.contactId || 
+      payload.contact?.id ||
+      payload.customData?.contact_id || 
+      payload.data?.contact_id ||
+      payload.id; // Sometimes GHL just sends contact ID as 'id'
+    
+    const firstName = 
+      payload.first_name || 
+      payload.firstName || 
+      payload.contact?.first_name ||
+      payload.contact?.firstName ||
+      '';
+      
+    const lastName = 
+      payload.last_name || 
+      payload.lastName || 
+      payload.contact?.last_name ||
+      payload.contact?.lastName ||
+      '';
+    
+    const contactName = 
+      payload.contact_name || 
+      payload.contactName || 
+      payload.contact?.name || 
+      payload.full_name || 
+      payload.fullName ||
+      payload.name ||
+      `${firstName} ${lastName}`.trim() ||
+      'Unknown';
+    
+    const contactEmail = 
+      payload.contact_email || 
+      payload.contactEmail || 
+      payload.contact?.email || 
+      payload.email;
+      
+    const contactPhone = 
+      payload.contact_phone || 
+      payload.contactPhone || 
+      payload.contact?.phone || 
+      payload.phone;
 
-    // STEP 1: Find or create patient by ghl_contact_id
+    // Extract invoice/payment info
+    const invoiceItems = 
+      payload.invoice?.items || 
+      payload.items || 
+      payload.line_items ||
+      payload.lineItems ||
+      payload.products ||
+      [];
+    
+    const invoiceId = 
+      payload.invoice?.id || 
+      payload.invoice_id || 
+      payload.invoiceId ||
+      payload.id;
+    
+    const totalAmount = 
+      payload.invoice?.total || 
+      payload.total || 
+      payload.amount ||
+      payload.payment?.amount ||
+      0;
+
+    // If no contact ID, try to use email or phone to find patient
+    if (!contactId && !contactEmail && !contactPhone) {
+      console.log('No contact identifier in payload, skipping');
+      return res.status(200).json({ status: 'skipped', reason: 'no contact identifier' });
+    }
+
+    console.log('Processing payment for:', contactName, '| Contact ID:', contactId);
+    console.log('Items:', invoiceItems.length || 'none');
+
+    // STEP 1: Find or create patient
     let patient = null;
     
-    // Try to find existing patient
-    const { data: existingPatient } = await supabase
-      .from('patients')
-      .select('id, name, email, phone, ghl_contact_id')
-      .eq('ghl_contact_id', contactId)
-      .single();
-
-    if (existingPatient) {
-      patient = existingPatient;
-      console.log('Found existing patient:', patient.name, patient.id);
-    } else {
-      // Create new patient
-      const newPatientData = {
-        name: contactName || 'Unknown',
-        first_name: contactName ? contactName.split(' ')[0] : 'Unknown',
-        last_name: contactName ? contactName.split(' ').slice(1).join(' ') : '',
-        email: contactEmail || null,
-        phone: contactPhone || null,
-        ghl_contact_id: contactId,
-        created_at: new Date().toISOString()
-      };
+    // Try to find by ghl_contact_id first
+    if (contactId) {
+      const { data: existingPatient } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('ghl_contact_id', contactId)
+        .single();
       
-      console.log('Creating new patient:', newPatientData);
+      patient = existingPatient;
+    }
+    
+    // Try email if no patient found
+    if (!patient && contactEmail) {
+      const { data: emailPatient } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('email', contactEmail)
+        .single();
+      
+      if (emailPatient) {
+        patient = emailPatient;
+        // Update ghl_contact_id if missing
+        if (contactId && !emailPatient.ghl_contact_id) {
+          await supabase
+            .from('patients')
+            .update({ ghl_contact_id: contactId })
+            .eq('id', emailPatient.id);
+        }
+      }
+    }
+
+    // Create patient if not found
+    if (!patient) {
+      console.log('Creating new patient:', contactName);
       
       const { data: newPatient, error: createError } = await supabase
         .from('patients')
-        .insert(newPatientData)
+        .insert({
+          ghl_contact_id: contactId,
+          name: contactName,
+          email: contactEmail,
+          phone: contactPhone,
+          created_at: new Date().toISOString()
+        })
         .select()
         .single();
 
       if (createError) {
         console.error('Error creating patient:', createError);
-        // Try to find by email as fallback
-        if (contactEmail) {
-          const { data: emailPatient } = await supabase
-            .from('patients')
-            .select('id, name, ghl_contact_id')
-            .eq('email', contactEmail)
-            .single();
-          
-          if (emailPatient) {
-            // Update existing patient with ghl_contact_id
-            await supabase
-              .from('patients')
-              .update({ ghl_contact_id: contactId })
-              .eq('id', emailPatient.id);
-            patient = { ...emailPatient, ghl_contact_id: contactId };
-            console.log('Linked existing patient by email:', patient.name);
-          }
-        }
+        // Continue anyway, we can still create purchase with ghl_contact_id
       } else {
         patient = newPatient;
-        console.log('Created new patient:', patient.name, patient.id);
       }
     }
 
-    // STEP 2: Extract purchase/invoice info
-    // GHL sends different formats depending on the trigger
-    const items = payload.items || payload.line_items || payload.lineItems || 
-                  payload.invoice?.items || payload.data?.items || 
-                  payload.invoice?.lineItems || [];
-    const invoiceId = payload.invoice_id || payload.invoiceId || payload.id || 
-                      payload.invoice?.id || payload.data?.invoice_id ||
-                      payload._id;
-    const totalAmount = parseFloat(payload.amount || payload.total || payload.amount_paid || 
-                                   payload.invoice?.total || payload.data?.amount || 
-                                   payload.amountPaid || 0);
-    const paymentDate = payload.payment_date || payload.paymentDate || payload.created_at || 
-                        payload.date || payload.createdAt || new Date().toISOString();
+    const patientId = patient?.id || null;
+    console.log('Patient ID:', patientId, '| GHL Contact ID:', contactId);
 
-    console.log('Items:', items.length);
-    console.log('Invoice ID:', invoiceId);
-    console.log('Total Amount:', totalAmount);
+    // STEP 2: Create purchase records
+    const purchaseDate = new Date().toISOString().split('T')[0];
+    const purchases = [];
 
-    let purchasesCreated = 0;
-
-    // If there are line items, create a purchase for each
-    if (items.length > 0) {
-      for (const item of items) {
-        const itemName = item.name || item.title || item.product_name || item.productName || 
-                         item.description || item.product?.name || 'Unknown Item';
-        const itemAmount = parseFloat(item.amount || item.price || item.unit_price || 
-                                      item.unitPrice || item.total || 0);
-        const itemQty = parseInt(item.quantity || item.qty || 1);
-
-        // Check for duplicate (same contact, same item, same date)
-        const purchaseDate = paymentDate.split('T')[0];
-        const { data: existingPurchase } = await supabase
-          .from('purchases')
-          .select('id')
-          .eq('ghl_contact_id', contactId)
-          .eq('item_name', itemName)
-          .eq('purchase_date', purchaseDate)
-          .single();
-
-        if (!existingPurchase) {
-          const purchaseData = {
-            patient_id: patient?.id || null,
-            patient_name: contactName || patient?.name || 'Unknown',
-            patient_email: contactEmail || patient?.email || null,
-            patient_phone: contactPhone || patient?.phone || null,
-            ghl_contact_id: contactId,
-            item_name: itemName,
-            product_name: itemName,
-            amount: itemAmount * itemQty,
-            amount_paid: itemAmount * itemQty,
-            purchase_date: purchaseDate,
-            invoice_id: invoiceId,
-            protocol_created: false,
-            dismissed: false,
-            category: categorizeProduct(itemName),
-            created_at: new Date().toISOString()
-          };
-
-          const { error: purchaseError } = await supabase
-            .from('purchases')
-            .insert(purchaseData);
-
-          if (purchaseError) {
-            console.error('Error creating purchase:', purchaseError);
-          } else {
-            purchasesCreated++;
-            console.log('Created purchase:', itemName, '$' + (itemAmount * itemQty));
-          }
-        } else {
-          console.log('Duplicate purchase skipped:', itemName);
-        }
-      }
-    } else if (totalAmount > 0) {
-      // Single item payment (no line items array)
-      const itemName = payload.product_name || payload.productName || payload.name || 
-                       payload.title || payload.description || 
-                       payload.product?.name || 'Payment';
-      
-      const purchaseDate = paymentDate.split('T')[0];
-      
-      // Check for duplicate
-      const { data: existingPurchase } = await supabase
-        .from('purchases')
-        .select('id')
-        .eq('ghl_contact_id', contactId)
-        .eq('item_name', itemName)
-        .eq('purchase_date', purchaseDate)
-        .single();
-
-      if (!existingPurchase) {
-        const purchaseData = {
-          patient_id: patient?.id || null,
-          patient_name: contactName || patient?.name || 'Unknown',
-          patient_email: contactEmail || patient?.email || null,
-          patient_phone: contactPhone || patient?.phone || null,
+    // If we have line items, create a purchase for each
+    if (invoiceItems && invoiceItems.length > 0) {
+      for (const item of invoiceItems) {
+        const itemName = item.name || item.product_name || item.productName || item.title || 'Unknown Product';
+        const itemPrice = item.price || item.amount || item.unit_price || 0;
+        const itemQty = item.quantity || item.qty || 1;
+        
+        const purchase = {
+          patient_id: patientId,
           ghl_contact_id: contactId,
-          item_name: itemName,
+          patient_name: contactName,
           product_name: itemName,
-          amount: totalAmount,
-          amount_paid: totalAmount,
+          item_name: itemName,
+          amount: itemPrice * itemQty,
+          list_price: itemPrice * itemQty,
           purchase_date: purchaseDate,
-          invoice_id: invoiceId,
-          protocol_created: false,
-          dismissed: false,
+          source: 'ghl_webhook',
+          ghl_invoice_id: invoiceId,
           category: categorizeProduct(itemName),
+          protocol_created: false,
           created_at: new Date().toISOString()
         };
-
-        const { error: purchaseError } = await supabase
-          .from('purchases')
-          .insert(purchaseData);
-
-        if (purchaseError) {
-          console.error('Error creating purchase:', purchaseError);
-        } else {
-          purchasesCreated++;
-          console.log('Created purchase:', itemName, '$' + totalAmount);
-        }
+        
+        purchases.push(purchase);
       }
+    } else {
+      // No line items - create a single purchase from the invoice total
+      const productName = 
+        payload.product_name || 
+        payload.productName ||
+        payload.invoice?.name ||
+        payload.description ||
+        'Payment';
+      
+      const purchase = {
+        patient_id: patientId,
+        ghl_contact_id: contactId,
+        patient_name: contactName,
+        product_name: productName,
+        item_name: productName,
+        amount: totalAmount,
+        list_price: totalAmount,
+        purchase_date: purchaseDate,
+        source: 'ghl_webhook',
+        ghl_invoice_id: invoiceId,
+        category: categorizeProduct(productName),
+        protocol_created: false,
+        created_at: new Date().toISOString()
+      };
+      
+      purchases.push(purchase);
     }
 
-    // Log success
-    await supabase.from('webhook_logs').insert({
-      source: 'ghl',
-      payload: { contact_id: contactId, purchases_created: purchasesCreated, patient_name: patient?.name },
-      status: 'success',
-      created_at: new Date().toISOString()
-    });
+    // Insert all purchases
+    if (purchases.length > 0) {
+      console.log('Creating', purchases.length, 'purchase(s)');
+      
+      const { data: inserted, error: insertError } = await supabase
+        .from('purchases')
+        .insert(purchases)
+        .select();
 
-    console.log('=== Webhook Complete ===');
-    console.log('Patient:', patient?.name || 'Unknown');
-    console.log('Purchases created:', purchasesCreated);
+      if (insertError) {
+        console.error('Error inserting purchases:', insertError);
+        return res.status(500).json({ error: 'Failed to create purchases', details: insertError });
+      }
+
+      console.log('Successfully created purchases:', inserted?.length);
+      
+      return res.status(200).json({ 
+        status: 'success', 
+        patient_id: patientId,
+        patient_name: contactName,
+        purchases_created: inserted?.length || 0,
+        purchase_ids: inserted?.map(p => p.id) || []
+      });
+    }
 
     return res.status(200).json({ 
-      status: 'success',
-      patient_name: patient?.name || 'Unknown',
-      patient_id: patient?.id || null,
-      contact_id: contactId,
-      purchases_created: purchasesCreated
+      status: 'no_purchases', 
+      reason: 'No items found in payload'
     });
 
   } catch (error) {
     console.error('Webhook error:', error);
-    
-    // Log error
-    await supabase.from('webhook_logs').insert({
-      source: 'ghl',
-      payload: payload,
-      status: 'error',
-      error_message: error.message,
-      created_at: new Date().toISOString()
+    return res.status(500).json({ 
+      error: 'Webhook processing failed', 
+      message: error.message 
     });
-    
-    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
-}
-
-// Categorize products for filtering
-function categorizeProduct(name) {
-  if (!name) return 'Other';
-  const lower = name.toLowerCase();
-  
-  if (lower.includes('peptide') || lower.includes('bpc') || lower.includes('tb-500') || 
-      lower.includes('wolverine') || lower.includes('mots') || lower.includes('ipamorelin') ||
-      lower.includes('cjc') || lower.includes('tesamorelin') || lower.includes('sermorelin') ||
-      lower.includes('recovery') || lower.includes('jumpstart')) {
-    return 'Peptide';
-  }
-  if (lower.includes('iv') || lower.includes('infusion') || lower.includes('drip') ||
-      lower.includes('nad+') || lower.includes('vitamin c') || lower.includes('myers') ||
-      lower.includes('methylene')) {
-    return 'IV';
-  }
-  if (lower.includes('injection') || lower.includes('shot') || lower.includes('b12') ||
-      lower.includes('amino') || lower.includes('glutathione') || lower.includes('pack')) {
-    return 'Injection';
-  }
-  if (lower.includes('weight') || lower.includes('semaglutide') || lower.includes('tirzepatide') ||
-      lower.includes('skinny') || lower.includes('ozempic') || lower.includes('mounjaro')) {
-    return 'Weight Loss';
-  }
-  if (lower.includes('hrt') || lower.includes('testosterone') || lower.includes('hormone') ||
-      lower.includes('trt') || lower.includes('pellet')) {
-    return 'HRT';
-  }
-  if (lower.includes('lab') || lower.includes('blood') || lower.includes('panel') ||
-      lower.includes('elite') || lower.includes('essential') || lower.includes('draw')) {
-    return 'Labs';
-  }
-  if (lower.includes('red light') || lower.includes('redlight')) {
-    return 'Red Light';
-  }
-  if (lower.includes('hyperbaric') || lower.includes('hbot')) {
-    return 'HBOT';
-  }
-  
-  return 'Other';
 }

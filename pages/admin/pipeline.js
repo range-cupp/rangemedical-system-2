@@ -819,14 +819,89 @@ export default function Pipeline() {
           )}
 
           {/* Active Tab */}
-          {activeTab === 'active' && (
-            <div style={styles.list}>
-              {activeProtocols.length === 0 ? (
-                <div style={styles.empty}>No active protocols</div>
-              ) : (
-                activeProtocols.map(protocol => (
-                  <div key={protocol.id} style={styles.card}>
-                    <div style={styles.cardInfo}>
+          {activeTab === 'active' && (() => {
+            // Helper function to get urgency info for a protocol
+            const getUrgencyInfo = (protocol) => {
+              const daysLeft = protocol.days_remaining;
+              let color = '#22c55e'; // Green
+              let needsAttention = false;
+              let label = '';
+              let progress = 100;
+              
+              // Check days-based protocols
+              if (daysLeft !== null && daysLeft !== undefined) {
+                if (daysLeft <= 0) {
+                  color = '#dc2626';
+                  needsAttention = true;
+                  label = 'Ending today';
+                } else if (daysLeft <= 3) {
+                  color = '#dc2626';
+                  needsAttention = true;
+                  label = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
+                } else if (daysLeft <= 7) {
+                  color = '#f59e0b';
+                  needsAttention = true;
+                  label = `${daysLeft} days left`;
+                } else {
+                  label = `${daysLeft} days left`;
+                }
+                
+                // Calculate progress for days-based
+                if (protocol.start_date && protocol.end_date) {
+                  const start = new Date(protocol.start_date);
+                  const end = new Date(protocol.end_date);
+                  const now = new Date();
+                  const total = end - start;
+                  const elapsed = now - start;
+                  progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                }
+              }
+              
+              // Check session-based protocols
+              if (protocol.total_sessions) {
+                const used = protocol.sessions_used || 0;
+                const total = protocol.total_sessions;
+                const left = total - used;
+                progress = (used / total) * 100;
+                
+                if (left <= 0) {
+                  color = '#dc2626';
+                  needsAttention = true;
+                  label = 'Complete';
+                } else if (left === 1) {
+                  color = '#dc2626';
+                  needsAttention = true;
+                  label = 'Last session';
+                } else if (left <= 2) {
+                  color = '#f59e0b';
+                  needsAttention = true;
+                  label = `${left} sessions left`;
+                } else {
+                  label = `${used}/${total} sessions`;
+                }
+              }
+              
+              return { color, needsAttention, label, progress };
+            };
+            
+            // Separate protocols into groups
+            const needsAttention = activeProtocols.filter(p => getUrgencyInfo(p).needsAttention);
+            const onTrack = activeProtocols.filter(p => !getUrgencyInfo(p).needsAttention);
+            
+            // Render a protocol card
+            const renderProtocolCard = (protocol) => {
+              const urgency = getUrgencyInfo(protocol);
+              
+              return (
+                <div 
+                  key={protocol.id} 
+                  style={{
+                    ...styles.card,
+                    borderLeft: `4px solid ${urgency.color}`,
+                  }}
+                >
+                  <div style={styles.cardInfo}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       {protocol.patient_id ? (
                         <Link 
                           href={`/admin/patient/${protocol.patient_id}`}
@@ -837,40 +912,146 @@ export default function Pipeline() {
                       ) : (
                         <span style={styles.patientNameUnlinked}>{protocol.patient_name || 'Unknown'}</span>
                       )}
-                      <div style={styles.itemName}>
-                        {protocol.program_name}
-                        {protocol.medication && ` - ${protocol.medication}`}
-                        {protocol.selected_dose && ` (${protocol.selected_dose})`}
-                      </div>
-                      <div style={styles.meta}>
-                        Started {formatDate(protocol.start_date)}
-                        {protocol.total_sessions && (
-                          <> • {protocol.sessions_used || 0}/{protocol.total_sessions} sessions</>
-                        )}
-                        {protocol.days_remaining !== null && protocol.days_remaining !== undefined && (
-                          <> • {protocol.days_remaining > 0 ? `${protocol.days_remaining} days left` : 'Ending today'}</>
-                        )}
-                      </div>
                     </div>
-                    <div style={styles.cardActions}>
-                      <Link 
-                        href={`/admin/protocol/${protocol.id}`}
-                        style={styles.viewButton}
-                      >
-                        View
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteProtocol(protocol.id)}
-                        style={styles.deleteButton}
-                      >
-                        Delete
-                      </button>
+                    <div style={styles.itemName}>
+                      {protocol.program_name}
+                      {protocol.medication && ` - ${protocol.medication}`}
+                      {protocol.selected_dose && ` (${protocol.selected_dose})`}
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        flex: 1,
+                        maxWidth: '200px',
+                        height: '6px',
+                        backgroundColor: '#e5e7eb',
+                        borderRadius: '3px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          width: `${urgency.progress}%`,
+                          height: '100%',
+                          backgroundColor: urgency.color,
+                          borderRadius: '3px',
+                          transition: 'width 0.3s'
+                        }} />
+                      </div>
+                      <span style={{ 
+                        fontSize: '13px', 
+                        color: urgency.color,
+                        fontWeight: '500',
+                        minWidth: '100px'
+                      }}>
+                        {urgency.label}
+                      </span>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          )}
+                  <div style={styles.cardActions}>
+                    <Link 
+                      href={`/admin/protocol/${protocol.id}`}
+                      style={styles.viewButton}
+                    >
+                      View
+                    </Link>
+                    <button
+                      onClick={() => handleDeleteProtocol(protocol.id)}
+                      style={styles.deleteButton}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            };
+            
+            return (
+              <div style={styles.list}>
+                {activeProtocols.length === 0 ? (
+                  <div style={styles.empty}>No active protocols</div>
+                ) : (
+                  <>
+                    {/* Summary bar */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '16px',
+                      padding: '12px 16px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px',
+                      marginBottom: '16px',
+                      fontSize: '14px'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#dc2626' }} />
+                        <strong>{needsAttention.length}</strong> needs attention
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
+                        <strong>{onTrack.length}</strong> on track
+                      </span>
+                    </div>
+                    
+                    {/* Needs Attention Section */}
+                    {needsAttention.length > 0 && (
+                      <>
+                        <div style={{
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: '#dc2626',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          marginBottom: '12px',
+                          marginTop: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <span>⚠️ Needs Attention</span>
+                          <span style={{
+                            backgroundColor: '#fef2f2',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontSize: '11px'
+                          }}>
+                            {needsAttention.length}
+                          </span>
+                        </div>
+                        {needsAttention.map(renderProtocolCard)}
+                      </>
+                    )}
+                    
+                    {/* On Track Section */}
+                    {onTrack.length > 0 && (
+                      <>
+                        <div style={{
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: '#22c55e',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          marginBottom: '12px',
+                          marginTop: needsAttention.length > 0 ? '24px' : '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <span>✓ On Track</span>
+                          <span style={{
+                            backgroundColor: '#f0fdf4',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontSize: '11px'
+                          }}>
+                            {onTrack.length}
+                          </span>
+                        </div>
+                        {onTrack.map(renderProtocolCard)}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Completed Tab */}
           {activeTab === 'completed' && (

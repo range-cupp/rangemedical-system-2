@@ -30,7 +30,6 @@ export default async function handler(req, res) {
       deliveryMethod,
       totalSessions,
       supplyDuration,
-      // Weight loss specific
       isWeightLoss,
       wlDuration
     } = req.body;

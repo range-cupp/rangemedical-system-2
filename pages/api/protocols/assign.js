@@ -29,10 +29,14 @@ export default async function handler(req, res) {
       notes,
       deliveryMethod,
       totalSessions,
-      supplyDuration
+      supplyDuration,
+      // Weight loss specific
+      isWeightLoss,
+      wlDuration
     } = req.body;
 
-    if (!templateId) {
+    // For non-weight-loss, template is required
+    if (!isWeightLoss && !templateId) {
       return res.status(400).json({ error: 'Template is required' });
     }
 
@@ -72,15 +76,68 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Could not determine patient' });
     }
 
-    // Get template info
-    const { data: template } = await supabase
-      .from('protocol_templates')
-      .select('*')
-      .eq('id', templateId)
-      .single();
+    let template = null;
+    let programName = '';
+    let programType = '';
+    let endDate = null;
+    let finalTotalSessions = null;
+    let isSingle = false;
 
-    if (!template) {
-      return res.status(400).json({ error: 'Template not found' });
+    if (isWeightLoss) {
+      // Weight Loss Protocol - no template needed
+      const durationLabel = wlDuration === 7 ? 'Weekly' : wlDuration === 14 ? 'Two Weeks' : 'Monthly';
+      programName = `Weight Loss - ${durationLabel}`;
+      programType = 'weight_loss';
+      
+      // Calculate end date based on duration
+      if (startDate && wlDuration) {
+        const start = new Date(startDate);
+        start.setDate(start.getDate() + wlDuration);
+        endDate = start.toISOString().split('T')[0];
+      }
+    } else {
+      // Get template info
+      const { data: templateData } = await supabase
+        .from('protocol_templates')
+        .select('*')
+        .eq('id', templateId)
+        .single();
+
+      if (!templateData) {
+        return res.status(400).json({ error: 'Template not found' });
+      }
+      
+      template = templateData;
+      programName = template.name;
+      programType = template.category;
+
+      // Calculate end date from template
+      if (supplyDuration && startDate) {
+        const start = new Date(startDate);
+        start.setDate(start.getDate() + parseInt(supplyDuration));
+        endDate = start.toISOString().split('T')[0];
+      } else if (template.duration_days && startDate) {
+        const start = new Date(startDate);
+        start.setDate(start.getDate() + template.duration_days);
+        endDate = start.toISOString().split('T')[0];
+      }
+
+      // Determine total sessions from template or request
+      finalTotalSessions = totalSessions || template.total_sessions || null;
+      
+      // Parse from template name if session-based
+      if (!finalTotalSessions && template.name) {
+        const packMatch = template.name.match(/(\d+)\s*Pack/i);
+        if (packMatch) {
+          finalTotalSessions = parseInt(packMatch[1]);
+        }
+      }
+
+      // Check if single session
+      isSingle = template.name?.toLowerCase().includes('single');
+      if (isSingle) {
+        finalTotalSessions = 1;
+      }
     }
 
     // Get peptide info if provided
@@ -94,47 +151,16 @@ export default async function handler(req, res) {
       medicationName = peptide?.name;
     }
 
-    // Calculate end date
-    let endDate = null;
-    if (supplyDuration && startDate) {
-      // For take-home with custom supply duration
-      const start = new Date(startDate);
-      start.setDate(start.getDate() + parseInt(supplyDuration));
-      endDate = start.toISOString().split('T')[0];
-    } else if (template.duration_days && startDate) {
-      // From template
-      const start = new Date(startDate);
-      start.setDate(start.getDate() + template.duration_days);
-      endDate = start.toISOString().split('T')[0];
-    }
-
-    // Determine total sessions from template or request
-    let finalTotalSessions = totalSessions || template.total_sessions || null;
-    
-    // Parse from template name if session-based
-    if (!finalTotalSessions && template.name) {
-      const packMatch = template.name.match(/(\d+)\s*Pack/i);
-      if (packMatch) {
-        finalTotalSessions = parseInt(packMatch[1]);
-      }
-    }
-
-    // Check if single session
-    const isSingle = template.name?.toLowerCase().includes('single');
-    if (isSingle) {
-      finalTotalSessions = 1;
-    }
-
-    // Create the protocol - only use columns that exist in the table
+    // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
       .insert({
         patient_id: finalPatientId,
-        program_name: template.name,
-        program_type: template.category,  // Use program_type instead of category
+        program_name: programName,
+        program_type: programType,
         medication: medicationName,
         selected_dose: selectedDose || null,
-        frequency: frequency || template.frequency,
+        frequency: frequency || template?.frequency,
         delivery_method: deliveryMethod || null,
         start_date: startDate,
         end_date: endDate,
@@ -177,7 +203,7 @@ export default async function handler(req, res) {
       success: true, 
       protocol,
       purchaseUpdated: !!purchaseId,
-      message: `Protocol created: ${template.name}`
+      message: `Protocol created: ${programName}`
     });
 
   } catch (error) {

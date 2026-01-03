@@ -1069,6 +1069,11 @@ export default function ProtocolDetail() {
   );
 }
 
+// Force server-side rendering to avoid static prerendering issues
+export async function getServerSideProps() {
+  return { props: {} };
+}
+
 const styles = {
   container: {
     maxWidth: '800px',

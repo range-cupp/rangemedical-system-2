@@ -9,8 +9,7 @@ import Link from 'next/link';
 
 // Injection medications list - SHARED CONFIG
 const INJECTION_MEDICATIONS = [
-  'NAD+ 100mg',
-  'NAD+ 200mg',
+  'NAD+',  // Custom dosage will be entered separately
   'B12',
   'Glutathione',
   'Vitamin D',
@@ -51,6 +50,8 @@ export default function ProtocolDetail() {
 
   const [editForm, setEditForm] = useState({
     medication: '',
+    medicationType: '',
+    nadDose: '',
     selected_dose: '',
     frequency: '',
     delivery_method: '',
@@ -81,8 +82,23 @@ export default function ProtocolDetail() {
   };
 
   const openEditModal = () => {
+    // Parse NAD+ dosage if present
+    const medication = protocol.medication || '';
+    let medicationType = '';
+    let nadDose = '';
+    
+    if (medication.startsWith('NAD+')) {
+      medicationType = 'NAD+';
+      const doseMatch = medication.match(/NAD\+\s*(\d+)/);
+      nadDose = doseMatch ? doseMatch[1] : '';
+    } else if (medication) {
+      medicationType = medication;
+    }
+    
     setEditForm({
-      medication: protocol.medication || '',
+      medication: medication,
+      medicationType: medicationType,
+      nadDose: nadDose,
       selected_dose: protocol.selected_dose || '',
       frequency: protocol.frequency || '',
       delivery_method: protocol.delivery_method || '',
@@ -600,8 +616,15 @@ export default function ProtocolDetail() {
                 <label style={styles.label}>Medication</label>
                 <select
                   style={styles.select}
-                  value={editForm.medication}
-                  onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })}
+                  value={editForm.medicationType || (editForm.medication?.startsWith('NAD+') ? 'NAD+' : editForm.medication) || ''}
+                  onChange={(e) => {
+                    const medType = e.target.value;
+                    if (medType === 'NAD+') {
+                      setEditForm({ ...editForm, medicationType: medType, medication: '', nadDose: '' });
+                    } else {
+                      setEditForm({ ...editForm, medicationType: medType, medication: medType, nadDose: '' });
+                    }
+                  }}
                 >
                   <option value="">Select medication...</option>
                   {INJECTION_MEDICATIONS.map(m => (
@@ -609,6 +632,26 @@ export default function ProtocolDetail() {
                   ))}
                 </select>
               </div>
+
+              {(editForm.medicationType === 'NAD+' || editForm.medication?.startsWith('NAD+')) && (
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>NAD+ Dosage (mg)</label>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    placeholder="e.g., 50, 100, 200"
+                    value={editForm.nadDose || (editForm.medication?.match(/NAD\+\s*(\d+)/)?.[1] || '')}
+                    onChange={(e) => {
+                      const dose = e.target.value;
+                      setEditForm({ 
+                        ...editForm, 
+                        nadDose: dose,
+                        medication: dose ? `NAD+ ${dose}mg` : 'NAD+'
+                      });
+                    }}
+                  />
+                </div>
+              )}
 
               <div style={styles.formGroup}>
                 <label style={styles.label}>Frequency</label>

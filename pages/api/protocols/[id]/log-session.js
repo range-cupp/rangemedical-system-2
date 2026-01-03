@@ -1,5 +1,5 @@
 // /pages/api/protocols/[id]/log-session.js
-// Log a session or injection for a protocol
+// Log a session, injection, or weight for a protocol
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { log_date, notes } = req.body;
+  const { log_date, notes, log_type, weight } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID is required' });
@@ -31,24 +31,34 @@ export default async function handler(req, res) {
 
     if (fetchError) throw fetchError;
 
+    // Determine log type - default to injection for session-based
+    const finalLogType = log_type || 'injection';
+    
     // Create log entry
+    const logEntry = {
+      protocol_id: id,
+      patient_id: protocol.patient_id,
+      log_type: finalLogType,
+      log_date: log_date || new Date().toISOString().split('T')[0],
+      notes: notes || null
+    };
+    
+    // Add weight if this is a weigh_in log
+    if (finalLogType === 'weigh_in' && weight) {
+      logEntry.weight = weight;
+    }
+
     const { error: logError } = await supabase
       .from('protocol_logs')
-      .insert({
-        protocol_id: id,
-        patient_id: protocol.patient_id,
-        log_type: 'injection',
-        log_date: log_date || new Date().toISOString().split('T')[0],
-        notes: notes || null
-      });
+      .insert(logEntry);
 
     if (logError) {
       console.error('Error creating log:', logError);
-      // Continue even if log fails - still increment sessions
+      // Continue even if log fails - still increment sessions for non-weight logs
     }
 
-    // Increment sessions_used if session-based
-    if (protocol.total_sessions) {
+    // Only increment sessions_used for injection/session logs, not weigh_ins
+    if (protocol.total_sessions && finalLogType !== 'weigh_in') {
       const newSessionsUsed = (protocol.sessions_used || 0) + 1;
       
       const updates = {

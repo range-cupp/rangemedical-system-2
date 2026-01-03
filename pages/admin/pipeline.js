@@ -41,7 +41,9 @@ export default function Pipeline() {
     frequency: '',
     startDate: new Date().toISOString().split('T')[0],
     notes: '',
-    medication: ''
+    medication: '',
+    medicationType: '',
+    nadDose: ''
   });
   
   const [completedForm, setCompletedForm] = useState({
@@ -470,13 +472,14 @@ export default function Pipeline() {
     // Extract protocol type and delivery method from template name
     // e.g., "Injection Therapy - 12 Pack (Take Home)" -> { type: "12 Pack", delivery: "Take Home" }
     // e.g., "Peptide Therapy - 10 Day" -> { type: "10 Day", delivery: null }
+    // e.g., "IV Therapy - 5 Pack" -> { type: "5 Pack", delivery: null }
     
     const deliveryMatch = name.match(/\((In Clinic|Take Home)\)/i);
     const delivery = deliveryMatch ? deliveryMatch[1] : null;
     
     // Remove category prefix and delivery suffix to get protocol type
     let type = name
-      .replace(/^(Injection Therapy|Peptide Therapy|HBOT|HRT|Red Light|Weight Loss)\s*-?\s*/i, '')
+      .replace(/^(Injection Therapy|Peptide Therapy|IV Therapy|HBOT|HRT|Red Light|Weight Loss)\s*-?\s*/i, '')
       .replace(/\s*\((In Clinic|Take Home)\)\s*/i, '')
       .trim();
     
@@ -912,14 +915,20 @@ export default function Pipeline() {
                 <select
                   style={styles.select}
                   value={assignForm.category}
-                  onChange={(e) => setAssignForm({ ...assignForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '', medication: '' })}
+                  onChange={(e) => setAssignForm({ ...assignForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '', medication: '', medicationType: '', nadDose: '' })}
                 >
                   <option value="">Select category...</option>
-                  {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => (
-                    <option key={cat} value={cat}>
-                      {cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                    </option>
-                  ))}
+                  {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => {
+                    // Format category for display
+                    let displayName = cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    // Special cases
+                    if (cat === 'iv_therapy') displayName = 'IV Therapy';
+                    if (cat === 'hrt') displayName = 'HRT';
+                    if (cat === 'hbot') displayName = 'HBOT';
+                    return (
+                      <option key={cat} value={cat}>{displayName}</option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -994,25 +1003,53 @@ export default function Pipeline() {
               )}
 
               {isInjectionTemplate(assignForm) && (
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Medication</label>
-                  <select
-                    style={styles.select}
-                    value={assignForm.medication}
-                    onChange={(e) => setAssignForm({ ...assignForm, medication: e.target.value })}
-                  >
-                    <option value="">Select medication...</option>
-                    <option value="NAD+ 100mg">NAD+ 100mg</option>
-                    <option value="NAD+ 200mg">NAD+ 200mg</option>
-                    <option value="B12">B12</option>
-                    <option value="Glutathione">Glutathione</option>
-                    <option value="Vitamin D">Vitamin D</option>
-                    <option value="Biotin">Biotin</option>
-                    <option value="Lipo-C">Lipo-C</option>
-                    <option value="Skinny Shot">Skinny Shot</option>
-                    <option value="Toradol">Toradol</option>
-                  </select>
-                </div>
+                <>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Medication</label>
+                    <select
+                      style={styles.select}
+                      value={assignForm.medicationType || ''}
+                      onChange={(e) => {
+                        const medType = e.target.value;
+                        if (medType === 'NAD+') {
+                          setAssignForm({ ...assignForm, medicationType: medType, medication: '', nadDose: '' });
+                        } else {
+                          setAssignForm({ ...assignForm, medicationType: medType, medication: medType, nadDose: '' });
+                        }
+                      }}
+                    >
+                      <option value="">Select medication...</option>
+                      <option value="NAD+">NAD+</option>
+                      <option value="B12">B12</option>
+                      <option value="Glutathione">Glutathione</option>
+                      <option value="Vitamin D">Vitamin D</option>
+                      <option value="Biotin">Biotin</option>
+                      <option value="Lipo-C">Lipo-C</option>
+                      <option value="Skinny Shot">Skinny Shot</option>
+                      <option value="Toradol">Toradol</option>
+                    </select>
+                  </div>
+                  
+                  {assignForm.medicationType === 'NAD+' && (
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>NAD+ Dosage (mg)</label>
+                      <input
+                        type="text"
+                        style={styles.input}
+                        placeholder="e.g., 50, 100, 200"
+                        value={assignForm.nadDose || ''}
+                        onChange={(e) => {
+                          const dose = e.target.value;
+                          setAssignForm({ 
+                            ...assignForm, 
+                            nadDose: dose,
+                            medication: dose ? `NAD+ ${dose}mg` : 'NAD+'
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div style={styles.formGroup}>
@@ -1153,11 +1190,17 @@ export default function Pipeline() {
                   onChange={(e) => setCompletedForm({ ...completedForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '' })}
                 >
                   <option value="">Select category...</option>
-                  {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => (
-                    <option key={cat} value={cat}>
-                      {cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                    </option>
-                  ))}
+                  {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => {
+                    // Format category for display
+                    let displayName = cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    // Special cases
+                    if (cat === 'iv_therapy') displayName = 'IV Therapy';
+                    if (cat === 'hrt') displayName = 'HRT';
+                    if (cat === 'hbot') displayName = 'HBOT';
+                    return (
+                      <option key={cat} value={cat}>{displayName}</option>
+                    );
+                  })}
                 </select>
               </div>
 

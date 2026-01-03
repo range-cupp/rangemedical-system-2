@@ -404,10 +404,27 @@ export default function Pipeline() {
 
   const handleAddCompleted = async () => {
     try {
+      // Convert delivery method to database format
+      let deliveryMethodDb = null;
+      if (completedForm.deliveryMethod === 'In Clinic') {
+        deliveryMethodDb = 'in_clinic';
+      } else if (completedForm.deliveryMethod === 'Take Home') {
+        deliveryMethodDb = 'take_home';
+      }
+      
+      const isWL = completedForm.category?.toLowerCase() === 'weight_loss';
+      
+      const payload = {
+        ...completedForm,
+        deliveryMethod: deliveryMethodDb,
+        isWeightLoss: isWL,
+        wlDuration: isWL ? parseInt(completedForm.wlDuration) : null
+      };
+      
       const res = await fetch('/api/protocols/add-completed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(completedForm)
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -423,7 +440,13 @@ export default function Pipeline() {
           frequency: '',
           startDate: '',
           endDate: '',
-          notes: ''
+          notes: '',
+          medication: '',
+          medicationType: '',
+          nadDose: '',
+          wlMedication: '',
+          wlDose: '',
+          wlDuration: ''
         });
         fetchData();
       }
@@ -1244,7 +1267,11 @@ export default function Pipeline() {
                 <button 
                   onClick={handleAssignProtocol}
                   style={styles.submitButton}
-                  disabled={!assignForm.templateId}
+                  disabled={
+                    assignForm.category?.toLowerCase() === 'weight_loss'
+                      ? !assignForm.deliveryMethod || !assignForm.wlDuration || !assignForm.wlMedication
+                      : !assignForm.templateId
+                  }
                 >
                   Start Protocol
                 </button>
@@ -1563,7 +1590,13 @@ export default function Pipeline() {
                 <button 
                   onClick={handleAddCompleted}
                   style={styles.submitButton}
-                  disabled={!completedForm.patientId || !completedForm.templateId}
+                  disabled={
+                    !completedForm.patientId || (
+                      completedForm.category?.toLowerCase() === 'weight_loss'
+                        ? !completedForm.deliveryMethod || !completedForm.wlDuration || !completedForm.wlMedication
+                        : !completedForm.templateId
+                    )
+                  }
                 >
                   Add Protocol
                 </button>

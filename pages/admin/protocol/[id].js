@@ -488,9 +488,12 @@ export default function ProtocolDetail() {
 
       <div style={styles.container}>
         {/* Back Link */}
-        <Link href={protocol.patient_id ? `/admin/patient/${protocol.patient_id}` : '/admin/pipeline?tab=active'} style={styles.backLink}>
-          ← Back to Patient
-        </Link>
+        <button 
+          onClick={() => router.back()} 
+          style={{...styles.backLink, background: 'none', border: 'none', cursor: 'pointer', padding: 0}}
+        >
+          ← Back
+        </button>
 
         {/* Header */}
         <div style={styles.header}>

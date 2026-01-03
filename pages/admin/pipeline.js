@@ -2,12 +2,25 @@
 // Pipeline with URL-based tabs for proper back button behavior
 // Includes Patients tab
 // Range Medical
-// UPDATED: 2026-01-02 11:25 - Fixed case sensitivity for Peptide delivery method
+// UPDATED: 2026-01-02 - Added Weight Loss medications and IV Therapy
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+
+// Weight Loss medications and dosages
+const WEIGHT_LOSS_MEDICATIONS = [
+  'Semaglutide',
+  'Tirzepatide',
+  'Retatrutide'
+];
+
+const WEIGHT_LOSS_DOSAGES = {
+  'Semaglutide': ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'],
+  'Tirzepatide': ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'],
+  'Retatrutide': ['1mg', '2mg', '4mg', '8mg', '12mg']
+};
 
 export default function Pipeline() {
   const router = useRouter();
@@ -43,7 +56,9 @@ export default function Pipeline() {
     notes: '',
     medication: '',
     medicationType: '',
-    nadDose: ''
+    nadDose: '',
+    wlMedication: '',
+    wlDose: ''
   });
   
   const [completedForm, setCompletedForm] = useState({
@@ -57,7 +72,12 @@ export default function Pipeline() {
     frequency: '',
     startDate: '',
     endDate: '',
-    notes: ''
+    notes: '',
+    medication: '',
+    medicationType: '',
+    nadDose: '',
+    wlMedication: '',
+    wlDose: ''
   });
 
   const [addToPackForm, setAddToPackForm] = useState({
@@ -457,6 +477,14 @@ export default function Pipeline() {
     return form.category?.toLowerCase() === 'injection';
   };
 
+  const isWeightLossTemplate = (form) => {
+    // For weight loss, require delivery method to be selected
+    if (form.category?.toLowerCase() === 'weight_loss') {
+      return !!form.deliveryMethod;
+    }
+    return false;
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('en-US', { 
@@ -503,6 +531,10 @@ export default function Pipeline() {
     if (category?.toLowerCase() === 'peptide') {
       return true;
     }
+    // Weight Loss protocols ALWAYS need delivery method selection
+    if (category?.toLowerCase() === 'weight_loss') {
+      return true;
+    }
     
     const categoryTemplates = templates.filter(t => t.category === category);
     const matchingTemplates = categoryTemplates.filter(t => {
@@ -520,6 +552,10 @@ export default function Pipeline() {
   const getDeliveryOptions = (category, protocolType) => {
     // Peptide protocols always have both options
     if (category?.toLowerCase() === 'peptide') {
+      return ['In Clinic', 'Take Home'];
+    }
+    // Weight Loss protocols always have both options
+    if (category?.toLowerCase() === 'weight_loss') {
       return ['In Clinic', 'Take Home'];
     }
     
@@ -915,7 +951,7 @@ export default function Pipeline() {
                 <select
                   style={styles.select}
                   value={assignForm.category}
-                  onChange={(e) => setAssignForm({ ...assignForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '', medication: '', medicationType: '', nadDose: '' })}
+                  onChange={(e) => setAssignForm({ ...assignForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '', medication: '', medicationType: '', nadDose: '', wlMedication: '', wlDose: '' })}
                 >
                   <option value="">Select category...</option>
                   {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => {
@@ -1047,6 +1083,56 @@ export default function Pipeline() {
                           });
                         }}
                       />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {isWeightLossTemplate(assignForm) && (
+                <>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Medication</label>
+                    <select
+                      style={styles.select}
+                      value={assignForm.wlMedication || ''}
+                      onChange={(e) => {
+                        const med = e.target.value;
+                        setAssignForm({ 
+                          ...assignForm, 
+                          wlMedication: med, 
+                          wlDose: '',
+                          medication: med 
+                        });
+                      }}
+                    >
+                      <option value="">Select medication...</option>
+                      {WEIGHT_LOSS_MEDICATIONS.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {assignForm.wlMedication && (
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Dosage</label>
+                      <select
+                        style={styles.select}
+                        value={assignForm.wlDose || ''}
+                        onChange={(e) => {
+                          const dose = e.target.value;
+                          setAssignForm({ 
+                            ...assignForm, 
+                            wlDose: dose,
+                            medication: `${assignForm.wlMedication} ${dose}`,
+                            selectedDose: dose
+                          });
+                        }}
+                      >
+                        <option value="">Select dosage...</option>
+                        {(WEIGHT_LOSS_DOSAGES[assignForm.wlMedication] || []).map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
                     </div>
                   )}
                 </>
@@ -1187,7 +1273,7 @@ export default function Pipeline() {
                 <select
                   style={styles.select}
                   value={completedForm.category}
-                  onChange={(e) => setCompletedForm({ ...completedForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '' })}
+                  onChange={(e) => setCompletedForm({ ...completedForm, category: e.target.value, protocolType: '', deliveryMethod: '', templateId: '', peptideId: '', selectedDose: '', medication: '', medicationType: '', nadDose: '', wlMedication: '', wlDose: '' })}
                 >
                   <option value="">Select category...</option>
                   {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => {
@@ -1267,6 +1353,56 @@ export default function Pipeline() {
                         <option value="">Select dose...</option>
                         {getSelectedPeptide(completedForm).dose_options.map(dose => (
                           <option key={dose} value={dose}>{dose}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {isWeightLossTemplate(completedForm) && (
+                <>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Medication</label>
+                    <select
+                      style={styles.select}
+                      value={completedForm.wlMedication || ''}
+                      onChange={(e) => {
+                        const med = e.target.value;
+                        setCompletedForm({ 
+                          ...completedForm, 
+                          wlMedication: med, 
+                          wlDose: '',
+                          medication: med 
+                        });
+                      }}
+                    >
+                      <option value="">Select medication...</option>
+                      {WEIGHT_LOSS_MEDICATIONS.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {completedForm.wlMedication && (
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Dosage</label>
+                      <select
+                        style={styles.select}
+                        value={completedForm.wlDose || ''}
+                        onChange={(e) => {
+                          const dose = e.target.value;
+                          setCompletedForm({ 
+                            ...completedForm, 
+                            wlDose: dose,
+                            medication: `${completedForm.wlMedication} ${dose}`,
+                            selectedDose: dose
+                          });
+                        }}
+                      >
+                        <option value="">Select dosage...</option>
+                        {(WEIGHT_LOSS_DOSAGES[completedForm.wlMedication] || []).map(d => (
+                          <option key={d} value={d}>{d}</option>
                         ))}
                       </select>
                     </div>

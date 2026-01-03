@@ -124,8 +124,9 @@ export default async function handler(req, res) {
       payload.contact?.phone || 
       payload.phone;
 
-    // Extract invoice/payment info
+    // Extract invoice/payment info - GHL uses payment.line_items
     const invoiceItems = 
+      payload.payment?.line_items ||
       payload.invoice?.items || 
       payload.items || 
       payload.line_items ||
@@ -134,12 +135,15 @@ export default async function handler(req, res) {
       [];
     
     const invoiceId = 
+      payload.payment?.transaction_id ||
       payload.invoice?.id || 
       payload.invoice_id || 
       payload.invoiceId ||
       payload.id;
     
-    const totalAmount = 
+    // GHL often has total_amount as 0, use line items total instead
+    let totalAmount = 
+      payload.payment?.total_amount ||
       payload.invoice?.total || 
       payload.total || 
       payload.amount ||
@@ -147,15 +151,20 @@ export default async function handler(req, res) {
       payload.charge_amount ||
       payload.chargeAmount ||
       0;
+    
+    // If total is 0, calculate from line items
+    if (totalAmount === 0 && invoiceItems.length > 0) {
+      totalAmount = invoiceItems.reduce((sum, item) => {
+        return sum + (item.line_price || item.price || item.amount || 0);
+      }, 0);
+    }
 
     // Log all potential payment fields for debugging
     console.log('=== Payment fields found ===');
-    console.log('invoice:', JSON.stringify(payload.invoice));
-    console.log('items:', JSON.stringify(invoiceItems));
+    console.log('payment object:', JSON.stringify(payload.payment));
+    console.log('line_items count:', invoiceItems.length);
     console.log('total/amount:', totalAmount);
-    console.log('product_name:', payload.product_name || payload.productName);
-    console.log('charge_amount:', payload.charge_amount || payload.chargeAmount);
-    console.log('All keys:', Object.keys(payload));
+    console.log('All top-level keys:', Object.keys(payload));
 
     // If no contact ID, try to use email or phone to find patient
     if (!contactId && !contactEmail && !contactPhone) {
@@ -239,8 +248,9 @@ export default async function handler(req, res) {
     if (invoiceItems && invoiceItems.length > 0) {
       console.log('Using line items to create purchases');
       for (const item of invoiceItems) {
-        const itemName = item.name || item.product_name || item.productName || item.title || 'Unknown Product';
-        const itemPrice = item.price || item.amount || item.unit_price || 0;
+        // GHL uses 'title' not 'name' for product name
+        const itemName = item.title || item.name || item.product_name || item.productName || 'Unknown Product';
+        const itemPrice = item.line_price || item.price || item.amount || item.unit_price || 0;
         const itemQty = item.quantity || item.qty || 1;
         
         console.log('Line item:', itemName, 'price:', itemPrice, 'qty:', itemQty);
@@ -269,6 +279,7 @@ export default async function handler(req, res) {
       const productName = 
         payload.product_name || 
         payload.productName ||
+        payload.payment?.calendar?.name ||
         payload.invoice?.name ||
         payload.description ||
         payload.name ||

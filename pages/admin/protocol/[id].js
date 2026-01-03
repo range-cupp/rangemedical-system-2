@@ -19,6 +19,20 @@ const INJECTION_MEDICATIONS = [
   'Toradol'
 ];
 
+// Weight Loss medications
+const WEIGHT_LOSS_MEDICATIONS = [
+  'Semaglutide',
+  'Tirzepatide',
+  'Retatrutide'
+];
+
+// Weight Loss dosages by medication
+const WEIGHT_LOSS_DOSAGES = {
+  'Semaglutide': ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'],
+  'Tirzepatide': ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'],
+  'Retatrutide': ['1mg', '2mg', '4mg', '8mg', '12mg']
+};
+
 const FREQUENCY_OPTIONS = [
   { value: '2x daily', label: '2x Daily' },
   { value: 'daily', label: 'Daily' },
@@ -48,10 +62,19 @@ export default function ProtocolDetail() {
     notes: ''
   });
 
+  const [weightForm, setWeightForm] = useState({
+    log_date: new Date().toISOString().split('T')[0],
+    weight: ''
+  });
+
+  const [showWeightModal, setShowWeightModal] = useState(false);
+
   const [editForm, setEditForm] = useState({
     medication: '',
     medicationType: '',
     nadDose: '',
+    wlMedication: '',
+    wlDose: '',
     selected_dose: '',
     frequency: '',
     delivery_method: '',
@@ -82,12 +105,27 @@ export default function ProtocolDetail() {
   };
 
   const openEditModal = () => {
-    // Parse NAD+ dosage if present
     const medication = protocol.medication || '';
     let medicationType = '';
     let nadDose = '';
+    let wlMedication = '';
+    let wlDose = '';
     
-    if (medication.startsWith('NAD+')) {
+    // Check if weight loss medication
+    const isWLMed = WEIGHT_LOSS_MEDICATIONS.some(m => medication.toLowerCase().includes(m.toLowerCase()));
+    
+    if (isWLMed) {
+      // Parse weight loss medication and dose
+      for (const med of WEIGHT_LOSS_MEDICATIONS) {
+        if (medication.toLowerCase().includes(med.toLowerCase())) {
+          wlMedication = med;
+          // Extract dose (e.g., "Retatrutide 2mg" -> "2mg")
+          const doseMatch = medication.match(/(\d+\.?\d*mg)/i);
+          wlDose = doseMatch ? doseMatch[1] : '';
+          break;
+        }
+      }
+    } else if (medication.startsWith('NAD+')) {
       medicationType = 'NAD+';
       const doseMatch = medication.match(/NAD\+\s*(\d+)/);
       nadDose = doseMatch ? doseMatch[1] : '';
@@ -99,6 +137,8 @@ export default function ProtocolDetail() {
       medication: medication,
       medicationType: medicationType,
       nadDose: nadDose,
+      wlMedication: wlMedication,
+      wlDose: wlDose,
       selected_dose: protocol.selected_dose || '',
       frequency: protocol.frequency || '',
       delivery_method: protocol.delivery_method || '',
@@ -158,6 +198,39 @@ export default function ProtocolDetail() {
     }
   };
 
+  const handleLogWeight = async () => {
+    if (!weightForm.weight) {
+      alert('Please enter a weight');
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${id}/log-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_date: weightForm.log_date,
+          log_type: 'weigh_in',
+          weight: parseFloat(weightForm.weight),
+          notes: ''
+        })
+      });
+
+      if (res.ok) {
+        setShowWeightModal(false);
+        setWeightForm({ log_date: new Date().toISOString().split('T')[0], weight: '' });
+        fetchProtocol();
+      } else {
+        alert('Failed to log weight');
+      }
+    } catch (error) {
+      console.error('Error logging weight:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm('Delete this protocol? This will unlink any associated purchases.')) return;
     
@@ -211,6 +284,10 @@ export default function ProtocolDetail() {
 
   // Determine tracking type
   const isSessionBased = protocol?.total_sessions > 0;
+  
+  // Check if this is a weight loss protocol
+  const isWeightLoss = protocol?.program_type === 'weight_loss' || 
+    (protocol?.program_name || '').toLowerCase().includes('weight loss');
   
   // Get delivery method - check field first, then parse from program_name
   const getDeliveryMethod = () => {
@@ -468,6 +545,49 @@ export default function ProtocolDetail() {
           </button>
         )}
 
+        {/* Weight Log Button - For Weight Loss protocols */}
+        {isWeightLoss && protocol.status === 'active' && (
+          <button onClick={() => setShowWeightModal(true)} style={{...styles.logButton, backgroundColor: '#059669'}}>
+            + Log Weight
+          </button>
+        )}
+
+        {/* Weight History Section - For Weight Loss */}
+        {isWeightLoss && (() => {
+          const weightLogs = logs.filter(log => log.log_type === 'weigh_in');
+          
+          return (
+            <div style={styles.section}>
+              <h2 style={styles.sectionTitle}>Weight History</h2>
+              {weightLogs.length === 0 ? (
+                <div style={styles.emptyState}>
+                  No weight logs yet
+                </div>
+              ) : (
+                <div style={styles.logsList}>
+                  {weightLogs.map((log, i) => (
+                    <div key={log.id || i} style={styles.logItem}>
+                      <div style={{ flex: 1 }}>
+                        <div style={styles.logDate}>{formatDate(log.log_date || log.created_at)}</div>
+                        <div style={{ fontSize: '18px', fontWeight: '600', color: '#059669' }}>
+                          {log.weight} lbs
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteLog(log.id)}
+                        style={styles.deleteLogButton}
+                        title="Delete this entry"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* History Section - Only for In Clinic */}
         {isInClinic && (() => {
           // Filter to only show injection/session logs, not weigh_ins
@@ -606,51 +726,145 @@ export default function ProtocolDetail() {
           </div>
         )}
 
+        {/* Weight Log Modal - For Weight Loss */}
+        {showWeightModal && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <h2 style={styles.modalTitle}>Log Weight</h2>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Date</label>
+                <input
+                  type="date"
+                  style={styles.input}
+                  value={weightForm.log_date}
+                  onChange={(e) => setWeightForm({ ...weightForm, log_date: e.target.value })}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Weight (lbs)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  style={styles.input}
+                  value={weightForm.weight}
+                  onChange={(e) => setWeightForm({ ...weightForm, weight: e.target.value })}
+                  placeholder="e.g., 185.5"
+                />
+              </div>
+
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowWeightModal(false)} style={styles.cancelButton}>
+                  Cancel
+                </button>
+                <button onClick={handleLogWeight} style={{...styles.submitButton, backgroundColor: '#059669'}} disabled={saving}>
+                  {saving ? 'Logging...' : 'Log Weight'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Edit Protocol Modal */}
         {showEditModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>
               <h2 style={styles.modalTitle}>Edit Protocol</h2>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Medication</label>
-                <select
-                  style={styles.select}
-                  value={editForm.medicationType || (editForm.medication?.startsWith('NAD+') ? 'NAD+' : editForm.medication) || ''}
-                  onChange={(e) => {
-                    const medType = e.target.value;
-                    if (medType === 'NAD+') {
-                      setEditForm({ ...editForm, medicationType: medType, medication: '', nadDose: '' });
-                    } else {
-                      setEditForm({ ...editForm, medicationType: medType, medication: medType, nadDose: '' });
-                    }
-                  }}
-                >
-                  <option value="">Select medication...</option>
-                  {INJECTION_MEDICATIONS.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Weight Loss Medication Fields */}
+              {isWeightLoss ? (
+                <>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Medication</label>
+                    <select
+                      style={styles.select}
+                      value={editForm.wlMedication || ''}
+                      onChange={(e) => {
+                        const med = e.target.value;
+                        setEditForm({ 
+                          ...editForm, 
+                          wlMedication: med, 
+                          wlDose: '',
+                          medication: med 
+                        });
+                      }}
+                    >
+                      <option value="">Select medication...</option>
+                      {WEIGHT_LOSS_MEDICATIONS.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              {(editForm.medicationType === 'NAD+' || editForm.medication?.startsWith('NAD+')) && (
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>NAD+ Dosage (mg)</label>
-                  <input
-                    type="text"
-                    style={styles.input}
-                    placeholder="e.g., 50, 100, 200"
-                    value={editForm.nadDose || (editForm.medication?.match(/NAD\+\s*(\d+)/)?.[1] || '')}
-                    onChange={(e) => {
-                      const dose = e.target.value;
-                      setEditForm({ 
-                        ...editForm, 
-                        nadDose: dose,
-                        medication: dose ? `NAD+ ${dose}mg` : 'NAD+'
-                      });
-                    }}
-                  />
-                </div>
+                  {editForm.wlMedication && (
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Dosage</label>
+                      <select
+                        style={styles.select}
+                        value={editForm.wlDose || ''}
+                        onChange={(e) => {
+                          const dose = e.target.value;
+                          setEditForm({ 
+                            ...editForm, 
+                            wlDose: dose,
+                            medication: `${editForm.wlMedication} ${dose}`,
+                            selected_dose: dose
+                          });
+                        }}
+                      >
+                        <option value="">Select dosage...</option>
+                        {(WEIGHT_LOSS_DOSAGES[editForm.wlMedication] || []).map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Injection Medication Fields */}
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Medication</label>
+                    <select
+                      style={styles.select}
+                      value={editForm.medicationType || (editForm.medication?.startsWith('NAD+') ? 'NAD+' : editForm.medication) || ''}
+                      onChange={(e) => {
+                        const medType = e.target.value;
+                        if (medType === 'NAD+') {
+                          setEditForm({ ...editForm, medicationType: medType, medication: '', nadDose: '' });
+                        } else {
+                          setEditForm({ ...editForm, medicationType: medType, medication: medType, nadDose: '' });
+                        }
+                      }}
+                    >
+                      <option value="">Select medication...</option>
+                      {INJECTION_MEDICATIONS.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(editForm.medicationType === 'NAD+' || editForm.medication?.startsWith('NAD+')) && (
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>NAD+ Dosage (mg)</label>
+                      <input
+                        type="text"
+                        style={styles.input}
+                        placeholder="e.g., 50, 100, 200"
+                        value={editForm.nadDose || (editForm.medication?.match(/NAD\+\s*(\d+)/)?.[1] || '')}
+                        onChange={(e) => {
+                          const dose = e.target.value;
+                          setEditForm({ 
+                            ...editForm, 
+                            nadDose: dose,
+                            medication: dose ? `NAD+ ${dose}mg` : 'NAD+'
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div style={styles.formGroup}>

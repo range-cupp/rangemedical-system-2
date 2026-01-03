@@ -826,39 +826,17 @@ export default function Pipeline() {
               let color = '#22c55e'; // Green
               let needsAttention = false;
               let label = '';
-              let progress = 100;
+              let progress = 0;
               
-              // Check days-based protocols
-              if (daysLeft !== null && daysLeft !== undefined) {
-                if (daysLeft <= 0) {
-                  color = '#dc2626';
-                  needsAttention = true;
-                  label = 'Ending today';
-                } else if (daysLeft <= 3) {
-                  color = '#dc2626';
-                  needsAttention = true;
-                  label = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
-                } else if (daysLeft <= 7) {
-                  color = '#f59e0b';
-                  needsAttention = true;
-                  label = `${daysLeft} days left`;
-                } else {
-                  label = `${daysLeft} days left`;
-                }
-                
-                // Calculate progress for days-based
-                if (protocol.start_date && protocol.end_date) {
-                  const start = new Date(protocol.start_date);
-                  const end = new Date(protocol.end_date);
-                  const now = new Date();
-                  const total = end - start;
-                  const elapsed = now - start;
-                  progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
-                }
-              }
+              // Check if Take Home - these track by days/refill, NOT sessions
+              const isTakeHome = protocol.delivery_method === 'take_home' || 
+                (protocol.program_name || '').toLowerCase().includes('take home');
               
-              // Check session-based protocols
-              if (protocol.total_sessions) {
+              // Check if In Clinic session-based
+              const isInClinicSessions = protocol.total_sessions && !isTakeHome;
+              
+              if (isInClinicSessions) {
+                // In Clinic: Track by sessions
                 const used = protocol.sessions_used || 0;
                 const total = protocol.total_sessions;
                 const left = total - used;
@@ -879,6 +857,36 @@ export default function Pipeline() {
                 } else {
                   label = `${used}/${total} sessions`;
                 }
+              } else if (daysLeft !== null && daysLeft !== undefined) {
+                // Take Home or days-based: Track by days remaining
+                if (daysLeft <= 0) {
+                  color = '#dc2626';
+                  needsAttention = true;
+                  label = isTakeHome ? 'Refill due' : 'Ending today';
+                } else if (daysLeft <= 3) {
+                  color = '#dc2626';
+                  needsAttention = true;
+                  label = isTakeHome ? `Refill in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
+                } else if (daysLeft <= 7) {
+                  color = '#f59e0b';
+                  needsAttention = true;
+                  label = isTakeHome ? `Refill in ${daysLeft} days` : `${daysLeft} days left`;
+                } else {
+                  label = isTakeHome ? `Refill in ${daysLeft} days` : `${daysLeft} days left`;
+                }
+                
+                // Calculate progress for days-based
+                if (protocol.start_date && protocol.end_date) {
+                  const start = new Date(protocol.start_date);
+                  const end = new Date(protocol.end_date);
+                  const now = new Date();
+                  const total = end - start;
+                  const elapsed = now - start;
+                  progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                }
+              } else {
+                // No tracking info available
+                label = 'Active';
               }
               
               return { color, needsAttention, label, progress };

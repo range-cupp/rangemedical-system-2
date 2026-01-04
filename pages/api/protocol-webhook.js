@@ -2,7 +2,7 @@
 // GHL Payment Webhook - Creates purchases and links patients automatically
 // Range Medical
 // 
-// UPDATED: 2026-01-03 - Improved payload parsing
+// UPDATED: 2026-01-04 - Added raw_payload and variant capture
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -40,6 +40,12 @@ function categorizeProduct(productName) {
   if (name.includes('consult') || name.includes('visit') || name.includes('appointment')) {
     return 'consultation';
   }
+  if (name.includes('red light') || name.includes('rlt') || name.includes('redlight')) {
+    return 'red_light';
+  }
+  if (name.includes('hbot') || name.includes('hyperbaric')) {
+    return 'hbot';
+  }
   
   return 'other';
 }
@@ -50,7 +56,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       status: 'Webhook active', 
       timestamp: new Date().toISOString(),
-      version: '2026-01-03'
+      version: '2026-01-04'
     });
   }
 
@@ -240,6 +246,14 @@ export default async function handler(req, res) {
     const purchaseDate = new Date().toISOString().split('T')[0];
     const purchases = [];
 
+    // Stringify payload for raw_payload storage
+    let rawPayloadStr = null;
+    try {
+      rawPayloadStr = JSON.stringify(payload);
+    } catch (e) {
+      console.log('Could not stringify payload:', e.message);
+    }
+
     console.log('=== Creating purchases ===');
     console.log('Invoice items count:', invoiceItems?.length || 0);
     console.log('Total amount:', totalAmount);
@@ -253,7 +267,10 @@ export default async function handler(req, res) {
         const itemPrice = item.line_price || item.price || item.amount || item.unit_price || 0;
         const itemQty = item.quantity || item.qty || 1;
         
-        console.log('Line item:', itemName, 'price:', itemPrice, 'qty:', itemQty);
+        // Extract variant from description field
+        const itemVariant = item.description || item.variant || item.option || null;
+        
+        console.log('Line item:', itemName, 'price:', itemPrice, 'qty:', itemQty, 'variant:', itemVariant);
         
         const purchase = {
           patient_id: patientId,
@@ -261,6 +278,7 @@ export default async function handler(req, res) {
           patient_name: contactName,
           product_name: itemName,
           item_name: itemName,
+          variant: itemVariant,
           amount: itemPrice * itemQty,
           list_price: itemPrice * itemQty,
           purchase_date: purchaseDate,
@@ -268,6 +286,7 @@ export default async function handler(req, res) {
           ghl_invoice_id: invoiceId,
           category: categorizeProduct(itemName),
           protocol_created: false,
+          raw_payload: rawPayloadStr,
           created_at: new Date().toISOString()
         };
         
@@ -285,7 +304,10 @@ export default async function handler(req, res) {
         payload.name ||
         'Payment';
       
-      console.log('Product name:', productName, 'Amount:', totalAmount);
+      // Try to get variant from top-level description
+      const variant = payload.variant || payload.option || null;
+      
+      console.log('Product name:', productName, 'Amount:', totalAmount, 'Variant:', variant);
       
       // Only create if we have some amount or product name
       if (totalAmount > 0 || productName !== 'Payment') {
@@ -295,6 +317,7 @@ export default async function handler(req, res) {
           patient_name: contactName,
           product_name: productName,
           item_name: productName,
+          variant: variant,
           amount: totalAmount,
           list_price: totalAmount,
           purchase_date: purchaseDate,
@@ -302,6 +325,7 @@ export default async function handler(req, res) {
           ghl_invoice_id: invoiceId,
           category: categorizeProduct(productName),
           protocol_created: false,
+          raw_payload: rawPayloadStr,
           created_at: new Date().toISOString()
         };
         

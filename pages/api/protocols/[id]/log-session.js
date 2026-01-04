@@ -1,6 +1,7 @@
 // /pages/api/protocols/[id]/log-session.js
 // Log a session, injection, or weight for a protocol
 // Range Medical
+// UPDATED: 2026-01-03 - Combined injection + weight logging for Weight Loss
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { log_date, notes, log_type, weight } = req.body;
+  const { log_date, notes, log_type, weight, dose } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID is required' });
@@ -43,9 +44,14 @@ export default async function handler(req, res) {
       notes: notes || null
     };
     
-    // Add weight if this is a weigh_in log
-    if (finalLogType === 'weigh_in' && weight) {
-      logEntry.weight = weight;
+    // Add weight if provided (for both injection and weigh_in logs)
+    if (weight) {
+      logEntry.weight = parseFloat(weight);
+    }
+    
+    // Add dose if provided (for injection logs)
+    if (dose) {
+      logEntry.dose = dose;
     }
 
     const { error: logError } = await supabase
@@ -79,7 +85,11 @@ export default async function handler(req, res) {
       if (updateError) throw updateError;
     }
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ 
+      success: true,
+      sessionsUsed: protocol.total_sessions ? (protocol.sessions_used || 0) + 1 : null,
+      totalSessions: protocol.total_sessions
+    });
 
   } catch (error) {
     console.error('Error logging session:', error);

@@ -852,7 +852,10 @@ export default function Pipeline() {
                       ) : (
                         <span style={styles.patientNameUnlinked}>{purchase.patient_name || 'Unknown'}</span>
                       )}
-                      <div style={styles.itemName}>{purchase.product_name}</div>
+                      <div style={styles.itemName}>
+                        {purchase.product_name}
+                        {purchase.variant && <span style={styles.variant}> ({purchase.variant})</span>}
+                      </div>
                       <div style={styles.meta}>
                         {purchase.amount_paid ? `$${purchase.amount_paid.toFixed(2)}` : '$'} • {formatDate(purchase.purchase_date)}
                         {purchase.category && ` • ${purchase.category}`}
@@ -2052,6 +2055,10 @@ const styles = {
     fontSize: '14px',
     color: '#374151',
     marginTop: '4px',
+  },
+  variant: {
+    fontWeight: '500',
+    color: '#059669',
   },
   meta: {
     fontSize: '13px',

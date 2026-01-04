@@ -2,7 +2,7 @@
 // GHL Payment Webhook - Creates purchases and links patients automatically
 // Range Medical
 // 
-// UPDATED: 2026-01-04 - Added raw_payload and variant capture
+// UPDATED: 2026-01-04 - Added raw_payload, variant capture, and GHL API lookup
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -10,6 +10,51 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// GHL API credentials
+const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
+const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+
+// Fetch variant name from GHL API using product_id and price_id
+async function fetchVariantFromGHL(productId, priceId) {
+  if (!productId || !priceId) return null;
+  
+  try {
+    // Get price details which includes variant info
+    const response = await fetch(
+      `https://services.leadconnectorhq.com/products/${productId}/price/${priceId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      console.log('GHL API error:', response.status, await response.text());
+      return null;
+    }
+    
+    const priceData = await response.json();
+    console.log('GHL Price data:', JSON.stringify(priceData, null, 2));
+    
+    // Extract variant name - GHL stores this in different places
+    // Check for variant name in the price data
+    const variantName = 
+      priceData.name ||
+      priceData.variantName ||
+      priceData.variant?.name ||
+      priceData.variantOptions?.map(v => v.name).join(' / ') ||
+      null;
+    
+    return variantName;
+  } catch (error) {
+    console.error('Error fetching variant from GHL:', error);
+    return null;
+  }
+}
 
 // Categorize product by name
 function categorizeProduct(productName) {
@@ -267,8 +312,20 @@ export default async function handler(req, res) {
         const itemPrice = item.line_price || item.price || item.amount || item.unit_price || 0;
         const itemQty = item.quantity || item.qty || 1;
         
-        // Extract variant from description field
-        const itemVariant = item.description || item.variant || item.option || null;
+        // Extract variant from description field first
+        let itemVariant = item.description || item.variant || item.option || null;
+        
+        // If no variant in payload, try to fetch from GHL API using product/price IDs
+        if (!itemVariant && item.meta) {
+          const productId = item.meta.product_id || item.meta.productId;
+          const priceId = item.meta.price_id || item.meta.priceId || item.id;
+          
+          if (productId && priceId) {
+            console.log('Fetching variant from GHL API for product:', productId, 'price:', priceId);
+            itemVariant = await fetchVariantFromGHL(productId, priceId);
+            console.log('Fetched variant:', itemVariant);
+          }
+        }
         
         console.log('Line item:', itemName, 'price:', itemPrice, 'qty:', itemQty, 'variant:', itemVariant);
         

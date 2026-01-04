@@ -2,7 +2,7 @@
 // Pipeline with URL-based tabs for proper back button behavior
 // Includes Patients tab
 // Range Medical
-// UPDATED: 2026-01-02 - Added Weight Loss medications and IV Therapy
+// UPDATED: 2026-01-03 - Added Weight Loss injection logging
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -49,11 +49,13 @@ export default function Pipeline() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAddCompletedModal, setShowAddCompletedModal] = useState(false);
   const [showAddToPackModal, setShowAddToPackModal] = useState(false);
+  const [showLogInjectionModal, setShowLogInjectionModal] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   
   const [templates, setTemplates] = useState([]);
   const [peptides, setPeptides] = useState([]);
   const [existingPacks, setExistingPacks] = useState([]);
+  const [activeWLProtocols, setActiveWLProtocols] = useState([]);
   
   const [assignForm, setAssignForm] = useState({
     category: '',
@@ -98,6 +100,13 @@ export default function Pipeline() {
     sessionsToAdd: 1
   });
 
+  const [logInjectionForm, setLogInjectionForm] = useState({
+    protocolId: '',
+    weight: '',
+    injectionDate: getTodayPacific(),
+    notes: ''
+  });
+
   // Change tab by updating URL (shallow routing)
   const setActiveTab = (tab) => {
     router.push(
@@ -118,11 +127,9 @@ export default function Pipeline() {
     const needsDelivery = hasDeliveryOptions(assignForm.category, assignForm.protocolType);
     
     if (needsDelivery && !assignForm.deliveryMethod) {
-      // Needs delivery method but not selected yet
       return;
     }
     
-    // Find the matching template
     const template = findTemplate(
       assignForm.category, 
       assignForm.protocolType, 
@@ -157,15 +164,12 @@ export default function Pipeline() {
 
   const fetchData = async () => {
     try {
-      // Fetch pipeline data from the single endpoint
       const pipelineRes = await fetch('/api/admin/pipeline');
       const pipelineData = await pipelineRes.json();
       
       setNeedsProtocol(pipelineData.needsProtocol || []);
       
-      // Sort active protocols by days remaining (lowest first)
       const sortedActive = (pipelineData.activeProtocols || []).sort((a, b) => {
-        // Handle null/undefined days_remaining - put them at the end
         if (a.days_remaining === null || a.days_remaining === undefined) return 1;
         if (b.days_remaining === null || b.days_remaining === undefined) return -1;
         return a.days_remaining - b.days_remaining;
@@ -177,7 +181,6 @@ export default function Pipeline() {
       // Extract unique patients from pipeline data
       const patientMap = new Map();
       
-      // From purchases needing protocol
       (pipelineData.needsProtocol || []).forEach(p => {
         const key = p.patient_id || p.ghl_contact_id || p.patient_name;
         if (key && p.patient_name && p.patient_name !== 'Unknown') {
@@ -194,7 +197,6 @@ export default function Pipeline() {
         }
       });
       
-      // From active protocols
       (pipelineData.activeProtocols || []).forEach(p => {
         const key = p.patient_id || p.ghl_contact_id || p.patient_name;
         if (key && p.patient_name && p.patient_name !== 'Unknown') {
@@ -211,7 +213,6 @@ export default function Pipeline() {
         }
       });
       
-      // From completed protocols
       (pipelineData.completedProtocols || []).forEach(p => {
         const key = p.patient_id || p.ghl_contact_id || p.patient_name;
         if (key && p.patient_name && p.patient_name !== 'Unknown') {
@@ -228,13 +229,11 @@ export default function Pipeline() {
         }
       });
       
-      // Convert to array and sort by name
       const extractedPatients = Array.from(patientMap.values())
         .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       
       setPatients(extractedPatients);
       
-      // Fetch templates and peptides for modals (optional - don't crash if they fail)
       try {
         const templatesRes = await fetch('/api/protocol-templates');
         if (templatesRes.ok) {
@@ -265,7 +264,6 @@ export default function Pipeline() {
     try {
       const res = await fetch(`/api/protocols?patient_id=${patientId}&status=active&category=${encodeURIComponent(category || '')}`);
       if (!res.ok) {
-        console.log('Could not fetch existing packs:', res.status);
         setExistingPacks([]);
         return;
       }
@@ -275,6 +273,50 @@ export default function Pipeline() {
       console.error('Error fetching packs:', error);
       setExistingPacks([]);
     }
+  };
+
+  const fetchActiveWLProtocols = async (patientId, ghlContactId) => {
+    try {
+      const params = new URLSearchParams();
+      if (patientId) params.append('patientId', patientId);
+      if (ghlContactId) params.append('ghlContactId', ghlContactId);
+      
+      const res = await fetch(`/api/protocols/active-weight-loss?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setActiveWLProtocols(data.protocols || []);
+        return data.protocols || [];
+      }
+    } catch (error) {
+      console.error('Error fetching WL protocols:', error);
+    }
+    setActiveWLProtocols([]);
+    return [];
+  };
+
+  // Detect if this is a weight loss injection purchase (not the initial program)
+  const isWeightLossInjection = (purchase) => {
+    const name = (purchase.product_name || purchase.item_name || '').toLowerCase();
+    const category = (purchase.category || '').toLowerCase();
+    
+    // It's a WL injection if it's in Weight Loss category but is an "injection" not a "program"
+    if (category === 'weight loss' || category === 'weight_loss') {
+      // These are initial programs - NOT injections
+      if (name.includes('program') || name.includes('monthly')) {
+        return false;
+      }
+      // These ARE follow-up injections
+      if (name.includes('injection') || name.includes('shot')) {
+        return true;
+      }
+    }
+    
+    // Also check for generic "weight loss injection" in any category
+    if (name.includes('weight loss injection') || name.includes('weight loss shot')) {
+      return true;
+    }
+    
+    return false;
   };
 
   const openAssignModal = async (purchase) => {
@@ -292,7 +334,6 @@ export default function Pipeline() {
       medication: ''
     });
     
-    // Check for existing packs if this is a single session type
     if (purchase.patient_id && isSingleSession(purchase.product_name)) {
       await fetchExistingPacks(purchase.patient_id, purchase.category);
     } else {
@@ -300,6 +341,26 @@ export default function Pipeline() {
     }
     
     setShowAssignModal(true);
+  };
+
+  const openLogInjectionModal = async (purchase) => {
+    setSelectedPurchase(purchase);
+    setLogInjectionForm({
+      protocolId: '',
+      weight: '',
+      injectionDate: getTodayPacific(),
+      notes: ''
+    });
+    
+    // Fetch active WL protocols for this patient
+    const protocols = await fetchActiveWLProtocols(purchase.patient_id, purchase.ghl_contact_id);
+    
+    // Auto-select if only one protocol
+    if (protocols.length === 1) {
+      setLogInjectionForm(prev => ({ ...prev, protocolId: protocols[0].id }));
+    }
+    
+    setShowLogInjectionModal(true);
   };
 
   const isSingleSession = (itemName) => {
@@ -320,7 +381,6 @@ export default function Pipeline() {
   };
 
   const handleAssignProtocol = async () => {
-    // For weight loss, we don't need a templateId
     const isWL = assignForm.category?.toLowerCase() === 'weight_loss';
     
     if (!isWL && !assignForm.templateId) {
@@ -333,11 +393,7 @@ export default function Pipeline() {
       return;
     }
     
-    // Log what we're sending
-    console.log('Creating protocol with purchaseId:', selectedPurchase.id);
-    
     try {
-      // Convert delivery method to database format
       let deliveryMethodDb = null;
       if (assignForm.deliveryMethod === 'In Clinic') {
         deliveryMethodDb = 'in_clinic';
@@ -358,12 +414,11 @@ export default function Pipeline() {
         notes: assignForm.notes,
         medication: assignForm.medication,
         deliveryMethod: deliveryMethodDb,
-        // Weight loss specific fields
         isWeightLoss: isWL,
-        wlDuration: isWL ? parseInt(assignForm.wlDuration) : null
+        wlDuration: isWL ? parseInt(assignForm.wlDuration) : null,
+        // For in-clinic WL, set total_sessions to 4 (monthly = 4 weekly injections)
+        totalSessions: isWL && deliveryMethodDb === 'in_clinic' ? 4 : null
       };
-      
-      console.log('Sending payload:', payload);
       
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
@@ -372,7 +427,6 @@ export default function Pipeline() {
       });
 
       const result = await res.json();
-      console.log('Response:', result);
 
       if (res.ok) {
         setShowAssignModal(false);
@@ -383,6 +437,41 @@ export default function Pipeline() {
     } catch (error) {
       console.error('Error assigning protocol:', error);
       alert('Error creating protocol: ' + error.message);
+    }
+  };
+
+  const handleLogInjection = async () => {
+    if (!logInjectionForm.protocolId) {
+      alert('Please select a protocol');
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/protocols/log-injection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          protocolId: logInjectionForm.protocolId,
+          purchaseId: selectedPurchase.id,
+          patientId: selectedPurchase.patient_id,
+          weight: logInjectionForm.weight ? parseFloat(logInjectionForm.weight) : null,
+          injectionDate: logInjectionForm.injectionDate,
+          notes: logInjectionForm.notes
+        })
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        setShowLogInjectionModal(false);
+        fetchData();
+        alert(result.message || 'Injection logged successfully');
+      } else {
+        alert('Error logging injection: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error logging injection:', error);
+      alert('Error logging injection: ' + error.message);
     }
   };
 
@@ -409,7 +498,6 @@ export default function Pipeline() {
 
   const handleAddCompleted = async () => {
     try {
-      // Convert delivery method to database format
       let deliveryMethodDb = null;
       if (completedForm.deliveryMethod === 'In Clinic') {
         deliveryMethodDb = 'in_clinic';
@@ -513,7 +601,6 @@ export default function Pipeline() {
   };
 
   const isPeptideTemplate = (form) => {
-    // For peptide, also require delivery method to be selected
     if (form.category?.toLowerCase() === 'peptide') {
       return !!form.deliveryMethod;
     }
@@ -525,7 +612,6 @@ export default function Pipeline() {
   };
 
   const isWeightLossTemplate = (form) => {
-    // For weight loss, require delivery method to be selected
     if (form.category?.toLowerCase() === 'weight_loss') {
       return !!form.deliveryMethod;
     }
@@ -534,7 +620,6 @@ export default function Pipeline() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    // Parse date string directly to avoid timezone shift
     const [year, month, day] = dateStr.split('T')[0].split('-');
     const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('en-US', { 
@@ -545,17 +630,10 @@ export default function Pipeline() {
     });
   };
 
-  // Helper functions for 3-step template selection
   const parseTemplateName = (name) => {
-    // Extract protocol type and delivery method from template name
-    // e.g., "Injection Therapy - 12 Pack (Take Home)" -> { type: "12 Pack", delivery: "Take Home" }
-    // e.g., "Peptide Therapy - 10 Day" -> { type: "10 Day", delivery: null }
-    // e.g., "IV Therapy - 5 Pack" -> { type: "5 Pack", delivery: null }
-    
     const deliveryMatch = name.match(/\((In Clinic|Take Home)\)/i);
     const delivery = deliveryMatch ? deliveryMatch[1] : null;
     
-    // Remove category prefix and delivery suffix to get protocol type
     let type = name
       .replace(/^(Injection Therapy|Peptide Therapy|IV Therapy|HBOT|HRT|Red Light|Weight Loss)\s*-?\s*/i, '')
       .replace(/\s*\((In Clinic|Take Home)\)\s*/i, '')
@@ -577,11 +655,9 @@ export default function Pipeline() {
   };
 
   const hasDeliveryOptions = (category, protocolType) => {
-    // Peptide protocols ALWAYS need delivery method selection
     if (category?.toLowerCase() === 'peptide') {
       return true;
     }
-    // Weight Loss protocols ALWAYS need delivery method selection
     if (category?.toLowerCase() === 'weight_loss') {
       return true;
     }
@@ -592,7 +668,6 @@ export default function Pipeline() {
       return type === protocolType;
     });
     
-    // Check if any have delivery options
     return matchingTemplates.some(t => {
       const { delivery } = parseTemplateName(t.name);
       return delivery !== null;
@@ -600,11 +675,9 @@ export default function Pipeline() {
   };
 
   const getDeliveryOptions = (category, protocolType) => {
-    // Peptide protocols always have both options
     if (category?.toLowerCase() === 'peptide') {
       return ['In Clinic', 'Take Home'];
     }
-    // Weight Loss protocols always have both options
     if (category?.toLowerCase() === 'weight_loss') {
       return ['In Clinic', 'Take Home'];
     }
@@ -623,8 +696,6 @@ export default function Pipeline() {
   };
 
   const findTemplate = (category, protocolType, deliveryMethod) => {
-    // For Peptide, the template name doesn't include delivery method
-    // So we just match category and type
     if (category?.toLowerCase() === 'peptide') {
       return templates.find(t => {
         if (t.category !== category) return false;
@@ -638,10 +709,9 @@ export default function Pipeline() {
       const { type, delivery } = parseTemplateName(t.name);
       if (type !== protocolType) return false;
       if (deliveryMethod && delivery !== deliveryMethod) return false;
-      if (!deliveryMethod && delivery) return false; // Skip templates with delivery if we don't want one
+      if (!deliveryMethod && delivery) return false;
       return true;
     }) || templates.find(t => {
-      // Fallback: just match category and type
       if (t.category !== category) return false;
       const { type } = parseTemplateName(t.name);
       return type === protocolType;
@@ -653,7 +723,6 @@ export default function Pipeline() {
     return name.includes('blood draw') || name.includes('lab') || name.includes('panel');
   };
 
-  // Filter patients by search
   const filteredPatients = patients.filter(p => {
     if (!patientSearch) return true;
     const search = patientSearch.toLowerCase();
@@ -795,6 +864,14 @@ export default function Pipeline() {
                         >
                           Mark as Lab Order
                         </button>
+                      ) : isWeightLossInjection(purchase) ? (
+                        // Weight Loss Injection - show Log Injection button
+                        <button 
+                          onClick={() => openLogInjectionModal(purchase)}
+                          style={styles.logInjectionButton}
+                        >
+                          💉 Log Injection
+                        </button>
                       ) : (
                         <>
                           {existingPacks.length > 0 && purchase.patient_id && isSingleSession(purchase.product_name) && (
@@ -828,23 +905,19 @@ export default function Pipeline() {
 
           {/* Active Tab */}
           {activeTab === 'active' && (() => {
-            // Helper function to get urgency info for a protocol
             const getUrgencyInfo = (protocol) => {
               const daysLeft = protocol.days_remaining;
-              let color = '#22c55e'; // Green
+              let color = '#22c55e';
               let needsAttention = false;
               let label = '';
               let progress = 0;
               
-              // Check if Take Home - these track by days/refill, NOT sessions
               const isTakeHome = protocol.delivery_method === 'take_home' || 
                 (protocol.program_name || '').toLowerCase().includes('take home');
               
-              // Check if In Clinic session-based
               const isInClinicSessions = protocol.total_sessions && !isTakeHome;
               
               if (isInClinicSessions) {
-                // In Clinic: Track by sessions
                 const used = protocol.sessions_used || 0;
                 const total = protocol.total_sessions;
                 const left = total - used;
@@ -866,7 +939,6 @@ export default function Pipeline() {
                   label = `${used}/${total} sessions`;
                 }
               } else if (daysLeft !== null && daysLeft !== undefined) {
-                // Take Home or days-based: Track by days remaining
                 if (daysLeft <= 0) {
                   color = '#dc2626';
                   needsAttention = true;
@@ -883,7 +955,6 @@ export default function Pipeline() {
                   label = isTakeHome ? `Refill in ${daysLeft} days` : `${daysLeft} days left`;
                 }
                 
-                // Calculate progress for days-based
                 if (protocol.start_date && protocol.end_date) {
                   const start = new Date(protocol.start_date);
                   const end = new Date(protocol.end_date);
@@ -893,18 +964,15 @@ export default function Pipeline() {
                   progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
                 }
               } else {
-                // No tracking info available
                 label = 'Active';
               }
               
               return { color, needsAttention, label, progress };
             };
             
-            // Separate protocols into groups
             const needsAttention = activeProtocols.filter(p => getUrgencyInfo(p).needsAttention);
             const onTrack = activeProtocols.filter(p => !getUrgencyInfo(p).needsAttention);
             
-            // Render a protocol card
             const renderProtocolCard = (protocol) => {
               const urgency = getUrgencyInfo(protocol);
               
@@ -934,7 +1002,6 @@ export default function Pipeline() {
                       {protocol.medication && ` - ${protocol.medication}`}
                       {protocol.selected_dose && ` (${protocol.selected_dose})`}
                     </div>
-                    {/* Progress bar */}
                     <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{
                         flex: 1,
@@ -986,7 +1053,6 @@ export default function Pipeline() {
                   <div style={styles.empty}>No active protocols</div>
                 ) : (
                   <>
-                    {/* Summary bar */}
                     <div style={{
                       display: 'flex',
                       gap: '16px',
@@ -1006,7 +1072,6 @@ export default function Pipeline() {
                       </span>
                     </div>
                     
-                    {/* Needs Attention Section */}
                     {needsAttention.length > 0 && (
                       <>
                         <div style={{
@@ -1035,7 +1100,6 @@ export default function Pipeline() {
                       </>
                     )}
                     
-                    {/* On Track Section */}
                     {onTrack.length > 0 && (
                       <>
                         <div style={{
@@ -1176,6 +1240,94 @@ export default function Pipeline() {
           )}
         </div>
 
+        {/* Log Injection Modal */}
+        {showLogInjectionModal && selectedPurchase && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <h2 style={styles.modalTitle}>💉 Log Weight Loss Injection</h2>
+              <p style={styles.modalSubtitle}>
+                {selectedPurchase.patient_name} • {selectedPurchase.product_name}
+              </p>
+
+              {activeWLProtocols.length === 0 ? (
+                <div style={styles.noProtocolWarning}>
+                  <p>⚠️ No active Weight Loss protocol found for this patient.</p>
+                  <p style={{ fontSize: '13px', marginTop: '8px' }}>
+                    Create a Weight Loss protocol first, then come back to log injections.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Protocol</label>
+                    <select
+                      style={styles.select}
+                      value={logInjectionForm.protocolId}
+                      onChange={(e) => setLogInjectionForm({ ...logInjectionForm, protocolId: e.target.value })}
+                    >
+                      <option value="">Select protocol...</option>
+                      {activeWLProtocols.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.program_name} - {p.medication || 'Weight Loss'} ({p.sessions_used || 0}/{p.total_sessions || '?'} sessions)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Patient Weight (lbs)</label>
+                    <input
+                      type="number"
+                      style={styles.input}
+                      placeholder="e.g., 185"
+                      value={logInjectionForm.weight}
+                      onChange={(e) => setLogInjectionForm({ ...logInjectionForm, weight: e.target.value })}
+                    />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Injection Date</label>
+                    <input
+                      type="date"
+                      style={styles.input}
+                      value={logInjectionForm.injectionDate}
+                      onChange={(e) => setLogInjectionForm({ ...logInjectionForm, injectionDate: e.target.value })}
+                    />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Notes (optional)</label>
+                    <textarea
+                      style={styles.textarea}
+                      value={logInjectionForm.notes}
+                      onChange={(e) => setLogInjectionForm({ ...logInjectionForm, notes: e.target.value })}
+                      placeholder="Any observations, side effects, etc..."
+                    />
+                  </div>
+                </>
+              )}
+
+              <div style={styles.modalActions}>
+                <button 
+                  onClick={() => setShowLogInjectionModal(false)}
+                  style={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+                {activeWLProtocols.length > 0 && (
+                  <button 
+                    onClick={handleLogInjection}
+                    style={styles.logInjectionSubmitButton}
+                    disabled={!logInjectionForm.protocolId}
+                  >
+                    Log Injection
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Assign Protocol Modal */}
         {showAssignModal && selectedPurchase && (
           <div style={styles.modalOverlay}>
@@ -1194,9 +1346,7 @@ export default function Pipeline() {
                 >
                   <option value="">Select category...</option>
                   {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => {
-                    // Format category for display
                     let displayName = cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                    // Special cases
                     if (cat === 'iv_therapy') displayName = 'IV Therapy';
                     if (cat === 'hrt') displayName = 'HRT';
                     if (cat === 'hbot') displayName = 'HBOT';
@@ -1207,7 +1357,6 @@ export default function Pipeline() {
                 </select>
               </div>
 
-              {/* Protocol Type - Skip for Weight Loss */}
               {assignForm.category && assignForm.category.toLowerCase() !== 'weight_loss' && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Protocol</label>
@@ -1224,7 +1373,6 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {/* Delivery Method - Show first for Weight Loss, after Protocol Type for others */}
               {assignForm.category?.toLowerCase() === 'weight_loss' && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delivery Method</label>
@@ -1240,7 +1388,6 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {/* Duration - Only for Weight Loss, after Delivery Method */}
               {assignForm.category?.toLowerCase() === 'weight_loss' && assignForm.deliveryMethod && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Duration</label>
@@ -1257,7 +1404,6 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {/* Weight Loss Medication - After Duration */}
               {assignForm.category?.toLowerCase() === 'weight_loss' && assignForm.wlDuration && (
                 <>
                   <div style={styles.formGroup}>
@@ -1308,7 +1454,6 @@ export default function Pipeline() {
                 </>
               )}
 
-              {/* Delivery Method for non-Weight Loss categories */}
               {assignForm.protocolType && assignForm.category?.toLowerCase() !== 'weight_loss' && (assignForm.category?.toLowerCase() === 'peptide' || hasDeliveryOptions(assignForm.category, assignForm.protocolType)) && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delivery Method</label>
@@ -1556,9 +1701,7 @@ export default function Pipeline() {
                 >
                   <option value="">Select category...</option>
                   {[...new Set(templates.map(t => t.category))].filter(c => c).sort().map(cat => {
-                    // Format category for display
                     let displayName = cat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                    // Special cases
                     if (cat === 'iv_therapy') displayName = 'IV Therapy';
                     if (cat === 'hrt') displayName = 'HRT';
                     if (cat === 'hbot') displayName = 'HBOT';
@@ -1569,7 +1712,6 @@ export default function Pipeline() {
                 </select>
               </div>
 
-              {/* Protocol Type - Skip for Weight Loss */}
               {completedForm.category && completedForm.category.toLowerCase() !== 'weight_loss' && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Protocol</label>
@@ -1586,7 +1728,6 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {/* Delivery Method - Show first for Weight Loss */}
               {completedForm.category?.toLowerCase() === 'weight_loss' && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delivery Method</label>
@@ -1602,7 +1743,6 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {/* Duration - Only for Weight Loss */}
               {completedForm.category?.toLowerCase() === 'weight_loss' && completedForm.deliveryMethod && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Duration</label>
@@ -1619,7 +1759,6 @@ export default function Pipeline() {
                 </div>
               )}
 
-              {/* Weight Loss Medication - After Duration */}
               {completedForm.category?.toLowerCase() === 'weight_loss' && completedForm.wlDuration && (
                 <>
                   <div style={styles.formGroup}>
@@ -1670,7 +1809,6 @@ export default function Pipeline() {
                 </>
               )}
 
-              {/* Delivery Method for non-Weight Loss */}
               {completedForm.protocolType && completedForm.category?.toLowerCase() !== 'weight_loss' && (completedForm.category?.toLowerCase() === 'peptide' || hasDeliveryOptions(completedForm.category, completedForm.protocolType)) && (
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delivery Method</label>
@@ -1806,7 +1944,6 @@ export default function Pipeline() {
   );
 }
 
-// Force server-side rendering to avoid static prerendering issues
 export async function getServerSideProps() {
   return { props: {} };
 }
@@ -1955,6 +2092,27 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500',
   },
+  logInjectionButton: {
+    padding: '8px 16px',
+    backgroundColor: '#8b5cf6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  logInjectionSubmitButton: {
+    flex: 1,
+    padding: '12px',
+    backgroundColor: '#8b5cf6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
   dismissButton: {
     padding: '8px 16px',
     backgroundColor: 'white',
@@ -1991,6 +2149,14 @@ const styles = {
     color: '#6b7280',
     backgroundColor: '#f9fafb',
     borderRadius: '12px',
+  },
+  noProtocolWarning: {
+    backgroundColor: '#fef3c7',
+    border: '1px solid #fcd34d',
+    borderRadius: '8px',
+    padding: '16px',
+    color: '#92400e',
+    marginBottom: '16px',
   },
   completedHeader: {
     display: 'flex',

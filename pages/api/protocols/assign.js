@@ -1,6 +1,7 @@
 // /pages/api/protocols/assign.js
 // Assign a protocol to a patient from a purchase
 // Range Medical
+// UPDATED: 2026-01-03 - Fixed to set protocol_id on purchase (not just protocol_created)
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -177,13 +178,14 @@ export default async function handler(req, res) {
       throw protocolError;
     }
 
-    // Mark purchase as having a protocol - THIS IS CRITICAL
+    // Link purchase to protocol - set BOTH protocol_id and protocol_created
     if (purchaseId) {
-      console.log('Updating purchase:', purchaseId);
+      console.log('Linking purchase to protocol:', purchaseId, '->', protocol.id);
       
       const { data: updatedPurchase, error: updateError } = await supabase
         .from('purchases')
         .update({ 
+          protocol_id: protocol.id,
           protocol_created: true
         })
         .eq('id', purchaseId)
@@ -192,7 +194,7 @@ export default async function handler(req, res) {
       if (updateError) {
         console.error('Error updating purchase:', updateError);
       } else {
-        console.log('Purchase updated successfully:', updatedPurchase);
+        console.log('Purchase linked successfully:', updatedPurchase);
       }
     } else {
       console.warn('No purchaseId provided - purchase will remain in pipeline');

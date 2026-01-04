@@ -1,6 +1,7 @@
 // /pages/api/admin/pipeline.js
 // Pipeline API - Returns purchases needing protocols, active protocols, and completed protocols
 // Range Medical
+// UPDATED: 2026-01-03 - Fixed to use protocol_id instead of protocol_created for consistency
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,10 +16,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get purchases that need protocols
-    const { data: allPurchases, error: purchasesError } = await supabase
+    // Get today in Pacific time
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+
+    // Get purchases that need protocols - filter at database level for efficiency
+    const { data: needsProtocolRaw, error: purchasesError } = await supabase
       .from('purchases')
       .select('*')
+      .is('protocol_id', null)
+      .eq('dismissed', false)
       .order('purchase_date', { ascending: false });
 
     if (purchasesError) {
@@ -26,21 +32,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch purchases', details: purchasesError.message });
     }
 
-    console.log('Total purchases fetched:', allPurchases?.length || 0);
-
-    // Filter to only purchases that need protocols
-    // Keep purchases where protocol_created is NOT true AND dismissed is NOT true
-    const needsProtocol = (allPurchases || []).filter(p => {
-      const hasProtocol = p.protocol_created === true;
-      const isDismissed = p.dismissed === true;
-      return !hasProtocol && !isDismissed;
-    });
-
-    console.log('Needs protocol count:', needsProtocol.length);
+    console.log('Needs protocol count:', needsProtocolRaw?.length || 0);
 
     // Get all unique ghl_contact_ids from purchases that don't have patient_id
     const ghlContactIds = [...new Set(
-      needsProtocol
+      (needsProtocolRaw || [])
         .filter(p => !p.patient_id && p.ghl_contact_id)
         .map(p => p.ghl_contact_id)
     )];
@@ -104,8 +100,7 @@ export default async function handler(req, res) {
     const completedProtocols = [];
     const protocolsToComplete = []; // Track protocols that need to be auto-completed
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayDate = new Date(today + 'T00:00:00');
 
     (allProtocols || []).forEach(protocol => {
       const formatted = {
@@ -126,7 +121,7 @@ export default async function handler(req, res) {
         
         // Duration-based: complete when end_date has passed
         const endDate = protocol.end_date ? new Date(protocol.end_date + 'T23:59:59') : null;
-        if (endDate && endDate < today) {
+        if (endDate && endDate < todayDate) {
           shouldComplete = true;
         }
         
@@ -137,7 +132,7 @@ export default async function handler(req, res) {
           // Calculate days remaining for sorting
           let daysRemaining = null;
           if (endDate) {
-            daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+            daysRemaining = Math.ceil((endDate - todayDate) / (1000 * 60 * 60 * 24));
           }
           
           // Calculate sessions remaining for session-based protocols
@@ -209,7 +204,7 @@ export default async function handler(req, res) {
     };
 
     return res.status(200).json({
-      needsProtocol: needsProtocol.map(formatPurchase),
+      needsProtocol: needsProtocolRaw.map(formatPurchase),
       activeProtocols,
       completedProtocols
     });

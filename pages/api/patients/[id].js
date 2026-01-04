@@ -1,6 +1,7 @@
 // /pages/api/patients/[id].js
 // Patient profile API - returns patient info, protocols, labs, lab orders, etc.
 // Range Medical
+// UPDATED: 2026-01-03 - Fixed to use protocol_id IS NULL instead of protocol_created
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -18,7 +19,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      // Get today in Pacific time
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
       // Get patient
       const { data: patient, error: patientError } = await supabase
@@ -74,11 +76,12 @@ export default async function handler(req, res) {
       });
 
       // Get pending purchases (notifications)
+      // Use protocol_id IS NULL instead of protocol_created = false for reliability
       const { data: pendingNotifications } = await supabase
         .from('purchases')
         .select('*')
         .eq('patient_id', id)
-        .eq('protocol_created', false)
+        .is('protocol_id', null)
         .eq('dismissed', false)
         .order('purchase_date', { ascending: false });
 
@@ -89,7 +92,7 @@ export default async function handler(req, res) {
           .from('purchases')
           .select('*')
           .eq('ghl_contact_id', patient.ghl_contact_id)
-          .eq('protocol_created', false)
+          .is('protocol_id', null)
           .eq('dismissed', false)
           .order('purchase_date', { ascending: false });
         additionalNotifications = ghlPurchases || [];

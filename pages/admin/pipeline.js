@@ -28,6 +28,11 @@ const WEIGHT_LOSS_DURATIONS = [
   { value: '28', label: 'Month (28 days)' }
 ];
 
+// Helper function to get today's date in Pacific time (YYYY-MM-DD format)
+const getTodayPacific = () => {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+};
+
 export default function Pipeline() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -58,7 +63,7 @@ export default function Pipeline() {
     peptideId: '',
     selectedDose: '',
     frequency: '',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: getTodayPacific(),
     notes: '',
     medication: '',
     medicationType: '',
@@ -282,7 +287,7 @@ export default function Pipeline() {
       peptideId: '',
       selectedDose: '',
       frequency: '',
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: getTodayPacific(),
       notes: '',
       medication: ''
     });
@@ -529,7 +534,10 @@ export default function Pipeline() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', { 
+    // Parse date string directly to avoid timezone shift
+    const [year, month, day] = dateStr.split('T')[0].split('-');
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
       year: 'numeric',

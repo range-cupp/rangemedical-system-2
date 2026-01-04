@@ -500,7 +500,13 @@ export default function ProtocolDetail() {
           <div>
             <h1 style={styles.title}>{getDisplayTitle()}</h1>
             <div style={styles.subtitle}>
-              {protocol.patient_name || 'Unknown Patient'}
+              {protocol.patient_id ? (
+                <Link href={`/admin/patient/${protocol.patient_id}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
+                  {protocol.patient_name || 'Unknown Patient'}
+                </Link>
+              ) : (
+                protocol.patient_name || 'Unknown Patient'
+              )}
               {protocol.frequency && ` • ${protocol.frequency}`}
               {deliveryMethod && ` • ${deliveryMethod}`}
             </div>

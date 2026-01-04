@@ -4,7 +4,7 @@
 // Range Medical
 // UPDATED: 2026-01-03 - Added Weight Loss injection logging
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -723,14 +723,16 @@ export default function Pipeline() {
     return name.includes('blood draw') || name.includes('lab') || name.includes('panel');
   };
 
-  const filteredPatients = patients.filter(p => {
-    if (!patientSearch) return true;
-    const search = patientSearch.toLowerCase();
-    const name = (p.name || p.patient_name || `${p.first_name || ''} ${p.last_name || ''}`).toLowerCase();
-    const email = (p.email || '').toLowerCase();
-    const phone = (p.phone || '').toLowerCase();
-    return name.includes(search) || email.includes(search) || phone.includes(search);
-  });
+  const filteredPatients = useMemo(() => {
+    if (!patientSearch.trim()) return patients;
+    const search = patientSearch.toLowerCase().trim();
+    return patients.filter(p => {
+      const name = (p.name || p.patient_name || `${p.first_name || ''} ${p.last_name || ''}`).toLowerCase();
+      const email = (p.email || '').toLowerCase();
+      const phone = (p.phone || '').toLowerCase();
+      return name.includes(search) || email.includes(search) || phone.includes(search);
+    });
+  }, [patients, patientSearch]);
 
   const counts = {
     needsProtocol: needsProtocol.length,
@@ -1220,8 +1222,8 @@ export default function Pipeline() {
                         <div style={styles.meta}>
                           {patient.email && <span>{patient.email}</span>}
                           {patient.phone && <span> • {patient.phone}</span>}
-                          {patient.protocol_count > 0 && <span> • {patient.protocol_count} protocols</span>}
-                          {patient.purchase_count > 0 && <span> • {patient.purchase_count} purchases</span>}
+                          {patient.protocol_count > 0 && <span> • {patient.protocol_count} {patient.protocol_count === 1 ? 'protocol' : 'protocols'}</span>}
+                          {patient.purchase_count > 0 && <span> • {patient.purchase_count} {patient.purchase_count === 1 ? 'purchase' : 'purchases'}</span>}
                         </div>
                       </div>
                       <div style={styles.cardActions}>

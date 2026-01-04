@@ -1,15 +1,16 @@
 // /pages/admin/protocol/[id].js
-// Protocol Detail Page - Shows delivery method and proper tracking
+// Protocol Detail Page - Weight Loss with combined logging and weight graph
 // Range Medical
+// UPDATED: 2026-01-03 - Combined injection + weight logging, added weight chart
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 
-// Injection medications list - SHARED CONFIG
+// Injection medications list
 const INJECTION_MEDICATIONS = [
-  'NAD+',  // Custom dosage will be entered separately
+  'NAD+',
   'B12',
   'Glutathione',
   'Vitamin D',
@@ -26,7 +27,6 @@ const WEIGHT_LOSS_MEDICATIONS = [
   'Retatrutide'
 ];
 
-// Weight Loss dosages by medication
 const WEIGHT_LOSS_DOSAGES = {
   'Semaglutide': ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'],
   'Tirzepatide': ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'],
@@ -46,6 +46,147 @@ const FREQUENCY_OPTIONS = [
   { value: 'as needed', label: 'As Needed' }
 ];
 
+// Simple Weight Chart Component
+const WeightChart = ({ data }) => {
+  if (!data || data.length === 0) return null;
+  
+  // Sort by date
+  const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  const weights = sorted.map(d => d.weight);
+  const minWeight = Math.min(...weights) - 5;
+  const maxWeight = Math.max(...weights) + 5;
+  const range = maxWeight - minWeight;
+  
+  const width = 100;
+  const height = 50;
+  const padding = 2;
+  
+  // Calculate points
+  const points = sorted.map((d, i) => {
+    const x = padding + (i / (sorted.length - 1 || 1)) * (width - padding * 2);
+    const y = height - padding - ((d.weight - minWeight) / range) * (height - padding * 2);
+    return { x, y, weight: d.weight, date: d.date };
+  });
+  
+  // Create path
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  
+  // Calculate weight change
+  const firstWeight = sorted[0]?.weight;
+  const lastWeight = sorted[sorted.length - 1]?.weight;
+  const weightChange = lastWeight - firstWeight;
+  const isLoss = weightChange < 0;
+  
+  return (
+    <div style={{ marginBottom: '24px' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-end',
+        marginBottom: '12px'
+      }}>
+        <div>
+          <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Weight Progress</div>
+          <div style={{ fontSize: '28px', fontWeight: '600', color: '#111' }}>
+            {lastWeight} <span style={{ fontSize: '16px', color: '#6b7280' }}>lbs</span>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ 
+            fontSize: '20px', 
+            fontWeight: '600', 
+            color: isLoss ? '#059669' : '#dc2626' 
+          }}>
+            {isLoss ? '↓' : '↑'} {Math.abs(weightChange).toFixed(1)} lbs
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+            since {new Date(sorted[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </div>
+        </div>
+      </div>
+      
+      <div style={{
+        backgroundColor: '#f9fafb',
+        borderRadius: '12px',
+        padding: '16px',
+        position: 'relative'
+      }}>
+        <svg 
+          viewBox={`0 0 ${width} ${height}`} 
+          style={{ width: '100%', height: '120px' }}
+          preserveAspectRatio="none"
+        >
+          {/* Grid lines */}
+          <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#e5e7eb" strokeWidth="0.5" />
+          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e5e7eb" strokeWidth="0.5" />
+          
+          {/* Area fill */}
+          <path
+            d={`${pathD} L ${points[points.length - 1]?.x || 0} ${height - padding} L ${padding} ${height - padding} Z`}
+            fill="url(#gradient)"
+            opacity="0.3"
+          />
+          
+          {/* Line */}
+          <path
+            d={pathD}
+            fill="none"
+            stroke="#059669"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          
+          {/* Points */}
+          {points.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r="3"
+              fill="white"
+              stroke="#059669"
+              strokeWidth="2"
+            />
+          ))}
+          
+          {/* Gradient definition */}
+          <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#059669" />
+              <stop offset="100%" stopColor="#059669" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+        </svg>
+        
+        {/* X-axis labels */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          marginTop: '8px',
+          fontSize: '11px',
+          color: '#9ca3af'
+        }}>
+          {sorted.length <= 6 ? (
+            sorted.map((d, i) => (
+              <span key={i}>
+                {new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            ))
+          ) : (
+            <>
+              <span>{new Date(sorted[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              <span>{new Date(sorted[Math.floor(sorted.length / 2)].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              <span>{new Date(sorted[sorted.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function ProtocolDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -55,21 +196,17 @@ export default function ProtocolDetail() {
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showExtendModal, setShowExtendModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [extendWeeks, setExtendWeeks] = useState(4);
 
+  // Combined log form for Weight Loss (injection + weight)
   const [logForm, setLogForm] = useState({
     log_date: new Date().toISOString().split('T')[0],
+    weight: '',
+    dose: '',
     notes: ''
   });
-
-  const [weightForm, setWeightForm] = useState({
-    log_date: new Date().toISOString().split('T')[0],
-    weight: ''
-  });
-
-  const [showWeightModal, setShowWeightModal] = useState(false);
-  const [showExtendModal, setShowExtendModal] = useState(false);
-  const [extendWeeks, setExtendWeeks] = useState(4);
 
   const [editForm, setEditForm] = useState({
     medication: '',
@@ -106,6 +243,27 @@ export default function ProtocolDetail() {
     }
   };
 
+  // Check if this is a weight loss protocol
+  const isWeightLoss = protocol?.program_type === 'weight_loss' || 
+    (protocol?.program_name || '').toLowerCase().includes('weight loss');
+
+  // Get current dose from medication string
+  const getCurrentDose = () => {
+    const med = protocol?.medication || '';
+    const doseMatch = med.match(/(\d+\.?\d*mg)/i);
+    return doseMatch ? doseMatch[1] : '';
+  };
+
+  const openLogModal = () => {
+    setLogForm({
+      log_date: new Date().toISOString().split('T')[0],
+      weight: '',
+      dose: getCurrentDose(),
+      notes: ''
+    });
+    setShowLogModal(true);
+  };
+
   const openEditModal = () => {
     const medication = protocol.medication || '';
     let medicationType = '';
@@ -113,15 +271,12 @@ export default function ProtocolDetail() {
     let wlMedication = '';
     let wlDose = '';
     
-    // Check if weight loss medication
     const isWLMed = WEIGHT_LOSS_MEDICATIONS.some(m => medication.toLowerCase().includes(m.toLowerCase()));
     
     if (isWLMed) {
-      // Parse weight loss medication and dose
       for (const med of WEIGHT_LOSS_MEDICATIONS) {
         if (medication.toLowerCase().includes(med.toLowerCase())) {
           wlMedication = med;
-          // Extract dose (e.g., "Retatrutide 2mg" -> "2mg")
           const doseMatch = medication.match(/(\d+\.?\d*mg)/i);
           wlDose = doseMatch ? doseMatch[1] : '';
           break;
@@ -177,18 +332,57 @@ export default function ProtocolDetail() {
     }
   };
 
+  // Combined log handler for Weight Loss (logs both injection session + weight)
+  const handleLogInjection = async () => {
+    if (!logForm.weight) {
+      alert('Please enter the patient\'s weight');
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${id}/log-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_date: logForm.log_date,
+          log_type: 'injection',
+          weight: parseFloat(logForm.weight),
+          dose: logForm.dose,
+          notes: logForm.notes
+        })
+      });
+
+      if (res.ok) {
+        setShowLogModal(false);
+        setLogForm({ log_date: new Date().toISOString().split('T')[0], weight: '', dose: '', notes: '' });
+        fetchProtocol();
+      } else {
+        alert('Failed to log injection');
+      }
+    } catch (error) {
+      console.error('Error logging injection:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Non-weight-loss session log handler
   const handleLogSession = async () => {
     setSaving(true);
     try {
       const res = await fetch(`/api/protocols/${id}/log-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logForm)
+        body: JSON.stringify({
+          log_date: logForm.log_date,
+          notes: logForm.notes
+        })
       });
 
       if (res.ok) {
         setShowLogModal(false);
-        setLogForm({ log_date: new Date().toISOString().split('T')[0], notes: '' });
+        setLogForm({ log_date: new Date().toISOString().split('T')[0], weight: '', dose: '', notes: '' });
         fetchProtocol();
       } else {
         alert('Failed to log session');
@@ -200,43 +394,9 @@ export default function ProtocolDetail() {
     }
   };
 
-  const handleLogWeight = async () => {
-    if (!weightForm.weight) {
-      alert('Please enter a weight');
-      return;
-    }
-    
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/protocols/${id}/log-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          log_date: weightForm.log_date,
-          log_type: 'weigh_in',
-          weight: parseFloat(weightForm.weight),
-          notes: ''
-        })
-      });
-
-      if (res.ok) {
-        setShowWeightModal(false);
-        setWeightForm({ log_date: new Date().toISOString().split('T')[0], weight: '' });
-        fetchProtocol();
-      } else {
-        alert('Failed to log weight');
-      }
-    } catch (error) {
-      console.error('Error logging weight:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleExtend = async () => {
     setSaving(true);
     try {
-      // Calculate new end date
       const currentEndDate = protocol.end_date ? new Date(protocol.end_date) : new Date();
       const newEndDate = new Date(currentEndDate);
       newEndDate.setDate(newEndDate.getDate() + (extendWeeks * 7));
@@ -247,7 +407,7 @@ export default function ProtocolDetail() {
         body: JSON.stringify({
           ...protocol,
           end_date: newEndDate.toISOString().split('T')[0],
-          status: 'active' // Reactivate if it was completed
+          status: 'active'
         })
       });
 
@@ -271,7 +431,6 @@ export default function ProtocolDetail() {
     try {
       const res = await fetch(`/api/protocols/${id}/delete`, { method: 'DELETE' });
       if (res.ok) {
-        // Redirect back to pipeline
         router.push('/admin/pipeline?tab=active');
       } else {
         const error = await res.json();
@@ -285,12 +444,12 @@ export default function ProtocolDetail() {
 
   const handleDeleteLog = async (logId) => {
     if (!logId) return;
-    if (!confirm('Delete this session log entry?')) return;
+    if (!confirm('Delete this log entry?')) return;
     
     try {
       const res = await fetch(`/api/protocols/${id}/logs/${logId}`, { method: 'DELETE' });
       if (res.ok) {
-        fetchProtocol(); // Refresh data
+        fetchProtocol();
       } else {
         const error = await res.json();
         alert('Error deleting log: ' + (error.error || 'Unknown error'));
@@ -303,7 +462,6 @@ export default function ProtocolDetail() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    // If it's a date-only string (YYYY-MM-DD), add time to prevent timezone shift
     let dateToFormat = dateStr;
     if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
       dateToFormat = dateStr + 'T12:00:00';
@@ -316,23 +474,14 @@ export default function ProtocolDetail() {
     });
   };
 
-  // Determine tracking type
   const isSessionBased = protocol?.total_sessions > 0;
   
-  // Check if this is a weight loss protocol
-  const isWeightLoss = protocol?.program_type === 'weight_loss' || 
-    (protocol?.program_name || '').toLowerCase().includes('weight loss');
-  
-  // Get delivery method - check field first, then parse from program_name
   const getDeliveryMethod = () => {
     if (protocol?.delivery_method === 'take_home') return 'take_home';
     if (protocol?.delivery_method === 'in_clinic') return 'in_clinic';
-    
-    // Parse from program_name
     const programName = (protocol?.program_name || '').toLowerCase();
     if (programName.includes('take home')) return 'take_home';
     if (programName.includes('in clinic') || programName.includes('in-clinic')) return 'in_clinic';
-    
     return null;
   };
   
@@ -340,38 +489,27 @@ export default function ProtocolDetail() {
   const isTakeHome = deliveryMethodValue === 'take_home';
   const isInClinic = deliveryMethodValue === 'in_clinic';
   
-  // Get display title
   const getDisplayTitle = () => {
     if (!protocol) return '';
     const medication = protocol.medication || '';
     const programName = protocol.program_name || '';
-    
-    // If medication exists, use it as primary title
     if (medication) return medication;
     return programName;
   };
 
-  // Get delivery method display
   const getDeliveryDisplay = () => {
     if (isTakeHome) return 'Take Home';
     if (isInClinic) return 'In Clinic';
     return '';
   };
 
-  // Calculate tracking stats
   const getTrackingStats = () => {
-    // Determine label based on category/program_type
     const category = (protocol.category || protocol.program_type || '').toLowerCase();
     const isInjectionCategory = category === 'injection';
-    const isRLT = category === 'red_light' || category === 'rlt';
-    const isHBOT = category === 'hbot';
-    
-    // Use "Injections" for injection category, "Sessions" for RLT/HBOT
     const inClinicLabel = isInjectionCategory ? 'Injections' : 'Sessions';
     const logButtonText = isInjectionCategory ? '+ Log Injection' : '+ Log Session';
     
     if (isSessionBased && isInClinic) {
-      // In Clinic: Track sessions/injections
       const used = protocol.sessions_used || 0;
       const total = protocol.total_sessions || 0;
       const left = total - used;
@@ -384,45 +522,31 @@ export default function ProtocolDetail() {
         logButtonText
       };
     } else if (isSessionBased && isTakeHome) {
-      // Take Home: Calculate refill date based on frequency
       const total = protocol.total_sessions || 12;
       const freq = (protocol.frequency || '').toLowerCase();
       
-      // Calculate injections per week based on frequency
-      let injectionsPerWeek = 7; // default to daily
-      
+      let injectionsPerWeek = 7;
       if (freq.includes('daily') && !freq.includes('2x')) {
         injectionsPerWeek = 7;
-      } else if (freq.includes('2x daily') || freq.includes('twice daily')) {
+      } else if (freq.includes('2x daily')) {
         injectionsPerWeek = 14;
-      } else if (freq.includes('every other day') || freq.includes('every 2 days')) {
+      } else if (freq.includes('every other day')) {
         injectionsPerWeek = 3.5;
-      } else if (freq.includes('every 3 days')) {
-        injectionsPerWeek = 7 / 3; // ~2.33
-      } else if (freq.includes('every 5 days')) {
-        injectionsPerWeek = 7 / 5; // 1.4
-      } else if (freq.includes('weekly') || freq.includes('once a week') || freq.includes('1x/week') || freq.includes('1x week')) {
+      } else if (freq.includes('weekly')) {
         injectionsPerWeek = 1;
-      } else if (freq.includes('2x/week') || freq.includes('2x week') || freq.includes('twice a week') || freq.includes('2x weekly')) {
+      } else if (freq.includes('2x/week')) {
         injectionsPerWeek = 2;
-      } else if (freq.includes('3x/week') || freq.includes('3x week') || freq.includes('3x weekly')) {
+      } else if (freq.includes('3x/week')) {
         injectionsPerWeek = 3;
-      } else if (freq.includes('4x/week') || freq.includes('4x week')) {
-        injectionsPerWeek = 4;
-      } else if (freq.includes('5x/week') || freq.includes('5x week')) {
-        injectionsPerWeek = 5;
       }
       
-      // Calculate total weeks of supply, then convert to days
       const weeksOfSupply = total / injectionsPerWeek;
       const supplyDays = Math.round(weeksOfSupply * 7);
       
-      // Calculate refill date
       const startDate = protocol.start_date ? new Date(protocol.start_date + 'T00:00:00') : new Date();
       const refillDate = new Date(startDate);
       refillDate.setDate(refillDate.getDate() + supplyDays);
       
-      // Days until refill
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const daysUntilRefill = Math.ceil((refillDate - today) / (1000 * 60 * 60 * 24));
@@ -431,14 +555,13 @@ export default function ProtocolDetail() {
         type: 'refill',
         total,
         supplyDays,
-        weeksOfSupply: Math.round(weeksOfSupply * 10) / 10, // Round to 1 decimal
+        weeksOfSupply: Math.round(weeksOfSupply * 10) / 10,
         refillDate,
         daysUntilRefill,
         frequency: protocol.frequency,
         label: 'Injections'
       };
     } else {
-      // Time-based tracking
       const start = protocol.start_date ? new Date(protocol.start_date) : null;
       const end = protocol.end_date ? new Date(protocol.end_date) : null;
       const today = new Date();
@@ -456,9 +579,17 @@ export default function ProtocolDetail() {
           label: 'Days'
         };
       }
-      
       return null;
     }
+  };
+
+  // Prepare weight data for chart
+  const getWeightChartData = () => {
+    const weightLogs = logs.filter(log => log.weight && log.weight > 0);
+    return weightLogs.map(log => ({
+      date: log.log_date || log.created_at,
+      weight: log.weight
+    })).sort((a, b) => new Date(a.date) - new Date(b.date));
   };
 
   if (loading) {
@@ -479,6 +610,12 @@ export default function ProtocolDetail() {
 
   const stats = getTrackingStats();
   const deliveryMethod = getDeliveryDisplay();
+  const weightData = getWeightChartData();
+
+  // Get injection logs (with weight + dose)
+  const injectionLogs = logs.filter(log => 
+    log.log_type === 'injection' || log.log_type === 'session' || !log.log_type
+  );
 
   return (
     <>
@@ -487,7 +624,6 @@ export default function ProtocolDetail() {
       </Head>
 
       <div style={styles.container}>
-        {/* Back Link */}
         <button 
           onClick={() => router.back()} 
           style={{...styles.backLink, background: 'none', border: 'none', cursor: 'pointer', padding: 0}}
@@ -516,7 +652,7 @@ export default function ProtocolDetail() {
             {(isWeightLoss || protocol.end_date) && (
               <button 
                 onClick={() => setShowExtendModal(true)} 
-                style={{...styles.editButton, backgroundColor: '#059669', marginLeft: '8px'}}
+                style={{...styles.editButton, backgroundColor: '#059669', color: 'white', border: 'none'}}
               >
                 Extend
               </button>
@@ -531,6 +667,11 @@ export default function ProtocolDetail() {
             </span>
           </div>
         </div>
+
+        {/* Weight Chart - For Weight Loss */}
+        {isWeightLoss && weightData.length >= 2 && (
+          <WeightChart data={weightData} />
+        )}
 
         {/* Tracking Stats */}
         {stats && stats.type === 'sessions' && (
@@ -589,92 +730,80 @@ export default function ProtocolDetail() {
           </div>
         )}
 
-        {/* Log Button - Only for In Clinic */}
-        {isSessionBased && isInClinic && protocol.status === 'active' && (
-          <button onClick={() => setShowLogModal(true)} style={styles.logButton}>
-            {stats?.logButtonText || '+ Log Session'}
+        {/* Log Button */}
+        {protocol.status === 'active' && isInClinic && (
+          <button onClick={openLogModal} style={styles.logButton}>
+            {isWeightLoss ? '💉 Log Injection' : (stats?.logButtonText || '+ Log Session')}
           </button>
         )}
 
-        {/* Weight Log Button - For Weight Loss protocols */}
-        {isWeightLoss && protocol.status === 'active' && (
-          <button onClick={() => setShowWeightModal(true)} style={{...styles.logButton, backgroundColor: '#059669'}}>
-            + Log Weight
-          </button>
-        )}
-
-        {/* Weight History Section - For Weight Loss */}
-        {isWeightLoss && (() => {
-          const weightLogs = logs.filter(log => log.log_type === 'weigh_in');
-          
-          return (
-            <div style={styles.section}>
-              <h2 style={styles.sectionTitle}>Weight History</h2>
-              {weightLogs.length === 0 ? (
-                <div style={styles.emptyState}>
-                  No weight logs yet
-                </div>
-              ) : (
-                <div style={styles.logsList}>
-                  {weightLogs.map((log, i) => (
-                    <div key={log.id || i} style={styles.logItem}>
-                      <div style={{ flex: 1 }}>
+        {/* Injection History - For Weight Loss In Clinic */}
+        {isWeightLoss && isInClinic && (
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>Injection History</h2>
+            {injectionLogs.length === 0 ? (
+              <div style={styles.emptyState}>No injections logged yet</div>
+            ) : (
+              <div style={styles.logsList}>
+                {injectionLogs.map((log, i) => (
+                  <div key={log.id || i} style={styles.logItem}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
                         <div style={styles.logDate}>{formatDate(log.log_date || log.created_at)}</div>
-                        <div style={{ fontSize: '18px', fontWeight: '600', color: '#059669' }}>
+                        {log.dose && (
+                          <span style={{ fontSize: '13px', color: '#6b7280' }}>{log.dose}</span>
+                        )}
+                      </div>
+                      {log.weight && (
+                        <div style={{ fontSize: '18px', fontWeight: '600', color: '#059669', marginTop: '2px' }}>
                           {log.weight} lbs
                         </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteLog(log.id)}
-                        style={styles.deleteLogButton}
-                        title="Delete this entry"
-                      >
-                        ×
-                      </button>
+                      )}
+                      {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+                    <button
+                      onClick={() => handleDeleteLog(log.id)}
+                      style={styles.deleteLogButton}
+                      title="Delete this entry"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* History Section - Only for In Clinic */}
-        {isInClinic && (() => {
-          // Filter to only show injection/session logs, not weigh_ins
-          const sessionLogs = logs.filter(log => 
-            log.log_type === 'injection' || log.log_type === 'session' || !log.log_type
-          );
-          
-          return (
-            <div style={styles.section}>
-              <h2 style={styles.sectionTitle}>{stats?.label || 'Session'} History</h2>
-              {sessionLogs.length === 0 ? (
-                <div style={styles.emptyState}>
-                  No {(stats?.label || 'sessions').toLowerCase()} logged yet
-                </div>
-              ) : (
-                <div style={styles.logsList}>
-                  {sessionLogs.map((log, i) => (
-                    <div key={log.id || i} style={styles.logItem}>
-                      <div style={{ flex: 1 }}>
-                        <div style={styles.logDate}>{formatDate(log.log_date || log.created_at)}</div>
-                        {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
-                      </div>
-                      <button
-                        onClick={() => handleDeleteLog(log.id)}
-                        style={styles.deleteLogButton}
-                        title="Delete this entry"
-                      >
-                        ×
-                      </button>
+        {/* Session History - For non-Weight Loss In Clinic */}
+        {!isWeightLoss && isInClinic && (
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>{stats?.label || 'Session'} History</h2>
+            {injectionLogs.length === 0 ? (
+              <div style={styles.emptyState}>
+                No {(stats?.label || 'sessions').toLowerCase()} logged yet
+              </div>
+            ) : (
+              <div style={styles.logsList}>
+                {injectionLogs.map((log, i) => (
+                  <div key={log.id || i} style={styles.logItem}>
+                    <div style={{ flex: 1 }}>
+                      <div style={styles.logDate}>{formatDate(log.log_date || log.created_at)}</div>
+                      {log.notes && <div style={styles.logNotes}>{log.notes}</div>}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+                    <button
+                      onClick={() => handleDeleteLog(log.id)}
+                      style={styles.deleteLogButton}
+                      title="Delete this entry"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Take Home Info */}
         {isTakeHome && stats?.type === 'refill' && (
@@ -737,12 +866,12 @@ export default function ProtocolDetail() {
           </div>
         </div>
 
-        {/* Log Modal - Only for In Clinic */}
+        {/* Log Modal - Combined for Weight Loss */}
         {showLogModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>
               <h2 style={styles.modalTitle}>
-                {stats?.label === 'Injections' ? 'Log Injection' : 'Log Session'}
+                {isWeightLoss ? '💉 Log Injection' : (stats?.label === 'Injections' ? 'Log Injection' : 'Log Session')}
               </h2>
 
               <div style={styles.formGroup}>
@@ -755,13 +884,40 @@ export default function ProtocolDetail() {
                 />
               </div>
 
+              {isWeightLoss && (
+                <>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Weight (lbs) *</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      style={styles.input}
+                      value={logForm.weight}
+                      onChange={(e) => setLogForm({ ...logForm, weight: e.target.value })}
+                      placeholder="e.g., 185.5"
+                    />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Dose</label>
+                    <input
+                      type="text"
+                      style={styles.input}
+                      value={logForm.dose}
+                      onChange={(e) => setLogForm({ ...logForm, dose: e.target.value })}
+                      placeholder="e.g., 2mg"
+                    />
+                  </div>
+                </>
+              )}
+
               <div style={styles.formGroup}>
                 <label style={styles.label}>Notes (optional)</label>
                 <textarea
                   style={styles.textarea}
                   value={logForm.notes}
                   onChange={(e) => setLogForm({ ...logForm, notes: e.target.value })}
-                  placeholder="Any notes..."
+                  placeholder="Any observations, side effects..."
                 />
               </div>
 
@@ -769,48 +925,12 @@ export default function ProtocolDetail() {
                 <button onClick={() => setShowLogModal(false)} style={styles.cancelButton}>
                   Cancel
                 </button>
-                <button onClick={handleLogSession} style={styles.submitButton} disabled={saving}>
-                  {saving ? 'Logging...' : 'Log'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Weight Log Modal - For Weight Loss */}
-        {showWeightModal && (
-          <div style={styles.modalOverlay}>
-            <div style={styles.modal}>
-              <h2 style={styles.modalTitle}>Log Weight</h2>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Date</label>
-                <input
-                  type="date"
-                  style={styles.input}
-                  value={weightForm.log_date}
-                  onChange={(e) => setWeightForm({ ...weightForm, log_date: e.target.value })}
-                />
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Weight (lbs)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  style={styles.input}
-                  value={weightForm.weight}
-                  onChange={(e) => setWeightForm({ ...weightForm, weight: e.target.value })}
-                  placeholder="e.g., 185.5"
-                />
-              </div>
-
-              <div style={styles.modalActions}>
-                <button onClick={() => setShowWeightModal(false)} style={styles.cancelButton}>
-                  Cancel
-                </button>
-                <button onClick={handleLogWeight} style={{...styles.submitButton, backgroundColor: '#059669'}} disabled={saving}>
-                  {saving ? 'Logging...' : 'Log Weight'}
+                <button 
+                  onClick={isWeightLoss ? handleLogInjection : handleLogSession} 
+                  style={{...styles.submitButton, backgroundColor: isWeightLoss ? '#059669' : '#111'}} 
+                  disabled={saving}
+                >
+                  {saving ? 'Logging...' : 'Log Injection'}
                 </button>
               </div>
             </div>
@@ -872,7 +992,6 @@ export default function ProtocolDetail() {
             <div style={styles.modal}>
               <h2 style={styles.modalTitle}>Edit Protocol</h2>
 
-              {/* Weight Loss Medication Fields */}
               {isWeightLoss ? (
                 <>
                   <div style={styles.formGroup}>
@@ -923,7 +1042,6 @@ export default function ProtocolDetail() {
                 </>
               ) : (
                 <>
-                  {/* Injection Medication Fields */}
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Medication</label>
                     <select
@@ -1078,7 +1196,6 @@ export default function ProtocolDetail() {
   );
 }
 
-// Force server-side rendering to avoid static prerendering issues
 export async function getServerSideProps() {
   return { props: {} };
 }
@@ -1125,8 +1242,9 @@ const styles = {
   },
   headerActions: {
     display: 'flex',
-    gap: '12px',
+    gap: '8px',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   editButton: {
     padding: '8px 16px',
@@ -1179,7 +1297,7 @@ const styles = {
   },
   logButton: {
     padding: '12px 24px',
-    backgroundColor: '#111',
+    backgroundColor: '#059669',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -1210,12 +1328,12 @@ const styles = {
     gap: '8px',
   },
   logItem: {
-    padding: '12px 16px',
+    padding: '16px',
     backgroundColor: 'white',
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '12px',
   },
   logDate: {

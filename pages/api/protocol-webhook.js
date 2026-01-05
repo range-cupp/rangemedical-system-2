@@ -15,45 +15,70 @@ const supabase = createClient(
 const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
 
-// Fetch variant name from GHL API using product_id and price_id
-async function fetchVariantFromGHL(productId, priceId) {
-  if (!productId || !priceId) return null;
+// Add a note to a GHL contact
+async function addNoteToGHLContact(contactId, noteBody) {
+  if (!contactId) {
+    console.log('No contact ID, skipping note creation');
+    return null;
+  }
   
   try {
-    // Get price details which includes variant info
     const response = await fetch(
-      `https://services.leadconnectorhq.com/products/${productId}/price/${priceId}`,
+      `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
       {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${GHL_API_KEY}`,
           'Version': '2021-07-28',
+          'Content-Type': 'application/json',
           'Accept': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          body: noteBody
+        })
       }
     );
     
     if (!response.ok) {
-      console.log('GHL API error:', response.status, await response.text());
+      const errorText = await response.text();
+      console.error('GHL Note API error:', response.status, errorText);
       return null;
     }
     
-    const priceData = await response.json();
-    console.log('GHL Price data:', JSON.stringify(priceData, null, 2));
-    
-    // Extract variant name - GHL stores this in different places
-    // Check for variant name in the price data
-    const variantName = 
-      priceData.name ||
-      priceData.variantName ||
-      priceData.variant?.name ||
-      priceData.variantOptions?.map(v => v.name).join(' / ') ||
-      null;
-    
-    return variantName;
+    const result = await response.json();
+    console.log('GHL Note created:', result.note?.id || result.id);
+    return result;
   } catch (error) {
-    console.error('Error fetching variant from GHL:', error);
+    console.error('Error creating GHL note:', error);
     return null;
   }
+}
+
+// Format purchase note for GHL
+function formatPurchaseNote(purchase) {
+  const lines = [
+    `💳 NEW PURCHASE`,
+    ``,
+    `Item: ${purchase.product_name || 'Unknown'}`,
+  ];
+  
+  if (purchase.variant) {
+    lines.push(`Variant: ${purchase.variant}`);
+  }
+  
+  lines.push(`Amount Paid: $${(purchase.amount || 0).toFixed(2)}`);
+  lines.push(`Date: ${purchase.purchase_date}`);
+  lines.push(`Category: ${purchase.category || 'Other'}`);
+  
+  return lines.join('\n');
+}
+
+// Fetch variant name from GHL API using product_id and price_id
+// NOTE: Disabled - requires Products API scope which may not be enabled
+async function fetchVariantFromGHL(productId, priceId) {
+  // This would require the Products API scope to be enabled on the GHL API key
+  // For now, variant info must come from the webhook payload itself
+  return null;
 }
 
 // Categorize product by name
@@ -312,20 +337,8 @@ export default async function handler(req, res) {
         const itemPrice = item.line_price || item.price || item.amount || item.unit_price || 0;
         const itemQty = item.quantity || item.qty || 1;
         
-        // Extract variant from description field first
-        let itemVariant = item.description || item.variant || item.option || null;
-        
-        // If no variant in payload, try to fetch from GHL API using product/price IDs
-        if (!itemVariant && item.meta) {
-          const productId = item.meta.product_id || item.meta.productId;
-          const priceId = item.meta.price_id || item.meta.priceId || item.id;
-          
-          if (productId && priceId) {
-            console.log('Fetching variant from GHL API for product:', productId, 'price:', priceId);
-            itemVariant = await fetchVariantFromGHL(productId, priceId);
-            console.log('Fetched variant:', itemVariant);
-          }
-        }
+        // Extract variant from description field (if GHL ever sends it)
+        const itemVariant = item.description || item.variant || item.option || null;
         
         console.log('Line item:', itemName, 'price:', itemPrice, 'qty:', itemQty, 'variant:', itemVariant);
         
@@ -408,12 +421,22 @@ export default async function handler(req, res) {
 
       console.log('Successfully created purchases:', inserted?.length);
       
+      // STEP 3: Add notes to GHL contact for each purchase
+      if (contactId && inserted && inserted.length > 0) {
+        console.log('Adding notes to GHL contact:', contactId);
+        for (const purchase of inserted) {
+          const noteBody = formatPurchaseNote(purchase);
+          await addNoteToGHLContact(contactId, noteBody);
+        }
+      }
+      
       return res.status(200).json({ 
         status: 'success', 
         patient_id: patientId,
         patient_name: contactName,
         purchases_created: inserted?.length || 0,
-        purchase_ids: inserted?.map(p => p.id) || []
+        purchase_ids: inserted?.map(p => p.id) || [],
+        notes_added: contactId ? inserted?.length : 0
       });
     }
 

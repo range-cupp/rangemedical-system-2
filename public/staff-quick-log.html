@@ -556,14 +556,27 @@
               <label>Date</label>
               <input type="date" name="date" required>
             </div>
+            <div class="form-group">
+              <label>Panel Type</label>
+              <select name="panel_type" required>
+                <option value="">Select panel...</option>
+                <option value="Essential Panel">Essential Panel</option>
+                <option value="Elite Panel">Elite Panel</option>
+                <option value="Follow Up Panel">Follow Up Panel</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any observations..."></textarea>
+            </div>
             <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
               <p style="color: #374151; font-size: 14px; margin-bottom: 12px;">
                 <strong>This will update in GHL:</strong>
               </p>
               <ul style="color: #6b7280; font-size: 13px; margin-left: 16px; line-height: 1.8;">
-                <li>HRT - Last Blood Draw → Today's date</li>
-                <li>HRT - Next Blood Draw → 8 weeks from today</li>
-                <li>Adds note to contact timeline</li>
+                <li>HRT - Last Blood Draw → Selected date</li>
+                <li>HRT - Next Blood Draw → 8 weeks later</li>
+                <li>Adds note with panel type to timeline</li>
                 <li>Creates task for next blood draw</li>
               </ul>
             </div>
@@ -811,7 +824,9 @@
       const data = {
         contact_id: selectedPatient.ghlId,
         contact_name: selectedPatient.name,
-        date: form.date.value
+        date: form.date.value,
+        panel_type: form.panel_type.value,
+        notes: form.notes.value || null
       };
       
       await submitForm('/ghl/log-hrt-blooddraw', data, form);

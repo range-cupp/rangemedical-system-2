@@ -1,9 +1,13 @@
 // /pages/api/protocols/[id]/log-session.js
 // Log a session, injection, or weight for a protocol
 // Range Medical
-// UPDATED: 2026-01-03 - Combined injection + weight logging for Weight Loss
+// UPDATED: 2026-01-04 - Added GHL sync for injections
 
 import { createClient } from '@supabase/supabase-js';
+import {
+  syncWeightLossInjectionLogged,
+  syncInjectionSessionLogged
+} from '../../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -23,14 +27,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get current protocol
+    // Get current protocol with patient info
     const { data: protocol, error: fetchError } = await supabase
       .from('protocols')
-      .select('*')
+      .select('*, patients(id, name, ghl_contact_id)')
       .eq('id', id)
       .single();
 
     if (fetchError) throw fetchError;
+
+    const ghlContactId = protocol.patients?.ghl_contact_id;
+    const patientName = protocol.patients?.name || protocol.patient_name || 'Unknown';
 
     // Determine log type - default to injection for session-based
     const finalLogType = log_type || 'injection';
@@ -54,18 +61,23 @@ export default async function handler(req, res) {
       logEntry.dose = dose;
     }
 
-    const { error: logError } = await supabase
+    const { data: insertedLog, error: logError } = await supabase
       .from('protocol_logs')
-      .insert(logEntry);
+      .insert(logEntry)
+      .select()
+      .single();
 
     if (logError) {
       console.error('Error creating log:', logError);
       // Continue even if log fails - still increment sessions for non-weight logs
     }
 
+    let newSessionsUsed = protocol.sessions_used || 0;
+    let protocolCompleted = false;
+
     // Only increment sessions_used for injection/session logs, not weigh_ins
     if (protocol.total_sessions && finalLogType !== 'weigh_in') {
-      const newSessionsUsed = (protocol.sessions_used || 0) + 1;
+      newSessionsUsed = (protocol.sessions_used || 0) + 1;
       
       const updates = {
         sessions_used: newSessionsUsed,
@@ -75,6 +87,7 @@ export default async function handler(req, res) {
       // Auto-complete if all sessions used
       if (newSessionsUsed >= protocol.total_sessions) {
         updates.status = 'completed';
+        protocolCompleted = true;
       }
 
       const { error: updateError } = await supabase
@@ -85,10 +98,40 @@ export default async function handler(req, res) {
       if (updateError) throw updateError;
     }
 
+    // Update protocol object with new values for GHL sync
+    const updatedProtocol = {
+      ...protocol,
+      sessions_used: newSessionsUsed,
+      status: protocolCompleted ? 'completed' : protocol.status
+    };
+
+    // ============================================
+    // SYNC TO GHL
+    // ============================================
+    if (ghlContactId && finalLogType !== 'weigh_in') {
+      console.log('Syncing injection to GHL:', ghlContactId);
+      
+      try {
+        const isWeightLoss = protocol.program_type === 'weight_loss' || 
+          (protocol.program_name || '').toLowerCase().includes('weight loss');
+        
+        if (isWeightLoss) {
+          await syncWeightLossInjectionLogged(ghlContactId, updatedProtocol, insertedLog || logEntry, patientName);
+        } else {
+          await syncInjectionSessionLogged(ghlContactId, updatedProtocol, patientName);
+        }
+      } catch (syncError) {
+        console.error('GHL sync error (non-fatal):', syncError);
+        // Don't fail the request if GHL sync fails
+      }
+    }
+
     return res.status(200).json({ 
       success: true,
-      sessionsUsed: protocol.total_sessions ? (protocol.sessions_used || 0) + 1 : null,
-      totalSessions: protocol.total_sessions
+      sessionsUsed: newSessionsUsed,
+      totalSessions: protocol.total_sessions,
+      completed: protocolCompleted,
+      ghlSynced: !!ghlContactId
     });
 
   } catch (error) {

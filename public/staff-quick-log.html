@@ -227,7 +227,7 @@
         <div class="card">
           <h2>➕ Start New Protocol</h2>
           <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
-            Start a new weight loss protocol for this patient. This will create the protocol and sync to GHL.
+            Start a new protocol for this patient. This will create the protocol and sync to GHL.
           </p>
           <form id="startProtocolForm" onsubmit="submitStartProtocol(event)">
             <div class="form-group">
@@ -235,18 +235,20 @@
               <select name="protocol_type" id="protocolType" required onchange="updateProtocolForm()">
                 <option value="">Select type...</option>
                 <option value="weight_loss">Weight Loss</option>
-                <option value="hrt">HRT Membership</option>
                 <option value="peptide">Peptide Protocol</option>
-                <option value="iv_therapy">IV Therapy Package</option>
-                <option value="injection">Injection Package</option>
+                <option value="hrt">HRT Protocol</option>
+                <option value="iv_therapy">IV Therapy</option>
+                <option value="injection">Injection Therapy</option>
+                <option value="hbot">HBOT (Hyperbaric)</option>
+                <option value="rlt">Red Light Therapy</option>
               </select>
             </div>
             
             <!-- Weight Loss Fields -->
-            <div id="wlFields" style="display: none;">
+            <div id="wlFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
                 <label>Medication</label>
-                <select name="medication" required>
+                <select name="wl_medication" required>
                   <option value="">Select medication...</option>
                   <option value="Semaglutide">Semaglutide</option>
                   <option value="Tirzepatide">Tirzepatide</option>
@@ -255,7 +257,7 @@
               </div>
               <div class="form-group">
                 <label>Starting Dose</label>
-                <select name="starting_dose">
+                <select name="wl_starting_dose">
                   <option value="">Select dose...</option>
                   <option value="0.25mg">0.25mg</option>
                   <option value="0.5mg">0.5mg</option>
@@ -272,7 +274,7 @@
               </div>
               <div class="form-group">
                 <label>Delivery Method</label>
-                <select name="delivery_method" required>
+                <select name="wl_delivery" required>
                   <option value="">Select delivery...</option>
                   <option value="in_clinic">In Clinic - Patient comes in weekly</option>
                   <option value="take_home">Take Home - Patient self-injects</option>
@@ -280,16 +282,154 @@
               </div>
               <div class="form-group">
                 <label>Total Injections</label>
-                <select name="total_injections">
+                <select name="wl_total_injections">
                   <option value="4" selected>4 (Monthly)</option>
                   <option value="8">8 (2 Months)</option>
                   <option value="12">12 (3 Months)</option>
                 </select>
               </div>
+              <div class="form-group">
+                <label>Starting Weight (optional)</label>
+                <input type="number" step="0.1" name="wl_starting_weight" placeholder="e.g. 220">
+              </div>
+            </div>
+            
+            <!-- Peptide Fields -->
+            <div id="peptideFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Program Duration</label>
+                <select name="peptide_program" required>
+                  <option value="">Select program...</option>
+                  <option value="7 Day">7 Day</option>
+                  <option value="10 Day">10 Day</option>
+                  <option value="20 Day">20 Day</option>
+                  <option value="30 Day">30 Day</option>
+                  <option value="Vial">Vial</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Peptide</label>
+                <select name="peptide_medication" id="peptideSelect" onchange="updatePeptideDosage()">
+                  <option value="">Select peptide...</option>
+                  
+                  <optgroup label="── Recovery / Tissue Repair ──">
+                    <option value="BPC-157" data-dose="250-500mcg">BPC-157</option>
+                    <option value="TB-500" data-dose="2-2.5mg">TB-500 (Thymosin Beta 4)</option>
+                    <option value="Wolverine Blend" data-dose="500mcg/500mcg">Wolverine Blend (BPC/TB)</option>
+                    <option value="KPV" data-dose="200-400mcg">KPV</option>
+                    <option value="MGF" data-dose="200mcg">MGF (IGF-1Ec)</option>
+                    <option value="PEG-MGF" data-dose="200mcg">PEG-MGF</option>
+                    <option value="LL-37" data-dose="50-100mcg">LL-37</option>
+                    <option value="GLOW 50" data-dose="0.3mL">GLOW 50 (GHK-Cu/BPC/TB)</option>
+                    <option value="GLOW 70" data-dose="0.3mL">GLOW 70 (GHK-Cu/BPC/TB)</option>
+                    <option value="KLOW 80" data-dose="0.3mL">KLOW 80 (GHK-Cu/KPV/BPC/TB)</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Weight Loss / Metabolic ──">
+                    <option value="AOD 9604" data-dose="300mcg">AOD 9604</option>
+                    <option value="MOTS-c" data-dose="5-10mg">MOTS-c</option>
+                    <option value="Tesamorelin" data-dose="1-2mg">Tesamorelin</option>
+                    <option value="Tesamorelin/Ipamorelin" data-dose="0.3mL">Tesamorelin/Ipamorelin Blend</option>
+                    <option value="5-Amino-1MQ" data-dose="50mg">5-Amino-1MQ (oral)</option>
+                    <option value="Tesofensine" data-dose="250-500mcg">Tesofensine (oral)</option>
+                    <option value="Cagrilintide" data-dose="0.3-2.4mg">Cagrilintide</option>
+                    <option value="Cagrilintide/GLP-1" data-dose="0.25-2.5mg">Cagrilintide/GLP-1 Blend</option>
+                    <option value="Survodutide" data-dose="0.5-4.8mg">Survodutide</option>
+                    <option value="MK-677" data-dose="10-25mg">MK-677 (oral)</option>
+                    <option value="SLU-PP-332" data-dose="250mcg-1mg">SLU-PP-332 (oral)</option>
+                  </optgroup>
+                  
+                  <optgroup label="── GH Secretagogues ──">
+                    <option value="Ipamorelin" data-dose="200-300mcg">Ipamorelin</option>
+                    <option value="CJC-1295 No DAC" data-dose="100-200mcg">CJC-1295 No DAC</option>
+                    <option value="CJC-1295 With DAC" data-dose="1-2mg">CJC-1295 With DAC</option>
+                    <option value="CJC/Ipamorelin" data-dose="0.2-0.3mL">CJC/Ipamorelin Blend</option>
+                    <option value="Sermorelin" data-dose="200-500mcg">Sermorelin</option>
+                    <option value="GHRP-2" data-dose="100-300mcg">GHRP-2</option>
+                    <option value="GHRP-6" data-dose="100-300mcg">GHRP-6</option>
+                    <option value="Hexarelin" data-dose="100-200mcg">Hexarelin</option>
+                    <option value="IGF-1 LR3" data-dose="20-50mcg">IGF-1 LR3</option>
+                    <option value="Follistatin 344" data-dose="100mcg">Follistatin 344</option>
+                    <option value="3X Blend" data-dose="0.3mL">3X Blend (Tesa/MGF/Ipa)</option>
+                    <option value="4X Blend" data-dose="0.3mL">4X Blend (GHRP2/Tesa/MGF/Ipa)</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Longevity / Anti-Aging ──">
+                    <option value="Epithalon" data-dose="5-10mg">Epithalon</option>
+                    <option value="Thymosin Alpha-1" data-dose="1.6mg">Thymosin Alpha-1 (TA-1)</option>
+                    <option value="GHK-Cu" data-dose="1-2mg">GHK-Cu</option>
+                    <option value="NAD+" data-dose="50-200mg">NAD+</option>
+                    <option value="FOXO4-DRI" data-dose="3-6mg">FOXO4-DRI</option>
+                    <option value="SS-31" data-dose="10-50mg">SS-31 (Elamipretide)</option>
+                    <option value="Thymalin" data-dose="10mg">Thymalin</option>
+                    <option value="Thymagen" data-dose="10mg">Thymagen</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Cognitive / Neuro ──">
+                    <option value="Dihexa" data-dose="10-20mg">Dihexa (oral)</option>
+                    <option value="Selank" data-dose="250-500mcg">Selank</option>
+                    <option value="Semax" data-dose="200-600mcg">Semax</option>
+                    <option value="PE-22-28" data-dose="500mcg">PE-22-28</option>
+                    <option value="BDNF" data-dose="varies">BDNF</option>
+                    <option value="ARA-290" data-dose="2-4mg">ARA-290</option>
+                    <option value="DSIP" data-dose="100-300mcg">DSIP (Sleep)</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Sexual Health ──">
+                    <option value="PT-141" data-dose="1-2mg">PT-141 (Bremelanotide)</option>
+                    <option value="MT-II" data-dose="0.5-1mg">MT-II (Melanotan II)</option>
+                    <option value="Kisspeptin" data-dose="50-200mcg">Kisspeptin</option>
+                    <option value="Oxytocin" data-dose="10-20 IU">Oxytocin</option>
+                  </optgroup>
+                  
+                  <optgroup label="── HRT Support ──">
+                    <option value="Gonadorelin" data-dose="100-200mcg">Gonadorelin</option>
+                    <option value="HCG" data-dose="500-1000 IU">HCG</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Cardiovascular ──">
+                    <option value="Cardiogen" data-dose="10-20mcg">Cardiogen</option>
+                    <option value="Cartalax" data-dose="10-20mcg">Cartalax</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Other ──">
+                    <option value="Other" data-dose="">Other (specify in notes)</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Dosage</label>
+                <input type="text" name="peptide_dosage" id="peptideDosage" placeholder="e.g. 500mcg">
+                <p id="dosageHint" style="color: #6b7280; font-size: 12px; margin-top: 4px;"></p>
+              </div>
+              <div class="form-group">
+                <label>Frequency</label>
+                <select name="peptide_frequency">
+                  <option value="Daily">Daily</option>
+                  <option value="1x daily (AM)">1x daily (AM)</option>
+                  <option value="1x daily (PM/bedtime)">1x daily (PM/bedtime)</option>
+                  <option value="2x daily">2x daily</option>
+                  <option value="3x daily">3x daily</option>
+                  <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                  <option value="Every other day">Every other day</option>
+                  <option value="3x per week">3x per week</option>
+                  <option value="2x per week">2x per week</option>
+                  <option value="1x per week">1x per week</option>
+                  <option value="As needed">As needed</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Delivery Method</label>
+                <select name="peptide_delivery" required>
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic</option>
+                  <option value="take_home">Take Home</option>
+                </select>
+              </div>
             </div>
             
             <!-- HRT Fields -->
-            <div id="hrtFields" style="display: none;">
+            <div id="hrtFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
                 <label>Medication</label>
                 <select name="hrt_medication">
@@ -297,6 +437,7 @@
                   <option value="Testosterone Cypionate">Testosterone Cypionate</option>
                   <option value="Testosterone Enanthate">Testosterone Enanthate</option>
                   <option value="Nandrolone">Nandrolone</option>
+                  <option value="HCG">HCG</option>
                 </select>
               </div>
               <div class="form-group">
@@ -304,6 +445,14 @@
                 <input type="text" name="hrt_dosage" placeholder="e.g. 200mg/week">
               </div>
               <div class="form-group">
+                <label>Delivery Method</label>
+                <select name="hrt_delivery" required>
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic (2x/week injections)</option>
+                  <option value="take_home">Take Home (Self-inject)</option>
+                </select>
+              </div>
+              <div class="form-group" id="hrtFulfillmentGroup" style="display: none;">
                 <label>Fulfillment Type</label>
                 <select name="hrt_fulfillment">
                   <option value="">Select type...</option>
@@ -314,69 +463,96 @@
               </div>
             </div>
             
-            <!-- Peptide Fields -->
-            <div id="peptideFields" style="display: none;">
+            <!-- IV Therapy Fields -->
+            <div id="ivFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
-                <label>Program</label>
-                <select name="peptide_program">
-                  <option value="">Select program...</option>
-                  <option value="Recovery Jumpstart - 10 Day">Recovery Jumpstart - 10 Day</option>
-                  <option value="Month Program - 30 Day">Month Program - 30 Day</option>
-                  <option value="Maintenance - 4 Week">Maintenance - 4 Week</option>
+                <label>Package</label>
+                <select name="iv_package" required>
+                  <option value="">Select package...</option>
+                  <option value="Single">Single Session</option>
+                  <option value="5 Pack">5 Pack</option>
+                  <option value="10 Pack">10 Pack</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Peptide</label>
-                <select name="peptide_medication">
-                  <option value="">Select peptide...</option>
-                  <option value="BPC-157">BPC-157</option>
-                  <option value="TB-500">TB-500</option>
-                  <option value="Wolverine Blend (BPC/TB)">Wolverine Blend (BPC/TB)</option>
-                  <option value="GHK-Cu">GHK-Cu</option>
-                  <option value="Sermorelin">Sermorelin</option>
-                  <option value="Ipamorelin">Ipamorelin</option>
-                  <option value="CJC-1295">CJC-1295</option>
+                <label>IV Type (optional)</label>
+                <select name="iv_type">
+                  <option value="">Select type...</option>
+                  <option value="Myers Cocktail">Myers Cocktail</option>
+                  <option value="NAD+">NAD+</option>
+                  <option value="High Dose Vitamin C">High Dose Vitamin C</option>
+                  <option value="Hydration">Hydration</option>
+                  <option value="Immunity">Immunity</option>
+                  <option value="Recovery">Recovery</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+              <p style="color: #6b7280; font-size: 13px; margin-top: 8px;">
+                ℹ️ All IV Therapy sessions are In Clinic
+              </p>
+            </div>
+            
+            <!-- Injection Therapy Fields -->
+            <div id="injectionFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Package</label>
+                <select name="injection_package" required>
+                  <option value="">Select package...</option>
+                  <option value="Single">Single Session</option>
+                  <option value="5 Pack">5 Pack</option>
+                  <option value="10 Pack">10 Pack</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Dosage</label>
-                <input type="text" name="peptide_dosage" placeholder="e.g. 500mcg">
+                <label>Injection Type (optional)</label>
+                <input type="text" name="injection_type" placeholder="e.g. B12, Glutathione, Lipo-C">
               </div>
               <div class="form-group">
-                <label>Frequency</label>
-                <select name="peptide_frequency">
-                  <option value="Daily">Daily</option>
-                  <option value="5 days on / 2 days off">5 days on / 2 days off</option>
-                  <option value="Every other day">Every other day</option>
+                <label>Delivery Method</label>
+                <select name="injection_delivery" required>
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic</option>
+                  <option value="take_home">Take Home</option>
                 </select>
               </div>
             </div>
             
-            <!-- IV/Injection Package Fields -->
-            <div id="packageFields" style="display: none;">
+            <!-- HBOT Fields -->
+            <div id="hbotFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
-                <label>Package Name</label>
-                <input type="text" name="package_name" placeholder="e.g. IV Therapy 5-Pack">
-              </div>
-              <div class="form-group">
-                <label>Total Sessions</label>
-                <select name="total_sessions">
-                  <option value="1">1 (Single)</option>
-                  <option value="5">5 Pack</option>
-                  <option value="10">10 Pack</option>
+                <label>Package</label>
+                <select name="hbot_package" required>
+                  <option value="">Select package...</option>
+                  <option value="Single">Single Session</option>
+                  <option value="5 Pack">5 Pack</option>
+                  <option value="10 Pack">10 Pack</option>
                 </select>
               </div>
+              <p style="color: #6b7280; font-size: 13px; margin-top: 8px;">
+                ℹ️ All HBOT sessions are In Clinic
+              </p>
+            </div>
+            
+            <!-- Red Light Therapy Fields -->
+            <div id="rltFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Package</label>
+                <select name="rlt_package" required>
+                  <option value="">Select package...</option>
+                  <option value="Single">Single Session</option>
+                  <option value="5 Pack">5 Pack</option>
+                  <option value="10 Pack">10 Pack</option>
+                </select>
+              </div>
+              <p style="color: #6b7280; font-size: 13px; margin-top: 8px;">
+                ℹ️ All Red Light sessions are In Clinic
+              </p>
             </div>
             
             <!-- Common Fields -->
             <div class="form-group">
               <label>Start Date</label>
               <input type="date" name="start_date" required>
-            </div>
-            
-            <div class="form-group">
-              <label>Starting Weight (optional)</label>
-              <input type="number" step="0.1" name="starting_weight" placeholder="e.g. 220">
             </div>
             
             <div class="form-group">
@@ -701,20 +877,57 @@
       const type = document.getElementById('protocolType').value;
       
       // Hide all protocol-specific fields
-      document.getElementById('wlFields').style.display = 'none';
-      document.getElementById('hrtFields').style.display = 'none';
-      document.getElementById('peptideFields').style.display = 'none';
-      document.getElementById('packageFields').style.display = 'none';
+      document.querySelectorAll('.protocol-fields').forEach(el => {
+        el.style.display = 'none';
+      });
       
       // Show relevant fields
       if (type === 'weight_loss') {
         document.getElementById('wlFields').style.display = 'block';
-      } else if (type === 'hrt') {
-        document.getElementById('hrtFields').style.display = 'block';
       } else if (type === 'peptide') {
         document.getElementById('peptideFields').style.display = 'block';
-      } else if (type === 'iv_therapy' || type === 'injection') {
-        document.getElementById('packageFields').style.display = 'block';
+      } else if (type === 'hrt') {
+        document.getElementById('hrtFields').style.display = 'block';
+      } else if (type === 'iv_therapy') {
+        document.getElementById('ivFields').style.display = 'block';
+      } else if (type === 'injection') {
+        document.getElementById('injectionFields').style.display = 'block';
+      } else if (type === 'hbot') {
+        document.getElementById('hbotFields').style.display = 'block';
+      } else if (type === 'rlt') {
+        document.getElementById('rltFields').style.display = 'block';
+      }
+    }
+    
+    // Show/hide HRT fulfillment based on delivery method
+    document.addEventListener('change', function(e) {
+      if (e.target.name === 'hrt_delivery') {
+        const fulfillmentGroup = document.getElementById('hrtFulfillmentGroup');
+        if (e.target.value === 'take_home') {
+          fulfillmentGroup.style.display = 'block';
+        } else {
+          fulfillmentGroup.style.display = 'none';
+        }
+      }
+    });
+    
+    // Auto-populate peptide dosage hint
+    function updatePeptideDosage() {
+      const select = document.getElementById('peptideSelect');
+      const dosageInput = document.getElementById('peptideDosage');
+      const dosageHint = document.getElementById('dosageHint');
+      
+      const selectedOption = select.options[select.selectedIndex];
+      const suggestedDose = selectedOption.getAttribute('data-dose');
+      
+      if (suggestedDose) {
+        dosageHint.textContent = `Suggested: ${suggestedDose}`;
+        if (!dosageInput.value) {
+          dosageInput.placeholder = suggestedDose;
+        }
+      } else {
+        dosageHint.textContent = '';
+        dosageInput.placeholder = 'e.g. 500mcg';
       }
     }
     
@@ -729,28 +942,63 @@
         contact_name: selectedPatient.name,
         protocol_type: protocolType,
         start_date: form.start_date.value,
-        starting_weight: form.starting_weight.value || null,
         notes: form.notes.value || null
       };
       
-      // Add protocol-specific fields
-      if (protocolType === 'weight_loss') {
-        data.medication = form.medication.value;
-        data.starting_dose = form.starting_dose.value;
-        data.delivery_method = form.delivery_method.value;
-        data.total_injections = form.total_injections.value;
-      } else if (protocolType === 'hrt') {
-        data.medication = form.hrt_medication.value;
-        data.dosage = form.hrt_dosage.value;
-        data.fulfillment_type = form.hrt_fulfillment.value;
-      } else if (protocolType === 'peptide') {
-        data.program_name = form.peptide_program.value;
-        data.medication = form.peptide_medication.value;
-        data.dosage = form.peptide_dosage.value;
-        data.frequency = form.peptide_frequency.value;
-      } else if (protocolType === 'iv_therapy' || protocolType === 'injection') {
-        data.package_name = form.package_name.value;
-        data.total_sessions = form.total_sessions.value;
+      // Add protocol-specific fields based on type
+      switch (protocolType) {
+        case 'weight_loss':
+          data.medication = form.wl_medication.value;
+          data.starting_dose = form.wl_starting_dose.value;
+          data.delivery_method = form.wl_delivery.value;
+          data.total_injections = form.wl_total_injections.value;
+          data.starting_weight = form.wl_starting_weight.value || null;
+          break;
+          
+        case 'peptide':
+          data.program_name = form.peptide_program.value;
+          data.medication = form.peptide_medication.value;
+          data.dosage = form.peptide_dosage.value;
+          data.frequency = form.peptide_frequency.value;
+          data.delivery_method = form.peptide_delivery.value;
+          break;
+          
+        case 'hrt':
+          data.medication = form.hrt_medication.value;
+          data.dosage = form.hrt_dosage.value;
+          data.delivery_method = form.hrt_delivery.value;
+          data.fulfillment_type = form.hrt_fulfillment.value || null;
+          break;
+          
+        case 'iv_therapy':
+          data.package_type = form.iv_package.value;
+          data.iv_type = form.iv_type.value || null;
+          data.total_sessions = form.iv_package.value === 'Single' ? 1 : 
+                                form.iv_package.value === '5 Pack' ? 5 : 10;
+          data.delivery_method = 'in_clinic';
+          break;
+          
+        case 'injection':
+          data.package_type = form.injection_package.value;
+          data.injection_type = form.injection_type.value || null;
+          data.total_sessions = form.injection_package.value === 'Single' ? 1 : 
+                                form.injection_package.value === '5 Pack' ? 5 : 10;
+          data.delivery_method = form.injection_delivery.value;
+          break;
+          
+        case 'hbot':
+          data.package_type = form.hbot_package.value;
+          data.total_sessions = form.hbot_package.value === 'Single' ? 1 : 
+                                form.hbot_package.value === '5 Pack' ? 5 : 10;
+          data.delivery_method = 'in_clinic';
+          break;
+          
+        case 'rlt':
+          data.package_type = form.rlt_package.value;
+          data.total_sessions = form.rlt_package.value === 'Single' ? 1 : 
+                                form.rlt_package.value === '5 Pack' ? 5 : 10;
+          data.delivery_method = 'in_clinic';
+          break;
       }
       
       await submitForm('/ghl/start-protocol', data, form);

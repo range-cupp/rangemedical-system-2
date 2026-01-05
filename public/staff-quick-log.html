@@ -248,7 +248,7 @@
             <div id="wlFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
                 <label>Medication</label>
-                <select name="wl_medication" required>
+                <select name="wl_medication" data-was-required="true">
                   <option value="">Select medication...</option>
                   <option value="Semaglutide">Semaglutide</option>
                   <option value="Tirzepatide">Tirzepatide</option>
@@ -274,7 +274,7 @@
               </div>
               <div class="form-group">
                 <label>Delivery Method</label>
-                <select name="wl_delivery" required>
+                <select name="wl_delivery" data-was-required="true">
                   <option value="">Select delivery...</option>
                   <option value="in_clinic">In Clinic - Patient comes in weekly</option>
                   <option value="take_home">Take Home - Patient self-injects</option>
@@ -298,7 +298,7 @@
             <div id="peptideFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
                 <label>Program Duration</label>
-                <select name="peptide_program" required>
+                <select name="peptide_program" data-was-required="true">
                   <option value="">Select program...</option>
                   <option value="7 Day">7 Day</option>
                   <option value="10 Day">10 Day</option>
@@ -420,7 +420,7 @@
               </div>
               <div class="form-group">
                 <label>Delivery Method</label>
-                <select name="peptide_delivery" required>
+                <select name="peptide_delivery" data-was-required="true">
                   <option value="">Select delivery...</option>
                   <option value="in_clinic">In Clinic</option>
                   <option value="take_home">Take Home</option>
@@ -446,7 +446,7 @@
               </div>
               <div class="form-group">
                 <label>Delivery Method</label>
-                <select name="hrt_delivery" required>
+                <select name="hrt_delivery" data-was-required="true">
                   <option value="">Select delivery...</option>
                   <option value="in_clinic">In Clinic (2x/week injections)</option>
                   <option value="take_home">Take Home (Self-inject)</option>
@@ -467,7 +467,7 @@
             <div id="ivFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
                 <label>Package</label>
-                <select name="iv_package" required>
+                <select name="iv_package" data-was-required="true">
                   <option value="">Select package...</option>
                   <option value="Single">Single Session</option>
                   <option value="5 Pack">5 Pack</option>
@@ -496,7 +496,7 @@
             <div id="injectionFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
                 <label>Package</label>
-                <select name="injection_package" required>
+                <select name="injection_package" data-was-required="true">
                   <option value="">Select package...</option>
                   <option value="Single">Single Session</option>
                   <option value="5 Pack">5 Pack</option>
@@ -509,7 +509,7 @@
               </div>
               <div class="form-group">
                 <label>Delivery Method</label>
-                <select name="injection_delivery" required>
+                <select name="injection_delivery" data-was-required="true">
                   <option value="">Select delivery...</option>
                   <option value="in_clinic">In Clinic</option>
                   <option value="take_home">Take Home</option>
@@ -521,7 +521,7 @@
             <div id="hbotFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
                 <label>Package</label>
-                <select name="hbot_package" required>
+                <select name="hbot_package" data-was-required="true">
                   <option value="">Select package...</option>
                   <option value="Single">Single Session</option>
                   <option value="5 Pack">5 Pack</option>
@@ -537,7 +537,7 @@
             <div id="rltFields" class="protocol-fields" style="display: none;">
               <div class="form-group">
                 <label>Package</label>
-                <select name="rlt_package" required>
+                <select name="rlt_package" data-was-required="true">
                   <option value="">Select package...</option>
                   <option value="Single">Single Session</option>
                   <option value="5 Pack">5 Pack</option>
@@ -879,23 +879,37 @@
       // Hide all protocol-specific fields
       document.querySelectorAll('.protocol-fields').forEach(el => {
         el.style.display = 'none';
+        // Remove required from hidden fields
+        el.querySelectorAll('[required]').forEach(field => {
+          field.removeAttribute('required');
+          field.dataset.wasRequired = 'true';
+        });
       });
       
-      // Show relevant fields
+      // Show relevant fields and restore required
+      let activeFields = null;
       if (type === 'weight_loss') {
-        document.getElementById('wlFields').style.display = 'block';
+        activeFields = document.getElementById('wlFields');
       } else if (type === 'peptide') {
-        document.getElementById('peptideFields').style.display = 'block';
+        activeFields = document.getElementById('peptideFields');
       } else if (type === 'hrt') {
-        document.getElementById('hrtFields').style.display = 'block';
+        activeFields = document.getElementById('hrtFields');
       } else if (type === 'iv_therapy') {
-        document.getElementById('ivFields').style.display = 'block';
+        activeFields = document.getElementById('ivFields');
       } else if (type === 'injection') {
-        document.getElementById('injectionFields').style.display = 'block';
+        activeFields = document.getElementById('injectionFields');
       } else if (type === 'hbot') {
-        document.getElementById('hbotFields').style.display = 'block';
+        activeFields = document.getElementById('hbotFields');
       } else if (type === 'rlt') {
-        document.getElementById('rltFields').style.display = 'block';
+        activeFields = document.getElementById('rltFields');
+      }
+      
+      if (activeFields) {
+        activeFields.style.display = 'block';
+        // Restore required on visible fields
+        activeFields.querySelectorAll('[data-was-required]').forEach(field => {
+          field.setAttribute('required', '');
+        });
       }
     }
     

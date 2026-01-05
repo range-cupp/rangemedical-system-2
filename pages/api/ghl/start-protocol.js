@@ -17,6 +17,7 @@ import {
   syncRLTPackageCreated,
   updateGHLContact,
   addGHLNote,
+  addGHLTag,
   createGHLTask
 } from '../../../lib/ghl-sync';
 
@@ -212,8 +213,9 @@ export default async function handler(req, res) {
       switch (protocolType) {
         case 'weight_loss':
           await syncWeightLossProtocolCreated(contactId, insertedProtocol, patient.name);
+          await addGHLTag(contactId, 'WL - Active');
           
-          // Create first task based on delivery method
+          // Create first task if in-clinic
           if (payload.delivery_method === 'in_clinic') {
             const firstInjectionDate = new Date(startDate);
             await createGHLTask(
@@ -222,19 +224,12 @@ export default async function handler(req, res) {
               firstInjectionDate.toISOString(),
               `${payload.medication} ${payload.starting_dose} - In Clinic`
             );
-          } else {
-            await addGHLNote(contactId, `📱 TAKE HOME WEIGHT LOSS STARTED
-
-Patient will receive weekly SMS check-in links to report weight and side effects.
-
-Medication: ${payload.medication}
-Starting Dose: ${payload.starting_dose}
-Injections: ${payload.total_injections}`);
           }
           break;
 
         case 'peptide':
           await syncPeptideProtocolCreated(contactId, insertedProtocol, patient.name);
+          await addGHLTag(contactId, 'Peptide - Active');
           
           if (payload.delivery_method === 'in_clinic') {
             await createGHLTask(
@@ -243,18 +238,12 @@ Injections: ${payload.total_injections}`);
               new Date(startDate).toISOString(),
               `${payload.medication} ${payload.dosage} - ${payload.program_name}`
             );
-          } else {
-            await addGHLNote(contactId, `📱 TAKE HOME PEPTIDE STARTED
-
-Peptide: ${payload.medication}
-Program: ${payload.program_name}
-Dosage: ${payload.dosage}
-Frequency: ${payload.frequency}`);
           }
           break;
 
         case 'hrt':
           await syncHRTProtocolCreated(contactId, insertedProtocol, patient.name);
+          await addGHLTag(contactId, 'HRT - Active');
           
           if (payload.delivery_method === 'in_clinic') {
             await createGHLTask(
@@ -263,44 +252,27 @@ Frequency: ${payload.frequency}`);
               new Date(startDate).toISOString(),
               `${payload.medication} ${payload.dosage} - In Clinic`
             );
-          } else {
-            await addGHLNote(contactId, `📱 TAKE HOME HRT STARTED
-
-Medication: ${payload.medication}
-Dosage: ${payload.dosage}
-Fulfillment: ${payload.fulfillment_type || 'TBD'}`);
           }
           break;
 
         case 'iv_therapy':
           await syncIVPackageCreated(contactId, insertedProtocol, patient.name);
-          await addGHLNote(contactId, `💧 IV THERAPY PACKAGE STARTED
-
-Package: ${payload.package_type}
-${payload.iv_type ? 'Type: ' + payload.iv_type + '\n' : ''}Sessions: ${payload.total_sessions}`);
+          await addGHLTag(contactId, 'IV - Active');
           break;
 
         case 'injection':
           await syncInjectionProtocolCreated(contactId, insertedProtocol, patient.name);
-          
-          const injNote = payload.delivery_method === 'in_clinic' 
-            ? `💉 INJECTION PACKAGE STARTED (In Clinic)
-
-Package: ${payload.package_type}
-${payload.injection_type ? 'Type: ' + payload.injection_type + '\n' : ''}Sessions: ${payload.total_sessions}`
-            : `📱 TAKE HOME INJECTION PACKAGE STARTED
-
-Package: ${payload.package_type}
-${payload.injection_type ? 'Type: ' + payload.injection_type + '\n' : ''}Sessions: ${payload.total_sessions}`;
-          await addGHLNote(contactId, injNote);
+          await addGHLTag(contactId, 'Injection - Active');
           break;
 
         case 'hbot':
           await syncHBOTPackageCreated(contactId, insertedProtocol, patient.name);
+          await addGHLTag(contactId, 'HBOT - Active');
           break;
 
         case 'rlt':
           await syncRLTPackageCreated(contactId, insertedProtocol, patient.name);
+          await addGHLTag(contactId, 'RLT - Active');
           break;
       }
     } catch (syncError) {

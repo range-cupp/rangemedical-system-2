@@ -58,6 +58,33 @@
       color: #9ca3af;
     }
     
+    .main-tabs {
+      display: flex;
+      gap: 0;
+      background: #e5e7eb;
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .main-tab {
+      padding: 8px 20px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.15s;
+      color: #6b7280;
+    }
+    .main-tab:hover {
+      color: #111;
+    }
+    .main-tab.active {
+      background: white;
+      color: #111;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
     .filter-tab {
       padding: 8px 16px;
       border: 2px solid #e5e7eb;
@@ -378,6 +405,7 @@
         flex-direction: column;
         width: 100%;
         align-items: stretch;
+        gap: 12px;
       }
       .search-box input {
         width: 100%;
@@ -385,8 +413,11 @@
       .search-box input:focus {
         width: 100%;
       }
+      .main-tabs {
+        justify-content: center;
+      }
       .filter-tabs {
-        justify-content: flex-start;
+        justify-content: center;
       }
     }
   </style>
@@ -398,7 +429,11 @@
       <div class="search-box">
         <input type="text" id="searchInput" placeholder="🔍 Search patient..." oninput="handleSearch()">
       </div>
-      <div class="filter-tabs">
+      <div class="main-tabs">
+        <button class="main-tab active" data-view="active">Active</button>
+        <button class="main-tab" data-view="completed">Completed</button>
+      </div>
+      <div class="filter-tabs" id="deliveryFilters">
         <button class="filter-tab active" data-filter="all">All</button>
         <button class="filter-tab" data-filter="in_clinic">In Clinic</button>
         <button class="filter-tab" data-filter="take_home">Take Home</button>
@@ -409,7 +444,7 @@
     </div>
   </div>
 
-  <div class="stats-bar">
+  <div class="stats-bar" id="activeStats">
     <div class="stat-card ending" data-status="ending" onclick="filterByStatus('ending')">
       <div class="label">Ending Soon (≤3 days)</div>
       <div class="value" id="stat-ending">-</div>
@@ -426,8 +461,11 @@
       <div class="label">Needs Follow-up</div>
       <div class="value" id="stat-followup">-</div>
     </div>
-    <div class="stat-card completed" data-status="completed" onclick="filterByStatus('completed')">
-      <div class="label">Completed</div>
+  </div>
+
+  <div class="stats-bar" id="completedStats" style="display: none;">
+    <div class="stat-card completed">
+      <div class="label">Total Completed</div>
       <div class="value" id="stat-completed">-</div>
     </div>
   </div>
@@ -497,12 +535,30 @@ Reply to this message or call us at (949) 997-3988.
     let currentStatusFilter = null;
     let selectedProtocol = null;
     let searchTerm = '';
+    let mainView = 'active'; // 'active' or 'completed'
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       loadProtocols();
       
-      // Filter tab clicks
+      // Main tab clicks (Active/Completed)
+      document.querySelectorAll('.main-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          mainView = tab.dataset.view;
+          currentStatusFilter = null;
+          document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+          
+          // Toggle stats bars
+          document.getElementById('activeStats').style.display = mainView === 'active' ? 'grid' : 'none';
+          document.getElementById('completedStats').style.display = mainView === 'completed' ? 'grid' : 'none';
+          
+          renderProtocols();
+        });
+      });
+      
+      // Filter tab clicks (All/In Clinic/Take Home)
       document.querySelectorAll('.filter-tab').forEach(tab => {
         tab.addEventListener('click', () => {
           document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -610,6 +666,13 @@ Reply to this message or call us at (949) 997-3988.
     function renderProtocols() {
       let filtered = allProtocols;
       
+      // Apply main view filter (active vs completed)
+      if (mainView === 'active') {
+        filtered = filtered.filter(p => getProtocolStatus(p) !== 'completed');
+      } else {
+        filtered = filtered.filter(p => getProtocolStatus(p) === 'completed');
+      }
+      
       // Apply search filter
       if (searchTerm) {
         filtered = filtered.filter(p => 
@@ -623,8 +686,8 @@ Reply to this message or call us at (949) 997-3988.
         filtered = filtered.filter(p => p.delivery_method === currentFilter);
       }
       
-      // Apply status filter
-      if (currentStatusFilter) {
+      // Apply status filter (only for active view)
+      if (currentStatusFilter && mainView === 'active') {
         if (currentStatusFilter === 'needs-followup') {
           filtered = filtered.filter(p => needsFollowup(p));
         } else {
@@ -632,39 +695,47 @@ Reply to this message or call us at (949) 997-3988.
         }
       }
       
-      // Group by status
-      const groups = {
-        ending: filtered.filter(p => getProtocolStatus(p) === 'ending'),
-        active: filtered.filter(p => getProtocolStatus(p) === 'active'),
-        started: filtered.filter(p => getProtocolStatus(p) === 'started'),
-        completed: filtered.filter(p => getProtocolStatus(p) === 'completed')
-      };
-      
-      // Sort each group by days remaining
-      Object.keys(groups).forEach(key => {
-        groups[key].sort((a, b) => (a.days_remaining || 999) - (b.days_remaining || 999));
-      });
-      
       let html = '';
       
-      if (groups.ending.length > 0) {
-        html += renderSection('🔴 Ending Soon (≤3 days)', groups.ending);
-      }
-      if (groups.active.length > 0) {
-        html += renderSection('🟡 Active (4-14 days remaining)', groups.active);
-      }
-      if (groups.started.length > 0) {
-        html += renderSection('🟢 Just Started (15+ days remaining)', groups.started);
-      }
-      if (groups.completed.length > 0) {
-        html += renderSection('⚪ Completed', groups.completed);
+      if (mainView === 'active') {
+        // Group by status for active view
+        const groups = {
+          ending: filtered.filter(p => getProtocolStatus(p) === 'ending'),
+          active: filtered.filter(p => getProtocolStatus(p) === 'active'),
+          started: filtered.filter(p => getProtocolStatus(p) === 'started')
+        };
+        
+        // Sort each group by days remaining
+        Object.keys(groups).forEach(key => {
+          groups[key].sort((a, b) => (a.days_remaining || 999) - (b.days_remaining || 999));
+        });
+        
+        if (groups.ending.length > 0) {
+          html += renderSection('🔴 Ending Soon (≤3 days)', groups.ending);
+        }
+        if (groups.active.length > 0) {
+          html += renderSection('🟡 Active (4-14 days remaining)', groups.active);
+        }
+        if (groups.started.length > 0) {
+          html += renderSection('🟢 Just Started (15+ days remaining)', groups.started);
+        }
+      } else {
+        // Show all completed sorted by end date (most recent first)
+        filtered.sort((a, b) => new Date(b.end_date || 0) - new Date(a.end_date || 0));
+        
+        if (filtered.length > 0) {
+          html += renderSection('⚪ Completed Protocols', filtered);
+        }
       }
       
       if (html === '') {
-        const searchMsg = searchTerm ? `No patients found matching "${searchTerm}".` : 'No protocols found matching your filters.';
+        const viewLabel = mainView === 'active' ? 'active protocols' : 'completed protocols';
+        const searchMsg = searchTerm 
+          ? `No ${viewLabel} found matching "${searchTerm}".` 
+          : `No ${viewLabel} found.`;
         html = `
           <div class="empty-state">
-            <div class="icon">💊</div>
+            <div class="icon">${mainView === 'active' ? '💊' : '✅'}</div>
             <p>${searchMsg}</p>
             ${searchTerm ? '<p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>' : ''}
           </div>

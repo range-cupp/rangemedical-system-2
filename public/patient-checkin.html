@@ -114,6 +114,13 @@
     .checkbox-item:hover {
       background: #f3f4f6;
     }
+    .checkbox-item.none-option {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+    .checkbox-item.none-option:hover {
+      background: #dcfce7;
+    }
     .checkbox-item input {
       width: 20px;
       height: 20px;
@@ -275,30 +282,41 @@
         <div class="form-group">
           <label>Any side effects this week?</label>
           <div class="side-effects-grid">
+            <label class="checkbox-item none-option">
+              <input type="checkbox" name="side_effects" value="None" id="noSideEffects" onchange="handleNoneSelected()">
+              <span>None ✓</span>
+            </label>
             <label class="checkbox-item">
-              <input type="checkbox" name="side_effects" value="Nausea">
+              <input type="checkbox" name="side_effects" value="Nausea" class="side-effect-cb" onchange="handleSideEffectSelected()">
               <span>Nausea</span>
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" name="side_effects" value="Fatigue">
+              <input type="checkbox" name="side_effects" value="Fatigue" class="side-effect-cb" onchange="handleSideEffectSelected()">
               <span>Fatigue</span>
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" name="side_effects" value="Headache">
+              <input type="checkbox" name="side_effects" value="Headache" class="side-effect-cb" onchange="handleSideEffectSelected()">
               <span>Headache</span>
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" name="side_effects" value="Constipation">
+              <input type="checkbox" name="side_effects" value="Constipation" class="side-effect-cb" onchange="handleSideEffectSelected()">
               <span>Constipation</span>
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" name="side_effects" value="Diarrhea">
+              <input type="checkbox" name="side_effects" value="Diarrhea" class="side-effect-cb" onchange="handleSideEffectSelected()">
               <span>Diarrhea</span>
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" name="side_effects" value="Injection Site Pain">
+              <input type="checkbox" name="side_effects" value="Injection Site Pain" class="side-effect-cb" onchange="handleSideEffectSelected()">
               <span>Injection Pain</span>
             </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Other" id="otherSideEffect" class="side-effect-cb" onchange="handleOtherSelected()">
+              <span>Other</span>
+            </label>
+          </div>
+          <div id="otherSideEffectInput" style="display: none; margin-top: 12px;">
+            <input type="text" name="other_side_effect" placeholder="Please describe..." style="width: 100%;">
           </div>
         </div>
         
@@ -398,7 +416,16 @@
       // Gather side effects
       const sideEffects = [];
       form.querySelectorAll('input[name="side_effects"]:checked').forEach(cb => {
-        sideEffects.push(cb.value);
+        if (cb.value === 'Other') {
+          const otherText = form.other_side_effect.value.trim();
+          if (otherText) {
+            sideEffects.push('Other: ' + otherText);
+          } else {
+            sideEffects.push('Other');
+          }
+        } else {
+          sideEffects.push(cb.value);
+        }
       });
       
       const data = {
@@ -431,6 +458,39 @@
         errorMsg.style.display = 'block';
         btn.disabled = false;
         btn.textContent = originalText;
+      }
+    }
+    
+    // Side effects checkbox handling
+    function handleNoneSelected() {
+      const noneCheckbox = document.getElementById('noSideEffects');
+      if (noneCheckbox.checked) {
+        // Uncheck all other side effects
+        document.querySelectorAll('.side-effect-cb').forEach(cb => {
+          cb.checked = false;
+        });
+        // Hide other input
+        document.getElementById('otherSideEffectInput').style.display = 'none';
+      }
+    }
+    
+    function handleSideEffectSelected() {
+      // If any side effect is selected, uncheck "None"
+      const anyChecked = document.querySelector('.side-effect-cb:checked');
+      if (anyChecked) {
+        document.getElementById('noSideEffects').checked = false;
+      }
+    }
+    
+    function handleOtherSelected() {
+      const otherCheckbox = document.getElementById('otherSideEffect');
+      const otherInput = document.getElementById('otherSideEffectInput');
+      
+      if (otherCheckbox.checked) {
+        otherInput.style.display = 'block';
+        document.getElementById('noSideEffects').checked = false;
+      } else {
+        otherInput.style.display = 'none';
       }
     }
     

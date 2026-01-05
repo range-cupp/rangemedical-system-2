@@ -1,14 +1,10 @@
 // /pages/api/protocols/assign.js
 // Assign a protocol to a patient from a purchase
 // Range Medical
-// UPDATED: 2026-01-04 - Added GHL sync for protocols
+// UPDATED: 2026-01-04 - Added comprehensive GHL sync for all protocol types
 
 import { createClient } from '@supabase/supabase-js';
-import {
-  syncWeightLossProtocolCreated,
-  syncPeptideProtocolCreated,
-  syncInjectionProtocolCreated
-} from '../../../lib/ghl-sync';
+import { syncProtocolToGHL } from '../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -231,16 +227,7 @@ export default async function handler(req, res) {
       console.log('Syncing protocol to GHL:', finalGhlContactId);
       
       try {
-        if (isWeightLoss || programType === 'weight_loss') {
-          await syncWeightLossProtocolCreated(finalGhlContactId, protocol, patientName);
-        } else if (programType === 'peptide') {
-          await syncPeptideProtocolCreated(finalGhlContactId, protocol, patientName);
-        } else if (programType === 'injection' || finalTotalSessions) {
-          await syncInjectionProtocolCreated(finalGhlContactId, protocol, patientName);
-        } else {
-          // Generic protocol - just add a note
-          await syncPeptideProtocolCreated(finalGhlContactId, protocol, patientName);
-        }
+        await syncProtocolToGHL(finalGhlContactId, protocol, patientName, 'created');
       } catch (syncError) {
         console.error('GHL sync error (non-fatal):', syncError);
         // Don't fail the request if GHL sync fails

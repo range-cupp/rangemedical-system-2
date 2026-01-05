@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weight Loss Pipeline - Range Medical</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa; 
+      padding: 20px;
+      color: #111;
+    }
+    
+    .header {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .search-box input {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 220px;
+      transition: all 0.15s;
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: #111;
+      width: 280px;
+    }
+    .search-box input::placeholder {
+      color: #9ca3af;
+    }
+    
+    .main-tabs {
+      display: flex;
+      gap: 0;
+      background: #e5e7eb;
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .main-tab {
+      padding: 8px 20px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.15s;
+      color: #6b7280;
+    }
+    .main-tab:hover {
+      color: #111;
+    }
+    .main-tab.active {
+      background: white;
+      color: #111;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .filter-tab {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .filter-tab:hover {
+      border-color: #111;
+    }
+    .filter-tab.active {
+      background: #111;
+      color: white;
+      border-color: #111;
+    }
+    
+    .refresh-btn {
+      padding: 8px 16px;
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .refresh-btn:hover {
+      border-color: #111;
+    }
+    
+    .stats-bar {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      border-left: 4px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .stat-card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .stat-card.active {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .stat-card.overdue { border-left-color: #ef4444; }
+    .stat-card.due-soon { border-left-color: #f59e0b; }
+    .stat-card.on-track { border-left-color: #22c55e; }
+    .stat-card.low-injections { border-left-color: #8b5cf6; }
+    .stat-card.completed { border-left-color: #9ca3af; }
+    
+    .stat-card .label {
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      margin-bottom: 24px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .section-header .count {
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .patient-grid {
+      display: grid;
+      gap: 12px;
+    }
+    
+    .patient-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      border: 1px solid #e5e7eb;
+      transition: all 0.15s;
+    }
+    .patient-card:hover {
+      border-color: #111;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .patient-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    .patient-info .field {
+      min-width: 0;
+    }
+    .patient-info .field-label {
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .patient-info .field-value {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .patient-info .field-value.name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .weight-progress {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .weight-change {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .weight-change.loss {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .weight-change.gain {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .weight-change.same {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge.in-clinic {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .badge.take-home {
+      background: #f3e8ff;
+      color: #7c3aed;
+    }
+    .badge.overdue {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .badge.low-injections {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    
+    .injections-display {
+      font-weight: 700;
+    }
+    .injections-display.low { color: #dc2626; }
+    .injections-display.medium { color: #f59e0b; }
+    .injections-display.ok { color: #22c55e; }
+    
+    .days-ago {
+      font-weight: 500;
+    }
+    .days-ago.overdue { color: #dc2626; }
+    .days-ago.due-soon { color: #f59e0b; }
+    .days-ago.on-track { color: #22c55e; }
+    
+    .patient-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .action-btn {
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .action-btn:hover {
+      border-color: #111;
+      background: #f9fafb;
+    }
+    .action-btn.primary {
+      background: #111;
+      color: white;
+      border-color: #111;
+    }
+    .action-btn.primary:hover {
+      background: #333;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #6b7280;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #111;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #111;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1001;
+      display: none;
+    }
+    .toast.success { background: #22c55e; }
+    .toast.error { background: #ef4444; }
+    .toast.active { display: block; }
+
+    @media (max-width: 768px) {
+      .patient-card {
+        grid-template-columns: 1fr;
+      }
+      .patient-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-actions {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .search-box input {
+        width: 100%;
+      }
+      .search-box input:focus {
+        width: 100%;
+      }
+      .main-tabs {
+        justify-content: center;
+      }
+      .filter-tabs {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⚖️ Weight Loss Protocols</h1>
+    <div class="header-actions">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Search patient..." oninput="handleSearch()">
+      </div>
+      <div class="main-tabs">
+        <button class="main-tab active" data-view="active">Active</button>
+        <button class="main-tab" data-view="completed">Completed</button>
+      </div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">All</button>
+        <button class="filter-tab" data-filter="in_clinic">In Clinic</button>
+        <button class="filter-tab" data-filter="take_home">Take Home</button>
+      </div>
+      <button class="refresh-btn" onclick="loadProtocols()">
+        ↻ Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="activeStats">
+    <div class="stat-card overdue" data-status="overdue" onclick="filterByStatus('overdue')">
+      <div class="label">Overdue (7+ days)</div>
+      <div class="value" id="stat-overdue">-</div>
+    </div>
+    <div class="stat-card due-soon" data-status="due-soon" onclick="filterByStatus('due-soon')">
+      <div class="label">Due Soon (5-6 days)</div>
+      <div class="value" id="stat-due-soon">-</div>
+    </div>
+    <div class="stat-card on-track" data-status="on-track" onclick="filterByStatus('on-track')">
+      <div class="label">On Track (0-4 days)</div>
+      <div class="value" id="stat-on-track">-</div>
+    </div>
+    <div class="stat-card low-injections" data-status="low-injections" onclick="filterByStatus('low-injections')">
+      <div class="label">Low Injections (≤1)</div>
+      <div class="value" id="stat-low-injections">-</div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="completedStats" style="display: none;">
+    <div class="stat-card completed">
+      <div class="label">Total Completed</div>
+      <div class="value" id="stat-completed">-</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="loading" class="loading">Loading protocols...</div>
+    <div id="content" style="display: none;"></div>
+  </div>
+
+  <!-- SMS Modal -->
+  <div class="modal-overlay" id="smsModal">
+    <div class="modal">
+      <h3>📱 Send Check-In SMS</h3>
+      <p id="smsPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="smsMessage">Hi {{first_name}}! 📊
+
+Time for your weekly weight loss check-in:
+
+https://app.range-medical.com/patient-checkin.html?contact_id={{contact_id}}
+
+Takes 30 seconds!
+- Range Medical</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeSmsModal()">Cancel</button>
+        <button class="action-btn primary" onclick="sendSms()">Send SMS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renew Modal -->
+  <div class="modal-overlay" id="renewModal">
+    <div class="modal">
+      <h3>🔄 Add Injections</h3>
+      <p id="renewPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div class="form-group">
+        <label>Injections to Add</label>
+        <select id="renewInjections">
+          <option value="2">2 Injections (2 weeks)</option>
+          <option value="4" selected>4 Injections (4 weeks)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="renewNotes" placeholder="Pickup date, dosage changes, etc."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeRenewModal()">Cancel</button>
+        <button class="action-btn primary" onclick="renewProtocol()">Add Injections</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api' 
+      : 'https://app.range-medical.com/api';
+    
+    let allProtocols = [];
+    let currentFilter = 'all';
+    let currentStatusFilter = null;
+    let selectedProtocol = null;
+    let searchTerm = '';
+    let mainView = 'active';
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadProtocols();
+      
+      // Main tab clicks (Active/Completed)
+      document.querySelectorAll('.main-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          mainView = tab.dataset.view;
+          currentStatusFilter = null;
+          document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+          
+          document.getElementById('activeStats').style.display = mainView === 'active' ? 'grid' : 'none';
+          document.getElementById('completedStats').style.display = mainView === 'completed' ? 'grid' : 'none';
+          
+          renderProtocols();
+        });
+      });
+      
+      // Filter tab clicks
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentFilter = tab.dataset.filter;
+          renderProtocols();
+        });
+      });
+    });
+
+    function handleSearch() {
+      searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      renderProtocols();
+    }
+
+    function clearSearch() {
+      searchTerm = '';
+      document.getElementById('searchInput').value = '';
+      renderProtocols();
+    }
+
+    async function loadProtocols() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('content').style.display = 'none';
+      
+      try {
+        const res = await fetch(`${API_BASE}/pipelines/weight-loss`);
+        const data = await res.json();
+        
+        if (data.success) {
+          allProtocols = data.protocols;
+          updateStats();
+          renderProtocols();
+        } else {
+          showToast('Failed to load protocols', 'error');
+        }
+      } catch (err) {
+        console.error('Load error:', err);
+        showToast('Failed to load protocols', 'error');
+      }
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    }
+
+    function updateStats() {
+      let overdue = 0, dueSoon = 0, onTrack = 0, lowInjections = 0, completed = 0;
+      
+      allProtocols.forEach(p => {
+        if (isCompleted(p)) {
+          completed++;
+          return;
+        }
+        
+        const status = getCheckInStatus(p);
+        if (status === 'overdue') overdue++;
+        else if (status === 'due-soon') dueSoon++;
+        else onTrack++;
+        
+        // Low injections (1 or fewer remaining)
+        const remaining = (p.total_injections || 0) - (p.injections_used || 0);
+        if (remaining <= 1 && !isCompleted(p)) lowInjections++;
+      });
+      
+      document.getElementById('stat-overdue').textContent = overdue;
+      document.getElementById('stat-due-soon').textContent = dueSoon;
+      document.getElementById('stat-on-track').textContent = onTrack;
+      document.getElementById('stat-low-injections').textContent = lowInjections;
+      document.getElementById('stat-completed').textContent = completed;
+    }
+
+    function isCompleted(p) {
+      const remaining = (p.total_injections || 0) - (p.injections_used || 0);
+      return remaining <= 0 || p.status === 'completed';
+    }
+
+    function getCheckInStatus(p) {
+      // For in-clinic: days since last injection
+      // For take-home: days since last check-in
+      const daysSince = p.delivery_method === 'in_clinic' 
+        ? p.days_since_last_injection 
+        : p.days_since_last_checkin;
+      
+      if (daysSince === null || daysSince === undefined) {
+        // No check-in/injection yet - check days since start
+        const daysSinceStart = p.days_since_start || 0;
+        if (daysSinceStart >= 7) return 'overdue';
+        if (daysSinceStart >= 5) return 'due-soon';
+        return 'on-track';
+      }
+      
+      if (daysSince >= 7) return 'overdue';
+      if (daysSince >= 5) return 'due-soon';
+      return 'on-track';
+    }
+
+    function filterByStatus(status) {
+      if (currentStatusFilter === status) {
+        currentStatusFilter = null;
+        document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+      } else {
+        currentStatusFilter = status;
+        document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.stat-card[data-status="${status}"]`)?.classList.add('active');
+      }
+      renderProtocols();
+    }
+
+    function renderProtocols() {
+      let filtered = allProtocols;
+      
+      // Apply main view filter
+      if (mainView === 'active') {
+        filtered = filtered.filter(p => !isCompleted(p));
+      } else {
+        filtered = filtered.filter(p => isCompleted(p));
+      }
+      
+      // Apply search filter
+      if (searchTerm) {
+        filtered = filtered.filter(p => 
+          (p.patient_name || '').toLowerCase().includes(searchTerm) ||
+          (p.medication || '').toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Apply delivery method filter
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter(p => p.delivery_method === currentFilter);
+      }
+      
+      // Apply status filter
+      if (currentStatusFilter && mainView === 'active') {
+        if (currentStatusFilter === 'low-injections') {
+          filtered = filtered.filter(p => {
+            const remaining = (p.total_injections || 0) - (p.injections_used || 0);
+            return remaining <= 1;
+          });
+        } else {
+          filtered = filtered.filter(p => getCheckInStatus(p) === currentStatusFilter);
+        }
+      }
+      
+      let html = '';
+      
+      if (mainView === 'active') {
+        const groups = {
+          overdue: filtered.filter(p => getCheckInStatus(p) === 'overdue'),
+          'due-soon': filtered.filter(p => getCheckInStatus(p) === 'due-soon'),
+          'on-track': filtered.filter(p => getCheckInStatus(p) === 'on-track')
+        };
+        
+        // Sort by days since last check-in/injection (most overdue first)
+        Object.keys(groups).forEach(key => {
+          groups[key].sort((a, b) => {
+            const aDays = a.delivery_method === 'in_clinic' ? a.days_since_last_injection : a.days_since_last_checkin;
+            const bDays = b.delivery_method === 'in_clinic' ? b.days_since_last_injection : b.days_since_last_checkin;
+            return (bDays || 999) - (aDays || 999);
+          });
+        });
+        
+        if (groups.overdue.length > 0) {
+          html += renderSection('🔴 Overdue (7+ days since check-in)', groups.overdue);
+        }
+        if (groups['due-soon'].length > 0) {
+          html += renderSection('🟡 Due Soon (5-6 days)', groups['due-soon']);
+        }
+        if (groups['on-track'].length > 0) {
+          html += renderSection('🟢 On Track (0-4 days)', groups['on-track']);
+        }
+      } else {
+        filtered.sort((a, b) => new Date(b.last_activity || 0) - new Date(a.last_activity || 0));
+        
+        if (filtered.length > 0) {
+          html += renderSection('⚪ Completed Protocols', filtered);
+        }
+      }
+      
+      if (html === '') {
+        const viewLabel = mainView === 'active' ? 'active protocols' : 'completed protocols';
+        const searchMsg = searchTerm 
+          ? `No ${viewLabel} found matching "${searchTerm}".` 
+          : `No ${viewLabel} found.`;
+        html = `
+          <div class="empty-state">
+            <div class="icon">${mainView === 'active' ? '⚖️' : '✅'}</div>
+            <p>${searchMsg}</p>
+            ${searchTerm ? '<p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>' : ''}
+          </div>
+        `;
+      }
+      
+      document.getElementById('content').innerHTML = html;
+    }
+
+    function renderSection(title, protocols) {
+      return `
+        <div class="section">
+          <div class="section-header">
+            <h2>${title}</h2>
+            <span class="count">${protocols.length}</span>
+          </div>
+          <div class="patient-grid">
+            ${protocols.map(p => renderPatientCard(p)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPatientCard(p) {
+      const deliveryBadge = p.delivery_method === 'in_clinic' 
+        ? '<span class="badge in-clinic">In Clinic</span>'
+        : '<span class="badge take-home">Take Home</span>';
+      
+      const injectionsUsed = p.injections_used || 0;
+      const totalInjections = p.total_injections || 0;
+      const remaining = totalInjections - injectionsUsed;
+      const injClass = remaining <= 1 ? 'low' : remaining <= 2 ? 'medium' : 'ok';
+      
+      // Weight progress
+      const startWeight = p.starting_weight;
+      const currentWeight = p.current_weight;
+      let weightDisplay = '-';
+      let weightChangeHtml = '';
+      
+      if (startWeight && currentWeight) {
+        const change = currentWeight - startWeight;
+        const changeClass = change < 0 ? 'loss' : change > 0 ? 'gain' : 'same';
+        const changeText = change < 0 ? `${Math.abs(change).toFixed(1)} lbs` : change > 0 ? `+${change.toFixed(1)} lbs` : 'No change';
+        weightDisplay = `${startWeight} → ${currentWeight}`;
+        weightChangeHtml = `<span class="weight-change ${changeClass}">${changeText}</span>`;
+      } else if (startWeight) {
+        weightDisplay = `${startWeight} lbs`;
+      }
+      
+      // Days since last activity
+      const daysSince = p.delivery_method === 'in_clinic' 
+        ? p.days_since_last_injection 
+        : p.days_since_last_checkin;
+      const status = getCheckInStatus(p);
+      const daysClass = status === 'overdue' ? 'overdue' : status === 'due-soon' ? 'due-soon' : 'on-track';
+      const daysText = daysSince === null || daysSince === undefined 
+        ? 'No activity yet' 
+        : daysSince === 0 ? 'Today' : `${daysSince} days ago`;
+      
+      const isComplete = isCompleted(p);
+      const lastActivityLabel = p.delivery_method === 'in_clinic' ? 'Last Injection' : 'Last Check-In';
+      
+      // Overdue badge
+      const overdueBadge = status === 'overdue' && !isComplete 
+        ? '<span class="badge overdue">Overdue</span>' 
+        : '';
+      
+      // Low injections badge
+      const lowInjBadge = remaining <= 1 && !isComplete 
+        ? '<span class="badge low-injections">Low Inj</span>' 
+        : '';
+      
+      return `
+        <div class="patient-card">
+          <div class="patient-info">
+            <div class="field">
+              <div class="field-label">Patient</div>
+              <div class="field-value name">${p.patient_name || 'Unknown'}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Medication</div>
+              <div class="field-value">${p.medication || '-'} ${p.current_dose || ''}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Weight</div>
+              <div class="field-value">
+                <div class="weight-progress">
+                  ${weightDisplay} ${weightChangeHtml}
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Injections</div>
+              <div class="field-value injections-display ${injClass}">${injectionsUsed} / ${totalInjections} ${isComplete ? '(Done)' : ''}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">${lastActivityLabel}</div>
+              <div class="field-value days-ago ${daysClass}">${daysText}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Delivery</div>
+              <div class="field-value">${deliveryBadge} ${overdueBadge} ${lowInjBadge}</div>
+            </div>
+          </div>
+          <div class="patient-actions">
+            ${p.delivery_method === 'take_home' ? `
+              <button class="action-btn" onclick="openSmsModal('${p.id}', '${p.patient_name}', '${p.ghl_contact_id}')">
+                📱 SMS
+              </button>
+            ` : `
+              <button class="action-btn" onclick="logInjection('${p.id}', '${p.patient_name}')">
+                💉 Log Injection
+              </button>
+            `}
+            <button class="action-btn" onclick="openInGHL('${p.ghl_contact_id}')">
+              ↗ GHL
+            </button>
+            ${isComplete || remaining <= 1 ? `
+              <button class="action-btn primary" onclick="openRenewModal('${p.id}', '${p.patient_name}', '${p.medication}')">
+                🔄 Add Inj
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function openInGHL(contactId) {
+      if (!contactId) {
+        showToast('No GHL contact linked', 'error');
+        return;
+      }
+      window.open(`https://crm.cuppconsulting.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${contactId}`, '_blank');
+    }
+
+    function openSmsModal(protocolId, patientName, contactId) {
+      selectedProtocol = { id: protocolId, patientName, contactId };
+      document.getElementById('smsPatientName').textContent = `To: ${patientName}`;
+      
+      // Replace placeholders in message
+      let message = document.getElementById('smsMessage').value;
+      message = message.replace('{{first_name}}', patientName.split(' ')[0]);
+      message = message.replace('{{contact_id}}', contactId);
+      document.getElementById('smsMessage').value = message;
+      
+      document.getElementById('smsModal').classList.add('active');
+    }
+
+    function closeSmsModal() {
+      document.getElementById('smsModal').classList.remove('active');
+      // Reset message template
+      document.getElementById('smsMessage').value = `Hi {{first_name}}! 📊
+
+Time for your weekly weight loss check-in:
+
+https://app.range-medical.com/patient-checkin.html?contact_id={{contact_id}}
+
+Takes 30 seconds!
+- Range Medical`;
+      selectedProtocol = null;
+    }
+
+    async function sendSms() {
+      if (!selectedProtocol) return;
+      
+      const message = document.getElementById('smsMessage').value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/ghl/send-sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contact_id: selectedProtocol.contactId,
+            message: message
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('SMS sent successfully!', 'success');
+          closeSmsModal();
+        } else {
+          showToast(data.error || 'Failed to send SMS', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to send SMS', 'error');
+      }
+    }
+
+    function openRenewModal(protocolId, patientName, medication) {
+      selectedProtocol = { id: protocolId, patientName, medication };
+      document.getElementById('renewPatientName').textContent = `${patientName} - ${medication}`;
+      document.getElementById('renewModal').classList.add('active');
+    }
+
+    function closeRenewModal() {
+      document.getElementById('renewModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function renewProtocol() {
+      if (!selectedProtocol) return;
+      
+      const injections = document.getElementById('renewInjections').value;
+      const notes = document.getElementById('renewNotes').value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/add-injections`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            injections: parseInt(injections),
+            notes: notes
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast(`Added ${injections} injections!`, 'success');
+          closeRenewModal();
+          loadProtocols();
+        } else {
+          showToast(data.error || 'Failed to add injections', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to add injections', 'error');
+      }
+    }
+
+    async function logInjection(protocolId, patientName) {
+      showToast('Opening injection log...', 'success');
+      window.open(`/staff-quick-log.html?protocol_id=${protocolId}&action=log_wl_injection`, '_blank');
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast active ${type}`;
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

@@ -1,13 +1,10 @@
 // /pages/api/protocols/[id]/log-session.js
 // Log a session, injection, or weight for a protocol
 // Range Medical
-// UPDATED: 2026-01-04 - Added GHL sync for injections
+// UPDATED: 2026-01-04 - Added comprehensive GHL sync for all protocol types
 
 import { createClient } from '@supabase/supabase-js';
-import {
-  syncWeightLossInjectionLogged,
-  syncInjectionSessionLogged
-} from '../../../../lib/ghl-sync';
+import { syncSessionLogToGHL } from '../../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -109,17 +106,10 @@ export default async function handler(req, res) {
     // SYNC TO GHL
     // ============================================
     if (ghlContactId && finalLogType !== 'weigh_in') {
-      console.log('Syncing injection to GHL:', ghlContactId);
+      console.log('Syncing session to GHL:', ghlContactId);
       
       try {
-        const isWeightLoss = protocol.program_type === 'weight_loss' || 
-          (protocol.program_name || '').toLowerCase().includes('weight loss');
-        
-        if (isWeightLoss) {
-          await syncWeightLossInjectionLogged(ghlContactId, updatedProtocol, insertedLog || logEntry, patientName);
-        } else {
-          await syncInjectionSessionLogged(ghlContactId, updatedProtocol, patientName);
-        }
+        await syncSessionLogToGHL(ghlContactId, updatedProtocol, insertedLog || logEntry, patientName);
       } catch (syncError) {
         console.error('GHL sync error (non-fatal):', syncError);
         // Don't fail the request if GHL sync fails

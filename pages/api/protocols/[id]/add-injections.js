@@ -54,9 +54,9 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // Calculate new totals
+    // Calculate new totals (stored as sessions in DB)
     const today = new Date();
-    const currentTotal = protocol.total_injections || 0;
+    const currentTotal = protocol.total_sessions || 0;
     const newTotal = currentTotal + parseInt(injections);
     
     // Build renewal note
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     const { data: updated, error: updateError } = await supabase
       .from('protocols')
       .update({
-        total_injections: newTotal,
+        total_sessions: newTotal,
         status: 'active',
         notes: updatedNotes
       })
@@ -97,8 +97,8 @@ export default async function handler(req, res) {
 Medication: ${protocol.medication || 'N/A'}
 Added: ${injections} injections
 New Total: ${newTotal} injections
-Used: ${protocol.injections_used || 0}
-Remaining: ${newTotal - (protocol.injections_used || 0)}
+Used: ${protocol.sessions_used || 0}
+Remaining: ${newTotal - (protocol.sessions_used || 0)}
 ${notes ? `Notes: ${notes}` : ''}`;
 
       await addGHLNote(contactId, ghlNote);
@@ -106,7 +106,7 @@ ${notes ? `Notes: ${notes}` : ''}`;
       // Update custom fields
       await updateGHLContact(contactId, {
         'wl__total_injections': String(newTotal),
-        'wl__injections_remaining': String(newTotal - (protocol.injections_used || 0))
+        'wl__injections_remaining': String(newTotal - (protocol.sessions_used || 0))
       });
     }
 

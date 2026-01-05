@@ -49,6 +49,7 @@ export default async function handler(req, res) {
     const contactId = payload.contact_id || payload.contactId || payload.contact?.id;
     const contactName = payload.contact_name || payload.full_name || payload.name || 
                         `${payload.first_name || ''} ${payload.last_name || ''}`.trim();
+    const medication = payload.medication || payload.wl_medication || '';
     const weight = payload.weight || payload.current_weight || payload.wl_weight;
     const dose = payload.dose || payload.current_dose || payload.wl_dose;
     const notes = payload.notes || payload.injection_notes || '';
@@ -97,7 +98,7 @@ export default async function handler(req, res) {
       log_date: logDate,
       weight: weight ? parseFloat(weight) : null,
       dose: dose || protocol.selected_dose,
-      notes: notes || null
+      notes: medication ? `${medication} - ${notes || ''}`.trim() : (notes || null)
     };
 
     const { data: insertedLog, error: logError } = await supabase
@@ -141,13 +142,20 @@ export default async function handler(req, res) {
       ...protocol,
       sessions_used: newSessionsUsed,
       starting_weight: updates.starting_weight || protocol.starting_weight,
-      status: updates.status || protocol.status
+      status: updates.status || protocol.status,
+      medication: medication || protocol.medication
+    };
+
+    // Add medication to log for sync
+    const logWithMedication = {
+      ...(insertedLog || logEntry),
+      medication: medication
     };
 
     await syncWeightLossInjectionLogged(
       contactId, 
       updatedProtocol, 
-      insertedLog || logEntry, 
+      logWithMedication, 
       patient.name || contactName
     );
 

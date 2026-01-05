@@ -1,9 +1,14 @@
 // /pages/api/protocols/assign.js
 // Assign a protocol to a patient from a purchase
 // Range Medical
-// UPDATED: 2026-01-03 - Fixed to set protocol_id on purchase (not just protocol_created)
+// UPDATED: 2026-01-04 - Added GHL sync for protocols
 
 import { createClient } from '@supabase/supabase-js';
+import {
+  syncWeightLossProtocolCreated,
+  syncPeptideProtocolCreated,
+  syncInjectionProtocolCreated
+} from '../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -40,18 +45,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Template is required' });
     }
 
-    // Find or determine patient_id
+    // Find or determine patient_id and ghl_contact_id
     let finalPatientId = patientId;
+    let finalGhlContactId = ghlContactId;
 
     if (!finalPatientId && ghlContactId) {
       const { data: existingPatient } = await supabase
         .from('patients')
-        .select('id')
+        .select('id, ghl_contact_id')
         .eq('ghl_contact_id', ghlContactId)
         .single();
 
       if (existingPatient) {
         finalPatientId = existingPatient.id;
+        finalGhlContactId = existingPatient.ghl_contact_id;
       } else {
         const { data: newPatient, error: createError } = await supabase
           .from('patients')
@@ -69,7 +76,19 @@ export default async function handler(req, res) {
         }
 
         finalPatientId = newPatient.id;
+        finalGhlContactId = newPatient.ghl_contact_id;
       }
+    }
+
+    // If we have patientId but no ghlContactId, look it up
+    if (finalPatientId && !finalGhlContactId) {
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('ghl_contact_id')
+        .eq('id', finalPatientId)
+        .single();
+      
+      finalGhlContactId = patient?.ghl_contact_id;
     }
 
     if (!finalPatientId) {
@@ -88,6 +107,11 @@ export default async function handler(req, res) {
       const durationLabel = wlDuration === 7 ? 'Weekly' : wlDuration === 14 ? 'Two Weeks' : 'Monthly';
       programName = `Weight Loss - ${durationLabel}`;
       programType = 'weight_loss';
+      
+      // For in_clinic monthly, default to 4 sessions
+      if (deliveryMethod === 'in_clinic' && wlDuration === 28) {
+        finalTotalSessions = totalSessions || 4;
+      }
       
       // Calculate end date based on duration
       if (startDate && wlDuration) {
@@ -200,10 +224,36 @@ export default async function handler(req, res) {
       console.warn('No purchaseId provided - purchase will remain in pipeline');
     }
 
+    // ============================================
+    // SYNC TO GHL
+    // ============================================
+    if (finalGhlContactId) {
+      console.log('Syncing protocol to GHL:', finalGhlContactId);
+      
+      try {
+        if (isWeightLoss || programType === 'weight_loss') {
+          await syncWeightLossProtocolCreated(finalGhlContactId, protocol, patientName);
+        } else if (programType === 'peptide') {
+          await syncPeptideProtocolCreated(finalGhlContactId, protocol, patientName);
+        } else if (programType === 'injection' || finalTotalSessions) {
+          await syncInjectionProtocolCreated(finalGhlContactId, protocol, patientName);
+        } else {
+          // Generic protocol - just add a note
+          await syncPeptideProtocolCreated(finalGhlContactId, protocol, patientName);
+        }
+      } catch (syncError) {
+        console.error('GHL sync error (non-fatal):', syncError);
+        // Don't fail the request if GHL sync fails
+      }
+    } else {
+      console.log('No GHL contact ID - skipping GHL sync');
+    }
+
     res.status(200).json({ 
       success: true, 
       protocol,
       purchaseUpdated: !!purchaseId,
+      ghlSynced: !!finalGhlContactId,
       message: `Protocol created: ${programName}`
     });
 

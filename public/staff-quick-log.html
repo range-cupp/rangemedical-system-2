@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Medical - Staff Quick Log</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6; 
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 500px; margin: 0 auto; }
+    
+    h1 { 
+      text-align: center; 
+      font-size: 24px; 
+      margin-bottom: 8px;
+      color: #111;
+    }
+    .subtitle {
+      text-align: center;
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .card h2 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      color: #111;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .form-group { margin-bottom: 16px; }
+    
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #111;
+    }
+    
+    textarea { resize: vertical; min-height: 80px; }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #111;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #333; }
+    button:disabled { background: #9ca3af; cursor: not-allowed; }
+    
+    .btn-secondary {
+      background: white;
+      color: #111;
+      border: 1px solid #d1d5db;
+    }
+    .btn-secondary:hover { background: #f9fafb; }
+    
+    .success {
+      background: #ecfdf5;
+      border: 1px solid #10b981;
+      color: #065f46;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .error {
+      background: #fef2f2;
+      border: 1px solid #ef4444;
+      color: #991b1b;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    
+    .patient-badge {
+      background: #f3f4f6;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .patient-badge .name { font-weight: 600; }
+    .patient-badge .change { 
+      color: #6b7280; 
+      font-size: 13px; 
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 10px 16px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #374151;
+      flex: 1;
+      min-width: 45%;
+    }
+    .tab.active {
+      background: #111;
+      color: white;
+    }
+    
+    .form-section { display: none; }
+    .form-section.active { display: block; }
+    
+    .search-results {
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      margin-top: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+    .search-result {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .search-result:hover { background: #f9fafb; }
+    .search-result:last-child { border-bottom: none; }
+    .search-result .name { font-weight: 500; }
+    .search-result .id { font-size: 12px; color: #6b7280; }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+    }
+    
+    #patientSelect { display: block; }
+    #formSection { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Range Medical</h1>
+    <p class="subtitle">Staff Quick Log</p>
+    
+    <div id="successMsg" class="success"></div>
+    <div id="errorMsg" class="error"></div>
+    
+    <!-- Patient Selection -->
+    <div id="patientSelect" class="card">
+      <h2>👤 Select Patient</h2>
+      <div class="form-group">
+        <label>Search by name</label>
+        <input type="text" id="patientSearch" placeholder="Start typing..." autocomplete="off">
+        <div id="searchResults" class="search-results"></div>
+      </div>
+      <div class="loading" id="searchLoading">Searching...</div>
+    </div>
+    
+    <!-- Forms Section (shown after patient selected) -->
+    <div id="formSection">
+      <div class="patient-badge">
+        <div>
+          <div class="name" id="selectedPatientName">-</div>
+          <div style="font-size: 12px; color: #6b7280;" id="selectedPatientId">-</div>
+        </div>
+        <div class="change" onclick="changePatient()">Change</div>
+      </div>
+      
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('wl')">💉 Weight Loss</button>
+        <button class="tab" onclick="showTab('hrt')">💊 HRT</button>
+        <button class="tab" onclick="showTab('session')">📋 Session</button>
+        <button class="tab" onclick="showTab('blood')">🩸 Blood Draw</button>
+      </div>
+      
+      <!-- Weight Loss Form -->
+      <div id="tab-wl" class="form-section active">
+        <div class="card">
+          <h2>💉 Log Weight Loss Injection</h2>
+          <form id="wlForm" onsubmit="submitWL(event)">
+            <div class="form-group">
+              <label>Current Weight (lbs)</label>
+              <input type="number" step="0.1" name="weight" placeholder="e.g. 215.5" required>
+            </div>
+            <div class="form-group">
+              <label>Dose</label>
+              <select name="dose" required>
+                <option value="">Select dose...</option>
+                <option value="0.25mg">0.25mg</option>
+                <option value="0.5mg">0.5mg</option>
+                <option value="1mg">1mg</option>
+                <option value="1.5mg">1.5mg</option>
+                <option value="2mg">2mg</option>
+                <option value="2.5mg">2.5mg</option>
+                <option value="5mg">5mg</option>
+                <option value="7.5mg">7.5mg</option>
+                <option value="10mg">10mg</option>
+                <option value="12.5mg">12.5mg</option>
+                <option value="15mg">15mg</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any observations..."></textarea>
+            </div>
+            <button type="submit">Log Injection</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- HRT Fulfillment Form -->
+      <div id="tab-hrt" class="form-section">
+        <div class="card">
+          <h2>💊 Log HRT Fulfillment</h2>
+          <form id="hrtForm" onsubmit="submitHRT(event)">
+            <div class="form-group">
+              <label>Fulfillment Type</label>
+              <select name="fulfillment_type" required>
+                <option value="">Select type...</option>
+                <option value="Pre-filled 2 Week">Pre-filled 2 Week</option>
+                <option value="Pre-filled 4 Week">Pre-filled 4 Week</option>
+                <option value="Vial">Vial (10-12 weeks)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Medication</label>
+              <input type="text" name="medication" placeholder="e.g. Testosterone Cypionate">
+            </div>
+            <div class="form-group">
+              <label>Dosage</label>
+              <input type="text" name="dosage" placeholder="e.g. 200mg/week">
+            </div>
+            <button type="submit">Log Fulfillment</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Session Form -->
+      <div id="tab-session" class="form-section">
+        <div class="card">
+          <h2>📋 Log Session</h2>
+          <form id="sessionForm" onsubmit="submitSession(event)">
+            <div class="form-group">
+              <label>Session Type</label>
+              <select name="session_type" required>
+                <option value="">Select type...</option>
+                <option value="iv">IV Therapy</option>
+                <option value="hbot">HBOT (Hyperbaric)</option>
+                <option value="rlt">Red Light Therapy</option>
+                <option value="injection">Injection Pack</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any observations..."></textarea>
+            </div>
+            <button type="submit">Log Session</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Blood Draw Form -->
+      <div id="tab-blood" class="form-section">
+        <div class="card">
+          <h2>🩸 Log HRT Blood Draw</h2>
+          <form id="bloodForm" onsubmit="submitBlood(event)">
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+              This will log today's date as the blood draw date and schedule the next one in 8 weeks.
+            </p>
+            <button type="submit">Confirm Blood Draw</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Config
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api' 
+      : 'https://app.range-medical.com/api';
+    
+    // State
+    let selectedPatient = null;
+    let searchTimeout = null;
+    
+    // Patient Search
+    const searchInput = document.getElementById('patientSearch');
+    const searchResults = document.getElementById('searchResults');
+    const searchLoading = document.getElementById('searchLoading');
+    
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      
+      if (query.length < 2) {
+        searchResults.style.display = 'none';
+        return;
+      }
+      
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => searchPatients(query), 300);
+    });
+    
+    async function searchPatients(query) {
+      searchLoading.style.display = 'block';
+      searchResults.style.display = 'none';
+      
+      try {
+        const res = await fetch(`${API_BASE}/patients/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        searchLoading.style.display = 'none';
+        
+        if (data.patients && data.patients.length > 0) {
+          searchResults.innerHTML = data.patients.map(p => `
+            <div class="search-result" onclick="selectPatient('${p.id}', '${p.ghl_contact_id || ''}', '${escapeHtml(p.name)}')">
+              <div class="name">${escapeHtml(p.name)}</div>
+              <div class="id">${p.ghl_contact_id ? 'GHL: ' + p.ghl_contact_id : 'No GHL ID'}</div>
+            </div>
+          `).join('');
+          searchResults.style.display = 'block';
+        } else {
+          searchResults.innerHTML = '<div class="search-result"><div class="name">No patients found</div></div>';
+          searchResults.style.display = 'block';
+        }
+      } catch (err) {
+        searchLoading.style.display = 'none';
+        showError('Search failed: ' + err.message);
+      }
+    }
+    
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+    
+    function selectPatient(id, ghlId, name) {
+      if (!ghlId) {
+        showError('This patient has no GHL Contact ID linked. Please link them first.');
+        return;
+      }
+      
+      selectedPatient = { id, ghlId, name };
+      document.getElementById('selectedPatientName').textContent = name;
+      document.getElementById('selectedPatientId').textContent = 'GHL: ' + ghlId;
+      
+      document.getElementById('patientSelect').style.display = 'none';
+      document.getElementById('formSection').style.display = 'block';
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    }
+    
+    function changePatient() {
+      selectedPatient = null;
+      document.getElementById('patientSelect').style.display = 'block';
+      document.getElementById('formSection').style.display = 'none';
+      clearMessages();
+    }
+    
+    // Tabs
+    function showTab(tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+      clearMessages();
+    }
+    
+    // Form Submissions
+    async function submitWL(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        weight: form.weight.value,
+        dose: form.dose.value,
+        notes: form.notes.value
+      };
+      
+      await submitForm('/ghl/log-wl-injection', data, form);
+    }
+    
+    async function submitHRT(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        fulfillment_type: form.fulfillment_type.value,
+        medication: form.medication.value,
+        dosage: form.dosage.value
+      };
+      
+      await submitForm('/ghl/log-hrt-fulfillment', data, form);
+    }
+    
+    async function submitSession(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        session_type: form.session_type.value,
+        notes: form.notes.value
+      };
+      
+      await submitForm('/ghl/log-session', data, form);
+    }
+    
+    async function submitBlood(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name
+      };
+      
+      await submitForm('/ghl/log-hrt-blooddraw', data, form);
+    }
+    
+    async function submitForm(endpoint, data, form) {
+      const btn = form.querySelector('button[type="submit"]');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      clearMessages();
+      
+      try {
+        const res = await fetch(API_BASE + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          showSuccess(result.message || 'Logged successfully!');
+          form.reset();
+        } else {
+          showError(result.error || 'Something went wrong');
+        }
+      } catch (err) {
+        showError('Request failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+    
+    // Messages
+    function showSuccess(msg) {
+      const el = document.getElementById('successMsg');
+      el.textContent = '✓ ' + msg;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 5000);
+    }
+    
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+    
+    function clearMessages() {
+      document.getElementById('successMsg').style.display = 'none';
+      document.getElementById('errorMsg').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

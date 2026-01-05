@@ -13,6 +13,8 @@ import {
   syncPeptideProtocolCreated,
   syncIVPackageCreated,
   syncInjectionProtocolCreated,
+  syncHBOTPackageCreated,
+  syncRLTPackageCreated,
   updateGHLContact,
   addGHLNote,
   createGHLTask
@@ -93,10 +95,10 @@ export default async function handler(req, res) {
     };
 
     let responseMessage = '';
-    let syncFunction = null;
 
     switch (protocolType) {
       case 'weight_loss':
+        const wlDelivery = payload.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home';
         protocolData = {
           ...protocolData,
           program_name: `Weight Loss - ${payload.medication}`,
@@ -107,49 +109,84 @@ export default async function handler(req, res) {
           sessions_used: 0,
           starting_weight: payload.starting_weight ? parseFloat(payload.starting_weight) : null
         };
-        responseMessage = `Weight Loss protocol started: ${payload.medication} (${payload.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home'})`;
+        responseMessage = `Weight Loss protocol started: ${payload.medication} (${wlDelivery})`;
+        break;
+
+      case 'peptide':
+        const peptideDelivery = payload.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home';
+        protocolData = {
+          ...protocolData,
+          program_name: `Peptide - ${payload.program_name}`,
+          medication: payload.medication,
+          selected_dose: payload.dosage,
+          frequency: payload.frequency,
+          delivery_method: payload.delivery_method
+        };
+        responseMessage = `Peptide protocol started: ${payload.medication} ${payload.program_name} (${peptideDelivery})`;
         break;
 
       case 'hrt':
+        const hrtDelivery = payload.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home';
         protocolData = {
           ...protocolData,
           program_name: `HRT - ${payload.medication}`,
           medication: payload.medication,
           selected_dose: payload.dosage,
-          delivery_method: payload.fulfillment_type
+          delivery_method: payload.delivery_method,
+          fulfillment_type: payload.fulfillment_type || null
         };
-        responseMessage = `HRT protocol started: ${payload.medication}`;
-        break;
-
-      case 'peptide':
-        protocolData = {
-          ...protocolData,
-          program_name: payload.program_name,
-          medication: payload.medication,
-          selected_dose: payload.dosage,
-          frequency: payload.frequency
-        };
-        responseMessage = `Peptide protocol started: ${payload.medication}`;
+        responseMessage = `HRT protocol started: ${payload.medication} (${hrtDelivery})`;
         break;
 
       case 'iv_therapy':
+        const ivSessions = parseInt(payload.total_sessions) || 1;
         protocolData = {
           ...protocolData,
-          program_name: payload.package_name || 'IV Therapy Package',
-          total_sessions: parseInt(payload.total_sessions) || 1,
+          program_name: `IV Therapy - ${payload.package_type}${payload.iv_type ? ' (' + payload.iv_type + ')' : ''}`,
+          medication: payload.iv_type || null,
+          delivery_method: 'in_clinic',
+          total_sessions: ivSessions,
           sessions_used: 0
         };
-        responseMessage = `IV Therapy package started: ${payload.total_sessions} sessions`;
+        responseMessage = `IV Therapy started: ${payload.package_type} (${ivSessions} sessions)`;
         break;
 
       case 'injection':
+        const injSessions = parseInt(payload.total_sessions) || 1;
+        const injDelivery = payload.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home';
         protocolData = {
           ...protocolData,
-          program_name: payload.package_name || 'Injection Package',
-          total_sessions: parseInt(payload.total_sessions) || 1,
+          program_name: `Injection Therapy - ${payload.package_type}${payload.injection_type ? ' (' + payload.injection_type + ')' : ''}`,
+          medication: payload.injection_type || null,
+          delivery_method: payload.delivery_method,
+          total_sessions: injSessions,
           sessions_used: 0
         };
-        responseMessage = `Injection package started: ${payload.total_sessions} sessions`;
+        responseMessage = `Injection Therapy started: ${payload.package_type} (${injDelivery})`;
+        break;
+
+      case 'hbot':
+        const hbotSessions = parseInt(payload.total_sessions) || 1;
+        protocolData = {
+          ...protocolData,
+          program_name: `HBOT - ${payload.package_type}`,
+          delivery_method: 'in_clinic',
+          total_sessions: hbotSessions,
+          sessions_used: 0
+        };
+        responseMessage = `HBOT started: ${payload.package_type} (${hbotSessions} sessions)`;
+        break;
+
+      case 'rlt':
+        const rltSessions = parseInt(payload.total_sessions) || 1;
+        protocolData = {
+          ...protocolData,
+          program_name: `Red Light Therapy - ${payload.package_type}`,
+          delivery_method: 'in_clinic',
+          total_sessions: rltSessions,
+          sessions_used: 0
+        };
+        responseMessage = `Red Light Therapy started: ${payload.package_type} (${rltSessions} sessions)`;
         break;
 
       default:
@@ -178,7 +215,6 @@ export default async function handler(req, res) {
           
           // Create first task based on delivery method
           if (payload.delivery_method === 'in_clinic') {
-            // Create task for first injection
             const firstInjectionDate = new Date(startDate);
             await createGHLTask(
               contactId,
@@ -187,8 +223,7 @@ export default async function handler(req, res) {
               `${payload.medication} ${payload.starting_dose} - In Clinic`
             );
           } else {
-            // Take home - add note about weekly check-ins
-            await addGHLNote(contactId, `📱 TAKE HOME PROTOCOL STARTED
+            await addGHLNote(contactId, `📱 TAKE HOME WEIGHT LOSS STARTED
 
 Patient will receive weekly SMS check-in links to report weight and side effects.
 
@@ -198,20 +233,74 @@ Injections: ${payload.total_injections}`);
           }
           break;
 
-        case 'hrt':
-          await syncHRTProtocolCreated(contactId, insertedProtocol, patient.name);
-          break;
-
         case 'peptide':
           await syncPeptideProtocolCreated(contactId, insertedProtocol, patient.name);
+          
+          if (payload.delivery_method === 'in_clinic') {
+            await createGHLTask(
+              contactId,
+              `💉 Peptide Session - ${patient.name}`,
+              new Date(startDate).toISOString(),
+              `${payload.medication} ${payload.dosage} - ${payload.program_name}`
+            );
+          } else {
+            await addGHLNote(contactId, `📱 TAKE HOME PEPTIDE STARTED
+
+Peptide: ${payload.medication}
+Program: ${payload.program_name}
+Dosage: ${payload.dosage}
+Frequency: ${payload.frequency}`);
+          }
+          break;
+
+        case 'hrt':
+          await syncHRTProtocolCreated(contactId, insertedProtocol, patient.name);
+          
+          if (payload.delivery_method === 'in_clinic') {
+            await createGHLTask(
+              contactId,
+              `💉 HRT Injection - ${patient.name}`,
+              new Date(startDate).toISOString(),
+              `${payload.medication} ${payload.dosage} - In Clinic`
+            );
+          } else {
+            await addGHLNote(contactId, `📱 TAKE HOME HRT STARTED
+
+Medication: ${payload.medication}
+Dosage: ${payload.dosage}
+Fulfillment: ${payload.fulfillment_type || 'TBD'}`);
+          }
           break;
 
         case 'iv_therapy':
           await syncIVPackageCreated(contactId, insertedProtocol, patient.name);
+          await addGHLNote(contactId, `💧 IV THERAPY PACKAGE STARTED
+
+Package: ${payload.package_type}
+${payload.iv_type ? 'Type: ' + payload.iv_type + '\n' : ''}Sessions: ${payload.total_sessions}`);
           break;
 
         case 'injection':
           await syncInjectionProtocolCreated(contactId, insertedProtocol, patient.name);
+          
+          const injNote = payload.delivery_method === 'in_clinic' 
+            ? `💉 INJECTION PACKAGE STARTED (In Clinic)
+
+Package: ${payload.package_type}
+${payload.injection_type ? 'Type: ' + payload.injection_type + '\n' : ''}Sessions: ${payload.total_sessions}`
+            : `📱 TAKE HOME INJECTION PACKAGE STARTED
+
+Package: ${payload.package_type}
+${payload.injection_type ? 'Type: ' + payload.injection_type + '\n' : ''}Sessions: ${payload.total_sessions}`;
+          await addGHLNote(contactId, injNote);
+          break;
+
+        case 'hbot':
+          await syncHBOTPackageCreated(contactId, insertedProtocol, patient.name);
+          break;
+
+        case 'rlt':
+          await syncRLTPackageCreated(contactId, insertedProtocol, patient.name);
           break;
       }
     } catch (syncError) {

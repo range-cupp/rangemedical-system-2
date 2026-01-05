@@ -40,6 +40,9 @@ export default async function handler(req, res) {
     const contactId = payload.contact_id || payload.contactId || payload.contact?.id;
     const contactName = payload.contact_name || payload.full_name || payload.name || 
                         `${payload.first_name || ''} ${payload.last_name || ''}`.trim();
+    const logDate = payload.date || new Date().toISOString().split('T')[0];
+    const panelType = payload.panel_type || 'Blood Draw';
+    const notes = payload.notes || null;
 
     if (!contactId) {
       return res.status(400).json({ error: 'Contact ID required' });
@@ -66,24 +69,33 @@ export default async function handler(req, res) {
       .limit(1)
       .single();
 
+    let logNotes = `${panelType} completed`;
+    if (notes) {
+      logNotes += ` | ${notes}`;
+    }
+
     if (protocol) {
       await supabase.from('protocol_logs').insert({
         protocol_id: protocol.id,
         patient_id: patient.id,
         log_type: 'blood_draw',
-        log_date: new Date().toISOString().split('T')[0],
-        notes: 'HRT Blood Draw completed'
+        log_date: logDate,
+        notes: logNotes
       });
     }
 
     // Sync to GHL
-    await syncHRTBloodDraw(contactId, patient.name || contactName);
+    await syncHRTBloodDraw(contactId, patient.name || contactName, { 
+      date: logDate, 
+      panel_type: panelType,
+      notes: notes 
+    });
 
-    console.log('✓ HRT Blood Draw logged');
+    console.log('✓ HRT Blood Draw logged:', panelType);
 
     return res.status(200).json({
       success: true,
-      message: 'HRT Blood Draw logged'
+      message: `${panelType} logged`
     });
 
   } catch (error) {

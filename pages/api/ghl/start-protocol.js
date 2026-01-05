@@ -115,15 +115,36 @@ export default async function handler(req, res) {
 
       case 'peptide':
         const peptideDelivery = payload.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home';
+        
+        // Calculate end date based on program duration
+        let peptideDuration = 30; // default 30 days
+        const programName = (payload.program_name || '').toLowerCase();
+        if (programName.includes('7 day') || programName.includes('7-day')) {
+          peptideDuration = 7;
+        } else if (programName.includes('10 day') || programName.includes('10-day')) {
+          peptideDuration = 10;
+        } else if (programName.includes('20 day') || programName.includes('20-day')) {
+          peptideDuration = 20;
+        } else if (programName.includes('30 day') || programName.includes('30-day')) {
+          peptideDuration = 30;
+        } else if (payload.duration_days) {
+          peptideDuration = parseInt(payload.duration_days);
+        }
+        
+        const peptideEndDate = new Date(startDate);
+        peptideEndDate.setDate(peptideEndDate.getDate() + peptideDuration);
+        const peptideEndDateStr = peptideEndDate.toISOString().split('T')[0];
+        
         protocolData = {
           ...protocolData,
           program_name: `Peptide - ${payload.program_name}`,
           medication: payload.medication,
           selected_dose: payload.dosage,
           frequency: payload.frequency,
-          delivery_method: payload.delivery_method
+          delivery_method: payload.delivery_method,
+          end_date: peptideEndDateStr
         };
-        responseMessage = `Peptide protocol started: ${payload.medication} ${payload.program_name} (${peptideDelivery})`;
+        responseMessage = `Peptide protocol started: ${payload.medication} ${payload.program_name} (${peptideDuration} days, ${peptideDelivery})`;
         break;
 
       case 'hrt':

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Range Medical - Weekly Check-In</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -67,11 +68,20 @@
       border-radius: 12px;
       font-size: 16px;
       transition: border-color 0.15s;
+    }
+    input:not([type="checkbox"]) {
       -webkit-appearance: none;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: #111;
+    }
+    
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
     }
     
     input[type="number"] {
@@ -122,8 +132,6 @@
       background: #dcfce7;
     }
     .checkbox-item input {
-      width: 20px;
-      height: 20px;
       cursor: pointer;
     }
     .checkbox-item span {

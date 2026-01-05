@@ -38,8 +38,8 @@ export default async function handler(req, res) {
         start_date,
         end_date,
         status,
-        total_injections,
-        injections_used,
+        total_sessions,
+        sessions_used,
         starting_weight,
         notes,
         created_at,
@@ -130,9 +130,9 @@ export default async function handler(req, res) {
         lastActivity = lastCheckinMap[p.id] || lastInjectionMap[p.id];
       }
       
-      // Injections
-      const totalInjections = p.total_injections || 0;
-      const injectionsUsed = p.injections_used || 0;
+      // Injections (stored as sessions in DB)
+      const totalInjections = p.total_sessions || 0;
+      const injectionsUsed = p.sessions_used || 0;
       const injectionsRemaining = totalInjections - injectionsUsed;
       
       // Completion status

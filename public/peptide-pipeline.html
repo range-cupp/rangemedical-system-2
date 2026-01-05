@@ -37,6 +37,27 @@
       display: flex;
       gap: 8px;
     }
+    
+    .search-box {
+      position: relative;
+    }
+    .search-box input {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 220px;
+      transition: all 0.15s;
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: #111;
+      width: 280px;
+    }
+    .search-box input::placeholder {
+      color: #9ca3af;
+    }
+    
     .filter-tab {
       padding: 8px 16px;
       border: 2px solid #e5e7eb;
@@ -353,6 +374,20 @@
         flex-direction: column;
         align-items: flex-start;
       }
+      .header-actions {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+      }
+      .search-box input {
+        width: 100%;
+      }
+      .search-box input:focus {
+        width: 100%;
+      }
+      .filter-tabs {
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>
@@ -360,6 +395,9 @@
   <div class="header">
     <h1>💊 Peptide Protocols</h1>
     <div class="header-actions">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Search patient..." oninput="handleSearch()">
+      </div>
       <div class="filter-tabs">
         <button class="filter-tab active" data-filter="all">All</button>
         <button class="filter-tab" data-filter="in_clinic">In Clinic</button>
@@ -458,6 +496,7 @@ Reply to this message or call us at (949) 997-3988.
     let currentFilter = 'all';
     let currentStatusFilter = null;
     let selectedProtocol = null;
+    let searchTerm = '';
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
@@ -473,6 +512,17 @@ Reply to this message or call us at (949) 997-3988.
         });
       });
     });
+
+    function handleSearch() {
+      searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      renderProtocols();
+    }
+
+    function clearSearch() {
+      searchTerm = '';
+      document.getElementById('searchInput').value = '';
+      renderProtocols();
+    }
 
     async function loadProtocols() {
       document.getElementById('loading').style.display = 'block';
@@ -560,6 +610,14 @@ Reply to this message or call us at (949) 997-3988.
     function renderProtocols() {
       let filtered = allProtocols;
       
+      // Apply search filter
+      if (searchTerm) {
+        filtered = filtered.filter(p => 
+          (p.patient_name || '').toLowerCase().includes(searchTerm) ||
+          (p.medication || '').toLowerCase().includes(searchTerm)
+        );
+      }
+      
       // Apply delivery method filter
       if (currentFilter !== 'all') {
         filtered = filtered.filter(p => p.delivery_method === currentFilter);
@@ -603,10 +661,12 @@ Reply to this message or call us at (949) 997-3988.
       }
       
       if (html === '') {
+        const searchMsg = searchTerm ? `No patients found matching "${searchTerm}".` : 'No protocols found matching your filters.';
         html = `
           <div class="empty-state">
             <div class="icon">💊</div>
-            <p>No protocols found matching your filters.</p>
+            <p>${searchMsg}</p>
+            ${searchTerm ? '<p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>' : ''}
           </div>
         `;
       }

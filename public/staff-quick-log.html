@@ -227,6 +227,10 @@
           <h2>💉 Log Weight Loss Injection</h2>
           <form id="wlForm" onsubmit="submitWL(event)">
             <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
               <label>Medication</label>
               <select name="medication" required>
                 <option value="">Select medication...</option>
@@ -274,6 +278,10 @@
           </p>
           <form id="hrtInjForm" onsubmit="submitHRTInjection(event)">
             <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
               <label>Medication</label>
               <select name="medication" required>
                 <option value="">Select medication...</option>
@@ -318,6 +326,10 @@
           </p>
           <form id="hrtForm" onsubmit="submitHRT(event)">
             <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
               <label>Fulfillment Type</label>
               <select name="fulfillment_type" required>
                 <option value="">Select type...</option>
@@ -345,6 +357,10 @@
           <h2>📋 Log Session</h2>
           <form id="sessionForm" onsubmit="submitSession(event)">
             <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
               <label>Session Type</label>
               <select name="session_type" required>
                 <option value="">Select type...</option>
@@ -368,6 +384,10 @@
         <div class="card">
           <h2>🩸 Log HRT Blood Draw</h2>
           <form id="bloodForm" onsubmit="submitBlood(event)">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
             <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
               <p style="color: #374151; font-size: 14px; margin-bottom: 12px;">
                 <strong>This will update in GHL:</strong>
@@ -478,7 +498,22 @@
       event.target.classList.add('active');
       document.getElementById('tab-' + tabId).classList.add('active');
       clearMessages();
+      
+      // Set default date to today for date fields
+      setDefaultDates();
     }
+    
+    function setDefaultDates() {
+      const today = new Date().toISOString().split('T')[0];
+      document.querySelectorAll('input[type="date"]').forEach(input => {
+        if (!input.value) {
+          input.value = today;
+        }
+      });
+    }
+    
+    // Set default dates on page load
+    document.addEventListener('DOMContentLoaded', setDefaultDates);
     
     // Form Submissions
     async function submitWL(e) {
@@ -487,6 +522,7 @@
       const data = {
         contact_id: selectedPatient.ghlId,
         contact_name: selectedPatient.name,
+        date: form.date.value,
         medication: form.medication.value,
         weight: form.weight.value,
         dose: form.dose.value,
@@ -502,6 +538,7 @@
       const data = {
         contact_id: selectedPatient.ghlId,
         contact_name: selectedPatient.name,
+        date: form.date.value,
         medication: form.medication.value,
         dosage: form.dosage.value,
         site: form.site.value,
@@ -517,6 +554,7 @@
       const data = {
         contact_id: selectedPatient.ghlId,
         contact_name: selectedPatient.name,
+        date: form.date.value,
         fulfillment_type: form.fulfillment_type.value,
         medication: form.medication.value,
         dosage: form.dosage.value
@@ -531,6 +569,7 @@
       const data = {
         contact_id: selectedPatient.ghlId,
         contact_name: selectedPatient.name,
+        date: form.date.value,
         session_type: form.session_type.value,
         notes: form.notes.value
       };
@@ -543,7 +582,8 @@
       const form = e.target;
       const data = {
         contact_id: selectedPatient.ghlId,
-        contact_name: selectedPatient.name
+        contact_name: selectedPatient.name,
+        date: form.date.value
       };
       
       await submitForm('/ghl/log-hrt-blooddraw', data, form);
@@ -568,6 +608,7 @@
         if (res.ok && result.success) {
           showSuccess(result.message || 'Logged successfully!');
           form.reset();
+          setDefaultDates(); // Reset date to today
         } else {
           showError(result.error || 'Something went wrong');
         }

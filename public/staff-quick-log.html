@@ -214,11 +214,179 @@
       </div>
       
       <div class="tabs">
+        <button class="tab" onclick="showTab('start')">➕ Start Protocol</button>
         <button class="tab active" onclick="showTab('wl')">💉 Weight Loss</button>
         <button class="tab" onclick="showTab('hrt-inj')">💉 HRT Injection</button>
         <button class="tab" onclick="showTab('hrt')">💊 HRT Pickup</button>
         <button class="tab" onclick="showTab('session')">📋 Session</button>
         <button class="tab" onclick="showTab('blood')">🩸 Blood Draw</button>
+      </div>
+      
+      <!-- Start Protocol Form -->
+      <div id="tab-start" class="form-section">
+        <div class="card">
+          <h2>➕ Start New Protocol</h2>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+            Start a new weight loss protocol for this patient. This will create the protocol and sync to GHL.
+          </p>
+          <form id="startProtocolForm" onsubmit="submitStartProtocol(event)">
+            <div class="form-group">
+              <label>Protocol Type</label>
+              <select name="protocol_type" id="protocolType" required onchange="updateProtocolForm()">
+                <option value="">Select type...</option>
+                <option value="weight_loss">Weight Loss</option>
+                <option value="hrt">HRT Membership</option>
+                <option value="peptide">Peptide Protocol</option>
+                <option value="iv_therapy">IV Therapy Package</option>
+                <option value="injection">Injection Package</option>
+              </select>
+            </div>
+            
+            <!-- Weight Loss Fields -->
+            <div id="wlFields" style="display: none;">
+              <div class="form-group">
+                <label>Medication</label>
+                <select name="medication" required>
+                  <option value="">Select medication...</option>
+                  <option value="Semaglutide">Semaglutide</option>
+                  <option value="Tirzepatide">Tirzepatide</option>
+                  <option value="Retatrutide">Retatrutide</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Starting Dose</label>
+                <select name="starting_dose">
+                  <option value="">Select dose...</option>
+                  <option value="0.25mg">0.25mg</option>
+                  <option value="0.5mg">0.5mg</option>
+                  <option value="1mg">1mg</option>
+                  <option value="1.5mg">1.5mg</option>
+                  <option value="2mg">2mg</option>
+                  <option value="2.5mg">2.5mg</option>
+                  <option value="5mg">5mg</option>
+                  <option value="7.5mg">7.5mg</option>
+                  <option value="10mg">10mg</option>
+                  <option value="12.5mg">12.5mg</option>
+                  <option value="15mg">15mg</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Delivery Method</label>
+                <select name="delivery_method" required>
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic - Patient comes in weekly</option>
+                  <option value="take_home">Take Home - Patient self-injects</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Total Injections</label>
+                <select name="total_injections">
+                  <option value="4" selected>4 (Monthly)</option>
+                  <option value="8">8 (2 Months)</option>
+                  <option value="12">12 (3 Months)</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- HRT Fields -->
+            <div id="hrtFields" style="display: none;">
+              <div class="form-group">
+                <label>Medication</label>
+                <select name="hrt_medication">
+                  <option value="">Select medication...</option>
+                  <option value="Testosterone Cypionate">Testosterone Cypionate</option>
+                  <option value="Testosterone Enanthate">Testosterone Enanthate</option>
+                  <option value="Nandrolone">Nandrolone</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Dosage</label>
+                <input type="text" name="hrt_dosage" placeholder="e.g. 200mg/week">
+              </div>
+              <div class="form-group">
+                <label>Fulfillment Type</label>
+                <select name="hrt_fulfillment">
+                  <option value="">Select type...</option>
+                  <option value="Pre-filled 2 Week">Pre-filled 2 Week</option>
+                  <option value="Pre-filled 4 Week">Pre-filled 4 Week</option>
+                  <option value="Vial">Vial (10-12 weeks)</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Peptide Fields -->
+            <div id="peptideFields" style="display: none;">
+              <div class="form-group">
+                <label>Program</label>
+                <select name="peptide_program">
+                  <option value="">Select program...</option>
+                  <option value="Recovery Jumpstart - 10 Day">Recovery Jumpstart - 10 Day</option>
+                  <option value="Month Program - 30 Day">Month Program - 30 Day</option>
+                  <option value="Maintenance - 4 Week">Maintenance - 4 Week</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Peptide</label>
+                <select name="peptide_medication">
+                  <option value="">Select peptide...</option>
+                  <option value="BPC-157">BPC-157</option>
+                  <option value="TB-500">TB-500</option>
+                  <option value="Wolverine Blend (BPC/TB)">Wolverine Blend (BPC/TB)</option>
+                  <option value="GHK-Cu">GHK-Cu</option>
+                  <option value="Sermorelin">Sermorelin</option>
+                  <option value="Ipamorelin">Ipamorelin</option>
+                  <option value="CJC-1295">CJC-1295</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Dosage</label>
+                <input type="text" name="peptide_dosage" placeholder="e.g. 500mcg">
+              </div>
+              <div class="form-group">
+                <label>Frequency</label>
+                <select name="peptide_frequency">
+                  <option value="Daily">Daily</option>
+                  <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                  <option value="Every other day">Every other day</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- IV/Injection Package Fields -->
+            <div id="packageFields" style="display: none;">
+              <div class="form-group">
+                <label>Package Name</label>
+                <input type="text" name="package_name" placeholder="e.g. IV Therapy 5-Pack">
+              </div>
+              <div class="form-group">
+                <label>Total Sessions</label>
+                <select name="total_sessions">
+                  <option value="1">1 (Single)</option>
+                  <option value="5">5 Pack</option>
+                  <option value="10">10 Pack</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Common Fields -->
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" name="start_date" required>
+            </div>
+            
+            <div class="form-group">
+              <label>Starting Weight (optional)</label>
+              <input type="number" step="0.1" name="starting_weight" placeholder="e.g. 220">
+            </div>
+            
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any additional notes..."></textarea>
+            </div>
+            
+            <button type="submit">Start Protocol</button>
+          </form>
+        </div>
       </div>
       
       <!-- Weight Loss Form -->
@@ -514,6 +682,66 @@
     
     // Set default dates on page load
     document.addEventListener('DOMContentLoaded', setDefaultDates);
+    
+    // Protocol type form handling
+    function updateProtocolForm() {
+      const type = document.getElementById('protocolType').value;
+      
+      // Hide all protocol-specific fields
+      document.getElementById('wlFields').style.display = 'none';
+      document.getElementById('hrtFields').style.display = 'none';
+      document.getElementById('peptideFields').style.display = 'none';
+      document.getElementById('packageFields').style.display = 'none';
+      
+      // Show relevant fields
+      if (type === 'weight_loss') {
+        document.getElementById('wlFields').style.display = 'block';
+      } else if (type === 'hrt') {
+        document.getElementById('hrtFields').style.display = 'block';
+      } else if (type === 'peptide') {
+        document.getElementById('peptideFields').style.display = 'block';
+      } else if (type === 'iv_therapy' || type === 'injection') {
+        document.getElementById('packageFields').style.display = 'block';
+      }
+    }
+    
+    async function submitStartProtocol(e) {
+      e.preventDefault();
+      const form = e.target;
+      const protocolType = form.protocol_type.value;
+      
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        patient_id: selectedPatient.id,
+        contact_name: selectedPatient.name,
+        protocol_type: protocolType,
+        start_date: form.start_date.value,
+        starting_weight: form.starting_weight.value || null,
+        notes: form.notes.value || null
+      };
+      
+      // Add protocol-specific fields
+      if (protocolType === 'weight_loss') {
+        data.medication = form.medication.value;
+        data.starting_dose = form.starting_dose.value;
+        data.delivery_method = form.delivery_method.value;
+        data.total_injections = form.total_injections.value;
+      } else if (protocolType === 'hrt') {
+        data.medication = form.hrt_medication.value;
+        data.dosage = form.hrt_dosage.value;
+        data.fulfillment_type = form.hrt_fulfillment.value;
+      } else if (protocolType === 'peptide') {
+        data.program_name = form.peptide_program.value;
+        data.medication = form.peptide_medication.value;
+        data.dosage = form.peptide_dosage.value;
+        data.frequency = form.peptide_frequency.value;
+      } else if (protocolType === 'iv_therapy' || protocolType === 'injection') {
+        data.package_name = form.package_name.value;
+        data.total_sessions = form.total_sessions.value;
+      }
+      
+      await submitForm('/ghl/start-protocol', data, form);
+    }
     
     // Form Submissions
     async function submitWL(e) {

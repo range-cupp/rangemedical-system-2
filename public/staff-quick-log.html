@@ -129,21 +129,22 @@
     
     .tabs {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 16px;
       flex-wrap: wrap;
     }
     .tab {
-      padding: 10px 16px;
+      padding: 10px 12px;
       background: #f3f4f6;
       border: none;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       cursor: pointer;
       color: #374151;
       flex: 1;
-      min-width: 45%;
+      min-width: 30%;
+      white-space: nowrap;
     }
     .tab.active {
       background: #111;
@@ -214,7 +215,8 @@
       
       <div class="tabs">
         <button class="tab active" onclick="showTab('wl')">💉 Weight Loss</button>
-        <button class="tab" onclick="showTab('hrt')">💊 HRT</button>
+        <button class="tab" onclick="showTab('hrt-inj')">💉 HRT Injection</button>
+        <button class="tab" onclick="showTab('hrt')">💊 HRT Pickup</button>
         <button class="tab" onclick="showTab('session')">📋 Session</button>
         <button class="tab" onclick="showTab('blood')">🩸 Blood Draw</button>
       </div>
@@ -224,6 +226,15 @@
         <div class="card">
           <h2>💉 Log Weight Loss Injection</h2>
           <form id="wlForm" onsubmit="submitWL(event)">
+            <div class="form-group">
+              <label>Medication</label>
+              <select name="medication" required>
+                <option value="">Select medication...</option>
+                <option value="Semaglutide">Semaglutide</option>
+                <option value="Tirzepatide">Tirzepatide</option>
+                <option value="Retatrutide">Retatrutide</option>
+              </select>
+            </div>
             <div class="form-group">
               <label>Current Weight (lbs)</label>
               <input type="number" step="0.1" name="weight" placeholder="e.g. 215.5" required>
@@ -254,10 +265,57 @@
         </div>
       </div>
       
+      <!-- HRT In-Clinic Injection Form -->
+      <div id="tab-hrt-inj" class="form-section">
+        <div class="card">
+          <h2>💉 Log HRT In-Clinic Injection</h2>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+            For patients on 2x/week injection protocol who come in for administration.
+          </p>
+          <form id="hrtInjForm" onsubmit="submitHRTInjection(event)">
+            <div class="form-group">
+              <label>Medication</label>
+              <select name="medication" required>
+                <option value="">Select medication...</option>
+                <option value="Testosterone Cypionate">Testosterone Cypionate</option>
+                <option value="Testosterone Enanthate">Testosterone Enanthate</option>
+                <option value="Nandrolone">Nandrolone</option>
+                <option value="HCG">HCG</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Dose Administered</label>
+              <input type="text" name="dosage" placeholder="e.g. 100mg" required>
+            </div>
+            <div class="form-group">
+              <label>Injection Site</label>
+              <select name="site">
+                <option value="">Select site (optional)...</option>
+                <option value="Deltoid - Left">Deltoid - Left</option>
+                <option value="Deltoid - Right">Deltoid - Right</option>
+                <option value="Glute - Left">Glute - Left</option>
+                <option value="Glute - Right">Glute - Right</option>
+                <option value="Thigh - Left">Thigh - Left</option>
+                <option value="Thigh - Right">Thigh - Right</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any observations..."></textarea>
+            </div>
+            <button type="submit">Log HRT Injection</button>
+          </form>
+        </div>
+      </div>
+      
       <!-- HRT Fulfillment Form -->
       <div id="tab-hrt" class="form-section">
         <div class="card">
-          <h2>💊 Log HRT Fulfillment</h2>
+          <h2>💊 Log HRT Medication Pickup</h2>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+            For take-home medication pickups. This will update the next fulfillment date.
+          </p>
           <form id="hrtForm" onsubmit="submitHRT(event)">
             <div class="form-group">
               <label>Fulfillment Type</label>
@@ -310,10 +368,18 @@
         <div class="card">
           <h2>🩸 Log HRT Blood Draw</h2>
           <form id="bloodForm" onsubmit="submitBlood(event)">
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
-              This will log today's date as the blood draw date and schedule the next one in 8 weeks.
-            </p>
-            <button type="submit">Confirm Blood Draw</button>
+            <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <p style="color: #374151; font-size: 14px; margin-bottom: 12px;">
+                <strong>This will update in GHL:</strong>
+              </p>
+              <ul style="color: #6b7280; font-size: 13px; margin-left: 16px; line-height: 1.8;">
+                <li>HRT - Last Blood Draw → Today's date</li>
+                <li>HRT - Next Blood Draw → 8 weeks from today</li>
+                <li>Adds note to contact timeline</li>
+                <li>Creates task for next blood draw</li>
+              </ul>
+            </div>
+            <button type="submit">Confirm Blood Draw Completed</button>
           </form>
         </div>
       </div>
@@ -421,12 +487,28 @@
       const data = {
         contact_id: selectedPatient.ghlId,
         contact_name: selectedPatient.name,
+        medication: form.medication.value,
         weight: form.weight.value,
         dose: form.dose.value,
         notes: form.notes.value
       };
       
       await submitForm('/ghl/log-wl-injection', data, form);
+    }
+    
+    async function submitHRTInjection(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        medication: form.medication.value,
+        dosage: form.dosage.value,
+        site: form.site.value,
+        notes: form.notes.value
+      };
+      
+      await submitForm('/ghl/log-hrt-injection', data, form);
     }
     
     async function submitHRT(e) {

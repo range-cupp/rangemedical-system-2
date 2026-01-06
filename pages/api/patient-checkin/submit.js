@@ -10,7 +10,7 @@
 // It logs to Supabase and syncs to GHL
 
 import { createClient } from '@supabase/supabase-js';
-import { updateGHLContact, addGHLNote } from '../../../lib/ghl-sync';
+import { updateGHLContact, addGHLNote, createGHLTask } from '../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -80,11 +80,29 @@ export default async function handler(req, res) {
       logNotes += ` | Notes: ${notes.trim()}`;
     }
 
-    // Create log entry (weigh-in type - doesn't increment sessions)
+    // For take-home patients, each check-in = 1 injection used
+    // Increment sessions_used on the protocol
+    const newSessionsUsed = (protocol.sessions_used || 0) + 1;
+    const totalSessions = protocol.total_sessions || 4;
+    const sessionsRemaining = totalSessions - newSessionsUsed;
+    
+    const { error: updateProtocolError } = await supabase
+      .from('protocols')
+      .update({ 
+        sessions_used: newSessionsUsed,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', protocol.id);
+    
+    if (updateProtocolError) {
+      console.error('Error updating protocol sessions:', updateProtocolError);
+    }
+
+    // Create log entry (checkin type for take-home injection tracking)
     const logEntry = {
       protocol_id: protocol.id,
       patient_id: patient.id,
-      log_type: 'weigh_in',
+      log_type: 'checkin',
       log_date: today,
       weight: parsedWeight,
       notes: logNotes
@@ -107,9 +125,11 @@ export default async function handler(req, res) {
       weightChange = change < 0 ? `↓ ${Math.abs(change).toFixed(1)} lbs` : `↑ ${change.toFixed(1)} lbs`;
     }
 
-    // Update GHL current weight field
+    // Update GHL current weight and injection fields
     await updateGHLContact(contact_id, {
-      'contact.wl__current_weight': String(parsedWeight)
+      'wl__current_weight': String(parsedWeight),
+      'wl__injections_used': String(newSessionsUsed),
+      'wl__injections_remaining': String(sessionsRemaining)
     });
 
     // Add note to GHL
@@ -120,6 +140,14 @@ Weight: ${parsedWeight} lbs`;
 
     if (weightChange) {
       ghlNote += ` (${weightChange} from start)`;
+    }
+    
+    ghlNote += `\nInjection: ${newSessionsUsed} of ${totalSessions}`;
+    
+    if (sessionsRemaining <= 0) {
+      ghlNote += ` ✅ PROTOCOL COMPLETE`;
+    } else if (sessionsRemaining === 1) {
+      ghlNote += ` ⚠️ Last injection remaining`;
     }
 
     if (side_effects && side_effects.length > 0) {
@@ -132,15 +160,36 @@ Weight: ${parsedWeight} lbs`;
       ghlNote += `\n\nPatient Notes: "${notes.trim()}"`;
     }
 
+    // Add payment reminder to note if this is 4th injection (or multiple of 4)
+    const isPaymentDue = newSessionsUsed > 0 && newSessionsUsed % 4 === 0;
+    
+    if (isPaymentDue) {
+      ghlNote += `\n\n💳 PAYMENT DUE - Patient has completed injection #${newSessionsUsed}. Time to renew for next cycle.`;
+      
+      // Create task for payment follow-up
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      await createGHLTask(
+        contact_id,
+        `💳 WL Payment Due - ${patient.name}`,
+        tomorrow.toISOString(),
+        `Patient completed injection #${newSessionsUsed}. Follow up for next month's payment.`
+      );
+    }
+
     await addGHLNote(contact_id, ghlNote);
 
-    console.log('✓ Patient check-in logged:', patient.name, parsedWeight, 'lbs');
+    console.log('✓ Patient check-in logged:', patient.name, parsedWeight, 'lbs', `(Injection ${newSessionsUsed}/${totalSessions})`);
 
     return res.status(200).json({
       success: true,
       message: 'Check-in recorded',
       weight: parsedWeight,
-      weight_change: weightChange || null
+      weight_change: weightChange || null,
+      injection_number: newSessionsUsed,
+      injections_remaining: sessionsRemaining,
+      payment_due: isPaymentDue
     });
 
   } catch (error) {

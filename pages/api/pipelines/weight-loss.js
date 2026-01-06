@@ -73,8 +73,8 @@ export default async function handler(req, res) {
     
     if (logs) {
       logs.forEach(log => {
-        // Track last check-in (patient self-report)
-        if (log.log_type === 'checkin' && !lastCheckinMap[log.protocol_id]) {
+        // Track last check-in (patient self-report - both checkin and weigh_in types)
+        if ((log.log_type === 'checkin' || log.log_type === 'weigh_in') && !lastCheckinMap[log.protocol_id]) {
           lastCheckinMap[log.protocol_id] = log.log_date;
         }
         

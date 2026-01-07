@@ -617,6 +617,10 @@ Takes 30 seconds!
         </select>
       </div>
       <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="editStartDate">
+      </div>
+      <div class="form-group">
         <label>Starting Weight (lbs)</label>
         <input type="number" id="editStartingWeight" step="0.1" placeholder="e.g. 185.5">
       </div>
@@ -1328,6 +1332,7 @@ Takes 30 seconds!
       document.getElementById('editPatientName').textContent = protocol.patient_name;
       document.getElementById('editMedication').value = protocol.medication || 'Semaglutide';
       document.getElementById('editDose').value = protocol.current_dose || '5mg';
+      document.getElementById('editStartDate').value = protocol.start_date || '';
       document.getElementById('editStartingWeight').value = protocol.starting_weight || '';
       document.getElementById('editTotalInjections').value = protocol.total_injections || '';
       document.getElementById('editInjectionsUsed').value = protocol.injections_used || 0;
@@ -1348,6 +1353,7 @@ Takes 30 seconds!
       const data = {
         medication: document.getElementById('editMedication').value,
         selected_dose: document.getElementById('editDose').value,
+        start_date: document.getElementById('editStartDate').value || null,
         starting_weight: parseFloat(document.getElementById('editStartingWeight').value) || null,
         total_sessions: parseInt(document.getElementById('editTotalInjections').value) || 0,
         sessions_used: parseInt(document.getElementById('editInjectionsUsed').value) || 0,

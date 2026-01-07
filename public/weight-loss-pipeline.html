@@ -509,15 +509,15 @@
 
   <div class="stats-bar" id="activeStats">
     <div class="stat-card overdue" data-status="overdue" onclick="filterByStatus('overdue')">
-      <div class="label">Overdue (7+ days)</div>
+      <div class="label">Overdue</div>
       <div class="value" id="stat-overdue">-</div>
     </div>
     <div class="stat-card due-soon" data-status="due-soon" onclick="filterByStatus('due-soon')">
-      <div class="label">Due Soon (5-6 days)</div>
+      <div class="label">Due Soon</div>
       <div class="value" id="stat-due-soon">-</div>
     </div>
     <div class="stat-card on-track" data-status="on-track" onclick="filterByStatus('on-track')">
-      <div class="label">On Track (0-4 days)</div>
+      <div class="label">On Track</div>
       <div class="value" id="stat-on-track">-</div>
     </div>
     <div class="stat-card low-injections" data-status="low-injections" onclick="filterByStatus('low-injections')">
@@ -886,14 +886,24 @@ Takes 30 seconds!
     }
 
     function getCheckInStatus(p) {
-      // For in-clinic: days since last injection
-      // For take-home: days since last check-in
-      const daysSince = p.delivery_method === 'in_clinic' 
-        ? p.days_since_last_injection 
-        : p.days_since_last_checkin;
+      // For TAKE HOME: Track based on time elapsed vs supply duration
+      // 2 injections = 2 weeks supply, 4 injections = 4 weeks supply
+      if (p.delivery_method === 'take_home') {
+        const totalInjections = p.total_injections || 4;
+        const supplyDays = totalInjections * 7; // 1 injection per week
+        const daysSinceStart = p.days_since_start || 0;
+        const daysRemaining = supplyDays - daysSinceStart;
+        
+        if (daysRemaining <= 0) return 'overdue';      // Supply should be exhausted
+        if (daysRemaining <= 3) return 'due-soon';     // Running low (3 days or less)
+        return 'on-track';
+      }
+      
+      // For IN CLINIC: Track based on days since last injection
+      const daysSince = p.days_since_last_injection;
       
       if (daysSince === null || daysSince === undefined) {
-        // No check-in/injection yet - check days since start
+        // No injection yet - check days since start
         const daysSinceStart = p.days_since_start || 0;
         if (daysSinceStart >= 7) return 'overdue';
         if (daysSinceStart >= 5) return 'due-soon';
@@ -961,23 +971,34 @@ Takes 30 seconds!
           'on-track': filtered.filter(p => getCheckInStatus(p) === 'on-track')
         };
         
-        // Sort by days since last check-in/injection (most overdue first)
+        // Sort each group by urgency
         Object.keys(groups).forEach(key => {
           groups[key].sort((a, b) => {
-            const aDays = a.delivery_method === 'in_clinic' ? a.days_since_last_injection : a.days_since_last_checkin;
-            const bDays = b.delivery_method === 'in_clinic' ? b.days_since_last_injection : b.days_since_last_checkin;
-            return (bDays || 999) - (aDays || 999);
+            // Calculate urgency score (lower = more urgent)
+            const getUrgency = (p) => {
+              if (p.delivery_method === 'take_home') {
+                // Take home: sort by days of supply remaining
+                const totalInj = p.total_injections || 4;
+                const supplyDays = totalInj * 7;
+                const daysSinceStart = p.days_since_start || 0;
+                return supplyDays - daysSinceStart; // Lower = more urgent
+              } else {
+                // In clinic: sort by days since last injection (more days = more urgent)
+                return -(p.days_since_last_injection || p.days_since_start || 0);
+              }
+            };
+            return getUrgency(a) - getUrgency(b);
           });
         });
         
         if (groups.overdue.length > 0) {
-          html += renderSection('🔴 Overdue (7+ days since check-in)', groups.overdue);
+          html += renderSection('🔴 Overdue - Needs Attention', groups.overdue);
         }
         if (groups['due-soon'].length > 0) {
-          html += renderSection('🟡 Due Soon (5-6 days)', groups['due-soon']);
+          html += renderSection('🟡 Due Soon - Follow Up', groups['due-soon']);
         }
         if (groups['on-track'].length > 0) {
-          html += renderSection('🟢 On Track (0-4 days)', groups['on-track']);
+          html += renderSection('🟢 On Track', groups['on-track']);
         }
       } else {
         filtered.sort((a, b) => new Date(b.last_activity || 0) - new Date(a.last_activity || 0));
@@ -1044,18 +1065,56 @@ Takes 30 seconds!
         weightDisplay = `${startWeight} lbs`;
       }
       
-      // Days since last activity
-      const daysSince = p.delivery_method === 'in_clinic' 
-        ? p.days_since_last_injection 
-        : p.days_since_last_checkin;
       const status = getCheckInStatus(p);
-      const daysClass = status === 'overdue' ? 'overdue' : status === 'due-soon' ? 'due-soon' : 'on-track';
-      const daysText = daysSince === null || daysSince === undefined 
-        ? 'No activity yet' 
-        : daysSince === 0 ? 'Today' : `${daysSince} days ago`;
+      
+      // Days/status display - different for take-home vs in-clinic
+      let statusLabel = '';
+      let statusText = '';
+      let statusClass = '';
+      
+      if (p.delivery_method === 'take_home') {
+        // Take Home: Show supply remaining based on time
+        const totalInjections = p.total_injections || 4;
+        const supplyDays = totalInjections * 7;
+        const daysSinceStart = p.days_since_start || 0;
+        const daysRemaining = supplyDays - daysSinceStart;
+        
+        statusLabel = 'Supply Status';
+        if (daysRemaining <= 0) {
+          statusText = `Ran out ${Math.abs(daysRemaining)} days ago`;
+          statusClass = 'overdue';
+        } else if (daysRemaining === 1) {
+          statusText = '1 day left';
+          statusClass = 'due-soon';
+        } else if (daysRemaining <= 3) {
+          statusText = `${daysRemaining} days left`;
+          statusClass = 'due-soon';
+        } else if (daysRemaining <= 7) {
+          statusText = `${daysRemaining} days left`;
+          statusClass = 'on-track';
+        } else {
+          const weeksLeft = Math.floor(daysRemaining / 7);
+          statusText = `~${weeksLeft} week${weeksLeft !== 1 ? 's' : ''} left`;
+          statusClass = 'on-track';
+        }
+      } else {
+        // In Clinic: Show days since last injection
+        const daysSince = p.days_since_last_injection;
+        statusLabel = 'Last Injection';
+        
+        if (daysSince === null || daysSince === undefined) {
+          statusText = 'No activity yet';
+          statusClass = status === 'overdue' ? 'overdue' : status === 'due-soon' ? 'due-soon' : 'on-track';
+        } else if (daysSince === 0) {
+          statusText = 'Today';
+          statusClass = 'on-track';
+        } else {
+          statusText = `${daysSince} days ago`;
+          statusClass = status === 'overdue' ? 'overdue' : status === 'due-soon' ? 'due-soon' : 'on-track';
+        }
+      }
       
       const isComplete = isCompleted(p);
-      const lastActivityLabel = p.delivery_method === 'in_clinic' ? 'Last Injection' : 'Last Check-In';
       
       // Overdue badge
       const overdueBadge = status === 'overdue' && !isComplete 
@@ -1091,8 +1150,8 @@ Takes 30 seconds!
               <div class="field-value injections-display ${injClass}">${injectionsUsed} / ${totalInjections} ${isComplete ? '(Done)' : ''}</div>
             </div>
             <div class="field">
-              <div class="field-label">${lastActivityLabel}</div>
-              <div class="field-value days-ago ${daysClass}">${daysText}</div>
+              <div class="field-label">${statusLabel}</div>
+              <div class="field-value days-ago ${statusClass}">${statusText}</div>
             </div>
             <div class="field">
               <div class="field-label">Delivery</div>

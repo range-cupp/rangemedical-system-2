@@ -608,6 +608,67 @@ Takes 30 seconds!
     </div>
   </div>
 
+  <!-- Log Injection Modal (for backfilling and current) -->
+  <div class="modal-overlay" id="logInjectionModal">
+    <div class="modal">
+      <h3>💉 Log Injection</h3>
+      <p id="logInjPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div id="logInjCurrentStats" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
+      
+      <div class="form-group">
+        <label>Injection Date</label>
+        <input type="date" id="logInjDate">
+      </div>
+      <div class="form-group">
+        <label>Weight (lbs)</label>
+        <input type="number" id="logInjWeight" step="0.1" placeholder="e.g. 185.5">
+      </div>
+      <div class="form-group">
+        <label>Dose Given</label>
+        <select id="logInjDose">
+          <option value="">Same as protocol</option>
+          <option value="2.5mg">2.5mg</option>
+          <option value="5mg">5mg</option>
+          <option value="7.5mg">7.5mg</option>
+          <option value="10mg">10mg</option>
+          <option value="12.5mg">12.5mg</option>
+          <option value="15mg">15mg</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Side Effects</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="None"> None
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Nausea"> Nausea
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Fatigue"> Fatigue
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Indigestion"> Indigestion
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Constipation"> Constipation
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Injection Pain"> Injection Pain
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="logInjNotes" placeholder="Any notes about this injection..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeLogInjectionModal()">Cancel</button>
+        <button class="action-btn primary" onclick="saveLogInjection()">Log Injection</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
@@ -1065,8 +1126,92 @@ Takes 30 seconds!
     }
 
     async function logInjection(protocolId, patientName) {
-      showToast('Opening injection log...', 'success');
-      window.open(`/staff-quick-log.html?protocol_id=${protocolId}&action=log_wl_injection`, '_blank');
+      openLogInjectionModal(protocolId);
+    }
+
+    function openLogInjectionModal(protocolId) {
+      const protocol = allProtocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        showToast('Protocol not found', 'error');
+        return;
+      }
+      
+      selectedProtocol = protocol;
+      document.getElementById('logInjPatientName').textContent = protocol.patient_name;
+      
+      // Show current stats
+      const used = protocol.injections_used || 0;
+      const total = protocol.total_injections || 4;
+      const startWeight = protocol.starting_weight || '-';
+      const currentWeight = protocol.current_weight || '-';
+      
+      document.getElementById('logInjCurrentStats').innerHTML = `
+        <strong>Current Progress:</strong> ${used} / ${total} injections<br>
+        <strong>Weight:</strong> ${startWeight} lbs (start) → ${currentWeight} lbs (current)
+      `;
+      
+      // Set date to today
+      document.getElementById('logInjDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('logInjWeight').value = '';
+      document.getElementById('logInjDose').value = '';
+      document.getElementById('logInjNotes').value = '';
+      
+      // Clear checkboxes
+      document.querySelectorAll('input[name="logInjSideEffect"]').forEach(cb => cb.checked = false);
+      
+      document.getElementById('logInjectionModal').classList.add('active');
+    }
+
+    function closeLogInjectionModal() {
+      document.getElementById('logInjectionModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function saveLogInjection() {
+      if (!selectedProtocol) return;
+      
+      const injDate = document.getElementById('logInjDate').value;
+      const weight = document.getElementById('logInjWeight').value;
+      const dose = document.getElementById('logInjDose').value;
+      const notes = document.getElementById('logInjNotes').value;
+      
+      // Gather side effects
+      const sideEffects = [];
+      document.querySelectorAll('input[name="logInjSideEffect"]:checked').forEach(cb => {
+        sideEffects.push(cb.value);
+      });
+      
+      if (!injDate) {
+        showToast('Please select a date', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/log-injection`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            log_date: injDate,
+            weight: weight ? parseFloat(weight) : null,
+            dose: dose || null,
+            side_effects: sideEffects,
+            notes: notes,
+            delivery_method: selectedProtocol.delivery_method
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Injection logged!', 'success');
+          closeLogInjectionModal();
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to log injection', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to log injection', 'error');
+      }
     }
 
     function openEditModal(protocolId) {

@@ -1392,11 +1392,14 @@ Takes 30 seconds!
         document.getElementById('historyLoading').style.display = 'none';
         document.getElementById('historyContent').style.display = 'block';
         
-        if (data.success && data.logs && data.logs.length > 0) {
+        // Handle both formats: { success, logs } or raw array
+        const logs = Array.isArray(data) ? data : (data.logs || []);
+        
+        if (logs.length > 0) {
           // Show summary
-          const totalLogs = data.logs.length;
+          const totalLogs = logs.length;
           const startWeight = protocol.starting_weight;
-          const latestWeight = data.logs[0]?.weight;
+          const latestWeight = logs[0]?.weight;
           let summaryHtml = `<strong>Total Logged:</strong> ${totalLogs} injection${totalLogs !== 1 ? 's' : ''}`;
           
           if (startWeight && latestWeight) {
@@ -1410,7 +1413,7 @@ Takes 30 seconds!
           
           // Render logs
           let logsHtml = '';
-          data.logs.forEach((log, index) => {
+          logs.forEach((log, index) => {
             const logDate = new Date(log.log_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
             const weightText = log.weight ? `${log.weight} lbs` : 'No weight';
             const notesText = log.notes ? ` - ${log.notes.substring(0, 50)}${log.notes.length > 50 ? '...' : ''}` : '';

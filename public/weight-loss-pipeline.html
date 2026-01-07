@@ -521,7 +521,7 @@
       <div class="value" id="stat-on-track">-</div>
     </div>
     <div class="stat-card low-injections" data-status="low-injections" onclick="filterByStatus('low-injections')">
-      <div class="label">Low Injections (≤1)</div>
+      <div class="label">Low Inj (In Clinic)</div>
       <div class="value" id="stat-low-injections">-</div>
     </div>
   </div>
@@ -868,9 +868,9 @@ Takes 30 seconds!
         else if (status === 'due-soon') dueSoon++;
         else onTrack++;
         
-        // Low injections (1 or fewer remaining)
+        // Low injections (1 or fewer remaining) - only for in-clinic
         const remaining = (p.total_injections || 0) - (p.injections_used || 0);
-        if (remaining <= 1 && !isCompleted(p)) lowInjections++;
+        if (p.delivery_method === 'in_clinic' && remaining <= 1 && !isCompleted(p)) lowInjections++;
       });
       
       document.getElementById('stat-overdue').textContent = overdue;
@@ -881,8 +881,19 @@ Takes 30 seconds!
     }
 
     function isCompleted(p) {
+      if (p.status === 'completed') return true;
+      
+      // For take-home: completed when supply time has elapsed
+      if (p.delivery_method === 'take_home') {
+        const totalInjections = p.total_injections || 4;
+        const supplyDays = totalInjections * 7;
+        const daysSinceStart = p.days_since_start || 0;
+        return daysSinceStart > supplyDays;
+      }
+      
+      // For in-clinic: completed when all injections used
       const remaining = (p.total_injections || 0) - (p.injections_used || 0);
-      return remaining <= 0 || p.status === 'completed';
+      return remaining <= 0;
     }
 
     function getCheckInStatus(p) {
@@ -955,7 +966,7 @@ Takes 30 seconds!
         if (currentStatusFilter === 'low-injections') {
           filtered = filtered.filter(p => {
             const remaining = (p.total_injections || 0) - (p.injections_used || 0);
-            return remaining <= 1;
+            return p.delivery_method === 'in_clinic' && remaining <= 1;
           });
         } else {
           filtered = filtered.filter(p => getCheckInStatus(p) === currentStatusFilter);
@@ -1121,8 +1132,8 @@ Takes 30 seconds!
         ? '<span class="badge overdue">Overdue</span>' 
         : '';
       
-      // Low injections badge
-      const lowInjBadge = remaining <= 1 && !isComplete 
+      // Low injections badge (only for in-clinic)
+      const lowInjBadge = p.delivery_method === 'in_clinic' && remaining <= 1 && !isComplete 
         ? '<span class="badge low-injections">Low Inj</span>' 
         : '';
       
@@ -1146,8 +1157,8 @@ Takes 30 seconds!
               </div>
             </div>
             <div class="field">
-              <div class="field-label">Injections</div>
-              <div class="field-value injections-display ${injClass}">${injectionsUsed} / ${totalInjections} ${isComplete ? '(Done)' : ''}</div>
+              <div class="field-label">${p.delivery_method === 'take_home' ? 'Given' : 'Injections'}</div>
+              <div class="field-value injections-display ${p.delivery_method === 'take_home' ? '' : injClass}">${p.delivery_method === 'take_home' ? `${injectionsUsed} injections` : `${injectionsUsed} / ${totalInjections} ${isComplete ? '(Done)' : ''}`}</div>
             </div>
             <div class="field">
               <div class="field-label">${statusLabel}</div>
@@ -1177,11 +1188,15 @@ Takes 30 seconds!
             <button class="action-btn" onclick="openInGHL('${p.ghl_contact_id}')">
               ↗ GHL
             </button>
-            ${isComplete || remaining <= 1 ? `
+            ${p.delivery_method === 'take_home' ? `
               <button class="action-btn primary" onclick="openRenewModal('${p.id}', '${p.patient_name}', '${p.medication}')">
                 🔄 Add Inj
               </button>
-            ` : ''}
+            ` : (isComplete || remaining <= 1 ? `
+              <button class="action-btn primary" onclick="openRenewModal('${p.id}', '${p.patient_name}', '${p.medication}')">
+                🔄 Add Inj
+              </button>
+            ` : '')}
           </div>
         </div>
       `;

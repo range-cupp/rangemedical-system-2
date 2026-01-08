@@ -44,7 +44,10 @@ export default async function handler(req, res) {
       status,
       supply_type,
       labs_completed,
-      labs_completed_date
+      labs_completed_date,
+      baseline_labs_date,
+      eight_week_labs_date,
+      last_labs_date
     } = req.body;
 
     // Build update object with only provided fields
@@ -64,6 +67,9 @@ export default async function handler(req, res) {
     if (supply_type !== undefined) updateData.supply_type = supply_type;
     if (labs_completed !== undefined) updateData.labs_completed = labs_completed;
     if (labs_completed_date !== undefined) updateData.labs_completed_date = labs_completed_date;
+    if (baseline_labs_date !== undefined) updateData.baseline_labs_date = baseline_labs_date;
+    if (eight_week_labs_date !== undefined) updateData.eight_week_labs_date = eight_week_labs_date;
+    if (last_labs_date !== undefined) updateData.last_labs_date = last_labs_date;
     
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();

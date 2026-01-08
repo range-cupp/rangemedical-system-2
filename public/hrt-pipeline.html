@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HRT Pipeline - Range Medical</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa; 
+      padding: 20px;
+      color: #111;
+    }
+    
+    .header {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .search-box input {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 220px;
+      transition: all 0.15s;
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: #111;
+      width: 280px;
+    }
+    .search-box input::placeholder {
+      color: #9ca3af;
+    }
+    
+    .main-tabs {
+      display: flex;
+      gap: 0;
+      background: #e5e7eb;
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .main-tab {
+      padding: 8px 20px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.15s;
+      color: #6b7280;
+    }
+    .main-tab:hover {
+      color: #111;
+    }
+    .main-tab.active {
+      background: white;
+      color: #111;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .filter-tab {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .filter-tab:hover {
+      border-color: #111;
+    }
+    .filter-tab.active {
+      background: #111;
+      color: white;
+      border-color: #111;
+    }
+    
+    .refresh-btn {
+      padding: 8px 16px;
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .refresh-btn:hover {
+      border-color: #111;
+    }
+    
+    .stats-bar {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      border-left: 4px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .stat-card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .stat-card.active {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .stat-card.labs-due { border-left-color: #f59e0b; }
+    .stat-card.refill-soon { border-left-color: #ef4444; }
+    .stat-card.on-track { border-left-color: #22c55e; }
+    .stat-card.new-patients { border-left-color: #3b82f6; }
+    .stat-card.completed { border-left-color: #9ca3af; }
+    
+    .stat-card .label {
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      margin-bottom: 24px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .section-header .count {
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .patient-grid {
+      display: grid;
+      gap: 12px;
+    }
+    
+    .patient-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      border: 1px solid #e5e7eb;
+      transition: all 0.15s;
+    }
+    .patient-card:hover {
+      border-color: #111;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .patient-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 12px;
+    }
+    .patient-info .field {
+      min-width: 0;
+    }
+    .patient-info .field-label {
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .patient-info .field-value {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .patient-info .field-value.name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge.male { background: #dbeafe; color: #1d4ed8; }
+    .badge.female { background: #fce7f3; color: #be185d; }
+    .badge.vial { background: #f3e8ff; color: #7c3aed; }
+    .badge.prefilled { background: #dcfce7; color: #166534; }
+    .badge.in-clinic { background: #e5e7eb; color: #374151; }
+    .badge.take-home { background: #fef3c7; color: #d97706; }
+    .badge.labs-due { background: #fef3c7; color: #d97706; }
+    .badge.refill-soon { background: #fee2e2; color: #dc2626; }
+    
+    .supply-status {
+      font-weight: 500;
+    }
+    .supply-status.critical { color: #dc2626; }
+    .supply-status.warning { color: #f59e0b; }
+    .supply-status.good { color: #22c55e; }
+    
+    .patient-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .action-btn:hover {
+      border-color: #111;
+      background: #f9fafb;
+    }
+    .action-btn.primary {
+      background: #111;
+      color: white;
+      border-color: #111;
+    }
+    .action-btn.primary:hover {
+      background: #333;
+    }
+    .action-btn.warning {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #6b7280;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #111;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #111;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1001;
+      display: none;
+    }
+    .toast.success { background: #22c55e; }
+    .toast.error { background: #ef4444; }
+    .toast.active { display: block; }
+    
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    .history-item:hover {
+      border-color: #111;
+    }
+    .history-item .info {
+      flex: 1;
+    }
+    .history-item .date {
+      font-weight: 600;
+      color: #111;
+    }
+    .history-item .details {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .history-item .actions button {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .patient-card {
+        grid-template-columns: 1fr;
+      }
+      .patient-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-actions {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .search-box input {
+        width: 100%;
+      }
+      .search-box input:focus {
+        width: 100%;
+      }
+      .main-tabs {
+        justify-content: center;
+      }
+      .filter-tabs {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>💪 HRT Protocols</h1>
+    <div class="header-actions">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Search patient..." oninput="handleSearch()">
+      </div>
+      <div class="main-tabs">
+        <button class="main-tab active" data-view="active">Active</button>
+        <button class="main-tab" data-view="completed">Completed</button>
+      </div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">All</button>
+        <button class="filter-tab" data-filter="male">Male</button>
+        <button class="filter-tab" data-filter="female">Female</button>
+      </div>
+      <button class="refresh-btn" onclick="loadProtocols()">
+        ↻ Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="activeStats">
+    <div class="stat-card labs-due" data-status="labs-due" onclick="filterByStatus('labs-due')">
+      <div class="label">Labs Due (8wk)</div>
+      <div class="value" id="stat-labs-due">-</div>
+    </div>
+    <div class="stat-card refill-soon" data-status="refill-soon" onclick="filterByStatus('refill-soon')">
+      <div class="label">Refill Soon</div>
+      <div class="value" id="stat-refill-soon">-</div>
+    </div>
+    <div class="stat-card on-track" data-status="on-track" onclick="filterByStatus('on-track')">
+      <div class="label">On Track</div>
+      <div class="value" id="stat-on-track">-</div>
+    </div>
+    <div class="stat-card new-patients" data-status="new-patients" onclick="filterByStatus('new-patients')">
+      <div class="label">New (&lt;8 wks)</div>
+      <div class="value" id="stat-new-patients">-</div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="completedStats" style="display: none;">
+    <div class="stat-card completed">
+      <div class="label">Total Completed</div>
+      <div class="value" id="stat-completed">-</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="loading" class="loading">Loading protocols...</div>
+    <div id="content" style="display: none;"></div>
+  </div>
+
+  <!-- Refill Modal -->
+  <div class="modal-overlay" id="refillModal">
+    <div class="modal">
+      <h3>🔄 Refill / Add Supply</h3>
+      <p id="refillPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div class="form-group">
+        <label>Supply Type</label>
+        <select id="refillSupplyType">
+          <option value="prefilled">Prefilled Syringes (8 injections / 4 weeks)</option>
+          <option value="vial">Vial (10ml - 10-16 weeks)</option>
+        </select>
+      </div>
+      <div class="form-group" id="refillDoseGroup">
+        <label>Current Dose</label>
+        <select id="refillDose">
+          <option value="0.3ml/60mg">0.3ml / 60mg (2x/week = 120mg/wk)</option>
+          <option value="0.35ml/70mg">0.35ml / 70mg (2x/week = 140mg/wk)</option>
+          <option value="0.4ml/80mg">0.4ml / 80mg (2x/week = 160mg/wk)</option>
+          <option value="0.5ml/100mg">0.5ml / 100mg (2x/week = 200mg/wk)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="refillNotes" placeholder="Pickup date, dose changes, etc."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeRefillModal()">Cancel</button>
+        <button class="action-btn primary" onclick="processRefill()">Add Supply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>✏️ Edit Protocol</h3>
+      <p id="editPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div class="form-group">
+        <label>HRT Type</label>
+        <select id="editHrtType">
+          <option value="male">Male HRT</option>
+          <option value="female">Female HRT</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Supply Type</label>
+        <select id="editSupplyType">
+          <option value="prefilled">Prefilled Syringes</option>
+          <option value="vial">Vial</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Current Dose</label>
+        <select id="editDose">
+          <option value="0.3ml/60mg">0.3ml / 60mg</option>
+          <option value="0.35ml/70mg">0.35ml / 70mg</option>
+          <option value="0.4ml/80mg">0.4ml / 80mg</option>
+          <option value="0.5ml/100mg">0.5ml / 100mg</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="editStartDate">
+      </div>
+      <div class="form-group">
+        <label>Last Refill Date</label>
+        <input type="date" id="editLastRefillDate">
+      </div>
+      <div class="form-group">
+        <label>Delivery Method</label>
+        <select id="editDeliveryMethod">
+          <option value="take_home">Take Home</option>
+          <option value="in_clinic">In Clinic</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>8-Week Labs Completed?</label>
+        <select id="editLabsCompleted">
+          <option value="no">No - Not Yet</option>
+          <option value="yes">Yes - Completed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="editNotes" placeholder="Any notes about this protocol..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeEditModal()">Cancel</button>
+        <button class="action-btn primary" onclick="saveProtocolEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Injection Modal -->
+  <div class="modal-overlay" id="logInjectionModal">
+    <div class="modal">
+      <h3>💉 Log Injection</h3>
+      <p id="logInjPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div id="logInjCurrentStats" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
+      
+      <div class="form-group">
+        <label>Injection Date</label>
+        <input type="date" id="logInjDate">
+      </div>
+      <div class="form-group">
+        <label>Dose Given</label>
+        <select id="logInjDose">
+          <option value="">Same as protocol</option>
+          <option value="0.3ml/60mg">0.3ml / 60mg</option>
+          <option value="0.35ml/70mg">0.35ml / 70mg</option>
+          <option value="0.4ml/80mg">0.4ml / 80mg</option>
+          <option value="0.5ml/100mg">0.5ml / 100mg</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="logInjNotes" placeholder="Any notes about this injection..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeLogInjectionModal()">Cancel</button>
+        <button class="action-btn primary" onclick="saveLogInjection()">Log Injection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal" style="max-width: 700px;">
+      <h3>📋 Injection History</h3>
+      <p id="historyPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      
+      <div id="historyLoading" style="text-align: center; padding: 20px; color: #6b7280;">Loading...</div>
+      
+      <div id="historyContent" style="display: none;">
+        <div id="historySummary" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
+        
+        <div id="historyList"></div>
+        
+        <div id="historyEmpty" style="display: none; text-align: center; padding: 30px; color: #6b7280;">
+          <p>No injections logged yet.</p>
+        </div>
+      </div>
+      
+      <div class="modal-actions" style="margin-top: 20px;">
+        <button class="action-btn" onclick="closeHistoryModal()">Close</button>
+        <button class="action-btn primary" onclick="closeHistoryModal(); setTimeout(() => openLogInjectionModal(selectedProtocol?.id), 100);">
+          💉 Add Injection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mark Labs Complete Modal -->
+  <div class="modal-overlay" id="labsModal">
+    <div class="modal">
+      <h3>🧪 Mark Labs Complete</h3>
+      <p id="labsPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div class="form-group">
+        <label>Lab Date</label>
+        <input type="date" id="labsDate">
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="labsNotes" placeholder="Results summary, follow-up needed, etc."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeLabsModal()">Cancel</button>
+        <button class="action-btn primary" onclick="markLabsComplete()">Mark Complete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api' 
+      : 'https://app.range-medical.com/api';
+    
+    let allProtocols = [];
+    let currentFilter = 'all';
+    let currentStatusFilter = null;
+    let selectedProtocol = null;
+    let searchTerm = '';
+    let mainView = 'active';
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadProtocols();
+      
+      // Main tab clicks (Active/Completed)
+      document.querySelectorAll('.main-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          mainView = tab.dataset.view;
+          currentStatusFilter = null;
+          document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+          
+          document.getElementById('activeStats').style.display = mainView === 'active' ? 'grid' : 'none';
+          document.getElementById('completedStats').style.display = mainView === 'completed' ? 'grid' : 'none';
+          
+          renderProtocols();
+        });
+      });
+      
+      // Filter tab clicks (All/Male/Female)
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentFilter = tab.dataset.filter;
+          renderProtocols();
+        });
+      });
+    });
+
+    function handleSearch() {
+      searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      renderProtocols();
+    }
+
+    function clearSearch() {
+      searchTerm = '';
+      document.getElementById('searchInput').value = '';
+      renderProtocols();
+    }
+
+    async function loadProtocols() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('content').style.display = 'none';
+      
+      try {
+        const res = await fetch(`${API_BASE}/pipelines/hrt`);
+        const data = await res.json();
+        
+        // Handle both array and object response
+        allProtocols = Array.isArray(data) ? data : (data.protocols || []);
+        updateStats();
+        renderProtocols();
+      } catch (err) {
+        console.error('Load error:', err);
+        showToast('Failed to load protocols', 'error');
+      }
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    }
+
+    function updateStats() {
+      let labsDue = 0, refillSoon = 0, onTrack = 0, newPatients = 0, completed = 0;
+      
+      allProtocols.forEach(p => {
+        if (isCompleted(p)) {
+          completed++;
+          return;
+        }
+        
+        const status = getProtocolStatus(p);
+        if (status === 'labs-due') labsDue++;
+        else if (status === 'refill-soon') refillSoon++;
+        else if (status === 'new-patients') newPatients++;
+        else onTrack++;
+      });
+      
+      document.getElementById('stat-labs-due').textContent = labsDue;
+      document.getElementById('stat-refill-soon').textContent = refillSoon;
+      document.getElementById('stat-on-track').textContent = onTrack;
+      document.getElementById('stat-new-patients').textContent = newPatients;
+      document.getElementById('stat-completed').textContent = completed;
+    }
+
+    function isCompleted(p) {
+      return p.status === 'completed' || p.status === 'cancelled';
+    }
+
+    function getProtocolStatus(p) {
+      const daysSinceStart = p.days_since_start || 0;
+      const weeksOnTherapy = Math.floor(daysSinceStart / 7);
+      
+      // New patient (< 8 weeks) who needs labs
+      if (weeksOnTherapy >= 6 && weeksOnTherapy <= 10 && !p.labs_completed) {
+        return 'labs-due';
+      }
+      
+      // Check refill status
+      const supplyStatus = getSupplyStatus(p);
+      if (supplyStatus.status === 'critical' || supplyStatus.status === 'warning') {
+        return 'refill-soon';
+      }
+      
+      // New patient (< 8 weeks)
+      if (weeksOnTherapy < 8) {
+        return 'new-patients';
+      }
+      
+      return 'on-track';
+    }
+
+    function getSupplyStatus(p) {
+      const supplyType = p.supply_type || 'prefilled';
+      const daysSinceRefill = p.days_since_last_refill || p.days_since_start || 0;
+      
+      if (supplyType === 'vial') {
+        // Vial lasts 10-16 weeks depending on dose
+        // Use 12 weeks as average, alert at 2 weeks remaining
+        const vialDuration = 84; // ~12 weeks
+        const daysRemaining = vialDuration - daysSinceRefill;
+        
+        if (daysRemaining <= 0) {
+          return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining };
+        } else if (daysRemaining <= 14) {
+          return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining };
+        } else {
+          const weeksLeft = Math.floor(daysRemaining / 7);
+          return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining };
+        }
+      } else {
+        // Prefilled: 8 injections = 4 weeks (2x/week)
+        const prefillDuration = 28; // 4 weeks
+        const daysRemaining = prefillDuration - daysSinceRefill;
+        
+        if (daysRemaining <= 0) {
+          return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining };
+        } else if (daysRemaining <= 7) {
+          return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining };
+        } else {
+          const weeksLeft = Math.floor(daysRemaining / 7);
+          return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining };
+        }
+      }
+    }
+
+    function filterByStatus(status) {
+      if (currentStatusFilter === status) {
+        currentStatusFilter = null;
+        document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+      } else {
+        currentStatusFilter = status;
+        document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.stat-card[data-status="${status}"]`)?.classList.add('active');
+      }
+      renderProtocols();
+    }
+
+    function renderProtocols() {
+      let filtered = allProtocols;
+      
+      // Apply main view filter
+      if (mainView === 'active') {
+        filtered = filtered.filter(p => !isCompleted(p));
+      } else {
+        filtered = filtered.filter(p => isCompleted(p));
+      }
+      
+      // Apply search filter
+      if (searchTerm) {
+        filtered = filtered.filter(p => 
+          (p.patient_name || '').toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Apply HRT type filter (male/female)
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter(p => (p.hrt_type || '').toLowerCase() === currentFilter);
+      }
+      
+      // Apply status filter
+      if (currentStatusFilter && mainView === 'active') {
+        filtered = filtered.filter(p => getProtocolStatus(p) === currentStatusFilter);
+      }
+      
+      let html = '';
+      
+      if (mainView === 'active') {
+        const groups = {
+          'labs-due': filtered.filter(p => getProtocolStatus(p) === 'labs-due'),
+          'refill-soon': filtered.filter(p => getProtocolStatus(p) === 'refill-soon'),
+          'new-patients': filtered.filter(p => getProtocolStatus(p) === 'new-patients'),
+          'on-track': filtered.filter(p => getProtocolStatus(p) === 'on-track')
+        };
+        
+        if (groups['labs-due'].length > 0) {
+          html += renderSection('🧪 Labs Due (6-10 weeks)', groups['labs-due']);
+        }
+        if (groups['refill-soon'].length > 0) {
+          html += renderSection('🔴 Refill Soon', groups['refill-soon']);
+        }
+        if (groups['new-patients'].length > 0) {
+          html += renderSection('🆕 New Patients (&lt;8 weeks)', groups['new-patients']);
+        }
+        if (groups['on-track'].length > 0) {
+          html += renderSection('🟢 On Track', groups['on-track']);
+        }
+      } else {
+        if (filtered.length > 0) {
+          html += renderSection('⚪ Completed Protocols', filtered);
+        }
+      }
+      
+      if (html === '') {
+        const viewLabel = mainView === 'active' ? 'active protocols' : 'completed protocols';
+        const searchMsg = searchTerm 
+          ? `No ${viewLabel} found matching "${searchTerm}".` 
+          : `No ${viewLabel} found.`;
+        html = `
+          <div class="empty-state">
+            <div class="icon">${mainView === 'active' ? '💪' : '✅'}</div>
+            <p>${searchMsg}</p>
+            ${searchTerm ? '<p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>' : ''}
+          </div>
+        `;
+      }
+      
+      document.getElementById('content').innerHTML = html;
+    }
+
+    function renderSection(title, protocols) {
+      return `
+        <div class="section">
+          <div class="section-header">
+            <h2>${title}</h2>
+            <span class="count">${protocols.length}</span>
+          </div>
+          <div class="patient-grid">
+            ${protocols.map(p => renderPatientCard(p)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPatientCard(p) {
+      const hrtTypeBadge = (p.hrt_type || '').toLowerCase() === 'female'
+        ? '<span class="badge female">Female</span>'
+        : '<span class="badge male">Male</span>';
+      
+      const supplyBadge = (p.supply_type || '').toLowerCase() === 'vial'
+        ? '<span class="badge vial">Vial</span>'
+        : '<span class="badge prefilled">Prefilled</span>';
+      
+      const deliveryBadge = p.delivery_method === 'in_clinic'
+        ? '<span class="badge in-clinic">In Clinic</span>'
+        : '<span class="badge take-home">Take Home</span>';
+      
+      const status = getProtocolStatus(p);
+      const supplyStatus = getSupplyStatus(p);
+      
+      // Time on therapy
+      const daysSinceStart = p.days_since_start || 0;
+      const weeksOnTherapy = Math.floor(daysSinceStart / 7);
+      const timeOnTherapy = weeksOnTherapy >= 52 
+        ? `${Math.floor(weeksOnTherapy / 52)}y ${weeksOnTherapy % 52}w`
+        : `${weeksOnTherapy} weeks`;
+      
+      // Labs badge
+      const labsBadge = status === 'labs-due'
+        ? '<span class="badge labs-due">Labs Due</span>'
+        : '';
+      
+      // Refill badge
+      const refillBadge = supplyStatus.status === 'critical' || supplyStatus.status === 'warning'
+        ? '<span class="badge refill-soon">Refill</span>'
+        : '';
+      
+      return `
+        <div class="patient-card">
+          <div class="patient-info">
+            <div class="field">
+              <div class="field-label">Patient</div>
+              <div class="field-value name">${p.patient_name || 'Unknown'}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Type</div>
+              <div class="field-value">${hrtTypeBadge} ${supplyBadge}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Dose</div>
+              <div class="field-value">${p.current_dose || '-'}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">On Therapy</div>
+              <div class="field-value">${timeOnTherapy}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Supply</div>
+              <div class="field-value supply-status ${supplyStatus.status}">${supplyStatus.text}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Status</div>
+              <div class="field-value">${deliveryBadge} ${labsBadge} ${refillBadge}</div>
+            </div>
+          </div>
+          <div class="patient-actions">
+            ${p.delivery_method === 'in_clinic' ? `
+              <button class="action-btn" onclick="openLogInjectionModal('${p.id}')">
+                💉 Log
+              </button>
+            ` : ''}
+            <button class="action-btn" onclick="openHistoryModal('${p.id}')">
+              📋 History
+            </button>
+            ${status === 'labs-due' ? `
+              <button class="action-btn warning" onclick="openLabsModal('${p.id}', '${p.patient_name}')">
+                🧪 Labs
+              </button>
+            ` : ''}
+            <button class="action-btn" onclick="openEditModal('${p.id}')">
+              ✏️ Edit
+            </button>
+            <button class="action-btn" onclick="openInGHL('${p.ghl_contact_id}')">
+              ↗ GHL
+            </button>
+            <button class="action-btn primary" onclick="openRefillModal('${p.id}', '${p.patient_name}', '${p.supply_type || 'prefilled'}')">
+              🔄 Refill
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function openInGHL(contactId) {
+      if (!contactId) {
+        showToast('No GHL contact linked', 'error');
+        return;
+      }
+      window.open(`https://crm.cuppconsulting.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${contactId}`, '_blank');
+    }
+
+    // Refill Modal
+    function openRefillModal(protocolId, patientName, supplyType) {
+      selectedProtocol = allProtocols.find(p => p.id === protocolId);
+      document.getElementById('refillPatientName').textContent = patientName;
+      document.getElementById('refillSupplyType').value = supplyType || 'prefilled';
+      document.getElementById('refillDose').value = selectedProtocol?.current_dose || '0.3ml/60mg';
+      document.getElementById('refillNotes').value = '';
+      document.getElementById('refillModal').classList.add('active');
+    }
+
+    function closeRefillModal() {
+      document.getElementById('refillModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function processRefill() {
+      if (!selectedProtocol) return;
+      
+      const supplyType = document.getElementById('refillSupplyType').value;
+      const dose = document.getElementById('refillDose').value;
+      const notes = document.getElementById('refillNotes').value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/hrt-refill`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            supply_type: supplyType,
+            dose: dose,
+            notes: notes
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Refill processed!', 'success');
+          closeRefillModal();
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to process refill', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to process refill', 'error');
+      }
+    }
+
+    // Edit Modal
+    function openEditModal(protocolId) {
+      const protocol = allProtocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        showToast('Protocol not found', 'error');
+        return;
+      }
+      
+      selectedProtocol = protocol;
+      document.getElementById('editPatientName').textContent = protocol.patient_name;
+      document.getElementById('editHrtType').value = (protocol.hrt_type || 'male').toLowerCase();
+      document.getElementById('editSupplyType').value = protocol.supply_type || 'prefilled';
+      document.getElementById('editDose').value = protocol.current_dose || '0.3ml/60mg';
+      document.getElementById('editStartDate').value = protocol.start_date || '';
+      document.getElementById('editLastRefillDate').value = protocol.last_refill_date || '';
+      document.getElementById('editDeliveryMethod').value = protocol.delivery_method || 'take_home';
+      document.getElementById('editLabsCompleted').value = protocol.labs_completed ? 'yes' : 'no';
+      document.getElementById('editNotes').value = protocol.notes || '';
+      
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function saveProtocolEdit() {
+      if (!selectedProtocol) return;
+      
+      const data = {
+        medication: document.getElementById('editHrtType').value === 'female' ? 'Female HRT' : 'Male HRT',
+        supply_type: document.getElementById('editSupplyType').value,
+        selected_dose: document.getElementById('editDose').value,
+        start_date: document.getElementById('editStartDate').value || null,
+        last_refill_date: document.getElementById('editLastRefillDate').value || null,
+        delivery_method: document.getElementById('editDeliveryMethod').value,
+        labs_completed: document.getElementById('editLabsCompleted').value === 'yes',
+        notes: document.getElementById('editNotes').value
+      };
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/update`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Protocol updated!', 'success');
+          closeEditModal();
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to update', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to update protocol', 'error');
+      }
+    }
+
+    // Log Injection Modal
+    function openLogInjectionModal(protocolId) {
+      const protocol = allProtocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        showToast('Protocol not found', 'error');
+        return;
+      }
+      
+      selectedProtocol = protocol;
+      document.getElementById('logInjPatientName').textContent = protocol.patient_name;
+      
+      const weeksOnTherapy = Math.floor((protocol.days_since_start || 0) / 7);
+      document.getElementById('logInjCurrentStats').innerHTML = `
+        <strong>Current Dose:</strong> ${protocol.current_dose || '-'}<br>
+        <strong>On Therapy:</strong> ${weeksOnTherapy} weeks
+      `;
+      
+      document.getElementById('logInjDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('logInjDose').value = '';
+      document.getElementById('logInjNotes').value = '';
+      
+      document.getElementById('logInjectionModal').classList.add('active');
+    }
+
+    function closeLogInjectionModal() {
+      document.getElementById('logInjectionModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function saveLogInjection() {
+      if (!selectedProtocol) return;
+      
+      const injDate = document.getElementById('logInjDate').value;
+      const dose = document.getElementById('logInjDose').value;
+      const notes = document.getElementById('logInjNotes').value;
+      
+      if (!injDate) {
+        showToast('Please select a date', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/log-injection`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            log_date: injDate,
+            dose: dose || null,
+            notes: notes,
+            delivery_method: selectedProtocol.delivery_method
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Injection logged!', 'success');
+          closeLogInjectionModal();
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to log injection', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to log injection', 'error');
+      }
+    }
+
+    // History Modal
+    async function openHistoryModal(protocolId) {
+      const protocol = allProtocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        showToast('Protocol not found', 'error');
+        return;
+      }
+      
+      selectedProtocol = protocol;
+      document.getElementById('historyPatientName').textContent = `${protocol.patient_name} - HRT`;
+      document.getElementById('historyLoading').style.display = 'block';
+      document.getElementById('historyContent').style.display = 'none';
+      document.getElementById('historyModal').classList.add('active');
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${protocolId}/logs`);
+        const data = await res.json();
+        
+        document.getElementById('historyLoading').style.display = 'none';
+        document.getElementById('historyContent').style.display = 'block';
+        
+        const logs = Array.isArray(data) ? data : (data.logs || []);
+        
+        if (logs.length > 0) {
+          const totalLogs = logs.length;
+          const weeksOnTherapy = Math.floor((protocol.days_since_start || 0) / 7);
+          
+          document.getElementById('historySummary').innerHTML = `
+            <strong>Total Injections:</strong> ${totalLogs} &nbsp;|&nbsp; 
+            <strong>On Therapy:</strong> ${weeksOnTherapy} weeks
+          `;
+          document.getElementById('historySummary').style.display = 'block';
+          
+          let logsHtml = '';
+          logs.forEach((log, index) => {
+            const logDate = new Date(log.log_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            const doseText = log.dose || protocol.current_dose || '-';
+            const notesText = log.notes ? ` - ${log.notes.substring(0, 50)}${log.notes.length > 50 ? '...' : ''}` : '';
+            
+            logsHtml += `
+              <div class="history-item">
+                <div class="info">
+                  <div class="date">${logDate}</div>
+                  <div class="details">${doseText}${notesText}</div>
+                </div>
+              </div>
+            `;
+          });
+          
+          document.getElementById('historyList').innerHTML = logsHtml;
+          document.getElementById('historyList').style.display = 'block';
+          document.getElementById('historyEmpty').style.display = 'none';
+        } else {
+          document.getElementById('historySummary').style.display = 'none';
+          document.getElementById('historyList').style.display = 'none';
+          document.getElementById('historyEmpty').style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Load history error:', err);
+        showToast('Failed to load history', 'error');
+        closeHistoryModal();
+      }
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('historyModal').classList.remove('active');
+    }
+
+    // Labs Modal
+    function openLabsModal(protocolId, patientName) {
+      selectedProtocol = allProtocols.find(p => p.id === protocolId);
+      document.getElementById('labsPatientName').textContent = `${patientName} - 8 Week Follow-up Labs`;
+      document.getElementById('labsDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('labsNotes').value = '';
+      document.getElementById('labsModal').classList.add('active');
+    }
+
+    function closeLabsModal() {
+      document.getElementById('labsModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function markLabsComplete() {
+      if (!selectedProtocol) return;
+      
+      const labDate = document.getElementById('labsDate').value;
+      const notes = document.getElementById('labsNotes').value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/update`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            labs_completed: true,
+            labs_completed_date: labDate,
+            notes: (selectedProtocol.notes || '') + `\n[${labDate}] 8-week labs completed. ${notes}`
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Labs marked complete!', 'success');
+          closeLabsModal();
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to update', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to update', 'error');
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast active ${type}`;
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

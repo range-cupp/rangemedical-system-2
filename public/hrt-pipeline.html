@@ -520,7 +520,8 @@
         <select id="refillSupplyType">
           <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
           <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
-          <option value="vial">Vial (10ml - 10-16 weeks)</option>
+          <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
+          <option value="vial_10ml">Vial 10ml (10-16 weeks based on dose)</option>
         </select>
       </div>
       <div class="form-group" id="refillDoseGroup">
@@ -560,7 +561,8 @@
         <select id="editSupplyType">
           <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
           <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
-          <option value="vial">Vial (10ml - 10-16 weeks)</option>
+          <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
+          <option value="vial_10ml">Vial 10ml (10-16 weeks based on dose)</option>
         </select>
       </div>
       <div class="form-group">
@@ -879,8 +881,14 @@
       const supplyType = p.supply_type || 'prefilled_4week';
       const daysSinceRefill = p.days_since_last_refill || p.days_since_start || 0;
       
-      if (supplyType === 'vial') {
-        // Vial: 200mg/ml × 10ml = 2000mg total
+      // Check if it's a vial (either old 'vial' value or new vial_5ml/vial_10ml)
+      const isVial = supplyType === 'vial' || supplyType === 'vial_5ml' || supplyType === 'vial_10ml';
+      
+      if (isVial) {
+        // Determine vial size (default to 10ml for backwards compatibility with 'vial')
+        const vialMl = supplyType === 'vial_5ml' ? 5 : 10;
+        const totalMg = 200 * vialMl; // 200mg/ml × ml = total mg
+        
         // Calculate duration based on dose
         const dose = p.current_dose || '0.3ml/60mg';
         let weeklyMg = 120; // default: 60mg × 2/week
@@ -895,7 +903,6 @@
           weeklyMg = 120; // 60mg × 2/week
         }
         
-        const totalMg = 2000;
         const vialWeeks = Math.floor(totalMg / weeklyMg);
         const vialDuration = vialWeeks * 7; // convert to days
         const daysRemaining = vialDuration - daysSinceRefill;
@@ -1040,16 +1047,21 @@
         : '<span class="badge male">Male</span>';
       
       let supplyBadgeText = 'Prefilled';
-      if ((p.supply_type || '').toLowerCase() === 'vial') {
-        supplyBadgeText = 'Vial';
-      } else if ((p.supply_type || '').toLowerCase() === 'prefilled_2week') {
+      const supplyTypeLower = (p.supply_type || '').toLowerCase();
+      
+      if (supplyTypeLower === 'vial_10ml' || supplyTypeLower === 'vial') {
+        supplyBadgeText = '10ml Vial';
+      } else if (supplyTypeLower === 'vial_5ml') {
+        supplyBadgeText = '5ml Vial';
+      } else if (supplyTypeLower === 'prefilled_2week') {
         supplyBadgeText = '2 Week';
-      } else if ((p.supply_type || '').toLowerCase() === 'prefilled_4week') {
+      } else if (supplyTypeLower === 'prefilled_4week') {
         supplyBadgeText = '4 Week';
       }
       
-      const supplyBadge = (p.supply_type || '').toLowerCase() === 'vial'
-        ? '<span class="badge vial">Vial</span>'
+      const isVial = supplyTypeLower.includes('vial');
+      const supplyBadge = isVial
+        ? `<span class="badge vial">${supplyBadgeText}</span>`
         : `<span class="badge prefilled">${supplyBadgeText}</span>`;
       
       const deliveryBadge = p.delivery_method === 'in_clinic'

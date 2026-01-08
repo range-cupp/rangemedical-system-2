@@ -3,12 +3,52 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { addGHLNote, updateGHLContact } from '../../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// GHL API helpers
+async function addGHLNote(contactId, noteBody) {
+  if (!contactId) return null;
+  
+  try {
+    const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
+        'Version': '2021-07-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ body: noteBody })
+    });
+    return await response.json();
+  } catch (err) {
+    console.error('GHL note error:', err);
+    return null;
+  }
+}
+
+async function updateGHLContact(contactId, customFields) {
+  if (!contactId) return null;
+  
+  try {
+    const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
+        'Version': '2021-07-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ customFields: customFields })
+    });
+    return await response.json();
+  } catch (err) {
+    console.error('GHL update error:', err);
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
   // CORS headers
@@ -25,7 +65,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { supply_type, dose, notes } = req.body;
+  const { supply_type, dose, notes, refill_date } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID required' });
@@ -50,14 +90,21 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    // Use provided date or default to today
+    const refillDateStr = refill_date || new Date().toISOString().split('T')[0];
     
     // Calculate supply duration for logging
     let supplyDuration = '';
+    let supplyLabel = '';
     if (supply_type === 'vial') {
-      supplyDuration = '10-16 weeks (vial)';
+      supplyDuration = '10-16 weeks';
+      supplyLabel = 'Vial (10ml)';
+    } else if (supply_type === 'prefilled_2week') {
+      supplyDuration = '2 weeks';
+      supplyLabel = 'Pre-filled 2 Week (4 injections)';
     } else {
-      supplyDuration = '4 weeks (8 prefilled)';
+      supplyDuration = '4 weeks';
+      supplyLabel = 'Pre-filled 4 Week (8 injections)';
     }
 
     // Log the refill
@@ -65,8 +112,8 @@ export default async function handler(req, res) {
       protocol_id: id,
       patient_id: protocol.patient_id,
       log_type: 'refill',
-      log_date: today,
-      notes: `Refill: ${supply_type} - ${dose}. ${notes || ''}`
+      log_date: refillDateStr,
+      notes: `Refill: ${supplyLabel} - ${dose}. ${notes || ''}`
     };
 
     const { error: logError } = await supabase
@@ -80,12 +127,13 @@ export default async function handler(req, res) {
     // Update protocol with new supply type and dose
     const existingNotes = protocol.notes || '';
     const updatedNotes = existingNotes 
-      ? `${existingNotes}\n\n[${today}] Refill: ${supply_type}, ${dose}. Supply: ${supplyDuration}. ${notes || ''}`
-      : `[${today}] Refill: ${supply_type}, ${dose}. Supply: ${supplyDuration}. ${notes || ''}`;
+      ? `${existingNotes}\n\n[${refillDateStr}] Refill: ${supplyLabel}, ${dose}. Supply: ${supplyDuration}. ${notes || ''}`
+      : `[${refillDateStr}] Refill: ${supplyLabel}, ${dose}. Supply: ${supplyDuration}. ${notes || ''}`;
 
     const { error: updateError } = await supabase
       .from('protocols')
       .update({
+        supply_type: supply_type,
         selected_dose: dose,
         status: 'active',
         notes: updatedNotes,
@@ -104,8 +152,8 @@ export default async function handler(req, res) {
     if (contactId) {
       const ghlNote = `🔄 HRT REFILL PROCESSED
 
-Date: ${today}
-Supply Type: ${supply_type === 'vial' ? 'Vial (10ml)' : 'Prefilled Syringes (8)'}
+Date: ${refillDateStr}
+Supply Type: ${supplyLabel}
 Current Dose: ${dose}
 Expected Duration: ${supplyDuration}
 ${notes ? `Notes: ${notes}` : ''}`;
@@ -114,17 +162,18 @@ ${notes ? `Notes: ${notes}` : ''}`;
 
       // Update custom fields
       await updateGHLContact(contactId, {
-        'hrt__last_refill_date': today,
+        'hrt__last_refill_date': refillDateStr,
         'hrt__supply_type': supply_type,
         'hrt__current_dose': dose
       });
     }
 
-    console.log(`✓ HRT Refill processed for ${patientName}: ${supply_type}, ${dose}`);
+    console.log(`✓ HRT Refill processed for ${patientName}: ${supplyLabel}, ${dose} on ${refillDateStr}`);
 
     return res.status(200).json({
       success: true,
       message: 'Refill processed',
+      refill_date: refillDateStr,
       supply_type: supply_type,
       dose: dose,
       supply_duration: supplyDuration

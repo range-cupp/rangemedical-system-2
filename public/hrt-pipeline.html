@@ -1407,6 +1407,11 @@
                   <div class="date">${logDate}</div>
                   <div class="details">${doseText}${notesText}</div>
                 </div>
+                <div class="actions" style="display: flex; gap: 6px;">
+                  <button class="action-btn" onclick="deleteLogEntry('${log.id}')" style="padding: 6px 10px; font-size: 12px; color: #dc2626;">
+                    🗑️ Delete
+                  </button>
+                </div>
               </div>
             `;
           });
@@ -1428,6 +1433,34 @@
 
     function closeHistoryModal() {
       document.getElementById('historyModal').classList.remove('active');
+    }
+
+    async function deleteLogEntry(logId) {
+      if (!confirm('Are you sure you want to delete this entry?')) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocol-logs/${logId}`, {
+          method: 'DELETE'
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Entry deleted', 'success');
+          // Refresh the history modal
+          if (selectedProtocol) {
+            openHistoryModal(selectedProtocol.id);
+          }
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to delete', 'error');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        showToast('Failed to delete entry', 'error');
+      }
     }
 
     // Labs Modal

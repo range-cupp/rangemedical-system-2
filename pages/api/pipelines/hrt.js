@@ -35,10 +35,12 @@ export default async function handler(req, res) {
         medication,
         selected_dose,
         delivery_method,
+        supply_type,
         start_date,
         end_date,
         status,
         notes,
+        labs_completed,
         created_at,
         patients (
           id,
@@ -111,7 +113,7 @@ export default async function handler(req, res) {
       
       // Parse HRT type and supply type from program_name/medication
       let hrtType = 'male';
-      let supplyType = 'prefilled';
+      let supplyType = p.supply_type || 'prefilled';
       
       const programNameLower = (p.program_name || '').toLowerCase();
       const medicationLower = (p.medication || '').toLowerCase();
@@ -120,13 +122,15 @@ export default async function handler(req, res) {
         hrtType = 'female';
       }
       
-      if (programNameLower.includes('vial') || medicationLower.includes('vial')) {
-        supplyType = 'vial';
+      // Only guess from name if not in database
+      if (!p.supply_type) {
+        if (programNameLower.includes('vial') || medicationLower.includes('vial')) {
+          supplyType = 'vial';
+        }
       }
       
-      // Check if 8-week labs completed (look in notes for now)
-      const notesLower = (p.notes || '').toLowerCase();
-      const labsCompleted = notesLower.includes('labs completed') || notesLower.includes('8-week labs');
+      // Check if 8-week labs completed
+      const labsCompleted = p.labs_completed || false;
 
       return {
         id: p.id,

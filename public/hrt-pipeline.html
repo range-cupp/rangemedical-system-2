@@ -595,6 +595,18 @@
         </select>
       </div>
       <div class="form-group">
+        <label>Baseline Labs Date</label>
+        <input type="date" id="editBaselineLabsDate">
+      </div>
+      <div class="form-group">
+        <label>8-Week Labs Date</label>
+        <input type="date" id="editEightWeekLabsDate">
+      </div>
+      <div class="form-group">
+        <label>Last Quarterly Labs Date</label>
+        <input type="date" id="editLastLabsDate">
+      </div>
+      <div class="form-group">
         <label>Notes</label>
         <textarea id="editNotes" placeholder="Any notes about this protocol..."></textarea>
       </div>
@@ -1194,6 +1206,9 @@
       document.getElementById('editLastRefillDate').value = protocol.last_refill_date || '';
       document.getElementById('editDeliveryMethod').value = protocol.delivery_method || 'take_home';
       document.getElementById('editLabsCompleted').value = protocol.labs_completed ? 'yes' : 'no';
+      document.getElementById('editBaselineLabsDate').value = protocol.baseline_labs_date || '';
+      document.getElementById('editEightWeekLabsDate').value = protocol.eight_week_labs_date || '';
+      document.getElementById('editLastLabsDate').value = protocol.last_labs_date || '';
       document.getElementById('editNotes').value = protocol.notes || '';
       
       document.getElementById('editModal').classList.add('active');
@@ -1215,6 +1230,9 @@
         last_refill_date: document.getElementById('editLastRefillDate').value || null,
         delivery_method: document.getElementById('editDeliveryMethod').value,
         labs_completed: document.getElementById('editLabsCompleted').value === 'yes',
+        baseline_labs_date: document.getElementById('editBaselineLabsDate').value || null,
+        eight_week_labs_date: document.getElementById('editEightWeekLabsDate').value || null,
+        last_labs_date: document.getElementById('editLastLabsDate').value || null,
         notes: document.getElementById('editNotes').value
       };
       

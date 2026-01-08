@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Range Medical - Staff Quick Log</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💉</text></svg>">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -453,12 +454,12 @@
                 </select>
               </div>
               <div class="form-group" id="hrtFulfillmentGroup" style="display: none;">
-                <label>Fulfillment Type</label>
-                <select name="hrt_fulfillment">
+                <label>Supply Type</label>
+                <select name="hrt_supply_type">
                   <option value="">Select type...</option>
-                  <option value="Pre-filled 2 Week">Pre-filled 2 Week</option>
-                  <option value="Pre-filled 4 Week">Pre-filled 4 Week</option>
-                  <option value="Vial">Vial (10-12 weeks)</option>
+                  <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
+                  <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                  <option value="vial">Vial (10ml - 10-16 weeks)</option>
                 </select>
               </div>
             </div>
@@ -674,12 +675,12 @@
               <input type="date" name="date" required>
             </div>
             <div class="form-group">
-              <label>Fulfillment Type</label>
-              <select name="fulfillment_type" required>
+              <label>Supply Type</label>
+              <select name="supply_type" required>
                 <option value="">Select type...</option>
-                <option value="Pre-filled 2 Week">Pre-filled 2 Week</option>
-                <option value="Pre-filled 4 Week">Pre-filled 4 Week</option>
-                <option value="Vial">Vial (10-12 weeks)</option>
+                <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
+                <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                <option value="vial">Vial (10ml - 10-16 weeks)</option>
               </select>
             </div>
             <div class="form-group">
@@ -981,7 +982,7 @@
           data.medication = form.hrt_medication.value;
           data.dosage = form.hrt_dosage.value;
           data.delivery_method = form.hrt_delivery.value;
-          data.fulfillment_type = form.hrt_fulfillment.value || null;
+          data.supply_type = form.hrt_supply_type.value || null;
           break;
           
         case 'iv_therapy':
@@ -1058,7 +1059,7 @@
         contact_id: selectedPatient.ghlId,
         contact_name: selectedPatient.name,
         date: form.date.value,
-        fulfillment_type: form.fulfillment_type.value,
+        supply_type: form.supply_type.value,
         medication: form.medication.value,
         dosage: form.dosage.value
       };

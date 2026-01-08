@@ -988,6 +988,11 @@
         ? `${Math.floor(weeksOnTherapy / 52)}y ${weeksOnTherapy % 52}w`
         : `${weeksOnTherapy} weeks`;
       
+      // Format start date
+      const startDateDisplay = p.start_date 
+        ? new Date(p.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : '-';
+      
       // Labs badge
       const labsBadge = status === 'labs-due'
         ? '<span class="badge labs-due">Labs Due</span>'
@@ -1012,6 +1017,10 @@
             <div class="field">
               <div class="field-label">Dose</div>
               <div class="field-value">${p.current_dose || '-'}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Started</div>
+              <div class="field-value">${startDateDisplay}</div>
             </div>
             <div class="field">
               <div class="field-label">On Therapy</div>

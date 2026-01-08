@@ -96,8 +96,15 @@ export default async function handler(req, res) {
     // Calculate supply duration based on type and dose
     let supplyDuration = '';
     let supplyLabel = '';
-    if (supply_type === 'vial') {
-      // Vial: 200mg/ml × 10ml = 2000mg total
+    
+    // Check if it's a vial
+    const isVial = supply_type === 'vial' || supply_type === 'vial_5ml' || supply_type === 'vial_10ml';
+    
+    if (isVial) {
+      // Determine vial size (default to 10ml for backwards compatibility)
+      const vialMl = supply_type === 'vial_5ml' ? 5 : 10;
+      const totalMg = 200 * vialMl;
+      
       // Calculate duration based on dose
       let weeklyMg = 120; // default
       
@@ -111,9 +118,9 @@ export default async function handler(req, res) {
         weeklyMg = 120;
       }
       
-      const vialWeeks = Math.floor(2000 / weeklyMg);
+      const vialWeeks = Math.floor(totalMg / weeklyMg);
       supplyDuration = `${vialWeeks} weeks`;
-      supplyLabel = `Vial (10ml - ${vialWeeks} weeks at ${dose})`;
+      supplyLabel = `Vial ${vialMl}ml (${vialWeeks} weeks at ${dose})`;
     } else if (supply_type === 'prefilled_2week') {
       supplyDuration = '2 weeks';
       supplyLabel = 'Pre-filled 2 Week (4 injections)';

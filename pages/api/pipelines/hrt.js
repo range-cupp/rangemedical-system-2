@@ -41,6 +41,9 @@ export default async function handler(req, res) {
         status,
         notes,
         labs_completed,
+        baseline_labs_date,
+        eight_week_labs_date,
+        last_labs_date,
         created_at,
         patients (
           id,
@@ -149,6 +152,9 @@ export default async function handler(req, res) {
         days_since_last_refill: daysSinceLastRefill,
         total_injections: injectionCountMap[p.id] || 0,
         labs_completed: labsCompleted,
+        baseline_labs_date: p.baseline_labs_date || null,
+        eight_week_labs_date: p.eight_week_labs_date || null,
+        last_labs_date: p.last_labs_date || null,
         status: p.status || 'active',
         notes: p.notes,
         created_at: p.created_at

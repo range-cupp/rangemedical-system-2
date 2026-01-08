@@ -566,6 +566,15 @@
         </select>
       </div>
       <div class="form-group">
+        <label>Starting Dose</label>
+        <select id="editStartingDose">
+          <option value="0.3ml/60mg">0.3ml / 60mg</option>
+          <option value="0.35ml/70mg">0.35ml / 70mg</option>
+          <option value="0.4ml/80mg">0.4ml / 80mg</option>
+          <option value="0.5ml/100mg">0.5ml / 100mg</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Current Dose</label>
         <select id="editDose">
           <option value="0.3ml/60mg">0.3ml / 60mg</option>
@@ -1228,6 +1237,7 @@
       document.getElementById('editPatientName').textContent = protocol.patient_name;
       document.getElementById('editHrtType').value = (protocol.hrt_type || 'male').toLowerCase();
       document.getElementById('editSupplyType').value = protocol.supply_type || 'prefilled_4week';
+      document.getElementById('editStartingDose').value = protocol.starting_dose || protocol.current_dose || '0.3ml/60mg';
       document.getElementById('editDose').value = protocol.current_dose || '0.3ml/60mg';
       document.getElementById('editStartDate').value = protocol.start_date || '';
       document.getElementById('editLastRefillDate').value = protocol.last_refill_date || '';
@@ -1252,6 +1262,7 @@
       const data = {
         medication: document.getElementById('editHrtType').value === 'female' ? 'Female HRT' : 'Male HRT',
         supply_type: document.getElementById('editSupplyType').value,
+        starting_dose: document.getElementById('editStartingDose').value,
         selected_dose: document.getElementById('editDose').value,
         start_date: document.getElementById('editStartDate').value || null,
         last_refill_date: document.getElementById('editLastRefillDate').value || null,

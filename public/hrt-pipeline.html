@@ -477,7 +477,7 @@
 
   <div class="stats-bar" id="activeStats">
     <div class="stat-card labs-due" data-status="labs-due" onclick="filterByStatus('labs-due')">
-      <div class="label">Labs Due (8wk)</div>
+      <div class="label">Labs Due</div>
       <div class="value" id="stat-labs-due">-</div>
     </div>
     <div class="stat-card refill-soon" data-status="refill-soon" onclick="filterByStatus('refill-soon')">
@@ -667,8 +667,19 @@
   <!-- Mark Labs Complete Modal -->
   <div class="modal-overlay" id="labsModal">
     <div class="modal">
-      <h3>🧪 Mark Labs Complete</h3>
+      <h3>🧪 Lab Tracking</h3>
       <p id="labsPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      
+      <div id="labsStatus" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
+      
+      <div class="form-group">
+        <label>Lab Type</label>
+        <select id="labsType">
+          <option value="baseline">Baseline Labs (at start)</option>
+          <option value="eight_week">8-Week Follow-up</option>
+          <option value="quarterly">Quarterly Labs (every 12 weeks)</option>
+        </select>
+      </div>
       <div class="form-group">
         <label>Lab Date</label>
         <input type="date" id="labsDate">
@@ -679,7 +690,7 @@
       </div>
       <div class="modal-actions">
         <button class="action-btn" onclick="closeLabsModal()">Cancel</button>
-        <button class="action-btn primary" onclick="markLabsComplete()">Mark Complete</button>
+        <button class="action-btn primary" onclick="markLabsComplete()">Save Lab Record</button>
       </div>
     </div>
   </div>
@@ -793,8 +804,9 @@
       const daysSinceStart = p.days_since_start || 0;
       const weeksOnTherapy = Math.floor(daysSinceStart / 7);
       
-      // New patient (< 8 weeks) who needs labs
-      if (weeksOnTherapy >= 6 && weeksOnTherapy <= 10 && !p.labs_completed) {
+      // Check lab status
+      const labStatus = getLabStatus(p);
+      if (labStatus.due) {
         return 'labs-due';
       }
       
@@ -810,6 +822,45 @@
       }
       
       return 'on-track';
+    }
+    
+    function getLabStatus(p) {
+      const daysSinceStart = p.days_since_start || 0;
+      const weeksOnTherapy = Math.floor(daysSinceStart / 7);
+      
+      // Check baseline labs
+      if (!p.baseline_labs_date) {
+        return { due: true, type: 'baseline', text: 'Baseline labs needed' };
+      }
+      
+      // Check 8-week labs (due at 6-10 weeks)
+      if (!p.eight_week_labs_date) {
+        if (weeksOnTherapy >= 6 && weeksOnTherapy <= 12) {
+          return { due: true, type: 'eight_week', text: '8-week labs due' };
+        }
+        if (weeksOnTherapy > 12) {
+          return { due: true, type: 'eight_week', text: '8-week labs overdue' };
+        }
+        return { due: false, type: 'eight_week', text: `8-week labs at week 8 (now week ${weeksOnTherapy})` };
+      }
+      
+      // Check quarterly labs (every 12 weeks after 8-week labs)
+      const lastLabDate = p.last_labs_date || p.eight_week_labs_date;
+      if (lastLabDate) {
+        const lastLab = new Date(lastLabDate);
+        const now = new Date();
+        const daysSinceLastLab = Math.floor((now - lastLab) / (1000 * 60 * 60 * 24));
+        const weeksSinceLastLab = Math.floor(daysSinceLastLab / 7);
+        
+        if (weeksSinceLastLab >= 12) {
+          return { due: true, type: 'quarterly', text: 'Quarterly labs due' };
+        }
+        
+        const weeksUntilNext = 12 - weeksSinceLastLab;
+        return { due: false, type: 'quarterly', text: `Next labs in ${weeksUntilNext} weeks` };
+      }
+      
+      return { due: false, type: 'none', text: 'Labs up to date' };
     }
 
     function getSupplyStatus(p) {
@@ -908,7 +959,7 @@
         };
         
         if (groups['labs-due'].length > 0) {
-          html += renderSection('🧪 Labs Due (6-10 weeks)', groups['labs-due']);
+          html += renderSection('🧪 Labs Due', groups['labs-due']);
         }
         if (groups['refill-soon'].length > 0) {
           html += renderSection('🔴 Refill Soon', groups['refill-soon']);
@@ -993,10 +1044,12 @@
         ? new Date(p.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : '-';
       
-      // Labs badge
-      const labsBadge = status === 'labs-due'
-        ? '<span class="badge labs-due">Labs Due</span>'
-        : '';
+      // Labs badge - show status
+      const labStatus = getLabStatus(p);
+      let labsBadge = '';
+      if (labStatus.due) {
+        labsBadge = `<span class="badge labs-due">${labStatus.type === 'baseline' ? 'Baseline' : labStatus.type === 'eight_week' ? '8-Wk Labs' : 'Quarterly'}</span>`;
+      }
       
       // Refill badge
       const refillBadge = supplyStatus.status === 'critical' || supplyStatus.status === 'warning'
@@ -1044,18 +1097,16 @@
             <button class="action-btn" onclick="openHistoryModal('${p.id}')">
               📋 History
             </button>
-            ${status === 'labs-due' ? `
-              <button class="action-btn warning" onclick="openLabsModal('${p.id}', '${p.patient_name}')">
-                🧪 Labs
-              </button>
-            ` : ''}
+            <button class="action-btn ${labStatus.due ? 'warning' : ''}" onclick="openLabsModal('${p.id}', '${p.patient_name}')">
+              🧪 Labs
+            </button>
             <button class="action-btn" onclick="openEditModal('${p.id}')">
               ✏️ Edit
             </button>
             <button class="action-btn" onclick="openInGHL('${p.ghl_contact_id}')">
               ↗ GHL
             </button>
-            <button class="action-btn primary" onclick="openRefillModal('${p.id}', '${p.patient_name}', '${p.supply_type || 'prefilled'}')">
+            <button class="action-btn primary" onclick="openRefillModal('${p.id}', '${p.patient_name}', '${p.supply_type || 'prefilled_4week'}')">
               🔄 Refill
             </button>
           </div>
@@ -1326,10 +1377,51 @@
     // Labs Modal
     function openLabsModal(protocolId, patientName) {
       selectedProtocol = allProtocols.find(p => p.id === protocolId);
-      document.getElementById('labsPatientName').textContent = `${patientName} - 8 Week Follow-up Labs`;
+      if (!selectedProtocol) {
+        showToast('Protocol not found', 'error');
+        return;
+      }
+      
+      document.getElementById('labsPatientName').textContent = patientName;
       document.getElementById('labsDate').value = new Date().toISOString().split('T')[0];
       document.getElementById('labsNotes').value = '';
+      
+      // Show current lab status
+      const baselineDone = selectedProtocol.baseline_labs_date;
+      const eightWeekDone = selectedProtocol.eight_week_labs_date;
+      const lastQuarterly = selectedProtocol.last_labs_date;
+      
+      let statusHtml = '<strong>Lab Status:</strong><br>';
+      statusHtml += baselineDone 
+        ? `✅ Baseline: ${formatDate(baselineDone)}<br>` 
+        : '⏳ Baseline: Not done<br>';
+      statusHtml += eightWeekDone 
+        ? `✅ 8-Week: ${formatDate(eightWeekDone)}<br>` 
+        : '⏳ 8-Week: Not done<br>';
+      
+      if (eightWeekDone && lastQuarterly) {
+        statusHtml += `✅ Last Quarterly: ${formatDate(lastQuarterly)}`;
+      } else if (eightWeekDone) {
+        statusHtml += '⏳ Quarterly: Not started';
+      }
+      
+      document.getElementById('labsStatus').innerHTML = statusHtml;
+      
+      // Pre-select the next lab type needed
+      if (!baselineDone) {
+        document.getElementById('labsType').value = 'baseline';
+      } else if (!eightWeekDone) {
+        document.getElementById('labsType').value = 'eight_week';
+      } else {
+        document.getElementById('labsType').value = 'quarterly';
+      }
+      
       document.getElementById('labsModal').classList.add('active');
+    }
+    
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function closeLabsModal() {
@@ -1340,24 +1432,52 @@
     async function markLabsComplete() {
       if (!selectedProtocol) return;
       
+      const labType = document.getElementById('labsType').value;
       const labDate = document.getElementById('labsDate').value;
       const notes = document.getElementById('labsNotes').value;
+      
+      if (!labDate) {
+        showToast('Please select a date', 'error');
+        return;
+      }
+      
+      // Build update data based on lab type
+      const updateData = {};
+      let labTypeLabel = '';
+      
+      switch (labType) {
+        case 'baseline':
+          updateData.baseline_labs_date = labDate;
+          labTypeLabel = 'Baseline';
+          break;
+        case 'eight_week':
+          updateData.eight_week_labs_date = labDate;
+          updateData.labs_completed = true; // Keep for backwards compatibility
+          labTypeLabel = '8-Week';
+          break;
+        case 'quarterly':
+          updateData.last_labs_date = labDate;
+          labTypeLabel = 'Quarterly';
+          break;
+      }
+      
+      // Append to notes
+      const existingNotes = selectedProtocol.notes || '';
+      updateData.notes = existingNotes 
+        ? `${existingNotes}\n[${labDate}] ${labTypeLabel} labs completed. ${notes || ''}`
+        : `[${labDate}] ${labTypeLabel} labs completed. ${notes || ''}`;
       
       try {
         const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/update`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            labs_completed: true,
-            labs_completed_date: labDate,
-            notes: (selectedProtocol.notes || '') + `\n[${labDate}] 8-week labs completed. ${notes}`
-          })
+          body: JSON.stringify(updateData)
         });
         
         const result = await res.json();
         
         if (result.success) {
-          showToast('Labs marked complete!', 'success');
+          showToast(`${labTypeLabel} labs recorded!`, 'success');
           closeLabsModal();
           loadProtocols();
         } else {

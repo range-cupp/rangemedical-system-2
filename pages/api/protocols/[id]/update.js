@@ -33,6 +33,7 @@ export default async function handler(req, res) {
     const {
       medication,
       selected_dose,
+      starting_dose,
       starting_weight,
       total_sessions,
       sessions_used,
@@ -55,6 +56,7 @@ export default async function handler(req, res) {
     
     if (medication !== undefined) updateData.medication = medication;
     if (selected_dose !== undefined) updateData.selected_dose = selected_dose;
+    if (starting_dose !== undefined) updateData.starting_dose = starting_dose;
     if (starting_weight !== undefined) updateData.starting_weight = starting_weight;
     if (total_sessions !== undefined) updateData.total_sessions = total_sessions;
     if (sessions_used !== undefined) updateData.sessions_used = sessions_used;

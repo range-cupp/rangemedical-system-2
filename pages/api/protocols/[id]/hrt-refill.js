@@ -103,19 +103,33 @@ export default async function handler(req, res) {
     if (isVial) {
       // Determine vial size (default to 10ml for backwards compatibility)
       const vialMl = supply_type === 'vial_5ml' ? 5 : 10;
-      const totalMg = 200 * vialMl;
       
-      // Calculate duration based on dose
+      // Check if female dose (100mg/ml concentration - doses are 10mg-50mg range)
+      const isFemale = dose && (dose.includes('10mg') || dose.includes('15mg') || dose.includes('20mg') || 
+                       dose.includes('25mg') || dose.includes('30mg') || dose.includes('40mg') || 
+                       dose.includes('50mg'));
+      
+      let concentration = isFemale ? 100 : 200; // mg/ml
+      const totalMg = concentration * vialMl;
+      
+      // Calculate weekly mg based on dose
       let weeklyMg = 120; // default
       
-      if (dose && (dose.includes('100mg') || dose.includes('0.5ml'))) {
-        weeklyMg = 200;
-      } else if (dose && (dose.includes('80mg') || dose.includes('0.4ml'))) {
-        weeklyMg = 160;
-      } else if (dose && (dose.includes('70mg') || dose.includes('0.35ml'))) {
-        weeklyMg = 140;
-      } else if (dose && (dose.includes('60mg') || dose.includes('0.3ml'))) {
-        weeklyMg = 120;
+      if (isFemale) {
+        // Female doses (100mg/ml)
+        if (dose.includes('50mg')) weeklyMg = 100;
+        else if (dose.includes('40mg')) weeklyMg = 80;
+        else if (dose.includes('30mg')) weeklyMg = 60;
+        else if (dose.includes('25mg')) weeklyMg = 50;
+        else if (dose.includes('20mg')) weeklyMg = 40;
+        else if (dose.includes('15mg')) weeklyMg = 30;
+        else if (dose.includes('10mg')) weeklyMg = 20;
+      } else {
+        // Male doses (200mg/ml)
+        if (dose && (dose.includes('100mg') || dose.includes('0.5ml'))) weeklyMg = 200;
+        else if (dose && (dose.includes('80mg') || dose.includes('0.4ml'))) weeklyMg = 160;
+        else if (dose && (dose.includes('70mg') || dose.includes('0.35ml'))) weeklyMg = 140;
+        else if (dose && (dose.includes('60mg') || dose.includes('0.3ml'))) weeklyMg = 120;
       }
       
       const vialWeeks = Math.floor(totalMg / weeklyMg);

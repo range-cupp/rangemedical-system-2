@@ -527,10 +527,21 @@
       <div class="form-group" id="refillDoseGroup">
         <label>Current Dose</label>
         <select id="refillDose">
-          <option value="0.3ml/60mg">0.3ml / 60mg (2x/week = 120mg/wk)</option>
-          <option value="0.35ml/70mg">0.35ml / 70mg (2x/week = 140mg/wk)</option>
-          <option value="0.4ml/80mg">0.4ml / 80mg (2x/week = 160mg/wk)</option>
-          <option value="0.5ml/100mg">0.5ml / 100mg (2x/week = 200mg/wk)</option>
+          <optgroup label="Male HRT (200mg/ml)">
+            <option value="0.3ml/60mg">0.3ml / 60mg</option>
+            <option value="0.35ml/70mg">0.35ml / 70mg</option>
+            <option value="0.4ml/80mg">0.4ml / 80mg</option>
+            <option value="0.5ml/100mg">0.5ml / 100mg</option>
+          </optgroup>
+          <optgroup label="Female HRT (100mg/ml)">
+            <option value="0.1ml/10mg">0.1ml / 10mg</option>
+            <option value="0.15ml/15mg">0.15ml / 15mg</option>
+            <option value="0.2ml/20mg">0.2ml / 20mg</option>
+            <option value="0.25ml/25mg">0.25ml / 25mg</option>
+            <option value="0.3ml/30mg">0.3ml / 30mg</option>
+            <option value="0.4ml/40mg">0.4ml / 40mg</option>
+            <option value="0.5ml/50mg">0.5ml / 50mg</option>
+          </optgroup>
         </select>
       </div>
       <div class="form-group">
@@ -568,19 +579,41 @@
       <div class="form-group">
         <label>Starting Dose</label>
         <select id="editStartingDose">
-          <option value="0.3ml/60mg">0.3ml / 60mg</option>
-          <option value="0.35ml/70mg">0.35ml / 70mg</option>
-          <option value="0.4ml/80mg">0.4ml / 80mg</option>
-          <option value="0.5ml/100mg">0.5ml / 100mg</option>
+          <optgroup label="Male HRT (200mg/ml)">
+            <option value="0.3ml/60mg">0.3ml / 60mg</option>
+            <option value="0.35ml/70mg">0.35ml / 70mg</option>
+            <option value="0.4ml/80mg">0.4ml / 80mg</option>
+            <option value="0.5ml/100mg">0.5ml / 100mg</option>
+          </optgroup>
+          <optgroup label="Female HRT (100mg/ml)">
+            <option value="0.1ml/10mg">0.1ml / 10mg</option>
+            <option value="0.15ml/15mg">0.15ml / 15mg</option>
+            <option value="0.2ml/20mg">0.2ml / 20mg</option>
+            <option value="0.25ml/25mg">0.25ml / 25mg</option>
+            <option value="0.3ml/30mg">0.3ml / 30mg</option>
+            <option value="0.4ml/40mg">0.4ml / 40mg</option>
+            <option value="0.5ml/50mg">0.5ml / 50mg</option>
+          </optgroup>
         </select>
       </div>
       <div class="form-group">
         <label>Current Dose</label>
         <select id="editDose">
-          <option value="0.3ml/60mg">0.3ml / 60mg</option>
-          <option value="0.35ml/70mg">0.35ml / 70mg</option>
-          <option value="0.4ml/80mg">0.4ml / 80mg</option>
-          <option value="0.5ml/100mg">0.5ml / 100mg</option>
+          <optgroup label="Male HRT (200mg/ml)">
+            <option value="0.3ml/60mg">0.3ml / 60mg</option>
+            <option value="0.35ml/70mg">0.35ml / 70mg</option>
+            <option value="0.4ml/80mg">0.4ml / 80mg</option>
+            <option value="0.5ml/100mg">0.5ml / 100mg</option>
+          </optgroup>
+          <optgroup label="Female HRT (100mg/ml)">
+            <option value="0.1ml/10mg">0.1ml / 10mg</option>
+            <option value="0.15ml/15mg">0.15ml / 15mg</option>
+            <option value="0.2ml/20mg">0.2ml / 20mg</option>
+            <option value="0.25ml/25mg">0.25ml / 25mg</option>
+            <option value="0.3ml/30mg">0.3ml / 30mg</option>
+            <option value="0.4ml/40mg">0.4ml / 40mg</option>
+            <option value="0.5ml/50mg">0.5ml / 50mg</option>
+          </optgroup>
         </select>
       </div>
       <div class="form-group">
@@ -896,33 +929,76 @@
       if (isVial) {
         // Determine vial size (default to 10ml for backwards compatibility with 'vial')
         const vialMl = supplyType === 'vial_5ml' ? 5 : 10;
-        const totalMg = 200 * vialMl; // 200mg/ml × ml = total mg
         
         // Calculate duration based on dose
         const dose = p.current_dose || '0.3ml/60mg';
-        let weeklyMg = 120; // default: 60mg × 2/week
+        let weeklyMg = 120; // default male: 60mg × 2/week
         
-        if (dose.includes('100mg') || dose.includes('0.5ml')) {
-          weeklyMg = 200; // 100mg × 2/week
-        } else if (dose.includes('80mg') || dose.includes('0.4ml')) {
-          weeklyMg = 160; // 80mg × 2/week
-        } else if (dose.includes('70mg') || dose.includes('0.35ml')) {
-          weeklyMg = 140; // 70mg × 2/week
-        } else if (dose.includes('60mg') || dose.includes('0.3ml')) {
-          weeklyMg = 120; // 60mg × 2/week
-        }
+        // Check if female dose (100mg/ml concentration - doses are 10mg-50mg range)
+        const isFemale = dose.includes('10mg') || dose.includes('15mg') || dose.includes('20mg') || 
+                         dose.includes('25mg') || dose.includes('30mg') || dose.includes('40mg') || 
+                         dose.includes('50mg');
         
-        const vialWeeks = Math.floor(totalMg / weeklyMg);
-        const vialDuration = vialWeeks * 7; // convert to days
-        const daysRemaining = vialDuration - daysSinceRefill;
-        
-        if (daysRemaining <= 0) {
-          return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining, vialWeeks: vialWeeks };
-        } else if (daysRemaining <= 14) {
-          return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
+        if (isFemale) {
+          // Female HRT: 100mg/ml concentration
+          const concentration = 100; // mg/ml
+          const totalMg = concentration * vialMl;
+          
+          if (dose.includes('50mg')) {
+            weeklyMg = 100; // 50mg × 2/week
+          } else if (dose.includes('40mg')) {
+            weeklyMg = 80;
+          } else if (dose.includes('30mg')) {
+            weeklyMg = 60;
+          } else if (dose.includes('25mg')) {
+            weeklyMg = 50;
+          } else if (dose.includes('20mg')) {
+            weeklyMg = 40;
+          } else if (dose.includes('15mg')) {
+            weeklyMg = 30;
+          } else if (dose.includes('10mg')) {
+            weeklyMg = 20;
+          }
+          
+          const vialWeeks = Math.floor(totalMg / weeklyMg);
+          const vialDuration = vialWeeks * 7;
+          const daysRemaining = vialDuration - daysSinceRefill;
+          
+          if (daysRemaining <= 0) {
+            return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining, vialWeeks: vialWeeks };
+          } else if (daysRemaining <= 14) {
+            return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
+          } else {
+            const weeksLeft = Math.floor(daysRemaining / 7);
+            return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
+          }
         } else {
-          const weeksLeft = Math.floor(daysRemaining / 7);
-          return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
+          // Male HRT: 200mg/ml concentration
+          const concentration = 200; // mg/ml
+          const totalMg = concentration * vialMl;
+          
+          if (dose.includes('100mg') || dose.includes('0.5ml')) {
+            weeklyMg = 200; // 100mg × 2/week
+          } else if (dose.includes('80mg') || dose.includes('0.4ml')) {
+            weeklyMg = 160; // 80mg × 2/week
+          } else if (dose.includes('70mg') || dose.includes('0.35ml')) {
+            weeklyMg = 140; // 70mg × 2/week
+          } else if (dose.includes('60mg') || dose.includes('0.3ml')) {
+            weeklyMg = 120; // 60mg × 2/week
+          }
+          
+          const vialWeeks = Math.floor(totalMg / weeklyMg);
+          const vialDuration = vialWeeks * 7; // convert to days
+          const daysRemaining = vialDuration - daysSinceRefill;
+          
+          if (daysRemaining <= 0) {
+            return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining, vialWeeks: vialWeeks };
+          } else if (daysRemaining <= 14) {
+            return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
+          } else {
+            const weeksLeft = Math.floor(daysRemaining / 7);
+            return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
+          }
         }
       } else if (supplyType === 'prefilled_2week') {
         // Prefilled 2 week: 4 injections = 2 weeks (2x/week)

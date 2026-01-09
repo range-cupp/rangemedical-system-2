@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HRT Pipeline - Range Medical</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>">
+  <title>Peptide Pipeline - Range Medical</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💊</text></svg>">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -31,9 +31,16 @@
       display: flex;
       gap: 12px;
       align-items: center;
-      flex-wrap: wrap;
     }
     
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .search-box {
+      position: relative;
+    }
     .search-box input {
       padding: 8px 16px;
       border: 2px solid #e5e7eb;
@@ -78,10 +85,6 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
-    .filter-tabs {
-      display: flex;
-      gap: 8px;
-    }
     .filter-tab {
       padding: 8px 16px;
       border: 2px solid #e5e7eb;
@@ -120,7 +123,7 @@
       max-width: 1200px;
       margin: 0 auto 20px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 12px;
     }
     .stat-card {
@@ -137,11 +140,11 @@
     .stat-card.active {
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
-    .stat-card.labs-due { border-left-color: #f59e0b; }
-    .stat-card.refill-soon { border-left-color: #ef4444; }
-    .stat-card.on-track { border-left-color: #22c55e; }
-    .stat-card.new-patients { border-left-color: #3b82f6; }
+    .stat-card.ending { border-left-color: #ef4444; }
+    .stat-card.active-protocol { border-left-color: #f59e0b; }
+    .stat-card.started { border-left-color: #22c55e; }
     .stat-card.completed { border-left-color: #9ca3af; }
+    .stat-card.needs-followup { border-left-color: #8b5cf6; }
     
     .stat-card .label {
       font-size: 12px;
@@ -206,7 +209,7 @@
     
     .patient-info {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 12px;
     }
     .patient-info .field {
@@ -239,27 +242,34 @@
       font-weight: 600;
       text-transform: uppercase;
     }
-    .badge.male { background: #dbeafe; color: #1d4ed8; }
-    .badge.female { background: #fce7f3; color: #be185d; }
-    .badge.vial { background: #f3e8ff; color: #7c3aed; }
-    .badge.prefilled { background: #dcfce7; color: #166534; }
-    .badge.in-clinic { background: #e5e7eb; color: #374151; }
-    .badge.take-home { background: #fef3c7; color: #d97706; }
-    .badge.labs-due { background: #fef3c7; color: #d97706; }
-    .badge.refill-soon { background: #fee2e2; color: #dc2626; }
-    
-    .supply-status {
-      font-weight: 500;
+    .badge.in-clinic {
+      background: #dbeafe;
+      color: #1d4ed8;
     }
-    .supply-status.critical { color: #dc2626; }
-    .supply-status.warning { color: #f59e0b; }
-    .supply-status.good { color: #22c55e; }
+    .badge.take-home {
+      background: #f3e8ff;
+      color: #7c3aed;
+    }
+    .badge.ending {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .badge.needs-followup {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    
+    .days-remaining {
+      font-weight: 700;
+    }
+    .days-remaining.urgent { color: #dc2626; }
+    .days-remaining.warning { color: #f59e0b; }
+    .days-remaining.ok { color: #22c55e; }
     
     .patient-actions {
       display: flex;
       gap: 8px;
       flex-shrink: 0;
-      flex-wrap: wrap;
     }
     .action-btn {
       padding: 8px 12px;
@@ -285,11 +295,6 @@
     }
     .action-btn.primary:hover {
       background: #333;
-    }
-    .action-btn.warning {
-      background: #fef3c7;
-      border-color: #f59e0b;
-      color: #92400e;
     }
     
     .empty-state {
@@ -353,8 +358,6 @@
       font-weight: 500;
       margin-bottom: 6px;
     }
-    .form-group input,
-    .form-group select,
     .form-group textarea {
       width: 100%;
       padding: 12px;
@@ -362,16 +365,12 @@
       border-radius: 8px;
       font-size: 14px;
       font-family: inherit;
+      resize: vertical;
+      min-height: 100px;
     }
-    .form-group input:focus,
-    .form-group select:focus,
     .form-group textarea:focus {
       outline: none;
       border-color: #111;
-    }
-    .form-group textarea {
-      resize: vertical;
-      min-height: 80px;
     }
     
     .toast {
@@ -389,36 +388,6 @@
     .toast.success { background: #22c55e; }
     .toast.error { background: #ef4444; }
     .toast.active { display: block; }
-    
-    .history-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      background: #f9fafb;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      border: 1px solid #e5e7eb;
-    }
-    .history-item:hover {
-      border-color: #111;
-    }
-    .history-item .info {
-      flex: 1;
-    }
-    .history-item .date {
-      font-weight: 600;
-      color: #111;
-    }
-    .history-item .details {
-      font-size: 13px;
-      color: #6b7280;
-      margin-top: 2px;
-    }
-    .history-item .actions button {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
 
     @media (max-width: 768px) {
       .patient-card {
@@ -455,19 +424,19 @@
 </head>
 <body>
   <div class="header">
-    <h1>💪 HRT Protocols</h1>
+    <h1>💊 Peptide Protocols</h1>
     <div class="header-actions">
       <div class="search-box">
-        <input type="text" id="searchInput" placeholder="🔍 Search patient..." oninput="handleSearch()">
+        <input type="text" id="searchInput" placeholder="🔍 Search all protocols..." oninput="handleSearch()">
       </div>
       <div class="main-tabs">
         <button class="main-tab active" data-view="active">Active</button>
         <button class="main-tab" data-view="completed">Completed</button>
       </div>
-      <div class="filter-tabs">
+      <div class="filter-tabs" id="deliveryFilters">
         <button class="filter-tab active" data-filter="all">All</button>
-        <button class="filter-tab" data-filter="male">Male</button>
-        <button class="filter-tab" data-filter="female">Female</button>
+        <button class="filter-tab" data-filter="in_clinic">In Clinic</button>
+        <button class="filter-tab" data-filter="take_home">Take Home</button>
       </div>
       <button class="refresh-btn" onclick="loadProtocols()">
         ↻ Refresh
@@ -476,21 +445,21 @@
   </div>
 
   <div class="stats-bar" id="activeStats">
-    <div class="stat-card labs-due" data-status="labs-due" onclick="filterByStatus('labs-due')">
-      <div class="label">Labs Due</div>
-      <div class="value" id="stat-labs-due">-</div>
+    <div class="stat-card ending" data-status="ending" onclick="filterByStatus('ending')">
+      <div class="label">Ending Soon (≤3 days)</div>
+      <div class="value" id="stat-ending">-</div>
     </div>
-    <div class="stat-card refill-soon" data-status="refill-soon" onclick="filterByStatus('refill-soon')">
-      <div class="label">Refill Soon</div>
-      <div class="value" id="stat-refill-soon">-</div>
+    <div class="stat-card active-protocol" data-status="active" onclick="filterByStatus('active')">
+      <div class="label">Active (4-14 days)</div>
+      <div class="value" id="stat-active">-</div>
     </div>
-    <div class="stat-card on-track" data-status="on-track" onclick="filterByStatus('on-track')">
-      <div class="label">On Track</div>
-      <div class="value" id="stat-on-track">-</div>
+    <div class="stat-card started" data-status="started" onclick="filterByStatus('started')">
+      <div class="label">Just Started (15+ days)</div>
+      <div class="value" id="stat-started">-</div>
     </div>
-    <div class="stat-card new-patients" data-status="new-patients" onclick="filterByStatus('new-patients')">
-      <div class="label">New (&lt;8 wks)</div>
-      <div class="value" id="stat-new-patients">-</div>
+    <div class="stat-card needs-followup" data-status="needs-followup" onclick="filterByStatus('needs-followup')">
+      <div class="label">Needs Follow-up</div>
+      <div class="value" id="stat-followup">-</div>
     </div>
   </div>
 
@@ -506,247 +475,49 @@
     <div id="content" style="display: none;"></div>
   </div>
 
-  <!-- Refill Modal -->
-  <div class="modal-overlay" id="refillModal">
+  <!-- SMS Modal -->
+  <div class="modal-overlay" id="smsModal">
     <div class="modal">
-      <h3>🔄 Refill / Add Supply</h3>
-      <p id="refillPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <h3>📱 Send Follow-up SMS</h3>
+      <p id="smsPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
       <div class="form-group">
-        <label>Refill Date</label>
-        <input type="date" id="refillDate">
+        <label>Message</label>
+        <textarea id="smsMessage">Hi {{first_name}}! 👋
+
+Just checking in on your peptide protocol. How are you feeling? Any questions or concerns?
+
+Reply to this message or call us at (949) 997-3988.
+
+- Range Medical</textarea>
       </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeSmsModal()">Cancel</button>
+        <button class="action-btn primary" onclick="sendSms()">Send SMS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renew Modal -->
+  <div class="modal-overlay" id="renewModal">
+    <div class="modal">
+      <h3>🔄 Renew Protocol</h3>
+      <p id="renewPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
       <div class="form-group">
-        <label>Supply Type</label>
-        <select id="refillSupplyType">
-          <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
-          <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
-          <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
-          <option value="vial_10ml">Vial 10ml (10-16 weeks based on dose)</option>
-        </select>
-      </div>
-      <div class="form-group" id="refillDoseGroup">
-        <label>Current Dose</label>
-        <select id="refillDose">
-          <optgroup label="Male HRT (200mg/ml)">
-            <option value="0.3ml/60mg">0.3ml / 60mg</option>
-            <option value="0.35ml/70mg">0.35ml / 70mg</option>
-            <option value="0.4ml/80mg">0.4ml / 80mg</option>
-            <option value="0.5ml/100mg">0.5ml / 100mg</option>
-          </optgroup>
-          <optgroup label="Female HRT (100mg/ml)">
-            <option value="0.1ml/10mg">0.1ml / 10mg</option>
-            <option value="0.15ml/15mg">0.15ml / 15mg</option>
-            <option value="0.2ml/20mg">0.2ml / 20mg</option>
-            <option value="0.25ml/25mg">0.25ml / 25mg</option>
-            <option value="0.3ml/30mg">0.3ml / 30mg</option>
-            <option value="0.4ml/40mg">0.4ml / 40mg</option>
-            <option value="0.5ml/50mg">0.5ml / 50mg</option>
-          </optgroup>
+        <label>New Duration</label>
+        <select id="renewDuration" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+          <option value="7">7 Days</option>
+          <option value="10">10 Days</option>
+          <option value="20">20 Days</option>
+          <option value="30" selected>30 Days</option>
         </select>
       </div>
       <div class="form-group">
         <label>Notes (optional)</label>
-        <textarea id="refillNotes" placeholder="Pickup date, dose changes, etc."></textarea>
+        <textarea id="renewNotes" style="min-height: 60px;" placeholder="Renewal reason, dosage changes, etc."></textarea>
       </div>
       <div class="modal-actions">
-        <button class="action-btn" onclick="closeRefillModal()">Cancel</button>
-        <button class="action-btn primary" onclick="processRefill()">Add Supply</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Edit Modal -->
-  <div class="modal-overlay" id="editModal">
-    <div class="modal">
-      <h3>✏️ Edit Protocol</h3>
-      <p id="editPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
-      <div class="form-group">
-        <label>HRT Type</label>
-        <select id="editHrtType">
-          <option value="male">Male HRT</option>
-          <option value="female">Female HRT</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Supply Type</label>
-        <select id="editSupplyType">
-          <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
-          <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
-          <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
-          <option value="vial_10ml">Vial 10ml (10-16 weeks based on dose)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Starting Dose</label>
-        <select id="editStartingDose">
-          <optgroup label="Male HRT (200mg/ml)">
-            <option value="0.3ml/60mg">0.3ml / 60mg</option>
-            <option value="0.35ml/70mg">0.35ml / 70mg</option>
-            <option value="0.4ml/80mg">0.4ml / 80mg</option>
-            <option value="0.5ml/100mg">0.5ml / 100mg</option>
-          </optgroup>
-          <optgroup label="Female HRT (100mg/ml)">
-            <option value="0.1ml/10mg">0.1ml / 10mg</option>
-            <option value="0.15ml/15mg">0.15ml / 15mg</option>
-            <option value="0.2ml/20mg">0.2ml / 20mg</option>
-            <option value="0.25ml/25mg">0.25ml / 25mg</option>
-            <option value="0.3ml/30mg">0.3ml / 30mg</option>
-            <option value="0.4ml/40mg">0.4ml / 40mg</option>
-            <option value="0.5ml/50mg">0.5ml / 50mg</option>
-          </optgroup>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Current Dose</label>
-        <select id="editDose">
-          <optgroup label="Male HRT (200mg/ml)">
-            <option value="0.3ml/60mg">0.3ml / 60mg</option>
-            <option value="0.35ml/70mg">0.35ml / 70mg</option>
-            <option value="0.4ml/80mg">0.4ml / 80mg</option>
-            <option value="0.5ml/100mg">0.5ml / 100mg</option>
-          </optgroup>
-          <optgroup label="Female HRT (100mg/ml)">
-            <option value="0.1ml/10mg">0.1ml / 10mg</option>
-            <option value="0.15ml/15mg">0.15ml / 15mg</option>
-            <option value="0.2ml/20mg">0.2ml / 20mg</option>
-            <option value="0.25ml/25mg">0.25ml / 25mg</option>
-            <option value="0.3ml/30mg">0.3ml / 30mg</option>
-            <option value="0.4ml/40mg">0.4ml / 40mg</option>
-            <option value="0.5ml/50mg">0.5ml / 50mg</option>
-          </optgroup>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Start Date</label>
-        <input type="date" id="editStartDate">
-      </div>
-      <div class="form-group">
-        <label>Last Refill Date</label>
-        <input type="date" id="editLastRefillDate">
-      </div>
-      <div class="form-group">
-        <label>Delivery Method</label>
-        <select id="editDeliveryMethod">
-          <option value="take_home">Take Home</option>
-          <option value="in_clinic">In Clinic</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>8-Week Labs Completed?</label>
-        <select id="editLabsCompleted">
-          <option value="no">No - Not Yet</option>
-          <option value="yes">Yes - Completed</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Baseline Labs Date</label>
-        <input type="date" id="editBaselineLabsDate">
-      </div>
-      <div class="form-group">
-        <label>8-Week Labs Date</label>
-        <input type="date" id="editEightWeekLabsDate">
-      </div>
-      <div class="form-group">
-        <label>Last Quarterly Labs Date</label>
-        <input type="date" id="editLastLabsDate">
-      </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="editNotes" placeholder="Any notes about this protocol..."></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="action-btn" onclick="closeEditModal()">Cancel</button>
-        <button class="action-btn primary" onclick="saveProtocolEdit()">Save Changes</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Log Injection Modal -->
-  <div class="modal-overlay" id="logInjectionModal">
-    <div class="modal">
-      <h3>💉 Log Injection</h3>
-      <p id="logInjPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
-      <div id="logInjCurrentStats" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
-      
-      <div class="form-group">
-        <label>Injection Date</label>
-        <input type="date" id="logInjDate">
-      </div>
-      <div class="form-group">
-        <label>Dose Given</label>
-        <select id="logInjDose">
-          <option value="">Same as protocol</option>
-          <option value="0.3ml/60mg">0.3ml / 60mg</option>
-          <option value="0.35ml/70mg">0.35ml / 70mg</option>
-          <option value="0.4ml/80mg">0.4ml / 80mg</option>
-          <option value="0.5ml/100mg">0.5ml / 100mg</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Notes (optional)</label>
-        <textarea id="logInjNotes" placeholder="Any notes about this injection..."></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="action-btn" onclick="closeLogInjectionModal()">Cancel</button>
-        <button class="action-btn primary" onclick="saveLogInjection()">Log Injection</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- History Modal -->
-  <div class="modal-overlay" id="historyModal">
-    <div class="modal" style="max-width: 700px;">
-      <h3>📋 Injection History</h3>
-      <p id="historyPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
-      
-      <div id="historyLoading" style="text-align: center; padding: 20px; color: #6b7280;">Loading...</div>
-      
-      <div id="historyContent" style="display: none;">
-        <div id="historySummary" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
-        
-        <div id="historyList"></div>
-        
-        <div id="historyEmpty" style="display: none; text-align: center; padding: 30px; color: #6b7280;">
-          <p>No injections logged yet.</p>
-        </div>
-      </div>
-      
-      <div class="modal-actions" style="margin-top: 20px;">
-        <button class="action-btn" onclick="closeHistoryModal()">Close</button>
-        <button class="action-btn primary" onclick="closeHistoryModal(); setTimeout(() => openLogInjectionModal(selectedProtocol?.id), 100);">
-          💉 Add Injection
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mark Labs Complete Modal -->
-  <div class="modal-overlay" id="labsModal">
-    <div class="modal">
-      <h3>🧪 Lab Tracking</h3>
-      <p id="labsPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
-      
-      <div id="labsStatus" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
-      
-      <div class="form-group">
-        <label>Lab Type</label>
-        <select id="labsType">
-          <option value="baseline">Baseline Labs (at start)</option>
-          <option value="eight_week">8-Week Follow-up</option>
-          <option value="quarterly">Quarterly Labs (every 12 weeks)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Lab Date</label>
-        <input type="date" id="labsDate">
-      </div>
-      <div class="form-group">
-        <label>Notes (optional)</label>
-        <textarea id="labsNotes" placeholder="Results summary, follow-up needed, etc."></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="action-btn" onclick="closeLabsModal()">Cancel</button>
-        <button class="action-btn primary" onclick="markLabsComplete()">Save Lab Record</button>
+        <button class="action-btn" onclick="closeRenewModal()">Cancel</button>
+        <button class="action-btn primary" onclick="renewProtocol()">Renew Protocol</button>
       </div>
     </div>
   </div>
@@ -764,7 +535,7 @@
     let currentStatusFilter = null;
     let selectedProtocol = null;
     let searchTerm = '';
-    let mainView = 'active';
+    let mainView = 'active'; // 'active' or 'completed'
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
@@ -779,6 +550,7 @@
           currentStatusFilter = null;
           document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
           
+          // Toggle stats bars
           document.getElementById('activeStats').style.display = mainView === 'active' ? 'grid' : 'none';
           document.getElementById('completedStats').style.display = mainView === 'completed' ? 'grid' : 'none';
           
@@ -786,7 +558,7 @@
         });
       });
       
-      // Filter tab clicks (All/Male/Female)
+      // Filter tab clicks (All/In Clinic/Take Home)
       document.querySelectorAll('.filter-tab').forEach(tab => {
         tab.addEventListener('click', () => {
           document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -813,13 +585,16 @@
       document.getElementById('content').style.display = 'none';
       
       try {
-        const res = await fetch(`${API_BASE}/pipelines/hrt`);
+        const res = await fetch(`${API_BASE}/pipelines/peptide`);
         const data = await res.json();
         
-        // Handle both array and object response
-        allProtocols = Array.isArray(data) ? data : (data.protocols || []);
-        updateStats();
-        renderProtocols();
+        if (data.success) {
+          allProtocols = data.protocols;
+          updateStats();
+          renderProtocols();
+        } else {
+          showToast('Failed to load protocols', 'error');
+        }
       } catch (err) {
         console.error('Load error:', err);
         showToast('Failed to load protocols', 'error');
@@ -830,205 +605,42 @@
     }
 
     function updateStats() {
-      let labsDue = 0, refillSoon = 0, onTrack = 0, newPatients = 0, completed = 0;
+      const now = new Date();
+      let ending = 0, active = 0, started = 0, completed = 0, needsFollowup = 0;
       
       allProtocols.forEach(p => {
-        if (isCompleted(p)) {
+        if (p.status === 'completed') {
           completed++;
           return;
         }
         
-        const status = getProtocolStatus(p);
-        if (status === 'labs-due') labsDue++;
-        else if (status === 'refill-soon') refillSoon++;
-        else if (status === 'new-patients') newPatients++;
-        else onTrack++;
+        const daysRemaining = p.days_remaining || 0;
+        
+        if (daysRemaining <= 0) {
+          completed++;
+        } else if (daysRemaining <= 3) {
+          ending++;
+        } else if (daysRemaining <= 14) {
+          active++;
+        } else {
+          started++;
+        }
+        
+        // Check if take-home needs follow-up (7+ days since start, no check-in)
+        if (p.delivery_method === 'take_home' && p.days_since_start >= 7 && !p.last_checkin) {
+          needsFollowup++;
+        }
       });
       
-      document.getElementById('stat-labs-due').textContent = labsDue;
-      document.getElementById('stat-refill-soon').textContent = refillSoon;
-      document.getElementById('stat-on-track').textContent = onTrack;
-      document.getElementById('stat-new-patients').textContent = newPatients;
+      document.getElementById('stat-ending').textContent = ending;
+      document.getElementById('stat-active').textContent = active;
+      document.getElementById('stat-started').textContent = started;
       document.getElementById('stat-completed').textContent = completed;
-    }
-
-    function isCompleted(p) {
-      return p.status === 'completed' || p.status === 'cancelled';
-    }
-
-    function getProtocolStatus(p) {
-      const daysSinceStart = p.days_since_start || 0;
-      const weeksOnTherapy = Math.floor(daysSinceStart / 7);
-      
-      // Check lab status
-      const labStatus = getLabStatus(p);
-      if (labStatus.due) {
-        return 'labs-due';
-      }
-      
-      // Check refill status
-      const supplyStatus = getSupplyStatus(p);
-      if (supplyStatus.status === 'critical' || supplyStatus.status === 'warning') {
-        return 'refill-soon';
-      }
-      
-      // New patient (< 8 weeks)
-      if (weeksOnTherapy < 8) {
-        return 'new-patients';
-      }
-      
-      return 'on-track';
-    }
-    
-    function getLabStatus(p) {
-      const daysSinceStart = p.days_since_start || 0;
-      const weeksOnTherapy = Math.floor(daysSinceStart / 7);
-      
-      // Check baseline labs
-      if (!p.baseline_labs_date) {
-        return { due: true, type: 'baseline', text: 'Baseline labs needed' };
-      }
-      
-      // Check 8-week labs (due at 6-10 weeks)
-      if (!p.eight_week_labs_date) {
-        if (weeksOnTherapy >= 6 && weeksOnTherapy <= 12) {
-          return { due: true, type: 'eight_week', text: '8-week labs due' };
-        }
-        if (weeksOnTherapy > 12) {
-          return { due: true, type: 'eight_week', text: '8-week labs overdue' };
-        }
-        return { due: false, type: 'eight_week', text: `8-week labs at week 8 (now week ${weeksOnTherapy})` };
-      }
-      
-      // Check quarterly labs (every 12 weeks after 8-week labs)
-      const lastLabDate = p.last_labs_date || p.eight_week_labs_date;
-      if (lastLabDate) {
-        const lastLab = new Date(lastLabDate);
-        const now = new Date();
-        const daysSinceLastLab = Math.floor((now - lastLab) / (1000 * 60 * 60 * 24));
-        const weeksSinceLastLab = Math.floor(daysSinceLastLab / 7);
-        
-        if (weeksSinceLastLab >= 12) {
-          return { due: true, type: 'quarterly', text: 'Quarterly labs due' };
-        }
-        
-        const weeksUntilNext = 12 - weeksSinceLastLab;
-        return { due: false, type: 'quarterly', text: `Next labs in ${weeksUntilNext} weeks` };
-      }
-      
-      return { due: false, type: 'none', text: 'Labs up to date' };
-    }
-
-    function getSupplyStatus(p) {
-      const supplyType = p.supply_type || 'prefilled_4week';
-      const daysSinceRefill = p.days_since_last_refill || p.days_since_start || 0;
-      
-      // Check if it's a vial (either old 'vial' value or new vial_5ml/vial_10ml)
-      const isVial = supplyType === 'vial' || supplyType === 'vial_5ml' || supplyType === 'vial_10ml';
-      
-      if (isVial) {
-        // Determine vial size (default to 10ml for backwards compatibility with 'vial')
-        const vialMl = supplyType === 'vial_5ml' ? 5 : 10;
-        
-        // Calculate duration based on dose
-        const dose = p.current_dose || '0.3ml/60mg';
-        let weeklyMg = 120; // default male: 60mg × 2/week
-        
-        // Check if female dose (100mg/ml concentration - doses are 10mg-50mg range)
-        const isFemale = dose.includes('10mg') || dose.includes('15mg') || dose.includes('20mg') || 
-                         dose.includes('25mg') || dose.includes('30mg') || dose.includes('40mg') || 
-                         dose.includes('50mg');
-        
-        if (isFemale) {
-          // Female HRT: 100mg/ml concentration
-          const concentration = 100; // mg/ml
-          const totalMg = concentration * vialMl;
-          
-          if (dose.includes('50mg')) {
-            weeklyMg = 100; // 50mg × 2/week
-          } else if (dose.includes('40mg')) {
-            weeklyMg = 80;
-          } else if (dose.includes('30mg')) {
-            weeklyMg = 60;
-          } else if (dose.includes('25mg')) {
-            weeklyMg = 50;
-          } else if (dose.includes('20mg')) {
-            weeklyMg = 40;
-          } else if (dose.includes('15mg')) {
-            weeklyMg = 30;
-          } else if (dose.includes('10mg')) {
-            weeklyMg = 20;
-          }
-          
-          const vialWeeks = Math.floor(totalMg / weeklyMg);
-          const vialDuration = vialWeeks * 7;
-          const daysRemaining = vialDuration - daysSinceRefill;
-          
-          if (daysRemaining <= 0) {
-            return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining, vialWeeks: vialWeeks };
-          } else if (daysRemaining <= 14) {
-            return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
-          } else {
-            const weeksLeft = Math.floor(daysRemaining / 7);
-            return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
-          }
-        } else {
-          // Male HRT: 200mg/ml concentration
-          const concentration = 200; // mg/ml
-          const totalMg = concentration * vialMl;
-          
-          if (dose.includes('100mg') || dose.includes('0.5ml')) {
-            weeklyMg = 200; // 100mg × 2/week
-          } else if (dose.includes('80mg') || dose.includes('0.4ml')) {
-            weeklyMg = 160; // 80mg × 2/week
-          } else if (dose.includes('70mg') || dose.includes('0.35ml')) {
-            weeklyMg = 140; // 70mg × 2/week
-          } else if (dose.includes('60mg') || dose.includes('0.3ml')) {
-            weeklyMg = 120; // 60mg × 2/week
-          }
-          
-          const vialWeeks = Math.floor(totalMg / weeklyMg);
-          const vialDuration = vialWeeks * 7; // convert to days
-          const daysRemaining = vialDuration - daysSinceRefill;
-          
-          if (daysRemaining <= 0) {
-            return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining, vialWeeks: vialWeeks };
-          } else if (daysRemaining <= 14) {
-            return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
-          } else {
-            const weeksLeft = Math.floor(daysRemaining / 7);
-            return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
-          }
-        }
-      } else if (supplyType === 'prefilled_2week') {
-        // Prefilled 2 week: 4 injections = 2 weeks (2x/week)
-        const prefillDuration = 14; // 2 weeks
-        const daysRemaining = prefillDuration - daysSinceRefill;
-        
-        if (daysRemaining <= 0) {
-          return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining };
-        } else if (daysRemaining <= 3) {
-          return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining };
-        } else {
-          return { status: 'good', text: `${daysRemaining} days left`, daysRemaining: daysRemaining };
-        }
-      } else {
-        // Prefilled 4 week (default): 8 injections = 4 weeks (2x/week)
-        const prefillDuration = 28; // 4 weeks
-        const daysRemaining = prefillDuration - daysSinceRefill;
-        
-        if (daysRemaining <= 0) {
-          return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining };
-        } else if (daysRemaining <= 7) {
-          return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining };
-        } else {
-          const weeksLeft = Math.floor(daysRemaining / 7);
-          return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining };
-        }
-      }
+      document.getElementById('stat-followup').textContent = needsFollowup;
     }
 
     function filterByStatus(status) {
+      // Toggle status filter
       if (currentStatusFilter === status) {
         currentStatusFilter = null;
         document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
@@ -1040,56 +652,132 @@
       renderProtocols();
     }
 
+    function getProtocolStatus(p) {
+      if (p.status === 'completed' || p.days_remaining <= 0) return 'completed';
+      if (p.days_remaining <= 3) return 'ending';
+      if (p.days_remaining <= 14) return 'active';
+      return 'started';
+    }
+
+    function needsFollowup(p) {
+      return p.delivery_method === 'take_home' && p.days_since_start >= 7 && !p.last_checkin;
+    }
+
     function renderProtocols() {
       let filtered = allProtocols;
       
-      // Apply main view filter
-      if (mainView === 'active') {
-        filtered = filtered.filter(p => !isCompleted(p));
-      } else {
-        filtered = filtered.filter(p => isCompleted(p));
-      }
-      
-      // Apply search filter
+      // When searching, show ALL protocols (both active and completed)
+      // Otherwise, apply main view filter
       if (searchTerm) {
+        // Search across all protocols
         filtered = filtered.filter(p => 
-          (p.patient_name || '').toLowerCase().includes(searchTerm)
+          (p.patient_name || '').toLowerCase().includes(searchTerm) ||
+          (p.medication || '').toLowerCase().includes(searchTerm)
         );
+        
+        // Apply delivery method filter even when searching
+        if (currentFilter !== 'all') {
+          filtered = filtered.filter(p => p.delivery_method === currentFilter);
+        }
+        
+        // When searching, group by active vs completed
+        const activeResults = filtered.filter(p => getProtocolStatus(p) !== 'completed');
+        const completedResults = filtered.filter(p => getProtocolStatus(p) === 'completed');
+        
+        let html = '';
+        
+        // Show active results grouped by status
+        if (activeResults.length > 0) {
+          const groups = {
+            ending: activeResults.filter(p => getProtocolStatus(p) === 'ending'),
+            active: activeResults.filter(p => getProtocolStatus(p) === 'active'),
+            started: activeResults.filter(p => getProtocolStatus(p) === 'started')
+          };
+          
+          Object.keys(groups).forEach(key => {
+            groups[key].sort((a, b) => (a.days_remaining || 999) - (b.days_remaining || 999));
+          });
+          
+          if (groups.ending.length > 0) {
+            html += renderSection('🔴 Ending Soon (≤3 days)', groups.ending);
+          }
+          if (groups.active.length > 0) {
+            html += renderSection('🟡 Active (4-14 days remaining)', groups.active);
+          }
+          if (groups.started.length > 0) {
+            html += renderSection('🟢 Just Started (15+ days remaining)', groups.started);
+          }
+        }
+        
+        // Show completed results
+        if (completedResults.length > 0) {
+          completedResults.sort((a, b) => new Date(b.end_date || 0) - new Date(a.end_date || 0));
+          html += renderSection('⚪ Completed Protocols', completedResults);
+        }
+        
+        if (html === '') {
+          html = `
+            <div class="empty-state">
+              <div class="icon">🔍</div>
+              <p>No protocols found matching "${searchTerm}".</p>
+              <p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>
+            </div>
+          `;
+        }
+        
+        document.getElementById('content').innerHTML = html;
+        return;
       }
       
-      // Apply HRT type filter (male/female)
+      // Normal view (no search) - apply main view filter (active vs completed)
+      if (mainView === 'active') {
+        filtered = filtered.filter(p => getProtocolStatus(p) !== 'completed');
+      } else {
+        filtered = filtered.filter(p => getProtocolStatus(p) === 'completed');
+      }
+      
+      // Apply delivery method filter
       if (currentFilter !== 'all') {
-        filtered = filtered.filter(p => (p.hrt_type || '').toLowerCase() === currentFilter);
+        filtered = filtered.filter(p => p.delivery_method === currentFilter);
       }
       
-      // Apply status filter
+      // Apply status filter (only for active view)
       if (currentStatusFilter && mainView === 'active') {
-        filtered = filtered.filter(p => getProtocolStatus(p) === currentStatusFilter);
+        if (currentStatusFilter === 'needs-followup') {
+          filtered = filtered.filter(p => needsFollowup(p));
+        } else {
+          filtered = filtered.filter(p => getProtocolStatus(p) === currentStatusFilter);
+        }
       }
       
       let html = '';
       
       if (mainView === 'active') {
+        // Group by status for active view
         const groups = {
-          'labs-due': filtered.filter(p => getProtocolStatus(p) === 'labs-due'),
-          'refill-soon': filtered.filter(p => getProtocolStatus(p) === 'refill-soon'),
-          'new-patients': filtered.filter(p => getProtocolStatus(p) === 'new-patients'),
-          'on-track': filtered.filter(p => getProtocolStatus(p) === 'on-track')
+          ending: filtered.filter(p => getProtocolStatus(p) === 'ending'),
+          active: filtered.filter(p => getProtocolStatus(p) === 'active'),
+          started: filtered.filter(p => getProtocolStatus(p) === 'started')
         };
         
-        if (groups['labs-due'].length > 0) {
-          html += renderSection('🧪 Labs Due', groups['labs-due']);
+        // Sort each group by days remaining
+        Object.keys(groups).forEach(key => {
+          groups[key].sort((a, b) => (a.days_remaining || 999) - (b.days_remaining || 999));
+        });
+        
+        if (groups.ending.length > 0) {
+          html += renderSection('🔴 Ending Soon (≤3 days)', groups.ending);
         }
-        if (groups['refill-soon'].length > 0) {
-          html += renderSection('🔴 Refill Soon', groups['refill-soon']);
+        if (groups.active.length > 0) {
+          html += renderSection('🟡 Active (4-14 days remaining)', groups.active);
         }
-        if (groups['new-patients'].length > 0) {
-          html += renderSection('🆕 New Patients (&lt;8 weeks)', groups['new-patients']);
-        }
-        if (groups['on-track'].length > 0) {
-          html += renderSection('🟢 On Track', groups['on-track']);
+        if (groups.started.length > 0) {
+          html += renderSection('🟢 Just Started (15+ days remaining)', groups.started);
         }
       } else {
+        // Show all completed sorted by end date (most recent first)
+        filtered.sort((a, b) => new Date(b.end_date || 0) - new Date(a.end_date || 0));
+        
         if (filtered.length > 0) {
           html += renderSection('⚪ Completed Protocols', filtered);
         }
@@ -1097,14 +785,10 @@
       
       if (html === '') {
         const viewLabel = mainView === 'active' ? 'active protocols' : 'completed protocols';
-        const searchMsg = searchTerm 
-          ? `No ${viewLabel} found matching "${searchTerm}".` 
-          : `No ${viewLabel} found.`;
         html = `
           <div class="empty-state">
-            <div class="icon">${mainView === 'active' ? '💪' : '✅'}</div>
-            <p>${searchMsg}</p>
-            ${searchTerm ? '<p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>' : ''}
+            <div class="icon">${mainView === 'active' ? '💊' : '✅'}</div>
+            <p>No ${viewLabel} found.</p>
           </div>
         `;
       }
@@ -1127,58 +811,16 @@
     }
 
     function renderPatientCard(p) {
-      const hrtTypeBadge = (p.hrt_type || '').toLowerCase() === 'female'
-        ? '<span class="badge female">Female</span>'
-        : '<span class="badge male">Male</span>';
-      
-      let supplyBadgeText = 'Prefilled';
-      const supplyTypeLower = (p.supply_type || '').toLowerCase();
-      
-      if (supplyTypeLower === 'vial_10ml' || supplyTypeLower === 'vial') {
-        supplyBadgeText = '10ml Vial';
-      } else if (supplyTypeLower === 'vial_5ml') {
-        supplyBadgeText = '5ml Vial';
-      } else if (supplyTypeLower === 'prefilled_2week') {
-        supplyBadgeText = '2 Week';
-      } else if (supplyTypeLower === 'prefilled_4week') {
-        supplyBadgeText = '4 Week';
-      }
-      
-      const isVial = supplyTypeLower.includes('vial');
-      const supplyBadge = isVial
-        ? `<span class="badge vial">${supplyBadgeText}</span>`
-        : `<span class="badge prefilled">${supplyBadgeText}</span>`;
-      
-      const deliveryBadge = p.delivery_method === 'in_clinic'
+      const daysClass = p.days_remaining <= 3 ? 'urgent' : p.days_remaining <= 7 ? 'warning' : 'ok';
+      const deliveryBadge = p.delivery_method === 'in_clinic' 
         ? '<span class="badge in-clinic">In Clinic</span>'
         : '<span class="badge take-home">Take Home</span>';
       
-      const status = getProtocolStatus(p);
-      const supplyStatus = getSupplyStatus(p);
-      
-      // Time on therapy
-      const daysSinceStart = p.days_since_start || 0;
-      const weeksOnTherapy = Math.floor(daysSinceStart / 7);
-      const timeOnTherapy = weeksOnTherapy >= 52 
-        ? `${Math.floor(weeksOnTherapy / 52)}y ${weeksOnTherapy % 52}w`
-        : `${weeksOnTherapy} weeks`;
-      
-      // Format start date
-      const startDateDisplay = p.start_date 
-        ? new Date(p.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : '-';
-      
-      // Labs badge - show status
-      const labStatus = getLabStatus(p);
-      let labsBadge = '';
-      if (labStatus.due) {
-        labsBadge = `<span class="badge labs-due">${labStatus.type === 'baseline' ? 'Baseline' : labStatus.type === 'eight_week' ? '8-Wk Labs' : 'Quarterly'}</span>`;
-      }
-      
-      // Refill badge
-      const refillBadge = supplyStatus.status === 'critical' || supplyStatus.status === 'warning'
-        ? '<span class="badge refill-soon">Refill</span>'
+      const needsFollowupBadge = needsFollowup(p) 
+        ? '<span class="badge needs-followup">Needs Follow-up</span>' 
         : '';
+      
+      const isCompleted = getProtocolStatus(p) === 'completed';
       
       return `
         <div class="patient-card">
@@ -1188,51 +830,44 @@
               <div class="field-value name">${p.patient_name || 'Unknown'}</div>
             </div>
             <div class="field">
-              <div class="field-label">Type</div>
-              <div class="field-value">${hrtTypeBadge} ${supplyBadge}</div>
+              <div class="field-label">Peptide</div>
+              <div class="field-value">${p.medication || '-'}</div>
             </div>
             <div class="field">
               <div class="field-label">Dose</div>
-              <div class="field-value">${p.current_dose || '-'}</div>
+              <div class="field-value">${p.selected_dose || '-'}</div>
             </div>
             <div class="field">
-              <div class="field-label">Started</div>
-              <div class="field-value">${startDateDisplay}</div>
+              <div class="field-label">Duration</div>
+              <div class="field-value">${p.start_date || '-'} → ${p.end_date || '-'}</div>
             </div>
             <div class="field">
-              <div class="field-label">On Therapy</div>
-              <div class="field-value">${timeOnTherapy}</div>
+              <div class="field-label">Days Remaining</div>
+              <div class="field-value days-remaining ${daysClass}">${isCompleted ? 'Done' : (p.days_remaining || 0) + ' days'}</div>
             </div>
             <div class="field">
-              <div class="field-label">Supply</div>
-              <div class="field-value supply-status ${supplyStatus.status}">${supplyStatus.text}</div>
-            </div>
-            <div class="field">
-              <div class="field-label">Status</div>
-              <div class="field-value">${deliveryBadge} ${labsBadge} ${refillBadge}</div>
+              <div class="field-label">Delivery</div>
+              <div class="field-value">${deliveryBadge} ${needsFollowupBadge}</div>
             </div>
           </div>
           <div class="patient-actions">
-            ${p.delivery_method === 'in_clinic' ? `
-              <button class="action-btn" onclick="openLogInjectionModal('${p.id}')">
-                💉 Log
+            ${p.delivery_method === 'take_home' ? `
+              <button class="action-btn" onclick="openSmsModal('${p.id}', '${p.patient_name}', '${p.ghl_contact_id}')">
+                📱 SMS
               </button>
-            ` : ''}
-            <button class="action-btn" onclick="openHistoryModal('${p.id}')">
-              📋 History
-            </button>
-            <button class="action-btn ${labStatus.due ? 'warning' : ''}" onclick="openLabsModal('${p.id}', '${p.patient_name}')">
-              🧪 Labs
-            </button>
-            <button class="action-btn" onclick="openEditModal('${p.id}')">
-              ✏️ Edit
-            </button>
+            ` : `
+              <button class="action-btn" onclick="logSession('${p.id}', '${p.patient_name}')">
+                💉 Log Session
+              </button>
+            `}
             <button class="action-btn" onclick="openInGHL('${p.ghl_contact_id}')">
               ↗ GHL
             </button>
-            <button class="action-btn primary" onclick="openRefillModal('${p.id}', '${p.patient_name}', '${p.supply_type || 'prefilled_4week'}')">
-              🔄 Refill
-            </button>
+            ${isCompleted || p.days_remaining <= 3 ? `
+              <button class="action-btn primary" onclick="openRenewModal('${p.id}', '${p.patient_name}', '${p.medication}')">
+                🔄 Renew
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
@@ -1246,411 +881,94 @@
       window.open(`https://crm.cuppconsulting.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${contactId}`, '_blank');
     }
 
-    // Refill Modal
-    function openRefillModal(protocolId, patientName, supplyType) {
-      selectedProtocol = allProtocols.find(p => p.id === protocolId);
-      document.getElementById('refillPatientName').textContent = patientName;
-      document.getElementById('refillDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('refillSupplyType').value = supplyType || 'prefilled_4week';
-      document.getElementById('refillDose').value = selectedProtocol?.current_dose || '0.3ml/60mg';
-      document.getElementById('refillNotes').value = '';
-      document.getElementById('refillModal').classList.add('active');
+    function openSmsModal(protocolId, patientName, contactId) {
+      selectedProtocol = { id: protocolId, patientName, contactId };
+      document.getElementById('smsPatientName').textContent = `To: ${patientName}`;
+      document.getElementById('smsMessage').value = document.getElementById('smsMessage').value.replace('{{first_name}}', patientName.split(' ')[0]);
+      document.getElementById('smsModal').classList.add('active');
     }
 
-    function closeRefillModal() {
-      document.getElementById('refillModal').classList.remove('active');
+    function closeSmsModal() {
+      document.getElementById('smsModal').classList.remove('active');
       selectedProtocol = null;
     }
 
-    async function processRefill() {
+    async function sendSms() {
       if (!selectedProtocol) return;
       
-      const refillDate = document.getElementById('refillDate').value;
-      const supplyType = document.getElementById('refillSupplyType').value;
-      const dose = document.getElementById('refillDose').value;
-      const notes = document.getElementById('refillNotes').value;
-      
-      if (!refillDate) {
-        showToast('Please select a refill date', 'error');
-        return;
-      }
+      const message = document.getElementById('smsMessage').value;
       
       try {
-        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/hrt-refill`, {
+        const res = await fetch(`${API_BASE}/ghl/send-sms`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            refill_date: refillDate,
-            supply_type: supplyType,
-            dose: dose,
+            contact_id: selectedProtocol.contactId,
+            message: message
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('SMS sent successfully!', 'success');
+          closeSmsModal();
+        } else {
+          showToast(data.error || 'Failed to send SMS', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to send SMS', 'error');
+      }
+    }
+
+    function openRenewModal(protocolId, patientName, medication) {
+      selectedProtocol = { id: protocolId, patientName, medication };
+      document.getElementById('renewPatientName').textContent = `${patientName} - ${medication}`;
+      document.getElementById('renewModal').classList.add('active');
+    }
+
+    function closeRenewModal() {
+      document.getElementById('renewModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function renewProtocol() {
+      if (!selectedProtocol) return;
+      
+      const duration = document.getElementById('renewDuration').value;
+      const notes = document.getElementById('renewNotes').value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/renew`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            duration_days: parseInt(duration),
             notes: notes
           })
         });
         
-        const result = await res.json();
-        
-        if (result.success) {
-          showToast('Refill processed!', 'success');
-          closeRefillModal();
-          loadProtocols();
-        } else {
-          showToast(result.error || 'Failed to process refill', 'error');
-        }
-      } catch (err) {
-        showToast('Failed to process refill', 'error');
-      }
-    }
-
-    // Edit Modal
-    function openEditModal(protocolId) {
-      const protocol = allProtocols.find(p => p.id === protocolId);
-      if (!protocol) {
-        showToast('Protocol not found', 'error');
-        return;
-      }
-      
-      selectedProtocol = protocol;
-      document.getElementById('editPatientName').textContent = protocol.patient_name;
-      document.getElementById('editHrtType').value = (protocol.hrt_type || 'male').toLowerCase();
-      document.getElementById('editSupplyType').value = protocol.supply_type || 'prefilled_4week';
-      document.getElementById('editStartingDose').value = protocol.starting_dose || protocol.current_dose || '0.3ml/60mg';
-      document.getElementById('editDose').value = protocol.current_dose || '0.3ml/60mg';
-      document.getElementById('editStartDate').value = protocol.start_date || '';
-      document.getElementById('editLastRefillDate').value = protocol.last_refill_date || '';
-      document.getElementById('editDeliveryMethod').value = protocol.delivery_method || 'take_home';
-      document.getElementById('editLabsCompleted').value = protocol.labs_completed ? 'yes' : 'no';
-      document.getElementById('editBaselineLabsDate').value = protocol.baseline_labs_date || '';
-      document.getElementById('editEightWeekLabsDate').value = protocol.eight_week_labs_date || '';
-      document.getElementById('editLastLabsDate').value = protocol.last_labs_date || '';
-      document.getElementById('editNotes').value = protocol.notes || '';
-      
-      document.getElementById('editModal').classList.add('active');
-    }
-
-    function closeEditModal() {
-      document.getElementById('editModal').classList.remove('active');
-      selectedProtocol = null;
-    }
-
-    async function saveProtocolEdit() {
-      if (!selectedProtocol) return;
-      
-      const data = {
-        medication: document.getElementById('editHrtType').value === 'female' ? 'Female HRT' : 'Male HRT',
-        supply_type: document.getElementById('editSupplyType').value,
-        starting_dose: document.getElementById('editStartingDose').value,
-        selected_dose: document.getElementById('editDose').value,
-        start_date: document.getElementById('editStartDate').value || null,
-        last_refill_date: document.getElementById('editLastRefillDate').value || null,
-        delivery_method: document.getElementById('editDeliveryMethod').value,
-        labs_completed: document.getElementById('editLabsCompleted').value === 'yes',
-        baseline_labs_date: document.getElementById('editBaselineLabsDate').value || null,
-        eight_week_labs_date: document.getElementById('editEightWeekLabsDate').value || null,
-        last_labs_date: document.getElementById('editLastLabsDate').value || null,
-        notes: document.getElementById('editNotes').value
-      };
-      
-      try {
-        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/update`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        const result = await res.json();
-        
-        if (result.success) {
-          showToast('Protocol updated!', 'success');
-          closeEditModal();
-          loadProtocols();
-        } else {
-          showToast(result.error || 'Failed to update', 'error');
-        }
-      } catch (err) {
-        showToast('Failed to update protocol', 'error');
-      }
-    }
-
-    // Log Injection Modal
-    function openLogInjectionModal(protocolId) {
-      const protocol = allProtocols.find(p => p.id === protocolId);
-      if (!protocol) {
-        showToast('Protocol not found', 'error');
-        return;
-      }
-      
-      selectedProtocol = protocol;
-      document.getElementById('logInjPatientName').textContent = protocol.patient_name;
-      
-      const weeksOnTherapy = Math.floor((protocol.days_since_start || 0) / 7);
-      document.getElementById('logInjCurrentStats').innerHTML = `
-        <strong>Current Dose:</strong> ${protocol.current_dose || '-'}<br>
-        <strong>On Therapy:</strong> ${weeksOnTherapy} weeks
-      `;
-      
-      document.getElementById('logInjDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('logInjDose').value = '';
-      document.getElementById('logInjNotes').value = '';
-      
-      document.getElementById('logInjectionModal').classList.add('active');
-    }
-
-    function closeLogInjectionModal() {
-      document.getElementById('logInjectionModal').classList.remove('active');
-      selectedProtocol = null;
-    }
-
-    async function saveLogInjection() {
-      if (!selectedProtocol) return;
-      
-      const injDate = document.getElementById('logInjDate').value;
-      const dose = document.getElementById('logInjDose').value;
-      const notes = document.getElementById('logInjNotes').value;
-      
-      if (!injDate) {
-        showToast('Please select a date', 'error');
-        return;
-      }
-      
-      try {
-        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/log-injection`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            log_date: injDate,
-            dose: dose || null,
-            notes: notes,
-            delivery_method: selectedProtocol.delivery_method
-          })
-        });
-        
-        const result = await res.json();
-        
-        if (result.success) {
-          showToast('Injection logged!', 'success');
-          closeLogInjectionModal();
-          loadProtocols();
-        } else {
-          showToast(result.error || 'Failed to log injection', 'error');
-        }
-      } catch (err) {
-        showToast('Failed to log injection', 'error');
-      }
-    }
-
-    // History Modal
-    async function openHistoryModal(protocolId) {
-      const protocol = allProtocols.find(p => p.id === protocolId);
-      if (!protocol) {
-        showToast('Protocol not found', 'error');
-        return;
-      }
-      
-      selectedProtocol = protocol;
-      document.getElementById('historyPatientName').textContent = `${protocol.patient_name} - HRT`;
-      document.getElementById('historyLoading').style.display = 'block';
-      document.getElementById('historyContent').style.display = 'none';
-      document.getElementById('historyModal').classList.add('active');
-      
-      try {
-        const res = await fetch(`${API_BASE}/protocols/${protocolId}/logs`);
         const data = await res.json();
         
-        document.getElementById('historyLoading').style.display = 'none';
-        document.getElementById('historyContent').style.display = 'block';
-        
-        const logs = Array.isArray(data) ? data : (data.logs || []);
-        
-        if (logs.length > 0) {
-          const totalLogs = logs.length;
-          const weeksOnTherapy = Math.floor((protocol.days_since_start || 0) / 7);
-          
-          document.getElementById('historySummary').innerHTML = `
-            <strong>Total Injections:</strong> ${totalLogs} &nbsp;|&nbsp; 
-            <strong>On Therapy:</strong> ${weeksOnTherapy} weeks
-          `;
-          document.getElementById('historySummary').style.display = 'block';
-          
-          let logsHtml = '';
-          logs.forEach((log, index) => {
-            const logDate = new Date(log.log_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-            const doseText = log.dose || protocol.current_dose || '-';
-            const notesText = log.notes ? ` - ${log.notes.substring(0, 50)}${log.notes.length > 50 ? '...' : ''}` : '';
-            
-            logsHtml += `
-              <div class="history-item">
-                <div class="info">
-                  <div class="date">${logDate}</div>
-                  <div class="details">${doseText}${notesText}</div>
-                </div>
-                <div class="actions" style="display: flex; gap: 6px;">
-                  <button class="action-btn" onclick="deleteLogEntry('${log.id}')" style="padding: 6px 10px; font-size: 12px; color: #dc2626;">
-                    🗑️ Delete
-                  </button>
-                </div>
-              </div>
-            `;
-          });
-          
-          document.getElementById('historyList').innerHTML = logsHtml;
-          document.getElementById('historyList').style.display = 'block';
-          document.getElementById('historyEmpty').style.display = 'none';
-        } else {
-          document.getElementById('historySummary').style.display = 'none';
-          document.getElementById('historyList').style.display = 'none';
-          document.getElementById('historyEmpty').style.display = 'block';
-        }
-      } catch (err) {
-        console.error('Load history error:', err);
-        showToast('Failed to load history', 'error');
-        closeHistoryModal();
-      }
-    }
-
-    function closeHistoryModal() {
-      document.getElementById('historyModal').classList.remove('active');
-    }
-
-    async function deleteLogEntry(logId) {
-      if (!confirm('Are you sure you want to delete this entry?')) {
-        return;
-      }
-      
-      try {
-        const res = await fetch(`${API_BASE}/protocol-logs/${logId}`, {
-          method: 'DELETE'
-        });
-        
-        const result = await res.json();
-        
-        if (result.success) {
-          showToast('Entry deleted', 'success');
-          // Refresh the history modal
-          if (selectedProtocol) {
-            openHistoryModal(selectedProtocol.id);
-          }
+        if (data.success) {
+          showToast('Protocol renewed!', 'success');
+          closeRenewModal();
           loadProtocols();
         } else {
-          showToast(result.error || 'Failed to delete', 'error');
+          showToast(data.error || 'Failed to renew protocol', 'error');
         }
       } catch (err) {
-        console.error('Delete error:', err);
-        showToast('Failed to delete entry', 'error');
+        showToast('Failed to renew protocol', 'error');
       }
     }
 
-    // Labs Modal
-    function openLabsModal(protocolId, patientName) {
-      selectedProtocol = allProtocols.find(p => p.id === protocolId);
-      if (!selectedProtocol) {
-        showToast('Protocol not found', 'error');
-        return;
-      }
-      
-      document.getElementById('labsPatientName').textContent = patientName;
-      document.getElementById('labsDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('labsNotes').value = '';
-      
-      // Show current lab status
-      const baselineDone = selectedProtocol.baseline_labs_date;
-      const eightWeekDone = selectedProtocol.eight_week_labs_date;
-      const lastQuarterly = selectedProtocol.last_labs_date;
-      
-      let statusHtml = '<strong>Lab Status:</strong><br>';
-      statusHtml += baselineDone 
-        ? `✅ Baseline: ${formatDate(baselineDone)}<br>` 
-        : '⏳ Baseline: Not done<br>';
-      statusHtml += eightWeekDone 
-        ? `✅ 8-Week: ${formatDate(eightWeekDone)}<br>` 
-        : '⏳ 8-Week: Not done<br>';
-      
-      if (eightWeekDone && lastQuarterly) {
-        statusHtml += `✅ Last Quarterly: ${formatDate(lastQuarterly)}`;
-      } else if (eightWeekDone) {
-        statusHtml += '⏳ Quarterly: Not started';
-      }
-      
-      document.getElementById('labsStatus').innerHTML = statusHtml;
-      
-      // Pre-select the next lab type needed
-      if (!baselineDone) {
-        document.getElementById('labsType').value = 'baseline';
-      } else if (!eightWeekDone) {
-        document.getElementById('labsType').value = 'eight_week';
-      } else {
-        document.getElementById('labsType').value = 'quarterly';
-      }
-      
-      document.getElementById('labsModal').classList.add('active');
-    }
-    
-    function formatDate(dateStr) {
-      if (!dateStr) return '-';
-      return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
-    function closeLabsModal() {
-      document.getElementById('labsModal').classList.remove('active');
-      selectedProtocol = null;
-    }
-
-    async function markLabsComplete() {
-      if (!selectedProtocol) return;
-      
-      const labType = document.getElementById('labsType').value;
-      const labDate = document.getElementById('labsDate').value;
-      const notes = document.getElementById('labsNotes').value;
-      
-      if (!labDate) {
-        showToast('Please select a date', 'error');
-        return;
-      }
-      
-      // Build update data based on lab type
-      const updateData = {};
-      let labTypeLabel = '';
-      
-      switch (labType) {
-        case 'baseline':
-          updateData.baseline_labs_date = labDate;
-          labTypeLabel = 'Baseline';
-          break;
-        case 'eight_week':
-          updateData.eight_week_labs_date = labDate;
-          updateData.labs_completed = true; // Keep for backwards compatibility
-          labTypeLabel = '8-Week';
-          break;
-        case 'quarterly':
-          updateData.last_labs_date = labDate;
-          labTypeLabel = 'Quarterly';
-          break;
-      }
-      
-      // Append to notes
-      const existingNotes = selectedProtocol.notes || '';
-      updateData.notes = existingNotes 
-        ? `${existingNotes}\n[${labDate}] ${labTypeLabel} labs completed. ${notes || ''}`
-        : `[${labDate}] ${labTypeLabel} labs completed. ${notes || ''}`;
-      
-      try {
-        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/update`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updateData)
-        });
-        
-        const result = await res.json();
-        
-        if (result.success) {
-          showToast(`${labTypeLabel} labs recorded!`, 'success');
-          closeLabsModal();
-          loadProtocols();
-        } else {
-          showToast(result.error || 'Failed to update', 'error');
-        }
-      } catch (err) {
-        showToast('Failed to update', 'error');
-      }
+    async function logSession(protocolId, patientName) {
+      // For now, redirect to Staff Quick Log
+      // Could build inline logging later
+      const params = new URLSearchParams({ protocol_id: protocolId });
+      showToast('Opening Staff Quick Log...', 'success');
+      // In GHL embed, this would open the log session form
+      window.open(`/staff-quick-log.html?${params}`, '_blank');
     }
 
     function showToast(message, type = 'success') {

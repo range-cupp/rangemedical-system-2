@@ -427,7 +427,7 @@
     <h1>💊 Peptide Protocols</h1>
     <div class="header-actions">
       <div class="search-box">
-        <input type="text" id="searchInput" placeholder="🔍 Search patient..." oninput="handleSearch()">
+        <input type="text" id="searchInput" placeholder="🔍 Search all protocols..." oninput="handleSearch()">
       </div>
       <div class="main-tabs">
         <button class="main-tab active" data-view="active">Active</button>
@@ -666,19 +666,74 @@ Reply to this message or call us at (949) 997-3988.
     function renderProtocols() {
       let filtered = allProtocols;
       
-      // Apply main view filter (active vs completed)
-      if (mainView === 'active') {
-        filtered = filtered.filter(p => getProtocolStatus(p) !== 'completed');
-      } else {
-        filtered = filtered.filter(p => getProtocolStatus(p) === 'completed');
-      }
-      
-      // Apply search filter
+      // When searching, show ALL protocols (both active and completed)
+      // Otherwise, apply main view filter
       if (searchTerm) {
+        // Search across all protocols
         filtered = filtered.filter(p => 
           (p.patient_name || '').toLowerCase().includes(searchTerm) ||
           (p.medication || '').toLowerCase().includes(searchTerm)
         );
+        
+        // Apply delivery method filter even when searching
+        if (currentFilter !== 'all') {
+          filtered = filtered.filter(p => p.delivery_method === currentFilter);
+        }
+        
+        // When searching, group by active vs completed
+        const activeResults = filtered.filter(p => getProtocolStatus(p) !== 'completed');
+        const completedResults = filtered.filter(p => getProtocolStatus(p) === 'completed');
+        
+        let html = '';
+        
+        // Show active results grouped by status
+        if (activeResults.length > 0) {
+          const groups = {
+            ending: activeResults.filter(p => getProtocolStatus(p) === 'ending'),
+            active: activeResults.filter(p => getProtocolStatus(p) === 'active'),
+            started: activeResults.filter(p => getProtocolStatus(p) === 'started')
+          };
+          
+          Object.keys(groups).forEach(key => {
+            groups[key].sort((a, b) => (a.days_remaining || 999) - (b.days_remaining || 999));
+          });
+          
+          if (groups.ending.length > 0) {
+            html += renderSection('🔴 Ending Soon (≤3 days)', groups.ending);
+          }
+          if (groups.active.length > 0) {
+            html += renderSection('🟡 Active (4-14 days remaining)', groups.active);
+          }
+          if (groups.started.length > 0) {
+            html += renderSection('🟢 Just Started (15+ days remaining)', groups.started);
+          }
+        }
+        
+        // Show completed results
+        if (completedResults.length > 0) {
+          completedResults.sort((a, b) => new Date(b.end_date || 0) - new Date(a.end_date || 0));
+          html += renderSection('⚪ Completed Protocols', completedResults);
+        }
+        
+        if (html === '') {
+          html = `
+            <div class="empty-state">
+              <div class="icon">🔍</div>
+              <p>No protocols found matching "${searchTerm}".</p>
+              <p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>
+            </div>
+          `;
+        }
+        
+        document.getElementById('content').innerHTML = html;
+        return;
+      }
+      
+      // Normal view (no search) - apply main view filter (active vs completed)
+      if (mainView === 'active') {
+        filtered = filtered.filter(p => getProtocolStatus(p) !== 'completed');
+      } else {
+        filtered = filtered.filter(p => getProtocolStatus(p) === 'completed');
       }
       
       // Apply delivery method filter
@@ -730,14 +785,10 @@ Reply to this message or call us at (949) 997-3988.
       
       if (html === '') {
         const viewLabel = mainView === 'active' ? 'active protocols' : 'completed protocols';
-        const searchMsg = searchTerm 
-          ? `No ${viewLabel} found matching "${searchTerm}".` 
-          : `No ${viewLabel} found.`;
         html = `
           <div class="empty-state">
             <div class="icon">${mainView === 'active' ? '💊' : '✅'}</div>
-            <p>${searchMsg}</p>
-            ${searchTerm ? '<p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>' : ''}
+            <p>No ${viewLabel} found.</p>
           </div>
         `;
       }

@@ -869,6 +869,15 @@ Reply to this message or call us at (949) 997-3988.
       
       const isCompleted = getProtocolStatus(p) === 'completed';
       
+      // Calculate total protocol length
+      let protocolLength = '-';
+      if (p.start_date && p.end_date) {
+        const start = new Date(p.start_date);
+        const end = new Date(p.end_date);
+        const totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+        protocolLength = `${totalDays} days`;
+      }
+      
       return `
         <div class="patient-card">
           <div class="patient-info">
@@ -885,11 +894,15 @@ Reply to this message or call us at (949) 997-3988.
               <div class="field-value">${p.selected_dose || '-'}</div>
             </div>
             <div class="field">
-              <div class="field-label">Duration</div>
-              <div class="field-value">${p.start_date || '-'} → ${p.end_date || '-'}</div>
+              <div class="field-label">Protocol</div>
+              <div class="field-value">${protocolLength}</div>
             </div>
             <div class="field">
-              <div class="field-label">Days Remaining</div>
+              <div class="field-label">Started</div>
+              <div class="field-value">${p.start_date || '-'}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Days Left</div>
               <div class="field-value days-remaining ${daysClass}">${isCompleted ? 'Done' : (p.days_remaining || 0) + ' days'}</div>
             </div>
             <div class="field">

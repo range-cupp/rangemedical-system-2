@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get all HRT protocols with patient info
+    // Get all HRT protocols with patient info - minimal columns
     const { data: protocols, error } = await supabase
       .from('protocols')
       .select(`
@@ -21,11 +21,9 @@ export default async function handler(req, res) {
         program_name,
         medication,
         selected_dose,
-        starting_dose,
         delivery_method,
         supply_type,
         start_date,
-        last_refill_date,
         end_date,
         status,
         notes,
@@ -57,38 +55,30 @@ export default async function handler(req, res) {
 
     // Get injection counts per protocol
     let injectionCountMap = {};
-    try {
-      const { data: injectionCounts } = await supabase
-        .from('protocol_logs')
-        .select('protocol_id')
-        .in('protocol_id', protocolIds)
-        .eq('log_type', 'injection');
+    const { data: injectionCounts } = await supabase
+      .from('protocol_logs')
+      .select('protocol_id')
+      .in('protocol_id', protocolIds)
+      .eq('log_type', 'injection');
 
-      (injectionCounts || []).forEach(log => {
-        injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
-      });
-    } catch (e) {
-      console.error('Injection count error:', e);
-    }
+    (injectionCounts || []).forEach(log => {
+      injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
+    });
 
-    // Get LATEST refill log_date per protocol (as a fallback)
-    let refillLogMap = {};
-    try {
-      const { data: refillLogs } = await supabase
-        .from('protocol_logs')
-        .select('protocol_id, log_date')
-        .in('protocol_id', protocolIds)
-        .eq('log_type', 'refill')
-        .order('log_date', { ascending: false });
+    // Get latest refill date per protocol from logs
+    let lastRefillMap = {};
+    const { data: refillLogs } = await supabase
+      .from('protocol_logs')
+      .select('protocol_id, log_date')
+      .in('protocol_id', protocolIds)
+      .eq('log_type', 'refill')
+      .order('log_date', { ascending: false });
 
-      (refillLogs || []).forEach(log => {
-        if (!refillLogMap[log.protocol_id]) {
-          refillLogMap[log.protocol_id] = log.log_date;
-        }
-      });
-    } catch (e) {
-      console.error('Refill log error:', e);
-    }
+    (refillLogs || []).forEach(log => {
+      if (!lastRefillMap[log.protocol_id]) {
+        lastRefillMap[log.protocol_id] = log.log_date;
+      }
+    });
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -106,29 +96,18 @@ export default async function handler(req, res) {
       // Calculate days since start
       let daysSinceStart = 0;
       if (p.start_date) {
-        try {
-          const startDate = new Date(p.start_date + 'T00:00:00');
-          daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-        } catch (e) {
-          console.error('Date parse error:', e);
-        }
+        const startDate = new Date(p.start_date + 'T00:00:00');
+        daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
       }
 
-      // PRIORITY ORDER for last refill date:
-      // 1. last_refill_date field on protocol
-      // 2. Most recent refill log's log_date
-      // 3. start_date as fallback
-      const lastRefillDate = p.last_refill_date || refillLogMap[p.id] || p.start_date;
+      // Use refill log date if available, otherwise start date
+      const lastRefillDate = lastRefillMap[p.id] || p.start_date;
 
       // Calculate days since last refill
-      let daysSinceLastRefill = daysSinceStart; // default to days since start
+      let daysSinceLastRefill = daysSinceStart;
       if (lastRefillDate) {
-        try {
-          const refillDate = new Date(lastRefillDate + 'T00:00:00');
-          daysSinceLastRefill = Math.floor((today - refillDate) / (1000 * 60 * 60 * 24));
-        } catch (e) {
-          console.error('Refill date parse error:', e);
-        }
+        const refillDate = new Date(lastRefillDate + 'T00:00:00');
+        daysSinceLastRefill = Math.floor((today - refillDate) / (1000 * 60 * 60 * 24));
       }
 
       // Check if labs are completed
@@ -143,7 +122,7 @@ export default async function handler(req, res) {
         medication: p.medication,
         hrt_type: hrtType,
         supply_type: supplyType,
-        starting_dose: p.starting_dose || p.selected_dose || '0.3ml/60mg',
+        starting_dose: p.selected_dose || '0.3ml/60mg',
         current_dose: p.selected_dose || '0.3ml/60mg',
         delivery_method: p.delivery_method || 'take_home',
         start_date: p.start_date,

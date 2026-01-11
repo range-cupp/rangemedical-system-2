@@ -1,24 +1,11 @@
-// /pages/api/pipelines/hrt.js
-// HRT Pipeline API - Returns all HRT protocols with calculated fields
-// Range Medical
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -38,6 +25,7 @@ export default async function handler(req, res) {
         delivery_method,
         supply_type,
         start_date,
+        last_refill_date,
         end_date,
         status,
         notes,
@@ -58,83 +46,80 @@ export default async function handler(req, res) {
 
     if (error) {
       console.error('Supabase error:', error);
-      return res.status(500).json({ error: 'Failed to fetch protocols' });
+      return res.status(500).json({ error: error.message });
     }
 
-    // Get protocol logs for injection history
+    if (!protocols || protocols.length === 0) {
+      return res.status(200).json([]);
+    }
+
     const protocolIds = protocols.map(p => p.id);
-    
-    const { data: logs, error: logsError } = await supabase
+
+    // Get injection counts per protocol
+    const { data: injectionCounts } = await supabase
       .from('protocol_logs')
-      .select('protocol_id, log_date, log_type, notes')
+      .select('protocol_id')
       .in('protocol_id', protocolIds)
+      .eq('log_type', 'injection');
+
+    const injectionCountMap = {};
+    (injectionCounts || []).forEach(log => {
+      injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
+    });
+
+    // Get LATEST refill log_date per protocol (as a fallback)
+    // This is only used if last_refill_date isn't set on the protocol
+    const { data: refillLogs } = await supabase
+      .from('protocol_logs')
+      .select('protocol_id, log_date')
+      .in('protocol_id', protocolIds)
+      .eq('log_type', 'refill')
       .order('log_date', { ascending: false });
 
-    // Create maps for last injection and refill dates
-    const lastInjectionMap = {};
-    const lastRefillMap = {};
-    const injectionCountMap = {};
-    
-    if (logs) {
-      logs.forEach(log => {
-        // Track last injection
-        if ((log.log_type === 'injection' || log.log_type === 'session') && !lastInjectionMap[log.protocol_id]) {
-          lastInjectionMap[log.protocol_id] = log.log_date;
-        }
-        
-        // Track last refill
-        if (log.log_type === 'refill' && !lastRefillMap[log.protocol_id]) {
-          lastRefillMap[log.protocol_id] = log.log_date;
-        }
-        
-        // Count injections
-        if (log.log_type === 'injection' || log.log_type === 'session') {
-          injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
-        }
-      });
-    }
+    // Build map of latest refill log_date per protocol
+    const refillLogMap = {};
+    (refillLogs || []).forEach(log => {
+      // Only keep the first (most recent by log_date) for each protocol
+      if (!refillLogMap[log.protocol_id]) {
+        refillLogMap[log.protocol_id] = log.log_date;
+      }
+    });
 
-    // Calculate fields for each protocol
-    const now = new Date();
-    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const enrichedProtocols = protocols.map(p => {
-      const startDate = p.start_date ? new Date(p.start_date) : null;
+      // Determine HRT type from medication
+      const medication = (p.medication || '').toLowerCase();
+      const hrtType = medication.includes('female') ? 'female' : 'male';
       
-      // Days since start
-      let daysSinceStart = null;
-      if (startDate) {
-        const diffTime = now.getTime() - startDate.getTime();
-        daysSinceStart = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      // Normalize supply type
+      let supplyType = p.supply_type || 'prefilled_4week';
+      if (supplyType === 'vial') supplyType = 'vial_10ml';
+      if (supplyType === 'prefilled') supplyType = 'prefilled_4week';
+
+      // Calculate days since start
+      let daysSinceStart = 0;
+      if (p.start_date) {
+        const startDate = new Date(p.start_date + 'T00:00:00');
+        daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
       }
-      
-      // Days since last refill
-      let daysSinceLastRefill = daysSinceStart; // Default to start date
-      if (lastRefillMap[p.id]) {
-        const lastRefill = new Date(lastRefillMap[p.id]);
-        const diffTime = now.getTime() - lastRefill.getTime();
-        daysSinceLastRefill = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // PRIORITY ORDER for last refill date:
+      // 1. last_refill_date field on protocol (set by Edit or Refill)
+      // 2. Most recent refill log's log_date
+      // 3. start_date as fallback
+      const lastRefillDate = p.last_refill_date || refillLogMap[p.id] || p.start_date;
+
+      // Calculate days since last refill from the ACTUAL refill date
+      let daysSinceLastRefill = 0;
+      if (lastRefillDate) {
+        const refillDate = new Date(lastRefillDate + 'T00:00:00');
+        daysSinceLastRefill = Math.floor((today - refillDate) / (1000 * 60 * 60 * 24));
       }
-      
-      // Parse HRT type and supply type from program_name/medication
-      let hrtType = 'male';
-      let supplyType = p.supply_type || 'prefilled';
-      
-      const programNameLower = (p.program_name || '').toLowerCase();
-      const medicationLower = (p.medication || '').toLowerCase();
-      
-      if (programNameLower.includes('female') || medicationLower.includes('female')) {
-        hrtType = 'female';
-      }
-      
-      // Only guess from name if not in database
-      if (!p.supply_type) {
-        if (programNameLower.includes('vial') || medicationLower.includes('vial')) {
-          supplyType = 'vial';
-        }
-      }
-      
-      // Check if 8-week labs completed
-      const labsCompleted = p.labs_completed || false;
+
+      // Check if labs are completed (any of the date fields filled)
+      const labsCompleted = p.labs_completed || !!p.eight_week_labs_date;
 
       return {
         id: p.id,
@@ -149,7 +134,7 @@ export default async function handler(req, res) {
         current_dose: p.selected_dose || '0.3ml/60mg',
         delivery_method: p.delivery_method || 'take_home',
         start_date: p.start_date,
-        last_refill_date: lastRefillMap[p.id] || p.start_date,
+        last_refill_date: lastRefillDate,
         days_since_start: daysSinceStart,
         days_since_last_refill: daysSinceLastRefill,
         total_injections: injectionCountMap[p.id] || 0,
@@ -163,28 +148,10 @@ export default async function handler(req, res) {
       };
     });
 
-    // Sort by urgency (labs due first, then refill needed, then new patients)
-    enrichedProtocols.sort((a, b) => {
-      if (a.status === 'completed' && b.status !== 'completed') return 1;
-      if (a.status !== 'completed' && b.status === 'completed') return -1;
-      
-      // Labs due is highest priority
-      const aLabsDue = !a.labs_completed && a.days_since_start >= 42 && a.days_since_start <= 70;
-      const bLabsDue = !b.labs_completed && b.days_since_start >= 42 && b.days_since_start <= 70;
-      if (aLabsDue && !bLabsDue) return -1;
-      if (!aLabsDue && bLabsDue) return 1;
-      
-      return (a.days_since_last_refill || 0) - (b.days_since_last_refill || 0);
-    });
-
-    return res.status(200).json({
-      success: true,
-      protocols: enrichedProtocols,
-      total: enrichedProtocols.length
-    });
+    return res.status(200).json(enrichedProtocols);
 
   } catch (err) {
-    console.error('Pipeline error:', err);
+    console.error('HRT pipeline error:', err);
     return res.status(500).json({ error: 'Server error' });
   }
 }

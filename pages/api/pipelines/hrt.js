@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get all HRT protocols with patient info - minimal columns
+    // Get all HRT protocols with patient info
     const { data: protocols, error } = await supabase
       .from('protocols')
       .select(`
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
       injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
     });
 
-    // Get latest refill date per protocol from logs
+    // Get latest refill date per protocol from logs - sorted by LOG_DATE not created_at
     let lastRefillMap = {};
     const { data: refillLogs } = await supabase
       .from('protocol_logs')
@@ -75,6 +75,7 @@ export default async function handler(req, res) {
       .order('log_date', { ascending: false });
 
     (refillLogs || []).forEach(log => {
+      // Only keep the first (most recent by log_date) for each protocol
       if (!lastRefillMap[log.protocol_id]) {
         lastRefillMap[log.protocol_id] = log.log_date;
       }
@@ -100,10 +101,10 @@ export default async function handler(req, res) {
         daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
       }
 
-      // Use refill log date if available, otherwise start date
+      // Use refill log date (by actual log_date) if available, otherwise start date
       const lastRefillDate = lastRefillMap[p.id] || p.start_date;
 
-      // Calculate days since last refill
+      // Calculate days since last refill from the ACTUAL refill date
       let daysSinceLastRefill = daysSinceStart;
       if (lastRefillDate) {
         const refillDate = new Date(lastRefillDate + 'T00:00:00');

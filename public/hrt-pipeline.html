@@ -703,7 +703,7 @@
   <!-- History Modal -->
   <div class="modal-overlay" id="historyModal">
     <div class="modal" style="max-width: 700px;">
-      <h3>📋 Injection History</h3>
+      <h3>📋 Protocol History</h3>
       <p id="historyPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
       
       <div id="historyLoading" style="text-align: center; padding: 20px; color: #6b7280;">Loading...</div>
@@ -714,14 +714,14 @@
         <div id="historyList"></div>
         
         <div id="historyEmpty" style="display: none; text-align: center; padding: 30px; color: #6b7280;">
-          <p>No injections logged yet.</p>
+          <p>No history logged yet.</p>
         </div>
       </div>
       
       <div class="modal-actions" style="margin-top: 20px;">
         <button class="action-btn" onclick="closeHistoryModal()">Close</button>
-        <button class="action-btn primary" onclick="closeHistoryModal(); setTimeout(() => openLogInjectionModal(selectedProtocol?.id), 100);">
-          💉 Add Injection
+        <button class="action-btn primary" onclick="closeHistoryModal(); setTimeout(() => openRefillModal(selectedProtocol?.id, selectedProtocol?.patient_name, selectedProtocol?.supply_type), 100);">
+          🔄 Add Refill
         </button>
       </div>
     </div>
@@ -1494,28 +1494,40 @@
         document.getElementById('historyLoading').style.display = 'none';
         document.getElementById('historyContent').style.display = 'block';
         
-        const logs = Array.isArray(data) ? data : (data.logs || []);
+        let logs = Array.isArray(data) ? data : (data.logs || []);
+        
+        // Sort by date - oldest first (chronological order)
+        logs.sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
         
         if (logs.length > 0) {
-          const totalLogs = logs.length;
+          // Count by type
+          const refillCount = logs.filter(l => l.log_type === 'refill' || (l.notes && l.notes.includes('Refill'))).length;
+          const injectionCount = logs.filter(l => l.log_type === 'injection' && !(l.notes && l.notes.includes('Refill'))).length;
           const weeksOnTherapy = Math.floor((protocol.days_since_start || 0) / 7);
           
-          document.getElementById('historySummary').innerHTML = `
-            <strong>Total Injections:</strong> ${totalLogs} &nbsp;|&nbsp; 
-            <strong>On Therapy:</strong> ${weeksOnTherapy} weeks
-          `;
+          let summaryParts = [];
+          if (refillCount > 0) summaryParts.push(`<strong>Refills:</strong> ${refillCount}`);
+          if (injectionCount > 0) summaryParts.push(`<strong>Injections:</strong> ${injectionCount}`);
+          summaryParts.push(`<strong>On Therapy:</strong> ${weeksOnTherapy} weeks`);
+          
+          document.getElementById('historySummary').innerHTML = summaryParts.join(' &nbsp;|&nbsp; ');
           document.getElementById('historySummary').style.display = 'block';
           
           let logsHtml = '';
           logs.forEach((log, index) => {
             const logDate = new Date(log.log_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
             const doseText = log.dose || protocol.current_dose || '-';
-            const notesText = log.notes ? ` - ${log.notes.substring(0, 50)}${log.notes.length > 50 ? '...' : ''}` : '';
+            const notesText = log.notes ? ` - ${log.notes.substring(0, 60)}${log.notes.length > 60 ? '...' : ''}` : '';
+            
+            // Determine if this is a refill or injection
+            const isRefill = log.log_type === 'refill' || (log.notes && log.notes.includes('Refill'));
+            const typeIcon = isRefill ? '📦' : '💉';
+            const typeLabel = isRefill ? 'Refill' : 'Injection';
             
             logsHtml += `
               <div class="history-item">
                 <div class="info">
-                  <div class="date">${logDate}</div>
+                  <div class="date">${typeIcon} ${logDate} <span style="font-weight: normal; color: #6b7280; font-size: 12px;">(${typeLabel})</span></div>
                   <div class="details">${doseText}${notesText}</div>
                 </div>
                 <div class="actions" style="display: flex; gap: 6px;">

@@ -254,6 +254,7 @@
     .supply-status.critical { color: #dc2626; }
     .supply-status.warning { color: #f59e0b; }
     .supply-status.good { color: #22c55e; }
+    .supply-status.in_clinic { color: #6b7280; font-style: italic; }
     
     .patient-actions {
       display: flex;
@@ -525,6 +526,7 @@
       <div class="form-group">
         <label>Supply Type</label>
         <select id="refillSupplyType">
+          <option value="in_clinic">In-Clinic Injections (no supply tracking)</option>
           <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
           <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
           <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
@@ -577,6 +579,7 @@
       <div class="form-group">
         <label>Supply Type</label>
         <select id="editSupplyType">
+          <option value="in_clinic">In-Clinic Injections (no supply tracking)</option>
           <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
           <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
           <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
@@ -930,6 +933,11 @@
       const supplyType = p.supply_type || 'prefilled_4week';
       const daysSinceRefill = p.days_since_last_refill || p.days_since_start || 0;
       
+      // In-clinic patients don't need supply tracking
+      if (supplyType === 'in_clinic') {
+        return { status: 'in_clinic', text: 'In-clinic', daysRemaining: null };
+      }
+      
       // Check if it's a vial (either old 'vial' value or new vial_5ml/vial_10ml)
       const isVial = supplyType === 'vial' || supplyType === 'vial_5ml' || supplyType === 'vial_10ml';
       
@@ -1141,7 +1149,9 @@
       let supplyBadgeText = 'Prefilled';
       const supplyTypeLower = (p.supply_type || '').toLowerCase();
       
-      if (supplyTypeLower === 'vial_10ml' || supplyTypeLower === 'vial') {
+      if (supplyTypeLower === 'in_clinic') {
+        supplyBadgeText = 'In-Clinic';
+      } else if (supplyTypeLower === 'vial_10ml' || supplyTypeLower === 'vial') {
         supplyBadgeText = '10ml Vial';
       } else if (supplyTypeLower === 'vial_5ml') {
         supplyBadgeText = '5ml Vial';
@@ -1152,9 +1162,15 @@
       }
       
       const isVial = supplyTypeLower.includes('vial');
-      const supplyBadge = isVial
-        ? `<span class="badge vial">${supplyBadgeText}</span>`
-        : `<span class="badge prefilled">${supplyBadgeText}</span>`;
+      const isInClinic = supplyTypeLower === 'in_clinic';
+      let supplyBadge;
+      if (isInClinic) {
+        supplyBadge = '<span class="badge in-clinic">In-Clinic</span>';
+      } else if (isVial) {
+        supplyBadge = `<span class="badge vial">${supplyBadgeText}</span>`;
+      } else {
+        supplyBadge = `<span class="badge prefilled">${supplyBadgeText}</span>`;
+      }
       
       const deliveryBadge = p.delivery_method === 'in_clinic'
         ? '<span class="badge in-clinic">In Clinic</span>'
@@ -1220,7 +1236,7 @@
             </div>
           </div>
           <div class="patient-actions">
-            ${p.delivery_method === 'in_clinic' ? `
+            ${(p.delivery_method === 'in_clinic' || p.supply_type === 'in_clinic') ? `
               <button class="action-btn" onclick="openLogInjectionModal('${p.id}')">
                 💉 Log
               </button>

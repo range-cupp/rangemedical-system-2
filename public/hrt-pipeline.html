@@ -138,6 +138,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     .stat-card.labs-due { border-left-color: #f59e0b; }
+    .stat-card.quarterly-labs { border-left-color: #8b5cf6; }
     .stat-card.refill-soon { border-left-color: #ef4444; }
     .stat-card.on-track { border-left-color: #22c55e; }
     .stat-card.new-patients { border-left-color: #3b82f6; }
@@ -246,6 +247,7 @@
     .badge.in-clinic { background: #e5e7eb; color: #374151; }
     .badge.take-home { background: #fef3c7; color: #d97706; }
     .badge.labs-due { background: #fef3c7; color: #d97706; }
+    .badge.quarterly-labs { background: #ede9fe; color: #7c3aed; }
     .badge.refill-soon { background: #fee2e2; color: #dc2626; }
     
     .supply-status {
@@ -487,6 +489,10 @@
     <div class="stat-card labs-due" data-status="labs-due" onclick="filterByStatus('labs-due')">
       <div class="label">Labs Due</div>
       <div class="value" id="stat-labs-due">-</div>
+    </div>
+    <div class="stat-card quarterly-labs" data-status="quarterly-labs" onclick="filterByStatus('quarterly-labs')">
+      <div class="label">Quarterly Labs</div>
+      <div class="value" id="stat-quarterly-labs">-</div>
     </div>
     <div class="stat-card refill-soon" data-status="refill-soon" onclick="filterByStatus('refill-soon')">
       <div class="label">Refill Soon</div>
@@ -840,7 +846,7 @@
     }
 
     function updateStats() {
-      let labsDue = 0, refillSoon = 0, onTrack = 0, newPatients = 0, completed = 0;
+      let labsDue = 0, quarterlyLabs = 0, refillSoon = 0, onTrack = 0, newPatients = 0, completed = 0;
       
       allProtocols.forEach(p => {
         if (isCompleted(p)) {
@@ -850,12 +856,14 @@
         
         const status = getProtocolStatus(p);
         if (status === 'labs-due') labsDue++;
+        else if (status === 'quarterly-labs') quarterlyLabs++;
         else if (status === 'refill-soon') refillSoon++;
         else if (status === 'new-patients') newPatients++;
         else onTrack++;
       });
       
       document.getElementById('stat-labs-due').textContent = labsDue;
+      document.getElementById('stat-quarterly-labs').textContent = quarterlyLabs;
       document.getElementById('stat-refill-soon').textContent = refillSoon;
       document.getElementById('stat-on-track').textContent = onTrack;
       document.getElementById('stat-new-patients').textContent = newPatients;
@@ -872,8 +880,11 @@
       
       // Check lab status
       const labStatus = getLabStatus(p);
-      if (labStatus.due) {
+      if (labStatus.due && labStatus.type !== 'quarterly') {
         return 'labs-due';
+      }
+      if (labStatus.due && labStatus.type === 'quarterly') {
+        return 'quarterly-labs';
       }
       
       // Check refill status
@@ -1087,6 +1098,7 @@
       if (mainView === 'active') {
         const groups = {
           'labs-due': filtered.filter(p => getProtocolStatus(p) === 'labs-due'),
+          'quarterly-labs': filtered.filter(p => getProtocolStatus(p) === 'quarterly-labs'),
           'refill-soon': filtered.filter(p => getProtocolStatus(p) === 'refill-soon'),
           'new-patients': filtered.filter(p => getProtocolStatus(p) === 'new-patients'),
           'on-track': filtered.filter(p => getProtocolStatus(p) === 'on-track')
@@ -1094,6 +1106,9 @@
         
         if (groups['labs-due'].length > 0) {
           html += renderSection('🧪 Labs Due', groups['labs-due']);
+        }
+        if (groups['quarterly-labs'].length > 0) {
+          html += renderSection('🟣 Quarterly Labs Needed', groups['quarterly-labs']);
         }
         if (groups['refill-soon'].length > 0) {
           html += renderSection('🔴 Refill Soon', groups['refill-soon']);
@@ -1195,7 +1210,11 @@
       const labStatus = getLabStatus(p);
       let labsBadge = '';
       if (labStatus.due) {
-        labsBadge = `<span class="badge labs-due">${labStatus.type === 'baseline' ? 'Baseline' : labStatus.type === 'eight_week' ? '8-Wk Labs' : 'Quarterly'}</span>`;
+        if (labStatus.type === 'quarterly') {
+          labsBadge = '<span class="badge quarterly-labs">Quarterly</span>';
+        } else {
+          labsBadge = `<span class="badge labs-due">${labStatus.type === 'baseline' ? 'Baseline' : '8-Wk Labs'}</span>`;
+        }
       }
       
       // Refill badge

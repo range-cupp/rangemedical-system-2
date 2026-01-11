@@ -56,34 +56,39 @@ export default async function handler(req, res) {
     const protocolIds = protocols.map(p => p.id);
 
     // Get injection counts per protocol
-    const { data: injectionCounts } = await supabase
-      .from('protocol_logs')
-      .select('protocol_id')
-      .in('protocol_id', protocolIds)
-      .eq('log_type', 'injection');
+    let injectionCountMap = {};
+    try {
+      const { data: injectionCounts } = await supabase
+        .from('protocol_logs')
+        .select('protocol_id')
+        .in('protocol_id', protocolIds)
+        .eq('log_type', 'injection');
 
-    const injectionCountMap = {};
-    (injectionCounts || []).forEach(log => {
-      injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
-    });
+      (injectionCounts || []).forEach(log => {
+        injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
+      });
+    } catch (e) {
+      console.error('Injection count error:', e);
+    }
 
     // Get LATEST refill log_date per protocol (as a fallback)
-    // This is only used if last_refill_date isn't set on the protocol
-    const { data: refillLogs } = await supabase
-      .from('protocol_logs')
-      .select('protocol_id, log_date')
-      .in('protocol_id', protocolIds)
-      .eq('log_type', 'refill')
-      .order('log_date', { ascending: false });
+    let refillLogMap = {};
+    try {
+      const { data: refillLogs } = await supabase
+        .from('protocol_logs')
+        .select('protocol_id, log_date')
+        .in('protocol_id', protocolIds)
+        .eq('log_type', 'refill')
+        .order('log_date', { ascending: false });
 
-    // Build map of latest refill log_date per protocol
-    const refillLogMap = {};
-    (refillLogs || []).forEach(log => {
-      // Only keep the first (most recent by log_date) for each protocol
-      if (!refillLogMap[log.protocol_id]) {
-        refillLogMap[log.protocol_id] = log.log_date;
-      }
-    });
+      (refillLogs || []).forEach(log => {
+        if (!refillLogMap[log.protocol_id]) {
+          refillLogMap[log.protocol_id] = log.log_date;
+        }
+      });
+    } catch (e) {
+      console.error('Refill log error:', e);
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -101,24 +106,32 @@ export default async function handler(req, res) {
       // Calculate days since start
       let daysSinceStart = 0;
       if (p.start_date) {
-        const startDate = new Date(p.start_date + 'T00:00:00');
-        daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+        try {
+          const startDate = new Date(p.start_date + 'T00:00:00');
+          daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+        } catch (e) {
+          console.error('Date parse error:', e);
+        }
       }
 
       // PRIORITY ORDER for last refill date:
-      // 1. last_refill_date field on protocol (set by Edit or Refill)
+      // 1. last_refill_date field on protocol
       // 2. Most recent refill log's log_date
       // 3. start_date as fallback
       const lastRefillDate = p.last_refill_date || refillLogMap[p.id] || p.start_date;
 
-      // Calculate days since last refill from the ACTUAL refill date
-      let daysSinceLastRefill = 0;
+      // Calculate days since last refill
+      let daysSinceLastRefill = daysSinceStart; // default to days since start
       if (lastRefillDate) {
-        const refillDate = new Date(lastRefillDate + 'T00:00:00');
-        daysSinceLastRefill = Math.floor((today - refillDate) / (1000 * 60 * 60 * 24));
+        try {
+          const refillDate = new Date(lastRefillDate + 'T00:00:00');
+          daysSinceLastRefill = Math.floor((today - refillDate) / (1000 * 60 * 60 * 24));
+        } catch (e) {
+          console.error('Refill date parse error:', e);
+        }
       }
 
-      // Check if labs are completed (any of the date fields filled)
+      // Check if labs are completed
       const labsCompleted = p.labs_completed || !!p.eight_week_labs_date;
 
       return {
@@ -152,6 +165,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('HRT pipeline error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: err.message || 'Server error' });
   }
 }

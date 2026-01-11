@@ -1,18 +1,12 @@
-// /pages/api/protocols/[id]/hrt-refill.js
-// Process HRT refill - log refill and reset supply timer
-// Range Medical
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_KEY
 );
 
-// GHL API helpers
-async function addGHLNote(contactId, noteBody) {
-  if (!contactId) return null;
-  
+// GHL API helper
+async function addGHLNote(contactId, note) {
   try {
     const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}/notes`, {
       method: 'POST',
@@ -21,18 +15,16 @@ async function addGHLNote(contactId, noteBody) {
         'Version': '2021-07-28',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ body: noteBody })
+      body: JSON.stringify({ body: note })
     });
-    return await response.json();
+    return response.ok;
   } catch (err) {
     console.error('GHL note error:', err);
-    return null;
+    return false;
   }
 }
 
 async function updateGHLContact(contactId, customFields) {
-  if (!contactId) return null;
-  
   try {
     const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
       method: 'PUT',
@@ -41,31 +33,22 @@ async function updateGHLContact(contactId, customFields) {
         'Version': '2021-07-28',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ customFields: customFields })
+      body: JSON.stringify({ customFields })
     });
-    return await response.json();
+    return response.ok;
   } catch (err) {
     console.error('GHL update error:', err);
-    return null;
+    return false;
   }
 }
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { id } = req.query;
-  const { supply_type, dose, notes, refill_date } = req.body;
+  const { refill_date, supply_type, dose, notes } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID required' });
@@ -75,14 +58,7 @@ export default async function handler(req, res) {
     // Get protocol with patient info
     const { data: protocol, error: fetchError } = await supabase
       .from('protocols')
-      .select(`
-        *,
-        patients (
-          id,
-          name,
-          ghl_contact_id
-        )
-      `)
+      .select('*, patients(name, ghl_contact_id)')
       .eq('id', id)
       .single();
 
@@ -90,51 +66,46 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // Use provided date or default to today
     const refillDateStr = refill_date || new Date().toISOString().split('T')[0];
-    
-    // Calculate supply duration based on type and dose
+
+    // Calculate supply duration for logging
     let supplyDuration = '';
     let supplyLabel = '';
     
-    // Check if it's a vial
-    const isVial = supply_type === 'vial' || supply_type === 'vial_5ml' || supply_type === 'vial_10ml';
-    
-    if (isVial) {
-      // Determine vial size (default to 10ml for backwards compatibility)
-      const vialMl = supply_type === 'vial_5ml' ? 5 : 10;
-      
-      // Check if female dose (100mg/ml concentration - doses are 10mg-50mg range)
-      const isFemale = dose && (dose.includes('10mg') || dose.includes('15mg') || dose.includes('20mg') || 
-                       dose.includes('25mg') || dose.includes('30mg') || dose.includes('40mg') || 
-                       dose.includes('50mg'));
-      
-      let concentration = isFemale ? 100 : 200; // mg/ml
-      const totalMg = concentration * vialMl;
-      
-      // Calculate weekly mg based on dose
+    if (supply_type === 'vial_10ml' || supply_type === 'vial') {
+      // Vial 10ml: 200mg/ml × 10ml = 2000mg total
       let weeklyMg = 120; // default
       
-      if (isFemale) {
-        // Female doses (100mg/ml)
-        if (dose.includes('50mg')) weeklyMg = 100;
-        else if (dose.includes('40mg')) weeklyMg = 80;
-        else if (dose.includes('30mg')) weeklyMg = 60;
-        else if (dose.includes('25mg')) weeklyMg = 50;
-        else if (dose.includes('20mg')) weeklyMg = 40;
-        else if (dose.includes('15mg')) weeklyMg = 30;
-        else if (dose.includes('10mg')) weeklyMg = 20;
-      } else {
-        // Male doses (200mg/ml)
-        if (dose && (dose.includes('100mg') || dose.includes('0.5ml'))) weeklyMg = 200;
-        else if (dose && (dose.includes('80mg') || dose.includes('0.4ml'))) weeklyMg = 160;
-        else if (dose && (dose.includes('70mg') || dose.includes('0.35ml'))) weeklyMg = 140;
-        else if (dose && (dose.includes('60mg') || dose.includes('0.3ml'))) weeklyMg = 120;
+      if (dose && (dose.includes('100mg') || dose.includes('0.5ml'))) {
+        weeklyMg = 200;
+      } else if (dose && (dose.includes('80mg') || dose.includes('0.4ml'))) {
+        weeklyMg = 160;
+      } else if (dose && (dose.includes('70mg') || dose.includes('0.35ml'))) {
+        weeklyMg = 140;
+      } else if (dose && (dose.includes('60mg') || dose.includes('0.3ml'))) {
+        weeklyMg = 120;
       }
       
-      const vialWeeks = Math.floor(totalMg / weeklyMg);
+      const vialWeeks = Math.floor(2000 / weeklyMg);
       supplyDuration = `${vialWeeks} weeks`;
-      supplyLabel = `Vial ${vialMl}ml (${vialWeeks} weeks at ${dose})`;
+      supplyLabel = `Vial 10ml (${vialWeeks} weeks at ${dose})`;
+    } else if (supply_type === 'vial_5ml') {
+      // Vial 5ml: 200mg/ml × 5ml = 1000mg total
+      let weeklyMg = 120;
+      
+      if (dose && (dose.includes('100mg') || dose.includes('0.5ml'))) {
+        weeklyMg = 200;
+      } else if (dose && (dose.includes('80mg') || dose.includes('0.4ml'))) {
+        weeklyMg = 160;
+      } else if (dose && (dose.includes('70mg') || dose.includes('0.35ml'))) {
+        weeklyMg = 140;
+      } else if (dose && (dose.includes('60mg') || dose.includes('0.3ml'))) {
+        weeklyMg = 120;
+      }
+      
+      const vialWeeks = Math.floor(1000 / weeklyMg);
+      supplyDuration = `${vialWeeks} weeks`;
+      supplyLabel = `Vial 5ml (${vialWeeks} weeks at ${dose})`;
     } else if (supply_type === 'prefilled_2week') {
       supplyDuration = '2 weeks';
       supplyLabel = 'Pre-filled 2 Week (4 injections)';
@@ -143,12 +114,12 @@ export default async function handler(req, res) {
       supplyLabel = 'Pre-filled 4 Week (8 injections)';
     }
 
-    // Log the refill
+    // Log the refill entry
     const logEntry = {
       protocol_id: id,
-      patient_id: protocol.patient_id,
       log_type: 'refill',
       log_date: refillDateStr,
+      dose: dose,
       notes: `Refill: ${supplyLabel} - ${dose}. ${notes || ''}`
     };
 
@@ -160,17 +131,21 @@ export default async function handler(req, res) {
       console.error('Log insert error:', logError);
     }
 
-    // Update protocol with new supply type and dose
+    // Update protocol with new supply type, dose, AND last_refill_date
     const existingNotes = protocol.notes || '';
     const updatedNotes = existingNotes 
       ? `${existingNotes}\n\n[${refillDateStr}] Refill: ${supplyLabel}, ${dose}. Supply: ${supplyDuration}. ${notes || ''}`
       : `[${refillDateStr}] Refill: ${supplyLabel}, ${dose}. Supply: ${supplyDuration}. ${notes || ''}`;
 
+    // Normalize supply_type for storage
+    const normalizedSupplyType = supply_type === 'vial' ? 'vial_10ml' : supply_type;
+
     const { error: updateError } = await supabase
       .from('protocols')
       .update({
-        supply_type: supply_type,
+        supply_type: normalizedSupplyType,
         selected_dose: dose,
+        last_refill_date: refillDateStr,  // THIS WAS MISSING!
         status: 'active',
         notes: updatedNotes,
         updated_at: new Date().toISOString()
@@ -179,6 +154,7 @@ export default async function handler(req, res) {
 
     if (updateError) {
       console.error('Update error:', updateError);
+      return res.status(500).json({ error: 'Failed to update protocol' });
     }
 
     // Sync to GHL
@@ -199,19 +175,19 @@ ${notes ? `Notes: ${notes}` : ''}`;
       // Update custom fields
       await updateGHLContact(contactId, {
         'hrt__last_refill_date': refillDateStr,
-        'hrt__supply_type': supply_type,
+        'hrt__supply_type': normalizedSupplyType,
         'hrt__current_dose': dose
       });
     }
 
-    console.log(`✓ HRT Refill processed for ${patientName}: ${supplyLabel}, ${dose} on ${refillDateStr}`);
+    console.log(`✓ HRT Refill processed for ${patientName}: ${normalizedSupplyType}, ${dose}, refill date: ${refillDateStr}`);
 
     return res.status(200).json({
       success: true,
       message: 'Refill processed',
-      refill_date: refillDateStr,
-      supply_type: supply_type,
+      supply_type: normalizedSupplyType,
       dose: dose,
+      last_refill_date: refillDateStr,
       supply_duration: supplyDuration
     });
 

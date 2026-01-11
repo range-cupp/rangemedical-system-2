@@ -291,6 +291,13 @@
       border-color: #f59e0b;
       color: #92400e;
     }
+    .action-btn.danger {
+      color: #dc2626;
+    }
+    .action-btn.danger:hover {
+      background: #fee2e2;
+      border-color: #dc2626;
+    }
     
     .empty-state {
       text-align: center;
@@ -1233,6 +1240,9 @@
             <button class="action-btn primary" onclick="openRefillModal('${p.id}', '${p.patient_name}', '${p.supply_type || 'prefilled_4week'}')">
               🔄 Refill
             </button>
+            <button class="action-btn danger" onclick="deleteProtocol('${p.id}', '${p.patient_name}')">
+              🗑️ Delete
+            </button>
           </div>
         </div>
       `;
@@ -1368,6 +1378,31 @@
         }
       } catch (err) {
         showToast('Failed to update protocol', 'error');
+      }
+    }
+
+    // Delete Protocol
+    async function deleteProtocol(protocolId, patientName) {
+      if (!confirm(`Delete protocol for ${patientName}?\n\nThis will remove all injection logs and cannot be undone.`)) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${protocolId}`, {
+          method: 'DELETE'
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Protocol deleted', 'success');
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to delete', 'error');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        showToast('Failed to delete protocol', 'error');
       }
     }
 

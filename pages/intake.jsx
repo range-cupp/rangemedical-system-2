@@ -1902,7 +1902,24 @@ function initializeForm() {
     
     // Medical History
     addSectionHeader('MEDICAL HISTORY');
-    addLabelValue('Conditions: ', formData.conditions);
+    if (formData.medicalHistory) {
+      const conditionOrder = ['hypertension', 'highCholesterol', 'heartDisease', 
+                              'diabetes', 'thyroid', 'depression', 
+                              'kidney', 'liver', 'autoimmune', 'cancer'];
+      conditionOrder.forEach(key => {
+        const condition = formData.medicalHistory[key];
+        if (condition) {
+          let conditionText = condition.response || 'Not answered';
+          if (condition.response === 'Yes') {
+            if (condition.type) conditionText += ` (Type: ${condition.type})`;
+            if (condition.year) conditionText += ` (Diagnosed: ${condition.year})`;
+          }
+          addLabelValue(condition.label + ': ', conditionText);
+        }
+      });
+    } else {
+      addLabelValue('Conditions: ', formData.conditions || 'None');
+    }
     
     // Medications
     addSectionHeader('MEDICATIONS & ALLERGIES');
@@ -1978,6 +1995,7 @@ function initializeForm() {
         injured: formData.injured || '',
         injuryDescription: formData.injuryDescription || '',
         conditions: formData.conditions || '',
+        medicalHistory: formData.medicalHistory || null,
         onHRT: formData.onHRT || '',
         hrtDetails: formData.hrtDetails || '',
         onMedications: formData.onMedications || '',

@@ -67,28 +67,40 @@ export default function HyperbaricOxygenTherapy() {
           
           <div className="conditions-grid">
             <div className="condition-card">
-              <h4>🏃 Athletes & Active People</h4>
-              <p>Faster recovery from training, reduced muscle soreness, quicker return from sprains and strains.</p>
+              <div>
+                <h4><span className="condition-icon">🏃</span>Athletes & Active People</h4>
+                <p>Faster recovery from training, reduced muscle soreness, quicker return from sprains and strains.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>🩹 Post-Surgery Recovery</h4>
-              <p>Accelerate healing after orthopedic surgery, cosmetic procedures, or any operation requiring tissue repair.</p>
+              <div>
+                <h4><span className="condition-icon">🩹</span>Post-Surgery Recovery</h4>
+                <p>Accelerate healing after orthopedic surgery, cosmetic procedures, or any operation requiring tissue repair.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>🧠 Concussion & TBI</h4>
-              <p>Support brain healing and cognitive recovery after head injuries or traumatic brain injury.</p>
+              <div>
+                <h4><span className="condition-icon">🧠</span>Concussion & TBI</h4>
+                <p>Support brain healing and cognitive recovery after head injuries or traumatic brain injury.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>💪 Chronic Pain</h4>
-              <p>Reduce inflammation and promote healing in conditions like fibromyalgia, arthritis, and chronic fatigue.</p>
+              <div>
+                <h4><span className="condition-icon">💪</span>Chronic Pain</h4>
+                <p>Reduce inflammation and promote healing in conditions like fibromyalgia, arthritis, and chronic fatigue.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>🩸 Wound Healing</h4>
-              <p>Diabetic ulcers, non-healing wounds, and radiation injuries respond well to increased oxygen delivery.</p>
+              <div>
+                <h4><span className="condition-icon">🩸</span>Wound Healing</h4>
+                <p>Diabetic ulcers, non-healing wounds, and radiation injuries respond well to increased oxygen delivery.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>✨ Longevity & Optimization</h4>
-              <p>Some patients use HBOT as part of an anti-aging or performance optimization protocol.</p>
+              <div>
+                <h4><span className="condition-icon">✨</span>Longevity & Optimization</h4>
+                <p>Some patients use HBOT as part of an anti-aging or performance optimization protocol.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -119,22 +131,25 @@ export default function HyperbaricOxygenTherapy() {
             <div className="experience-step">
               <div className="experience-number">3</div>
               <div className="experience-content">
-                <h4>Pressurization (10-15 min)</h4>
+                <span className="duration">10-15 minutes</span>
+                <h4>Pressurization</h4>
                 <p>The chamber slowly pressurizes. You may feel pressure in your ears—like during airplane descent. We'll teach you how to equalize.</p>
               </div>
             </div>
             <div className="experience-step">
               <div className="experience-number">4</div>
               <div className="experience-content">
-                <h4>Treatment (60-90 min)</h4>
+                <span className="duration">60-90 minutes</span>
+                <h4>Treatment</h4>
                 <p>Once at pressure, you breathe normally while oxygen saturates your tissues. Most patients find this deeply relaxing.</p>
               </div>
             </div>
             <div className="experience-step">
               <div className="experience-number">5</div>
               <div className="experience-content">
+                <span className="duration">10-15 minutes</span>
                 <h4>Depressurization & Exit</h4>
-                <p>The chamber slowly returns to normal pressure (10-15 min). You can return to normal activities immediately.</p>
+                <p>The chamber slowly returns to normal pressure. You can return to normal activities immediately afterward.</p>
               </div>
             </div>
           </div>

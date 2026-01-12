@@ -1636,6 +1636,174 @@ p {
 }
 
 /* ========================================
+   PROTOCOL OPTIONS (Injury Recovery)
+   ======================================== */
+
+.protocol-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.protocol-option {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 16px;
+  padding: 2rem;
+  position: relative;
+}
+
+.protocol-option.featured {
+  border: 2px solid #000000;
+}
+
+.protocol-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000000;
+  color: #ffffff;
+  padding: 0.25rem 1rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.protocol-option h3 {
+  font-size: 1.125rem;
+  margin-bottom: 0.25rem;
+}
+
+.protocol-duration {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #737373;
+  margin-bottom: 0.75rem;
+}
+
+.protocol-desc {
+  font-size: 0.9375rem;
+  color: #525252;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.protocol-option ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.protocol-option ul li {
+  padding: 0.375rem 0;
+  font-size: 0.875rem;
+  color: #525252;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.protocol-option ul li::before {
+  content: "✓";
+  color: #000000;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ========================================
+   WORKS ALONGSIDE SECTION
+   ======================================== */
+
+.works-alongside {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.works-alongside h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.works-alongside p {
+  font-size: 1rem;
+  color: #525252;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.works-alongside p:last-child {
+  margin-bottom: 0;
+}
+
+/* ========================================
+   ADDITIONAL TOOLS LINK
+   ======================================== */
+
+.additional-tools {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 1.25rem;
+  background: #fafafa;
+  border-radius: 8px;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.additional-tools p {
+  font-size: 0.9375rem;
+  color: #525252;
+  margin: 0;
+}
+
+.additional-tools a {
+  color: #000000;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.additional-tools a:hover {
+  text-decoration: none;
+}
+
+/* ========================================
+   CTA BUTTONS ROW
+   ======================================== */
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.btn-outline-white {
+  display: inline-block;
+  background: transparent;
+  color: #ffffff;
+  padding: 0.875rem 2rem;
+  border-radius: 8px;
+  border: 2px solid #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  transition: all 0.2s;
+}
+
+.btn-outline-white:hover {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* ========================================
    FEATURED TREATMENT (Range IV)
    ======================================== */
 
@@ -2209,7 +2377,8 @@ p {
   .markers-grid,
   .problem-cards,
   .protocol-grid,
-  .shots-grid {
+  .shots-grid,
+  .protocol-options-grid {
     grid-template-columns: 1fr;
   }
   
@@ -2255,6 +2424,10 @@ p {
   
   .featured-treatment-content {
     padding: 1.5rem;
+  }
+  
+  .works-alongside h2 {
+    font-size: 1.5rem;
   }
 }
 

@@ -53,7 +53,8 @@ export default function Forms() {
       href: '/consent/weight-loss',
       icon: '⚖️',
       required: true,
-      time: '5 min'
+      time: '5 min',
+      ready: true
     },
     {
       title: 'Blood Draw Consent',

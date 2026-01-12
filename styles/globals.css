@@ -1387,6 +1387,71 @@ p {
 }
 
 /* ========================================
+   PEPTIDE CATEGORIES (Peptide Therapy Page)
+   ======================================== */
+
+.peptide-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto 2rem;
+}
+
+.peptide-category {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.peptide-category h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.peptide-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.peptide-item h4 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #171717;
+  margin-bottom: 0.375rem;
+}
+
+.peptide-item p {
+  font-size: 0.8125rem;
+  color: #525252;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.peptide-note {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #737373;
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .peptide-list {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  
+  .peptide-category {
+    padding: 1.5rem;
+  }
+}
+
+/* ========================================
    CONDITIONS GRID (Treatment Pages)
    ======================================== */
 

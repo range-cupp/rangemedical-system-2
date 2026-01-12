@@ -20,6 +20,9 @@ export default function HomePage() {
             </Link>
           </div>
           <p className="hero-secondary">
+            Not sure where to start? <Link href="/quiz" className="quiz-link">Take the 2-min quiz →</Link>
+          </p>
+          <p className="hero-phone">
             Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a>
           </p>
         </div>
@@ -73,6 +76,34 @@ export default function HomePage() {
               <Link href="/range-assessment" className="btn-primary">
                 Book Your Assessment
               </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quiz CTA Section */}
+      <section className="section section-gray">
+        <div className="container">
+          <div className="quiz-cta-box">
+            <div className="quiz-cta-content">
+              <div className="quiz-cta-badge">2-Minute Assessment</div>
+              <h2>Not Sure Where to Start?</h2>
+              <p>Answer 10 quick questions about how you feel. We'll show you which biomarkers explain your symptoms—and what we can do about it.</p>
+              <Link href="/quiz" className="btn-primary">Take the Quiz →</Link>
+            </div>
+            <div className="quiz-cta-preview">
+              <div className="preview-card">
+                <div className="preview-icon">🧬</div>
+                <div className="preview-text">See which biomarkers to test</div>
+              </div>
+              <div className="preview-card">
+                <div className="preview-icon">💡</div>
+                <div className="preview-text">Get personalized insights</div>
+              </div>
+              <div className="preview-card">
+                <div className="preview-icon">🎯</div>
+                <div className="preview-text">Unlock $50 off your labs</div>
+              </div>
             </div>
           </div>
         </div>

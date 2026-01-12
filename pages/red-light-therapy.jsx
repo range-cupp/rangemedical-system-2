@@ -103,28 +103,40 @@ export default function RedLightTherapy() {
           
           <div className="conditions-grid">
             <div className="condition-card">
-              <h4>🏃 Athletes</h4>
-              <p>Faster recovery, reduced soreness, improved performance, and injury prevention.</p>
+              <div>
+                <h4><span className="condition-icon">🏃</span>Athletes</h4>
+                <p>Faster recovery, reduced soreness, improved performance, and injury prevention.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>🩹 Post-Surgery Patients</h4>
-              <p>Accelerate healing, reduce scarring, and support tissue repair after procedures.</p>
+              <div>
+                <h4><span className="condition-icon">🩹</span>Post-Surgery Patients</h4>
+                <p>Accelerate healing, reduce scarring, and support tissue repair after procedures.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>😓 Chronic Pain Sufferers</h4>
-              <p>Natural inflammation reduction for arthritis, fibromyalgia, and persistent pain conditions.</p>
+              <div>
+                <h4><span className="condition-icon">😓</span>Chronic Pain Sufferers</h4>
+                <p>Natural inflammation reduction for arthritis, fibromyalgia, and persistent pain conditions.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>✨ Skin & Anti-Aging</h4>
-              <p>Boost collagen, improve skin texture, reduce wrinkles, and heal acne or scars.</p>
+              <div>
+                <h4><span className="condition-icon">✨</span>Skin & Anti-Aging</h4>
+                <p>Boost collagen, improve skin texture, reduce wrinkles, and heal acne or scars.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>🧠 Brain Health</h4>
-              <p>Support cognitive function, mood regulation, and recovery from concussion or TBI.</p>
+              <div>
+                <h4><span className="condition-icon">🧠</span>Brain Health</h4>
+                <p>Support cognitive function, mood regulation, and recovery from concussion or TBI.</p>
+              </div>
             </div>
             <div className="condition-card">
-              <h4>⚡ Optimization Seekers</h4>
-              <p>General wellness, energy enhancement, and longevity-focused protocols.</p>
+              <div>
+                <h4><span className="condition-icon">⚡</span>Optimization Seekers</h4>
+                <p>General wellness, energy enhancement, and longevity-focused protocols.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -155,7 +167,8 @@ export default function RedLightTherapy() {
             <div className="experience-step">
               <div className="experience-number">3</div>
               <div className="experience-content">
-                <h4>Relax (10-20 min)</h4>
+                <span className="duration">10-20 minutes</span>
+                <h4>Relax & Absorb</h4>
                 <p>The session is completely painless—you'll feel gentle warmth. Many patients find it meditative. Treat front and back for full coverage.</p>
               </div>
             </div>

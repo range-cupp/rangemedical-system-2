@@ -108,6 +108,24 @@ export default async function handler(req, res) {
       if (intakeData.conditions && intakeData.conditions !== 'None') {
         notes += `Medical conditions: ${intakeData.conditions}\n`;
       }
+      // Show all medical history responses
+      if (intakeData.medicalHistory) {
+        notes += `\nMEDICAL HISTORY:\n`;
+        const conditionOrder = ['hypertension', 'highCholesterol', 'heartDisease', 
+                                'diabetes', 'thyroid', 'depression', 
+                                'kidney', 'liver', 'autoimmune', 'cancer'];
+        conditionOrder.forEach(key => {
+          const condition = intakeData.medicalHistory[key];
+          if (condition) {
+            let line = `- ${condition.label}: ${condition.response || 'Not answered'}`;
+            if (condition.response === 'Yes') {
+              if (condition.type) line += ` (Type: ${condition.type})`;
+              if (condition.year) line += ` (Diagnosed: ${condition.year})`;
+            }
+            notes += line + '\n';
+          }
+        });
+      }
       if (intakeData.onHRT === 'Yes') {
         notes += `On HRT: Yes\n`;
         if (intakeData.hrtDetails) {

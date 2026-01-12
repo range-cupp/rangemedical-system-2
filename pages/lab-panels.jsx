@@ -489,4 +489,20 @@ export default function LabPanels() {
           }
           
           .process-steps {
-            grid
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .hero {
+            padding: 3rem 1.5rem 2rem;
+          }
+          
+          .process-steps {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+    </Layout>
+  );
+}

@@ -1995,6 +1995,7 @@ function initializeForm() {
       tags: CONFIG.ghl.tags,
       signatureUrl: signatureUrl,
       pdfUrl: pdfUrl,
+      photoIdUrl: formData.photoIdUrl,
       // Intake data for notes - using actual form fields
       intakeData: {
         whatBringsYou: formData.whatBringsYou || '',

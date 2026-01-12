@@ -35,7 +35,8 @@ export default function Forms() {
       href: '/consent/iv',
       icon: '💧',
       required: true,
-      time: '5 min'
+      time: '5 min',
+      ready: true
     },
     {
       title: 'Hyperbaric Oxygen Therapy Consent',

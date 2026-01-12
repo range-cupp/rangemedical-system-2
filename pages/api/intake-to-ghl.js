@@ -15,6 +15,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('=== INTAKE TO GHL API CALLED ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const {
       firstName,
       lastName,
@@ -56,10 +59,12 @@ export default async function handler(req, res) {
         headers: {
           'Authorization': `Bearer ${GHL_API_KEY}`,
           'Version': '2021-07-28',
-          'Content-Type': 'application/json'
+          'Accept': 'application/json'
         }
       }
     );
+
+    console.log('Search response status:', searchResponse.status);
 
     if (searchResponse.ok) {
       const searchData = await searchResponse.json();
@@ -182,9 +187,13 @@ export default async function handler(req, res) {
       contactPayload.dateOfBirth = dobFormatted;
     }
 
+    console.log('Contact payload:', JSON.stringify(contactPayload, null, 2));
+    console.log('Contact ID found:', contactId);
+
     let response;
     
     if (contactId) {
+      console.log('Updating existing contact:', contactId);
       // Update existing contact
       response = await fetch(
         `https://services.leadconnectorhq.com/contacts/${contactId}`,
@@ -215,6 +224,8 @@ export default async function handler(req, res) {
     }
 
     const result = await response.json();
+    console.log('GHL API Response status:', response.status);
+    console.log('GHL API Response:', JSON.stringify(result, null, 2));
 
     if (!response.ok) {
       console.error('GHL API Error:', result);

@@ -3,7 +3,7 @@
 
 const FORM_DEFINITIONS = {
   'intake': { name: 'Medical Intake', path: '/intake' },
-  'hipaa': { name: 'HIPAA Notice', path: '/consent/hipaa' },
+  'hipaa': { name: 'HIPAA Notice', path: '/consent/hipaa', addPhone: true },
   'blood-draw': { name: 'Blood Draw Consent', path: '/consent/blood-draw' },
   'hrt': { name: 'HRT Consent', path: '/consent/hrt' },
   'peptide': { name: 'Peptide Consent', path: '/consent/peptide' },
@@ -134,17 +134,28 @@ export default async function handler(req, res) {
     // Step 2: Build SMS message
     const greeting = firstName ? `Hi ${firstName}! ` : '';
     
+    // Helper to build URL with phone param if needed
+    const buildFormUrl = (id) => {
+      const form = FORM_DEFINITIONS[id];
+      if (form.addPhone) {
+        return `${baseUrl}${form.path}?phone=${phone}`;
+      }
+      return `${baseUrl}${form.path}`;
+    };
+    
     let messageBody;
     
     if (validFormIds.length === 1) {
       // Single form - simple message
       const form = FORM_DEFINITIONS[validFormIds[0]];
-      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}\n\nQuestions? (949) 997-3988`;
+      const formUrl = buildFormUrl(validFormIds[0]);
+      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${formUrl}\n\nQuestions? (949) 997-3988`;
     } else {
       // Multiple forms - list them out
       const formLinks = validFormIds.map(id => {
         const form = FORM_DEFINITIONS[id];
-        return `• ${form.name}: ${baseUrl}${form.path}`;
+        const formUrl = buildFormUrl(id);
+        return `• ${form.name}: ${formUrl}`;
       }).join('\n');
       
       messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988`;

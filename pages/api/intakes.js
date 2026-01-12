@@ -1,190 +1,91 @@
-// /pages/api/intakes.js
-// Medical Intake Form API
-// Range Medical
-//
-// Now captures ghl_contact_id from form submission (passed via URL parameter)
-// Auto-links to patient record via ghl_contact_id
+// pages/api/intakes.js
+// Saves medical intake form data to Supabase database
 
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const data = req.body;
-    
-    console.log('📋 Intake submission received');
-    console.log('  - Name:', data.firstName, data.lastName);
-    console.log('  - Email:', data.email);
-    console.log('  - GHL Contact ID:', data.ghlContactId || '(none)');
+    const formData = req.body;
 
-    // Try to find existing patient by ghl_contact_id first, then email, then phone
-    let patientId = null;
-    let patientCreated = false;
-    
-    // 1. Try ghl_contact_id (most reliable)
-    if (data.ghlContactId) {
-      const { data: patientByGhl } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('ghl_contact_id', data.ghlContactId)
-        .single();
-      
-      if (patientByGhl) {
-        patientId = patientByGhl.id;
-        console.log('  - Found patient by GHL ID:', patientId);
-      }
-    }
-    
-    // 2. Try email
-    if (!patientId && data.email) {
-      const { data: patientByEmail } = await supabase
-        .from('patients')
-        .select('id')
-        .ilike('email', data.email)
-        .single();
-      
-      if (patientByEmail) {
-        patientId = patientByEmail.id;
-        console.log('  - Found patient by email:', patientId);
-      }
-    }
-    
-    // 3. Try phone
-    if (!patientId && data.phone) {
-      const normalizedPhone = data.phone.replace(/\D/g, '').slice(-10);
-      const { data: patients } = await supabase
-        .from('patients')
-        .select('id, phone');
-      
-      const match = patients?.find(p => {
-        const pPhone = p.phone?.replace(/\D/g, '').slice(-10);
-        return pPhone === normalizedPhone;
+    // Validate required fields
+    if (!formData.firstName || !formData.lastName) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: firstName, lastName' 
       });
-      
-      if (match) {
-        patientId = match.id;
-        console.log('  - Found patient by phone:', patientId);
-      }
     }
 
-    // 4. If no patient found, CREATE one from intake data
-    if (!patientId) {
-      console.log('  - No patient found, creating new patient...');
-      
-      const newPatient = {
-        ghl_contact_id: data.ghlContactId || null,
-        first_name: data.firstName,
-        last_name: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        date_of_birth: data.dateOfBirth || null,
-        gender: data.gender,
-        address: data.streetAddress,
-        city: data.city,
-        state: data.state,
-        zip: data.postalCode,
-        country: data.country,
-        source: 'intake_form',
-        created_at: new Date().toISOString()
-      };
-
-      const { data: createdPatient, error: createError } = await supabase
-        .from('patients')
-        .insert(newPatient)
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('  - Failed to create patient:', createError.message);
-        // Continue anyway - intake will be saved without patient link
-      } else {
-        patientId = createdPatient.id;
-        patientCreated = true;
-        console.log('  - ✅ Created new patient:', patientId);
-      }
-    }
-
-    // Insert intake record
-    const intakeData = {
-      patient_id: patientId,
-      ghl_contact_id: data.ghlContactId || null,
-      first_name: data.firstName,
-      last_name: data.lastName,
-      email: data.email,
-      phone: data.phone,
-      date_of_birth: data.dateOfBirth || null,
-      gender: data.gender,
-      street_address: data.streetAddress,
-      city: data.city,
-      state: data.state,
-      country: data.country,
-      postal_code: data.postalCode,
-      what_brings_you_in: data.whatBringsYou,
-      currently_injured: data.injured === 'Yes',
-      injury_description: data.injuryDescription,
-      injury_location: data.injuryLocation,
-      injury_when_occurred: data.injuryDate,
-      medical_conditions: data.medicalHistory,
-      on_hrt: data.onHRT === 'Yes',
-      hrt_details: data.hrtDetails,
-      on_medications: data.onMedications === 'Yes',
-      current_medications: data.currentMedications,
-      medication_notes: data.medicationNotes,
-      has_allergies: data.hasAllergies === 'Yes',
-      allergies: data.allergies,
-      allergy_reactions: data.allergyReactions,
-      guardian_name: data.guardianName,
-      photo_id_url: data.photoIdUrl,
-      signature_url: data.signatureUrl,
-      pdf_url: data.pdfUrl,
-      consent_given: data.consent === 'Yes',
+    // Build the intake record
+    const intakeRecord = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email || null,
+      phone: formData.phone || null,
+      date_of_birth: formData.dateOfBirth || null,
+      gender: formData.gender || null,
+      street_address: formData.streetAddress || null,
+      city: formData.city || null,
+      state: formData.state || null,
+      country: formData.country || null,
+      postal_code: formData.postalCode || null,
+      what_brings_you: formData.whatBringsYou || null,
+      injured: formData.injured || null,
+      injury_description: formData.injuryDescription || null,
+      injury_location: formData.injuryLocation || null,
+      injury_date: formData.injuryDate || null,
+      conditions: formData.conditions || null,
+      on_hrt: formData.onHRT || null,
+      hrt_details: formData.hrtDetails || null,
+      on_medications: formData.onMedications || null,
+      current_medications: formData.currentMedications || null,
+      medication_notes: formData.medicationNotes || null,
+      has_allergies: formData.hasAllergies || null,
+      allergies: formData.allergies || null,
+      allergy_reactions: formData.allergyReactions || null,
+      guardian_name: formData.guardianName || null,
+      consent: formData.consent || null,
+      signature_url: formData.signatureUrl || null,
+      pdf_url: formData.pdfUrl || null,
+      photo_id_url: formData.photoIdUrl || null,
       submitted_at: new Date().toISOString()
     };
 
-    const { data: intake, error: intakeError } = await supabase
+    // Insert into intakes table
+    const { data, error } = await supabase
       .from('intakes')
-      .insert(intakeData)
+      .insert(intakeRecord)
       .select()
       .single();
 
-    if (intakeError) {
-      console.error('❌ Intake insert error:', intakeError);
-      throw intakeError;
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({ 
+        error: 'Failed to save intake form',
+        details: error.message 
+      });
     }
 
-    console.log('✅ Intake saved:', intake.id);
-    console.log('  - Patient:', patientId, patientCreated ? '(NEW)' : '(existing)');
+    console.log('Intake form saved:', data.id);
 
     return res.status(200).json({
       success: true,
-      intakeId: intake.id,
-      patientId: patientId,
-      patientCreated: patientCreated,
-      linked: !!patientId
+      message: 'Intake form saved successfully',
+      id: data.id
     });
 
   } catch (error) {
-    console.error('Intake API error:', error);
+    console.error('Server error:', error);
     return res.status(500).json({ 
-      success: false, 
-      error: error.message 
+      error: 'Internal server error',
+      message: error.message 
     });
   }
 }

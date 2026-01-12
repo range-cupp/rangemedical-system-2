@@ -42,6 +42,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No valid forms selected' });
     }
 
+    // Sort so HIPAA is always last
+    const sortedFormIds = validFormIds.sort((a, b) => {
+      if (a === 'hipaa') return 1;
+      if (b === 'hipaa') return -1;
+      return 0;
+    });
+
     // Format phone for GHL (+1 prefix)
     const formattedPhone = '+1' + phone;
 
@@ -77,7 +84,7 @@ export default async function handler(req, res) {
     }
 
     // Build tags based on forms being sent
-    const formTags = validFormIds.map(id => `${id}-pending`);
+    const formTags = sortedFormIds.map(id => `${id}-pending`);
     const allTags = ['forms-sent', ...formTags];
 
     // If no contact found, create one
@@ -145,14 +152,14 @@ export default async function handler(req, res) {
     
     let messageBody;
     
-    if (validFormIds.length === 1) {
+    if (sortedFormIds.length === 1) {
       // Single form - simple message
-      const form = FORM_DEFINITIONS[validFormIds[0]];
-      const formUrl = buildFormUrl(validFormIds[0]);
+      const form = FORM_DEFINITIONS[sortedFormIds[0]];
+      const formUrl = buildFormUrl(sortedFormIds[0]);
       messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${formUrl}\n\nQuestions? (949) 997-3988`;
     } else {
       // Multiple forms - list them out
-      const formLinks = validFormIds.map(id => {
+      const formLinks = sortedFormIds.map(id => {
         const form = FORM_DEFINITIONS[id];
         const formUrl = buildFormUrl(id);
         return `• ${form.name}: ${formUrl}`;
@@ -197,7 +204,7 @@ export default async function handler(req, res) {
     console.log('SMS sent successfully');
 
     // Step 4: Add note to contact
-    const formNames = validFormIds.map(id => FORM_DEFINITIONS[id].name).join(', ');
+    const formNames = sortedFormIds.map(id => FORM_DEFINITIONS[id].name).join(', ');
     await fetch(
       `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
       {
@@ -217,7 +224,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       success: true, 
       contactId,
-      formsSent: validFormIds.length,
+      formsSent: sortedFormIds.length,
       message: 'Forms sent successfully'
     });
 

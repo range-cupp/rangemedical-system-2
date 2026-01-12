@@ -16,7 +16,6 @@ export default async function handler(req, res) {
 
   try {
     console.log('=== INTAKE TO GHL API CALLED ===');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     const {
       firstName,
@@ -28,71 +27,62 @@ export default async function handler(req, res) {
       city,
       state,
       zip,
-      customFieldKey,
-      customFieldValue,
-      tags,
       signatureUrl,
       pdfUrl,
       intakeData
     } = req.body;
 
-    // Format phone number for GHL (remove non-digits, ensure +1 prefix)
-    let formattedPhone = phone?.replace(/\D/g, '');
-    if (formattedPhone && formattedPhone.length === 10) {
-      formattedPhone = '+1' + formattedPhone;
-    } else if (formattedPhone && formattedPhone.length === 11 && formattedPhone.startsWith('1')) {
-      formattedPhone = '+' + formattedPhone;
+    // Format phone number for GHL (E.164 format: +1XXXXXXXXXX)
+    let formattedPhone = null;
+    if (phone) {
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length === 10) {
+        formattedPhone = '+1' + digits;
+      } else if (digits.length === 11 && digits.startsWith('1')) {
+        formattedPhone = '+' + digits;
+      }
     }
+
+    console.log('Input phone:', phone);
+    console.log('Formatted phone:', formattedPhone);
 
     // First, try to find existing contact by email or phone
     let contactId = null;
     
-    const searchParams = new URLSearchParams({
-      locationId: GHL_LOCATION_ID,
-      query: email || formattedPhone
-    });
+    if (email || formattedPhone) {
+      const searchQuery = email || formattedPhone;
+      const searchParams = new URLSearchParams({
+        locationId: GHL_LOCATION_ID,
+        query: searchQuery
+      });
 
-    const searchResponse = await fetch(
-      `https://services.leadconnectorhq.com/contacts/?${searchParams}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
+      console.log('Searching for contact:', searchQuery);
+
+      const searchResponse = await fetch(
+        `https://services.leadconnectorhq.com/contacts/?${searchParams}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        if (searchData.contacts && searchData.contacts.length > 0) {
+          contactId = searchData.contacts[0].id;
+          console.log('Found existing contact:', contactId);
         }
       }
-    );
-
-    console.log('Search response status:', searchResponse.status);
-
-    if (searchResponse.ok) {
-      const searchData = await searchResponse.json();
-      if (searchData.contacts && searchData.contacts.length > 0) {
-        contactId = searchData.contacts[0].id;
-        console.log('Found existing contact:', contactId);
-      }
-    }
-
-    // Build custom fields object
-    const customFields = [];
-    if (customFieldKey && customFieldValue) {
-      customFields.push({
-        key: customFieldKey,
-        field_value: customFieldValue
-      });
-    }
-    
-    // Add signature URL as custom field
-    if (signatureUrl) {
-      customFields.push({
-        key: 'intake_signature_url',
-        field_value: signatureUrl
-      });
     }
 
     // Build notes from intake data
-    let notes = `MEDICAL INTAKE FORM SUBMITTED\n`;
+    let notes = `══════════════════════════════════════\n`;
+    notes += `   MEDICAL INTAKE FORM SUBMITTED\n`;
+    notes += `══════════════════════════════════════\n\n`;
     notes += `Date: ${new Date().toLocaleDateString()}\n`;
     notes += `Patient: ${firstName} ${lastName}\n`;
     notes += `Email: ${email || 'N/A'}\n`;
@@ -102,27 +92,34 @@ export default async function handler(req, res) {
     
     if (intakeData) {
       if (intakeData.whatBringsYou) {
-        notes += `What brings you in: ${intakeData.whatBringsYou}\n`;
+        notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `CHIEF COMPLAINT:\n`;
+        notes += `${intakeData.whatBringsYou}\n\n`;
       }
+      
       if (intakeData.injured === 'Yes') {
-        notes += `Injured: Yes\n`;
-        if (intakeData.injuryDescription) {
-          notes += `Injury details: ${intakeData.injuryDescription}\n`;
-        }
+        notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `INJURY:\n`;
+        notes += `Currently Injured: Yes\n`;
+        if (intakeData.injuryDescription) notes += `Description: ${intakeData.injuryDescription}\n`;
+        if (intakeData.injuryLocation) notes += `Location: ${intakeData.injuryLocation}\n`;
+        if (intakeData.injuryDate) notes += `When: ${intakeData.injuryDate}\n`;
+        notes += `\n`;
       }
-      if (intakeData.conditions && intakeData.conditions !== 'None') {
-        notes += `Medical conditions: ${intakeData.conditions}\n`;
-      }
+      
       // Show all medical history responses
       if (intakeData.medicalHistory) {
-        notes += `\nMEDICAL HISTORY:\n`;
-        const conditionOrder = ['hypertension', 'highCholesterol', 'heartDisease', 
-                                'diabetes', 'thyroid', 'depression', 
-                                'kidney', 'liver', 'autoimmune', 'cancer'];
+        notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `MEDICAL HISTORY:\n`;
+        const conditionOrder = [
+          'hypertension', 'highCholesterol', 'heartDisease', 
+          'diabetes', 'thyroid', 'depression', 
+          'kidney', 'liver', 'autoimmune', 'cancer'
+        ];
         conditionOrder.forEach(key => {
           const condition = intakeData.medicalHistory[key];
           if (condition) {
-            let line = `- ${condition.label}: ${condition.response || 'Not answered'}`;
+            let line = `• ${condition.label}: ${condition.response || 'Not answered'}`;
             if (condition.response === 'Yes') {
               if (condition.type) line += ` (Type: ${condition.type})`;
               if (condition.year) line += ` (Diagnosed: ${condition.year})`;
@@ -130,71 +127,69 @@ export default async function handler(req, res) {
             notes += line + '\n';
           }
         });
+        notes += `\n`;
       }
-      if (intakeData.onHRT === 'Yes') {
-        notes += `On HRT: Yes\n`;
-        if (intakeData.hrtDetails) {
-          notes += `HRT details: ${intakeData.hrtDetails}\n`;
-        }
+      
+      // HRT
+      notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      notes += `MEDICATIONS & ALLERGIES:\n`;
+      notes += `On HRT: ${intakeData.onHRT || 'N/A'}\n`;
+      if (intakeData.onHRT === 'Yes' && intakeData.hrtDetails) {
+        notes += `HRT Details: ${intakeData.hrtDetails}\n`;
       }
-      if (intakeData.onMedications === 'Yes') {
-        notes += `On medications: Yes\n`;
-        if (intakeData.currentMedications) {
-          notes += `Current medications: ${intakeData.currentMedications}\n`;
-        }
+      
+      notes += `On Other Medications: ${intakeData.onMedications || 'N/A'}\n`;
+      if (intakeData.onMedications === 'Yes' && intakeData.currentMedications) {
+        notes += `Medications: ${intakeData.currentMedications}\n`;
       }
-      if (intakeData.hasAllergies === 'Yes') {
-        notes += `Has allergies: Yes\n`;
-        if (intakeData.allergies) {
-          notes += `Allergies: ${intakeData.allergies}\n`;
-        }
+      
+      notes += `Has Allergies: ${intakeData.hasAllergies || 'N/A'}\n`;
+      if (intakeData.hasAllergies === 'Yes' && intakeData.allergies) {
+        notes += `Allergies: ${intakeData.allergies}\n`;
       }
+      notes += `\n`;
     }
     
-    if (pdfUrl) {
-      notes += `\nPDF: ${pdfUrl}\n`;
-    }
-    
-    if (signatureUrl) {
-      notes += `Signature: ${signatureUrl}\n`;
-    }
+    notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    notes += `DOCUMENTS:\n`;
+    if (pdfUrl) notes += `PDF: ${pdfUrl}\n`;
+    if (signatureUrl) notes += `Signature: ${signatureUrl}\n`;
 
-    // Build contact payload
+    // Build MINIMAL contact payload - only include fields with values
     const contactPayload = {
-      firstName,
-      lastName,
-      email,
-      phone: formattedPhone,
-      locationId: GHL_LOCATION_ID,
-      tags: tags || [],
-      customFields: customFields.length > 0 ? customFields : undefined
+      locationId: GHL_LOCATION_ID
     };
-
-    // Add address if provided
+    
+    if (firstName) contactPayload.firstName = firstName;
+    if (lastName) contactPayload.lastName = lastName;
+    if (email) contactPayload.email = email;
+    if (formattedPhone) contactPayload.phone = formattedPhone;
     if (address) contactPayload.address1 = address;
     if (city) contactPayload.city = city;
     if (state) contactPayload.state = state;
     if (zip) contactPayload.postalCode = zip;
 
-    // Add date of birth if provided (format: YYYY-MM-DD for GHL)
+    // Format DOB for GHL (YYYY-MM-DD)
     if (dateOfBirth) {
-      // Convert MM/DD/YYYY to YYYY-MM-DD if needed
       let dobFormatted = dateOfBirth;
       if (dateOfBirth.includes('/')) {
-        const [month, day, year] = dateOfBirth.split('/');
-        dobFormatted = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        const parts = dateOfBirth.split('/');
+        if (parts.length === 3) {
+          const [month, day, year] = parts;
+          dobFormatted = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
       }
       contactPayload.dateOfBirth = dobFormatted;
     }
 
     console.log('Contact payload:', JSON.stringify(contactPayload, null, 2));
-    console.log('Contact ID found:', contactId);
 
     let response;
+    let finalContactId = contactId;
     
     if (contactId) {
-      console.log('Updating existing contact:', contactId);
       // Update existing contact
+      console.log('Updating existing contact:', contactId);
       response = await fetch(
         `https://services.leadconnectorhq.com/contacts/${contactId}`,
         {
@@ -209,6 +204,7 @@ export default async function handler(req, res) {
       );
     } else {
       // Create new contact
+      console.log('Creating new contact');
       response = await fetch(
         'https://services.leadconnectorhq.com/contacts/',
         {
@@ -223,9 +219,20 @@ export default async function handler(req, res) {
       );
     }
 
-    const result = await response.json();
-    console.log('GHL API Response status:', response.status);
-    console.log('GHL API Response:', JSON.stringify(result, null, 2));
+    const responseText = await response.text();
+    console.log('GHL Response status:', response.status);
+    console.log('GHL Response body:', responseText);
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse GHL response:', responseText);
+      return res.status(500).json({ 
+        error: 'Invalid GHL response', 
+        details: responseText 
+      });
+    }
 
     if (!response.ok) {
       console.error('GHL API Error:', result);
@@ -235,17 +242,44 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get the contact ID from response
-    const finalContactId = contactId || result.contact?.id;
+    // Get contact ID from response if we created a new one
+    if (!finalContactId && result.contact?.id) {
+      finalContactId = result.contact.id;
+    }
 
-    // Add a note to the contact with intake details
+    // Add note to contact
+    if (finalContactId) {
+      console.log('Adding note to contact:', finalContactId);
+      
+      const noteResponse = await fetch(
+        `https://services.leadconnectorhq.com/contacts/${finalContactId}/notes`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ body: notes })
+        }
+      );
+      
+      const noteText = await noteResponse.text();
+      console.log('Note response status:', noteResponse.status);
+      console.log('Note response:', noteText);
+      
+      if (noteResponse.ok) {
+        console.log('✅ Note added successfully');
+      } else {
+        console.error('❌ Failed to add note');
+      }
+    }
+
+    // Add tag for intake submitted
     if (finalContactId) {
       try {
-        console.log('Adding note to contact:', finalContactId);
-        console.log('Note content:', notes);
-        
-        const noteResponse = await fetch(
-          `https://services.leadconnectorhq.com/contacts/${finalContactId}/notes`,
+        await fetch(
+          `https://services.leadconnectorhq.com/contacts/${finalContactId}/tags`,
           {
             method: 'POST',
             headers: {
@@ -253,29 +287,16 @@ export default async function handler(req, res) {
               'Version': '2021-07-28',
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              body: notes,
-              userId: null // System note
-            })
+            body: JSON.stringify({ tags: ['intake-submitted'] })
           }
         );
-        
-        if (!noteResponse.ok) {
-          const noteError = await noteResponse.json();
-          console.error('Failed to add note - Status:', noteResponse.status);
-          console.error('Note error details:', noteError);
-        } else {
-          console.log('✅ Note added successfully');
-        }
-      } catch (noteError) {
-        console.error('Failed to add note:', noteError);
-        // Don't fail the whole request for note errors
+        console.log('✅ Tag added');
+      } catch (tagError) {
+        console.error('Tag error:', tagError);
       }
-    } else {
-      console.error('No contact ID available for note');
     }
 
-    console.log('GHL sync successful:', finalContactId);
+    console.log('✅ GHL sync complete:', finalContactId);
     
     return res.status(200).json({ 
       success: true, 

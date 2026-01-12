@@ -1392,9 +1392,9 @@ p {
 
 .conditions-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
-  max-width: 1000px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -1402,23 +1402,37 @@ p {
   background: #ffffff;
   border: 1px solid #e5e5e5;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.5rem 1.75rem;
   transition: all 0.2s;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .condition-card:hover {
   border-color: #000000;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 
 .condition-card h4 {
   font-size: 1rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.375rem;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.condition-card h4 .condition-icon {
+  font-size: 1.5rem;
+  margin-right: 0.625rem;
+  line-height: 1;
 }
 
 .condition-card p {
   font-size: 0.875rem;
   color: #525252;
   margin: 0;
+  line-height: 1.6;
 }
 
 /* ========================================
@@ -1426,25 +1440,37 @@ p {
    ======================================== */
 
 .experience-grid {
-  max-width: 700px;
+  max-width: 800px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  position: relative;
 }
 
 .experience-step {
-  display: flex;
-  gap: 1.25rem;
-  align-items: flex-start;
-  padding: 1.5rem;
-  background: #fafafa;
-  border-radius: 12px;
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+  position: relative;
+}
+
+.experience-step:last-child {
+  padding-bottom: 0;
+}
+
+/* Timeline connector line */
+.experience-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 29px;
+  top: 56px;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #000000, #e5e5e5);
 }
 
 .experience-number {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   background: #000000;
   color: #ffffff;
   border-radius: 50%;
@@ -1452,20 +1478,57 @@ p {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: 1.25rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.experience-content {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1.5rem;
+  position: relative;
+}
+
+/* Arrow pointing to number */
+.experience-content::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 20px;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-left: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e5e5;
+  transform: rotate(45deg);
 }
 
 .experience-content h4 {
-  font-size: 1rem;
-  margin-bottom: 0.375rem;
+  font-size: 1.0625rem;
+  margin-bottom: 0.5rem;
+  color: #171717;
 }
 
 .experience-content p {
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
   color: #525252;
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
+}
+
+/* Duration badge for experience steps */
+.experience-content .duration {
+  display: inline-block;
+  background: #f5f5f5;
+  color: #737373;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 100px;
+  margin-bottom: 0.5rem;
 }
 
 /* ========================================
@@ -1533,20 +1596,44 @@ p {
   .symptoms-grid,
   .comparison,
   .benefits-grid,
-  .testimonials-grid {
+  .testimonials-grid,
+  .conditions-grid {
     grid-template-columns: 1fr;
   }
   
   .tools-grid,
   .markers-grid,
   .problem-cards,
-  .conditions-grid,
   .protocol-grid {
     grid-template-columns: 1fr;
   }
   
   .process-steps {
     grid-template-columns: 1fr 1fr;
+  }
+  
+  .experience-step {
+    grid-template-columns: 48px 1fr;
+    gap: 1rem;
+  }
+  
+  .experience-number {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+  
+  .experience-step:not(:last-child)::before {
+    left: 23px;
+    top: 52px;
+  }
+  
+  .experience-content::before {
+    display: none;
+  }
+  
+  .experience-content {
+    padding: 1.25rem;
   }
 }
 

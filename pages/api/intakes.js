@@ -16,47 +16,47 @@ export default async function handler(req, res) {
   try {
     const formData = req.body;
     console.log('=== INTAKES API CALLED ===');
-    console.log('Form data received:', JSON.stringify(formData, null, 2));
-
-    // Validate required fields
-    if (!formData.firstName || !formData.lastName) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: firstName, lastName' 
-      });
-    }
+    console.log('Received fields:', Object.keys(formData));
 
     // Helper to convert Yes/No strings to boolean
     const toBool = (val) => {
-      if (typeof val === 'boolean') return val;
       if (val === 'Yes' || val === 'yes' || val === true) return true;
       if (val === 'No' || val === 'no' || val === false) return false;
-      return null;
+      return false;
     };
 
-    // Helper to format date for database (YYYY-MM-DD)
+    // Helper to format date for database (YYYY-MM-DD) or return null
     const formatDate = (dateStr) => {
       if (!dateStr) return null;
       // If already in YYYY-MM-DD format
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
       // If in MM/DD/YYYY format
       if (dateStr.includes('/')) {
-        const [month, day, year] = dateStr.split('/');
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          const [month, day, year] = parts;
+          return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
       }
       return null;
     };
 
-    // Extract medical history from the medicalHistory object
+    // Extract medical history
     const mh = formData.medicalHistory || {};
 
-    // Build the intake record matching actual table columns
+    // Build record matching EXACT table columns
     const intakeRecord = {
-      first_name: formData.firstName,
-      last_name: formData.lastName,
+      // Required fields
+      first_name: formData.firstName || '',
+      last_name: formData.lastName || '',
+      
+      // Contact info
       email: formData.email || null,
       phone: formData.phone || null,
       date_of_birth: formatDate(formData.dateOfBirth),
       gender: formData.gender || null,
+      
+      // Address
       street_address: formData.streetAddress || null,
       city: formData.city || null,
       state: formData.state || null,
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       what_brings_you: formData.whatBringsYou || null,
       what_brings_you_in: formData.whatBringsYou || null,
       
-      // Injury info
+      // Injury - boolean columns
       injured: toBool(formData.injured),
       currently_injured: toBool(formData.injured),
       injury_description: formData.injuryDescription || null,
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       injury_date: formatDate(formData.injuryDate),
       injury_when_occurred: formData.injuryDate || null,
       
-      // Individual medical conditions (booleans)
+      // Medical conditions - boolean columns
       high_blood_pressure: mh.hypertension?.response === 'Yes',
       high_blood_pressure_year: mh.hypertension?.year || null,
       
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
       cancer_year: mh.cancer?.year || null,
       cancer_type: mh.cancer?.type || null,
       
-      // Store full medical history as JSONB too
+      // Store full medical history as JSONB
       medical_conditions: formData.medicalHistory || null,
       
       // HRT
@@ -131,16 +131,21 @@ export default async function handler(req, res) {
       allergies: formData.allergies || null,
       allergy_reactions: formData.allergyReactions || null,
       
-      // Other
+      // Files - THESE ARE THE IMPORTANT ONES
       guardian_name: formData.guardianName || null,
       photo_id_url: formData.photoIdUrl || null,
       signature_url: formData.signatureUrl || null,
       pdf_url: formData.pdfUrl || null,
-      consent_given: toBool(formData.consent) || true,
+      
+      // Consent
+      consent_given: toBool(formData.consent),
+      
+      // Timestamp
       submitted_at: new Date().toISOString()
     };
 
-    console.log('Intake record to insert:', JSON.stringify(intakeRecord, null, 2));
+    console.log('Photo ID URL:', intakeRecord.photo_id_url);
+    console.log('Signature URL:', intakeRecord.signature_url);
 
     // Insert into intakes table
     const { data, error } = await supabase
@@ -150,14 +155,17 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
+      console.error('❌ Database error:', error.message);
+      console.error('Error details:', error);
       return res.status(500).json({ 
         error: 'Failed to save intake form',
         details: error.message 
       });
     }
 
-    console.log('✅ Intake form saved:', data.id);
+    console.log('✅ Intake saved! ID:', data.id);
+    console.log('✅ Photo ID saved:', data.photo_id_url ? 'YES' : 'NO');
+    console.log('✅ Signature saved:', data.signature_url ? 'YES' : 'NO');
 
     return res.status(200).json({
       success: true,
@@ -166,7 +174,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Server error:', error);
+    console.error('❌ Server error:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
       message: error.message 

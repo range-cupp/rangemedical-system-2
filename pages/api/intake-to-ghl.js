@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       zip,
       signatureUrl,
       pdfUrl,
+      photoIdUrl,
       intakeData
     } = req.body;
 
@@ -153,6 +154,7 @@ export default async function handler(req, res) {
     notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     notes += `DOCUMENTS:\n`;
     if (pdfUrl) notes += `PDF: ${pdfUrl}\n`;
+    if (photoIdUrl) notes += `Photo ID: ${photoIdUrl}\n`;
     if (signatureUrl) notes += `Signature: ${signatureUrl}\n`;
 
     // Build MINIMAL contact payload - only include fields with values

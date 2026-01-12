@@ -15,7 +15,7 @@ export default function InjuryRecovery() {
           <p className="hero-sub">Already working with a chiropractor, PT, or surgeon? Our medical team can evaluate whether peptide therapies, PRP, IVs, or other tools can help support your recovery.</p>
           
           <div className="hero-cta">
-            <Link href="/range-assessment" className="btn-primary">Book Recovery Assessment</Link>
+            <Link href="/book-recovery" className="btn-primary">Book Recovery Assessment</Link>
             <p className="hero-secondary">Prefer to call? <a href="tel:+19499973988">(949) 997-3988</a></p>
           </div>
         </div>
@@ -240,7 +240,7 @@ export default function InjuryRecovery() {
           <h2>Ready to Support Your Recovery?</h2>
           <p>Book a Recovery Assessment and we'll evaluate whether our tools can help you heal faster.</p>
           <div className="cta-buttons">
-            <Link href="/range-assessment" className="btn-white">Book Recovery Assessment</Link>
+            <Link href="/book-recovery" className="btn-white">Book Recovery Assessment</Link>
             <a href="tel:+19499973988" className="btn-outline-white">Call (949) 997-3988</a>
           </div>
           <p className="cta-location">📍 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>

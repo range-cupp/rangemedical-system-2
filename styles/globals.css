@@ -1387,6 +1387,134 @@ p {
 }
 
 /* ========================================
+   CONDITIONS GRID (Treatment Pages)
+   ======================================== */
+
+.conditions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.condition-card {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s;
+}
+
+.condition-card:hover {
+  border-color: #000000;
+}
+
+.condition-card h4 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.condition-card p {
+  font-size: 0.875rem;
+  color: #525252;
+  margin: 0;
+}
+
+/* ========================================
+   EXPERIENCE STEPS (Treatment Pages)
+   ======================================== */
+
+.experience-grid {
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.experience-step {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: #fafafa;
+  border-radius: 12px;
+}
+
+.experience-number {
+  width: 40px;
+  height: 40px;
+  background: #000000;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.experience-content h4 {
+  font-size: 1rem;
+  margin-bottom: 0.375rem;
+}
+
+.experience-content p {
+  font-size: 0.9rem;
+  color: #525252;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ========================================
+   PROTOCOL GRID (Treatment Pages)
+   ======================================== */
+
+.protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto 2rem;
+}
+
+.protocol-card {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.protocol-card h4 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.protocol-card p {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #171717;
+  margin-bottom: 0.5rem;
+}
+
+.protocol-note {
+  font-size: 0.8125rem;
+  color: #737373;
+  display: block;
+}
+
+.protocol-disclaimer {
+  text-align: center;
+  font-size: 0.9375rem;
+  color: #525252;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ========================================
    RESPONSIVE
    ======================================== */
 
@@ -1411,7 +1539,9 @@ p {
   
   .tools-grid,
   .markers-grid,
-  .problem-cards {
+  .problem-cards,
+  .conditions-grid,
+  .protocol-grid {
     grid-template-columns: 1fr;
   }
   

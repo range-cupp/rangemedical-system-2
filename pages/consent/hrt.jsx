@@ -148,8 +148,8 @@ export default function HRTConsent() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="dateOfBirth">Date of Birth <span className="required">*</span></label>
-                  <input type="date" id="dateOfBirth" name="dateOfBirth" required />
-                  <div className="field-error" id="dateOfBirthError">Please enter your date of birth</div>
+                  <input type="text" id="dateOfBirth" name="dateOfBirth" placeholder="MM/DD/YYYY" maxLength="10" required />
+                  <div className="field-error" id="dateOfBirthError">Please enter a valid date (MM/DD/YYYY)</div>
                 </div>
                 <div className="form-group">
                   <label htmlFor="consentDate">Today's Date <span className="required">*</span></label>
@@ -305,6 +305,39 @@ function initializeForm() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('consentDate').value = today;
   
+  // ============================================
+  // DATE OF BIRTH AUTO-FORMATTING
+  // ============================================
+  const dobInput = document.getElementById('dateOfBirth');
+  dobInput.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    
+    if (value.length >= 2) {
+      value = value.slice(0, 2) + '/' + value.slice(2);
+    }
+    if (value.length >= 5) {
+      value = value.slice(0, 5) + '/' + value.slice(5);
+    }
+    if (value.length > 10) {
+      value = value.slice(0, 10);
+    }
+    
+    e.target.value = value;
+  });
+
+  // Validate DOB format
+  function isValidDOB(dateStr) {
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return false;
+    
+    const [month, day, year] = dateStr.split('/').map(Number);
+    const date = new Date(year, month - 1, day);
+    
+    return date.getFullYear() === year && 
+           date.getMonth() === month - 1 && 
+           date.getDate() === day &&
+           year >= 1900 && year <= new Date().getFullYear();
+  }
+  
   // Clear errors on input
   document.querySelectorAll('input[required]').forEach(input => {
     input.addEventListener('input', () => {
@@ -325,7 +358,7 @@ function initializeForm() {
   function validateForm() {
     let isValid = true;
     
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'consentDate'];
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'consentDate'];
     requiredFields.forEach(fieldId => {
       const field = document.getElementById(fieldId);
       const error = document.getElementById(fieldId + 'Error');
@@ -338,6 +371,18 @@ function initializeForm() {
         if (error) error.classList.remove('visible');
       }
     });
+    
+    // Validate DOB separately
+    const dob = document.getElementById('dateOfBirth');
+    const dobError = document.getElementById('dateOfBirthError');
+    if (!dob.value.trim() || !isValidDOB(dob.value)) {
+      dob.classList.add('error');
+      if (dobError) dobError.classList.add('visible');
+      isValid = false;
+    } else {
+      dob.classList.remove('error');
+      if (dobError) dobError.classList.remove('visible');
+    }
     
     const consentCheckbox = document.getElementById('consentGiven');
     if (!consentCheckbox.checked) {

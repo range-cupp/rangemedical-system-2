@@ -17,7 +17,8 @@ export default function Forms() {
       href: '/consent/hrt',
       icon: '💉',
       required: true,
-      time: '5 min'
+      time: '5 min',
+      ready: true
     },
     {
       title: 'Peptide Therapy Consent',
@@ -25,7 +26,8 @@ export default function Forms() {
       href: '/consent/peptide',
       icon: '🧬',
       required: true,
-      time: '5 min'
+      time: '5 min',
+      ready: true
     },
     {
       title: 'IV Therapy Consent',
@@ -41,7 +43,8 @@ export default function Forms() {
       href: '/consent/hbot',
       icon: '🫁',
       required: true,
-      time: '5 min'
+      time: '5 min',
+      ready: true
     },
     {
       title: 'Weight Loss Program Consent',

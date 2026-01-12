@@ -664,8 +664,8 @@ export default function IntakeForm() {
                 </div>
                 <div className="form-group">
                   <label htmlFor="dob">Date of Birth <span className="required">*</span></label>
-                  <input type="date" id="dob" name="dob" required />
-                  <span className="field-error" id="dobError">Date of birth is required</span>
+                  <input type="text" id="dob" name="dob" placeholder="MM/DD/YYYY" maxLength="10" required />
+                  <span className="field-error" id="dobError">Please enter a valid date (MM/DD/YYYY)</span>
                 </div>
               </div>
               
@@ -1482,6 +1482,39 @@ function initializeForm() {
   });
   
   // ============================================
+  // DATE OF BIRTH AUTO-FORMATTING
+  // ============================================
+  
+  document.getElementById('dob')?.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    
+    if (value.length >= 2) {
+      value = value.slice(0, 2) + '/' + value.slice(2);
+    }
+    if (value.length >= 5) {
+      value = value.slice(0, 5) + '/' + value.slice(5);
+    }
+    if (value.length > 10) {
+      value = value.slice(0, 10);
+    }
+    
+    e.target.value = value;
+  });
+
+  // Validate DOB format
+  function isValidDOB(dateStr) {
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return false;
+    
+    const [month, day, year] = dateStr.split('/').map(Number);
+    const date = new Date(year, month - 1, day);
+    
+    return date.getFullYear() === year && 
+           date.getMonth() === month - 1 && 
+           date.getDate() === day &&
+           year >= 1900 && year <= new Date().getFullYear();
+  }
+  
+  // ============================================
   // FORM VALIDATION
   // ============================================
   
@@ -1492,7 +1525,6 @@ function initializeForm() {
       { id: 'firstName', error: 'firstNameError' },
       { id: 'lastName', error: 'lastNameError' },
       { id: 'gender', error: 'genderError' },
-      { id: 'dob', error: 'dobError' },
       { id: 'email', error: 'emailError' },
       { id: 'phone', error: 'phoneError' },
       { id: 'streetAddress', error: 'streetAddressError' },
@@ -1523,6 +1555,18 @@ function initializeForm() {
       email.classList.add('error');
       document.getElementById('emailError').classList.add('visible');
       isValid = false;
+    }
+    
+    // Validate DOB separately
+    const dob = document.getElementById('dob');
+    const dobError = document.getElementById('dobError');
+    if (!dob.value.trim() || !isValidDOB(dob.value)) {
+      dob.classList.add('error');
+      if (dobError) dobError.classList.add('visible');
+      isValid = false;
+    } else {
+      dob.classList.remove('error');
+      if (dobError) dobError.classList.remove('visible');
     }
     
     const radioGroups = [

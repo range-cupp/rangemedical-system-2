@@ -86,20 +86,49 @@ export default async function handler(req, res) {
     }
 
     // Build notes from intake data
-    let notes = `INTAKE FORM SUBMITTED: ${new Date().toLocaleDateString()}\n`;
+    let notes = `MEDICAL INTAKE FORM SUBMITTED\n`;
+    notes += `Date: ${new Date().toLocaleDateString()}\n`;
+    notes += `Patient: ${firstName} ${lastName}\n`;
+    notes += `Email: ${email || 'N/A'}\n`;
+    notes += `Phone: ${phone || 'N/A'}\n`;
+    notes += `DOB: ${dateOfBirth || 'N/A'}\n`;
+    notes += `\n`;
+    
     if (intakeData) {
-      if (intakeData.emergencyContact) {
-        notes += `Emergency Contact: ${intakeData.emergencyContact}\n`;
+      if (intakeData.whatBringsYou) {
+        notes += `What brings you in: ${intakeData.whatBringsYou}\n`;
       }
-      if (intakeData.emergencyPhone) {
-        notes += `Emergency Phone: ${intakeData.emergencyPhone}\n`;
+      if (intakeData.injured === 'Yes') {
+        notes += `Injured: Yes\n`;
+        if (intakeData.injuryDescription) {
+          notes += `Injury details: ${intakeData.injuryDescription}\n`;
+        }
       }
-      if (intakeData.referralSource) {
-        notes += `Referral Source: ${intakeData.referralSource}\n`;
+      if (intakeData.conditions && intakeData.conditions !== 'None') {
+        notes += `Medical conditions: ${intakeData.conditions}\n`;
       }
-      if (intakeData.primaryConcerns) {
-        notes += `Primary Concerns: ${intakeData.primaryConcerns}\n`;
+      if (intakeData.onHRT === 'Yes') {
+        notes += `On HRT: Yes\n`;
+        if (intakeData.hrtDetails) {
+          notes += `HRT details: ${intakeData.hrtDetails}\n`;
+        }
       }
+      if (intakeData.onMedications === 'Yes') {
+        notes += `On medications: Yes\n`;
+        if (intakeData.currentMedications) {
+          notes += `Current medications: ${intakeData.currentMedications}\n`;
+        }
+      }
+      if (intakeData.hasAllergies === 'Yes') {
+        notes += `Has allergies: Yes\n`;
+        if (intakeData.allergies) {
+          notes += `Allergies: ${intakeData.allergies}\n`;
+        }
+      }
+    }
+    
+    if (signatureUrl) {
+      notes += `\nSignature: ${signatureUrl}\n`;
     }
 
     // Build contact payload
@@ -176,9 +205,12 @@ export default async function handler(req, res) {
     const finalContactId = contactId || result.contact?.id;
 
     // Add a note to the contact with intake details
-    if (finalContactId && notes) {
+    if (finalContactId) {
       try {
-        await fetch(
+        console.log('Adding note to contact:', finalContactId);
+        console.log('Note content:', notes);
+        
+        const noteResponse = await fetch(
           `https://services.leadconnectorhq.com/contacts/${finalContactId}/notes`,
           {
             method: 'POST',
@@ -193,10 +225,20 @@ export default async function handler(req, res) {
             })
           }
         );
+        
+        if (!noteResponse.ok) {
+          const noteError = await noteResponse.json();
+          console.error('Failed to add note - Status:', noteResponse.status);
+          console.error('Note error details:', noteError);
+        } else {
+          console.log('✅ Note added successfully');
+        }
       } catch (noteError) {
         console.error('Failed to add note:', noteError);
         // Don't fail the whole request for note errors
       }
+    } else {
+      console.error('No contact ID available for note');
     }
 
     console.log('GHL sync successful:', finalContactId);

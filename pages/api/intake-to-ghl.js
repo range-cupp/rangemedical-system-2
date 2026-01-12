@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       customFieldValue,
       tags,
       signatureUrl,
+      pdfUrl,
       intakeData
     } = req.body;
 
@@ -127,8 +128,12 @@ export default async function handler(req, res) {
       }
     }
     
+    if (pdfUrl) {
+      notes += `\nPDF: ${pdfUrl}\n`;
+    }
+    
     if (signatureUrl) {
-      notes += `\nSignature: ${signatureUrl}\n`;
+      notes += `Signature: ${signatureUrl}\n`;
     }
 
     // Build contact payload

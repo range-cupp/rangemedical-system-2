@@ -1258,15 +1258,20 @@ function initializeForm() {
   
   const CONFIG = {
     apiEndpoint: '/api/intakes',
+    ghlEndpoint: '/api/intake-to-ghl',
     emailjs: {
       publicKey: 'ZeNFfwJ37Uhd6E1vp',
       serviceId: 'service_pyl6wra',
       templateId: 'template_3pfsl9b'
     },
+    ghl: {
+      customFieldKey: 'intake_complete',
+      tags: ['intake-submitted', 'new-patient']
+    },
     recipientEmail: 'cupp@range-medical.com, intake@range-medical.com',
     clinicName: 'Range Medical',
-    clinicAddress: 'Your Address Here',
-    clinicPhone: '(555) 555-5555'
+    clinicAddress: '1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660',
+    clinicPhone: '(949) 997-3988'
   };
   
   // ============================================
@@ -1912,6 +1917,58 @@ function initializeForm() {
   }
   
   // ============================================
+  // SEND TO GOHIGHLEVEL
+  // ============================================
+  
+  async function sendToGHL(formData, signatureUrl) {
+    console.log('📤 Sending to GoHighLevel...');
+    
+    const payload = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      dateOfBirth: formData.dateOfBirth,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      zip: formData.zip,
+      customFieldKey: CONFIG.ghl.customFieldKey,
+      customFieldValue: 'Complete',
+      tags: CONFIG.ghl.tags,
+      signatureUrl: signatureUrl,
+      // Additional intake data for notes
+      intakeData: {
+        emergencyContact: formData.emergencyContact,
+        emergencyPhone: formData.emergencyPhone,
+        referralSource: formData.referralSource,
+        primaryConcerns: formData.primaryConcerns
+      }
+    };
+    
+    try {
+      const response = await fetch(CONFIG.ghlEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ GHL error:', result);
+      } else {
+        console.log('✅ GHL sync successful');
+      }
+      
+      return response.ok;
+    } catch (error) {
+      console.error('GHL sync error:', error);
+      return false;
+    }
+  }
+  
+  // ============================================
   // SEND EMAIL
   // ============================================
   
@@ -2016,6 +2073,14 @@ PDF intake form is attached to this email.
       delete dbData.photoId;
       delete dbData.signature;
       await submitToDatabase(dbData);
+      
+      showStatus('Updating patient record...', 'loading');
+      try {
+        await sendToGHL(formData, uploadedSignatureUrl);
+      } catch (ghlError) {
+        console.error('GHL sync failed:', ghlError);
+        // Continue anyway - don't block on GHL errors
+      }
       
       showStatus('Generating PDF...', 'loading');
       const pdfBlob = await generatePDF(formData);

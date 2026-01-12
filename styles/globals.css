@@ -1226,23 +1226,6 @@ p {
 }
 
 /* ========================================
-   TOOLS GRID (SMALLER)
-   ======================================== */
-
-.tools-grid-small {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.tools-grid-small .tool-card {
-  background: #fafafa;
-  border: none;
-}
-
-/* ========================================
    TESTIMONIALS
    ======================================== */
 
@@ -1434,10 +1417,6 @@ p {
   
   .process-steps {
     grid-template-columns: 1fr 1fr;
-  }
-  
-  .tools-grid-small {
-    grid-template-columns: 1fr;
   }
 }
 

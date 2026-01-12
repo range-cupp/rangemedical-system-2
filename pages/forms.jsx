@@ -57,7 +57,8 @@ export default function Forms() {
       href: '/consent/blood-draw',
       icon: '🩸',
       required: true,
-      time: '2 min'
+      time: '2 min',
+      ready: true
     },
     {
       title: 'HIPAA Privacy Notice',

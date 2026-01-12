@@ -1973,6 +1973,12 @@ function initializeForm() {
   
   async function sendToGHL(formData, signatureUrl, pdfUrl) {
     console.log('📤 Sending to GoHighLevel...');
+    console.log('Payload:', JSON.stringify({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone
+    }));
     
     const payload = {
       firstName: formData.firstName,
@@ -2013,14 +2019,16 @@ function initializeForm() {
       });
       
       const result = await response.json();
+      console.log('GHL Response status:', response.status);
+      console.log('GHL Response:', result);
       
       if (!response.ok) {
         console.error('❌ GHL error:', result);
+        return false;
       } else {
         console.log('✅ GHL sync successful');
+        return true;
       }
-      
-      return response.ok;
     } catch (error) {
       console.error('GHL sync error:', error);
       return false;
@@ -2142,11 +2150,9 @@ PDF intake form is attached to this email.
       await submitToDatabase(dbData);
       
       showStatus('Updating patient record...', 'loading');
-      try {
-        await sendToGHL(formData, uploadedSignatureUrl, pdfUrl);
-      } catch (ghlError) {
-        console.error('GHL sync failed:', ghlError);
-        // Continue anyway - don't block on GHL errors
+      const ghlResult = await sendToGHL(formData, uploadedSignatureUrl, pdfUrl);
+      if (!ghlResult) {
+        console.warn('⚠️ GHL sync may have failed - check logs');
       }
       
       showStatus('Sending email notification...', 'loading');

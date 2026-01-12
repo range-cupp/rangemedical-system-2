@@ -1263,7 +1263,7 @@ function initializeForm() {
       serviceId: 'service_pyl6wra',
       templateId: 'template_3pfsl9b'
     },
-    recipientEmail: 'cupp@range-medical.com',
+    recipientEmail: 'cupp@range-medical.com, intake@range-medical.com',
     clinicName: 'Range Medical',
     clinicAddress: 'Your Address Here',
     clinicPhone: '(555) 555-5555'

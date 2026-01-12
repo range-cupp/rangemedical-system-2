@@ -1929,20 +1929,26 @@ function initializeForm() {
       email: formData.email,
       phone: formData.phone,
       dateOfBirth: formData.dateOfBirth,
-      address: formData.address,
+      address: formData.streetAddress,
       city: formData.city,
       state: formData.state,
-      zip: formData.zip,
+      zip: formData.postalCode,
       customFieldKey: CONFIG.ghl.customFieldKey,
       customFieldValue: 'Complete',
       tags: CONFIG.ghl.tags,
       signatureUrl: signatureUrl,
-      // Additional intake data for notes
+      // Intake data for notes - using actual form fields
       intakeData: {
-        emergencyContact: formData.emergencyContact,
-        emergencyPhone: formData.emergencyPhone,
-        referralSource: formData.referralSource,
-        primaryConcerns: formData.primaryConcerns
+        whatBringsYou: formData.whatBringsYou || '',
+        injured: formData.injured || '',
+        injuryDescription: formData.injuryDescription || '',
+        conditions: formData.conditions || '',
+        onHRT: formData.onHRT || '',
+        hrtDetails: formData.hrtDetails || '',
+        onMedications: formData.onMedications || '',
+        currentMedications: formData.currentMedications || '',
+        hasAllergies: formData.hasAllergies || '',
+        allergies: formData.allergies || ''
       }
     };
     

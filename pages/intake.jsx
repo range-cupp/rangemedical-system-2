@@ -1469,6 +1469,40 @@ function initializeForm() {
   }
   
   // ============================================
+  // UPLOAD PDF TO SUPABASE
+  // ============================================
+  
+  async function uploadPDFToSupabase(pdfBlob, formData) {
+    try {
+      const timestamp = Date.now();
+      const safeName = `${formData.firstName}-${formData.lastName}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const fileName = `medical-intake/${safeName}-${timestamp}.pdf`;
+      
+      const { data, error } = await supabaseClient.storage
+        .from('medical-documents')
+        .upload(fileName, pdfBlob, {
+          contentType: 'application/pdf',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('PDF upload error:', error);
+        return null;
+      }
+      
+      const { data: urlData } = supabaseClient.storage
+        .from('medical-documents')
+        .getPublicUrl(fileName);
+      
+      console.log('✅ PDF uploaded:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      return null;
+    }
+  }
+  
+  // ============================================
   // PHONE NUMBER FORMATTING
   // ============================================
   
@@ -1920,7 +1954,7 @@ function initializeForm() {
   // SEND TO GOHIGHLEVEL
   // ============================================
   
-  async function sendToGHL(formData, signatureUrl) {
+  async function sendToGHL(formData, signatureUrl, pdfUrl) {
     console.log('📤 Sending to GoHighLevel...');
     
     const payload = {
@@ -1937,6 +1971,7 @@ function initializeForm() {
       customFieldValue: 'Complete',
       tags: CONFIG.ghl.tags,
       signatureUrl: signatureUrl,
+      pdfUrl: pdfUrl,
       // Intake data for notes - using actual form fields
       intakeData: {
         whatBringsYou: formData.whatBringsYou || '',
@@ -2074,22 +2109,27 @@ PDF intake form is attached to this email.
       showStatus('Collecting form data...', 'loading');
       const formData = await collectFormData();
       
+      showStatus('Generating PDF...', 'loading');
+      const pdfBlob = await generatePDF(formData);
+      
+      showStatus('Uploading PDF...', 'loading');
+      const pdfUrl = await uploadPDFToSupabase(pdfBlob, formData);
+      
       showStatus('Saving to Range Medical system...', 'loading');
       const dbData = {...formData};
       delete dbData.photoId;
       delete dbData.signature;
+      dbData.signatureUrl = uploadedSignatureUrl;
+      dbData.pdfUrl = pdfUrl;
       await submitToDatabase(dbData);
       
       showStatus('Updating patient record...', 'loading');
       try {
-        await sendToGHL(formData, uploadedSignatureUrl);
+        await sendToGHL(formData, uploadedSignatureUrl, pdfUrl);
       } catch (ghlError) {
         console.error('GHL sync failed:', ghlError);
         // Continue anyway - don't block on GHL errors
       }
-      
-      showStatus('Generating PDF...', 'loading');
-      const pdfBlob = await generatePDF(formData);
       
       showStatus('Sending email notification...', 'loading');
       await sendEmail(formData, pdfBlob);

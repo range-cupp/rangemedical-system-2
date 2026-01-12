@@ -269,4 +269,264 @@ export default function HormoneOptimization() {
         .symptom-col {
           background: #fafafa;
           border-radius: 12px;
-          pad
+          padding: 1.5rem;
+        }
+        
+        .symptom-col h4 {
+          font-size: 1rem;
+          margin-bottom: 1rem;
+          text-align: center;
+        }
+        
+        .symptom-col ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        
+        .symptom-col ul li {
+          padding: 0.5rem 0;
+          font-size: 0.9375rem;
+          color: #525252;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
+        
+        .symptom-col ul li::before {
+          content: "→";
+          color: #737373;
+          flex-shrink: 0;
+        }
+        
+        .problem-cards {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.25rem;
+          max-width: 1000px;
+          margin: 0 auto 2.5rem;
+        }
+        
+        .problem-card {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.5rem;
+          text-align: center;
+        }
+        
+        .problem-icon {
+          font-size: 1.75rem;
+          margin-bottom: 0.75rem;
+        }
+        
+        .problem-card h4 {
+          font-size: 1rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .problem-card p {
+          font-size: 0.875rem;
+          color: #525252;
+          margin: 0;
+        }
+        
+        .comparison {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        
+        .comparison-col {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 1.5rem;
+          border: 1px solid #e5e5e5;
+        }
+        
+        .comparison-col.range {
+          border: 2px solid #000000;
+        }
+        
+        .comparison-col h4 {
+          font-size: 1rem;
+          margin-bottom: 1rem;
+        }
+        
+        .comparison-col ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        
+        .comparison-col ul li {
+          padding: 0.5rem 0;
+          font-size: 0.9375rem;
+          color: #525252;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
+        
+        .comparison-col ul li::before {
+          content: "✕";
+          color: #dc2626;
+          font-weight: 600;
+          flex-shrink: 0;
+        }
+        
+        .comparison-col.range ul li::before {
+          content: "✓";
+          color: #000000;
+        }
+        
+        .tools-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1.5rem;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+        
+        .tool-card {
+          background: #fafafa;
+          border-radius: 12px;
+          padding: 1.5rem;
+        }
+        
+        .tool-card h4 {
+          font-size: 1rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .tool-card p {
+          font-size: 0.9375rem;
+          color: #525252;
+          margin: 0;
+        }
+        
+        .testimonials-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+        
+        .testimonial {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 1.75rem;
+          border: 1px solid #e5e5e5;
+        }
+        
+        .testimonial-stars {
+          color: #000000;
+          font-size: 1rem;
+          letter-spacing: 2px;
+          margin-bottom: 0.75rem;
+        }
+        
+        .testimonial p {
+          font-size: 0.9375rem;
+          color: #404040;
+          margin-bottom: 1rem;
+          line-height: 1.6;
+        }
+        
+        .testimonial-author {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        
+        .testimonial-avatar {
+          width: 40px;
+          height: 40px;
+          background: #000000;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: 0.75rem;
+        }
+        
+        .testimonial-info {
+          font-size: 0.875rem;
+        }
+        
+        .testimonial-info strong {
+          color: #171717;
+          display: block;
+        }
+        
+        .testimonial-info span {
+          color: #737373;
+        }
+        
+        .final-cta {
+          background: #000000;
+          padding: 4rem 1.5rem;
+          text-align: center;
+        }
+        
+        .cta-step {
+          display: inline-block;
+          background: rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.8);
+          padding: 0.375rem 1rem;
+          border-radius: 100px;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 1rem;
+        }
+        
+        .final-cta h2 {
+          color: #ffffff;
+          margin-bottom: 0.75rem;
+        }
+        
+        .final-cta > .container > p {
+          color: rgba(255,255,255,0.8);
+          margin-bottom: 2rem;
+        }
+        
+        .cta-secondary {
+          margin-top: 1.5rem;
+          color: rgba(255,255,255,0.6) !important;
+          font-size: 0.9375rem;
+        }
+        
+        .cta-secondary a {
+          color: #ffffff;
+          font-weight: 600;
+        }
+        
+        @media (max-width: 900px) {
+          .symptoms-grid,
+          .comparison,
+          .tools-grid,
+          .testimonials-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .problem-cards {
+            grid-template-columns: 1fr;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .hero {
+            padding: 3rem 1.5rem 2rem;
+          }
+        }
+      `}</style>
+    </Layout>
+  );
+}

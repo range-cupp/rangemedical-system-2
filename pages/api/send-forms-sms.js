@@ -3,13 +3,14 @@
 
 const FORM_DEFINITIONS = {
   'intake': { name: 'Medical Intake', path: '/intake' },
-  'hipaa': { name: 'HIPAA Notice', path: '/consent/hipaa', addPhone: true },
+  'hipaa': { name: 'HIPAA Notice', path: '/consent/hipaa' },
   'blood-draw': { name: 'Blood Draw Consent', path: '/consent/blood-draw' },
   'hrt': { name: 'HRT Consent', path: '/consent/hrt' },
   'peptide': { name: 'Peptide Consent', path: '/consent/peptide' },
   'iv': { name: 'IV/Injection Consent', path: '/consent/iv' },
   'hbot': { name: 'HBOT Consent', path: '/consent/hbot' },
   'weight-loss': { name: 'Weight Loss Consent', path: '/consent/weight-loss' },
+  'red-light': { name: 'Red Light Therapy Consent', path: '/consent/red-light' },
 };
 
 export default async function handler(req, res) {
@@ -42,18 +43,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No valid forms selected' });
     }
 
-    // Sort so HIPAA is always last
-    const sortedFormIds = validFormIds.sort((a, b) => {
-      if (a === 'hipaa') return 1;
-      if (b === 'hipaa') return -1;
-      return 0;
-    });
-
     // Format phone for GHL (+1 prefix)
     const formattedPhone = '+1' + phone;
 
     // Build the base URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://range-medical.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.range-medical.com';
 
     // Step 1: Find or create contact in GHL
     let contactId = null;
@@ -84,7 +78,7 @@ export default async function handler(req, res) {
     }
 
     // Build tags based on forms being sent
-    const formTags = sortedFormIds.map(id => `${id}-pending`);
+    const formTags = validFormIds.map(id => `${id}-pending`);
     const allTags = ['forms-sent', ...formTags];
 
     // If no contact found, create one
@@ -141,28 +135,17 @@ export default async function handler(req, res) {
     // Step 2: Build SMS message
     const greeting = firstName ? `Hi ${firstName}! ` : '';
     
-    // Helper to build URL with phone param if needed
-    const buildFormUrl = (id) => {
-      const form = FORM_DEFINITIONS[id];
-      if (form.addPhone) {
-        return `${baseUrl}${form.path}?phone=${phone}`;
-      }
-      return `${baseUrl}${form.path}`;
-    };
-    
     let messageBody;
     
-    if (sortedFormIds.length === 1) {
+    if (validFormIds.length === 1) {
       // Single form - simple message
-      const form = FORM_DEFINITIONS[sortedFormIds[0]];
-      const formUrl = buildFormUrl(sortedFormIds[0]);
-      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${formUrl}\n\nQuestions? (949) 997-3988`;
+      const form = FORM_DEFINITIONS[validFormIds[0]];
+      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}\n\nQuestions? (949) 997-3988`;
     } else {
       // Multiple forms - list them out
-      const formLinks = sortedFormIds.map(id => {
+      const formLinks = validFormIds.map(id => {
         const form = FORM_DEFINITIONS[id];
-        const formUrl = buildFormUrl(id);
-        return `• ${form.name}: ${formUrl}`;
+        return `• ${form.name}: ${baseUrl}${form.path}`;
       }).join('\n');
       
       messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988`;
@@ -204,7 +187,7 @@ export default async function handler(req, res) {
     console.log('SMS sent successfully');
 
     // Step 4: Add note to contact
-    const formNames = sortedFormIds.map(id => FORM_DEFINITIONS[id].name).join(', ');
+    const formNames = validFormIds.map(id => FORM_DEFINITIONS[id].name).join(', ');
     await fetch(
       `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
       {
@@ -224,7 +207,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       success: true, 
       contactId,
-      formsSent: sortedFormIds.length,
+      formsSent: validFormIds.length,
       message: 'Forms sent successfully'
     });
 

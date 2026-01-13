@@ -1,5 +1,6 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import Head from 'next/head';
 
 export default function HomePage() {
   return (
@@ -7,6 +8,56 @@ export default function HomePage() {
       title="Range Medical | Health Optimization & Longevity | Newport Beach"
       description="Newport Beach health optimization clinic. Labs-first approach to hormones, weight loss, and longevity. Essential Panel $350, Elite Panel $750. (949) 997-3988."
     >
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "MedicalBusiness",
+              "name": "Range Medical",
+              "description": "Newport Beach health optimization clinic. Labs-first approach to hormones, weight loss, and longevity.",
+              "url": "https://www.range-medical.com",
+              "telephone": "+1-949-997-3988",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "1901 Westcliff Dr. Suite 10",
+                "addressLocality": "Newport Beach",
+                "addressRegion": "CA",
+                "postalCode": "92660",
+                "addressCountry": "US"
+              },
+              "geo": {
+                "@type": "GeoCoordinates",
+                "latitude": 33.6189,
+                "longitude": -117.9298
+              },
+              "openingHoursSpecification": {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "opens": "09:00",
+                "closes": "17:00"
+              },
+              "priceRange": "$$",
+              "areaServed": ["Newport Beach", "Costa Mesa", "Irvine", "Laguna Beach", "Huntington Beach", "Orange County"],
+              "hasOfferCatalog": {
+                "@type": "OfferCatalog",
+                "name": "Services",
+                "itemListElement": [
+                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Hormone Optimization"}},
+                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Medical Weight Loss"}},
+                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Peptide Therapy"}},
+                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "IV Therapy"}},
+                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Hyperbaric Oxygen Therapy"}},
+                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Red Light Therapy"}},
+                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Injury Recovery"}}
+                ]
+              }
+            })
+          }}
+        />
+      </Head>
+
       {/* Hero */}
       <section className="hero">
         <div className="container">

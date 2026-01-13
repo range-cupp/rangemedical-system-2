@@ -39,6 +39,13 @@ export default function HomePage() {
                 "closes": "17:00"
               },
               "priceRange": "$$",
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "5.0",
+                "reviewCount": "9",
+                "bestRating": "5",
+                "worstRating": "1"
+              },
               "areaServed": ["Newport Beach", "Costa Mesa", "Irvine", "Laguna Beach", "Huntington Beach", "Orange County"],
               "hasOfferCatalog": {
                 "@type": "OfferCatalog",
@@ -79,14 +86,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Trust Bar */}
+      {/* Trust Bar - Updated with Google Rating */}
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">✓ Licensed Providers</span>
           <span className="trust-item">✓ Labs Before Treatment</span>
           <span className="trust-item">✓ Personalized Protocols</span>
           <span className="trust-item">✓ Ongoing Monitoring</span>
-          <span className="trust-item">✓ HSA & FSA Welcome</span>
+          <span className="trust-item trust-rating">★ 5.0 on Google</span>
         </div>
       </div>
 
@@ -156,6 +163,47 @@ export default function HomePage() {
                 <div className="preview-text">Unlock $50 off your labs</div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NEW: Testimonials Section */}
+      <section className="section">
+        <div className="container">
+          <div className="section-kicker">Patient Reviews</div>
+          <h2 className="section-title">What Our Patients Say</h2>
+          <p className="section-subtitle">Real results from real people.</p>
+          
+          <div className="testimonials-grid">
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <blockquote>
+                "Labs were thoroughly reviewed, clearly explained, and a thoughtful health plan was put in place. From start to finish, the entire experience was professional, efficient, and genuinely personalized."
+              </blockquote>
+              <cite>— Mark T.</cite>
+            </div>
+            
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <blockquote>
+                "My results are consistent and I trust the quality and providers. The facility is absolutely beautiful and all of the providers are friendly, incredibly knowledgeable and go above and beyond."
+              </blockquote>
+              <cite>— Jessica R.</cite>
+            </div>
+            
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <blockquote>
+                "No pushy sales people, real face time with people who understand all the options. They helped me get back on track."
+              </blockquote>
+              <cite>— Pierre R.</cite>
+            </div>
+          </div>
+          
+          <div className="testimonials-cta">
+            <Link href="/reviews" className="btn-outline">
+              Read All Reviews →
+            </Link>
           </div>
         </div>
       </section>

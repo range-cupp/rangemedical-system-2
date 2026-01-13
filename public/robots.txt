@@ -1,0 +1,13 @@
+# robots.txt for Range Medical
+# https://www.range-medical.com
+
+User-agent: *
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://www.range-medical.com/sitemap.xml

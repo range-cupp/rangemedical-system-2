@@ -501,6 +501,13 @@ p {
   gap: 0.5rem;
 }
 
+/* Trust Bar - Google Rating Star */
+.trust-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 /* ========================================
    HERO STYLES
    ======================================== */
@@ -1226,16 +1233,58 @@ p {
 }
 
 /* ========================================
-   TESTIMONIALS
+   TESTIMONIALS (Homepage - 3 Column)
    ======================================== */
 
 .testimonials-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
-  max-width: 900px;
-  margin: 0 auto;
+  max-width: 1000px;
+  margin: 0 auto 2rem;
 }
+
+.testimonial-card {
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 1.75rem;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.testimonial-card:hover {
+  background: #f5f5f5;
+}
+
+.testimonial-card .testimonial-stars {
+  color: #000;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.testimonial-card blockquote {
+  font-size: 0.9375rem;
+  color: #525252;
+  line-height: 1.7;
+  margin: 0 0 1rem 0;
+  font-style: normal;
+}
+
+.testimonial-card cite {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #171717;
+  font-style: normal;
+}
+
+.testimonials-cta {
+  text-align: center;
+}
+
+/* ========================================
+   TESTIMONIALS (Other Pages - 2 Column with Avatars)
+   ======================================== */
 
 .testimonial {
   background: #ffffff;
@@ -2928,14 +2977,6 @@ p {
    NAD+ GRID
    ======================================== */
 
-.nad-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
 .nad-card {
   background: #ffffff;
   border: 1px solid #e5e5e5;
@@ -3385,6 +3426,236 @@ p {
 }
 
 /* ========================================
+   REVIEWS PAGE STYLES
+   ======================================== */
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.review-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1.75rem;
+  transition: all 0.2s;
+}
+
+.review-card:hover {
+  border-color: #000;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.review-avatar {
+  width: 48px;
+  height: 48px;
+  background: #000;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.review-meta {
+  flex: 1;
+}
+
+.review-name {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: #171717;
+}
+
+.review-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #737373;
+}
+
+.review-badge {
+  background: #f5f5f5;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.review-stars {
+  color: #000;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.review-text {
+  font-size: 0.9375rem;
+  color: #525252;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.review-highlight {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #171717;
+  padding: 0.75rem 1rem;
+  background: #fafafa;
+  border-radius: 8px;
+  border-left: 3px solid #000;
+}
+
+.google-link {
+  text-align: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #171717;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9375rem;
+  color: #737373;
+  font-weight: 500;
+}
+
+.themes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.theme-card {
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.theme-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.theme-card h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #171717;
+}
+
+.theme-card p {
+  font-size: 0.875rem;
+  color: #525252;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.featured-quote {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.featured-quote blockquote {
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.featured-quote cite {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.7);
+  font-style: normal;
+}
+
+.rating-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stars {
+  font-size: 2rem;
+  color: #000;
+  letter-spacing: 0.1em;
+}
+
+.rating-text {
+  font-size: 1rem;
+  color: #525252;
+  font-weight: 500;
+}
+
+/* Reviews Page Responsive */
+@media (max-width: 900px) {
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
+
+  .themes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .featured-quote blockquote {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .themes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* ========================================
    RESPONSIVE
    ======================================== */
 
@@ -3403,10 +3674,13 @@ p {
   .symptoms-grid,
   .comparison,
   .benefits-grid,
-  .testimonials-grid,
   .conditions-grid,
   .nad-grid,
   .mb-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .testimonials-grid {
     grid-template-columns: 1fr;
   }
   

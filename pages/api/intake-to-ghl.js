@@ -218,8 +218,13 @@ export default async function handler(req, res) {
     let finalContactId = contactId;
     
     if (contactId) {
-      // Update existing contact
+      // Update existing contact - remove locationId (GHL doesn't allow it on updates)
+      const updatePayload = { ...contactPayload };
+      delete updatePayload.locationId;
+      
       console.log('Updating existing contact:', contactId);
+      console.log('Update payload:', JSON.stringify(updatePayload, null, 2));
+      
       response = await fetch(
         `https://services.leadconnectorhq.com/contacts/${contactId}`,
         {
@@ -229,7 +234,7 @@ export default async function handler(req, res) {
             'Version': '2021-07-28',
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(contactPayload)
+          body: JSON.stringify(updatePayload)
         }
       );
     } else {

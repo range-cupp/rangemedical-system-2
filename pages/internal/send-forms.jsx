@@ -10,6 +10,7 @@ const AVAILABLE_FORMS = [
   { id: 'iv', name: 'IV & Injection Consent', path: '/consent/iv', icon: '💧', time: '5 min' },
   { id: 'hbot', name: 'HBOT Consent', path: '/consent/hbot', icon: '🫁', time: '5 min' },
   { id: 'weight-loss', name: 'Weight Loss Consent', path: '/consent/weight-loss', icon: '⚖️', time: '5 min' },
+  { id: 'red-light', name: 'Red Light Therapy', path: '/consent/red-light', icon: '🔴', time: '5 min' },
 ];
 
 const QUICK_SELECTIONS = [
@@ -19,6 +20,7 @@ const QUICK_SELECTIONS = [
   { label: 'IV Therapy', forms: ['intake', 'hipaa', 'iv'] },
   { label: 'Peptides', forms: ['intake', 'hipaa', 'peptide'] },
   { label: 'HBOT', forms: ['intake', 'hipaa', 'hbot'] },
+  { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
 ];
 
 export default function SendForms() {
@@ -203,11 +205,6 @@ export default function SendForms() {
         }
         .input-name {
           font-size: 1rem;
-        }
-        .row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
         }
         .quick-btns {
           display: flex;
@@ -404,9 +401,6 @@ export default function SendForms() {
         }
         @media (max-width: 500px) {
           .form-grid {
-            grid-template-columns: 1fr;
-          }
-          .row {
             grid-template-columns: 1fr;
           }
           .quick-btns {

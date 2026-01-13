@@ -47,20 +47,19 @@ export default async function handler(req, res) {
     console.log('Input phone:', phone);
     console.log('Formatted phone:', formattedPhone);
 
-    // First, try to find existing contact by email or phone
+    // First, try to find existing contact by phone (most common for SMS-sent forms)
     let contactId = null;
     
-    if (email || formattedPhone) {
-      const searchQuery = email || formattedPhone;
-      const searchParams = new URLSearchParams({
+    // Search by phone first (since forms are often sent via SMS)
+    if (formattedPhone) {
+      console.log('Searching for contact by phone:', formattedPhone);
+      const phoneSearchParams = new URLSearchParams({
         locationId: GHL_LOCATION_ID,
-        query: searchQuery
+        query: formattedPhone
       });
 
-      console.log('Searching for contact:', searchQuery);
-
-      const searchResponse = await fetch(
-        `https://services.leadconnectorhq.com/contacts/?${searchParams}`,
+      const phoneSearchResponse = await fetch(
+        `https://services.leadconnectorhq.com/contacts/?${phoneSearchParams}`,
         {
           method: 'GET',
           headers: {
@@ -71,11 +70,40 @@ export default async function handler(req, res) {
         }
       );
 
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
-        if (searchData.contacts && searchData.contacts.length > 0) {
-          contactId = searchData.contacts[0].id;
-          console.log('Found existing contact:', contactId);
+      if (phoneSearchResponse.ok) {
+        const phoneSearchData = await phoneSearchResponse.json();
+        if (phoneSearchData.contacts && phoneSearchData.contacts.length > 0) {
+          contactId = phoneSearchData.contacts[0].id;
+          console.log('Found existing contact by phone:', contactId);
+        }
+      }
+    }
+    
+    // If not found by phone, search by email
+    if (!contactId && email) {
+      console.log('Searching for contact by email:', email);
+      const emailSearchParams = new URLSearchParams({
+        locationId: GHL_LOCATION_ID,
+        query: email
+      });
+
+      const emailSearchResponse = await fetch(
+        `https://services.leadconnectorhq.com/contacts/?${emailSearchParams}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (emailSearchResponse.ok) {
+        const emailSearchData = await emailSearchResponse.json();
+        if (emailSearchData.contacts && emailSearchData.contacts.length > 0) {
+          contactId = emailSearchData.contacts[0].id;
+          console.log('Found existing contact by email:', contactId);
         }
       }
     }

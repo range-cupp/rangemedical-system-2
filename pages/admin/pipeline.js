@@ -218,9 +218,29 @@ export default function UnifiedPipeline() {
     let status = 'active';
     
     if (config.tracking === 'days') {
-      const daysLeft = protocol.days_remaining || 0;
-      const totalDays = protocol.total_days || protocol.duration_days || 30;
-      const daysUsed = totalDays - daysLeft;
+      // Calculate days from actual database fields
+      let totalDays = protocol.duration_days || 30;
+      let daysUsed = 0;
+      let daysLeft = 0;
+      
+      // Try to get from days_remaining if available
+      if (protocol.days_remaining !== undefined && protocol.days_remaining !== null) {
+        daysLeft = protocol.days_remaining;
+        daysUsed = totalDays - daysLeft;
+      } else if (protocol.start_date) {
+        // Calculate from start_date
+        const startDate = new Date(protocol.start_date + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffTime = today - startDate;
+        daysUsed = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // Day 1 = start day
+        daysLeft = totalDays - daysUsed;
+      }
+      
+      // Clamp values
+      daysUsed = Math.max(1, Math.min(daysUsed, totalDays));
+      daysLeft = Math.max(0, daysLeft);
+      
       progress = `Day ${daysUsed}/${totalDays}`;
       progressPercent = Math.min(100, (daysUsed / totalDays) * 100);
       if (daysLeft <= 0) status = 'ending';
@@ -939,6 +959,16 @@ export default function UnifiedPipeline() {
                           }}>
                             {display.label}
                           </span>
+                          {/* Show duration for day-based protocols */}
+                          {display.tracking === 'days' && protocol.duration_days && (
+                            <span style={{
+                              ...styles.detailChip,
+                              background: '#fef3c7',
+                              color: '#92400e'
+                            }}>
+                              {protocol.duration_days}-Day
+                            </span>
+                          )}
                           {protocol.medication && (
                             <span style={styles.detailChip}>{protocol.medication}</span>
                           )}

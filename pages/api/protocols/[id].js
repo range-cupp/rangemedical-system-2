@@ -1,5 +1,5 @@
 // /pages/api/protocols/[id].js
-// Protocol API - Get and Update protocol with delivery_method support
+// Protocol API - Get, Update, Delete protocol
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -28,7 +28,8 @@ export default async function handler(req, res) {
             id,
             name,
             phone,
-            email
+            email,
+            ghl_contact_id
           )
         `)
         .eq('id', id)
@@ -43,72 +44,87 @@ export default async function handler(req, res) {
         .eq('protocol_id', id)
         .order('log_date', { ascending: false });
 
+      // Format response with patient name
+      const formattedProtocol = {
+        ...protocol,
+        patient_name: protocol.patients?.name || protocol.patient_name || 'Unknown Patient',
+        patient_email: protocol.patients?.email || protocol.patient_email,
+        patient_phone: protocol.patients?.phone || protocol.patient_phone,
+        ghl_contact_id: protocol.patients?.ghl_contact_id || protocol.ghl_contact_id
+      };
+
       return res.status(200).json({
-        protocol: {
-          ...protocol,
-          patient_name: protocol.patients?.name || protocol.patient_name || 'Unknown'
-        },
+        protocol: formattedProtocol,
         logs: logs || []
       });
 
     } catch (error) {
-      console.error('Error fetching protocol:', error);
-      return res.status(500).json({ error: 'Server error' });
+      console.error('Get protocol error:', error);
+      return res.status(500).json({ error: error.message });
     }
   }
 
   // PUT - Update protocol
   if (req.method === 'PUT') {
     try {
-      const {
-        medication,
-        selected_dose,
-        frequency,
-        delivery_method,
-        start_date,
-        end_date,
-        status,
-        notes,
-        sessions_used,
-        total_sessions
-      } = req.body;
+      const updates = req.body;
+      
+      // Build update object
+      const updateData = {};
+      
+      if (updates.medication !== undefined) updateData.medication = updates.medication;
+      if (updates.selected_dose !== undefined) updateData.selected_dose = updates.selected_dose;
+      if (updates.frequency !== undefined) updateData.frequency = updates.frequency;
+      if (updates.delivery_method !== undefined) updateData.delivery_method = updates.delivery_method;
+      if (updates.start_date !== undefined) updateData.start_date = updates.start_date;
+      if (updates.end_date !== undefined) updateData.end_date = updates.end_date;
+      if (updates.duration_days !== undefined) updateData.duration_days = updates.duration_days;
+      if (updates.total_sessions !== undefined) updateData.total_sessions = updates.total_sessions;
+      if (updates.sessions_used !== undefined) updateData.sessions_used = updates.sessions_used;
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
 
-      const updates = {};
-
-      // Only add fields that were provided
-      if (medication !== undefined) updates.medication = medication || null;
-      if (selected_dose !== undefined) updates.selected_dose = selected_dose || null;
-      if (frequency !== undefined) updates.frequency = frequency || null;
-      if (delivery_method !== undefined) updates.delivery_method = delivery_method || null;
-      if (start_date !== undefined) updates.start_date = start_date || null;
-      if (end_date !== undefined) updates.end_date = end_date || null;
-      if (status !== undefined) updates.status = status;
-      if (notes !== undefined) updates.notes = notes || null;
-      if (sessions_used !== undefined && sessions_used !== '' && sessions_used !== null) {
-        updates.sessions_used = parseInt(sessions_used) || 0;
-      }
-      if (total_sessions !== undefined && total_sessions !== '' && total_sessions !== null) {
-        updates.total_sessions = parseInt(total_sessions) || 0;
-      }
-
-      updates.updated_at = new Date().toISOString();
-
-      console.log('Updating protocol:', id, updates);
+      updateData.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
         .from('protocols')
-        .update(updates)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
 
-      return res.status(200).json({ success: true, protocol: data });
+      return res.status(200).json({ protocol: data });
 
     } catch (error) {
-      console.error('Error updating protocol:', error);
-      return res.status(500).json({ error: 'Server error', details: error.message });
+      console.error('Update protocol error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  // DELETE - Remove protocol
+  if (req.method === 'DELETE') {
+    try {
+      // First delete any protocol logs
+      await supabase
+        .from('protocol_logs')
+        .delete()
+        .eq('protocol_id', id);
+
+      // Then delete the protocol
+      const { error } = await supabase
+        .from('protocols')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      return res.status(200).json({ success: true });
+
+    } catch (error) {
+      console.error('Delete protocol error:', error);
+      return res.status(500).json({ error: error.message });
     }
   }
 

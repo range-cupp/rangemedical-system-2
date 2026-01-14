@@ -93,12 +93,8 @@ export default async function handler(req, res) {
         delivery_method: p.delivery_method,
         start_date: p.start_date,
         end_date: p.end_date,
-        duration_days: p.duration_days,  // Important: include this!
-        total_days: p.duration_days,     // Alias for compatibility
         total_sessions: p.total_sessions,
         sessions_used: p.sessions_used,
-        total_injections: p.total_injections,
-        injections_used: p.injections_used,
         status: p.status,
         notes: p.notes,
         created_at: p.created_at

@@ -776,6 +776,9 @@
     let selectedPatient = null;
     let searchTimeout = null;
     
+    // Store patient data for click handlers (avoids inline onclick issues with special chars like apostrophes)
+    let patientCache = {};
+    
     // Patient Search
     const searchInput = document.getElementById('patientSearch');
     const searchResults = document.getElementById('searchResults');
@@ -804,8 +807,16 @@
         searchLoading.style.display = 'none';
         
         if (data.patients && data.patients.length > 0) {
-          searchResults.innerHTML = data.patients.map(p => `
-            <div class="search-result" onclick="selectPatient('${p.id}', '${p.ghl_contact_id || ''}', '${escapeHtml(p.name)}')">
+          // Clear cache and store new patients
+          patientCache = {};
+          data.patients.forEach((p, idx) => {
+            patientCache[idx] = p;
+          });
+          
+          // Build results using data-index instead of inline onclick with values
+          // This avoids issues with apostrophes and other special characters in names
+          searchResults.innerHTML = data.patients.map((p, idx) => `
+            <div class="search-result" data-patient-index="${idx}">
               <div class="name">${escapeHtml(p.name)}</div>
               <div class="id">${p.ghl_contact_id ? 'GHL: ' + p.ghl_contact_id : 'No GHL ID'}</div>
             </div>
@@ -821,7 +832,22 @@
       }
     }
     
+    // Event delegation for search results - handles clicks safely without inline onclick
+    searchResults.addEventListener('click', function(e) {
+      const resultEl = e.target.closest('.search-result');
+      if (!resultEl) return;
+      
+      const idx = resultEl.dataset.patientIndex;
+      if (idx === undefined) return;
+      
+      const patient = patientCache[idx];
+      if (!patient) return;
+      
+      selectPatient(patient.id, patient.ghl_contact_id || '', patient.name);
+    });
+    
     function escapeHtml(str) {
+      if (!str) return '';
       return str.replace(/[&<>"']/g, (m) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[m]));

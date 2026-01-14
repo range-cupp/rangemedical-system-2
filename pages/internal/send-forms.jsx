@@ -62,6 +62,12 @@ export default function SendForms() {
     setSelectedForms([]);
   };
 
+  // Helper to sort forms in display order (Medical Intake always first)
+  const getSortedForms = (formIds) => {
+    const formOrder = AVAILABLE_FORMS.map(f => f.id);
+    return [...formIds].sort((a, b) => formOrder.indexOf(a) - formOrder.indexOf(b));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -80,20 +86,23 @@ export default function SendForms() {
     setStatus({ type: 'loading', message: 'Sending forms...' });
 
     try {
+      // Sort forms to ensure Medical Intake is always first, then HIPAA, then others in display order
+      const sortedForms = getSortedForms(selectedForms);
+      
       const response = await fetch('/api/send-forms-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           phone: digits,
           firstName: firstName.trim() || null,
-          formIds: selectedForms
+          formIds: sortedForms
         })
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        const formNames = selectedForms.map(id => 
+        const formNames = sortedForms.map(id => 
           AVAILABLE_FORMS.find(f => f.id === id)?.name
         ).join(', ');
         

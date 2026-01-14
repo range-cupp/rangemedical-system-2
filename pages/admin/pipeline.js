@@ -218,22 +218,37 @@ export default function UnifiedPipeline() {
     let status = 'active';
     
     if (config.tracking === 'days') {
-      // Calculate days from actual database fields
-      let totalDays = protocol.duration_days || 30;
-      let daysUsed = 0;
-      let daysLeft = 0;
+      // Calculate duration from start_date and end_date
+      let totalDays = 30; // default
+      let daysUsed = 1;
+      let daysLeft = 29;
       
-      // Try to get from days_remaining if available
-      if (protocol.days_remaining !== undefined && protocol.days_remaining !== null) {
-        daysLeft = protocol.days_remaining;
-        daysUsed = totalDays - daysLeft;
+      if (protocol.start_date && protocol.end_date) {
+        // Calculate total days from date range
+        const startDate = new Date(protocol.start_date + 'T00:00:00');
+        const endDate = new Date(protocol.end_date + 'T23:59:59');
+        const today = new Date();
+        today.setHours(12, 0, 0, 0); // noon to avoid timezone issues
+        
+        // Total days = end - start + 1 (inclusive)
+        totalDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Days used = today - start + 1
+        daysUsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        daysLeft = totalDays - daysUsed;
       } else if (protocol.start_date) {
-        // Calculate from start_date
+        // No end_date - try to extract from program_name (e.g. "10 Day", "30 Day")
+        const programName = protocol.program_name || '';
+        const match = programName.match(/(\d+)\s*[- ]?\s*[Dd]ay/);
+        if (match) {
+          totalDays = parseInt(match[1]);
+        }
+        
         const startDate = new Date(protocol.start_date + 'T00:00:00');
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const diffTime = today - startDate;
-        daysUsed = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // Day 1 = start day
+        today.setHours(12, 0, 0, 0);
+        
+        daysUsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
         daysLeft = totalDays - daysUsed;
       }
       
@@ -959,15 +974,23 @@ export default function UnifiedPipeline() {
                           }}>
                             {display.label}
                           </span>
-                          {/* Show duration for day-based protocols */}
-                          {display.tracking === 'days' && protocol.duration_days && (
-                            <span style={{
-                              ...styles.detailChip,
-                              background: '#fef3c7',
-                              color: '#92400e'
-                            }}>
-                              {protocol.duration_days}-Day
-                            </span>
+                          {/* Show duration for day-based protocols - extract from program_name */}
+                          {display.tracking === 'days' && protocol.program_name && (
+                            (() => {
+                              const match = protocol.program_name.match(/(\d+)\s*[- ]?\s*[Dd]ay/);
+                              if (match) {
+                                return (
+                                  <span style={{
+                                    ...styles.detailChip,
+                                    background: '#fef3c7',
+                                    color: '#92400e'
+                                  }}>
+                                    {match[1]}-Day
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()
                           )}
                           {protocol.medication && (
                             <span style={styles.detailChip}>{protocol.medication}</span>

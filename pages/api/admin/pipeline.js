@@ -62,21 +62,29 @@ export default async function handler(req, res) {
 
     // Format protocol with ALL fields
     const formatProtocol = (p) => {
-      let patientName = p.patients?.name || p.patient_name;
+      // Get patient name from join or fallback to lookup
+      let patientName = 'Unknown Patient';
       let patientId = p.patient_id;
-      let ghlContactId = p.patients?.ghl_contact_id || p.ghl_contact_id;
+      let ghlContactId = null;
       
-      // Try GHL lookup if no name
-      if (!patientName && p.ghl_contact_id && patientsByGhl[p.ghl_contact_id]) {
-        patientName = patientsByGhl[p.ghl_contact_id].name;
-        patientId = patientsByGhl[p.ghl_contact_id].id;
+      // Check if patients join returned data
+      if (p.patients && p.patients.name) {
+        patientName = p.patients.name;
+        ghlContactId = p.patients.ghl_contact_id;
+      } else if (p.patient_id && patientsByGhl) {
+        // Try to find patient by ID in our cached list
+        const patient = allPatients?.find(pt => pt.id === p.patient_id);
+        if (patient) {
+          patientName = patient.name || 'Unknown Patient';
+          ghlContactId = patient.ghl_contact_id;
+        }
       }
 
       return {
         id: p.id,
         patient_id: patientId,
-        patient_name: patientName || 'Unknown Patient',
-        ghl_contact_id: ghlContactId || p.ghl_contact_id,
+        patient_name: patientName,
+        ghl_contact_id: ghlContactId,
         program_type: p.program_type,
         program_name: p.program_name,
         medication: p.medication || p.primary_peptide,

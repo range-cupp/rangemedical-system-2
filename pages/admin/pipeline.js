@@ -27,6 +27,9 @@ export default function UnifiedPipeline() {
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editForm, setEditForm] = useState({});
   
   // Protocol creation states
   const [protocolCategory, setProtocolCategory] = useState('');
@@ -263,6 +266,81 @@ export default function UnifiedPipeline() {
   function openQuickLog(protocol) {
     setSelectedProtocol(protocol);
     setShowQuickLogModal(true);
+  }
+
+  // Open edit modal
+  function openEditModal(protocol) {
+    setSelectedProtocol(protocol);
+    const type = normalizeType(protocol.program_type);
+    setEditForm({
+      medication: protocol.medication || protocol.primary_peptide || '',
+      selected_dose: protocol.selected_dose || '',
+      frequency: protocol.frequency || 'Daily',
+      delivery_method: protocol.delivery_method || '',
+      start_date: protocol.start_date ? protocol.start_date.split('T')[0] : '',
+      end_date: protocol.end_date ? protocol.end_date.split('T')[0] : '',
+      total_sessions: protocol.total_sessions || protocol.total_injections || '',
+      sessions_used: protocol.sessions_used || 0,
+      status: protocol.status || 'active',
+      notes: protocol.notes || ''
+    });
+    setShowEditModal(true);
+  }
+
+  // Submit edit
+  async function submitEdit() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+
+      if (res.ok) {
+        setShowEditModal(false);
+        setSelectedProtocol(null);
+        fetchData();
+      } else {
+        const error = await res.json();
+        alert(error.message || 'Failed to update protocol');
+      }
+    } catch (error) {
+      console.error('Edit error:', error);
+      alert('Failed to update protocol');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Open delete confirmation
+  function openDeleteModal(protocol) {
+    setSelectedProtocol(protocol);
+    setShowDeleteModal(true);
+  }
+
+  // Confirm delete
+  async function confirmDelete() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        setShowDeleteModal(false);
+        setSelectedProtocol(null);
+        fetchData();
+      } else {
+        const error = await res.json();
+        alert(error.message || 'Failed to delete protocol');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete protocol');
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Submit quick log
@@ -898,6 +976,24 @@ export default function UnifiedPipeline() {
                             Profile
                           </button>
                           <button
+                            style={styles.actionBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditModal(protocol);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            style={{...styles.actionBtn, color: '#ef4444', borderColor: '#fecaca'}}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDeleteModal(protocol);
+                            }}
+                          >
+                            Delete
+                          </button>
+                          <button
                             style={styles.actionBtnPrimary}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -931,7 +1027,7 @@ export default function UnifiedPipeline() {
                       key={protocol.id}
                       style={{
                         ...styles.card,
-                        opacity: 0.7
+                        opacity: 0.8
                       }}
                       onClick={() => router.push(`/admin/protocol/${protocol.id}`)}
                     >
@@ -942,11 +1038,36 @@ export default function UnifiedPipeline() {
                         <div style={styles.patientName}>{protocol.patient_name}</div>
                         <div style={styles.protocolDetails}>
                           <span style={styles.detailChip}>{display.label}</span>
+                          {protocol.medication && (
+                            <span style={styles.detailChip}>{protocol.medication}</span>
+                          )}
                           <span style={{ color: '#10b981' }}>✓ Completed</span>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right', color: '#64748b', fontSize: '13px' }}>
-                        {protocol.end_date && new Date(protocol.end_date).toLocaleDateString()}
+                      <div style={styles.progressSection}>
+                        <div style={{ color: '#64748b', fontSize: '13px', marginBottom: '8px' }}>
+                          {protocol.end_date && new Date(protocol.end_date).toLocaleDateString()}
+                        </div>
+                        <div style={styles.actionButtons}>
+                          <button
+                            style={styles.actionBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditModal(protocol);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            style={{...styles.actionBtn, color: '#ef4444', borderColor: '#fecaca'}}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDeleteModal(protocol);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1277,6 +1398,200 @@ export default function UnifiedPipeline() {
           onClose={() => setShowQuickLogModal(false)}
           onSubmit={submitQuickLog}
         />
+      )}
+
+      {/* Edit Protocol Modal */}
+      {showEditModal && selectedProtocol && (
+        <div style={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Edit Protocol</h3>
+              <button style={styles.modalClose} onClick={() => setShowEditModal(false)}>×</button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={{ 
+                background: '#f8fafc', 
+                padding: '12px', 
+                borderRadius: '8px', 
+                marginBottom: '20px' 
+              }}>
+                <div style={{ fontWeight: '600' }}>{selectedProtocol.patient_name}</div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>
+                  {selectedProtocol.program_name || normalizeType(selectedProtocol.program_type).toUpperCase()}
+                </div>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Medication</label>
+                <input
+                  type="text"
+                  style={styles.input}
+                  value={editForm.medication}
+                  onChange={(e) => setEditForm({...editForm, medication: e.target.value})}
+                  placeholder="e.g. Semaglutide, BPC-157"
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Dose</label>
+                <input
+                  type="text"
+                  style={styles.input}
+                  value={editForm.selected_dose}
+                  onChange={(e) => setEditForm({...editForm, selected_dose: e.target.value})}
+                  placeholder="e.g. 0.5mg, 500mcg"
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Delivery Method</label>
+                <select
+                  style={styles.select}
+                  value={editForm.delivery_method}
+                  onChange={(e) => setEditForm({...editForm, delivery_method: e.target.value})}
+                >
+                  <option value="">Select...</option>
+                  <option value="in_clinic">In Clinic</option>
+                  <option value="take_home">Take Home</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Start Date</label>
+                  <input
+                    type="date"
+                    style={styles.input}
+                    value={editForm.start_date}
+                    onChange={(e) => setEditForm({...editForm, start_date: e.target.value})}
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>End Date</label>
+                  <input
+                    type="date"
+                    style={styles.input}
+                    value={editForm.end_date}
+                    onChange={(e) => setEditForm({...editForm, end_date: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Sessions/Injections Used</label>
+                  <input
+                    type="number"
+                    style={styles.input}
+                    value={editForm.sessions_used}
+                    onChange={(e) => setEditForm({...editForm, sessions_used: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Total Sessions/Injections</label>
+                  <input
+                    type="number"
+                    style={styles.input}
+                    value={editForm.total_sessions}
+                    onChange={(e) => setEditForm({...editForm, total_sessions: parseInt(e.target.value) || ''})}
+                  />
+                </div>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Status</label>
+                <select
+                  style={styles.select}
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                >
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="paused">Paused</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Notes</label>
+                <textarea
+                  style={{ ...styles.input, minHeight: '80px', resize: 'vertical' }}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                  placeholder="Any notes..."
+                />
+              </div>
+            </div>
+            <div style={styles.modalFooter}>
+              <button
+                style={{ ...styles.btn, ...styles.btnSecondary }}
+                onClick={() => setShowEditModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={{ ...styles.btn, ...styles.btnPrimary }}
+                onClick={submitEdit}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedProtocol && (
+        <div style={styles.modalOverlay} onClick={() => setShowDeleteModal(false)}>
+          <div style={{...styles.modal, maxWidth: '400px'}} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Delete Protocol</h3>
+              <button style={styles.modalClose} onClick={() => setShowDeleteModal(false)}>×</button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                <p style={{ fontSize: '16px', marginBottom: '8px' }}>
+                  Are you sure you want to delete this protocol?
+                </p>
+                <p style={{ 
+                  background: '#f8fafc', 
+                  padding: '12px', 
+                  borderRadius: '8px',
+                  marginTop: '16px'
+                }}>
+                  <strong>{selectedProtocol.patient_name}</strong><br />
+                  <span style={{ color: '#64748b', fontSize: '14px' }}>
+                    {selectedProtocol.program_name || selectedProtocol.medication}
+                  </span>
+                </p>
+                <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '16px' }}>
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div style={styles.modalFooter}>
+              <button
+                style={{ ...styles.btn, ...styles.btnSecondary }}
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={{ 
+                  ...styles.btn, 
+                  background: '#ef4444',
+                  color: '#fff'
+                }}
+                onClick={confirmDelete}
+                disabled={saving}
+              >
+                {saving ? 'Deleting...' : 'Delete Protocol'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

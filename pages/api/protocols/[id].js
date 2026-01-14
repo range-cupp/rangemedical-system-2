@@ -44,13 +44,41 @@ export default async function handler(req, res) {
         .eq('protocol_id', id)
         .order('log_date', { ascending: false });
 
+      // Get patient name - Supabase returns joined data as nested object
+      let patientName = 'Unknown Patient';
+      let patientEmail = null;
+      let patientPhone = null;
+      let ghlContactId = null;
+
+      // Check if patients join returned data
+      if (protocol.patients && protocol.patients.name) {
+        patientName = protocol.patients.name;
+        patientEmail = protocol.patients.email;
+        patientPhone = protocol.patients.phone;
+        ghlContactId = protocol.patients.ghl_contact_id;
+      } else if (protocol.patient_id) {
+        // Fallback: query patient directly if join didn't work
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id, name, email, phone, ghl_contact_id')
+          .eq('id', protocol.patient_id)
+          .single();
+        
+        if (patient) {
+          patientName = patient.name || 'Unknown Patient';
+          patientEmail = patient.email;
+          patientPhone = patient.phone;
+          ghlContactId = patient.ghl_contact_id;
+        }
+      }
+
       // Format response with patient name
       const formattedProtocol = {
         ...protocol,
-        patient_name: protocol.patients?.name || protocol.patient_name || 'Unknown Patient',
-        patient_email: protocol.patients?.email || protocol.patient_email,
-        patient_phone: protocol.patients?.phone || protocol.patient_phone,
-        ghl_contact_id: protocol.patients?.ghl_contact_id || protocol.ghl_contact_id
+        patient_name: patientName,
+        patient_email: patientEmail,
+        patient_phone: patientPhone,
+        ghl_contact_id: ghlContactId
       };
 
       return res.status(200).json({

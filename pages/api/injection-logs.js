@@ -1,7 +1,7 @@
 // /pages/api/injection-logs.js
 // API for injection logs CRUD operations
 // Range Medical
-// CREATED: 2026-01-14
+// UPDATED: 2026-01-14 - Links to protocols, deduped patients
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -26,10 +26,15 @@ export default async function handler(req, res) {
   }
 }
 
-// GET - Fetch injection logs
+// GET - Fetch injection logs OR patients for dropdown
 async function getInjectionLogs(req, res) {
   try {
-    const { category, patient_id, limit = 100 } = req.query;
+    const { category, patient_id, limit = 100, patients_for } = req.query;
+
+    // If requesting patients for a specific category, return deduped list
+    if (patients_for) {
+      return getPatientsForCategory(patients_for, res);
+    }
 
     let query = supabase
       .from('injection_logs')
@@ -61,7 +66,68 @@ async function getInjectionLogs(req, res) {
   }
 }
 
-// POST - Create new injection log
+// Get patients with active protocols for a category
+async function getPatientsForCategory(category, res) {
+  try {
+    // Map category to program_type
+    const programTypeMap = {
+      'testosterone': 'hrt',
+      'weight_loss': 'weight_loss',
+      'vitamin': 'injection'
+    };
+    
+    const programType = programTypeMap[category];
+    
+    // Get patients with active protocols in this category
+    const { data, error } = await supabase
+      .from('protocols')
+      .select(`
+        patient_id,
+        patients!inner (
+          id,
+          name,
+          ghl_contact_id
+        )
+      `)
+      .eq('program_type', programType)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching patients for category:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Dedupe by ghl_contact_id, keeping the first occurrence
+    const seen = new Set();
+    const uniquePatients = [];
+    
+    for (const row of (data || [])) {
+      const patient = row.patients;
+      if (!patient) continue;
+      
+      const key = patient.ghl_contact_id || patient.id;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniquePatients.push({
+          id: patient.id,
+          name: patient.name,
+          ghl_contact_id: patient.ghl_contact_id
+        });
+      }
+    }
+
+    // Sort alphabetically by name
+    uniquePatients.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    return res.status(200).json({ patients: uniquePatients });
+  } catch (err) {
+    console.error('Error in getPatientsForCategory:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// POST - Create new injection log linked to protocol
 async function createInjectionLog(req, res) {
   try {
     const {
@@ -87,6 +153,31 @@ async function createInjectionLog(req, res) {
       return res.status(400).json({ error: 'Category is required' });
     }
 
+    // Map category to program_type
+    const programTypeMap = {
+      'testosterone': 'hrt',
+      'weight_loss': 'weight_loss',
+      'vitamin': 'injection'
+    };
+    
+    const programType = programTypeMap[category];
+
+    // Find the patient's active protocol for this category
+    const { data: protocols, error: protocolError } = await supabase
+      .from('protocols')
+      .select('id')
+      .eq('patient_id', patient_id)
+      .eq('program_type', programType)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (protocolError) {
+      console.error('Error finding protocol:', protocolError);
+    }
+
+    const protocolId = protocols?.[0]?.id || null;
+
     // Build medication string for testosterone
     let finalMedication = medication;
     if (category === 'testosterone' && !medication) {
@@ -98,6 +189,7 @@ async function createInjectionLog(req, res) {
     const logEntry = {
       patient_id,
       patient_name,
+      protocol_id: protocolId,
       log_type: log_type || 'injection',
       category,
       hrt_type: category === 'testosterone' ? (hrt_type || 'male') : null,
@@ -121,7 +213,7 @@ async function createInjectionLog(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    return res.status(201).json({ success: true, log: data });
+    return res.status(201).json({ success: true, log: data, protocol_id: protocolId });
   } catch (err) {
     console.error('Error in createInjectionLog:', err);
     return res.status(500).json({ error: err.message });

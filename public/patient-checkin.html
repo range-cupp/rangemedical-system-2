@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Medical - Weekly Check-In</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6; 
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 440px; margin: 0 auto; }
+    
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo h1 {
+      font-size: 24px;
+      color: #111;
+      margin-bottom: 4px;
+    }
+    .logo p {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .greeting {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .greeting h2 {
+      font-size: 20px;
+      color: #111;
+      margin-bottom: 8px;
+    }
+    .greeting p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .form-group { margin-bottom: 20px; }
+    
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: border-color 0.15s;
+    }
+    input:not([type="checkbox"]) {
+      -webkit-appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #111;
+    }
+    
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    
+    input[type="number"] {
+      font-size: 24px;
+      font-weight: 600;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    textarea { 
+      resize: vertical; 
+      min-height: 100px;
+      font-family: inherit;
+    }
+    
+    .weight-unit {
+      text-align: center;
+      color: #6b7280;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    
+    .side-effects-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .checkbox-item:hover {
+      background: #f3f4f6;
+    }
+    .checkbox-item.none-option {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+    .checkbox-item.none-option:hover {
+      background: #dcfce7;
+    }
+    .checkbox-item input {
+      cursor: pointer;
+    }
+    .checkbox-item span {
+      font-size: 14px;
+      color: #374151;
+    }
+    
+    .dose-info {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 20px;
+    }
+    .dose-info p {
+      font-size: 13px;
+      color: #166534;
+    }
+    .dose-info strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    
+    button {
+      width: 100%;
+      padding: 16px;
+      background: #111;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #333; }
+    button:disabled { 
+      background: #9ca3af; 
+      cursor: not-allowed; 
+    }
+    
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-screen .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    .success-screen h2 {
+      font-size: 24px;
+      color: #111;
+      margin-bottom: 12px;
+    }
+    .success-screen p {
+      color: #6b7280;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 14px;
+    }
+    
+    .loading-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .loading-screen p {
+      color: #6b7280;
+      font-size: 15px;
+    }
+    
+    .invalid-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .invalid-screen .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .invalid-screen h2 {
+      font-size: 20px;
+      color: #991b1b;
+      margin-bottom: 12px;
+    }
+    .invalid-screen p {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    .footer a {
+      color: #6b7280;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>Range Medical</h1>
+      <p>Weekly Weight Loss Check-In</p>
+    </div>
+    
+    <!-- Loading State -->
+    <div id="loadingScreen" class="card loading-screen">
+      <p>Loading your information...</p>
+    </div>
+    
+    <!-- Invalid Link -->
+    <div id="invalidScreen" class="card invalid-screen">
+      <div class="icon">⚠️</div>
+      <h2>Invalid Link</h2>
+      <p>This check-in link is invalid or has expired. Please use the link from your most recent text or email.</p>
+      <p style="margin-top: 16px;">Questions? Call us at <a href="tel:9499973988" style="color: #111; font-weight: 600;">(949) 997-3988</a></p>
+    </div>
+    
+    <!-- Main Form -->
+    <div id="formScreen" class="card" style="display: none;">
+      <div class="greeting">
+        <h2>Hi <span id="patientFirstName">there</span>! 👋</h2>
+        <p>Time for your weekly check-in. This helps us track your progress and adjust your treatment if needed.</p>
+      </div>
+      
+      <div id="doseInfo" class="dose-info" style="display: none;">
+        <p><strong>💉 Current Protocol</strong></p>
+        <p><span id="currentMedication">-</span> • <span id="currentDose">-</span></p>
+      </div>
+      
+      <div id="errorMsg" class="error"></div>
+      
+      <form id="checkInForm" onsubmit="submitForm(event)">
+        <div class="form-group">
+          <label>What's your weight today?</label>
+          <input type="number" step="0.1" name="weight" id="weightInput" placeholder="000.0" required>
+          <p class="weight-unit">pounds (lbs)</p>
+        </div>
+        
+        <div class="form-group">
+          <label>Any side effects this week?</label>
+          <div class="side-effects-grid">
+            <label class="checkbox-item none-option">
+              <input type="checkbox" name="side_effects" value="None" id="noSideEffects" onchange="handleNoneSelected()">
+              <span>None ✓</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Nausea" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Nausea</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Fatigue" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Fatigue</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Indigestion" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Indigestion</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Constipation" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Constipation</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Injection Site Pain" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Injection Pain</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Other" id="otherSideEffect" class="side-effect-cb" onchange="handleOtherSelected()">
+              <span>Other</span>
+            </label>
+          </div>
+          <div id="otherSideEffectInput" style="display: none; margin-top: 12px;">
+            <input type="text" name="other_side_effect" placeholder="Please describe..." style="width: 100%;">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Anything else you'd like us to know?</label>
+          <textarea name="notes" placeholder="How are you feeling overall? Any questions for your provider?"></textarea>
+        </div>
+        
+        <button type="submit" id="submitBtn">Submit Check-In</button>
+      </form>
+    </div>
+    
+    <!-- Success Screen -->
+    <div id="successScreen" class="card success-screen">
+      <div class="icon">✅</div>
+      <h2>Thanks for checking in!</h2>
+      <p>Your weight and feedback have been recorded. We'll reach out if we have any concerns or recommendations.</p>
+      <p style="margin-top: 20px; font-size: 14px;">Keep up the great work! 💪</p>
+    </div>
+    
+    <div class="footer">
+      <p>Range Medical • Newport Beach, CA</p>
+      <p><a href="tel:9499973988">(949) 997-3988</a></p>
+    </div>
+  </div>
+
+  <script>
+    // Config
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api' 
+      : 'https://app.range-medical.com/api';
+    
+    // Get contact ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const contactId = urlParams.get('id') || urlParams.get('contact_id') || urlParams.get('cid');
+    
+    // Elements
+    const loadingScreen = document.getElementById('loadingScreen');
+    const invalidScreen = document.getElementById('invalidScreen');
+    const formScreen = document.getElementById('formScreen');
+    const successScreen = document.getElementById('successScreen');
+    const errorMsg = document.getElementById('errorMsg');
+    
+    // Initialize
+    async function init() {
+      if (!contactId) {
+        showInvalid();
+        return;
+      }
+      
+      loadingScreen.style.display = 'block';
+      
+      try {
+        // Fetch patient info
+        const res = await fetch(`${API_BASE}/patient-checkin/info?contact_id=${contactId}`);
+        const data = await res.json();
+        
+        if (!res.ok || !data.patient) {
+          showInvalid();
+          return;
+        }
+        
+        // Populate form with patient info
+        document.getElementById('patientFirstName').textContent = data.patient.first_name || 'there';
+        
+        if (data.protocol) {
+          document.getElementById('currentMedication').textContent = data.protocol.medication || '-';
+          document.getElementById('currentDose').textContent = data.protocol.dose || '-';
+          document.getElementById('doseInfo').style.display = 'block';
+        }
+        
+        loadingScreen.style.display = 'none';
+        formScreen.style.display = 'block';
+        
+      } catch (err) {
+        console.error('Init error:', err);
+        showInvalid();
+      }
+    }
+    
+    function showInvalid() {
+      loadingScreen.style.display = 'none';
+      invalidScreen.style.display = 'block';
+    }
+    
+    async function submitForm(e) {
+      e.preventDefault();
+      
+      const form = e.target;
+      const btn = document.getElementById('submitBtn');
+      const originalText = btn.textContent;
+      
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      errorMsg.style.display = 'none';
+      
+      // Gather side effects
+      const sideEffects = [];
+      form.querySelectorAll('input[name="side_effects"]:checked').forEach(cb => {
+        if (cb.value === 'Other') {
+          const otherText = form.other_side_effect.value.trim();
+          if (otherText) {
+            sideEffects.push('Other: ' + otherText);
+          } else {
+            sideEffects.push('Other');
+          }
+        } else {
+          sideEffects.push(cb.value);
+        }
+      });
+      
+      const data = {
+        contact_id: contactId,
+        weight: form.weight.value,
+        side_effects: sideEffects,
+        notes: form.notes.value
+      };
+      
+      try {
+        const res = await fetch(`${API_BASE}/patient-checkin/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          formScreen.style.display = 'none';
+          successScreen.style.display = 'block';
+        } else {
+          errorMsg.textContent = result.error || 'Something went wrong. Please try again.';
+          errorMsg.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Unable to submit. Please check your connection and try again.';
+        errorMsg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+    
+    // Side effects checkbox handling
+    function handleNoneSelected() {
+      const noneCheckbox = document.getElementById('noSideEffects');
+      if (noneCheckbox.checked) {
+        // Uncheck all other side effects
+        document.querySelectorAll('.side-effect-cb').forEach(cb => {
+          cb.checked = false;
+        });
+        // Hide other input
+        document.getElementById('otherSideEffectInput').style.display = 'none';
+      }
+    }
+    
+    function handleSideEffectSelected() {
+      // If any side effect is selected, uncheck "None"
+      const anyChecked = document.querySelector('.side-effect-cb:checked');
+      if (anyChecked) {
+        document.getElementById('noSideEffects').checked = false;
+      }
+    }
+    
+    function handleOtherSelected() {
+      const otherCheckbox = document.getElementById('otherSideEffect');
+      const otherInput = document.getElementById('otherSideEffectInput');
+      
+      if (otherCheckbox.checked) {
+        otherInput.style.display = 'block';
+        document.getElementById('noSideEffects').checked = false;
+      } else {
+        otherInput.style.display = 'none';
+      }
+    }
+    
+    // Start
+    init();
+  </script>
+</body>
+</html>

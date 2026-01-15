@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Medical - Staff Quick Log</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💉</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6; 
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 500px; margin: 0 auto; }
+    
+    h1 { 
+      text-align: center; 
+      font-size: 24px; 
+      margin-bottom: 8px;
+      color: #111;
+    }
+    .subtitle {
+      text-align: center;
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .card h2 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      color: #111;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .form-group { margin-bottom: 16px; }
+    
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #111;
+    }
+    
+    textarea { resize: vertical; min-height: 80px; }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #111;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #333; }
+    button:disabled { background: #9ca3af; cursor: not-allowed; }
+    
+    .btn-secondary {
+      background: white;
+      color: #111;
+      border: 1px solid #d1d5db;
+    }
+    .btn-secondary:hover { background: #f9fafb; }
+    
+    .success {
+      background: #ecfdf5;
+      border: 1px solid #10b981;
+      color: #065f46;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .error {
+      background: #fef2f2;
+      border: 1px solid #ef4444;
+      color: #991b1b;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    
+    .patient-badge {
+      background: #f3f4f6;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .patient-badge .name { font-weight: 600; }
+    .patient-badge .change { 
+      color: #6b7280; 
+      font-size: 13px; 
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 10px 12px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #374151;
+      flex: 1;
+      min-width: 30%;
+      white-space: nowrap;
+    }
+    .tab.active {
+      background: #111;
+      color: white;
+    }
+    
+    .form-section { display: none; }
+    .form-section.active { display: block; }
+    
+    .search-results {
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      margin-top: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+    .search-result {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .search-result:hover { background: #f9fafb; }
+    .search-result:last-child { border-bottom: none; }
+    .search-result .name { font-weight: 500; }
+    .search-result .id { font-size: 12px; color: #6b7280; }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+    }
+    
+    #patientSelect { display: block; }
+    #formSection { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Range Medical</h1>
+    <p class="subtitle">Staff Quick Log</p>
+    
+    <div id="successMsg" class="success"></div>
+    <div id="errorMsg" class="error"></div>
+    
+    <!-- Patient Selection -->
+    <div id="patientSelect" class="card">
+      <h2>👤 Select Patient</h2>
+      <div class="form-group">
+        <label>Search by name</label>
+        <input type="text" id="patientSearch" placeholder="Start typing..." autocomplete="off">
+        <div id="searchResults" class="search-results"></div>
+      </div>
+      <div class="loading" id="searchLoading">Searching...</div>
+    </div>
+    
+    <!-- Forms Section (shown after patient selected) -->
+    <div id="formSection">
+      <div class="patient-badge">
+        <div>
+          <div class="name" id="selectedPatientName">-</div>
+          <div style="font-size: 12px; color: #6b7280;" id="selectedPatientId">-</div>
+        </div>
+        <div class="change" onclick="changePatient()">Change</div>
+      </div>
+      
+      <div class="tabs">
+        <button class="tab" onclick="showTab('start')">➕ Start Protocol</button>
+        <button class="tab active" onclick="showTab('wl')">💉 Weight Loss</button>
+        <button class="tab" onclick="showTab('hrt-inj')">💉 HRT Injection</button>
+        <button class="tab" onclick="showTab('hrt')">💊 HRT Pickup</button>
+        <button class="tab" onclick="showTab('session')">📋 Session</button>
+        <button class="tab" onclick="showTab('blood')">🩸 Blood Draw</button>
+      </div>
+      
+      <!-- Start Protocol Form -->
+      <div id="tab-start" class="form-section">
+        <div class="card">
+          <h2>➕ Start New Protocol</h2>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+            Start a new protocol for this patient. This will create the protocol and sync to GHL.
+          </p>
+          <form id="startProtocolForm" onsubmit="submitStartProtocol(event)">
+            <div class="form-group">
+              <label>Protocol Type</label>
+              <select name="protocol_type" id="protocolType" required onchange="updateProtocolForm()">
+                <option value="">Select type...</option>
+                <option value="weight_loss">Weight Loss</option>
+                <option value="peptide">Peptide Protocol</option>
+                <option value="hrt">HRT Protocol</option>
+                <option value="iv_therapy">IV Therapy</option>
+                <option value="injection">Injection Therapy</option>
+                <option value="hbot">HBOT (Hyperbaric)</option>
+                <option value="rlt">Red Light Therapy</option>
+              </select>
+            </div>
+            
+            <!-- Weight Loss Fields -->
+            <div id="wlFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Medication</label>
+                <select name="wl_medication" data-was-required="true">
+                  <option value="">Select medication...</option>
+                  <option value="Semaglutide">Semaglutide</option>
+                  <option value="Tirzepatide">Tirzepatide</option>
+                  <option value="Retatrutide">Retatrutide</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Starting Dose</label>
+                <select name="wl_starting_dose">
+                  <option value="">Select dose...</option>
+                  <option value="0.25mg">0.25mg</option>
+                  <option value="0.5mg">0.5mg</option>
+                  <option value="1mg">1mg</option>
+                  <option value="1.5mg">1.5mg</option>
+                  <option value="2mg">2mg</option>
+                  <option value="2.5mg">2.5mg</option>
+                  <option value="5mg">5mg</option>
+                  <option value="7.5mg">7.5mg</option>
+                  <option value="10mg">10mg</option>
+                  <option value="12.5mg">12.5mg</option>
+                  <option value="15mg">15mg</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Delivery Method</label>
+                <select name="wl_delivery" data-was-required="true">
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic - Patient comes in weekly</option>
+                  <option value="take_home">Take Home - Patient self-injects</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Total Injections</label>
+                <select name="wl_total_injections">
+                  <option value="4" selected>4 (Monthly)</option>
+                  <option value="8">8 (2 Months)</option>
+                  <option value="12">12 (3 Months)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Starting Weight (optional)</label>
+                <input type="number" step="0.1" name="wl_starting_weight" placeholder="e.g. 220">
+              </div>
+            </div>
+            
+            <!-- Peptide Fields -->
+            <div id="peptideFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Program Duration</label>
+                <select name="peptide_program" data-was-required="true">
+                  <option value="">Select program...</option>
+                  <option value="7 Day">7 Day</option>
+                  <option value="10 Day">10 Day</option>
+                  <option value="20 Day">20 Day</option>
+                  <option value="30 Day">30 Day</option>
+                  <option value="Vial">Vial</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Peptide</label>
+                <select name="peptide_medication" id="peptideSelect" onchange="updatePeptideDosage()">
+                  <option value="">Select peptide...</option>
+                  
+                  <optgroup label="── Recovery / Tissue Repair ──">
+                    <option value="BPC-157" data-dose="250-500mcg">BPC-157</option>
+                    <option value="TB-500" data-dose="2-2.5mg">TB-500 (Thymosin Beta 4)</option>
+                    <option value="Wolverine Blend" data-dose="500mcg/500mcg">Wolverine Blend (BPC/TB)</option>
+                    <option value="KPV" data-dose="200-400mcg">KPV</option>
+                    <option value="MGF" data-dose="200mcg">MGF (IGF-1Ec)</option>
+                    <option value="PEG-MGF" data-dose="200mcg">PEG-MGF</option>
+                    <option value="LL-37" data-dose="50-100mcg">LL-37</option>
+                    <option value="GLOW 50" data-dose="0.3mL">GLOW 50 (GHK-Cu/BPC/TB)</option>
+                    <option value="GLOW 70" data-dose="0.3mL">GLOW 70 (GHK-Cu/BPC/TB)</option>
+                    <option value="KLOW 80" data-dose="0.3mL">KLOW 80 (GHK-Cu/KPV/BPC/TB)</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Weight Loss / Metabolic ──">
+                    <option value="AOD 9604" data-dose="300mcg">AOD 9604</option>
+                    <option value="MOTS-c" data-dose="5-10mg">MOTS-c</option>
+                    <option value="Tesamorelin" data-dose="1-2mg">Tesamorelin</option>
+                    <option value="Tesamorelin/Ipamorelin" data-dose="0.3mL">Tesamorelin/Ipamorelin Blend</option>
+                    <option value="5-Amino-1MQ" data-dose="50mg">5-Amino-1MQ (oral)</option>
+                    <option value="Tesofensine" data-dose="250-500mcg">Tesofensine (oral)</option>
+                    <option value="Cagrilintide" data-dose="0.3-2.4mg">Cagrilintide</option>
+                    <option value="Cagrilintide/GLP-1" data-dose="0.25-2.5mg">Cagrilintide/GLP-1 Blend</option>
+                    <option value="Survodutide" data-dose="0.5-4.8mg">Survodutide</option>
+                    <option value="MK-677" data-dose="10-25mg">MK-677 (oral)</option>
+                    <option value="SLU-PP-332" data-dose="250mcg-1mg">SLU-PP-332 (oral)</option>
+                  </optgroup>
+                  
+                  <optgroup label="── GH Secretagogues ──">
+                    <option value="Ipamorelin" data-dose="200-300mcg">Ipamorelin</option>
+                    <option value="CJC-1295 No DAC" data-dose="100-200mcg">CJC-1295 No DAC</option>
+                    <option value="CJC-1295 With DAC" data-dose="1-2mg">CJC-1295 With DAC</option>
+                    <option value="CJC/Ipamorelin" data-dose="0.2-0.3mL">CJC/Ipamorelin Blend</option>
+                    <option value="Sermorelin" data-dose="200-500mcg">Sermorelin</option>
+                    <option value="GHRP-2" data-dose="100-300mcg">GHRP-2</option>
+                    <option value="GHRP-6" data-dose="100-300mcg">GHRP-6</option>
+                    <option value="Hexarelin" data-dose="100-200mcg">Hexarelin</option>
+                    <option value="IGF-1 LR3" data-dose="20-50mcg">IGF-1 LR3</option>
+                    <option value="Follistatin 344" data-dose="100mcg">Follistatin 344</option>
+                    <option value="3X Blend" data-dose="0.3mL">3X Blend (Tesa/MGF/Ipa)</option>
+                    <option value="4X Blend" data-dose="0.3mL">4X Blend (GHRP2/Tesa/MGF/Ipa)</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Longevity / Anti-Aging ──">
+                    <option value="Epithalon" data-dose="5-10mg">Epithalon</option>
+                    <option value="Thymosin Alpha-1" data-dose="1.6mg">Thymosin Alpha-1 (TA-1)</option>
+                    <option value="GHK-Cu" data-dose="1-2mg">GHK-Cu</option>
+                    <option value="NAD+" data-dose="50-200mg">NAD+</option>
+                    <option value="FOXO4-DRI" data-dose="3-6mg">FOXO4-DRI</option>
+                    <option value="SS-31" data-dose="10-50mg">SS-31 (Elamipretide)</option>
+                    <option value="Thymalin" data-dose="10mg">Thymalin</option>
+                    <option value="Thymagen" data-dose="10mg">Thymagen</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Cognitive / Neuro ──">
+                    <option value="Dihexa" data-dose="10-20mg">Dihexa (oral)</option>
+                    <option value="Selank" data-dose="250-500mcg">Selank</option>
+                    <option value="Semax" data-dose="200-600mcg">Semax</option>
+                    <option value="PE-22-28" data-dose="500mcg">PE-22-28</option>
+                    <option value="BDNF" data-dose="varies">BDNF</option>
+                    <option value="ARA-290" data-dose="2-4mg">ARA-290</option>
+                    <option value="DSIP" data-dose="100-300mcg">DSIP (Sleep)</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Sexual Health ──">
+                    <option value="PT-141" data-dose="1-2mg">PT-141 (Bremelanotide)</option>
+                    <option value="MT-II" data-dose="0.5-1mg">MT-II (Melanotan II)</option>
+                    <option value="Kisspeptin" data-dose="50-200mcg">Kisspeptin</option>
+                    <option value="Oxytocin" data-dose="10-20 IU">Oxytocin</option>
+                  </optgroup>
+                  
+                  <optgroup label="── HRT Support ──">
+                    <option value="Gonadorelin" data-dose="100-200mcg">Gonadorelin</option>
+                    <option value="HCG" data-dose="500-1000 IU">HCG</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Cardiovascular ──">
+                    <option value="Cardiogen" data-dose="10-20mcg">Cardiogen</option>
+                    <option value="Cartalax" data-dose="10-20mcg">Cartalax</option>
+                  </optgroup>
+                  
+                  <optgroup label="── Other ──">
+                    <option value="Other" data-dose="">Other (specify in notes)</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Dosage</label>
+                <input type="text" name="peptide_dosage" id="peptideDosage" placeholder="e.g. 500mcg">
+                <p id="dosageHint" style="color: #6b7280; font-size: 12px; margin-top: 4px;"></p>
+              </div>
+              <div class="form-group">
+                <label>Frequency</label>
+                <select name="peptide_frequency">
+                  <option value="Daily">Daily</option>
+                  <option value="1x daily (AM)">1x daily (AM)</option>
+                  <option value="1x daily (PM/bedtime)">1x daily (PM/bedtime)</option>
+                  <option value="2x daily">2x daily</option>
+                  <option value="3x daily">3x daily</option>
+                  <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                  <option value="Every other day">Every other day</option>
+                  <option value="3x per week">3x per week</option>
+                  <option value="2x per week">2x per week</option>
+                  <option value="1x per week">1x per week</option>
+                  <option value="As needed">As needed</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Delivery Method</label>
+                <select name="peptide_delivery" data-was-required="true">
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic</option>
+                  <option value="take_home">Take Home</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- HRT Fields -->
+            <div id="hrtFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Medication</label>
+                <select name="hrt_medication">
+                  <option value="">Select medication...</option>
+                  <option value="Testosterone Cypionate">Testosterone Cypionate</option>
+                  <option value="Testosterone Enanthate">Testosterone Enanthate</option>
+                  <option value="Nandrolone">Nandrolone</option>
+                  <option value="HCG">HCG</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Dosage</label>
+                <input type="text" name="hrt_dosage" placeholder="e.g. 200mg/week">
+              </div>
+              <div class="form-group">
+                <label>Delivery Method</label>
+                <select name="hrt_delivery" data-was-required="true">
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic (2x/week injections)</option>
+                  <option value="take_home">Take Home (Self-inject)</option>
+                </select>
+              </div>
+              <div class="form-group" id="hrtFulfillmentGroup">
+                <label>Supply Type</label>
+                <select name="hrt_supply_type">
+                  <option value="">Select type...</option>
+                  <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
+                  <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                  <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
+                  <option value="vial_10ml">Vial 10ml (10-16 weeks based on dose)</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- IV Therapy Fields -->
+            <div id="ivFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Package</label>
+                <select name="iv_package" data-was-required="true">
+                  <option value="">Select package...</option>
+                  <option value="Single">Single Session</option>
+                  <option value="5 Pack">5 Pack</option>
+                  <option value="10 Pack">10 Pack</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>IV Type (optional)</label>
+                <select name="iv_type">
+                  <option value="">Select type...</option>
+                  <option value="Myers Cocktail">Myers Cocktail</option>
+                  <option value="NAD+">NAD+</option>
+                  <option value="High Dose Vitamin C">High Dose Vitamin C</option>
+                  <option value="Hydration">Hydration</option>
+                  <option value="Immunity">Immunity</option>
+                  <option value="Recovery">Recovery</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+              <p style="color: #6b7280; font-size: 13px; margin-top: 8px;">
+                ℹ️ All IV Therapy sessions are In Clinic
+              </p>
+            </div>
+            
+            <!-- Injection Therapy Fields -->
+            <div id="injectionFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Package</label>
+                <select name="injection_package" data-was-required="true">
+                  <option value="">Select package...</option>
+                  <option value="Single">Single Session</option>
+                  <option value="5 Pack">5 Pack</option>
+                  <option value="10 Pack">10 Pack</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Injection Type (optional)</label>
+                <input type="text" name="injection_type" placeholder="e.g. B12, Glutathione, Lipo-C">
+              </div>
+              <div class="form-group">
+                <label>Delivery Method</label>
+                <select name="injection_delivery" data-was-required="true">
+                  <option value="">Select delivery...</option>
+                  <option value="in_clinic">In Clinic</option>
+                  <option value="take_home">Take Home</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- HBOT Fields -->
+            <div id="hbotFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Package</label>
+                <select name="hbot_package" data-was-required="true">
+                  <option value="">Select package...</option>
+                  <option value="Single">Single Session</option>
+                  <option value="5 Pack">5 Pack</option>
+                  <option value="10 Pack">10 Pack</option>
+                </select>
+              </div>
+              <p style="color: #6b7280; font-size: 13px; margin-top: 8px;">
+                ℹ️ All HBOT sessions are In Clinic
+              </p>
+            </div>
+            
+            <!-- Red Light Therapy Fields -->
+            <div id="rltFields" class="protocol-fields" style="display: none;">
+              <div class="form-group">
+                <label>Package</label>
+                <select name="rlt_package" data-was-required="true">
+                  <option value="">Select package...</option>
+                  <option value="Single">Single Session</option>
+                  <option value="5 Pack">5 Pack</option>
+                  <option value="10 Pack">10 Pack</option>
+                </select>
+              </div>
+              <p style="color: #6b7280; font-size: 13px; margin-top: 8px;">
+                ℹ️ All Red Light sessions are In Clinic
+              </p>
+            </div>
+            
+            <!-- Common Fields -->
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" name="start_date" required>
+            </div>
+            
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any additional notes..."></textarea>
+            </div>
+            
+            <button type="submit">Start Protocol</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Weight Loss Form -->
+      <div id="tab-wl" class="form-section active">
+        <div class="card">
+          <h2>💉 Log Weight Loss Injection</h2>
+          <form id="wlForm" onsubmit="submitWL(event)">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
+              <label>Medication</label>
+              <select name="medication" required>
+                <option value="">Select medication...</option>
+                <option value="Semaglutide">Semaglutide</option>
+                <option value="Tirzepatide">Tirzepatide</option>
+                <option value="Retatrutide">Retatrutide</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Current Weight (lbs)</label>
+              <input type="number" step="0.1" name="weight" placeholder="e.g. 215.5" required>
+            </div>
+            <div class="form-group">
+              <label>Dose</label>
+              <select name="dose" required>
+                <option value="">Select dose...</option>
+                <option value="0.25mg">0.25mg</option>
+                <option value="0.5mg">0.5mg</option>
+                <option value="1mg">1mg</option>
+                <option value="1.5mg">1.5mg</option>
+                <option value="2mg">2mg</option>
+                <option value="2.5mg">2.5mg</option>
+                <option value="5mg">5mg</option>
+                <option value="7.5mg">7.5mg</option>
+                <option value="10mg">10mg</option>
+                <option value="12.5mg">12.5mg</option>
+                <option value="15mg">15mg</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any observations..."></textarea>
+            </div>
+            <button type="submit">Log Injection</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- HRT In-Clinic Injection Form -->
+      <div id="tab-hrt-inj" class="form-section">
+        <div class="card">
+          <h2>💉 Log HRT In-Clinic Injection</h2>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+            For patients on 2x/week injection protocol who come in for administration.
+          </p>
+          <form id="hrtInjForm" onsubmit="submitHRTInjection(event)">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
+              <label>Medication</label>
+              <select name="medication" required>
+                <option value="">Select medication...</option>
+                <option value="Testosterone Cypionate">Testosterone Cypionate</option>
+                <option value="Testosterone Enanthate">Testosterone Enanthate</option>
+                <option value="Nandrolone">Nandrolone</option>
+                <option value="HCG">HCG</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Dose Administered</label>
+              <input type="text" name="dosage" placeholder="e.g. 100mg" required>
+            </div>
+            <div class="form-group">
+              <label>Injection Site</label>
+              <select name="site">
+                <option value="">Select site (optional)...</option>
+                <option value="Deltoid - Left">Deltoid - Left</option>
+                <option value="Deltoid - Right">Deltoid - Right</option>
+                <option value="Glute - Left">Glute - Left</option>
+                <option value="Glute - Right">Glute - Right</option>
+                <option value="Thigh - Left">Thigh - Left</option>
+                <option value="Thigh - Right">Thigh - Right</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any observations..."></textarea>
+            </div>
+            <button type="submit">Log HRT Injection</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- HRT Fulfillment Form -->
+      <div id="tab-hrt" class="form-section">
+        <div class="card">
+          <h2>💊 Log HRT Medication Pickup</h2>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+            For take-home medication pickups. This will update the next fulfillment date.
+          </p>
+          <form id="hrtForm" onsubmit="submitHRT(event)">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
+              <label>Supply Type</label>
+              <select name="supply_type" required>
+                <option value="">Select type...</option>
+                <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
+                <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
+                <option value="vial_10ml">Vial 10ml (10-16 weeks based on dose)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Medication</label>
+              <input type="text" name="medication" placeholder="e.g. Testosterone Cypionate">
+            </div>
+            <div class="form-group">
+              <label>Dosage</label>
+              <input type="text" name="dosage" placeholder="e.g. 200mg/week">
+            </div>
+            <button type="submit">Log Fulfillment</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Session Form -->
+      <div id="tab-session" class="form-section">
+        <div class="card">
+          <h2>📋 Log Session</h2>
+          <form id="sessionForm" onsubmit="submitSession(event)">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
+              <label>Session Type</label>
+              <select name="session_type" required>
+                <option value="">Select type...</option>
+                <option value="iv">IV Therapy</option>
+                <option value="hbot">HBOT (Hyperbaric)</option>
+                <option value="rlt">Red Light Therapy</option>
+                <option value="injection">Injection Pack</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any observations..."></textarea>
+            </div>
+            <button type="submit">Log Session</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Blood Draw Form -->
+      <div id="tab-blood" class="form-section">
+        <div class="card">
+          <h2>🩸 Log HRT Blood Draw</h2>
+          <form id="bloodForm" onsubmit="submitBlood(event)">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
+              <label>Panel Type</label>
+              <select name="panel_type" required>
+                <option value="">Select panel...</option>
+                <option value="Essential Panel">Essential Panel</option>
+                <option value="Elite Panel">Elite Panel</option>
+                <option value="Follow Up Panel">Follow Up Panel</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea name="notes" placeholder="Any observations..."></textarea>
+            </div>
+            <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <p style="color: #374151; font-size: 14px; margin-bottom: 12px;">
+                <strong>This will update in GHL:</strong>
+              </p>
+              <ul style="color: #6b7280; font-size: 13px; margin-left: 16px; line-height: 1.8;">
+                <li>HRT - Last Blood Draw → Selected date</li>
+                <li>HRT - Next Blood Draw → 8 weeks later</li>
+                <li>Adds note with panel type to timeline</li>
+                <li>Creates task for next blood draw</li>
+              </ul>
+            </div>
+            <button type="submit">Confirm Blood Draw Completed</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Config
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api' 
+      : 'https://app.range-medical.com/api';
+    
+    // State
+    let selectedPatient = null;
+    let searchTimeout = null;
+    
+    // Store patient data for click handlers (avoids inline onclick issues with special chars like apostrophes)
+    let patientCache = {};
+    
+    // Patient Search
+    const searchInput = document.getElementById('patientSearch');
+    const searchResults = document.getElementById('searchResults');
+    const searchLoading = document.getElementById('searchLoading');
+    
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      
+      if (query.length < 2) {
+        searchResults.style.display = 'none';
+        return;
+      }
+      
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => searchPatients(query), 300);
+    });
+    
+    async function searchPatients(query) {
+      searchLoading.style.display = 'block';
+      searchResults.style.display = 'none';
+      
+      try {
+        const res = await fetch(`${API_BASE}/patients/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        searchLoading.style.display = 'none';
+        
+        if (data.patients && data.patients.length > 0) {
+          // Clear cache and store new patients
+          patientCache = {};
+          data.patients.forEach((p, idx) => {
+            patientCache[idx] = p;
+          });
+          
+          // Build results using data-index instead of inline onclick with values
+          // This avoids issues with apostrophes and other special characters in names
+          searchResults.innerHTML = data.patients.map((p, idx) => `
+            <div class="search-result" data-patient-index="${idx}">
+              <div class="name">${escapeHtml(p.name)}</div>
+              <div class="id">${p.ghl_contact_id ? 'GHL: ' + p.ghl_contact_id : 'No GHL ID'}</div>
+            </div>
+          `).join('');
+          searchResults.style.display = 'block';
+        } else {
+          searchResults.innerHTML = '<div class="search-result"><div class="name">No patients found</div></div>';
+          searchResults.style.display = 'block';
+        }
+      } catch (err) {
+        searchLoading.style.display = 'none';
+        showError('Search failed: ' + err.message);
+      }
+    }
+    
+    // Event delegation for search results - handles clicks safely without inline onclick
+    searchResults.addEventListener('click', function(e) {
+      const resultEl = e.target.closest('.search-result');
+      if (!resultEl) return;
+      
+      const idx = resultEl.dataset.patientIndex;
+      if (idx === undefined) return;
+      
+      const patient = patientCache[idx];
+      if (!patient) return;
+      
+      selectPatient(patient.id, patient.ghl_contact_id || '', patient.name);
+    });
+    
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+    
+    function selectPatient(id, ghlId, name) {
+      if (!ghlId) {
+        showError('This patient has no GHL Contact ID linked. Please link them first.');
+        return;
+      }
+      
+      selectedPatient = { id, ghlId, name };
+      document.getElementById('selectedPatientName').textContent = name;
+      document.getElementById('selectedPatientId').textContent = 'GHL: ' + ghlId;
+      
+      document.getElementById('patientSelect').style.display = 'none';
+      document.getElementById('formSection').style.display = 'block';
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    }
+    
+    function changePatient() {
+      selectedPatient = null;
+      document.getElementById('patientSelect').style.display = 'block';
+      document.getElementById('formSection').style.display = 'none';
+      clearMessages();
+    }
+    
+    // Tabs
+    function showTab(tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+      clearMessages();
+      
+      // Set default date to today for date fields
+      setDefaultDates();
+    }
+    
+    function setDefaultDates() {
+      const today = new Date().toISOString().split('T')[0];
+      document.querySelectorAll('input[type="date"]').forEach(input => {
+        if (!input.value) {
+          input.value = today;
+        }
+      });
+    }
+    
+    // Set default dates on page load
+    document.addEventListener('DOMContentLoaded', setDefaultDates);
+    
+    // Protocol type form handling
+    function updateProtocolForm() {
+      const type = document.getElementById('protocolType').value;
+      
+      // Hide all protocol-specific fields
+      document.querySelectorAll('.protocol-fields').forEach(el => {
+        el.style.display = 'none';
+        // Remove required from hidden fields
+        el.querySelectorAll('[required]').forEach(field => {
+          field.removeAttribute('required');
+          field.dataset.wasRequired = 'true';
+        });
+      });
+      
+      // Show relevant fields and restore required
+      let activeFields = null;
+      if (type === 'weight_loss') {
+        activeFields = document.getElementById('wlFields');
+      } else if (type === 'peptide') {
+        activeFields = document.getElementById('peptideFields');
+      } else if (type === 'hrt') {
+        activeFields = document.getElementById('hrtFields');
+      } else if (type === 'iv_therapy') {
+        activeFields = document.getElementById('ivFields');
+      } else if (type === 'injection') {
+        activeFields = document.getElementById('injectionFields');
+      } else if (type === 'hbot') {
+        activeFields = document.getElementById('hbotFields');
+      } else if (type === 'rlt') {
+        activeFields = document.getElementById('rltFields');
+      }
+      
+      if (activeFields) {
+        activeFields.style.display = 'block';
+        // Restore required on visible fields
+        activeFields.querySelectorAll('[data-was-required]').forEach(field => {
+          field.setAttribute('required', '');
+        });
+      }
+    }
+    
+    // Show/hide HRT fulfillment based on delivery method
+    document.addEventListener('change', function(e) {
+      if (e.target.name === 'hrt_delivery') {
+        const fulfillmentGroup = document.getElementById('hrtFulfillmentGroup');
+        if (e.target.value === 'take_home') {
+          fulfillmentGroup.style.display = 'block';
+        } else {
+          fulfillmentGroup.style.display = 'none';
+        }
+      }
+    });
+    
+    // Auto-populate peptide dosage hint
+    function updatePeptideDosage() {
+      const select = document.getElementById('peptideSelect');
+      const dosageInput = document.getElementById('peptideDosage');
+      const dosageHint = document.getElementById('dosageHint');
+      
+      const selectedOption = select.options[select.selectedIndex];
+      const suggestedDose = selectedOption.getAttribute('data-dose');
+      
+      if (suggestedDose) {
+        dosageHint.textContent = `Suggested: ${suggestedDose}`;
+        if (!dosageInput.value) {
+          dosageInput.placeholder = suggestedDose;
+        }
+      } else {
+        dosageHint.textContent = '';
+        dosageInput.placeholder = 'e.g. 500mcg';
+      }
+    }
+    
+    async function submitStartProtocol(e) {
+      e.preventDefault();
+      const form = e.target;
+      const protocolType = form.protocol_type.value;
+      
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        patient_id: selectedPatient.id,
+        contact_name: selectedPatient.name,
+        protocol_type: protocolType,
+        start_date: form.start_date.value,
+        notes: form.notes.value || null
+      };
+      
+      // Add protocol-specific fields based on type
+      switch (protocolType) {
+        case 'weight_loss':
+          data.medication = form.wl_medication.value;
+          data.starting_dose = form.wl_starting_dose.value;
+          data.delivery_method = form.wl_delivery.value;
+          data.total_injections = form.wl_total_injections.value;
+          data.starting_weight = form.wl_starting_weight.value || null;
+          break;
+          
+        case 'peptide':
+          data.program_name = form.peptide_program.value;
+          data.medication = form.peptide_medication.value;
+          data.dosage = form.peptide_dosage.value;
+          data.frequency = form.peptide_frequency.value;
+          data.delivery_method = form.peptide_delivery.value;
+          break;
+          
+        case 'hrt':
+          data.medication = form.hrt_medication.value;
+          data.dosage = form.hrt_dosage.value;
+          data.delivery_method = form.hrt_delivery.value;
+          data.supply_type = form.hrt_supply_type.value || null;
+          break;
+          
+        case 'iv_therapy':
+          data.package_type = form.iv_package.value;
+          data.iv_type = form.iv_type.value || null;
+          data.total_sessions = form.iv_package.value === 'Single' ? 1 : 
+                                form.iv_package.value === '5 Pack' ? 5 : 10;
+          data.delivery_method = 'in_clinic';
+          break;
+          
+        case 'injection':
+          data.package_type = form.injection_package.value;
+          data.injection_type = form.injection_type.value || null;
+          data.total_sessions = form.injection_package.value === 'Single' ? 1 : 
+                                form.injection_package.value === '5 Pack' ? 5 : 10;
+          data.delivery_method = form.injection_delivery.value;
+          break;
+          
+        case 'hbot':
+          data.package_type = form.hbot_package.value;
+          data.total_sessions = form.hbot_package.value === 'Single' ? 1 : 
+                                form.hbot_package.value === '5 Pack' ? 5 : 10;
+          data.delivery_method = 'in_clinic';
+          break;
+          
+        case 'rlt':
+          data.package_type = form.rlt_package.value;
+          data.total_sessions = form.rlt_package.value === 'Single' ? 1 : 
+                                form.rlt_package.value === '5 Pack' ? 5 : 10;
+          data.delivery_method = 'in_clinic';
+          break;
+      }
+      
+      await submitForm('/ghl/start-protocol', data, form);
+    }
+    
+    // Form Submissions
+    async function submitWL(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        date: form.date.value,
+        medication: form.medication.value,
+        weight: form.weight.value,
+        dose: form.dose.value,
+        notes: form.notes.value
+      };
+      
+      await submitForm('/ghl/log-wl-injection', data, form);
+    }
+    
+    async function submitHRTInjection(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        date: form.date.value,
+        medication: form.medication.value,
+        dosage: form.dosage.value,
+        site: form.site.value,
+        notes: form.notes.value
+      };
+      
+      await submitForm('/ghl/log-hrt-injection', data, form);
+    }
+    
+    async function submitHRT(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        date: form.date.value,
+        supply_type: form.supply_type.value,
+        medication: form.medication.value,
+        dosage: form.dosage.value
+      };
+      
+      await submitForm('/ghl/log-hrt-fulfillment', data, form);
+    }
+    
+    async function submitSession(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        date: form.date.value,
+        session_type: form.session_type.value,
+        notes: form.notes.value
+      };
+      
+      await submitForm('/ghl/log-session', data, form);
+    }
+    
+    async function submitBlood(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        contact_id: selectedPatient.ghlId,
+        contact_name: selectedPatient.name,
+        date: form.date.value,
+        panel_type: form.panel_type.value,
+        notes: form.notes.value || null
+      };
+      
+      await submitForm('/ghl/log-hrt-blooddraw', data, form);
+    }
+    
+    async function submitForm(endpoint, data, form) {
+      const btn = form.querySelector('button[type="submit"]');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      clearMessages();
+      
+      try {
+        const res = await fetch(API_BASE + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          showSuccess(result.message || 'Logged successfully!');
+          form.reset();
+          setDefaultDates(); // Reset date to today
+        } else {
+          showError(result.error || 'Something went wrong');
+        }
+      } catch (err) {
+        showError('Request failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+    
+    // Messages
+    function showSuccess(msg) {
+      const el = document.getElementById('successMsg');
+      el.textContent = '✓ ' + msg;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 5000);
+    }
+    
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+    
+    function clearMessages() {
+      document.getElementById('successMsg').style.display = 'none';
+      document.getElementById('errorMsg').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

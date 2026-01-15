@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Symptom Questionnaire | Range Medical</title>
+    <meta name="description" content="Complete your symptom questionnaire to help Range Medical track your health optimization progress.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Supabase client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: #171717;
+            line-height: 1.6;
+            background: #fafafa;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e5;
+            z-index: 100;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo img {
+            height: 80px;
+            width: auto;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .page-kicker {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #737373;
+            margin-bottom: 0.75rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #171717;
+            margin-bottom: 0.75rem;
+        }
+
+        .page-subtitle {
+            font-size: 1rem;
+            color: #525252;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .patient-info-card {
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .patient-info-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .patient-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #171717;
+        }
+
+        .form-input {
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #000000;
+        }
+
+        .progress-container {
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #171717;
+        }
+
+        .progress-count {
+            font-size: 0.875rem;
+            color: #737373;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e5e5e5;
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #000000;
+            border-radius: 100px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .section-card {
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .section-number {
+            width: 36px;
+            height: 36px;
+            background: #000000;
+            color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #171717;
+        }
+
+        .question {
+            margin-bottom: 2rem;
+        }
+
+        .question:last-child {
+            margin-bottom: 0;
+        }
+
+        .question-text {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #171717;
+            margin-bottom: 0.75rem;
+        }
+
+        .slider-container {
+            padding: 0.5rem 0;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .slider-label {
+            font-size: 0.75rem;
+            color: #737373;
+            max-width: 120px;
+        }
+
+        .slider-label:last-child {
+            text-align: right;
+        }
+
+        .slider-wrapper {
+            position: relative;
+            padding: 0.5rem 0;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #e5e5e5;
+            border-radius: 100px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #000000;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: #000000;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            text-align: center;
+            margin-top: 0.75rem;
+        }
+
+        .slider-value-display {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: #fafafa;
+            border: 2px solid #e5e5e5;
+            border-radius: 12px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #171717;
+            transition: all 0.2s;
+        }
+
+        .slider-value-display.answered {
+            border-color: #000000;
+            background: #ffffff;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #000000;
+        }
+
+        .radio-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio-option:hover {
+            border-color: #000000;
+        }
+
+        .radio-option.selected {
+            background: #000000;
+            border-color: #000000;
+            color: #ffffff;
+        }
+
+        .radio-option input {
+            display: none;
+        }
+
+        .radio-circle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #737373;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .radio-option.selected .radio-circle {
+            border-color: #ffffff;
+            background: #ffffff;
+        }
+
+        .radio-circle::after {
+            content: "";
+            width: 8px;
+            height: 8px;
+            background: #000000;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .radio-option.selected .radio-circle::after {
+            opacity: 1;
+        }
+
+        .radio-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .sex-selection {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .sex-option {
+            padding: 1.5rem;
+            background: #fafafa;
+            border: 2px solid #e5e5e5;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sex-option:hover {
+            border-color: #000000;
+        }
+
+        .sex-option.selected {
+            background: #000000;
+            border-color: #000000;
+            color: #ffffff;
+        }
+
+        .sex-option input {
+            display: none;
+        }
+
+        .sex-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .sex-label {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .conditional-section {
+            display: none;
+        }
+
+        .conditional-section.visible {
+            display: block;
+        }
+
+        .submit-section {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .submit-btn {
+            display: inline-block;
+            background: #000000;
+            color: #ffffff;
+            padding: 1rem 3rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            background: #262626;
+            transform: translateY(-1px);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-note {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #737373;
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 3rem 2rem;
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+        }
+
+        .success-message.visible {
+            display: block;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .success-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-text {
+            font-size: 1rem;
+            color: #525252;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e5e5;
+            border-top-color: #000000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1rem;
+            color: #525252;
+        }
+
+        .footer {
+            background: #ffffff;
+            border-top: 1px solid #e5e5e5;
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .footer-logo img {
+            height: 40px;
+            margin-bottom: 1rem;
+        }
+
+        .footer-text {
+            font-size: 0.875rem;
+            color: #737373;
+        }
+
+        .footer-phone {
+            color: #000000;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Provider Report Styles */
+        .provider-report {
+            display: none;
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .provider-report.visible {
+            display: block;
+        }
+
+        .report-header {
+            text-align: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #000000;
+            margin-bottom: 2rem;
+        }
+
+        .report-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .report-subtitle {
+            font-size: 0.875rem;
+            color: #737373;
+        }
+
+        .report-patient-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+
+        .report-info-item {
+            font-size: 0.875rem;
+        }
+
+        .report-info-label {
+            color: #737373;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .report-info-value {
+            font-weight: 600;
+            color: #171717;
+        }
+
+        .score-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .score-card {
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e5e5e5;
+        }
+
+        .score-card.green { background: #dcfce7; border-color: #22c55e; }
+        .score-card.yellow { background: #fef9c3; border-color: #eab308; }
+        .score-card.red { background: #fee2e2; border-color: #ef4444; }
+
+        .score-card-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .score-card.green .score-card-label { color: #166534; }
+        .score-card.yellow .score-card-label { color: #854d0e; }
+        .score-card.red .score-card-label { color: #991b1b; }
+
+        .score-card-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .score-card.green .score-card-value { color: #166534; }
+        .score-card.yellow .score-card-value { color: #854d0e; }
+        .score-card.red .score-card-value { color: #991b1b; }
+
+        .score-card-bar {
+            height: 6px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 100px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .score-card-fill {
+            height: 100%;
+            border-radius: 100px;
+        }
+
+        .score-card.green .score-card-fill { background: #22c55e; }
+        .score-card.yellow .score-card-fill { background: #eab308; }
+        .score-card.red .score-card-fill { background: #ef4444; }
+
+        .legend-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            padding: 1rem;
+            background: #fafafa;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.green { background: #22c55e; }
+        .legend-dot.yellow { background: #eab308; }
+        .legend-dot.red { background: #ef4444; }
+
+        .detailed-scores {
+            border-top: 1px solid #e5e5e5;
+            padding-top: 1.5rem;
+        }
+
+        .detailed-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detailed-section-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .detailed-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            font-size: 0.875rem;
+        }
+
+        .detailed-item-question {
+            color: #525252;
+        }
+
+        .detailed-item-score {
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.8125rem;
+        }
+
+        .detailed-item-score.green { background: #dcfce7; color: #166534; }
+        .detailed-item-score.yellow { background: #fef9c3; color: #854d0e; }
+        .detailed-item-score.red { background: #fee2e2; color: #991b1b; }
+
+        .goals-section {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+
+        .goals-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #737373;
+            margin-bottom: 0.5rem;
+        }
+
+        .goals-text {
+            font-size: 0.9375rem;
+            color: #171717;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 640px) {
+            .container { padding: 1.5rem 1rem 3rem; }
+            .page-title { font-size: 1.5rem; }
+            .section-card { padding: 1.5rem; }
+            .patient-info-grid { grid-template-columns: 1fr; }
+            .sex-selection { grid-template-columns: 1fr; }
+            .report-patient-info { grid-template-columns: 1fr; }
+            .score-summary-grid { grid-template-columns: 1fr; }
+            .legend-bar { flex-direction: column; align-items: center; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Submitting your questionnaire...</div>
+    </div>
+
+    <header class="header">
+        <div class="header-inner">
+            <a href="/home" class="logo">
+                <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" alt="Range Medical">
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-header" id="pageHeader">
+            <div class="page-kicker">Health Assessment</div>
+            <h1 class="page-title">Core Symptom Questionnaire</h1>
+            <p class="page-subtitle">Please complete this questionnaire so we can better understand how you're feeling and tailor your care.</p>
+        </div>
+
+        <div class="success-message" id="successMessage">
+            <div class="success-icon">✓</div>
+            <h2 class="success-title">Thank You!</h2>
+            <p class="success-text">Your questionnaire has been submitted successfully. Your provider will review your responses and follow up with you.</p>
+        </div>
+
+        <div class="provider-report" id="providerReport"></div>
+
+        <form id="symptomForm">
+            <div class="patient-info-card" id="patientInfoCard">
+                <h2 class="patient-info-title">Patient Information</h2>
+                <div class="patient-info-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="firstName">First Name *</label>
+                        <input type="text" class="form-input" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="lastName">Last Name *</label>
+                        <input type="text" class="form-input" id="lastName" name="lastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email *</label>
+                        <input type="email" class="form-input" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Phone</label>
+                        <input type="tel" class="form-input" id="phone" name="phone">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="dob">Date of Birth</label>
+                        <input type="date" class="form-input" id="dob" name="dob">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Biological Sex *</label>
+                        <div class="sex-selection">
+                            <label class="sex-option" id="sexMale">
+                                <input type="radio" name="sex" value="male" required onchange="handleSexSelection('male')">
+                                <div class="sex-icon">♂</div>
+                                <div class="sex-label">Male</div>
+                            </label>
+                            <label class="sex-option" id="sexFemale">
+                                <input type="radio" name="sex" value="female" onchange="handleSexSelection('female')">
+                                <div class="sex-icon">♀</div>
+                                <div class="sex-label">Female</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-header">
+                    <span class="progress-label">Your Progress</span>
+                    <span class="progress-count"><span id="answeredCount">0</span> of <span id="totalCount">0</span> questions</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- Section 1: About You Today -->
+            <div class="section-card" id="section1">
+                <div class="section-header">
+                    <div class="section-number">1</div>
+                    <h2 class="section-title">About You Today</h2>
+                </div>
+                <div class="question">
+                    <p class="question-text">What are the top 1-3 things you want to feel better about?</p>
+                    <textarea class="text-input" name="goals" placeholder="Example: More energy during the day, better sleep, lose 15 pounds..." oninput="updateProgress()"></textarea>
+                </div>
+                <div class="question">
+                    <p class="question-text">In the last 4 weeks, how has your overall health felt?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels">
+                            <span class="slider-label">Terrible</span>
+                            <span class="slider-label">Best it has ever been</span>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="overall_health" min="0" max="10" value="5" data-section="about" data-inverted="false" data-question="Overall health (last 4 weeks)" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value">
+                            <span class="slider-value-display" id="display_overall_health">5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Energy and Brain -->
+            <div class="section-card" id="section2">
+                <div class="section-header">
+                    <div class="section-number">2</div>
+                    <h2 class="section-title">Energy and Brain</h2>
+                </div>
+                <div class="question">
+                    <p class="question-text">How is your daytime energy?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">No energy</span><span class="slider-label">Great all day</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="daytime_energy" min="0" max="10" value="5" data-section="energy" data-inverted="false" data-question="Daytime energy" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_daytime_energy">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How often do you feel tired or worn out during the day?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Never</span><span class="slider-label">All the time</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="tiredness" min="0" max="10" value="5" data-section="energy" data-inverted="true" data-question="Daytime tiredness" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_tiredness">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How clear is your thinking and focus?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very foggy</span><span class="slider-label">Very sharp</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="mental_clarity" min="0" max="10" value="5" data-section="energy" data-inverted="false" data-question="Mental clarity & focus" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_mental_clarity">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How is your memory for simple things day to day?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very poor</span><span class="slider-label">Very good</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="memory" min="0" max="10" value="5" data-section="energy" data-inverted="false" data-question="Day-to-day memory" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_memory">5</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Sleep -->
+            <div class="section-card" id="section3">
+                <div class="section-header">
+                    <div class="section-number">3</div>
+                    <h2 class="section-title">Sleep</h2>
+                </div>
+                <div class="question">
+                    <p class="question-text">How easy is it to fall asleep at night?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very hard</span><span class="slider-label">Very easy</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="fall_asleep" min="0" max="10" value="5" data-section="sleep" data-inverted="false" data-question="Ease of falling asleep" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_fall_asleep">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How rested do you feel when you wake up?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Not rested at all</span><span class="slider-label">Very rested</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="wake_rested" min="0" max="10" value="5" data-section="sleep" data-inverted="false" data-question="Morning restfulness" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_wake_rested">5</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Mood and Stress -->
+            <div class="section-card" id="section4">
+                <div class="section-header">
+                    <div class="section-number">4</div>
+                    <h2 class="section-title">Mood and Stress</h2>
+                </div>
+                <div class="question">
+                    <p class="question-text">How is your mood most days?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very low</span><span class="slider-label">Very good</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="mood" min="0" max="10" value="5" data-section="mood" data-inverted="false" data-question="Daily mood" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_mood">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How stressed or "on edge" do you feel most days?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Not at all</span><span class="slider-label">Extremely</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="stress" min="0" max="10" value="5" data-section="mood" data-inverted="true" data-question="Stress level" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_stress">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How often do you feel anxious or worried?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Never</span><span class="slider-label">Almost all the time</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="anxiety" min="0" max="10" value="5" data-section="mood" data-inverted="true" data-question="Anxiety frequency" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_anxiety">5</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: Weight and Metabolism -->
+            <div class="section-card" id="section5">
+                <div class="section-header">
+                    <div class="section-number">5</div>
+                    <h2 class="section-title">Weight and Metabolism</h2>
+                </div>
+                <div class="question">
+                    <p class="question-text">How happy are you with your weight and body shape right now?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very unhappy</span><span class="slider-label">Very happy</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="weight_satisfaction" min="0" max="10" value="5" data-section="weight" data-inverted="false" data-question="Weight/body satisfaction" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_weight_satisfaction">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How easy is it for you to lose weight when you try?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very hard</span><span class="slider-label">Very easy</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="weight_loss_ease" min="0" max="10" value="5" data-section="weight" data-inverted="false" data-question="Weight loss ease" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_weight_loss_ease">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">Do you have strong food or sugar cravings?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Never</span><span class="slider-label">Very strong every day</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="cravings" min="0" max="10" value="5" data-section="weight" data-inverted="true" data-question="Food/sugar cravings" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_cravings">5</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 6: Recovery, Pain, and Physical Function -->
+            <div class="section-card" id="section6">
+                <div class="section-header">
+                    <div class="section-number">6</div>
+                    <h2 class="section-title">Recovery, Pain, and Physical Function</h2>
+                </div>
+                <div class="question">
+                    <p class="question-text">How fast do you feel you recover from workouts, work, or injury?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very slow</span><span class="slider-label">Very fast</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="recovery_speed" min="0" max="10" value="5" data-section="recovery" data-inverted="false" data-question="Recovery speed" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_recovery_speed">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How much pain or soreness do you feel most days?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">None</span><span class="slider-label">Severe</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="pain" min="0" max="10" value="5" data-section="recovery" data-inverted="true" data-question="Daily pain/soreness" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_pain">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How strong do you feel overall?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very weak</span><span class="slider-label">Very strong</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="strength" min="0" max="10" value="5" data-section="recovery" data-inverted="false" data-question="Overall strength" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_strength">5</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 7: Hormones and Sexual Health -->
+            <div class="section-card" id="section7">
+                <div class="section-header">
+                    <div class="section-number">7</div>
+                    <h2 class="section-title">Hormones and Sexual Health</h2>
+                </div>
+                <div class="question">
+                    <p class="question-text">How is your sex drive (interest in sex)?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">None</span><span class="slider-label">Very strong</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="sex_drive" min="0" max="10" value="5" data-section="hormones" data-inverted="false" data-question="Sex drive" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_sex_drive">5</span></div>
+                    </div>
+                </div>
+                <div class="question">
+                    <p class="question-text">How is your sexual performance or satisfaction?</p>
+                    <div class="slider-container">
+                        <div class="slider-labels"><span class="slider-label">Very poor</span><span class="slider-label">Very good</span></div>
+                        <div class="slider-wrapper">
+                            <input type="range" name="sexual_performance" min="0" max="10" value="5" data-section="hormones" data-inverted="false" data-question="Sexual satisfaction" oninput="updateSliderDisplay(this)">
+                        </div>
+                        <div class="slider-value"><span class="slider-value-display" id="display_sexual_performance">5</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Male Add-On Questions -->
+            <div class="conditional-section" id="maleSection">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-number">M</div>
+                        <h2 class="section-title">Male-Specific Questions</h2>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">Morning erections (last 4 weeks):</p>
+                        <div class="slider-container">
+                            <div class="slider-labels"><span class="slider-label">Never</span><span class="slider-label">Almost every morning</span></div>
+                            <div class="slider-wrapper">
+                                <input type="range" name="morning_erections" min="0" max="10" value="5" data-section="male" data-inverted="false" data-question="Morning erections" oninput="updateSliderDisplay(this)">
+                            </div>
+                            <div class="slider-value"><span class="slider-value-display" id="display_morning_erections">5</span></div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">How often do you have trouble getting or keeping an erection?</p>
+                        <div class="slider-container">
+                            <div class="slider-labels"><span class="slider-label">Never</span><span class="slider-label">Almost always</span></div>
+                            <div class="slider-wrapper">
+                                <input type="range" name="erection_trouble" min="0" max="10" value="5" data-section="male" data-inverted="true" data-question="Erection difficulty" oninput="updateSliderDisplay(this)">
+                            </div>
+                            <div class="slider-value"><span class="slider-value-display" id="display_erection_trouble">5</span></div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">How much has your strength, muscle, or workout performance changed in the last year?</p>
+                        <div class="slider-container">
+                            <div class="slider-labels"><span class="slider-label">Much worse</span><span class="slider-label">Much better</span></div>
+                            <div class="slider-wrapper">
+                                <input type="range" name="muscle_change" min="0" max="10" value="5" data-section="male" data-inverted="false" data-question="Muscle/performance change (1yr)" oninput="updateSliderDisplay(this)">
+                            </div>
+                            <div class="slider-value"><span class="slider-value-display" id="display_muscle_change">5</span></div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">How often do you feel "flat," unmotivated, or less driven than you used to be?</p>
+                        <div class="slider-container">
+                            <div class="slider-labels"><span class="slider-label">Never</span><span class="slider-label">Almost all the time</span></div>
+                            <div class="slider-wrapper">
+                                <input type="range" name="motivation" min="0" max="10" value="5" data-section="male" data-inverted="true" data-question="Low motivation/drive" oninput="updateSliderDisplay(this)">
+                            </div>
+                            <div class="slider-value"><span class="slider-value-display" id="display_motivation">5</span></div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">Have you ever been told you have low testosterone or hormone issues?</p>
+                        <div class="radio-options">
+                            <label class="radio-option" onclick="selectRadio(this, 'low_t_history')">
+                                <input type="radio" name="low_t_history" value="yes"><span class="radio-circle"></span><span class="radio-label">Yes</span>
+                            </label>
+                            <label class="radio-option" onclick="selectRadio(this, 'low_t_history')">
+                                <input type="radio" name="low_t_history" value="no"><span class="radio-circle"></span><span class="radio-label">No</span>
+                            </label>
+                            <label class="radio-option" onclick="selectRadio(this, 'low_t_history')">
+                                <input type="radio" name="low_t_history" value="not_sure"><span class="radio-circle"></span><span class="radio-label">Not sure</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Female Add-On Questions -->
+            <div class="conditional-section" id="femaleSection">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-number">F</div>
+                        <h2 class="section-title">Female-Specific Questions</h2>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">Are you having periods right now?</p>
+                        <div class="radio-options">
+                            <label class="radio-option" onclick="selectRadio(this, 'period_status'); showPeriodQuestions(true)">
+                                <input type="radio" name="period_status" value="regular"><span class="radio-circle"></span><span class="radio-label">Yes, regular</span>
+                            </label>
+                            <label class="radio-option" onclick="selectRadio(this, 'period_status'); showPeriodQuestions(true)">
+                                <input type="radio" name="period_status" value="irregular"><span class="radio-circle"></span><span class="radio-label">Yes, but irregular</span>
+                            </label>
+                            <label class="radio-option" onclick="selectRadio(this, 'period_status'); showPeriodQuestions(false)">
+                                <input type="radio" name="period_status" value="menopause"><span class="radio-circle"></span><span class="radio-label">No, menopause</span>
+                            </label>
+                            <label class="radio-option" onclick="selectRadio(this, 'period_status'); showPeriodQuestions(false)">
+                                <input type="radio" name="period_status" value="other"><span class="radio-circle"></span><span class="radio-label">No, other reason</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="question" id="periodOtherReason" style="display: none;">
+                        <p class="question-text">Please explain:</p>
+                        <textarea class="text-input" name="period_other_reason" placeholder="Please describe..." oninput="updateProgress()"></textarea>
+                    </div>
+                    <div id="periodQuestions" style="display: none;">
+                        <div class="question">
+                            <p class="question-text">If you have periods: how are they?</p>
+                            <div class="slider-container">
+                                <div class="slider-labels"><span class="slider-label">Very light / no symptoms</span><span class="slider-label">Very heavy or very painful</span></div>
+                                <div class="slider-wrapper">
+                                    <input type="range" name="period_severity" min="0" max="10" value="5" data-section="female" data-inverted="true" data-question="Period severity" oninput="updateSliderDisplay(this)">
+                                </div>
+                                <div class="slider-value"><span class="slider-value-display" id="display_period_severity">5</span></div>
+                            </div>
+                        </div>
+                        <div class="question">
+                            <p class="question-text">In the week before your period, how strong are symptoms like mood swings, cravings, breast tenderness, or bloating?</p>
+                            <div class="slider-container">
+                                <div class="slider-labels"><span class="slider-label">None</span><span class="slider-label">Very strong</span></div>
+                                <div class="slider-wrapper">
+                                    <input type="range" name="pms_symptoms" min="0" max="10" value="5" data-section="female" data-inverted="true" data-question="PMS symptoms" oninput="updateSliderDisplay(this)">
+                                </div>
+                                <div class="slider-value"><span class="slider-value-display" id="display_pms_symptoms">5</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">Hot flashes, night sweats, or sudden warmth:</p>
+                        <div class="slider-container">
+                            <div class="slider-labels"><span class="slider-label">Never</span><span class="slider-label">Many times per day or night</span></div>
+                            <div class="slider-wrapper">
+                                <input type="range" name="hot_flashes" min="0" max="10" value="5" data-section="female" data-inverted="true" data-question="Hot flashes/night sweats" oninput="updateSliderDisplay(this)">
+                            </div>
+                            <div class="slider-value"><span class="slider-value-display" id="display_hot_flashes">5</span></div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">Vaginal dryness or pain with sex:</p>
+                        <div class="slider-container">
+                            <div class="slider-labels"><span class="slider-label">None</span><span class="slider-label">Very bothersome</span></div>
+                            <div class="slider-wrapper">
+                                <input type="range" name="vaginal_dryness" min="0" max="10" value="5" data-section="female" data-inverted="true" data-question="Vaginal dryness" oninput="updateSliderDisplay(this)">
+                            </div>
+                            <div class="slider-value"><span class="slider-value-display" id="display_vaginal_dryness">5</span></div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <p class="question-text">Have you ever been told you have hormone issues (estrogen, progesterone, thyroid, PCOS, etc.)?</p>
+                        <div class="radio-options">
+                            <label class="radio-option" onclick="selectRadio(this, 'hormone_history')">
+                                <input type="radio" name="hormone_history" value="yes"><span class="radio-circle"></span><span class="radio-label">Yes</span>
+                            </label>
+                            <label class="radio-option" onclick="selectRadio(this, 'hormone_history')">
+                                <input type="radio" name="hormone_history" value="no"><span class="radio-circle"></span><span class="radio-label">No</span>
+                            </label>
+                            <label class="radio-option" onclick="selectRadio(this, 'hormone_history')">
+                                <input type="radio" name="hormone_history" value="not_sure"><span class="radio-circle"></span><span class="radio-label">Not sure</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="submit-section" id="submitSection">
+                <button type="submit" class="submit-btn" id="submitBtn">Submit Questionnaire</button>
+                <p class="submit-note">Your responses help us track your progress and optimize your treatment plan.</p>
+            </div>
+        </form>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-logo">
+            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" alt="Range Medical">
+        </div>
+        <p class="footer-text">Questions? Call us at <a href="tel:+19499973988" class="footer-phone">(949) 997-3988</a></p>
+    </footer>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            supabase: {
+                url: 'https://teivfptpozltpqwahgdl.supabase.co',
+                anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc',
+                bucket: 'medical-documents'
+            },
+            api: {
+                questionnaires: 'https://app.range-medical.com/api/questionnaires',
+                ghl: 'https://app.range-medical.com/api/questionnaire-to-ghl'
+            }
+        };
+
+        const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+        const interactedSliders = new Set();
+        let selectedSex = null;
+
+        document.addEventListener('DOMContentLoaded', function() { updateProgress(); });
+
+        function handleSexSelection(sex) {
+            selectedSex = sex;
+            document.getElementById('sexMale').classList.toggle('selected', sex === 'male');
+            document.getElementById('sexFemale').classList.toggle('selected', sex === 'female');
+            document.getElementById('maleSection').classList.toggle('visible', sex === 'male');
+            document.getElementById('femaleSection').classList.toggle('visible', sex === 'female');
+            updateProgress();
+        }
+
+        function showPeriodQuestions(show) {
+            document.getElementById('periodQuestions').style.display = show ? 'block' : 'none';
+            const periodStatus = document.querySelector('input[name="period_status"]:checked');
+            document.getElementById('periodOtherReason').style.display = (periodStatus && periodStatus.value === 'other') ? 'block' : 'none';
+            updateProgress();
+        }
+
+        function updateSliderDisplay(slider) {
+            const name = slider.name;
+            const value = parseInt(slider.value);
+            const display = document.getElementById('display_' + name);
+            if (display) {
+                display.textContent = value;
+                display.classList.add('answered');
+            }
+            interactedSliders.add(name);
+            updateProgress();
+        }
+
+        function selectRadio(element, name) {
+            const siblings = element.parentElement.querySelectorAll('.radio-option');
+            siblings.forEach(s => s.classList.remove('selected'));
+            element.classList.add('selected');
+            element.querySelector('input').checked = true;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const allSliders = document.querySelectorAll('input[type="range"]');
+            const visibleSliders = Array.from(allSliders).filter(s => {
+                const section = s.closest('.conditional-section');
+                return !section || section.classList.contains('visible');
+            });
+            const textInputs = document.querySelectorAll('textarea');
+            const filledTexts = Array.from(textInputs).filter(t => t.value.trim().length > 0).length;
+            const radioGroups = ['sex', 'low_t_history', 'hormone_history', 'period_status'];
+            const filledRadios = radioGroups.filter(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                if (!checked) return false;
+                const section = checked.closest('.conditional-section');
+                return !section || section.classList.contains('visible');
+            }).length;
+            const interactedVisible = Array.from(interactedSliders).filter(name => {
+                const slider = document.querySelector(`input[name="${name}"]`);
+                if (!slider) return false;
+                const section = slider.closest('.conditional-section');
+                return !section || section.classList.contains('visible');
+            }).length;
+            const total = visibleSliders.length + 2 + (selectedSex ? 2 : 0);
+            const answered = interactedVisible + filledTexts + (selectedSex ? 1 : 0) + filledRadios;
+            document.getElementById('answeredCount').textContent = answered;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('progressFill').style.width = (answered / total * 100) + '%';
+        }
+
+        function calculateSectionScores() {
+            const sections = {
+                'energy': { name: 'Energy & Brain', sliders: [] },
+                'sleep': { name: 'Sleep', sliders: [] },
+                'mood': { name: 'Mood & Stress', sliders: [] },
+                'weight': { name: 'Weight & Metabolism', sliders: [] },
+                'recovery': { name: 'Recovery & Pain', sliders: [] },
+                'hormones': { name: 'Hormones & Sexual', sliders: [] }
+            };
+            if (selectedSex === 'male') sections['male'] = { name: 'Male-Specific', sliders: [] };
+            else if (selectedSex === 'female') sections['female'] = { name: 'Female-Specific', sliders: [] };
+
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                const sectionId = slider.dataset.section;
+                const section = slider.closest('.conditional-section');
+                if (section && !section.classList.contains('visible')) return;
+                if (sections[sectionId]) {
+                    const value = parseInt(slider.value);
+                    const isInverted = slider.dataset.inverted === 'true';
+                    const normalizedValue = isInverted ? (10 - value) : value;
+                    sections[sectionId].sliders.push({
+                        name: slider.name,
+                        question: slider.dataset.question,
+                        rawValue: value,
+                        normalizedValue: normalizedValue,
+                        isInverted: isInverted
+                    });
+                }
+            });
+
+            Object.keys(sections).forEach(key => {
+                const s = sections[key];
+                if (s.sliders.length > 0) {
+                    const total = s.sliders.reduce((sum, sl) => sum + sl.normalizedValue, 0);
+                    s.average = total / s.sliders.length;
+                    s.color = s.average >= 7 ? 'green' : s.average >= 4 ? 'yellow' : 'red';
+                }
+            });
+            return sections;
+        }
+
+        function getColorClass(value) {
+            if (value >= 7) return 'green';
+            if (value >= 4) return 'yellow';
+            return 'red';
+        }
+
+        async function generatePDF(data, scores) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ compress: true });
+            let yPos = 20;
+            const leftMargin = 20;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const contentWidth = pageWidth - 40;
+
+            function checkNewPage(needed = 30) {
+                if (yPos + needed > 270) { doc.addPage(); yPos = 20; }
+            }
+
+            function addText(text, fontSize = 11, isBold = false, color = [0,0,0]) {
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+                doc.setTextColor(...color);
+                const lines = doc.splitTextToSize(String(text || ''), contentWidth);
+                checkNewPage(lines.length * fontSize * 0.4 + 5);
+                doc.text(lines, leftMargin, yPos);
+                yPos += (lines.length * fontSize * 0.4) + 3;
+            }
+
+            function addSection(title) {
+                checkNewPage(20);
+                yPos += 5;
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0,0,0);
+                doc.text(title, leftMargin, yPos);
+                yPos += 3;
+                doc.setLineWidth(0.5);
+                doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
+                yPos += 8;
+            }
+
+            function addScoreItem(question, score, isInverted = false) {
+                checkNewPage(10);
+                const normalizedScore = isInverted ? (10 - score) : score;
+                const color = normalizedScore >= 7 ? [34,197,94] : normalizedScore >= 4 ? [234,179,8] : [239,68,68];
+                const status = normalizedScore >= 7 ? 'OPTIMAL' : normalizedScore >= 4 ? 'MONITOR' : 'ATTENTION';
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(82,82,82);
+                doc.text(question, leftMargin, yPos);
+                doc.setFillColor(...color);
+                doc.roundedRect(pageWidth - 55, yPos - 4, 35, 6, 1, 1, 'F');
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(255,255,255);
+                doc.text(`${score}/10 ${status}`, pageWidth - 52, yPos);
+                yPos += 8;
+            }
+
+            // Header
+            doc.setFontSize(22);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0,0,0);
+            doc.text('RANGE MEDICAL', pageWidth/2, yPos, {align:'center'});
+            yPos += 8;
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Core Symptom Questionnaire', pageWidth/2, yPos, {align:'center'});
+            yPos += 6;
+            doc.setFontSize(10);
+            doc.setTextColor(100,100,100);
+            doc.text(`Submitted: ${new Date().toLocaleString()}`, pageWidth/2, yPos, {align:'center'});
+            yPos += 3;
+            doc.setLineWidth(1);
+            doc.setDrawColor(0,0,0);
+            doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
+            yPos += 10;
+
+            // Patient info
+            doc.setFillColor(250,250,250);
+            doc.roundedRect(leftMargin, yPos - 5, contentWidth, 25, 3, 3, 'F');
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0,0,0);
+            doc.text(`${data.firstName} ${data.lastName}`, leftMargin + 5, yPos + 3);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(82,82,82);
+            doc.text(`Sex: ${data.sex ? data.sex.charAt(0).toUpperCase() + data.sex.slice(1) : 'N/A'}`, leftMargin + 5, yPos + 10);
+            doc.text(`Email: ${data.email || 'N/A'}`, leftMargin + 60, yPos + 10);
+            doc.text(`DOB: ${data.dob || 'N/A'}`, leftMargin + 130, yPos + 10);
+            yPos += 30;
+
+            // Score summary
+            addSection('SCORE SUMMARY (Provider View)');
+            doc.setFontSize(8);
+            doc.setTextColor(100,100,100);
+            doc.text('● GREEN (7-10): Optimal   ● YELLOW (4-6): Monitor   ● RED (0-3): Attention', leftMargin, yPos);
+            yPos += 10;
+
+            const scoreKeys = Object.keys(scores).filter(k => scores[k].sliders && scores[k].sliders.length > 0);
+            let col = 0;
+            let startY = yPos;
+            scoreKeys.forEach((key) => {
+                const s = scores[key];
+                const x = leftMargin + (col * 90);
+                const y = startY;
+                const bgColor = s.color === 'green' ? [220,252,231] : s.color === 'yellow' ? [254,249,195] : [254,226,226];
+                const textColor = s.color === 'green' ? [22,101,52] : s.color === 'yellow' ? [133,77,14] : [153,27,27];
+                doc.setFillColor(...bgColor);
+                doc.roundedRect(x, y - 5, 85, 20, 2, 2, 'F');
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...textColor);
+                doc.text(s.name.toUpperCase(), x + 3, y + 2);
+                doc.setFontSize(14);
+                doc.text(s.average.toFixed(1) + '/10', x + 3, y + 11);
+                col++;
+                if (col >= 2) { col = 0; startY += 25; }
+            });
+            yPos = startY + (col > 0 ? 25 : 0) + 10;
+
+            // Goals
+            if (data.goals) {
+                addSection('PATIENT GOALS');
+                addText(data.goals, 10, false, [82,82,82]);
+            }
+
+            // Detailed scores
+            addSection('DETAILED SCORES');
+            Object.keys(scores).forEach(key => {
+                const s = scores[key];
+                if (!s.sliders || s.sliders.length === 0) return;
+                checkNewPage(40);
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0,0,0);
+                doc.text(`${s.name} (Avg: ${s.average.toFixed(1)})`, leftMargin, yPos);
+                yPos += 8;
+                s.sliders.forEach(sl => { addScoreItem(sl.question, sl.rawValue, sl.isInverted); });
+                yPos += 5;
+            });
+
+            // Additional info
+            const radioResponses = [];
+            if (data.low_t_history) radioResponses.push(`Low T History: ${data.low_t_history}`);
+            if (data.hormone_history) radioResponses.push(`Hormone Issues History: ${data.hormone_history}`);
+            if (data.period_status) radioResponses.push(`Period Status: ${data.period_status}`);
+            if (data.period_other_reason) radioResponses.push(`Period Notes: ${data.period_other_reason}`);
+            if (radioResponses.length > 0) {
+                addSection('ADDITIONAL RESPONSES');
+                radioResponses.forEach(r => addText(r, 10, false, [82,82,82]));
+            }
+
+            return doc;
+        }
+
+        async function uploadToSupabase(pdfBlob, fileName) {
+            const filePath = `questionnaires/${fileName}`;
+            const { data, error } = await supabaseClient.storage.from(CONFIG.supabase.bucket).upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+            if (error) { console.error('Supabase upload error:', error); throw error; }
+            const { data: urlData } = supabaseClient.storage.from(CONFIG.supabase.bucket).getPublicUrl(filePath);
+            return urlData.publicUrl;
+        }
+
+        document.getElementById('symptomForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            document.getElementById('loadingOverlay').classList.add('visible');
+
+            try {
+                const form = new FormData(this);
+                const data = {};
+                for (let [key, value] of form.entries()) { data[key] = value; }
+                data.submissionDate = new Date().toISOString();
+
+                const scores = calculateSectionScores();
+                const doc = await generatePDF(data, scores);
+                const pdfBlob = doc.output('blob');
+
+                const timestamp = new Date().toISOString().split('T')[0];
+                const safeName = `${data.firstName}-${data.lastName}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                const fileName = `symptom-questionnaire-${safeName}-${timestamp}.pdf`;
+
+                const pdfUrl = await uploadToSupabase(pdfBlob, fileName);
+                console.log('PDF uploaded:', pdfUrl);
+
+                // Save to database
+                try {
+                    await fetch(CONFIG.api.questionnaires, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...data, scores: scores, pdfUrl: pdfUrl })
+                    });
+                    console.log('Saved to database');
+                } catch (apiErr) { console.log('Database save skipped:', apiErr); }
+
+                // Sync to GoHighLevel
+                try {
+                    const ghlResponse = await fetch(CONFIG.api.ghl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            firstName: data.firstName,
+                            lastName: data.lastName,
+                            email: data.email,
+                            phone: data.phone,
+                            dob: data.dob,
+                            sex: data.sex,
+                            goals: data.goals,
+                            scores: scores,
+                            pdfUrl: pdfUrl,
+                            submissionDate: data.submissionDate
+                        })
+                    });
+                    const ghlResult = await ghlResponse.json();
+                    console.log('Synced to GHL:', ghlResult);
+                } catch (ghlErr) { console.log('GHL sync error:', ghlErr); }
+
+                document.getElementById('loadingOverlay').classList.remove('visible');
+                document.querySelectorAll('.section-card, .patient-info-card, #progressContainer, #submitSection, .page-header').forEach(el => { el.style.display = 'none'; });
+                document.getElementById('successMessage').classList.add('visible');
+
+            } catch (error) {
+                console.error('Submission error:', error);
+                document.getElementById('loadingOverlay').classList.remove('visible');
+                alert('There was an error submitting your questionnaire. Please try again.');
+            }
+        });
+
+        function showProviderReport(data, scores, pdfUrl) {
+            const report = document.getElementById('providerReport');
+            let scoreCardsHtml = '';
+            Object.keys(scores).forEach(key => {
+                const s = scores[key];
+                if (!s.sliders || s.sliders.length === 0) return;
+                scoreCardsHtml += `<div class="score-card ${s.color}"><div class="score-card-label">${s.name}</div><div class="score-card-value">${s.average.toFixed(1)}/10</div><div class="score-card-bar"><div class="score-card-fill" style="width: ${s.average * 10}%"></div></div></div>`;
+            });
+
+            let detailedHtml = '';
+            Object.keys(scores).forEach(key => {
+                const s = scores[key];
+                if (!s.sliders || s.sliders.length === 0) return;
+                let itemsHtml = '';
+                s.sliders.forEach(sl => {
+                    const color = getColorClass(sl.normalizedValue);
+                    itemsHtml += `<div class="detailed-item"><span class="detailed-item-question">${sl.question}</span><span class="detailed-item-score ${color}">${sl.rawValue}/10</span></div>`;
+                });
+                detailedHtml += `<div class="detailed-section"><div class="detailed-section-title">${s.name} (Avg: ${s.average.toFixed(1)})</div>${itemsHtml}</div>`;
+            });
+
+            report.innerHTML = `
+                <div class="report-header"><h2 class="report-title">Provider Symptom Report</h2><p class="report-subtitle">Submitted ${new Date().toLocaleString()}</p></div>
+                <div class="report-patient-info">
+                    <div class="report-info-item"><div class="report-info-label">Patient</div><div class="report-info-value">${data.firstName} ${data.lastName}</div></div>
+                    <div class="report-info-item"><div class="report-info-label">Sex</div><div class="report-info-value">${data.sex ? data.sex.charAt(0).toUpperCase() + data.sex.slice(1) : 'N/A'}</div></div>
+                    <div class="report-info-item"><div class="report-info-label">Email</div><div class="report-info-value">${data.email || 'N/A'}</div></div>
+                </div>
+                <div class="legend-bar">
+                    <div class="legend-item"><span class="legend-dot green"></span> Optimal (7-10)</div>
+                    <div class="legend-item"><span class="legend-dot yellow"></span> Monitor (4-6)</div>
+                    <div class="legend-item"><span class="legend-dot red"></span> Attention (0-3)</div>
+                </div>
+                <div class="score-summary-grid">${scoreCardsHtml}</div>
+                ${data.goals ? `<div class="goals-section"><div class="goals-title">Patient Goals</div><div class="goals-text">${data.goals}</div></div>` : ''}
+                <div class="detailed-scores"><h3 style="font-size: 1rem; margin-bottom: 1rem;">Detailed Scores</h3>${detailedHtml}</div>
+                <div style="margin-top: 2rem; text-align: center;"><a href="${pdfUrl}" target="_blank" class="submit-btn" style="text-decoration: none;">Download PDF Report</a></div>
+            `;
+            report.classList.add('visible');
+        }
+    </script>
+</body>
+</html>

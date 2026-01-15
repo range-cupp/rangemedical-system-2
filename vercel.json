@@ -1,8 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/cron/injection-reminders",
-      "schedule": "30 2 * * *"
+      "path": "/api/cron/link-forms",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/complete-protocols",
+      "schedule": "0 7 * * *"
     }
   ]
 }

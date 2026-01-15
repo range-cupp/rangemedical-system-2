@@ -1,79 +1,335 @@
 // /pages/admin/patient/[id].js
-// Complete Patient Profile View
-// Range Medical
+// Patient Profile Page - Range Medical
+// Includes: Protocols, Labs, Forms/Consents, Purchase History
 
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Link from 'next/link';
 
 export default function PatientProfile() {
   const router = useRouter();
-  const { id, ghl, email, phone } = router.query;
+  const { id } = router.query;
   
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [authChecked, setAuthChecked] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [data, setData] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [patient, setPatient] = useState(null);
+  const [activeProtocols, setActiveProtocols] = useState([]);
+  const [completedProtocols, setCompletedProtocols] = useState([]);
+  const [pendingNotifications, setPendingNotifications] = useState([]);
+  const [pendingLabOrders, setPendingLabOrders] = useState([]);
+  const [labs, setLabs] = useState([]);
+  const [labDocuments, setLabDocuments] = useState([]);
+  const [stats, setStats] = useState({});
+  
+  // Upload state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    file: null,
+    panelType: 'Elite',
+    collectionDate: new Date().toISOString().split('T')[0],
+    labProvider: 'AccessMedLabs',
+    notes: ''
+  });
+  const fileInputRef = useRef(null);
+  
+  // Edit protocol state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
-  // Check auth on mount
-  useEffect(() => {
-    const storedAuth = localStorage.getItem('range_admin_auth');
-    if (storedAuth) {
-      setPassword(storedAuth);
-      setIsAuthenticated(true);
+  // Purchase management state
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState(null);
+  const [purchaseForm, setPurchaseForm] = useState({
+    item_name: '',
+    amount: '',
+    purchase_date: new Date().toISOString().split('T')[0],
+    category: 'Peptide'
+  });
+
+  // PDF Viewer state
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [selectedPdf, setSelectedPdf] = useState(null);
+
+  const PURCHASE_CATEGORIES = ['Peptide', 'IV', 'Injection', 'Weight Loss', 'HRT', 'Labs', 'Red Light', 'HBOT', 'Other'];
+
+  // Helper to get full PDF URL from file_path
+  const getPdfUrl = (doc) => {
+    if (doc.file_url) return doc.file_url;
+    if (doc.file_path) {
+      return `https://teivfptpozltpqwahgdl.supabase.co/storage/v1/object/public/lab-documents/${doc.file_path}`;
     }
-    setAuthChecked(true);
-  }, []);
+    return null;
+  };
 
-  // Fetch patient data
+  const openPdfViewer = (doc) => {
+    setSelectedPdf(doc);
+    setShowPdfViewer(true);
+  };
+
+  const closePdfViewer = () => {
+    setShowPdfViewer(false);
+    setSelectedPdf(null);
+  };
+
   useEffect(() => {
-    if (isAuthenticated && password && (id || ghl || email || phone)) {
-      fetchPatientProfile();
+    if (id) {
+      fetchPatientData();
+      fetchLabDocuments();
     }
-  }, [isAuthenticated, password, id, ghl, email, phone]);
+  }, [id]);
 
-  const fetchPatientProfile = async () => {
-    setLoading(true);
-    setError('');
-    
+  const fetchPatientData = async () => {
     try {
-      let url = '/api/admin/patient?';
-      if (id && id !== 'lookup') url += `id=${id}`;
-      else if (ghl) url += `ghl_contact_id=${ghl}`;
-      else if (email) url += `email=${encodeURIComponent(email)}`;
-      else if (phone) url += `phone=${encodeURIComponent(phone)}`;
+      const res = await fetch(`/api/patients/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch patient');
+      const data = await res.json();
       
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${password}` }
-      });
-      
-      if (!res.ok) {
-        const err = await res.json();
-        setError(err.error || 'Failed to load patient');
-        setLoading(false);
-        return;
-      }
-      
-      const result = await res.json();
-      setData(result);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to load patient profile');
+      setPatient(data.patient);
+      setActiveProtocols(data.activeProtocols || []);
+      setCompletedProtocols(data.completedProtocols || []);
+      setPendingNotifications(data.pendingNotifications || []);
+      setPendingLabOrders(data.pendingLabOrders || []);
+      setLabs(data.labs || []);
+      setStats(data.stats || {});
+    } catch (error) {
+      console.error('Error fetching patient:', error);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    localStorage.setItem('range_admin_auth', password);
-    setIsAuthenticated(true);
+  const fetchLabDocuments = async () => {
+    try {
+      const res = await fetch(`/api/patients/${id}/lab-documents`);
+      if (res.ok) {
+        const data = await res.json();
+        setLabDocuments(data.documents || []);
+      }
+    } catch (error) {
+      console.error('Error fetching lab documents:', error);
+    }
+  };
+
+  const handleUploadLab = async () => {
+    if (!uploadForm.file) {
+      alert('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      const fileData = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(uploadForm.file);
+      });
+
+      const res = await fetch(`/api/patients/${id}/upload-lab`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData,
+          fileName: uploadForm.file.name,
+          panelType: uploadForm.panelType,
+          collectionDate: uploadForm.collectionDate,
+          labProvider: uploadForm.labProvider,
+          notes: uploadForm.notes
+        })
+      });
+
+      if (res.ok) {
+        setShowUploadModal(false);
+        setUploadForm({
+          file: null,
+          panelType: 'Elite',
+          collectionDate: new Date().toISOString().split('T')[0],
+          labProvider: 'AccessMedLabs',
+          notes: ''
+        });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        fetchLabDocuments();
+        fetchPatientData();
+        alert('Lab results uploaded successfully');
+      } else {
+        const error = await res.json();
+        alert(error.message || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteLabDocument = async (docId) => {
+    if (!confirm('Delete this lab document?')) return;
+    
+    try {
+      const res = await fetch(`/api/patients/${id}/lab-documents`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: docId })
+      });
+      if (res.ok) {
+        setLabDocuments(labDocuments.filter(d => d.id !== docId));
+      }
+    } catch (error) {
+      console.error('Error deleting document:', error);
+    }
+  };
+
+  const handleDeleteLabOrder = async (orderId) => {
+    if (!confirm('Delete this lab order?')) return;
+    
+    try {
+      const res = await fetch(`/api/lab-orders/${orderId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setPendingLabOrders(pendingLabOrders.filter(o => o.id !== orderId));
+      }
+    } catch (error) {
+      console.error('Error deleting lab order:', error);
+    }
+  };
+
+  const handleMarkLabComplete = async (orderId) => {
+    try {
+      const res = await fetch(`/api/lab-orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
+      if (res.ok) {
+        setPendingLabOrders(pendingLabOrders.filter(o => o.id !== orderId));
+        alert('Lab order marked as complete. Upload the results using "+ Upload Results"');
+      }
+    } catch (error) {
+      console.error('Error updating lab order:', error);
+    }
+  };
+
+  // Purchase management handlers
+  const openAddPurchase = () => {
+    setEditingPurchase(null);
+    setPurchaseForm({
+      item_name: '',
+      amount: '',
+      purchase_date: new Date().toISOString().split('T')[0],
+      category: 'Peptide'
+    });
+    setShowPurchaseModal(true);
+  };
+
+  const openEditPurchase = (purchase) => {
+    setEditingPurchase(purchase);
+    setPurchaseForm({
+      item_name: purchase.product_name || purchase.item_name || '',
+      amount: purchase.amount_paid || purchase.amount || '',
+      purchase_date: purchase.purchase_date || new Date().toISOString().split('T')[0],
+      category: purchase.category || 'Other'
+    });
+    setShowPurchaseModal(true);
+  };
+
+  const handleSavePurchase = async () => {
+    if (!purchaseForm.item_name) {
+      alert('Please enter a product name');
+      return;
+    }
+
+    try {
+      if (editingPurchase) {
+        // Update existing purchase
+        const res = await fetch(`/api/purchases/${editingPurchase.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item_name: purchaseForm.item_name,
+            product_name: purchaseForm.item_name,
+            amount: parseFloat(purchaseForm.amount) || 0,
+            amount_paid: parseFloat(purchaseForm.amount) || 0,
+            purchase_date: purchaseForm.purchase_date,
+            category: purchaseForm.category
+          })
+        });
+        if (res.ok) {
+          fetchPatientData();
+          setShowPurchaseModal(false);
+        } else {
+          alert('Failed to update purchase');
+        }
+      } else {
+        // Create new purchase
+        const res = await fetch('/api/purchases', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: id,
+            ghl_contact_id: patient?.ghl_contact_id,
+            patient_name: patient?.name,
+            item_name: purchaseForm.item_name,
+            product_name: purchaseForm.item_name,
+            amount: parseFloat(purchaseForm.amount) || 0,
+            amount_paid: parseFloat(purchaseForm.amount) || 0,
+            purchase_date: purchaseForm.purchase_date,
+            category: purchaseForm.category,
+            protocol_created: false,
+            dismissed: false
+          })
+        });
+        if (res.ok) {
+          fetchPatientData();
+          setShowPurchaseModal(false);
+        } else {
+          alert('Failed to create purchase');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving purchase:', error);
+      alert('Error saving purchase');
+    }
+  };
+
+  const handleDeletePurchase = async (purchaseId) => {
+    if (!confirm('Delete this purchase?')) return;
+
+    try {
+      const res = await fetch(`/api/purchases/${purchaseId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setPendingNotifications(pendingNotifications.filter(p => p.id !== purchaseId));
+      } else {
+        alert('Failed to delete purchase');
+      }
+    } catch (error) {
+      console.error('Error deleting purchase:', error);
+    }
+  };
+
+  const handleDismissPurchase = async (purchaseId) => {
+    try {
+      const res = await fetch(`/api/purchases/${purchaseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dismissed: true })
+      });
+      if (res.ok) {
+        setPendingNotifications(pendingNotifications.filter(p => p.id !== purchaseId));
+      }
+    } catch (error) {
+      console.error('Error dismissing purchase:', error);
+    }
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
+    if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -81,935 +337,1013 @@ export default function PatientProfile() {
     });
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount || 0);
-  };
-
-  const formatPhone = (phone) => {
-    if (!phone) return '-';
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 10) {
-      return `(${cleaned.slice(0,3)}) ${cleaned.slice(3,6)}-${cleaned.slice(6)}`;
-    }
-    if (cleaned.length === 11) {
-      return `+${cleaned[0]} (${cleaned.slice(1,4)}) ${cleaned.slice(4,7)}-${cleaned.slice(7)}`;
-    }
-    return phone;
-  };
-
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
-    },
-    header: {
-      backgroundColor: '#000',
-      padding: '16px 24px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between'
-    },
-    logo: {
-      color: '#fff',
-      fontSize: '13px',
-      fontWeight: '600',
-      letterSpacing: '2px',
-      margin: 0
-    },
-    backLink: {
-      color: '#fff',
-      textDecoration: 'none',
-      fontSize: '14px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px'
-    },
-    main: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '24px'
-    },
-    patientHeader: {
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      padding: '24px',
-      marginBottom: '24px',
-      border: '1px solid #e5e5e5'
-    },
-    patientName: {
-      fontSize: '28px',
-      fontWeight: '700',
-      color: '#000',
-      margin: '0 0 8px',
-      letterSpacing: '-0.5px'
-    },
-    patientMeta: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '24px',
-      marginBottom: '20px',
-      fontSize: '14px',
-      color: '#666'
-    },
-    metaItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px'
-    },
-    statsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-      gap: '16px',
-      marginTop: '20px',
-      paddingTop: '20px',
-      borderTop: '1px solid #eee'
-    },
-    statBox: {
-      textAlign: 'center',
-      padding: '12px'
-    },
-    statNumber: {
-      fontSize: '24px',
-      fontWeight: '700',
-      color: '#000'
-    },
-    statLabel: {
-      fontSize: '12px',
-      color: '#666',
-      marginTop: '4px'
-    },
-    tabs: {
-      display: 'flex',
-      gap: '4px',
-      marginBottom: '24px',
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      padding: '6px',
-      border: '1px solid #e5e5e5',
-      overflowX: 'auto'
-    },
-    tab: {
-      padding: '10px 20px',
-      borderRadius: '8px',
-      border: 'none',
-      backgroundColor: 'transparent',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#666',
-      whiteSpace: 'nowrap',
-      transition: 'all 0.15s ease'
-    },
-    tabActive: {
-      backgroundColor: '#000',
-      color: '#fff'
-    },
-    tabBadge: {
-      marginLeft: '6px',
-      padding: '2px 8px',
-      borderRadius: '10px',
-      fontSize: '11px',
-      fontWeight: '600'
-    },
-    section: {
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      border: '1px solid #e5e5e5',
-      overflow: 'hidden'
-    },
-    sectionHeader: {
-      padding: '16px 20px',
-      borderBottom: '1px solid #eee',
-      fontSize: '16px',
-      fontWeight: '600',
-      color: '#000'
-    },
-    sectionBody: {
-      padding: '20px'
-    },
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      fontSize: '14px'
-    },
-    th: {
-      textAlign: 'left',
-      padding: '12px 16px',
-      borderBottom: '1px solid #eee',
-      fontWeight: '600',
-      color: '#666',
-      fontSize: '12px',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
-    },
-    td: {
-      padding: '12px 16px',
-      borderBottom: '1px solid #f5f5f5',
-      color: '#333'
-    },
-    statusBadge: {
-      display: 'inline-block',
-      padding: '4px 10px',
-      borderRadius: '20px',
-      fontSize: '11px',
-      fontWeight: '600',
-      textTransform: 'uppercase'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '40px 20px',
-      color: '#666'
-    },
-    infoGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-      gap: '20px'
-    },
-    infoCard: {
-      padding: '16px',
-      backgroundColor: '#f9f9f9',
-      borderRadius: '8px'
-    },
-    infoLabel: {
-      fontSize: '12px',
-      fontWeight: '600',
-      color: '#888',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-      marginBottom: '6px'
-    },
-    infoValue: {
-      fontSize: '15px',
-      color: '#000'
-    },
-    conditionsList: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '8px',
-      marginTop: '12px'
-    },
-    conditionTag: {
-      padding: '6px 12px',
-      backgroundColor: '#fee2e2',
-      color: '#991b1b',
-      borderRadius: '20px',
-      fontSize: '12px',
-      fontWeight: '500'
-    },
-    conditionTagGreen: {
-      backgroundColor: '#dcfce7',
-      color: '#166534'
-    },
-    labsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '12px'
-    },
-    labValue: {
-      padding: '12px',
-      backgroundColor: '#f9f9f9',
-      borderRadius: '8px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    labName: {
-      fontSize: '13px',
-      color: '#666'
-    },
-    labNumber: {
-      fontSize: '16px',
-      fontWeight: '600',
-      color: '#000'
-    },
-    loginBox: {
-      maxWidth: '400px',
-      margin: '100px auto',
-      padding: '40px',
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      border: '1px solid #e5e5e5'
-    },
-    input: {
-      width: '100%',
-      padding: '12px 16px',
-      fontSize: '16px',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      marginBottom: '16px',
-      boxSizing: 'border-box'
-    },
-    button: {
-      width: '100%',
-      padding: '12px 24px',
-      fontSize: '16px',
-      fontWeight: '600',
-      backgroundColor: '#000',
-      color: '#fff',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer'
-    },
-    linkButton: {
-      padding: '6px 12px',
-      fontSize: '12px',
-      backgroundColor: '#f5f5f5',
-      color: '#333',
-      border: '1px solid #ddd',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      textDecoration: 'none'
-    },
-    loading: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '400px',
-      fontSize: '16px',
-      color: '#666'
-    }
-  };
-
-  // Login screen
-  if (!authChecked) {
-    return <div style={styles.container}><div style={styles.loading}>Loading...</div></div>;
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div style={styles.container}>
-        <Head>
-          <title>Login | Range Medical</title>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        </Head>
-        <div style={styles.loginBox}>
-          <h2 style={{ margin: '0 0 24px', textAlign: 'center' }}>Patient Profile</h2>
-          <form onSubmit={handleLogin}>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-            />
-            <button type="submit" style={styles.button}>Login</button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
-    return (
-      <div style={styles.container}>
-        <Head>
-          <title>Loading... | Range Medical</title>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        </Head>
-        <header style={styles.header}>
-          <h1 style={styles.logo}>RANGE MEDICAL</h1>
-        </header>
-        <div style={styles.loading}>Loading patient profile...</div>
-      </div>
-    );
+    return <div style={styles.loading}>Loading patient profile...</div>;
   }
 
-  if (error) {
-    return (
-      <div style={styles.container}>
-        <Head>
-          <title>Error | Range Medical</title>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        </Head>
-        <header style={styles.header}>
-          <h1 style={styles.logo}>RANGE MEDICAL</h1>
-          <a href="/admin/protocols" style={styles.backLink}>← Back to Protocols</a>
-        </header>
-        <div style={styles.loading}>{error}</div>
-      </div>
-    );
+  if (!patient) {
+    return <div style={styles.loading}>Patient not found</div>;
   }
-
-  const { patient, stats, intakes, consents, labs, documents, protocols, purchases } = data;
-  const intake = intakes[0]; // Most recent intake
-  const latestLab = labs[0]; // Most recent lab
-
-  // Medical conditions from intake
-  const conditions = intake ? [
-    intake.high_blood_pressure && `High Blood Pressure${intake.high_blood_pressure_year ? ` (${intake.high_blood_pressure_year})` : ''}`,
-    intake.high_cholesterol && `High Cholesterol${intake.high_cholesterol_year ? ` (${intake.high_cholesterol_year})` : ''}`,
-    intake.heart_disease && `Heart Disease${intake.heart_disease_type ? ` - ${intake.heart_disease_type}` : ''}`,
-    intake.diabetes && `Diabetes${intake.diabetes_type ? ` - ${intake.diabetes_type}` : ''}`,
-    intake.thyroid_disorder && `Thyroid Disorder${intake.thyroid_disorder_type ? ` - ${intake.thyroid_disorder_type}` : ''}`,
-    intake.depression_anxiety && 'Depression/Anxiety',
-    intake.kidney_disease && `Kidney Disease${intake.kidney_disease_type ? ` - ${intake.kidney_disease_type}` : ''}`,
-    intake.liver_disease && `Liver Disease${intake.liver_disease_type ? ` - ${intake.liver_disease_type}` : ''}`,
-    intake.autoimmune_disorder && `Autoimmune${intake.autoimmune_disorder_type ? ` - ${intake.autoimmune_disorder_type}` : ''}`,
-    intake.cancer && `Cancer History${intake.cancer_type ? ` - ${intake.cancer_type}` : ''}`
-  ].filter(Boolean) : [];
 
   return (
-    <div style={styles.container}>
+    <>
       <Head>
-        <title>{patient.name || 'Patient'} | Range Medical</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <title>{patient.first_name} {patient.last_name} | Range Medical</title>
+        <style>{`
+          @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+          }
+        `}</style>
       </Head>
 
-      <header style={styles.header}>
-        <h1 style={styles.logo}>RANGE MEDICAL</h1>
-        <a href="/admin/protocols" style={styles.backLink}>← Back to Protocols</a>
-      </header>
-
-      <main style={styles.main}>
-        {/* Patient Header */}
-        <div style={styles.patientHeader}>
-          <h1 style={styles.patientName}>{patient.name || 'Unknown Patient'}</h1>
-          
+      <div style={styles.container}>
+        {/* Header */}
+        <div style={styles.header}>
+          <Link href="/admin/pipeline" style={styles.backLink}>← Back to Pipeline</Link>
+          <h1 style={styles.title}>{patient.first_name} {patient.last_name}</h1>
           <div style={styles.patientMeta}>
-            {patient.email && (
-              <div style={styles.metaItem}>
-                <span>📧</span>
-                <span>{patient.email}</span>
-              </div>
-            )}
-            {patient.phone && (
-              <div style={styles.metaItem}>
-                <span>📱</span>
-                <span>{formatPhone(patient.phone)}</span>
-              </div>
-            )}
-            {patient.date_of_birth && (
-              <div style={styles.metaItem}>
-                <span>🎂</span>
-                <span>{formatDate(patient.date_of_birth)}</span>
-              </div>
-            )}
-            {patient.ghl_contact_id && (
-              <a
-                href={`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${patient.ghl_contact_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ ...styles.metaItem, color: '#3b82f6', textDecoration: 'none' }}
-              >
-                <span>🔗</span>
-                <span>View in GHL</span>
-              </a>
-            )}
-          </div>
-
-          <div style={styles.statsGrid}>
-            <div style={styles.statBox}>
-              <div style={styles.statNumber}>{formatCurrency(stats.totalSpent)}</div>
-              <div style={styles.statLabel}>Total Spent</div>
-            </div>
-            <div style={styles.statBox}>
-              <div style={styles.statNumber}>{stats.activeProtocols}</div>
-              <div style={styles.statLabel}>Active Programs</div>
-            </div>
-            <div style={styles.statBox}>
-              <div style={styles.statNumber}>{stats.completedProtocols}</div>
-              <div style={styles.statLabel}>Completed</div>
-            </div>
-            <div style={styles.statBox}>
-              <div style={styles.statNumber}>{stats.totalInjections}</div>
-              <div style={styles.statLabel}>Injections Logged</div>
-            </div>
-            <div style={styles.statBox}>
-              <div style={styles.statNumber}>{stats.labsCount}</div>
-              <div style={styles.statLabel}>Lab Panels</div>
-            </div>
-            <div style={styles.statBox}>
-              <div style={{ ...styles.statNumber, color: stats.hasIntake ? '#16a34a' : '#dc2626' }}>
-                {stats.hasIntake ? '✓' : '✗'}
-              </div>
-              <div style={styles.statLabel}>Intake Form</div>
-            </div>
+            {patient.email && <span>{patient.email}</span>}
+            {patient.phone && <span> • {patient.phone}</span>}
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={styles.tabs}>
-          {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'intake', label: 'Medical History', count: intakes.length },
-            { id: 'labs', label: 'Labs', count: labs.length },
-            { id: 'consents', label: 'Consents', count: consents.length },
-            { id: 'protocols', label: 'Protocols', count: protocols.length },
-            { id: 'purchases', label: 'Purchases', count: purchases.length }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                ...styles.tab,
-                ...(activeTab === tab.id ? styles.tabActive : {})
-              }}
-            >
-              {tab.label}
-              {tab.count !== undefined && (
-                <span style={{
-                  ...styles.tabBadge,
-                  backgroundColor: activeTab === tab.id ? 'rgba(255,255,255,0.2)' : '#f0f0f0',
-                  color: activeTab === tab.id ? '#fff' : '#666'
-                }}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
+        {/* Stats Row */}
+        <div style={styles.statsRow}>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{stats.activeCount || 0}</div>
+            <div style={styles.statLabel}>Active Protocols</div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{stats.completedCount || 0}</div>
+            <div style={styles.statLabel}>Completed</div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{stats.pendingLabsCount || 0}</div>
+            <div style={styles.statLabel}>Pending Labs</div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{labDocuments.length}</div>
+            <div style={styles.statLabel}>Lab Results</div>
+          </div>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'overview' && (
-          <div style={{ display: 'grid', gap: '24px' }}>
-            {/* Quick Info */}
-            <div style={styles.section}>
-              <div style={styles.sectionHeader}>Patient Information</div>
-              <div style={styles.sectionBody}>
-                <div style={styles.infoGrid}>
-                  <div style={styles.infoCard}>
-                    <div style={styles.infoLabel}>First Visit</div>
-                    <div style={styles.infoValue}>{formatDate(stats.firstVisit)}</div>
-                  </div>
-                  <div style={styles.infoCard}>
-                    <div style={styles.infoLabel}>Last Visit</div>
-                    <div style={styles.infoValue}>{formatDate(stats.lastVisit)}</div>
-                  </div>
-                  <div style={styles.infoCard}>
-                    <div style={styles.infoLabel}>Total Purchases</div>
-                    <div style={styles.infoValue}>{stats.totalPurchases}</div>
-                  </div>
-                  <div style={styles.infoCard}>
-                    <div style={styles.infoLabel}>Signed Consents</div>
-                    <div style={styles.infoValue}>{stats.consentsCount}</div>
-                  </div>
-                </div>
-
-                {conditions.length > 0 && (
-                  <>
-                    <h4 style={{ margin: '24px 0 12px', fontSize: '14px', fontWeight: '600' }}>Medical Conditions</h4>
-                    <div style={styles.conditionsList}>
-                      {conditions.map((condition, i) => (
-                        <span key={i} style={styles.conditionTag}>{condition}</span>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {intake?.has_allergies && intake?.allergies && (
-                  <>
-                    <h4 style={{ margin: '24px 0 12px', fontSize: '14px', fontWeight: '600' }}>Allergies</h4>
-                    <div style={styles.conditionsList}>
-                      <span style={styles.conditionTag}>{intake.allergies}</span>
-                    </div>
-                  </>
-                )}
-
-                {intake?.on_medications && intake?.current_medications && (
-                  <>
-                    <h4 style={{ margin: '24px 0 12px', fontSize: '14px', fontWeight: '600' }}>Current Medications</h4>
-                    <p style={{ color: '#333', margin: 0 }}>{intake.current_medications}</p>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Active Protocols */}
-            {protocols.filter(p => p.status === 'active').length > 0 && (
-              <div style={styles.section}>
-                <div style={styles.sectionHeader}>Active Protocols</div>
-                <div style={styles.sectionBody}>
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>Program</th>
-                        <th style={styles.th}>Peptide/Treatment</th>
-                        <th style={styles.th}>Progress</th>
-                        <th style={styles.th}>Started</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {protocols.filter(p => p.status === 'active').map(p => (
-                        <tr key={p.id}>
-                          <td style={styles.td}>{p.program_name || p.program_type}</td>
-                          <td style={styles.td}>{p.primary_peptide || '-'}</td>
-                          <td style={styles.td}>
-                            {p.injections_completed} / {p.duration_days} days
-                          </td>
-                          <td style={styles.td}>{formatDate(p.start_date)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Recent Purchases */}
-            {purchases.length > 0 && (
-              <div style={styles.section}>
-                <div style={styles.sectionHeader}>Recent Purchases</div>
-                <div style={styles.sectionBody}>
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>Date</th>
-                        <th style={styles.th}>Category</th>
-                        <th style={styles.th}>Item</th>
-                        <th style={styles.th}>Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {purchases.slice(0, 5).map(p => (
-                        <tr key={p.id}>
-                          <td style={styles.td}>{formatDate(p.purchase_date)}</td>
-                          <td style={styles.td}>
-                            <span style={{
-                              ...styles.statusBadge,
-                              backgroundColor: 
-                                p.category === 'Peptide' ? '#dbeafe' :
-                                p.category === 'IV Therapy' ? '#cffafe' :
-                                p.category === 'Weight Loss' ? '#fef3c7' :
-                                p.category === 'HRT' ? '#ede9fe' :
-                                '#f3f4f6',
-                              color:
-                                p.category === 'Peptide' ? '#1e40af' :
-                                p.category === 'IV Therapy' ? '#0e7490' :
-                                p.category === 'Weight Loss' ? '#92400e' :
-                                p.category === 'HRT' ? '#5b21b6' :
-                                '#374151'
-                            }}>
-                              {p.category}
+        {/* Active Protocols Section */}
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>Active Protocols</h2>
+          {activeProtocols.length === 0 ? (
+            <div style={styles.emptyState}>No active protocols</div>
+          ) : (
+            <div style={styles.protocolList}>
+              {activeProtocols.map(protocol => {
+                const isWeightLoss = protocol.program_name?.toLowerCase().includes('weight');
+                const sessionsUsed = protocol.sessions_used || 0;
+                const daysSinceStart = protocol.start_date
+                  ? Math.ceil((new Date() - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
+                  : 0;
+                const expectedInjections = Math.floor(daysSinceStart / 7) + 1;
+                const injectionDue = isWeightLoss && protocol.total_sessions && sessionsUsed < expectedInjections && sessionsUsed < protocol.total_sessions;
+                const isTitrationTime = isWeightLoss && sessionsUsed === 3;
+                
+                return (
+                  <Link key={protocol.id} href={`/admin/protocol/${protocol.id}`} style={{ textDecoration: 'none' }}>
+                    <div style={{...styles.protocolCard, cursor: 'pointer'}}>
+                      <div style={styles.protocolHeader}>
+                        <span style={styles.protocolName}>
+                          {protocol.medication || protocol.program_name}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {injectionDue && (
+                            <span style={{padding: '2px 8px', background: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
+                              💉 Due
                             </span>
-                          </td>
-                          <td style={styles.td}>{p.item_name}</td>
-                          <td style={styles.td}>{formatCurrency(p.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          )}
+                          {isTitrationTime && (
+                            <span style={{padding: '2px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
+                              ⚠️ Titrate
+                            </span>
+                          )}
+                          <span style={styles.statusBadge}>Active</span>
+                        </div>
+                      </div>
+                      <div style={styles.protocolDetails}>
+                        {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                        {protocol.frequency && <span> • {protocol.frequency}</span>}
+                      </div>
+                      <div style={styles.protocolMeta}>
+                        {protocol.start_date && <span>Started {formatDate(protocol.start_date)}</span>}
+                        {protocol.days_remaining !== null && (
+                          <span style={{
+                            marginLeft: '12px',
+                            color: protocol.days_remaining <= 3 ? '#dc2626' : '#666'
+                          }}>
+                            {protocol.days_remaining} days left
+                          </span>
+                        )}
+                        {protocol.total_sessions && (
+                          <span style={{ marginLeft: '12px' }}>
+                            {protocol.sessions_used || 0}/{protocol.total_sessions} {isWeightLoss ? 'injections' : 'sessions'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* LABS SECTION */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Labs</h2>
+            <button onClick={() => setShowUploadModal(true)} style={styles.addButton}>
+              + Upload Results
+            </button>
+          </div>
+
+          {/* Pending Lab Orders */}
+          {pendingLabOrders.length > 0 && (
+            <div style={styles.subsection}>
+              <h3 style={styles.subsectionTitle}>⏳ Pending Lab Orders</h3>
+              {pendingLabOrders.map(order => (
+                <div key={order.id} style={styles.labOrderCard}>
+                  <div style={styles.labOrderInfo}>
+                    <span style={styles.labOrderType}>{order.order_type}</span>
+                    <span style={styles.labOrderDate}>Ordered {formatDate(order.order_date)}</span>
+                  </div>
+                  <div style={styles.labOrderActions}>
+                    <button 
+                      onClick={() => handleMarkLabComplete(order.id)}
+                      style={styles.completeButton}
+                    >
+                      ✓ Complete
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteLabOrder(order.id)}
+                      style={styles.deleteLabButton}
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* Lab Documents */}
+          <div style={styles.subsection}>
+            <h3 style={styles.subsectionTitle}>📋 Lab Results</h3>
+            {labDocuments.length === 0 ? (
+              <div style={styles.emptyState}>No lab results uploaded yet</div>
+            ) : (
+              <div style={styles.labDocList}>
+                {labDocuments.map(doc => (
+                  <div key={doc.id} style={styles.labDocCard}>
+                    <div style={styles.labDocInfo}>
+                      <div style={styles.labDocTitle}>
+                        {doc.panel_type || 'Lab Results'} Panel
+                        {doc.lab_provider && <span style={styles.labProvider}> • {doc.lab_provider}</span>}
+                      </div>
+                      <div style={styles.labDocMeta}>
+                        {formatDate(doc.collection_date || doc.uploaded_at)}
+                        {doc.notes && <span> • {doc.notes}</span>}
+                      </div>
+                    </div>
+                    <div style={styles.labDocActions}>
+                      <button 
+                        onClick={() => openPdfViewer(doc)}
+                        style={styles.viewButton}
+                      >
+                        View PDF
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteLabDocument(doc.id)}
+                        style={styles.deleteButton}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        {activeTab === 'intake' && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>Medical History & Intake</div>
-            <div style={styles.sectionBody}>
-              {!intake ? (
-                <div style={styles.emptyState}>No intake form on file</div>
-              ) : (
-                <div style={styles.infoGrid}>
-                  <div style={styles.infoCard}>
-                    <div style={styles.infoLabel}>What Brings You In</div>
-                    <div style={styles.infoValue}>{intake.what_brings_you_in || intake.what_brings_you || '-'}</div>
+        {/* Completed Protocols Section */}
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>Completed Protocols</h2>
+          {completedProtocols.length === 0 ? (
+            <div style={styles.emptyState}>No completed protocols</div>
+          ) : (
+            <div style={styles.protocolList}>
+              {completedProtocols.map(protocol => (
+                <div key={protocol.id} style={{...styles.protocolCard, opacity: 0.7}}>
+                  <div style={styles.protocolHeader}>
+                    <span style={styles.protocolName}>
+                      {protocol.medication || protocol.program_name}
+                    </span>
+                    <span style={{...styles.statusBadge, background: '#9ca3af'}}>Completed</span>
                   </div>
-                  
-                  {intake.currently_injured && (
-                    <div style={styles.infoCard}>
-                      <div style={styles.infoLabel}>Current Injury</div>
-                      <div style={styles.infoValue}>
-                        {intake.injury_description || intake.injury_location || 'Yes'}
-                        {intake.injury_when_occurred && ` (${intake.injury_when_occurred})`}
-                      </div>
-                    </div>
-                  )}
-
-                  {intake.on_hrt && (
-                    <div style={styles.infoCard}>
-                      <div style={styles.infoLabel}>Current HRT</div>
-                      <div style={styles.infoValue}>{intake.hrt_details || 'Yes'}</div>
-                    </div>
-                  )}
-
-                  {intake.current_medications && (
-                    <div style={{ ...styles.infoCard, gridColumn: 'span 2' }}>
-                      <div style={styles.infoLabel}>Current Medications</div>
-                      <div style={styles.infoValue}>{intake.current_medications}</div>
-                    </div>
-                  )}
-
-                  {intake.allergies && (
-                    <div style={styles.infoCard}>
-                      <div style={styles.infoLabel}>Allergies</div>
-                      <div style={styles.infoValue}>{intake.allergies}</div>
-                    </div>
-                  )}
-
-                  <div style={styles.infoCard}>
-                    <div style={styles.infoLabel}>Submitted</div>
-                    <div style={styles.infoValue}>{formatDate(intake.submitted_at)}</div>
+                  <div style={styles.protocolDetails}>
+                    {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                    {protocol.frequency && <span> • {protocol.frequency}</span>}
                   </div>
-
-                  {intake.pdf_url && (
-                    <div style={styles.infoCard}>
-                      <div style={styles.infoLabel}>Documents</div>
-                      <div style={styles.infoValue}>
-                        <a href={intake.pdf_url} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
-                          📄 View Full Intake PDF
-                        </a>
-                      </div>
-                    </div>
-                  )}
+                  <div style={styles.protocolMeta}>
+                    {formatDate(protocol.start_date)} → {formatDate(protocol.end_date)}
+                  </div>
                 </div>
-              )}
+              ))}
+            </div>
+          )}
+        </div>
 
-              {conditions.length > 0 && (
-                <>
-                  <h4 style={{ margin: '32px 0 16px', fontSize: '16px', fontWeight: '600', borderTop: '1px solid #eee', paddingTop: '24px' }}>
-                    Medical Conditions
-                  </h4>
-                  <div style={styles.conditionsList}>
-                    {conditions.map((condition, i) => (
-                      <span key={i} style={styles.conditionTag}>{condition}</span>
-                    ))}
+        {/* Purchase History Section */}
+        {/* Pending Purchases Section - Always show with add button */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Pending Purchases</h2>
+            <button onClick={openAddPurchase} style={styles.addButton}>+ Add Purchase</button>
+          </div>
+          {pendingNotifications.length > 0 ? (
+            <div style={styles.purchaseList}>
+              {pendingNotifications.map(purchase => (
+                <div key={purchase.id} style={styles.purchaseCard}>
+                  <div style={styles.purchaseInfo}>
+                    <span style={styles.purchaseName}>{purchase.product_name || purchase.item_name}</span>
+                    <span style={styles.purchaseMeta}>
+                      ${(purchase.amount_paid || purchase.amount || 0).toFixed(2)} • {formatDate(purchase.purchase_date)}
+                    </span>
                   </div>
-                </>
-              )}
+                  <div style={styles.purchaseActions}>
+                    <button onClick={() => openEditPurchase(purchase)} style={styles.editBtn}>Edit</button>
+                    <button onClick={() => handleDismissPurchase(purchase.id)} style={styles.dismissBtn}>Dismiss</button>
+                    <button onClick={() => handleDeletePurchase(purchase.id)} style={styles.deleteBtn}>×</button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div style={styles.emptyState}>No pending purchases</div>
+          )}
+        </div>
 
-        {activeTab === 'labs' && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>Lab Results</div>
-            <div style={styles.sectionBody}>
-              {labs.length === 0 ? (
-                <div style={styles.emptyState}>No lab results on file</div>
-              ) : (
-                <>
-                  {labs.map(lab => (
-                    <div key={lab.id} style={{ marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid #eee' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
-                            {lab.panel_type || 'Lab Panel'}
-                          </h4>
-                          <p style={{ margin: '4px 0 0', color: '#666', fontSize: '14px' }}>
-                            {formatDate(lab.test_date)} • {lab.lab_provider || 'Unknown Lab'}
-                          </p>
-                        </div>
-                        {(lab.pdf_url || lab.lab_url) && (
-                          <a 
-                            href={lab.pdf_url || lab.lab_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            style={styles.linkButton}
-                          >
-                            📄 View PDF
-                          </a>
-                        )}
-                      </div>
+        {/* Purchase Add/Edit Modal */}
+        {showPurchaseModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowPurchaseModal(false)}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>{editingPurchase ? 'Edit Purchase' : 'Add Purchase'}</h3>
+                <button onClick={() => setShowPurchaseModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Product Name *</label>
+                <input 
+                  type="text"
+                  value={purchaseForm.item_name}
+                  onChange={(e) => setPurchaseForm({...purchaseForm, item_name: e.target.value})}
+                  placeholder="e.g. Peptide Recovery - 10 Day"
+                  style={styles.input}
+                />
+              </div>
 
-                      <div style={styles.labsGrid}>
-                        {lab.total_testosterone && (
-                          <div style={styles.labValue}>
-                            <span style={styles.labName}>Total Testosterone</span>
-                            <span style={styles.labNumber}>{lab.total_testosterone}</span>
-                          </div>
-                        )}
-                        {lab.free_testosterone && (
-                          <div style={styles.labValue}>
-                            <span style={styles.labName}>Free Testosterone</span>
-                            <span style={styles.labNumber}>{lab.free_testosterone}</span>
-                          </div>
-                        )}
-                        {lab.estradiol && (
-                          <div style={styles.labValue}>
-                            <span style={styles.labName}>Estradiol</span>
-                            <span style={styles.labNumber}>{lab.estradiol}</span>
-                          </div>
-                        )}
-                        {lab.hemoglobin_a1c && (
-                          <div style={styles.labValue}>
-                            <span style={styles.labName}>HbA1c</span>
-                            <span style={styles.labNumber}>{lab.hemoglobin_a1c}%</span>
-                          </div>
-                        )}
-                        {lab.vitamin_d && (
-                          <div style={styles.labValue}>
-                            <span style={styles.labName}>Vitamin D</span>
-                            <span style={styles.labNumber}>{lab.vitamin_d}</span>
-                          </div>
-                        )}
-                        {lab.tsh && (
-                          <div style={styles.labValue}>
-                            <span style={styles.labName}>TSH</span>
-                            <span style={styles.labNumber}>{lab.tsh}</span>
-                          </div>
-                        )}
-                        {lab.total_cholesterol && (
-                          <div style={styles.labValue}>
-                            <span style={styles.labName}>Total Cholesterol</span>
-                            <span style={styles.labNumber}>{lab.total_cholesterol}</span>
-                          </div>
-                        )}
-                        {lab.crp_hs && (
-                          <div style={styles.labValue}>
-                            <span style={styles.labName}>hs-CRP</span>
-                            <span style={styles.labNumber}>{lab.crp_hs}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Amount ($)</label>
+                <input 
+                  type="number"
+                  value={purchaseForm.amount}
+                  onChange={(e) => setPurchaseForm({...purchaseForm, amount: e.target.value})}
+                  placeholder="0.00"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Purchase Date</label>
+                <input 
+                  type="date"
+                  value={purchaseForm.purchase_date}
+                  onChange={(e) => setPurchaseForm({...purchaseForm, purchase_date: e.target.value})}
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Category</label>
+                <select 
+                  value={purchaseForm.category}
+                  onChange={(e) => setPurchaseForm({...purchaseForm, category: e.target.value})}
+                  style={styles.select}
+                >
+                  {PURCHASE_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
                   ))}
-                </>
-              )}
+                </select>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button onClick={() => setShowPurchaseModal(false)} style={styles.cancelButton}>Cancel</button>
+                <button onClick={handleSavePurchase} style={styles.primaryButton}>
+                  {editingPurchase ? 'Save Changes' : 'Add Purchase'}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {activeTab === 'consents' && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>Signed Consents</div>
-            <div style={styles.sectionBody}>
-              {consents.length === 0 ? (
-                <div style={styles.emptyState}>No consent forms on file</div>
-              ) : (
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Document</th>
-                      <th style={styles.th}>Type</th>
-                      <th style={styles.th}>Signed</th>
-                      <th style={styles.th}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {consents.map(c => (
-                      <tr key={c.id}>
-                        <td style={styles.td}>{c.document_name || 'Consent Form'}</td>
-                        <td style={styles.td}>{c.document_type || '-'}</td>
-                        <td style={styles.td}>{formatDate(c.uploaded_at)}</td>
-                        <td style={styles.td}>
-                          {c.document_url && (
-                            <a href={c.document_url} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
-                              View
-                            </a>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+        {/* Upload Lab Modal */}
+        {showUploadModal && (
+          <div style={styles.modalOverlay} onClick={() => setShowUploadModal(false)}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h3 style={styles.modalTitle}>Upload Lab Results</h3>
+                <button onClick={() => setShowUploadModal(false)} style={styles.closeButton}>×</button>
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.label}>PDF File *</label>
+                <input 
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".pdf"
+                  onChange={(e) => setUploadForm({...uploadForm, file: e.target.files[0]})}
+                  style={styles.fileInput}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Panel Type</label>
+                <select 
+                  value={uploadForm.panelType}
+                  onChange={(e) => setUploadForm({...uploadForm, panelType: e.target.value})}
+                  style={styles.select}
+                >
+                  <option value="Elite">Elite Panel</option>
+                  <option value="Essential">Essential Panel</option>
+                  <option value="Hormone">Hormone Panel</option>
+                  <option value="Thyroid">Thyroid Panel</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Lab Provider</label>
+                <select 
+                  value={uploadForm.labProvider}
+                  onChange={(e) => setUploadForm({...uploadForm, labProvider: e.target.value})}
+                  style={styles.select}
+                >
+                  <option value="AccessMedLabs">AccessMedLabs</option>
+                  <option value="Primex">Primex</option>
+                  <option value="LabCorp">LabCorp</option>
+                  <option value="Quest">Quest Diagnostics</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Collection Date</label>
+                <input 
+                  type="date"
+                  value={uploadForm.collectionDate}
+                  onChange={(e) => setUploadForm({...uploadForm, collectionDate: e.target.value})}
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Notes (optional)</label>
+                <input 
+                  type="text"
+                  value={uploadForm.notes}
+                  onChange={(e) => setUploadForm({...uploadForm, notes: e.target.value})}
+                  placeholder="e.g., Baseline, Follow-up"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowUploadModal(false)} style={styles.cancelButton}>
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleUploadLab} 
+                  disabled={uploading || !uploadForm.file}
+                  style={styles.submitButton}
+                >
+                  {uploading ? 'Uploading...' : 'Upload'}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {activeTab === 'protocols' && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>Treatment Protocols</div>
-            <div style={styles.sectionBody}>
-              {protocols.length === 0 ? (
-                <div style={styles.emptyState}>No protocols on file</div>
-              ) : (
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Status</th>
-                      <th style={styles.th}>Program</th>
-                      <th style={styles.th}>Treatment</th>
-                      <th style={styles.th}>Progress</th>
-                      <th style={styles.th}>Started</th>
-                      <th style={styles.th}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {protocols.map(p => (
-                      <tr key={p.id}>
-                        <td style={styles.td}>
-                          <span style={{
-                            ...styles.statusBadge,
-                            backgroundColor: p.status === 'active' ? '#dcfce7' : '#f3f4f6',
-                            color: p.status === 'active' ? '#166534' : '#6b7280'
-                          }}>
-                            {p.status}
-                          </span>
-                        </td>
-                        <td style={styles.td}>{p.program_name || p.program_type}</td>
-                        <td style={styles.td}>{p.primary_peptide || '-'}</td>
-                        <td style={styles.td}>{p.injections_completed} / {p.duration_days}</td>
-                        <td style={styles.td}>{formatDate(p.start_date)}</td>
-                        <td style={styles.td}>
-                          {p.tracker_token && (
-                            <a href={`/track/${p.tracker_token}`} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
-                              View Tracker
-                            </a>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+        {/* PDF Viewer Slide-out Panel */}
+        {showPdfViewer && selectedPdf && (
+          <>
+            <div style={styles.pdfOverlay} onClick={closePdfViewer} />
+            <div style={styles.pdfSlidePanel}>
+              <div style={styles.pdfHeader}>
+                <div>
+                  <h3 style={styles.pdfTitle}>
+                    {selectedPdf.panel_type || 'Lab Results'} Panel
+                  </h3>
+                  <p style={styles.pdfMeta}>
+                    {formatDate(selectedPdf.collection_date || selectedPdf.uploaded_at)}
+                    {selectedPdf.lab_provider && ` • ${selectedPdf.lab_provider}`}
+                  </p>
+                </div>
+                <div style={styles.pdfHeaderActions}>
+                  <a 
+                    href={getPdfUrl(selectedPdf)} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={styles.openNewTabBtn}
+                  >
+                    Open in New Tab ↗
+                  </a>
+                  <button onClick={closePdfViewer} style={styles.closePdfBtn}>×</button>
+                </div>
+              </div>
+              <div style={styles.pdfContent}>
+                <object 
+                  data={getPdfUrl(selectedPdf)}
+                  type="application/pdf"
+                  style={styles.pdfIframe}
+                >
+                  <div style={styles.pdfFallback}>
+                    <p style={{marginBottom: '16px'}}>Unable to display PDF in browser.</p>
+                    <a 
+                      href={getPdfUrl(selectedPdf)} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={styles.downloadButton}
+                    >
+                      Download PDF
+                    </a>
+                  </div>
+                </object>
+              </div>
             </div>
-          </div>
+          </>
         )}
-
-        {activeTab === 'purchases' && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>Purchase History</div>
-            <div style={styles.sectionBody}>
-              {purchases.length === 0 ? (
-                <div style={styles.emptyState}>No purchase history</div>
-              ) : (
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Date</th>
-                      <th style={styles.th}>Category</th>
-                      <th style={styles.th}>Item</th>
-                      <th style={styles.th}>Qty</th>
-                      <th style={styles.th}>Amount</th>
-                      <th style={styles.th}>Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchases.map(p => (
-                      <tr key={p.id}>
-                        <td style={styles.td}>{formatDate(p.purchase_date)}</td>
-                        <td style={styles.td}>
-                          <span style={{
-                            ...styles.statusBadge,
-                            backgroundColor: 
-                              p.category === 'Peptide' ? '#dbeafe' :
-                              p.category === 'IV Therapy' ? '#cffafe' :
-                              p.category === 'Weight Loss' ? '#fef3c7' :
-                              p.category === 'HRT' ? '#ede9fe' :
-                              p.category === 'Labs' ? '#dcfce7' :
-                              '#f3f4f6',
-                            color:
-                              p.category === 'Peptide' ? '#1e40af' :
-                              p.category === 'IV Therapy' ? '#0e7490' :
-                              p.category === 'Weight Loss' ? '#92400e' :
-                              p.category === 'HRT' ? '#5b21b6' :
-                              p.category === 'Labs' ? '#166534' :
-                              '#374151'
-                          }}>
-                            {p.category}
-                          </span>
-                        </td>
-                        <td style={styles.td}>{p.item_name}</td>
-                        <td style={styles.td}>{p.quantity}</td>
-                        <td style={styles.td}>{formatCurrency(p.amount)}</td>
-                        <td style={styles.td}>{p.source}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
+
+const styles = {
+  container: {
+    maxWidth: '900px',
+    margin: '0 auto',
+    padding: '24px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  },
+  loading: {
+    textAlign: 'center',
+    padding: '48px',
+    color: '#666'
+  },
+  header: {
+    marginBottom: '24px'
+  },
+  backLink: {
+    color: '#666',
+    textDecoration: 'none',
+    fontSize: '14px',
+    display: 'inline-block',
+    marginBottom: '8px'
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: '600',
+    margin: '0 0 4px 0'
+  },
+  patientMeta: {
+    fontSize: '14px',
+    color: '#666'
+  },
+  statsRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '16px',
+    marginBottom: '32px'
+  },
+  statCard: {
+    background: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '16px',
+    textAlign: 'center'
+  },
+  statNumber: {
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#000'
+  },
+  statLabel: {
+    fontSize: '12px',
+    color: '#666',
+    marginTop: '4px'
+  },
+  section: {
+    marginBottom: '32px'
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px'
+  },
+  sectionTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    margin: '0 0 16px 0'
+  },
+  addButton: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  subsection: {
+    marginBottom: '20px'
+  },
+  subsectionTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: '12px'
+  },
+  emptyState: {
+    padding: '24px',
+    textAlign: 'center',
+    color: '#9ca3af',
+    background: '#f9fafb',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  protocolList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  protocolCard: {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '16px'
+  },
+  protocolHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px'
+  },
+  protocolName: {
+    fontWeight: '600',
+    fontSize: '16px'
+  },
+  statusBadge: {
+    background: '#22c55e',
+    color: '#fff',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  protocolDetails: {
+    fontSize: '14px',
+    color: '#374151',
+    marginBottom: '4px'
+  },
+  protocolMeta: {
+    fontSize: '13px',
+    color: '#9ca3af'
+  },
+  labOrderCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: '#fffbeb',
+    border: '1px solid #fcd34d',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    marginBottom: '8px'
+  },
+  labOrderInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px'
+  },
+  labOrderType: {
+    fontWeight: '600',
+    fontSize: '14px'
+  },
+  labOrderDate: {
+    fontSize: '13px',
+    color: '#92400e'
+  },
+  pendingBadge: {
+    background: '#fcd34d',
+    color: '#92400e',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  labOrderActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  completeButton: {
+    background: '#22c55e',
+    color: '#fff',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    fontWeight: '500'
+  },
+  deleteLabButton: {
+    background: 'none',
+    border: '1px solid #fca5a5',
+    color: '#dc2626',
+    padding: '4px 10px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: '600'
+  },
+  labDocList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  labDocCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: '#f0fdf4',
+    border: '1px solid #86efac',
+    borderRadius: '8px',
+    padding: '12px 16px'
+  },
+  labDocInfo: {
+    flex: 1
+  },
+  labDocTitle: {
+    fontWeight: '600',
+    fontSize: '14px',
+    color: '#166534'
+  },
+  labProvider: {
+    fontWeight: '400',
+    color: '#22c55e'
+  },
+  labDocMeta: {
+    fontSize: '13px',
+    color: '#15803d',
+    marginTop: '2px'
+  },
+  labDocActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  viewButton: {
+    background: '#000',
+    color: '#fff',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    textDecoration: 'none',
+    border: 'none',
+    cursor: 'pointer'
+  },
+  deleteButton: {
+    background: 'none',
+    border: '1px solid #fca5a5',
+    color: '#dc2626',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '16px'
+  },
+  purchaseList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  purchaseCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '12px 16px'
+  },
+  purchaseInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px'
+  },
+  purchaseName: {
+    fontWeight: '600',
+    fontSize: '14px'
+  },
+  purchaseMeta: {
+    fontSize: '13px',
+    color: '#666'
+  },
+  needsProtocolBadge: {
+    background: '#fef3c7',
+    color: '#92400e',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px'
+  },
+  addButton: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    fontWeight: '500'
+  },
+  purchaseActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  editBtn: {
+    background: '#f3f4f6',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    padding: '5px 10px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer'
+  },
+  dismissBtn: {
+    background: '#fef3c7',
+    color: '#92400e',
+    border: 'none',
+    padding: '5px 10px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer'
+  },
+  deleteBtn: {
+    background: 'none',
+    border: '1px solid #fca5a5',
+    color: '#dc2626',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600'
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '24px',
+    color: '#9ca3af',
+    background: '#f9fafb',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    marginTop: '20px'
+  },
+  cancelButton: {
+    background: '#fff',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    padding: '10px 16px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  primaryButton: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '10px 16px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    fontWeight: '500'
+  },
+  // Modal styles
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modal: {
+    background: '#fff',
+    borderRadius: '12px',
+    padding: '24px',
+    width: '100%',
+    maxWidth: '450px',
+    maxHeight: '90vh',
+    overflow: 'auto'
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px'
+  },
+  modalTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    margin: 0
+  },
+  closeButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    cursor: 'pointer',
+    color: '#666'
+  },
+  formGroup: {
+    marginBottom: '16px'
+  },
+  label: {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    marginBottom: '6px',
+    color: '#374151'
+  },
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    boxSizing: 'border-box'
+  },
+  select: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    background: '#fff',
+    boxSizing: 'border-box'
+  },
+  fileInput: {
+    width: '100%',
+    padding: '10px',
+    border: '1px dashed #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    boxSizing: 'border-box'
+  },
+  modalActions: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    marginTop: '24px'
+  },
+  cancelButton: {
+    padding: '10px 20px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  submitButton: {
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '6px',
+    background: '#000',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  // PDF Slide Panel Styles
+  pdfOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.4)',
+    zIndex: 1000
+  },
+  pdfSlidePanel: {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    width: '70%',
+    maxWidth: '900px',
+    height: '100vh',
+    background: '#fff',
+    boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
+    zIndex: 1001,
+    display: 'flex',
+    flexDirection: 'column',
+    animation: 'slideIn 0.3s ease-out'
+  },
+  pdfHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: '20px 24px',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#f9fafb'
+  },
+  pdfTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  pdfMeta: {
+    margin: '4px 0 0 0',
+    fontSize: '14px',
+    color: '#666'
+  },
+  pdfHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  openNewTabBtn: {
+    background: '#f3f4f6',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    textDecoration: 'none',
+    cursor: 'pointer'
+  },
+  closePdfBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '28px',
+    cursor: 'pointer',
+    color: '#666',
+    padding: '0 8px',
+    lineHeight: 1
+  },
+  pdfContent: {
+    flex: 1,
+    overflow: 'hidden'
+  },
+  pdfIframe: {
+    width: '100%',
+    height: '100%',
+    border: 'none'
+  },
+  pdfFallback: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    color: '#666',
+    fontSize: '16px'
+  },
+  downloadButton: {
+    background: '#000',
+    color: '#fff',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontWeight: '500'
+  }
+};

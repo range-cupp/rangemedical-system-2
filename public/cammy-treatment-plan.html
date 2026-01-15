@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Treatment Plan | Range Medical</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #000000;
+            --color-bg: #ffffff;
+            --color-bg-alt: #fafafa;
+            --color-text: #171717;
+            --color-text-body: #525252;
+            --color-text-muted: #737373;
+            --color-border: #e5e5e5;
+            --color-border-light: #f5f5f5;
+            --color-warning-bg: #fef3c7;
+            --color-warning-border: #f59e0b;
+            --color-warning-text: #92400e;
+            --color-success: #10b981;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 4px 20px rgba(0,0,0,0.06);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* Password Screen */
+        .password-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+        }
+
+        .password-card {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 3rem;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: var(--shadow-md);
+            text-align: center;
+        }
+
+        .logo {
+            height: 80px;
+            margin-bottom: 2rem;
+        }
+
+        .password-card h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .password-card p {
+            color: var(--color-text-muted);
+            font-size: 0.9375rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--color-text-body);
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
+            font-family: var(--font-family);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 0.8125rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.875rem 2rem;
+            background: var(--color-primary);
+            color: var(--color-bg);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            font-family: var(--font-family);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-primary:hover {
+            background: #262626;
+            transform: translateY(-1px);
+        }
+
+        .security-note {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--color-border-light);
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+
+        .security-note svg {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.25rem;
+        }
+
+        /* Main Content - Hidden by default */
+        .treatment-content {
+            display: none;
+        }
+
+        .treatment-content.visible {
+            display: block;
+        }
+
+        /* Header */
+        .header {
+            background: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+            padding: 1rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            height: 60px;
+        }
+
+        .header-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--color-bg-alt);
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.8125rem;
+            color: var(--color-text-body);
+        }
+
+        .header-badge svg {
+            color: var(--color-success);
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+            padding: 4rem 1.5rem 3rem;
+            text-align: center;
+        }
+
+        .hero-inner {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .patient-badge {
+            display: inline-block;
+            background: var(--color-primary);
+            color: var(--color-bg);
+            padding: 0.5rem 1.25rem;
+            border-radius: 100px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            margin-bottom: 0.75rem;
+        }
+
+        .hero .subtitle {
+            font-size: 1.125rem;
+            color: var(--color-text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.75rem;
+            background: var(--color-primary);
+            color: var(--color-bg);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .download-btn:hover {
+            background: #262626;
+            transform: translateY(-1px);
+        }
+
+        /* Quick Reference */
+        .quick-ref {
+            max-width: 900px;
+            margin: -1.5rem auto 0;
+            padding: 0 1.5rem;
+        }
+
+        .quick-ref-card {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quick-ref-header {
+            background: var(--color-primary);
+            color: var(--color-bg);
+            padding: 1rem 1.5rem;
+            font-weight: 700;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+
+        .quick-ref-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 640px) {
+            .quick-ref-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .quick-ref-item {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--color-border-light);
+            border-right: 1px solid var(--color-border-light);
+        }
+
+        .quick-ref-item:nth-child(even) {
+            border-right: none;
+        }
+
+        @media (max-width: 640px) {
+            .quick-ref-item {
+                border-right: none;
+            }
+        }
+
+        .quick-ref-item:last-child,
+        .quick-ref-item:nth-last-child(2):nth-child(odd) {
+            border-bottom: none;
+        }
+
+        @media (max-width: 640px) {
+            .quick-ref-item:nth-last-child(2) {
+                border-bottom: 1px solid var(--color-border-light);
+            }
+            .quick-ref-item:last-child {
+                border-bottom: none;
+            }
+        }
+
+        .quick-ref-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .quick-ref-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        /* Sections */
+        .section {
+            padding: 4rem 1.5rem;
+        }
+
+        .section-gray {
+            background: var(--color-bg-alt);
+        }
+
+        .section-inner {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .section-kicker {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: var(--color-warning-bg);
+            border: 1px solid var(--color-warning-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .warning-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            color: var(--color-warning-text);
+            margin-bottom: 1rem;
+        }
+
+        .warning-box p {
+            font-size: 0.875rem;
+            color: var(--color-warning-text);
+            margin-bottom: 0.75rem;
+        }
+
+        .warning-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Content Cards */
+        .content-card {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-card h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .content-card p {
+            color: var(--color-text-body);
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+
+        /* FAQ */
+        .faq-item {
+            border-bottom: 1px solid var(--color-border-light);
+            padding: 1.5rem 0;
+        }
+
+        .faq-item:first-child {
+            padding-top: 0;
+        }
+
+        .faq-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .faq-question {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-bottom: 0.5rem;
+        }
+
+        .faq-answer {
+            color: var(--color-text-body);
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--color-border-light);
+        }
+
+        .step:last-child {
+            border-bottom: none;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--color-primary);
+            color: var(--color-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 700;
+        }
+
+        .step-content {
+            color: var(--color-text-body);
+            font-size: 0.9375rem;
+            padding-top: 0.25rem;
+        }
+
+        /* Schedule Table */
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .schedule-table th {
+            background: var(--color-primary);
+            color: var(--color-bg);
+            padding: 0.875rem 1rem;
+            text-align: left;
+            font-size: 0.8125rem;
+            font-weight: 600;
+        }
+
+        .schedule-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-border-light);
+            font-size: 0.9375rem;
+            color: var(--color-text-body);
+        }
+
+        .schedule-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .schedule-table td:first-child {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        /* Timeline */
+        .timeline {
+            margin: 1.5rem 0;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 1.5rem;
+            padding-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .timeline-item:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 36px;
+            bottom: 0;
+            width: 2px;
+            background: var(--color-border);
+        }
+
+        .timeline-marker {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--color-bg-alt);
+            border: 2px solid var(--color-border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--color-text-muted);
+        }
+
+        .timeline-content h4 {
+            font-size: 0.9375rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-content p {
+            font-size: 0.875rem;
+            color: var(--color-text-body);
+        }
+
+        /* Checklist */
+        .checklist {
+            list-style: none;
+        }
+
+        .checklist li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            font-size: 0.9375rem;
+            color: var(--color-text-body);
+        }
+
+        .checklist li svg {
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+            color: var(--color-primary);
+        }
+
+        /* Contact Card */
+        .contact-card {
+            background: var(--color-primary);
+            color: var(--color-bg);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .contact-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-card p {
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .contact-card address {
+            font-style: normal;
+            font-size: 0.9375rem;
+            opacity: 0.9;
+            line-height: 1.8;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .footer-inner {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .footer p {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .footer p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            .hero {
+                padding: 3rem 1.5rem 2rem;
+            }
+
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+
+            .section {
+                padding: 3rem 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+
+            .password-card {
+                padding: 2rem;
+            }
+
+            .content-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Password Screen -->
+    <div class="password-screen" id="passwordScreen">
+        <div class="password-card">
+            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" alt="Range Medical" class="logo">
+            <h1>Access Your Treatment Plan</h1>
+            <p>Enter the password provided by your care team to view your personalized treatment plan.</p>
+            
+            <form id="passwordForm">
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" autocomplete="off">
+                    <p class="error-message" id="errorMessage">Incorrect password. Please try again.</p>
+                </div>
+                <button type="submit" class="btn-primary">View My Treatment Plan</button>
+            </form>
+            
+            <p class="security-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Your health information is protected and secure.
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Treatment Content -->
+    <div class="treatment-content" id="treatmentContent">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-inner">
+                <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" alt="Range Medical" class="header-logo">
+                <div class="header-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    Secure Patient Portal
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-inner">
+                <div class="patient-badge">Cammy Mohr</div>
+                <h1>Your Peptide Treatment Plan</h1>
+                <p class="subtitle">BPC-157 + Thymosin Beta-4 (TB-500) Combination Therapy</p>
+
+            </div>
+        </section>
+
+        <!-- Quick Reference -->
+        <div class="quick-ref">
+            <div class="quick-ref-card">
+                <div class="quick-ref-header">YOUR QUICK REFERENCE</div>
+                <div class="quick-ref-grid">
+                    <div class="quick-ref-item">
+                        <div class="quick-ref-label">Medication</div>
+                        <div class="quick-ref-value">BPC-157 + TB-500</div>
+                    </div>
+                    <div class="quick-ref-item">
+                        <div class="quick-ref-label">Each Dose</div>
+                        <div class="quick-ref-value">500mcg + 500mcg</div>
+                    </div>
+                    <div class="quick-ref-item">
+                        <div class="quick-ref-label">When to Take</div>
+                        <div class="quick-ref-value">Morning + Evening</div>
+                    </div>
+                    <div class="quick-ref-item">
+                        <div class="quick-ref-label">Your Protocol</div>
+                        <div class="quick-ref-value">35 days (70 injections)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Safety Information -->
+        <section class="section">
+            <div class="section-inner">
+                <div class="warning-box">
+                    <div class="warning-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        Important Safety Information
+                    </div>
+                    <p><strong>Do not use if:</strong> You are pregnant, nursing, or planning to become pregnant. You have a known allergy to any part of this medication. You have active cancer or a history of cancer without your doctor's approval.</p>
+                    <p><strong>Important:</strong> This medication is made just for you. Do not share it with anyone else. Do not change your dose without talking to your provider first.</p>
+                    <p><strong>Tell your provider</strong> about all other medications, vitamins, and supplements you take.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- What Are These Medications -->
+        <section class="section section-gray">
+            <div class="section-inner">
+                <div class="section-kicker">Understanding Your Treatment</div>
+                <h2 class="section-title">What Are These Medications?</h2>
+                
+                <div class="content-card">
+                    <h3>BPC-157</h3>
+                    <p>BPC-157 is a small protein chain called a peptide. Your body makes a similar version in your stomach. Research shows it may help your body heal and repair tissues faster. It works on muscles, tendons, your gut, and other areas.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h3>TB-500 (Thymosin Beta-4)</h3>
+                    <p>TB-500 is also a peptide that your body naturally makes. It plays a role in tissue repair and may help calm inflammation. Your provider has prescribed these two peptides together because they work well as a team.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How to Inject -->
+        <section class="section">
+            <div class="section-inner">
+                <div class="section-kicker">Step-by-Step Guide</div>
+                <h2 class="section-title">How to Give Your Injection</h2>
+                
+                <div class="content-card">
+                    <div class="steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">Wash your hands well with soap and water.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">Clean the injection spot with an alcohol swab. Let it dry completely.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">Pinch the skin on your belly (stay 2 inches away from your belly button) or the front of your thigh.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">Insert the needle at a 45-degree angle (halfway between straight down and sideways).</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">5</div>
+                            <div class="step-content">Push the plunger slowly and steadily until all the medicine is in.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">6</div>
+                            <div class="step-content">Pull the needle out and press gently with a clean cotton ball.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">7</div>
+                            <div class="step-content">Put the used needle in your sharps container right away. Never reuse needles.</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border-light);"><strong>Tip:</strong> Rotate where you inject each time. This helps prevent skin irritation. Keep a simple log of where you inject.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dosing Schedule -->
+        <section class="section section-gray">
+            <div class="section-inner">
+                <div class="section-kicker">Daily Schedule</div>
+                <h2 class="section-title">When to Take Your Medication</h2>
+                
+                <div class="content-card">
+                    <table class="schedule-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Dose</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Morning</td>
+                                <td>500mcg BPC-157 + 500mcg TB-500</td>
+                                <td>Pick a time that works for you each day</td>
+                            </tr>
+                            <tr>
+                                <td>Evening</td>
+                                <td>500mcg BPC-157 + 500mcg TB-500</td>
+                                <td>Space about 10-12 hours from morning</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <p style="margin-top: 1.5rem;"><strong>Your Protocol:</strong> You are starting with a 35-day cycle (70 total injections). This treatment can be extended up to 12 weeks if needed. If you continue beyond 12 weeks, you'll take a 2-week break to let your body's signals reset. Your provider will check in with you and let you know if additional cycles are right for you.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- What to Expect -->
+        <section class="section">
+            <div class="section-inner">
+                <div class="section-kicker">Timeline</div>
+                <h2 class="section-title">What to Expect</h2>
+                <p style="color: var(--color-text-body); margin-bottom: 1.5rem;">Everyone responds differently. This is a general guide—your experience may be different.</p>
+                
+                <div class="content-card">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker">1-2</div>
+                            <div class="timeline-content">
+                                <h4>Weeks 1-2</h4>
+                                <p>Some people notice small changes in energy or how they feel. Many people don't notice anything yet. This is completely normal.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker">3-4</div>
+                            <div class="timeline-content">
+                                <h4>Weeks 3-4</h4>
+                                <p>Gradual improvements in inflammation symptoms may start to show. Many patients begin feeling real changes during this time.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker">5</div>
+                            <div class="timeline-content">
+                                <h4>Week 5 (End of Your 35 Days)</h4>
+                                <p>Your provider will check in to see how you're responding. Based on your progress, they'll recommend whether to continue, extend, or take a break.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Common Questions -->
+        <section class="section section-gray">
+            <div class="section-inner">
+                <div class="section-kicker">FAQ</div>
+                <h2 class="section-title">Common Questions</h2>
+                
+                <div class="content-card">
+                    <div class="faq-item">
+                        <div class="faq-question">Where do I store my peptides?</div>
+                        <div class="faq-answer">Keep them in the <strong>refrigerator</strong> (not the freezer). Store away from light in the original packaging. Once mixed with water, use within 4-6 weeks. Check the date before each use.</div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">Can I take this with food?</div>
+                        <div class="faq-answer">Yes, you can take it with or without food. Some people find it works a little better on an empty stomach, but this isn't required. Do what feels best for you.</div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">What if I miss a dose?</div>
+                        <div class="faq-answer">Just take your next dose at the regular time. <strong>Do not double up</strong> to make up for it. Missing one dose won't ruin your progress. Just try to stay consistent.</div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">Are there side effects?</div>
+                        <div class="faq-answer">Most people do very well. Some may notice a small red spot where they injected. This usually goes away quickly. Rarely, some people feel tired or have mild stomach upset. Let us know if anything feels off.</div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">Can I exercise while on this?</div>
+                        <div class="faq-answer">Yes! Gentle movement can help healing. Listen to your body and don't push too hard if you're tired. As you start feeling better, you can slowly do more.</div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">Why do I need a break if I continue past 12 weeks?</div>
+                        <div class="faq-answer">If your provider recommends continuing treatment beyond 12 weeks, you'll take a 2-week break first. This allows your body's signaling systems to return to baseline so the peptides stay effective. Your 35-day starter protocol doesn't require a break afterward—your provider will guide you on next steps.</div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">How long can I stay on this treatment?</div>
+                        <div class="faq-answer">This therapy can be used for up to 12 weeks at a time. You're starting with a 35-day protocol, and your provider will evaluate your progress to see if extending makes sense for you.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Supporting Your Treatment -->
+        <section class="section">
+            <div class="section-inner">
+                <div class="section-kicker">Lifestyle Tips</div>
+                <h2 class="section-title">Helping Your Body Heal</h2>
+                <p style="color: var(--color-text-body); margin-bottom: 1.5rem;">These simple habits can support your treatment and help your body heal faster.</p>
+                
+                <div class="content-card">
+                    <ul class="checklist">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span><strong>Sleep:</strong> Try to get 7-9 hours each night. Your body does its best repair work while you sleep.</span>
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span><strong>Water:</strong> Drink plenty of water each day. This helps flush out toxins and supports healing.</span>
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span><strong>Food:</strong> Focus on whole foods like vegetables, fruits, lean proteins, and healthy fats. Try to limit sugar and processed foods.</span>
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span><strong>Stress:</strong> Find ways to relax. Stress can slow down healing. Even a few minutes of deep breathing helps.</span>
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span><strong>Movement:</strong> Gentle walking or stretching is great. Listen to your body and rest when needed.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact -->
+        <section class="section section-gray">
+            <div class="section-inner">
+                <div class="contact-card">
+                    <h3>Questions? We're Here to Help</h3>
+                    <p>Our team is always happy to answer your questions.</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1.5rem;">
+                        <a href="sms:+19499973988" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: white; color: black; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 0.9375rem;">Text Us</a>
+                        <a href="tel:+19499973988" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: transparent; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 0.9375rem; border: 2px solid white;">Call Us</a>
+                    </div>
+                    <address>
+                        <strong>Range Medical</strong><br>
+                        1901 Westcliff Dr, Suite 10<br>
+                        Newport Beach, CA 92660<br>
+                        <a href="tel:+19499973988" style="color: rgba(255,255,255,0.9); text-decoration: none;">(949) 997-3988</a>
+                    </address>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-inner">
+                <p>This treatment plan was created specifically for you based on your health history and goals. Do not share your medications with others. Keep all supplies out of reach of children.</p>
+                <p>This is a compounded medication prepared by a US-licensed pharmacy. Compounded medications are not FDA-approved but are prepared in accordance with applicable regulations.</p>
+                <p style="margin-top: 1rem;"><a href="tel:+19499973988" style="color: var(--color-text-muted); text-decoration: none;">(949) 997-3988</a> · © 2025 Range Medical. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration - Change this password
+        const CORRECT_PASSWORD = 'cammy2025'; // You can change this to whatever password you want
+        
+        const passwordForm = document.getElementById('passwordForm');
+        const passwordInput = document.getElementById('password');
+        const errorMessage = document.getElementById('errorMessage');
+        const passwordScreen = document.getElementById('passwordScreen');
+        const treatmentContent = document.getElementById('treatmentContent');
+
+        // Check if already authenticated (session storage)
+        if (sessionStorage.getItem('authenticated') === 'true') {
+            showContent();
+        }
+        
+        passwordForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (passwordInput.value === CORRECT_PASSWORD) {
+                sessionStorage.setItem('authenticated', 'true');
+                showContent();
+            } else {
+                errorMessage.classList.add('show');
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        });
+        
+        passwordInput.addEventListener('input', function() {
+            errorMessage.classList.remove('show');
+        });
+        
+        function showContent() {
+            passwordScreen.style.display = 'none';
+            treatmentContent.classList.add('visible');
+        }
+
+    </script>
+</body>
+</html>

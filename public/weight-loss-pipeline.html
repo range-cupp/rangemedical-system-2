@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weight Loss Pipeline - Range Medical</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa; 
+      padding: 20px;
+      color: #111;
+    }
+    
+    .header {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .search-box input {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 220px;
+      transition: all 0.15s;
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: #111;
+      width: 280px;
+    }
+    .search-box input::placeholder {
+      color: #9ca3af;
+    }
+    
+    .main-tabs {
+      display: flex;
+      gap: 0;
+      background: #e5e7eb;
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .main-tab {
+      padding: 8px 20px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.15s;
+      color: #6b7280;
+    }
+    .main-tab:hover {
+      color: #111;
+    }
+    .main-tab.active {
+      background: white;
+      color: #111;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .filter-tab {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .filter-tab:hover {
+      border-color: #111;
+    }
+    .filter-tab.active {
+      background: #111;
+      color: white;
+      border-color: #111;
+    }
+    
+    .refresh-btn {
+      padding: 8px 16px;
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .refresh-btn:hover {
+      border-color: #111;
+    }
+    
+    .stats-bar {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      border-left: 4px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .stat-card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .stat-card.active {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .stat-card.overdue { border-left-color: #ef4444; }
+    .stat-card.due-soon { border-left-color: #f59e0b; }
+    .stat-card.on-track { border-left-color: #22c55e; }
+    .stat-card.low-injections { border-left-color: #8b5cf6; }
+    .stat-card.completed { border-left-color: #9ca3af; }
+    
+    .stat-card .label {
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      margin-bottom: 24px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .section-header .count {
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .patient-grid {
+      display: grid;
+      gap: 12px;
+    }
+    
+    .patient-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      border: 1px solid #e5e7eb;
+      transition: all 0.15s;
+    }
+    .patient-card:hover {
+      border-color: #111;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .patient-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    .patient-info .field {
+      min-width: 0;
+    }
+    .patient-info .field-label {
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .patient-info .field-value {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .patient-info .field-value.name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .weight-progress {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .weight-change {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .weight-change.loss {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .weight-change.gain {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .weight-change.same {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge.in-clinic {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .badge.take-home {
+      background: #f3e8ff;
+      color: #7c3aed;
+    }
+    .badge.overdue {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .badge.low-injections {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    
+    .injections-display {
+      font-weight: 700;
+    }
+    .injections-display.low { color: #dc2626; }
+    .injections-display.medium { color: #f59e0b; }
+    .injections-display.ok { color: #22c55e; }
+    
+    .days-ago {
+      font-weight: 500;
+    }
+    .days-ago.overdue { color: #dc2626; }
+    .days-ago.due-soon { color: #f59e0b; }
+    .days-ago.on-track { color: #22c55e; }
+    
+    .patient-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .action-btn {
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .action-btn:hover {
+      border-color: #111;
+      background: #f9fafb;
+    }
+    .action-btn.primary {
+      background: #111;
+      color: white;
+      border-color: #111;
+    }
+    .action-btn.primary:hover {
+      background: #333;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #6b7280;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #111;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #111;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1001;
+      display: none;
+    }
+    .toast.success { background: #22c55e; }
+    .toast.error { background: #ef4444; }
+    .toast.active { display: block; }
+    
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    .history-item:hover {
+      border-color: #111;
+    }
+    .history-item .info {
+      flex: 1;
+    }
+    .history-item .date {
+      font-weight: 600;
+      color: #111;
+    }
+    .history-item .details {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .history-item .actions button {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .patient-card {
+        grid-template-columns: 1fr;
+      }
+      .patient-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-actions {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .search-box input {
+        width: 100%;
+      }
+      .search-box input:focus {
+        width: 100%;
+      }
+      .main-tabs {
+        justify-content: center;
+      }
+      .filter-tabs {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⚖️ Weight Loss Protocols</h1>
+    <div class="header-actions">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Search patient..." oninput="handleSearch()">
+      </div>
+      <div class="main-tabs">
+        <button class="main-tab active" data-view="active">Active</button>
+        <button class="main-tab" data-view="completed">Completed</button>
+      </div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">All</button>
+        <button class="filter-tab" data-filter="in_clinic">In Clinic</button>
+        <button class="filter-tab" data-filter="take_home">Take Home</button>
+      </div>
+      <button class="refresh-btn" onclick="loadProtocols()">
+        ↻ Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="activeStats">
+    <div class="stat-card overdue" data-status="overdue" onclick="filterByStatus('overdue')">
+      <div class="label">Overdue</div>
+      <div class="value" id="stat-overdue">-</div>
+    </div>
+    <div class="stat-card due-soon" data-status="due-soon" onclick="filterByStatus('due-soon')">
+      <div class="label">Due Soon</div>
+      <div class="value" id="stat-due-soon">-</div>
+    </div>
+    <div class="stat-card on-track" data-status="on-track" onclick="filterByStatus('on-track')">
+      <div class="label">On Track</div>
+      <div class="value" id="stat-on-track">-</div>
+    </div>
+    <div class="stat-card low-injections" data-status="low-injections" onclick="filterByStatus('low-injections')">
+      <div class="label">Low Inj (In Clinic)</div>
+      <div class="value" id="stat-low-injections">-</div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="completedStats" style="display: none;">
+    <div class="stat-card completed">
+      <div class="label">Total Completed</div>
+      <div class="value" id="stat-completed">-</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="loading" class="loading">Loading protocols...</div>
+    <div id="content" style="display: none;"></div>
+  </div>
+
+  <!-- SMS Modal -->
+  <div class="modal-overlay" id="smsModal">
+    <div class="modal">
+      <h3>📱 Send Check-In SMS</h3>
+      <p id="smsPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="smsMessage">Hi {{first_name}}! 📊
+
+Time for your weekly weight loss check-in:
+
+https://app.range-medical.com/patient-checkin.html?contact_id={{contact_id}}
+
+Takes 30 seconds!
+- Range Medical</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeSmsModal()">Cancel</button>
+        <button class="action-btn primary" onclick="sendSms()">Send SMS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renew Modal -->
+  <div class="modal-overlay" id="renewModal">
+    <div class="modal">
+      <h3>🔄 Add Injections</h3>
+      <p id="renewPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div class="form-group">
+        <label>Injections to Add</label>
+        <select id="renewInjections">
+          <option value="2">2 Injections (2 weeks)</option>
+          <option value="4" selected>4 Injections (4 weeks)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="renewNotes" placeholder="Pickup date, dosage changes, etc."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeRenewModal()">Cancel</button>
+        <button class="action-btn primary" onclick="renewProtocol()">Add Injections</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>✏️ Edit Protocol</h3>
+      <p id="editPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div class="form-group">
+        <label>Medication</label>
+        <select id="editMedication">
+          <option value="Semaglutide">Semaglutide</option>
+          <option value="Tirzepatide">Tirzepatide</option>
+          <option value="Retatrutide">Retatrutide</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Current Dose</label>
+        <select id="editDose">
+          <option value="0.5mg">0.5mg</option>
+          <option value="1mg">1mg</option>
+          <option value="1.5mg">1.5mg</option>
+          <option value="2mg">2mg</option>
+          <option value="2.5mg">2.5mg</option>
+          <option value="3mg">3mg</option>
+          <option value="3.5mg">3.5mg</option>
+          <option value="4mg">4mg</option>
+          <option value="5mg">5mg</option>
+          <option value="6mg">6mg</option>
+          <option value="7.5mg">7.5mg</option>
+          <option value="10mg">10mg</option>
+          <option value="12.5mg">12.5mg</option>
+          <option value="15mg">15mg</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="editStartDate">
+      </div>
+      <div class="form-group">
+        <label>Starting Weight (lbs)</label>
+        <input type="number" id="editStartingWeight" step="0.1" placeholder="e.g. 185.5">
+      </div>
+      <div class="form-group">
+        <label>Total Injections</label>
+        <input type="number" id="editTotalInjections" min="1" placeholder="e.g. 4">
+      </div>
+      <div class="form-group">
+        <label>Injections Used</label>
+        <input type="number" id="editInjectionsUsed" min="0" placeholder="e.g. 2">
+      </div>
+      <div class="form-group">
+        <label>Delivery Method</label>
+        <select id="editDeliveryMethod">
+          <option value="take_home">Take Home</option>
+          <option value="in_clinic">In Clinic</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="editNotes" placeholder="Any notes about this protocol..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeEditModal()">Cancel</button>
+        <button class="action-btn primary" onclick="saveProtocolEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Injection Modal (for backfilling and current) -->
+  <div class="modal-overlay" id="logInjectionModal">
+    <div class="modal">
+      <h3>💉 Log Injection</h3>
+      <p id="logInjPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      <div id="logInjCurrentStats" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
+      
+      <div class="form-group">
+        <label>Injection Date</label>
+        <input type="date" id="logInjDate">
+      </div>
+      <div class="form-group">
+        <label>Weight (lbs)</label>
+        <input type="number" id="logInjWeight" step="0.1" placeholder="e.g. 185.5">
+      </div>
+      <div class="form-group">
+        <label>Dose Given</label>
+        <select id="logInjDose">
+          <option value="">Same as protocol</option>
+          <option value="0.5mg">0.5mg</option>
+          <option value="1mg">1mg</option>
+          <option value="1.5mg">1.5mg</option>
+          <option value="2mg">2mg</option>
+          <option value="2.5mg">2.5mg</option>
+          <option value="3mg">3mg</option>
+          <option value="3.5mg">3.5mg</option>
+          <option value="4mg">4mg</option>
+          <option value="5mg">5mg</option>
+          <option value="6mg">6mg</option>
+          <option value="7.5mg">7.5mg</option>
+          <option value="10mg">10mg</option>
+          <option value="12.5mg">12.5mg</option>
+          <option value="15mg">15mg</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Side Effects</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="None"> None
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Nausea"> Nausea
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Fatigue"> Fatigue
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Indigestion"> Indigestion
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Constipation"> Constipation
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+            <input type="checkbox" name="logInjSideEffect" value="Injection Pain"> Injection Pain
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="logInjNotes" placeholder="Any notes about this injection..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeLogInjectionModal()">Cancel</button>
+        <button class="action-btn primary" onclick="saveLogInjection()">Log Injection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Injection History Modal -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal" style="max-width: 700px;">
+      <h3>📋 Injection History</h3>
+      <p id="historyPatientName" style="color: #6b7280; margin-bottom: 16px;"></p>
+      
+      <div id="historyLoading" style="text-align: center; padding: 20px; color: #6b7280;">Loading...</div>
+      
+      <div id="historyContent" style="display: none;">
+        <div id="historySummary" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
+        
+        <div id="historyList"></div>
+        
+        <div id="historyEmpty" style="display: none; text-align: center; padding: 30px; color: #6b7280;">
+          <p>No injections logged yet.</p>
+          <button class="action-btn primary" onclick="closeHistoryModal(); setTimeout(() => openLogInjectionModal(selectedProtocol?.id), 100);" style="margin-top: 12px;">
+            💉 Log First Injection
+          </button>
+        </div>
+      </div>
+      
+      <div class="modal-actions" style="margin-top: 20px;">
+        <button class="action-btn" onclick="closeHistoryModal()">Close</button>
+        <button class="action-btn primary" onclick="closeHistoryModal(); setTimeout(() => openLogInjectionModal(selectedProtocol?.id), 100);">
+          💉 Add Injection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Log Modal -->
+  <div class="modal-overlay" id="editLogModal">
+    <div class="modal">
+      <h3>✏️ Edit Injection</h3>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="editLogDate">
+      </div>
+      <div class="form-group">
+        <label>Weight (lbs)</label>
+        <input type="number" id="editLogWeight" step="0.1" placeholder="e.g. 185.5">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="editLogNotes" placeholder="Notes..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" style="color: #dc2626; border-color: #dc2626;" onclick="deleteLog()">🗑️ Delete</button>
+        <button class="action-btn" onclick="closeEditLogModal()">Cancel</button>
+        <button class="action-btn primary" onclick="saveLogEdit()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api' 
+      : 'https://app.range-medical.com/api';
+    
+    let allProtocols = [];
+    let currentFilter = 'all';
+    let currentStatusFilter = null;
+    let selectedProtocol = null;
+    let searchTerm = '';
+    let mainView = 'active';
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadProtocols();
+      
+      // Main tab clicks (Active/Completed)
+      document.querySelectorAll('.main-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          mainView = tab.dataset.view;
+          currentStatusFilter = null;
+          document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+          
+          document.getElementById('activeStats').style.display = mainView === 'active' ? 'grid' : 'none';
+          document.getElementById('completedStats').style.display = mainView === 'completed' ? 'grid' : 'none';
+          
+          renderProtocols();
+        });
+      });
+      
+      // Filter tab clicks
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentFilter = tab.dataset.filter;
+          renderProtocols();
+        });
+      });
+    });
+
+    function handleSearch() {
+      searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      renderProtocols();
+    }
+
+    function clearSearch() {
+      searchTerm = '';
+      document.getElementById('searchInput').value = '';
+      renderProtocols();
+    }
+
+    async function loadProtocols() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('content').style.display = 'none';
+      
+      try {
+        const res = await fetch(`${API_BASE}/pipelines/weight-loss`);
+        const data = await res.json();
+        
+        if (data.success) {
+          allProtocols = data.protocols;
+          updateStats();
+          renderProtocols();
+        } else {
+          showToast('Failed to load protocols', 'error');
+        }
+      } catch (err) {
+        console.error('Load error:', err);
+        showToast('Failed to load protocols', 'error');
+      }
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    }
+
+    function updateStats() {
+      let overdue = 0, dueSoon = 0, onTrack = 0, lowInjections = 0, completed = 0;
+      
+      allProtocols.forEach(p => {
+        if (isCompleted(p)) {
+          completed++;
+          return;
+        }
+        
+        const status = getCheckInStatus(p);
+        if (status === 'overdue') overdue++;
+        else if (status === 'due-soon') dueSoon++;
+        else onTrack++;
+        
+        // Low injections (1 or fewer remaining) - only for in-clinic
+        const remaining = (p.total_injections || 0) - (p.injections_used || 0);
+        if (p.delivery_method === 'in_clinic' && remaining <= 1 && !isCompleted(p)) lowInjections++;
+      });
+      
+      document.getElementById('stat-overdue').textContent = overdue;
+      document.getElementById('stat-due-soon').textContent = dueSoon;
+      document.getElementById('stat-on-track').textContent = onTrack;
+      document.getElementById('stat-low-injections').textContent = lowInjections;
+      document.getElementById('stat-completed').textContent = completed;
+    }
+
+    function isCompleted(p) {
+      if (p.status === 'completed') return true;
+      
+      // For take-home: completed when supply time has elapsed
+      if (p.delivery_method === 'take_home') {
+        const totalInjections = p.total_injections || 4;
+        const supplyDays = totalInjections * 7;
+        const daysSinceStart = p.days_since_start || 0;
+        return daysSinceStart > supplyDays;
+      }
+      
+      // For in-clinic: completed when all injections used
+      const remaining = (p.total_injections || 0) - (p.injections_used || 0);
+      return remaining <= 0;
+    }
+
+    function getCheckInStatus(p) {
+      // For TAKE HOME: Track based on time elapsed vs supply duration
+      // 2 injections = 2 weeks supply, 4 injections = 4 weeks supply
+      if (p.delivery_method === 'take_home') {
+        const totalInjections = p.total_injections || 4;
+        const supplyDays = totalInjections * 7; // 1 injection per week
+        const daysSinceStart = p.days_since_start || 0;
+        const daysRemaining = supplyDays - daysSinceStart;
+        
+        if (daysRemaining <= 0) return 'overdue';      // Supply should be exhausted
+        if (daysRemaining <= 3) return 'due-soon';     // Running low (3 days or less)
+        return 'on-track';
+      }
+      
+      // For IN CLINIC: Track based on days since last injection
+      const daysSince = p.days_since_last_injection;
+      
+      if (daysSince === null || daysSince === undefined) {
+        // No injection yet - check days since start
+        const daysSinceStart = p.days_since_start || 0;
+        if (daysSinceStart >= 7) return 'overdue';
+        if (daysSinceStart >= 5) return 'due-soon';
+        return 'on-track';
+      }
+      
+      if (daysSince >= 7) return 'overdue';
+      if (daysSince >= 5) return 'due-soon';
+      return 'on-track';
+    }
+
+    function filterByStatus(status) {
+      if (currentStatusFilter === status) {
+        currentStatusFilter = null;
+        document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+      } else {
+        currentStatusFilter = status;
+        document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.stat-card[data-status="${status}"]`)?.classList.add('active');
+      }
+      renderProtocols();
+    }
+
+    function renderProtocols() {
+      let filtered = allProtocols;
+      
+      // Apply main view filter
+      if (mainView === 'active') {
+        filtered = filtered.filter(p => !isCompleted(p));
+      } else {
+        filtered = filtered.filter(p => isCompleted(p));
+      }
+      
+      // Apply search filter
+      if (searchTerm) {
+        filtered = filtered.filter(p => 
+          (p.patient_name || '').toLowerCase().includes(searchTerm) ||
+          (p.medication || '').toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Apply delivery method filter
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter(p => p.delivery_method === currentFilter);
+      }
+      
+      // Apply status filter
+      if (currentStatusFilter && mainView === 'active') {
+        if (currentStatusFilter === 'low-injections') {
+          filtered = filtered.filter(p => {
+            const remaining = (p.total_injections || 0) - (p.injections_used || 0);
+            return p.delivery_method === 'in_clinic' && remaining <= 1;
+          });
+        } else {
+          filtered = filtered.filter(p => getCheckInStatus(p) === currentStatusFilter);
+        }
+      }
+      
+      let html = '';
+      
+      if (mainView === 'active') {
+        const groups = {
+          overdue: filtered.filter(p => getCheckInStatus(p) === 'overdue'),
+          'due-soon': filtered.filter(p => getCheckInStatus(p) === 'due-soon'),
+          'on-track': filtered.filter(p => getCheckInStatus(p) === 'on-track')
+        };
+        
+        // Sort each group by urgency
+        Object.keys(groups).forEach(key => {
+          groups[key].sort((a, b) => {
+            // Calculate urgency score (lower = more urgent)
+            const getUrgency = (p) => {
+              if (p.delivery_method === 'take_home') {
+                // Take home: sort by days of supply remaining
+                const totalInj = p.total_injections || 4;
+                const supplyDays = totalInj * 7;
+                const daysSinceStart = p.days_since_start || 0;
+                return supplyDays - daysSinceStart; // Lower = more urgent
+              } else {
+                // In clinic: sort by days since last injection (more days = more urgent)
+                return -(p.days_since_last_injection || p.days_since_start || 0);
+              }
+            };
+            return getUrgency(a) - getUrgency(b);
+          });
+        });
+        
+        if (groups.overdue.length > 0) {
+          html += renderSection('🔴 Overdue - Needs Attention', groups.overdue);
+        }
+        if (groups['due-soon'].length > 0) {
+          html += renderSection('🟡 Due Soon - Follow Up', groups['due-soon']);
+        }
+        if (groups['on-track'].length > 0) {
+          html += renderSection('🟢 On Track', groups['on-track']);
+        }
+      } else {
+        filtered.sort((a, b) => new Date(b.last_activity || 0) - new Date(a.last_activity || 0));
+        
+        if (filtered.length > 0) {
+          html += renderSection('⚪ Completed Protocols', filtered);
+        }
+      }
+      
+      if (html === '') {
+        const viewLabel = mainView === 'active' ? 'active protocols' : 'completed protocols';
+        const searchMsg = searchTerm 
+          ? `No ${viewLabel} found matching "${searchTerm}".` 
+          : `No ${viewLabel} found.`;
+        html = `
+          <div class="empty-state">
+            <div class="icon">${mainView === 'active' ? '⚖️' : '✅'}</div>
+            <p>${searchMsg}</p>
+            ${searchTerm ? '<p style="margin-top: 8px;"><button class="action-btn" onclick="clearSearch()">Clear Search</button></p>' : ''}
+          </div>
+        `;
+      }
+      
+      document.getElementById('content').innerHTML = html;
+    }
+
+    function renderSection(title, protocols) {
+      return `
+        <div class="section">
+          <div class="section-header">
+            <h2>${title}</h2>
+            <span class="count">${protocols.length}</span>
+          </div>
+          <div class="patient-grid">
+            ${protocols.map(p => renderPatientCard(p)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPatientCard(p) {
+      const deliveryBadge = p.delivery_method === 'in_clinic' 
+        ? '<span class="badge in-clinic">In Clinic</span>'
+        : '<span class="badge take-home">Take Home</span>';
+      
+      const injectionsUsed = p.injections_used || 0;
+      const totalInjections = p.total_injections || 0;
+      const remaining = totalInjections - injectionsUsed;
+      const injClass = remaining <= 1 ? 'low' : remaining <= 2 ? 'medium' : 'ok';
+      
+      // Weight progress
+      const startWeight = p.starting_weight;
+      const currentWeight = p.current_weight;
+      let weightDisplay = '-';
+      let weightChangeHtml = '';
+      
+      if (startWeight && currentWeight) {
+        const change = currentWeight - startWeight;
+        const changeClass = change < 0 ? 'loss' : change > 0 ? 'gain' : 'same';
+        const changeText = change < 0 ? `${Math.abs(change).toFixed(1)} lbs` : change > 0 ? `+${change.toFixed(1)} lbs` : 'No change';
+        weightDisplay = `${startWeight} → ${currentWeight}`;
+        weightChangeHtml = `<span class="weight-change ${changeClass}">${changeText}</span>`;
+      } else if (startWeight) {
+        weightDisplay = `${startWeight} lbs`;
+      }
+      
+      const status = getCheckInStatus(p);
+      
+      // Days/status display - different for take-home vs in-clinic
+      let statusLabel = '';
+      let statusText = '';
+      let statusClass = '';
+      
+      if (p.delivery_method === 'take_home') {
+        // Take Home: Show supply remaining based on time
+        const totalInjections = p.total_injections || 4;
+        const supplyDays = totalInjections * 7;
+        const daysSinceStart = p.days_since_start || 0;
+        const daysRemaining = supplyDays - daysSinceStart;
+        
+        statusLabel = 'Supply Status';
+        if (daysRemaining <= 0) {
+          statusText = `Ran out ${Math.abs(daysRemaining)} days ago`;
+          statusClass = 'overdue';
+        } else if (daysRemaining === 1) {
+          statusText = '1 day left';
+          statusClass = 'due-soon';
+        } else if (daysRemaining <= 3) {
+          statusText = `${daysRemaining} days left`;
+          statusClass = 'due-soon';
+        } else if (daysRemaining <= 7) {
+          statusText = `${daysRemaining} days left`;
+          statusClass = 'on-track';
+        } else {
+          const weeksLeft = Math.floor(daysRemaining / 7);
+          statusText = `~${weeksLeft} week${weeksLeft !== 1 ? 's' : ''} left`;
+          statusClass = 'on-track';
+        }
+      } else {
+        // In Clinic: Show days since last injection
+        const daysSince = p.days_since_last_injection;
+        statusLabel = 'Last Injection';
+        
+        if (daysSince === null || daysSince === undefined) {
+          statusText = 'No activity yet';
+          statusClass = status === 'overdue' ? 'overdue' : status === 'due-soon' ? 'due-soon' : 'on-track';
+        } else if (daysSince === 0) {
+          statusText = 'Today';
+          statusClass = 'on-track';
+        } else {
+          statusText = `${daysSince} days ago`;
+          statusClass = status === 'overdue' ? 'overdue' : status === 'due-soon' ? 'due-soon' : 'on-track';
+        }
+      }
+      
+      const isComplete = isCompleted(p);
+      
+      // Overdue badge
+      const overdueBadge = status === 'overdue' && !isComplete 
+        ? '<span class="badge overdue">Overdue</span>' 
+        : '';
+      
+      // Low injections badge (only for in-clinic)
+      const lowInjBadge = p.delivery_method === 'in_clinic' && remaining <= 1 && !isComplete 
+        ? '<span class="badge low-injections">Low Inj</span>' 
+        : '';
+      
+      return `
+        <div class="patient-card">
+          <div class="patient-info">
+            <div class="field">
+              <div class="field-label">Patient</div>
+              <div class="field-value name">${p.patient_name || 'Unknown'}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Medication</div>
+              <div class="field-value">${p.medication || '-'} ${p.current_dose || ''}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Weight</div>
+              <div class="field-value">
+                <div class="weight-progress">
+                  ${weightDisplay} ${weightChangeHtml}
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">${p.delivery_method === 'take_home' ? 'Given' : 'Injections'}</div>
+              <div class="field-value injections-display ${p.delivery_method === 'take_home' ? '' : injClass}">${p.delivery_method === 'take_home' ? `${injectionsUsed} injections` : `${injectionsUsed} / ${totalInjections} ${isComplete ? '(Done)' : ''}`}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">${statusLabel}</div>
+              <div class="field-value days-ago ${statusClass}">${statusText}</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Delivery</div>
+              <div class="field-value">${deliveryBadge} ${overdueBadge} ${lowInjBadge}</div>
+            </div>
+          </div>
+          <div class="patient-actions">
+            ${p.delivery_method === 'take_home' ? `
+              <button class="action-btn" onclick="openSmsModal('${p.id}', '${p.patient_name}', '${p.ghl_contact_id}')">
+                📱 SMS
+              </button>
+            ` : `
+              <button class="action-btn" onclick="logInjection('${p.id}', '${p.patient_name}')">
+                💉 Log
+              </button>
+            `}
+            <button class="action-btn" onclick="openHistoryModal('${p.id}')">
+              📋 History
+            </button>
+            <button class="action-btn" onclick="openEditModal('${p.id}')">
+              ✏️ Edit
+            </button>
+            <button class="action-btn" onclick="openInGHL('${p.ghl_contact_id}')">
+              ↗ GHL
+            </button>
+            ${p.delivery_method === 'take_home' ? `
+              <button class="action-btn primary" onclick="openRenewModal('${p.id}', '${p.patient_name}', '${p.medication}')">
+                🔄 Add Inj
+              </button>
+            ` : (isComplete || remaining <= 1 ? `
+              <button class="action-btn primary" onclick="openRenewModal('${p.id}', '${p.patient_name}', '${p.medication}')">
+                🔄 Add Inj
+              </button>
+            ` : '')}
+          </div>
+        </div>
+      `;
+    }
+
+    function openInGHL(contactId) {
+      if (!contactId) {
+        showToast('No GHL contact linked', 'error');
+        return;
+      }
+      window.open(`https://crm.cuppconsulting.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${contactId}`, '_blank');
+    }
+
+    function openSmsModal(protocolId, patientName, contactId) {
+      selectedProtocol = { id: protocolId, patientName, contactId };
+      document.getElementById('smsPatientName').textContent = `To: ${patientName}`;
+      
+      // Replace placeholders in message
+      let message = document.getElementById('smsMessage').value;
+      message = message.replace('{{first_name}}', patientName.split(' ')[0]);
+      message = message.replace('{{contact_id}}', contactId);
+      document.getElementById('smsMessage').value = message;
+      
+      document.getElementById('smsModal').classList.add('active');
+    }
+
+    function closeSmsModal() {
+      document.getElementById('smsModal').classList.remove('active');
+      // Reset message template
+      document.getElementById('smsMessage').value = `Hi {{first_name}}! 📊
+
+Time for your weekly weight loss check-in:
+
+https://app.range-medical.com/patient-checkin.html?contact_id={{contact_id}}
+
+Takes 30 seconds!
+- Range Medical`;
+      selectedProtocol = null;
+    }
+
+    async function sendSms() {
+      if (!selectedProtocol) return;
+      
+      const message = document.getElementById('smsMessage').value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/ghl/send-sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contact_id: selectedProtocol.contactId,
+            message: message
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('SMS sent successfully!', 'success');
+          closeSmsModal();
+        } else {
+          showToast(data.error || 'Failed to send SMS', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to send SMS', 'error');
+      }
+    }
+
+    function openRenewModal(protocolId, patientName, medication) {
+      selectedProtocol = { id: protocolId, patientName, medication };
+      document.getElementById('renewPatientName').textContent = `${patientName} - ${medication}`;
+      document.getElementById('renewModal').classList.add('active');
+    }
+
+    function closeRenewModal() {
+      document.getElementById('renewModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function renewProtocol() {
+      if (!selectedProtocol) return;
+      
+      const injections = document.getElementById('renewInjections').value;
+      const notes = document.getElementById('renewNotes').value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/add-injections`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            injections: parseInt(injections),
+            notes: notes
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast(`Added ${injections} injections!`, 'success');
+          closeRenewModal();
+          loadProtocols();
+        } else {
+          showToast(data.error || 'Failed to add injections', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to add injections', 'error');
+      }
+    }
+
+    async function logInjection(protocolId, patientName) {
+      openLogInjectionModal(protocolId);
+    }
+
+    function openLogInjectionModal(protocolId) {
+      const protocol = allProtocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        showToast('Protocol not found', 'error');
+        return;
+      }
+      
+      selectedProtocol = protocol;
+      document.getElementById('logInjPatientName').textContent = protocol.patient_name;
+      
+      // Show current stats
+      const used = protocol.injections_used || 0;
+      const total = protocol.total_injections || 4;
+      const startWeight = protocol.starting_weight || '-';
+      const currentWeight = protocol.current_weight || '-';
+      
+      document.getElementById('logInjCurrentStats').innerHTML = `
+        <strong>Current Progress:</strong> ${used} / ${total} injections<br>
+        <strong>Weight:</strong> ${startWeight} lbs (start) → ${currentWeight} lbs (current)
+      `;
+      
+      // Set date to today
+      document.getElementById('logInjDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('logInjWeight').value = '';
+      document.getElementById('logInjDose').value = '';
+      document.getElementById('logInjNotes').value = '';
+      
+      // Clear checkboxes
+      document.querySelectorAll('input[name="logInjSideEffect"]').forEach(cb => cb.checked = false);
+      
+      document.getElementById('logInjectionModal').classList.add('active');
+    }
+
+    function closeLogInjectionModal() {
+      document.getElementById('logInjectionModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function saveLogInjection() {
+      if (!selectedProtocol) return;
+      
+      const injDate = document.getElementById('logInjDate').value;
+      const weight = document.getElementById('logInjWeight').value;
+      const dose = document.getElementById('logInjDose').value;
+      const notes = document.getElementById('logInjNotes').value;
+      
+      // Gather side effects
+      const sideEffects = [];
+      document.querySelectorAll('input[name="logInjSideEffect"]:checked').forEach(cb => {
+        sideEffects.push(cb.value);
+      });
+      
+      if (!injDate) {
+        showToast('Please select a date', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/log-injection`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            log_date: injDate,
+            weight: weight ? parseFloat(weight) : null,
+            dose: dose || null,
+            side_effects: sideEffects,
+            notes: notes,
+            delivery_method: selectedProtocol.delivery_method
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Injection logged!', 'success');
+          closeLogInjectionModal();
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to log injection', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to log injection', 'error');
+      }
+    }
+
+    function openEditModal(protocolId) {
+      const protocol = allProtocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        showToast('Protocol not found', 'error');
+        return;
+      }
+      
+      selectedProtocol = protocol;
+      document.getElementById('editPatientName').textContent = protocol.patient_name;
+      document.getElementById('editMedication').value = protocol.medication || 'Semaglutide';
+      document.getElementById('editDose').value = protocol.current_dose || '5mg';
+      document.getElementById('editStartDate').value = protocol.start_date || '';
+      document.getElementById('editStartingWeight').value = protocol.starting_weight || '';
+      document.getElementById('editTotalInjections').value = protocol.total_injections || '';
+      document.getElementById('editInjectionsUsed').value = protocol.injections_used || 0;
+      document.getElementById('editDeliveryMethod').value = protocol.delivery_method || 'take_home';
+      document.getElementById('editNotes').value = protocol.notes || '';
+      
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+      selectedProtocol = null;
+    }
+
+    async function saveProtocolEdit() {
+      if (!selectedProtocol) return;
+      
+      const data = {
+        medication: document.getElementById('editMedication').value,
+        selected_dose: document.getElementById('editDose').value,
+        start_date: document.getElementById('editStartDate').value || null,
+        starting_weight: parseFloat(document.getElementById('editStartingWeight').value) || null,
+        total_sessions: parseInt(document.getElementById('editTotalInjections').value) || 0,
+        sessions_used: parseInt(document.getElementById('editInjectionsUsed').value) || 0,
+        delivery_method: document.getElementById('editDeliveryMethod').value,
+        notes: document.getElementById('editNotes').value
+      };
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${selectedProtocol.id}/update`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Protocol updated!', 'success');
+          closeEditModal();
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to update', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to update protocol', 'error');
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast active ${type}`;
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 3000);
+    }
+
+    // History Modal
+    let selectedLog = null;
+
+    async function openHistoryModal(protocolId) {
+      const protocol = allProtocols.find(p => p.id === protocolId);
+      if (!protocol) {
+        showToast('Protocol not found', 'error');
+        return;
+      }
+      
+      selectedProtocol = protocol;
+      document.getElementById('historyPatientName').textContent = `${protocol.patient_name} - ${protocol.medication || 'Weight Loss'}`;
+      document.getElementById('historyLoading').style.display = 'block';
+      document.getElementById('historyContent').style.display = 'none';
+      document.getElementById('historyModal').classList.add('active');
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocols/${protocolId}/logs`);
+        const data = await res.json();
+        
+        document.getElementById('historyLoading').style.display = 'none';
+        document.getElementById('historyContent').style.display = 'block';
+        
+        // Handle both formats: { success, logs } or raw array
+        const logs = Array.isArray(data) ? data : (data.logs || []);
+        
+        if (logs.length > 0) {
+          // Show summary
+          const totalLogs = logs.length;
+          const startWeight = protocol.starting_weight;
+          const latestWeight = logs[0]?.weight;
+          let summaryHtml = `<strong>Total Logged:</strong> ${totalLogs} injection${totalLogs !== 1 ? 's' : ''}`;
+          
+          if (startWeight && latestWeight) {
+            const change = latestWeight - startWeight;
+            const changeText = change < 0 ? `↓ ${Math.abs(change).toFixed(1)} lbs` : change > 0 ? `↑ ${change.toFixed(1)} lbs` : 'No change';
+            summaryHtml += ` &nbsp;|&nbsp; <strong>Progress:</strong> ${startWeight} → ${latestWeight} lbs (${changeText})`;
+          }
+          
+          document.getElementById('historySummary').innerHTML = summaryHtml;
+          document.getElementById('historySummary').style.display = 'block';
+          
+          // Render logs
+          let logsHtml = '';
+          logs.forEach((log, index) => {
+            const logDate = new Date(log.log_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            const weightText = log.weight ? `${log.weight} lbs` : 'No weight';
+            const notesText = log.notes ? ` - ${log.notes.substring(0, 50)}${log.notes.length > 50 ? '...' : ''}` : '';
+            
+            logsHtml += `
+              <div class="history-item">
+                <div class="info">
+                  <div class="date">#${totalLogs - index}: ${logDate}</div>
+                  <div class="details">${weightText}${notesText}</div>
+                </div>
+                <div class="actions">
+                  <button class="action-btn" onclick="openEditLogModal('${log.id}', '${log.log_date}', ${log.weight || 'null'}, '${(log.notes || '').replace(/'/g, "\\'")}')">✏️ Edit</button>
+                </div>
+              </div>
+            `;
+          });
+          
+          document.getElementById('historyList').innerHTML = logsHtml;
+          document.getElementById('historyList').style.display = 'block';
+          document.getElementById('historyEmpty').style.display = 'none';
+        } else {
+          document.getElementById('historySummary').style.display = 'none';
+          document.getElementById('historyList').style.display = 'none';
+          document.getElementById('historyEmpty').style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Load history error:', err);
+        showToast('Failed to load history', 'error');
+        closeHistoryModal();
+      }
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('historyModal').classList.remove('active');
+    }
+
+    function openEditLogModal(logId, logDate, weight, notes) {
+      selectedLog = { id: logId };
+      document.getElementById('editLogDate').value = logDate;
+      document.getElementById('editLogWeight').value = weight || '';
+      document.getElementById('editLogNotes').value = notes || '';
+      document.getElementById('editLogModal').classList.add('active');
+    }
+
+    function closeEditLogModal() {
+      document.getElementById('editLogModal').classList.remove('active');
+      selectedLog = null;
+    }
+
+    async function saveLogEdit() {
+      if (!selectedLog) return;
+      
+      const data = {
+        log_date: document.getElementById('editLogDate').value,
+        weight: document.getElementById('editLogWeight').value ? parseFloat(document.getElementById('editLogWeight').value) : null,
+        notes: document.getElementById('editLogNotes').value
+      };
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocol-logs/${selectedLog.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Log updated!', 'success');
+          closeEditLogModal();
+          // Refresh history
+          if (selectedProtocol) {
+            openHistoryModal(selectedProtocol.id);
+          }
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to update', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to update log', 'error');
+      }
+    }
+
+    async function deleteLog() {
+      if (!selectedLog) return;
+      
+      if (!confirm('Are you sure you want to delete this injection log? This will also decrement the injection count.')) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/protocol-logs/${selectedLog.id}`, {
+          method: 'DELETE'
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          showToast('Log deleted', 'success');
+          closeEditLogModal();
+          // Refresh history
+          if (selectedProtocol) {
+            openHistoryModal(selectedProtocol.id);
+          }
+          loadProtocols();
+        } else {
+          showToast(result.error || 'Failed to delete', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to delete log', 'error');
+      }
+    }
+  </script>
+</body>
+</html>

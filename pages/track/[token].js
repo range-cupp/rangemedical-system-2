@@ -1,1955 +1,1443 @@
 // /pages/track/[token].js
-// Patient-facing injection tracker
+// Patient Recovery Tracker - Complete Premium Experience
+// Range Medical
+// Features: Wellness tracking, milestones, weight logging, messaging, refills, preferences
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+
+// =====================================================
+// PEPTIDE BENEFITS DATABASE
+// =====================================================
+const PEPTIDE_INFO = {
+  'BPC-157': {
+    description: 'Body Protection Compound-157 is a synthetic peptide derived from human gastric juice.',
+    benefits: ['Accelerates tissue healing', 'Reduces inflammation', 'Supports gut health', 'Promotes tendon & ligament repair'],
+    bestFor: 'Injury recovery, joint pain, gut issues'
+  },
+  'TB-500': {
+    description: 'Thymosin Beta-4 is a naturally occurring peptide that promotes healing and reduces inflammation.',
+    benefits: ['Enhances muscle recovery', 'Improves flexibility', 'Supports cardiovascular health', 'Accelerates wound healing'],
+    bestFor: 'Muscle injuries, chronic pain, athletic recovery'
+  },
+  'BPC-157 / TB-500': {
+    description: 'A powerful combination that synergistically accelerates healing and reduces inflammation.',
+    benefits: ['Enhanced tissue repair', 'Faster recovery time', 'Reduced inflammation', 'Improved mobility'],
+    bestFor: 'Comprehensive injury recovery, chronic conditions'
+  },
+  'CJC-1295 / Ipamorelin': {
+    description: 'Growth hormone releasing peptide combination for optimal HGH stimulation.',
+    benefits: ['Increased muscle mass', 'Better sleep quality', 'Enhanced fat metabolism', 'Improved skin elasticity'],
+    bestFor: 'Anti-aging, body composition, recovery'
+  },
+  'Semaglutide': {
+    description: 'A GLP-1 receptor agonist that regulates appetite and blood sugar.',
+    benefits: ['Significant weight loss', 'Reduced appetite', 'Better blood sugar control', 'Cardiovascular benefits'],
+    bestFor: 'Weight management, metabolic health'
+  },
+  'Tirzepatide': {
+    description: 'Dual GIP/GLP-1 receptor agonist for enhanced metabolic control.',
+    benefits: ['Superior weight loss', 'Appetite suppression', 'Improved insulin sensitivity', 'Reduced cravings'],
+    bestFor: 'Weight loss, Type 2 diabetes management'
+  }
+};
+
+// Frequency display mapping
+const FREQUENCY_DISPLAY = {
+  '2x_daily': { label: '2× Daily', schedule: 'Morning & Evening' },
+  'daily': { label: 'Daily', schedule: 'Once per day' },
+  '5_on_2_off': { label: '5 On / 2 Off', schedule: 'Mon-Fri, rest Sat-Sun' },
+  'every_other_day': { label: 'Every Other Day', schedule: 'Alternating days' },
+  '3x_weekly': { label: '3× Weekly', schedule: 'Mon, Wed, Fri' },
+  '2x_weekly': { label: '2× Weekly', schedule: 'Monday & Thursday' },
+  'weekly': { label: 'Weekly', schedule: 'Once per week' },
+  '3x weekly': { label: '3× Weekly', schedule: 'Mon, Wed, Fri' },
+  '2x weekly': { label: '2× Weekly', schedule: 'Monday & Thursday' },
+  '1x weekly': { label: 'Weekly', schedule: 'Once per week' },
+  '5 on 2 off': { label: '5 On / 2 Off', schedule: 'Mon-Fri, rest Sat-Sun' }
+};
+
+// Wellness metrics
+const WELLNESS_METRICS = [
+  { key: 'energy', label: 'Energy', lowLabel: 'Exhausted', highLabel: 'Energetic', icon: '⚡', color: '#ff9800' },
+  { key: 'sleep', label: 'Sleep', lowLabel: 'Poor', highLabel: 'Excellent', icon: '😴', color: '#5c6bc0' },
+  { key: 'pain', label: 'Pain', lowLabel: 'None', highLabel: 'Severe', icon: '🩹', color: '#ef5350', inverted: true },
+  { key: 'recovery', label: 'Recovery', lowLabel: 'Slow', highLabel: 'Fast', icon: '💪', color: '#26a69a' },
+  { key: 'wellbeing', label: 'Overall', lowLabel: 'Poor', highLabel: 'Great', icon: '✨', color: '#ab47bc' }
+];
+
+// Milestone definitions
+const MILESTONES = [
+  { day: 1, title: "You're Started! 🚀", message: "Day 1 complete. The journey begins!" },
+  { day: 3, title: "Building Momentum! 💪", message: "3 days in. Your body is already responding." },
+  { day: 5, title: "High Five! ✋", message: "5 days done. You're building a healthy habit!" },
+  { percent: 25, title: "Quarter Way! 🎯", message: "25% complete. Keep going!" },
+  { percent: 50, title: "Halfway There! 🏔️", message: "50% done! You're crushing it!" },
+  { percent: 75, title: "Final Stretch! 🏃", message: "75% complete. The finish line is in sight!" },
+  { percent: 100, title: "Protocol Complete! 🎉", message: "Amazing work! You did it!" }
+];
+
+// Message categories
+const MESSAGE_CATEGORIES = [
+  { value: 'question', label: '❓ Question', description: 'General question about my protocol' },
+  { value: 'side_effect', label: '⚠️ Side Effect', description: 'Experiencing a side effect' },
+  { value: 'scheduling', label: '📅 Scheduling', description: 'Need to reschedule or adjust' },
+  { value: 'other', label: '💬 Other', description: 'Something else' }
+];
+
+// Reminder time options
+const REMINDER_TIMES = [
+  { value: '06:00', label: '6:00 AM' },
+  { value: '07:00', label: '7:00 AM' },
+  { value: '08:00', label: '8:00 AM' },
+  { value: '09:00', label: '9:00 AM' },
+  { value: '12:00', label: '12:00 PM' },
+  { value: '17:00', label: '5:00 PM' },
+  { value: '18:00', label: '6:00 PM' },
+  { value: '18:30', label: '6:30 PM' },
+  { value: '19:00', label: '7:00 PM' },
+  { value: '20:00', label: '8:00 PM' },
+  { value: '21:00', label: '9:00 PM' }
+];
 
 export default function PatientTracker() {
   const router = useRouter();
   const { token } = router.query;
 
+  // Core state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
-  const [activeTab, setActiveTab] = useState(null); // null, 'instructions', or 'about'
   const [saving, setSaving] = useState(null);
+  
+  // Questionnaire state
+  const [intakeQuestionnaire, setIntakeQuestionnaire] = useState(null);
+  const [completionQuestionnaire, setCompletionQuestionnaire] = useState(null);
+  const [activeForm, setActiveForm] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Wellness tracking
+  const [symptoms, setSymptoms] = useState({ logs: [], stats: {} });
+  const [showWellnessCheckIn, setShowWellnessCheckIn] = useState(false);
+  const [wellnessData, setWellnessData] = useState({
+    energy: 5, sleep: 5, pain: 5, recovery: 5, wellbeing: 5, notes: ''
+  });
+  const [savingWellness, setSavingWellness] = useState(false);
+  const [todayLogged, setTodayLogged] = useState(false);
+  
+  // Weight tracking
+  const [weightLogs, setWeightLogs] = useState({ logs: [], stats: {} });
+  const [showWeightLog, setShowWeightLog] = useState(false);
+  const [currentWeight, setCurrentWeight] = useState('');
+  const [savingWeight, setSavingWeight] = useState(false);
+  
+  // Milestones
+  const [showMilestone, setShowMilestone] = useState(null);
+  const [celebratedMilestones, setCelebratedMilestones] = useState([]);
+  
+  // Messaging
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageCategory, setMessageCategory] = useState('question');
+  const [messageText, setMessageText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  
+  // Refill
+  const [showRefillModal, setShowRefillModal] = useState(false);
+  const [refillNotes, setRefillNotes] = useState('');
+  const [sendingRefill, setSendingRefill] = useState(false);
+  const [hasPendingRefill, setHasPendingRefill] = useState(false);
+  
+  // Preferences
+  const [showSettings, setShowSettings] = useState(false);
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [reminderTime, setReminderTime] = useState('18:30');
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  
+  // Completion summary
+  const [showCompletionSummary, setShowCompletionSummary] = useState(false);
+  
+  // Form data for questionnaires
+  const [formData, setFormData] = useState({
+    sleep_quality: 5, energy_level: 5, current_medications: '', recovery_goals: '', goals_achieved: '',
+    overall_improvement: 5, would_recommend: true, continue_treatment: true, additional_notes: '',
+    primary_complaint: '', injury_location: '', injury_duration: '', pain_level: 5, pain_frequency: '',
+    mobility_score: 5, activities_limited: [], previous_treatments: '',
+    current_weight: '', goal_weight: '', weight_at_completion: '', appetite_level: 5, cravings_level: 5,
+    exercise_frequency: '', diet_description: '', previous_weight_loss_attempts: '',
+    side_effects: [], side_effects_severity: 0, clothing_fit_change: ''
+  });
 
+  // =====================================================
+  // DATA FETCHING
+  // =====================================================
+  
   useEffect(() => {
     if (token) {
-      fetchData();
+      fetchAllData();
+      // Load celebrated milestones from localStorage
+      const stored = localStorage.getItem(`milestones_${token}`);
+      if (stored) setCelebratedMilestones(JSON.parse(stored));
     }
   }, [token]);
 
-  const fetchData = async () => {
+  const fetchAllData = async () => {
+    setLoading(true);
     try {
+      // Fetch main tracker data
       const res = await fetch(`/api/patient/tracker?token=${token}`);
       if (res.ok) {
         const json = await res.json();
         setData(json);
+        setIntakeQuestionnaire(json.intakeQuestionnaire || null);
+        setCompletionQuestionnaire(json.completionQuestionnaire || null);
+        
+        // Determine category for questionnaire features
+        const category = getQuestionnaireCategory(json.protocol?.program_type, json.protocol?.program_name);
+        // Note: We no longer auto-show intake form - patients can access it via settings if needed
       } else {
         setError('Protocol not found. Please check your link.');
+        setLoading(false);
+        return;
       }
+      
+      // Fetch symptoms
+      await fetchSymptoms();
+      
+      // Fetch weight logs (for weight loss)
+      await fetchWeightLogs();
+      
+      // Fetch preferences
+      await fetchPreferences();
+      
+      // Check refill status
+      await checkRefillStatus();
+      
     } catch (err) {
-      setError('Unable to load your protocol. Please try again.');
+      setError('Unable to load. Please try again.');
     }
     setLoading(false);
   };
-
-  // Determine if a day is an "off" day based on frequency
-  const isOffDay = (dayNumber, frequency, startDate) => {
-    if (!frequency) return false;
-    
-    // 5 days on / 2 days off - days 6, 7, 13, 14, 20, 21, etc. are off
-    if (frequency.includes('5 days on')) {
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle === 6 || dayInCycle === 7;
-    }
-    
-    // 1x weekly - only day 1, 8, 15, 22, etc. are injection days
-    if (frequency === '1x weekly') {
-      return ((dayNumber - 1) % 7) !== 0;
-    }
-    
-    // 2x weekly (Mon/Thu) - injection on Mon and Thu
-    if (frequency === '2x weekly (Mon/Thu)') {
-      // Calculate the actual day of week for this day
-      if (startDate) {
-        const start = new Date(startDate);
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + dayNumber - 1);
-        const dayOfWeek = currentDate.getDay(); // 0=Sun, 1=Mon, 4=Thu
-        return dayOfWeek !== 1 && dayOfWeek !== 4;
-      }
-      // Fallback: Mon/Thu pattern assuming day 1 is Monday
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 1 && dayInCycle !== 4;
-    }
-    
-    // 2x weekly (Tue/Fri) - injection on Tue and Fri
-    if (frequency === '2x weekly (Tue/Fri)') {
-      if (startDate) {
-        const start = new Date(startDate);
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + dayNumber - 1);
-        const dayOfWeek = currentDate.getDay(); // 2=Tue, 5=Fri
-        return dayOfWeek !== 2 && dayOfWeek !== 5;
-      }
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 2 && dayInCycle !== 5;
-    }
-    
-    // 2x weekly (any days) - days 1, 4, 8, 11, 15, 18, etc. (every 3-4 days)
-    if (frequency === '2x weekly' || frequency.includes('2x weekly (any')) {
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 1 && dayInCycle !== 4;
-    }
-    
-    // 3x weekly (Mon/Wed/Fri) - injection on Mon, Wed, Fri
-    if (frequency === '3x weekly (Mon/Wed/Fri)') {
-      if (startDate) {
-        const start = new Date(startDate);
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + dayNumber - 1);
-        const dayOfWeek = currentDate.getDay(); // 1=Mon, 3=Wed, 5=Fri
-        return dayOfWeek !== 1 && dayOfWeek !== 3 && dayOfWeek !== 5;
-      }
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 1 && dayInCycle !== 3 && dayInCycle !== 5;
-    }
-    
-    // 3x weekly (any days) - days 1, 3, 5, 8, 10, 12, etc.
-    if (frequency === '3x weekly' || frequency.includes('3x weekly (any')) {
-      const dayInCycle = ((dayNumber - 1) % 7) + 1;
-      return dayInCycle !== 1 && dayInCycle !== 3 && dayInCycle !== 5;
-    }
-    
-    // Every other day
-    if (frequency === 'Every other day') {
-      return dayNumber % 2 === 0;
-    }
-    
-    // 1x monthly - only day 1, 31, 61, etc. are session days
-    if (frequency === '1x monthly') {
-      return ((dayNumber - 1) % 30) !== 0;
-    }
-    
-    // As needed - no off days, but also no required days
-    if (frequency === 'As needed') {
-      return false; // All days available to log if needed
-    }
-    
-    return false;
-  };
-
-  // Transform peptide names for display
-  const getDisplayName = (peptideName) => {
-    if (!peptideName) return '';
-    
-    // BPC-157 variants should show as Wolverine
-    if (peptideName.toLowerCase().includes('bpc-157') && !peptideName.toLowerCase().includes('tb')) {
-      return 'Wolverine BPC-157 / TB-500';
-    }
-    if (peptideName.toLowerCase() === 'bpc-157') {
-      return 'Wolverine BPC-157 / TB-500';
-    }
-    if (peptideName.toLowerCase().includes('bpc') && !peptideName.toLowerCase().includes('wolverine') && !peptideName.toLowerCase().includes('tb')) {
-      return 'Wolverine BPC-157 / TB-500';
-    }
-    
-    return peptideName;
-  };
-
-  // Get simple explanation for a peptide
-  const getPeptideExplanation = (peptideName) => {
-    if (!peptideName) return null;
-    const name = peptideName.toLowerCase();
-
-    // ============================================
-    // BLENDS FIRST (check before individual peptides)
-    // ============================================
-
-    // Wolverine Blend (BPC + TB) - check before BPC or TB individually
-    if (name.includes('wolverine') || (name.includes('bpc') && name.includes('tb'))) {
-      return {
-        name: 'Wolverine Blend (BPC-157 + TB-500)',
-        what: 'This blend has two healing peptides: BPC-157 and TB-500. They work as a team.',
-        how: 'BPC-157 helps repair tissue. TB-500 helps cells grow and move where needed. Together they give your body more tools to heal.',
-        benefits: [
-          'Faster recovery from workouts',
-          'Helps heal muscles and tendons',
-          'Supports joint health',
-          'May reduce discomfort from injuries'
-        ],
-        tip: 'Take this blend any time of day. It works with or without food.',
-        note: 'Results vary. Popular with active people who want to recover faster.'
-      };
-    }
-
-    // KLOW blend - check before GLOW, GHK, KPV, BPC, TB
-    if (name.includes('klow')) {
-      return {
-        name: 'KLOW Blend (GHK-Cu + KPV + BPC-157 + TB-500)',
-        what: 'KLOW has GHK-Cu, KPV, BPC-157, and TB-500. It supports skin health and calming.',
-        how: 'Each peptide works on a different part of skin health. Together they support repair, calming, and collagen.',
-        benefits: [
-          'Supports skin health and repair',
-          'Helps calm skin irritation',
-          'Supports collagen production',
-          'Promotes overall healing'
-        ],
-        tip: 'Take any time of day. Stay hydrated for best results.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // GLOW blend - check before GHK, BPC, TB
-    if (name.includes('glow')) {
-      return {
-        name: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)',
-        what: 'GLOW combines GHK-Cu with BPC-157 and TB-500. It supports your skin from the inside.',
-        how: 'GHK-Cu helps skin make collagen. BPC-157 and TB-500 help skin heal. Together they support a healthy glow.',
-        benefits: [
-          'Supports skin health',
-          'Helps with skin firmness',
-          'May improve skin texture',
-          'Supports overall healing'
-        ],
-        tip: 'Take any time of day. Drink plenty of water and protect skin from sun.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // CJC/Ipamorelin blend - check before CJC or Ipamorelin individually
-    if ((name.includes('cjc') && name.includes('ipamorelin')) || name.includes('cjc/ipa') || name.includes('cjc-ipa')) {
-      return {
-        name: 'CJC-1295 / Ipamorelin',
-        what: 'This blend has two peptides: CJC-1295 and Ipamorelin. They work as a team.',
-        how: 'CJC-1295 extends growth hormone release. Ipamorelin triggers the release gently. Together they are stronger than either alone.',
-        benefits: [
-          'Stronger growth hormone release',
-          'Supports deep sleep',
-          'Helps with recovery',
-          'Gentle with few side effects'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after. This works best with your natural sleep cycle.',
-        note: 'Results vary. This is one of the most popular GH combinations.'
-      };
-    }
-
-    // Tesamorelin/Ipamorelin blend - check before individual
-    if (name.includes('tesamorelin') && name.includes('ipamorelin')) {
-      return {
-        name: 'Tesamorelin / Ipamorelin',
-        what: 'This combines Tesamorelin and Ipamorelin. Together they strongly support growth hormone.',
-        how: 'Both peptides signal growth hormone release. Tesamorelin is especially good for belly fat.',
-        benefits: [
-          'Strong growth hormone support',
-          'May help reduce belly fat',
-          'Supports sleep and recovery',
-          'Supports body composition'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
-        note: 'Results vary. May take 2-3 months for body changes.'
-      };
-    }
-
-    // Sermorelin/Ipamorelin blend - check before individual
-    if (name.includes('sermorelin') && name.includes('ipamorelin')) {
-      return {
-        name: 'Sermorelin / Ipamorelin',
-        what: 'This blend combines Sermorelin and Ipamorelin for growth hormone support.',
-        how: 'Both peptides work together to signal your body to make more growth hormone naturally.',
-        benefits: [
-          'Supports natural growth hormone',
-          'May improve sleep',
-          'Supports recovery',
-          'Gentle with few side effects'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
-        note: 'Results vary. Better sleep often noticed first.'
-      };
-    }
-
-    // ============================================
-    // INDIVIDUAL PEPTIDES (after blends)
-    // ============================================
-
-    // BPC-157 (alone)
-    if (name.includes('bpc')) {
-      return {
-        name: 'BPC-157',
-        what: 'BPC-157 is a healing peptide. It comes from a protein found in your stomach.',
-        how: 'This peptide helps your body heal faster. It sends signals to cells that fix muscles, tendons, and gut lining. It also helps calm swelling.',
-        benefits: [
-          'Helps heal muscles and tendons',
-          'Supports gut health',
-          'May reduce discomfort from injuries',
-          'Helps your body recover faster'
-        ],
-        tip: 'You can take BPC-157 any time of day. It works with or without food.',
-        note: 'Results vary. Most people notice changes within 2-4 weeks.'
-      };
-    }
-
-    // TB-500 / Thymosin Beta-4 (alone)
-    if (name.includes('tb-500') || name.includes('tb500') || name.includes('tb 500') || (name.includes('thymosin') && name.includes('beta'))) {
-      return {
-        name: 'TB-500 (Thymosin Beta-4)',
-        what: 'TB-500 is a healing peptide. Your body makes a protein like this called Thymosin Beta-4.',
-        how: 'TB-500 helps new blood vessels form. It helps cells move to where they need to go. This speeds up healing.',
-        benefits: [
-          'Supports tissue repair',
-          'Helps with flexibility',
-          'May reduce recovery time',
-          'Supports healthy inflammation response'
-        ],
-        tip: 'TB-500 can be taken any time of day. It works with or without food.',
-        note: 'Results vary. Often combined with BPC-157 for better results.'
-      };
-    }
-
-    // GHK-Cu (alone, not in blends)
-    if (name.includes('ghk')) {
-      return {
-        name: 'GHK-Cu (Copper Peptide)',
-        what: 'GHK-Cu is a peptide with copper. Your body makes this naturally but makes less as you age.',
-        how: 'GHK-Cu tells your skin to make more collagen. Collagen keeps skin firm and smooth.',
-        benefits: [
-          'Supports healthy, firm skin',
-          'May improve skin texture',
-          'Helps with skin healing',
-          'Supports hair health'
-        ],
-        tip: 'GHK-Cu can be taken any time. Drink water and protect skin from sun.',
-        note: 'Results vary. Many people see skin changes in 4-8 weeks.'
-      };
-    }
-
-    // KPV (alone)
-    if (name.includes('kpv')) {
-      return {
-        name: 'KPV',
-        what: 'KPV is a small peptide made of three amino acids. It comes from a hormone that calms inflammation.',
-        how: 'KPV helps calm your immune system. It can reduce redness and irritation in skin and gut.',
-        benefits: [
-          'Helps calm inflammation',
-          'Supports skin health',
-          'May help with gut issues',
-          'Supports immune balance'
-        ],
-        tip: 'KPV can be taken any time of day. It works with or without food.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // AOD-9604
-    if (name.includes('aod')) {
-      return {
-        name: 'AOD-9604',
-        what: 'AOD-9604 comes from growth hormone. It is the part that helps your body burn fat.',
-        how: 'This peptide tells fat cells to release stored fat. Your body can then burn it for energy. It does not affect muscle or blood sugar.',
-        benefits: [
-          'Supports fat burning',
-          'Does not affect muscle',
-          'Does not raise blood sugar',
-          'May support weight goals'
-        ],
-        tip: 'Take AOD-9604 in the morning on an empty stomach. Wait 20-30 minutes before eating.',
-        note: 'Results vary. Works best with healthy eating and exercise.'
-      };
-    }
-
-    // MOTS-C
-    if (name.includes('mots')) {
-      return {
-        name: 'MOTS-C',
-        what: 'MOTS-C is made by your mitochondria. Mitochondria are the parts of cells that make energy.',
-        how: 'MOTS-C helps cells use sugar for energy. It helps muscles work better during exercise.',
-        benefits: [
-          'Supports energy levels',
-          'Helps with exercise',
-          'Supports metabolism',
-          'May help blood sugar balance'
-        ],
-        tip: 'Take MOTS-C in the morning on an empty stomach, before exercise.',
-        note: 'Results vary. Many people feel more energy in 2-3 weeks.'
-      };
-    }
-
-    // GLP-1 S (Semaglutide)
-    if (name.includes('glp-1 s') || (name.includes('semaglutide') && !name.includes('tir'))) {
-      return {
-        name: 'Semaglutide (GLP-1)',
-        what: 'Semaglutide copies a hormone your gut makes after eating. It helps control hunger.',
-        how: 'This peptide slows how fast food leaves your stomach. You feel full longer. It also helps blood sugar.',
-        benefits: [
-          'Helps reduce appetite',
-          'Helps you feel full longer',
-          'Supports blood sugar balance',
-          'Supports weight goals'
-        ],
-        tip: 'Take once a week on the same day. Eat slowly and stop when full. Drink lots of water.',
-        note: 'Results vary. Start low and increase slowly. Nausea may happen at first.'
-      };
-    }
-
-    // GLP-1 T (Tirzepatide)
-    if (name.includes('glp-1 t') || name.includes('tirzepatide')) {
-      return {
-        name: 'Tirzepatide (GLP-1/GIP)',
-        what: 'Tirzepatide works on two gut hormones: GLP-1 and GIP. Both help control hunger.',
-        how: 'This peptide slows digestion and helps you feel full. Working on two pathways may give stronger results.',
-        benefits: [
-          'Helps reduce appetite',
-          'Helps you feel full longer',
-          'Supports blood sugar balance',
-          'May give stronger weight support'
-        ],
-        tip: 'Take once a week on the same day. Eat slowly and stop when full. Drink lots of water.',
-        note: 'Results vary. Start low and increase slowly.'
-      };
-    }
-
-    // GLP-1 R (Retatrutide)
-    if (name.includes('glp-1 r') || name.includes('retatrutide')) {
-      return {
-        name: 'Retatrutide (Triple)',
-        what: 'Retatrutide works on three pathways: GLP-1, GIP, and glucagon. This is called a triple agonist.',
-        how: 'It controls hunger, blood sugar, and may help burn more energy. Three pathways may give the strongest results.',
-        benefits: [
-          'Helps reduce appetite',
-          'Supports blood sugar balance',
-          'May increase energy burning',
-          'Supports weight goals'
-        ],
-        tip: 'Take once a week on the same day. Drink plenty of water.',
-        note: 'Results vary. This is a newer peptide.'
-      };
-    }
-
-    // Survodutide
-    if (name.includes('survodutide')) {
-      return {
-        name: 'Survodutide',
-        what: 'Survodutide works on GLP-1 and glucagon receptors. It helps control appetite and metabolism.',
-        how: 'This peptide helps you feel full and may help your body burn more energy.',
-        benefits: [
-          'Helps reduce appetite',
-          'Supports metabolism',
-          'May help with weight goals',
-          'Works on two pathways'
-        ],
-        tip: 'Take once a week on the same day. Drink plenty of water.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // Cagrilintide
-    if (name.includes('cagrilintide')) {
-      return {
-        name: 'Cagrilintide',
-        what: 'Cagrilintide copies a hormone called amylin. Amylin helps control appetite after meals.',
-        how: 'This peptide helps you feel full faster and stay full longer after eating.',
-        benefits: [
-          'Helps reduce appetite',
-          'Helps you feel full faster',
-          'Supports weight goals',
-          'Works differently than GLP-1'
-        ],
-        tip: 'Take as directed. Drink plenty of water and eat slowly.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // Epithalon
-    if (name.includes('epithalon') || name.includes('epitalon')) {
-      return {
-        name: 'Epithalon',
-        what: 'Epithalon supports your telomeres. Telomeres are caps on your DNA that protect it, like plastic tips on shoelaces.',
-        how: 'As you age, telomeres get shorter. Epithalon may help protect them. This is linked to healthy aging.',
-        benefits: [
-          'Supports healthy aging',
-          'May improve sleep',
-          'Supports cell health',
-          'May support energy'
-        ],
-        tip: 'Take any time of day. Often used in cycles of 10-20 days.',
-        note: 'Results vary. Often used as part of a longevity plan.'
-      };
-    }
-
-    // Thymosin Alpha-1
-    if (name.includes('thymosin alpha') || name.includes('ta-1') || name.includes('ta1')) {
-      return {
-        name: 'Thymosin Alpha-1',
-        what: 'TA1 supports your immune system. Your thymus gland makes it naturally.',
-        how: 'This peptide helps immune cells work better. It helps your body fight germs and stay healthy.',
-        benefits: [
-          'Supports immune function',
-          'Helps your body stay healthy',
-          'Supports recovery from illness',
-          'May help during stress'
-        ],
-        tip: 'TA1 can be taken any time. Often taken 2-3 times per week.',
-        note: 'Results vary. Used to support overall wellness.'
-      };
-    }
-
-    // PT-141
-    if (name.includes('pt-141')) {
-      return {
-        name: 'PT-141',
-        what: 'PT-141 works in your brain. It affects pathways that control desire.',
-        how: 'PT-141 activates special receptors in your brain. This can increase feelings of desire.',
-        benefits: [
-          'May support healthy desire',
-          'Works through the brain',
-          'Can be used as needed',
-          'Works for men and women'
-        ],
-        tip: 'Take 45-60 minutes before desired effect. Do not use more than once in 24 hours.',
-        note: 'Results vary. Some feel flushing or nausea which usually passes.'
-      };
-    }
-
-    // Sermorelin
-    if (name.includes('sermorelin') && !name.includes('ipamorelin')) {
-      return {
-        name: 'Sermorelin',
-        what: 'Sermorelin tells your body to make more growth hormone. It signals your pituitary gland.',
-        how: 'Your pituitary gland is in your brain. When it gets this signal, it makes more of your own natural growth hormone.',
-        benefits: [
-          'Supports natural growth hormone',
-          'May improve sleep',
-          'Supports recovery',
-          'May support energy and body composition'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before. This works with your natural sleep cycle.',
-        note: 'Results vary. Better sleep is often noticed first.'
-      };
-    }
-
-    // Tesamorelin (alone)
-    if (name.includes('tesamorelin') && !name.includes('ipamorelin')) {
-      return {
-        name: 'Tesamorelin',
-        what: 'Tesamorelin signals your pituitary to release growth hormone. It is known for helping reduce belly fat.',
-        how: 'This peptide causes your body to make more growth hormone naturally. It is especially helpful for belly fat.',
-        benefits: [
-          'Supports natural growth hormone',
-          'May help reduce belly fat',
-          'Supports body composition',
-          'May improve energy and recovery'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before.',
-        note: 'Results vary. May take 2-3 months for body changes.'
-      };
-    }
-
-    // Ipamorelin (alone)
-    if (name.includes('ipamorelin') && !name.includes('cjc') && !name.includes('tesamorelin') && !name.includes('sermorelin')) {
-      return {
-        name: 'Ipamorelin',
-        what: 'Ipamorelin is a gentle growth hormone peptide. It tells your pituitary to release growth hormone.',
-        how: 'Ipamorelin causes growth hormone release without strongly affecting other hormones. It has very few side effects.',
-        benefits: [
-          'Supports growth hormone release',
-          'Very few side effects',
-          'Does not increase hunger',
-          'Supports sleep and recovery'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after.',
-        note: 'Results vary. Popular because it is gentle.'
-      };
-    }
-
-    // CJC-1295 with DAC
-    if (name.includes('cjc') && name.includes('dac') && !name.includes('no dac') && !name.includes('without')) {
-      return {
-        name: 'CJC-1295 with DAC',
-        what: 'CJC-1295 with DAC is a long-acting growth hormone peptide. DAC makes it last longer in your body.',
-        how: 'This peptide raises growth hormone steadily over days instead of short pulses. One injection works for about a week.',
-        benefits: [
-          'Raises growth hormone steadily',
-          'Only needs to be taken 1-2 times per week',
-          'Supports body composition over time',
-          'More convenient dosing'
-        ],
-        tip: 'Take 1-2 times per week. Can be taken any time. Do not eat for 1 hour before.',
-        note: 'Results vary. The steady release is different from natural pulsing.'
-      };
-    }
-
-    // CJC-1295 no DAC (alone)
-    if (name.includes('cjc') && !name.includes('ipamorelin')) {
-      return {
-        name: 'CJC-1295 (no DAC)',
-        what: 'CJC-1295 without DAC is a growth hormone releasing peptide. It causes a burst of growth hormone.',
-        how: 'This peptide signals your pituitary gland to release growth hormone in a pulse, similar to your natural pattern.',
-        benefits: [
-          'Supports natural growth hormone pulses',
-          'May improve sleep',
-          'Supports recovery',
-          'Supports body composition'
-        ],
-        tip: 'Take at NIGHT, right before bed. Do not eat for 2 hours before and 30 minutes after.',
-        note: 'Results vary. Often combined with Ipamorelin.'
-      };
-    }
-
-    // GHRP-2
-    if (name.includes('ghrp-2') || name.includes('ghrp2')) {
-      return {
-        name: 'GHRP-2',
-        what: 'GHRP-2 is a growth hormone releasing peptide. It causes strong growth hormone release.',
-        how: 'GHRP-2 works on ghrelin receptors in your brain. It may increase hunger and slightly raise cortisol.',
-        benefits: [
-          'Strong growth hormone release',
-          'Supports muscle growth',
-          'May improve sleep',
-          'Supports body composition'
-        ],
-        tip: 'Take at NIGHT before bed. Do not eat for 2 hours before. It may increase hunger.',
-        note: 'Results vary. Stronger than Ipamorelin.'
-      };
-    }
-
-    // GHRP-6
-    if (name.includes('ghrp-6') || name.includes('ghrp6')) {
-      return {
-        name: 'GHRP-6',
-        what: 'GHRP-6 causes strong growth hormone release. It is known for increasing hunger.',
-        how: 'GHRP-6 works on ghrelin receptors. Ghrelin is your hunger hormone. This strongly increases appetite.',
-        benefits: [
-          'Strong growth hormone release',
-          'Increases appetite (good for gaining)',
-          'Supports muscle growth',
-          'May help gut healing'
-        ],
-        tip: 'Take at NIGHT before bed. Do not eat for 2 hours before. Expect hunger about 20 minutes after.',
-        note: 'Results vary. Best for people who want to gain weight or muscle.'
-      };
-    }
-
-    // MK-677 / Ibutamoren
-    if (name.includes('mk-677') || name.includes('mk677') || name.includes('ibutamoren')) {
-      return {
-        name: 'MK-677',
-        what: 'MK-677 is an oral growth hormone peptide. You take it as a pill, not an injection.',
-        how: 'MK-677 mimics ghrelin and causes growth hormone release. Effects last about 24 hours.',
-        benefits: [
-          'No injections - taken by mouth',
-          'Raises growth hormone',
-          'May improve sleep',
-          'Supports muscle and recovery'
-        ],
-        tip: 'Take at NIGHT before bed. It may increase hunger. Start with a lower dose.',
-        note: 'Results vary. May cause water retention at first.'
-      };
-    }
-
-    // Selank
-    if (name.includes('selank')) {
-      return {
-        name: 'Selank',
-        what: 'Selank supports your brain. It helps with focus and calm without drowsiness.',
-        how: 'Selank works on GABA pathways. GABA helps you feel calm. It also supports focus and memory.',
-        benefits: [
-          'Supports focus and clarity',
-          'May help with feeling calm',
-          'Supports memory',
-          'Does not cause drowsiness'
-        ],
-        tip: 'Usually taken as a nasal spray. Use 1-2 sprays per nostril. Can use any time.',
-        note: 'Results often felt in 15-30 minutes.'
-      };
-    }
-
-    // Semax
-    if (name.includes('semax')) {
-      return {
-        name: 'Semax',
-        what: 'Semax supports brain function and mental clarity.',
-        how: 'Semax supports BDNF, which helps brain cells grow and connect. It supports clear thinking.',
-        benefits: [
-          'Supports mental clarity',
-          'May help with focus',
-          'Supports brain health',
-          'May support memory'
-        ],
-        tip: 'Usually taken as a nasal spray in the morning. Avoid late in day as it may affect sleep.',
-        note: 'Results often felt in 15-30 minutes.'
-      };
-    }
-
-    // Dihexa
-    if (name.includes('dihexa')) {
-      return {
-        name: 'Dihexa',
-        what: 'Dihexa supports brain connections. It is studied for memory and mental clarity.',
-        how: 'Dihexa helps a growth factor called HGF work better. This supports connections between brain cells.',
-        benefits: [
-          'May support memory',
-          'Supports brain cell connections',
-          'Very potent in small doses',
-          'Being studied for cognitive support'
-        ],
-        tip: 'Taken by mouth as a small tablet in the morning. Start with lowest dose.',
-        note: 'Results vary. This is a research peptide.'
-      };
-    }
-
-    // NAD+
-    if (name.includes('nad')) {
-      return {
-        name: 'NAD+',
-        what: 'NAD+ is a molecule your cells need to make energy. You make less as you age.',
-        how: 'NAD+ helps your mitochondria work better. Mitochondria are like batteries in your cells.',
-        benefits: [
-          'Supports cellular energy',
-          'May help with mental clarity',
-          'Supports healthy aging',
-          'May improve recovery'
-        ],
-        tip: 'Can be taken by injection or IV. Flushing or warmth is normal and passes.',
-        note: 'Results vary. Many feel more energy within days.'
-      };
-    }
-
-    // DSIP
-    if (name.includes('dsip')) {
-      return {
-        name: 'DSIP',
-        what: 'DSIP stands for Delta Sleep Inducing Peptide. It supports deep sleep.',
-        how: 'DSIP works on sleep pathways in your brain. It may help you fall asleep and stay in deep sleep.',
-        benefits: [
-          'Supports falling asleep',
-          'May improve deep sleep',
-          'Supports natural sleep cycles',
-          'May help with stress'
-        ],
-        tip: 'Take 30-60 minutes before bed.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // LL-37
-    if (name.includes('ll-37')) {
-      return {
-        name: 'LL-37',
-        what: 'LL-37 is an antimicrobial peptide. Your immune system makes it to fight germs.',
-        how: 'LL-37 can kill bacteria directly. It also helps control inflammation and wound healing.',
-        benefits: [
-          'Supports immune defense',
-          'May help with infections',
-          'Supports wound healing',
-          'Helps control inflammation'
-        ],
-        tip: 'Follow your provider dosing instructions carefully.',
-        note: 'Results vary. Often used for immune support.'
-      };
-    }
-
-    // Gonadorelin
-    if (name.includes('gonadorelin')) {
-      return {
-        name: 'Gonadorelin',
-        what: 'Gonadorelin signals your body to make testosterone. It copies a hormone your brain makes.',
-        how: 'Gonadorelin tells your pituitary gland to release hormones that make testosterone and support fertility.',
-        benefits: [
-          'Supports natural testosterone',
-          'Helps maintain fertility',
-          'Often used with TRT',
-          'Supports testicular function'
-        ],
-        tip: 'Usually taken 2-3 times per week. Can be taken any time of day.',
-        note: 'Results vary. Often used by men on testosterone therapy.'
-      };
-    }
-
-    // MT-II / Melanotan
-    if (name.includes('mt-ii') || name.includes('mt-2') || name.includes('melanotan')) {
-      return {
-        name: 'Melanotan II',
-        what: 'Melanotan II affects skin color. It can cause tanning without sun.',
-        how: 'This peptide increases melanin in your skin. It can also affect appetite and desire.',
-        benefits: [
-          'Promotes skin tanning',
-          'May reduce need for sun',
-          'May support libido',
-          'May reduce appetite'
-        ],
-        tip: 'Start with a very low dose. Take before bed to reduce nausea. Still protect skin from sun.',
-        note: 'Results vary. New moles should be checked by a doctor.'
-      };
-    }
-
-    // 5-Amino-1MQ
-    if (name.includes('5-amino') || name.includes('1mq')) {
-      return {
-        name: '5-Amino-1MQ',
-        what: '5-Amino-1MQ supports metabolism. It blocks an enzyme that can slow fat burning.',
-        how: 'When this enzyme is blocked, your cells burn more energy. This may help with fat loss.',
-        benefits: [
-          'Supports fat burning',
-          'May increase energy burning',
-          'Supports metabolism',
-          'Taken by mouth (no injection)'
-        ],
-        tip: 'Take in the morning with or without food.',
-        note: 'Results vary. Works best with healthy eating and exercise.'
-      };
-    }
-
-    // Tesofensine
-    if (name.includes('tesofensine')) {
-      return {
-        name: 'Tesofensine',
-        what: 'Tesofensine affects brain chemicals. It was studied for brain conditions but showed weight loss benefits.',
-        how: 'It increases dopamine, serotonin, and norepinephrine. This can reduce appetite.',
-        benefits: [
-          'May reduce appetite',
-          'Supports feeling of fullness',
-          'May support mood',
-          'Supports weight management'
-        ],
-        tip: 'Take in the morning. Do not take late in day as it may affect sleep.',
-        note: 'Results vary. Follow dosing instructions carefully.'
-      };
-    }
-
-    // Oxytocin
-    if (name.includes('oxytocin')) {
-      return {
-        name: 'Oxytocin',
-        what: 'Oxytocin is the bonding hormone. Your body makes it during positive social times.',
-        how: 'Oxytocin affects areas of your brain for trust, bonding, and calm.',
-        benefits: [
-          'Supports feelings of connection',
-          'May help with stress',
-          'Supports social bonding',
-          'May support intimacy'
-        ],
-        tip: 'Usually taken as a nasal spray. Use as directed.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // Kisspeptin
-    if (name.includes('kisspeptin')) {
-      return {
-        name: 'Kisspeptin',
-        what: 'Kisspeptin is a hormone that signals your body to make reproductive hormones.',
-        how: 'It tells your brain to release hormones that support testosterone and fertility.',
-        benefits: [
-          'Supports hormone production',
-          'May support fertility',
-          'Works naturally with your body',
-          'Supports reproductive health'
-        ],
-        tip: 'Follow your provider dosing instructions.',
-        note: 'Results vary from person to person.'
-      };
-    }
-
-    // IGF-1
-    if (name.includes('igf-1') || name.includes('igf1')) {
-      return {
-        name: 'IGF-1 LR3',
-        what: 'IGF-1 is a growth factor. It is what growth hormone turns into to do its work.',
-        how: 'IGF-1 supports cell growth and repair. It is especially active in muscle cells.',
-        benefits: [
-          'Supports muscle growth',
-          'Supports cell repair',
-          'May improve recovery',
-          'Works directly'
-        ],
-        tip: 'Usually taken in the morning or after workouts.',
-        note: 'Results vary. This is a powerful peptide - follow dosing carefully.'
-      };
-    }
-
-    // Follistatin
-    if (name.includes('follistatin')) {
-      return {
-        name: 'Follistatin',
-        what: 'Follistatin blocks myostatin. Myostatin limits how much muscle you can build.',
-        how: 'By blocking myostatin, your body may be able to build more muscle.',
-        benefits: [
-          'May support muscle growth',
-          'Blocks muscle-limiting signals',
-          'Supports strength gains',
-          'Being studied for muscle conditions'
-        ],
-        tip: 'Follow your provider dosing instructions.',
-        note: 'Results vary. This is a research peptide.'
-      };
-    }
-
-    // SS-31 / Elamipretide
-    if (name.includes('ss-31') || name.includes('elamipretide')) {
-      return {
-        name: 'SS-31',
-        what: 'SS-31 supports your mitochondria. It can enter them and help them work better.',
-        how: 'SS-31 protects the inner part of mitochondria. This helps cells make energy better.',
-        benefits: [
-          'Supports mitochondria health',
-          'May increase cellular energy',
-          'Supports healthy aging',
-          'Being studied for heart and muscle'
-        ],
-        tip: 'Can be taken any time of day. Follow dosing instructions.',
-        note: 'Results vary. Targets the root of cellular energy.'
-      };
-    }
-
-    // FOXO4-DRI
-    if (name.includes('foxo4')) {
-      return {
-        name: 'FOXO4-DRI',
-        what: 'FOXO4-DRI is a longevity peptide. It helps your body clear out old, damaged cells.',
-        how: 'Old cells that do not work well are called senescent cells. This peptide may help remove them.',
-        benefits: [
-          'Supports healthy aging',
-          'May help clear old cells',
-          'Supports cellular health',
-          'Being studied for longevity'
-        ],
-        tip: 'Usually used in short cycles. Follow provider instructions.',
-        note: 'Results vary. This is a research peptide for longevity.'
-      };
-    }
-
-    // VIP
-    if (name.includes('vip') && !name.includes('kisspeptin')) {
-      return {
-        name: 'VIP',
-        what: 'VIP is Vasoactive Intestinal Peptide. It helps with inflammation and immune balance.',
-        how: 'VIP supports many body systems. It may help calm inflammation and support gut and brain health.',
-        benefits: [
-          'Supports immune balance',
-          'May help with inflammation',
-          'Supports gut health',
-          'Supports brain health'
-        ],
-        tip: 'Usually taken as a nasal spray. Follow provider instructions.',
-        note: 'Results vary. Often used for chronic inflammatory conditions.'
-      };
-    }
-
-    // ===== HRT / HORMONE THERAPY =====
-    
-    // Testosterone
-    if (name.includes('testosterone')) {
-      return {
-        name: 'Testosterone',
-        what: 'Testosterone is the main male hormone. It plays a key role in energy, muscle, mood, and overall health.',
-        how: 'Testosterone replacement brings your levels back to a healthy range. This helps your body function optimally.',
-        benefits: [
-          'Supports energy and vitality',
-          'Helps maintain muscle mass',
-          'Supports mood and mental clarity',
-          'Supports healthy libido',
-          'May improve sleep quality'
-        ],
-        tip: 'Inject on the SAME DAYS each week (usually Monday/Thursday). Rotate injection sites between left and right thigh or glutes.',
-        note: 'Consistency is key. Labs are typically checked at weeks 6-8 and 10-12 to optimize your dose.'
-      };
-    }
-
-    // Estradiol
-    if (name.includes('estradiol') || name.includes('estrogen')) {
-      return {
-        name: 'Estradiol',
-        what: 'Estradiol is the main form of estrogen. It supports many body functions in both women and men.',
-        how: 'Estradiol replacement helps maintain optimal hormone levels for overall health and wellbeing.',
-        benefits: [
-          'Supports bone health',
-          'Supports cardiovascular health',
-          'Helps with mood balance',
-          'Supports skin and tissue health',
-          'May help with hot flashes'
-        ],
-        tip: 'Take on your scheduled days. Consistency helps maintain stable levels.',
-        note: 'Results typically noticed within 4-8 weeks. Labs help optimize dosing.'
-      };
-    }
-
-    // Progesterone
-    if (name.includes('progesterone')) {
-      return {
-        name: 'Progesterone',
-        what: 'Progesterone is a hormone that works with estrogen. It supports sleep, mood, and hormone balance.',
-        how: 'Progesterone helps balance other hormones and has calming effects on the brain.',
-        benefits: [
-          'Supports restful sleep',
-          'Helps with mood balance',
-          'Balances estrogen effects',
-          'Supports bone health',
-          'May reduce anxiety'
-        ],
-        tip: 'Usually taken at BEDTIME because it promotes sleep. Take with or after food.',
-        note: 'Many people notice improved sleep within the first week.'
-      };
-    }
-
-    // Anastrozole
-    if (name.includes('anastrozole')) {
-      return {
-        name: 'Anastrozole',
-        what: 'Anastrozole helps control estrogen levels. It is often used alongside testosterone therapy.',
-        how: 'This medication blocks the enzyme that converts testosterone to estrogen, helping maintain optimal hormone balance.',
-        benefits: [
-          'Helps control estrogen levels',
-          'Supports testosterone therapy',
-          'May reduce water retention',
-          'Supports hormone balance'
-        ],
-        tip: 'Take on your scheduled days. Do not take more than prescribed.',
-        note: 'Labs help determine the right dose. Not everyone needs an AI (aromatase inhibitor).'
-      };
-    }
-
-    // Enclomiphene
-    if (name.includes('enclomiphene')) {
-      return {
-        name: 'Enclomiphene',
-        what: 'Enclomiphene helps your body make more testosterone naturally. It stimulates your own production.',
-        how: 'It signals your brain to tell your body to produce more testosterone, preserving natural function.',
-        benefits: [
-          'Supports natural testosterone production',
-          'Preserves fertility',
-          'May improve energy and mood',
-          'Does not shut down natural production'
-        ],
-        tip: 'Take in the MORNING with or without food.',
-        note: 'Labs are checked to monitor response. Works differently than testosterone injections.'
-      };
-    }
-
-    // DHEA
-    if (name.includes('dhea')) {
-      return {
-        name: 'DHEA',
-        what: 'DHEA is a hormone your body makes naturally. It decreases with age and supports many functions.',
-        how: 'DHEA is a precursor hormone that your body can convert to other hormones as needed.',
-        benefits: [
-          'Supports energy levels',
-          'May support immune function',
-          'Supports hormone balance',
-          'May support mood'
-        ],
-        tip: 'Usually taken in the MORNING. Can be taken with or without food.',
-        note: 'Results vary. Labs help determine optimal dosing.'
-      };
-    }
-
-    // Pregnenolone
-    if (name.includes('pregnenolone')) {
-      return {
-        name: 'Pregnenolone',
-        what: 'Pregnenolone is the "mother hormone" that your body uses to make other hormones.',
-        how: 'Your body converts pregnenolone into other hormones based on what it needs.',
-        benefits: [
-          'Supports hormone production',
-          'May support memory and focus',
-          'Supports stress response',
-          'May support mood'
-        ],
-        tip: 'Usually taken in the MORNING. Can be taken with or without food.',
-        note: 'Often used to support overall hormone health.'
-      };
-    }
-
-    // ===== IV THERAPY =====
-    
-    // Range IV / General IV
-    if (name.includes('range iv') || name.includes('iv') && name.includes('membership')) {
-      return {
-        name: 'Range IV',
-        what: 'Your monthly membership IV delivers vitamins, minerals, and hydration directly to your bloodstream.',
-        how: 'IV delivery bypasses digestion for 100% absorption. You feel the effects quickly.',
-        benefits: [
-          'Immediate hydration',
-          'Direct vitamin absorption',
-          'Supports energy and recovery',
-          'Monthly wellness boost'
-        ],
-        tip: 'Schedule your monthly IV at a time when you can relax for 30-60 minutes.',
-        note: 'Come to your appointment hydrated. Effects are often felt same day.'
-      };
-    }
-
-    // NAD+ IV
-    if (name.includes('nad') && name.includes('iv')) {
-      return {
-        name: 'NAD+ IV',
-        what: 'NAD+ is a molecule every cell needs for energy. IV delivery gives your cells a powerful boost.',
-        how: 'NAD+ supports cellular energy production and DNA repair. Levels decline with age.',
-        benefits: [
-          'Supports cellular energy',
-          'May improve mental clarity',
-          'Supports healthy aging',
-          'May improve recovery'
-        ],
-        tip: 'NAD+ IVs take 2-4 hours. You may feel flushing during infusion - this is normal.',
-        note: 'Many people feel increased energy and clarity after their session.'
-      };
-    }
-
-    // Myers Cocktail
-    if (name.includes('myers')) {
-      return {
-        name: 'Myers Cocktail IV',
-        what: 'The Myers Cocktail is a classic IV formula with B vitamins, vitamin C, magnesium, and calcium.',
-        how: 'This combination supports energy, immune function, and overall wellness.',
-        benefits: [
-          'Supports energy levels',
-          'Supports immune function',
-          'May help with fatigue',
-          'Supports overall wellness'
-        ],
-        tip: 'Sessions take about 30-45 minutes. Great for regular wellness support.',
-        note: 'A popular choice for general health and energy support.'
-      };
-    }
-
-    // Vitamin C IV
-    if (name.includes('vitamin c') && name.includes('iv')) {
-      return {
-        name: 'Vitamin C IV (High Dose)',
-        what: 'High dose vitamin C delivered by IV provides immune and antioxidant support beyond what pills can achieve.',
-        how: 'IV delivery allows much higher levels of vitamin C than oral supplements.',
-        benefits: [
-          'Powerful antioxidant support',
-          'Supports immune function',
-          'May support skin health',
-          'Supports collagen production'
-        ],
-        tip: 'Sessions take 45-60 minutes. Stay well hydrated before and after.',
-        note: 'Higher doses available for specific health goals. Discuss with your provider.'
-      };
-    }
-
-    // Glutathione IV
-    if (name.includes('glutathione')) {
-      return {
-        name: 'Glutathione IV',
-        what: 'Glutathione is your body\'s master antioxidant. It supports detox and skin health.',
-        how: 'Glutathione helps neutralize toxins and supports cellular health throughout your body.',
-        benefits: [
-          'Supports detoxification',
-          'May brighten skin',
-          'Powerful antioxidant',
-          'Supports liver health'
-        ],
-        tip: 'Can be added to other IVs or given as a push. Quick 10-15 minute add-on.',
-        note: 'Popular for skin brightening and detox support.'
-      };
-    }
-
-    // Default for unknown peptides
-    return {
-      name: peptideName,
-      what: 'This is a peptide therapy chosen for your health goals. Peptides are small proteins that send signals to your cells.',
-      how: 'Your provider selected this peptide for your needs. It works by giving your body specific instructions.',
-      benefits: [
-        'Supports your specific health goals',
-        'Works naturally with your body',
-        'Chosen based on your needs'
-      ],
-      tip: 'Follow dosing instructions from your provider. Contact Range Medical with questions.',
-      note: 'Results vary. Follow your dosing schedule for best results.'
-    };
-  };
-
-  const toggleDay = async (day, isCompleted, isOff) => {
-    // Don't allow toggling off days
-    if (isOff) return;
-    
-    setSaving(day);
-    
+  
+  const fetchSymptoms = async () => {
     try {
-      const res = await fetch(`/api/patient/tracker?token=${token}`, {
-        method: isCompleted ? 'DELETE' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ day })
-      });
-
+      const res = await fetch(`/api/patient/symptoms?token=${token}`);
       if (res.ok) {
-        fetchData(); // Refresh data
+        const data = await res.json();
+        setSymptoms(data);
+        
+        const today = new Date().toISOString().split('T')[0];
+        const todayLog = data.logs?.find(l => l.log_date === today);
+        if (todayLog) {
+          setTodayLogged(true);
+          setWellnessData({
+            energy: todayLog.energy || 5,
+            sleep: todayLog.sleep || 5,
+            pain: todayLog.pain || 5,
+            recovery: todayLog.recovery || 5,
+            wellbeing: todayLog.wellbeing || 5,
+            notes: todayLog.notes || ''
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch symptoms:', err);
+    }
+  };
+  
+  const fetchWeightLogs = async () => {
+    try {
+      const res = await fetch(`/api/patient/weight?token=${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWeightLogs(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch weight:', err);
+    }
+  };
+  
+  const fetchPreferences = async () => {
+    try {
+      const res = await fetch(`/api/patient/preferences?token=${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRemindersEnabled(data.reminders_enabled);
+        setReminderTime(data.preferred_reminder_time || '18:30');
+      }
+    } catch (err) {
+      console.error('Failed to fetch preferences:', err);
+    }
+  };
+  
+  const checkRefillStatus = async () => {
+    try {
+      const res = await fetch(`/api/patient/refill?token=${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        setHasPendingRefill(data.hasPendingRequest);
+      }
+    } catch (err) {
+      console.error('Failed to check refill:', err);
+    }
+  };
+
+  // =====================================================
+  // ACTIONS
+  // =====================================================
+  
+  const saveWellnessCheckIn = async () => {
+    setSavingWellness(true);
+    try {
+      const res = await fetch(`/api/patient/symptoms?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wellnessData)
+      });
+      
+      if (res.ok) {
+        setTodayLogged(true);
+        setShowWellnessCheckIn(false);
+        await fetchSymptoms();
+      }
+    } catch (err) {
+      console.error('Failed to save wellness:', err);
+    }
+    setSavingWellness(false);
+  };
+  
+  const saveWeight = async () => {
+    if (!currentWeight) return;
+    setSavingWeight(true);
+    try {
+      const res = await fetch(`/api/patient/weight?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weight: parseFloat(currentWeight) })
+      });
+      
+      if (res.ok) {
+        setShowWeightLog(false);
+        setCurrentWeight('');
+        await fetchWeightLogs();
+      }
+    } catch (err) {
+      console.error('Failed to save weight:', err);
+    }
+    setSavingWeight(false);
+  };
+  
+  const savePreferences = async () => {
+    setSavingPrefs(true);
+    try {
+      const res = await fetch(`/api/patient/preferences?token=${token}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reminders_enabled: remindersEnabled,
+          preferred_reminder_time: reminderTime
+        })
+      });
+      
+      if (res.ok) {
+        setShowSettings(false);
+      }
+    } catch (err) {
+      console.error('Failed to save preferences:', err);
+    }
+    setSavingPrefs(false);
+  };
+  
+  const sendMessage = async () => {
+    if (!messageText.trim()) return;
+    setSendingMessage(true);
+    try {
+      const res = await fetch(`/api/patient/message?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: messageText,
+          category: messageCategory
+        })
+      });
+      
+      if (res.ok) {
+        setShowMessageModal(false);
+        setMessageText('');
+        alert('Message sent! We\'ll get back to you soon.');
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      alert('Failed to send. Please try again or call us.');
+    }
+    setSendingMessage(false);
+  };
+  
+  const requestRefill = async () => {
+    setSendingRefill(true);
+    try {
+      const res = await fetch(`/api/patient/refill?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: refillNotes })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        setShowRefillModal(false);
+        setRefillNotes('');
+        setHasPendingRefill(true);
+        alert(data.message || 'Request submitted!');
+      } else {
+        alert(data.error || 'Failed to submit request');
+      }
+    } catch (err) {
+      console.error('Failed to request refill:', err);
+      alert('Failed to submit. Please call us.');
+    }
+    setSendingRefill(false);
+  };
+
+  const toggleDay = async (day, isCompleted) => {
+    setSaving(day);
+    try {
+      const res = await fetch(`/api/patient/tracker`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, day_number: Math.floor(day), action: isCompleted ? 'remove' : 'add' })
+      });
+      if (res.ok) {
+        await fetchAllData();
+        
+        // Check for milestones after logging
+        if (!isCompleted) {
+          checkMilestones(day);
+        }
       }
     } catch (err) {
       console.error('Error toggling day:', err);
     }
-    
     setSaving(null);
   };
+  
+  // =====================================================
+  // MILESTONE CHECKING
+  // =====================================================
+  
+  const checkMilestones = (completedDay) => {
+    const protocol = data?.protocol;
+    const injectionLogs = data?.injectionLogs || [];
+    const totalDays = protocol?.duration_days || 10;
+    const completedCount = injectionLogs.length + 1; // +1 for the one just completed
+    const progress = Math.round((completedCount / totalDays) * 100);
+    
+    // Find applicable milestone
+    for (const milestone of MILESTONES) {
+      const key = milestone.day ? `day_${milestone.day}` : `percent_${milestone.percent}`;
+      
+      if (celebratedMilestones.includes(key)) continue;
+      
+      if (milestone.day && completedCount === milestone.day) {
+        celebrateMilestone(milestone, key);
+        return;
+      }
+      
+      if (milestone.percent && progress >= milestone.percent) {
+        celebrateMilestone(milestone, key);
+        return;
+      }
+    }
+  };
+  
+  const celebrateMilestone = (milestone, key) => {
+    setShowMilestone(milestone);
+    const updated = [...celebratedMilestones, key];
+    setCelebratedMilestones(updated);
+    localStorage.setItem(`milestones_${token}`, JSON.stringify(updated));
+    
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => setShowMilestone(null), 4000);
+  };
+
+  // =====================================================
+  // HELPERS
+  // =====================================================
+  
+  const getQuestionnaireCategory = (programType, programName) => {
+    if (!programType && !programName) return null;
+    
+    // Check by program type
+    const peptideTypes = ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic', 'jumpstart_10day', 'recovery_10day', 'month_30day'];
+    const weightLossTypes = ['weight_loss_program', 'weight_loss_injection', 'weight_loss'];
+    
+    if (peptideTypes.includes(programType)) return 'peptide';
+    if (weightLossTypes.includes(programType)) return 'weight_loss';
+    
+    // Also check program_type and program_name for weight loss keywords
+    const lowerType = (programType || '').toLowerCase();
+    const lowerName = (programName || '').toLowerCase();
+    if (lowerType.includes('weight') || lowerName.includes('weight loss')) {
+      return 'weight_loss';
+    }
+    
+    return null;
+  };
+
+  const getPeptideInfo = (peptideName) => {
+    if (!peptideName) return null;
+    const normalizedName = peptideName.trim();
+    if (PEPTIDE_INFO[normalizedName]) return PEPTIDE_INFO[normalizedName];
+    for (const key of Object.keys(PEPTIDE_INFO)) {
+      if (normalizedName.toLowerCase().includes(key.toLowerCase())) {
+        return PEPTIDE_INFO[key];
+      }
+    }
+    return null;
+  };
+
+  const generateInjectionDays = (frequency, duration, isWeightLossProtocol) => {
+    const days = [];
+    const f = frequency?.toLowerCase() || 'daily';
+    if (f.includes('2x_daily') || f.includes('twice daily')) {
+      for (let i = 1; i <= duration; i++) {
+        days.push({ day: i, label: `D${i}`, subLabel: 'AM' });
+        days.push({ day: i + 0.5, label: `D${i}`, subLabel: 'PM' });
+      }
+    } else if (f.includes('5_on_2_off') || f.includes('5 on 2 off')) {
+      // Mon-Fri each week (5 days on, 2 days off)
+      const weeks = Math.ceil(duration / 7);
+      for (let i = 0; i < weeks; i++) {
+        days.push({ day: i * 7 + 1, label: `Wk${i + 1}`, subLabel: 'Mon' });
+        days.push({ day: i * 7 + 2, label: `Wk${i + 1}`, subLabel: 'Tue' });
+        days.push({ day: i * 7 + 3, label: `Wk${i + 1}`, subLabel: 'Wed' });
+        days.push({ day: i * 7 + 4, label: `Wk${i + 1}`, subLabel: 'Thu' });
+        days.push({ day: i * 7 + 5, label: `Wk${i + 1}`, subLabel: 'Fri' });
+      }
+    } else if (f.includes('3x_weekly') || f.includes('3x weekly')) {
+      const weeks = Math.ceil(duration / 7);
+      for (let i = 0; i < weeks; i++) {
+        days.push({ day: i * 7 + 1, label: `Wk${i + 1}`, subLabel: 'Mon' });
+        days.push({ day: i * 7 + 3, label: `Wk${i + 1}`, subLabel: 'Wed' });
+        days.push({ day: i * 7 + 5, label: `Wk${i + 1}`, subLabel: 'Fri' });
+      }
+    } else if (f.includes('2x_weekly') || f.includes('2x weekly')) {
+      const weeks = Math.ceil(duration / 7);
+      for (let i = 0; i < weeks; i++) {
+        days.push({ day: i * 7 + 1, label: `Wk${i + 1}`, subLabel: 'Mon' });
+        days.push({ day: i * 7 + 4, label: `Wk${i + 1}`, subLabel: 'Thu' });
+      }
+    } else if (f.includes('weekly') && !f.includes('2x') && !f.includes('3x')) {
+      // Weekly: exactly 4 weeks for weight loss, otherwise based on duration
+      const weeks = isWeightLossProtocol ? 4 : Math.ceil(duration / 7);
+      for (let i = 1; i <= weeks; i++) days.push({ day: i * 7, label: `Wk ${i}` });
+    } else if (f.includes('every_other') || f.includes('every other')) {
+      for (let i = 1; i <= duration; i += 2) days.push({ day: i, label: `Day ${i}` });
+    } else {
+      for (let i = 1; i <= duration; i++) days.push({ day: i, label: `${i}` });
+    }
+    return days;
+  };
+
+  const calculateStreak = () => {
+    const logs = symptoms.logs || [];
+    if (logs.length === 0) return 0;
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+      if (logs.some(l => l.log_date === dateStr)) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+    return streak;
+  };
+
+  // =====================================================
+  // SUB-COMPONENTS
+  // =====================================================
+  
+  const ScoreSlider = ({ label, value, onChange, lowLabel = '1', highLabel = '10', color = '#000' }) => (
+    <div style={{ marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <label style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>{label}</label>
+        <span style={{ fontSize: '24px', fontWeight: '700', color }}>{value}</span>
+      </div>
+      <input type="range" min="1" max="10" value={value} onChange={(e) => onChange(parseInt(e.target.value))} 
+        style={{ width: '100%', height: '8px', borderRadius: '4px', outline: 'none', WebkitAppearance: 'none', 
+          background: `linear-gradient(to right, ${color} ${(value - 1) * 11.1}%, #e0e0e0 ${(value - 1) * 11.1}%)` }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+        <span style={{ fontSize: '11px', color: '#888' }}>{lowLabel}</span>
+        <span style={{ fontSize: '11px', color: '#888' }}>{highLabel}</span>
+      </div>
+    </div>
+  );
+
+  // Confetti Animation
+  const Confetti = () => (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 9999, overflow: 'hidden' }}>
+      {[...Array(50)].map((_, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          width: '10px',
+          height: '10px',
+          background: ['#ff0', '#f0f', '#0ff', '#f00', '#0f0', '#00f'][i % 6],
+          left: `${Math.random() * 100}%`,
+          top: '-10px',
+          borderRadius: Math.random() > 0.5 ? '50%' : '0',
+          animation: `confetti-fall ${2 + Math.random() * 2}s linear forwards`,
+          animationDelay: `${Math.random() * 0.5}s`
+        }} />
+      ))}
+      <style jsx>{`
+        @keyframes confetti-fall {
+          to {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
+    </div>
+  );
+
+  // Milestone Celebration Modal
+  const MilestoneModal = ({ milestone }) => (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 9998, padding: '20px'
+    }} onClick={() => setShowMilestone(null)}>
+      <Confetti />
+      <div style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '24px', padding: '40px', textAlign: 'center', color: 'white',
+        maxWidth: '320px', width: '100%', animation: 'pop-in 0.3s ease'
+      }}>
+        <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎉</div>
+        <h2 style={{ margin: '0 0 12px', fontSize: '24px', fontWeight: '700' }}>{milestone.title}</h2>
+        <p style={{ margin: 0, fontSize: '16px', opacity: 0.9 }}>{milestone.message}</p>
+      </div>
+      <style jsx>{`
+        @keyframes pop-in {
+          0% { transform: scale(0.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+
+  // Weight Chart
+  // Enhanced Weight Loss Journey Dashboard
+  const WeightChart = ({ logs }) => {
+    if (!logs || logs.length < 2) return null;
+    const weights = logs.map(l => parseFloat(l.weight));
+    const max = Math.max(...weights);
+    const min = Math.min(...weights);
+    const range = max - min || 1;
+    const width = 280;
+    const height = 100;
+    const padding = 10;
+    
+    const points = weights.map((w, i) => {
+      const x = padding + (i / (weights.length - 1)) * (width - 2 * padding);
+      const y = padding + ((max - w) / range) * (height - 2 * padding);
+      return `${x},${y}`;
+    }).join(' ');
+    
+    // Create gradient fill area
+    const areaPoints = `${padding},${height - padding} ` + points + ` ${width - padding},${height - padding}`;
+    
+    return (
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="weightGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ff9800" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#ff9800" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={areaPoints} fill="url(#weightGradient)" />
+        <polyline points={points} fill="none" stroke="#ff9800" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {weights.map((w, i) => {
+          const x = padding + (i / (weights.length - 1)) * (width - 2 * padding);
+          const y = padding + ((max - w) / range) * (height - 2 * padding);
+          return <circle key={i} cx={x} cy={y} r="4" fill="#ff9800" />;
+        })}
+      </svg>
+    );
+  };
+
+  // Weight Loss Journey Stats Component
+  const WeightLossJourney = () => {
+    const logs = weightLogs.logs || [];
+    const stats = weightLogs.stats || {};
+    
+    if (logs.length === 0) {
+      return (
+        <div style={{ margin: '0 20px 20px' }}>
+          <div style={{ 
+            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', 
+            borderRadius: '20px', 
+            padding: '24px',
+            color: 'white',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚖️</div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '600' }}>Start Your Weight Journey</h3>
+            <p style={{ margin: '0 0 16px', fontSize: '14px', opacity: 0.9 }}>
+              Log your first weigh-in to begin tracking your transformation
+            </p>
+            <button
+              onClick={() => setShowWeightLog(true)}
+              style={{
+                background: 'white',
+                color: '#f57c00',
+                border: 'none',
+                padding: '12px 32px',
+                borderRadius: '25px',
+                fontSize: '15px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Log Weight
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const startWeight = stats.startWeight || logs[0]?.weight;
+    const currentWeight = stats.currentWeight || logs[logs.length - 1]?.weight;
+    const totalLost = startWeight - currentWeight;
+    const percentLost = startWeight > 0 ? ((totalLost / startWeight) * 100).toFixed(1) : 0;
+    
+    // Calculate weekly average loss
+    const firstLog = logs[0];
+    const lastLog = logs[logs.length - 1];
+    const daysBetween = firstLog && lastLog ? 
+      Math.max(1, Math.ceil((new Date(lastLog.log_date) - new Date(firstLog.log_date)) / (1000 * 60 * 60 * 24))) : 1;
+    const weeklyAvg = daysBetween > 0 ? ((totalLost / daysBetween) * 7).toFixed(1) : 0;
+    
+    // Get last 7 days progress
+    const last7Days = logs.slice(-7);
+    const last7DaysChange = last7Days.length >= 2 ? 
+      (parseFloat(last7Days[0].weight) - parseFloat(last7Days[last7Days.length - 1].weight)).toFixed(1) : 0;
+    
+    // Milestones
+    const milestones = [
+      { lbs: 5, emoji: '🌟', label: '5 lbs' },
+      { lbs: 10, emoji: '⭐', label: '10 lbs' },
+      { lbs: 15, emoji: '🔥', label: '15 lbs' },
+      { lbs: 20, emoji: '💪', label: '20 lbs' },
+      { lbs: 25, emoji: '🏆', label: '25 lbs' },
+      { lbs: 30, emoji: '👑', label: '30 lbs' },
+      { lbs: 40, emoji: '🚀', label: '40 lbs' },
+      { lbs: 50, emoji: '💎', label: '50 lbs' }
+    ];
+    
+    const achievedMilestones = milestones.filter(m => totalLost >= m.lbs);
+    const nextMilestone = milestones.find(m => totalLost < m.lbs);
+    const progressToNext = nextMilestone ? 
+      Math.min(100, ((totalLost / nextMilestone.lbs) * 100).toFixed(0)) : 100;
+
+    return (
+      <div style={{ margin: '0 20px 20px' }}>
+        {/* Main Stats Card */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', 
+          borderRadius: '20px', 
+          padding: '24px',
+          color: 'white',
+          marginBottom: '16px'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '14px', opacity: 0.7, marginBottom: '4px' }}>Total Lost</div>
+            <div style={{ fontSize: '48px', fontWeight: '700', color: totalLost > 0 ? '#4caf50' : '#fff' }}>
+              {totalLost > 0 ? '-' : ''}{Math.abs(totalLost).toFixed(1)}
+              <span style={{ fontSize: '24px', marginLeft: '4px' }}>lbs</span>
+            </div>
+            <div style={{ fontSize: '14px', color: '#4caf50', marginTop: '4px' }}>
+              {percentLost}% of starting weight
+            </div>
+          </div>
+          
+          {/* Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Start</div>
+              <div style={{ fontSize: '18px', fontWeight: '600' }}>{startWeight}</div>
+              <div style={{ fontSize: '10px', opacity: 0.5 }}>lbs</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Current</div>
+              <div style={{ fontSize: '18px', fontWeight: '600' }}>{currentWeight}</div>
+              <div style={{ fontSize: '10px', opacity: 0.5 }}>lbs</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Weekly Avg</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: weeklyAvg > 0 ? '#4caf50' : '#fff' }}>
+                {weeklyAvg > 0 ? '-' : ''}{Math.abs(weeklyAvg)}
+              </div>
+              <div style={{ fontSize: '10px', opacity: 0.5 }}>lbs/week</div>
+            </div>
+          </div>
+          
+          {/* Chart */}
+          {logs.length >= 2 && (
+            <div style={{ marginBottom: '16px' }}>
+              <WeightChart logs={logs} />
+            </div>
+          )}
+          
+          {/* Log Weight Button */}
+          <button
+            onClick={() => setShowWeightLog(true)}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '14px',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            ⚖️ Log Today's Weight
+          </button>
+        </div>
+        
+        {/* Progress to Next Milestone */}
+        {nextMilestone && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '16px', 
+            padding: '16px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: '600' }}>Next Milestone</span>
+              <span style={{ fontSize: '24px' }}>{nextMilestone.emoji}</span>
+            </div>
+            <div style={{ 
+              background: '#f0f0f0', 
+              borderRadius: '10px', 
+              height: '12px', 
+              overflow: 'hidden',
+              marginBottom: '8px'
+            }}>
+              <div style={{ 
+                width: `${progressToNext}%`, 
+                height: '100%', 
+                background: 'linear-gradient(90deg, #ff9800 0%, #f57c00 100%)',
+                borderRadius: '10px',
+                transition: 'width 0.5s ease'
+              }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#888' }}>
+              <span>{totalLost.toFixed(1)} lbs lost</span>
+              <span>{nextMilestone.label} goal</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Achieved Milestones */}
+        {achievedMilestones.length > 0 && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '16px', 
+            padding: '16px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            marginBottom: '16px'
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
+              🏅 Milestones Achieved
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {achievedMilestones.map((m, i) => (
+                <div key={i} style={{
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  padding: '8px 14px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  {m.emoji} {m.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Recent Weigh-ins */}
+        {logs.length > 0 && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '16px', 
+            padding: '16px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
+              📊 Recent Weigh-ins
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {logs.slice(-5).reverse().map((log, i) => {
+                const prevLog = logs[logs.indexOf(log) - 1];
+                const change = prevLog ? (parseFloat(log.weight) - parseFloat(prevLog.weight)).toFixed(1) : 0;
+                return (
+                  <div key={i} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 12px',
+                    background: '#fafafa',
+                    borderRadius: '10px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '500' }}>{log.weight} lbs</div>
+                      <div style={{ fontSize: '11px', color: '#888' }}>
+                        {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                    {prevLog && (
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: change < 0 ? '#4caf50' : change > 0 ? '#f44336' : '#888',
+                        background: change < 0 ? '#e8f5e9' : change > 0 ? '#ffebee' : '#f5f5f5',
+                        padding: '4px 10px',
+                        borderRadius: '12px'
+                      }}>
+                        {change > 0 ? '+' : ''}{change} lbs
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Progress Mini Chart
+  const ProgressChart = ({ logs, metric }) => {
+    if (!logs || logs.length < 2) return null;
+    const values = logs.map(l => l[metric.key]).filter(v => v !== null);
+    if (values.length < 2) return null;
+    const width = 80; const height = 30;
+    const points = values.map((v, i) => {
+      const x = (i / (values.length - 1)) * width;
+      const y = height - ((v - 1) / 9) * height;
+      return `${x},${y}`;
+    }).join(' ');
+    return (
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        <polyline points={points} fill="none" stroke={metric.color} strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  };
+
+  // =====================================================
+  // MODALS
+  // =====================================================
+
+  const WellnessCheckInModal = () => (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', color: 'white', padding: '24px', borderRadius: '20px 20px 0 0', textAlign: 'center' }}>
+          <div style={{ fontSize: '28px', marginBottom: '8px' }}>🌟</div>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Daily Check-In</h2>
+          <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.8 }}>{todayLogged ? 'Update your scores' : 'How are you feeling today?'}</p>
+        </div>
+        <div style={{ padding: '24px' }}>
+          {WELLNESS_METRICS.map(metric => (
+            <div key={metric.key} style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>{metric.icon}</span> {metric.label}
+                </span>
+                <span style={{ fontSize: '20px', fontWeight: '700', color: metric.color, background: `${metric.color}15`, padding: '4px 12px', borderRadius: '12px' }}>
+                  {wellnessData[metric.key]}
+                </span>
+              </div>
+              <input type="range" min="1" max="10" value={wellnessData[metric.key]} 
+                onChange={(e) => setWellnessData(prev => ({ ...prev, [metric.key]: parseInt(e.target.value) }))}
+                style={{ width: '100%', height: '8px', borderRadius: '4px', WebkitAppearance: 'none',
+                  background: `linear-gradient(to right, ${metric.color} ${(wellnessData[metric.key] - 1) * 11.1}%, #e8e8e8 ${(wellnessData[metric.key] - 1) * 11.1}%)` }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span style={{ fontSize: '10px', color: '#999' }}>{metric.lowLabel}</span>
+                <span style={{ fontSize: '10px', color: '#999' }}>{metric.highLabel}</span>
+              </div>
+            </div>
+          ))}
+          <textarea value={wellnessData.notes} onChange={(e) => setWellnessData(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Notes (optional)..." rows={2}
+            style={{ width: '100%', padding: '12px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', resize: 'none', boxSizing: 'border-box', marginTop: '8px' }} />
+        </div>
+        <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
+          <button onClick={() => setShowWellnessCheckIn(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={saveWellnessCheckIn} disabled={savingWellness} style={{ flex: 2, padding: '14px', background: savingWellness ? '#ccc' : 'linear-gradient(135deg, #000 0%, #333 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: savingWellness ? 'wait' : 'pointer' }}>
+            {savingWellness ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const WeightLogModal = () => (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '340px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white', padding: '24px', borderRadius: '20px 20px 0 0', textAlign: 'center' }}>
+          <div style={{ fontSize: '28px', marginBottom: '8px' }}>⚖️</div>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Log Weight</h2>
+        </div>
+        <div style={{ padding: '24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <input type="number" value={currentWeight} onChange={(e) => setCurrentWeight(e.target.value)}
+              placeholder="185" style={{ fontSize: '48px', fontWeight: '700', width: '150px', textAlign: 'center', border: 'none', borderBottom: '3px solid #ff9800', outline: 'none', padding: '8px' }} />
+            <span style={{ fontSize: '24px', color: '#888', marginLeft: '8px' }}>lbs</span>
+          </div>
+          {weightLogs.stats?.startWeight && (
+            <div style={{ background: '#fff3e0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '13px', color: '#e65100' }}>
+                Started at {weightLogs.stats.startWeight} lbs
+                {weightLogs.stats.totalChange !== 0 && (
+                  <span style={{ fontWeight: '600' }}> • {weightLogs.stats.totalChange > 0 ? '+' : ''}{weightLogs.stats.totalChange.toFixed(1)} lbs</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
+          <button onClick={() => setShowWeightLog(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={saveWeight} disabled={!currentWeight || savingWeight} style={{ flex: 2, padding: '14px', background: !currentWeight || savingWeight ? '#ccc' : 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: !currentWeight || savingWeight ? 'not-allowed' : 'pointer' }}>
+            {savingWeight ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const MessageModal = () => (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', color: 'white', padding: '24px', borderRadius: '20px 20px 0 0' }}>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>💬 Message the Clinic</h2>
+          <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.8 }}>We'll respond within 24 hours</p>
+        </div>
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', display: 'block', marginBottom: '10px' }}>What's this about?</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {MESSAGE_CATEGORIES.map(cat => (
+                <button key={cat.value} onClick={() => setMessageCategory(cat.value)}
+                  style={{ padding: '12px', border: messageCategory === cat.value ? '2px solid #000' : '1px solid #e0e0e0', borderRadius: '12px', background: messageCategory === cat.value ? '#f5f5f5' : 'white', cursor: 'pointer', textAlign: 'left' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '500' }}>{cat.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: '14px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Your message</label>
+            <textarea value={messageText} onChange={(e) => setMessageText(e.target.value)}
+              placeholder="Type your message here..." rows={4}
+              style={{ width: '100%', padding: '14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', resize: 'none', boxSizing: 'border-box' }} />
+          </div>
+        </div>
+        <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
+          <button onClick={() => setShowMessageModal(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={sendMessage} disabled={!messageText.trim() || sendingMessage} style={{ flex: 2, padding: '14px', background: !messageText.trim() || sendingMessage ? '#ccc' : '#000', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: !messageText.trim() || sendingMessage ? 'not-allowed' : 'pointer' }}>
+            {sendingMessage ? 'Sending...' : 'Send Message'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const RefillModal = () => (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '380px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)', color: 'white', padding: '24px', borderRadius: '20px 20px 0 0', textAlign: 'center' }}>
+          <div style={{ fontSize: '28px', marginBottom: '8px' }}>📦</div>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Request Refill</h2>
+          <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.9 }}>{data?.protocol?.program_name}</p>
+        </div>
+        <div style={{ padding: '24px' }}>
+          <p style={{ fontSize: '14px', color: '#666', margin: '0 0 16px' }}>
+            We'll prepare your refill and contact you when it's ready for pickup or shipping.
+          </p>
+          <textarea value={refillNotes} onChange={(e) => setRefillNotes(e.target.value)}
+            placeholder="Any notes? (optional)" rows={2}
+            style={{ width: '100%', padding: '12px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', resize: 'none', boxSizing: 'border-box' }} />
+        </div>
+        <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
+          <button onClick={() => setShowRefillModal(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={requestRefill} disabled={sendingRefill} style={{ flex: 2, padding: '14px', background: sendingRefill ? '#ccc' : 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: sendingRefill ? 'wait' : 'pointer' }}>
+            {sendingRefill ? 'Submitting...' : 'Request Refill'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const SettingsModal = () => (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '360px' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid #f0f0f0' }}>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>⚙️ Settings</h2>
+        </div>
+        <div style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: '600' }}>Reminders</div>
+              <div style={{ fontSize: '12px', color: '#888' }}>Get reminded to log injections</div>
+            </div>
+            <button onClick={() => setRemindersEnabled(!remindersEnabled)}
+              style={{ width: '52px', height: '32px', borderRadius: '16px', border: 'none', background: remindersEnabled ? '#4caf50' : '#e0e0e0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '13px', background: 'white', position: 'absolute', top: '3px', left: remindersEnabled ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+            </button>
+          </div>
+          {remindersEnabled && (
+            <div>
+              <label style={{ fontSize: '14px', fontWeight: '600', display: 'block', marginBottom: '10px' }}>Reminder Time</label>
+              <select value={reminderTime} onChange={(e) => setReminderTime(e.target.value)}
+                style={{ width: '100%', padding: '14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', background: 'white' }}>
+                {REMINDER_TIMES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+        <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
+          <button onClick={() => setShowSettings(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={savePreferences} disabled={savingPrefs} style={{ flex: 1, padding: '14px', background: savingPrefs ? '#ccc' : '#000', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: savingPrefs ? 'wait' : 'pointer' }}>
+            {savingPrefs ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Completion Summary
+  const CompletionSummaryModal = () => {
+    const intake = intakeQuestionnaire;
+    const latest = symptoms.stats?.latestLog;
+    const wLogs = weightLogs;
+    
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+        <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
+          <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '32px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '12px' }}>🏆</div>
+            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Protocol Complete!</h2>
+            <p style={{ margin: '8px 0 0', fontSize: '14px', opacity: 0.9 }}>{data?.protocol?.program_name}</p>
+          </div>
+          <div style={{ padding: '24px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#888', letterSpacing: '1px', margin: '0 0 16px' }}>YOUR RESULTS</h3>
+            
+            {/* Wellness comparison */}
+            {symptoms.stats?.hasData && (
+              <div style={{ marginBottom: '24px' }}>
+                {WELLNESS_METRICS.map(metric => {
+                  const change = symptoms.stats.changes?.[metric.key];
+                  if (!change) return null;
+                  const improved = metric.inverted ? change.value < 0 : change.value > 0;
+                  return (
+                    <div key={metric.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                      <span style={{ fontSize: '14px' }}>{metric.icon} {metric.label}</span>
+                      <span style={{ fontWeight: '600', color: improved ? '#4caf50' : change.value === 0 ? '#888' : '#f44336' }}>
+                        {improved ? '↑' : change.value === 0 ? '→' : '↓'} {Math.abs(change.percent)}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Weight loss results */}
+            {wLogs.stats?.hasData && wLogs.stats.totalChange !== 0 && (
+              <div style={{ background: '#fff3e0', borderRadius: '16px', padding: '20px', textAlign: 'center', marginBottom: '24px' }}>
+                <div style={{ fontSize: '14px', color: '#e65100', marginBottom: '8px' }}>Total Weight Change</div>
+                <div style={{ fontSize: '36px', fontWeight: '700', color: wLogs.stats.totalChange < 0 ? '#4caf50' : '#f44336' }}>
+                  {wLogs.stats.totalChange > 0 ? '+' : ''}{wLogs.stats.totalChange.toFixed(1)} lbs
+                </div>
+              </div>
+            )}
+            
+            {/* Next steps */}
+            <div style={{ background: '#f5f5f5', borderRadius: '16px', padding: '20px' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '600' }}>What's Next?</h4>
+              <p style={{ margin: 0, fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
+                Ready to continue your progress? Request a refill or schedule a follow-up with our team.
+              </p>
+            </div>
+          </div>
+          <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
+            <button onClick={() => setShowCompletionSummary(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Close</button>
+            <a href={`sms:9499973988?body=${encodeURIComponent(`Hi, I'd like to request a refill for my ${protocol?.program_name || 'prescription'}. - ${protocol?.patient_name || ''}`)}`} onClick={() => setShowCompletionSummary(false)} style={{ flex: 1, padding: '14px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Request Refill</a>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // =====================================================
+  // MAIN RENDER
+  // =====================================================
 
   if (loading) {
     return (
-      <div style={styles.container}>
-        <Head>
-          <title>Loading... | Range Medical</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        </Head>
-        <div style={styles.loading}>Loading your protocol...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif', background: '#fafafa' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid #f0f0f0', borderTop: '3px solid #000', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+          <style jsx>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <p style={{ color: '#666', fontSize: '14px' }}>Loading your tracker...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={styles.container}>
-        <Head>
-          <title>Error | Range Medical</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        </Head>
-        <div style={styles.errorContainer}>
-          <div style={styles.logo}>RANGE MEDICAL</div>
-          <div style={styles.errorMessage}>{error}</div>
-          <p style={styles.errorHelp}>
-            If you need help, text us at (949) 997-3988
-          </p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif', padding: '24px', background: '#fafafa' }}>
+        <div style={{ textAlign: 'center', maxWidth: '300px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>😕</div>
+          <p style={{ color: '#666', fontSize: '15px', lineHeight: '1.5' }}>{error}</p>
+          <p style={{ color: '#888', fontSize: '13px', marginTop: '16px' }}>Need help? Call <a href="tel:9499973988" style={{ color: '#000', fontWeight: '600' }}>(949) 997-3988</a></p>
         </div>
       </div>
     );
   }
 
-  const { protocol, days, dosingInstructions, completionRate } = data;
+  const protocol = data?.protocol;
+  const injectionLogs = data?.injectionLogs || [];
+  const completedDays = injectionLogs.map(log => log.day_number);
+  const totalDays = protocol?.duration_days || 10;
+  const daysLeft = protocol?.end_date ? Math.max(0, Math.ceil((new Date(protocol.end_date) - new Date()) / (1000*60*60*24))) : 0;
+  const category = getQuestionnaireCategory(protocol?.program_type, protocol?.program_name);
+  const isWeightLoss = category === 'weight_loss';
+  const isPeptide = category === 'peptide';
+  const isInClinic = protocol?.injection_location === 'in_clinic';
   
-  // Calculate actual injection days (excluding off days)
-  const frequency = protocol.doseFrequency;
-  const startDate = protocol.startDate;
-  const injectionDays = days.filter(d => !isOffDay(d.day, frequency, startDate));
-  const completedInjections = days.filter(d => d.completed && !isOffDay(d.day, frequency, startDate)).length;
+  const primaryPeptide = protocol?.primary_peptide;
+  const peptideInfo = getPeptideInfo(primaryPeptide);
+  const frequencyInfo = FREQUENCY_DISPLAY[protocol?.dose_frequency] || FREQUENCY_DISPLAY['daily'];
+  const streak = calculateStreak();
+  
+  const injectionDays = generateInjectionDays(protocol?.dose_frequency, totalDays, isWeightLoss);
   const totalInjections = injectionDays.length;
-  const adjustedCompletionRate = totalInjections > 0 ? Math.round((completedInjections / totalInjections) * 100) : 0;
+  const completedCount = completedDays.length;
+  const injectionProgress = totalInjections > 0 ? Math.round((completedCount / totalInjections) * 100) : 0;
+  const isComplete = injectionProgress >= 100;
 
   return (
-    <div style={styles.container}>
+    <>
       <Head>
-        <title>Injection Tracker | Range Medical</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <title>{protocol?.patient_name ? `${protocol.patient_name} - ` : ''}Tracker | Range Medical</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="theme-color" content="#000000" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
+      
+      {/* Modals */}
+      {showMilestone && <MilestoneModal milestone={showMilestone} />}
+      {showWellnessCheckIn && <WellnessCheckInModal />}
+      {showWeightLog && <WeightLogModal />}
+      {showMessageModal && <MessageModal />}
+      {showRefillModal && <RefillModal />}
+      {showSettings && <SettingsModal />}
+      {showCompletionSummary && <CompletionSummaryModal />}
+      
+      <div style={{ minHeight: '100vh', background: '#fafafa', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}>
+        {/* Header */}
+        <header style={{ background: 'linear-gradient(135deg, #000 0%, #1a1a1a 100%)', color: 'white', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600', letterSpacing: '2px' }}>RANGE MEDICAL</h1>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', opacity: 0.7 }}>{isWeightLoss ? 'Weight Loss Journey' : 'Recovery Tracker'}</p>
+          </div>
+          <button onClick={() => setShowSettings(true)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', fontSize: '18px', cursor: 'pointer' }}>⚙️</button>
+        </header>
 
-      {/* Header */}
-      <div style={styles.header}>
-        <div style={styles.headerInner}>
-          <div style={styles.logo}>RANGE MEDICAL</div>
-          <div style={styles.greeting}>Hi {protocol.patientName?.split(' ')[0]}!</div>
-        </div>
-      </div>
-
-      <div style={styles.content}>
-        {/* Protocol Summary Card */}
-        <div style={styles.card}>
-          <div style={styles.cardHeader}>
-            <div style={styles.protocolName}>{protocol.programName}</div>
-            <div style={styles.peptides}>
-              {getDisplayName(protocol.primaryPeptide)}
-              {protocol.secondaryPeptide && ` + ${protocol.secondaryPeptide}`}
+        {/* Welcome Card */}
+        <div style={{ margin: '20px', background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: '12px', color: '#888' }}>Welcome back,</div>
+              <div style={{ fontSize: '22px', fontWeight: '700', color: '#1a1a1a' }}>{protocol?.patient_name}</div>
+              <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{protocol?.program_name}</div>
             </div>
-            {frequency && (
-              <div style={styles.frequency}>{frequency}</div>
+            {streak > 0 && (
+              <div style={{ background: '#fff3e0', borderRadius: '12px', padding: '8px 12px' }}>
+                <span style={{ fontSize: '13px', color: '#e65100', fontWeight: '600' }}>🔥 {streak} day streak</span>
+              </div>
             )}
           </div>
-          
-          <div style={styles.statsRow}>
-            <div style={styles.stat}>
-              <div style={styles.statValue}>{protocol.currentDay > protocol.totalDays ? protocol.totalDays : protocol.currentDay}</div>
-              <div style={styles.statLabel}>Day</div>
-            </div>
-            <div style={styles.stat}>
-              <div style={styles.statValue}>{completedInjections}/{totalInjections}</div>
-              <div style={styles.statLabel}>Injections</div>
-            </div>
-            <div style={styles.stat}>
-              <div style={styles.statValue}>{adjustedCompletionRate}%</div>
-              <div style={styles.statLabel}>Complete</div>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div style={styles.progressContainer}>
-            <div style={{...styles.progressBar, width: `${adjustedCompletionRate}%`}} />
+          <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
+            {daysLeft > 0 && <span style={{ background: '#f5f5f5', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#666' }}>📅 {daysLeft} days left</span>}
+            {isComplete && <span style={{ background: '#e8f5e9', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#2e7d32', fontWeight: '600' }}>✓ Complete!</span>}
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={styles.tabContainer}>
-          <button 
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'instructions' ? styles.tabButtonActive : {})
-            }}
-            onClick={() => setActiveTab(activeTab === 'instructions' ? null : 'instructions')}
-          >
-            Dosing Instructions
-          </button>
-          <button 
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'about' ? styles.tabButtonActive : {})
-            }}
-            onClick={() => setActiveTab(activeTab === 'about' ? null : 'about')}
-          >
-            About Your Peptide
-          </button>
-        </div>
-
-        {/* Instructions Panel */}
-        {activeTab === 'instructions' && (
-          <div style={styles.infoPanel}>
-            <div style={styles.peptideSection}>
-              <h3 style={styles.peptideTitle}>Your Protocol</h3>
-              
-              <div style={styles.peptideBlock}>
-                <div style={styles.peptideLabel}>Peptide{dosingInstructions.peptideList?.length > 1 ? 's' : ''}</div>
-                <p style={styles.peptideText}>{dosingInstructions.peptides}</p>
+        {/* Action Buttons Row */}
+        {!activeForm && (!isInClinic || isWeightLoss) && (
+          <div style={{ margin: '0 20px 20px', display: 'grid', gridTemplateColumns: isWeightLoss ? '1fr 1fr' : '1fr', gap: '12px' }}>
+            {/* Wellness Check-in */}
+            <button onClick={() => setShowWellnessCheckIn(true)} style={{ padding: '16px', background: todayLogged ? '#e8f5e9' : '#fff8e1', border: 'none', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
+              <span style={{ fontSize: '24px' }}>{todayLogged ? '✅' : '📊'}</span>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>{todayLogged ? 'Check-In Done' : 'Daily Check-In'}</div>
+                <div style={{ fontSize: '11px', color: '#888' }}>Track wellness</div>
               </div>
-              
-              <div style={styles.instructionsRow}>
-                <div style={styles.instructionsCol}>
-                  <div style={styles.peptideLabel}>Dose</div>
-                  <p style={styles.peptideText}>{dosingInstructions.dose}</p>
-                </div>
-                <div style={styles.instructionsCol}>
-                  <div style={styles.peptideLabel}>Frequency</div>
-                  <p style={styles.peptideText}>{dosingInstructions.frequency}</p>
-                </div>
-                <div style={styles.instructionsCol}>
-                  <div style={styles.peptideLabel}>Duration</div>
-                  <p style={styles.peptideText}>{dosingInstructions.duration}</p>
-                </div>
-              </div>
-            </div>
+            </button>
             
-            <div style={{...styles.peptideSection, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e8e8e8'}}>
-              <div style={styles.peptideBlock}>
-                <div style={styles.peptideLabel}>When to Take</div>
-                <p style={{...styles.peptideText, fontWeight: '600', marginBottom: '8px'}}>{dosingInstructions.timing?.when}</p>
-                <p style={styles.peptideText}>{dosingInstructions.timing?.instructions}</p>
-              </div>
-              
-              {dosingInstructions.timing?.fasting && (
-                <div style={styles.peptideTip}>
-                  <div style={styles.tipLabel}>Fasting Required</div>
-                  Do not eat for 2 hours before your injection.
-                </div>
-              )}
-              
-              {dosingInstructions.timing?.secondaryNote && (
-                <div style={styles.peptideNote}>
-                  {dosingInstructions.timing.secondaryNote}
-                </div>
-              )}
-            </div>
-            
-            <div style={{...styles.peptideSection, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e8e8e8'}}>
-              <div style={styles.peptideBlock}>
-                <div style={styles.peptideLabel}>
-                  How to {dosingInstructions.routeType === 'Oral' ? 'Take' : dosingInstructions.routeType === 'Intranasal' ? 'Use' : 'Inject'}
-                </div>
-                <p style={{...styles.peptideText, fontWeight: '600', marginBottom: '8px'}}>
-                  {dosingInstructions.route?.title} — {dosingInstructions.route?.location}
-                </p>
-                <ul style={styles.benefitsList}>
-                  {dosingInstructions.route?.steps?.map((step, i) => (
-                    <li key={i} style={styles.benefitItem}>{step}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            
-            <div style={{...styles.peptideSection, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e8e8e8'}}>
-              <div style={styles.peptideBlock}>
-                <div style={styles.peptideLabel}>Storage</div>
-                <ul style={styles.benefitsList}>
-                  {dosingInstructions.storage?.map((item, i) => (
-                    <li key={i} style={styles.benefitItem}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            
-            <div style={styles.contactBox}>
-              <div style={styles.contactLabel}>Questions? Text or call us anytime</div>
-              <a href="sms:+19499973988" style={styles.contactPhone}>{dosingInstructions.contact}</a>
-            </div>
-          </div>
-        )}
-
-        {/* About Peptide Panel */}
-        {activeTab === 'about' && (
-          <div style={styles.infoPanel}>
-            {(() => {
-              const primaryInfo = getPeptideExplanation(protocol.primaryPeptide);
-              const secondaryInfo = protocol.secondaryPeptide ? getPeptideExplanation(protocol.secondaryPeptide) : null;
-              
-              return (
-                <>
-                  {primaryInfo && (
-                    <div style={styles.peptideSection}>
-                      <h3 style={styles.peptideTitle}>{primaryInfo.name}</h3>
-                      
-                      <div style={styles.peptideBlock}>
-                        <div style={styles.peptideLabel}>What is it?</div>
-                        <p style={styles.peptideText}>{primaryInfo.what}</p>
-                      </div>
-                      
-                      <div style={styles.peptideBlock}>
-                        <div style={styles.peptideLabel}>How does it work?</div>
-                        <p style={styles.peptideText}>{primaryInfo.how}</p>
-                      </div>
-                      
-                      <div style={styles.peptideBlock}>
-                        <div style={styles.peptideLabel}>Potential Benefits</div>
-                        <ul style={styles.benefitsList}>
-                          {primaryInfo.benefits.map((benefit, i) => (
-                            <li key={i} style={styles.benefitItem}>{benefit}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      {primaryInfo.tip && (
-                        <div style={styles.peptideTip}>
-                          <div style={styles.tipLabel}>Timing Tip</div>
-                          {primaryInfo.tip}
-                        </div>
-                      )}
-                      
-                      <div style={styles.peptideNote}>
-                        {primaryInfo.note}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {secondaryInfo && secondaryInfo.name !== primaryInfo?.name && (
-                    <div style={{...styles.peptideSection, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e0e0e0'}}>
-                      <h3 style={styles.peptideTitle}>{secondaryInfo.name}</h3>
-                      
-                      <div style={styles.peptideBlock}>
-                        <div style={styles.peptideLabel}>What is it?</div>
-                        <p style={styles.peptideText}>{secondaryInfo.what}</p>
-                      </div>
-                      
-                      <div style={styles.peptideBlock}>
-                        <div style={styles.peptideLabel}>How does it work?</div>
-                        <p style={styles.peptideText}>{secondaryInfo.how}</p>
-                      </div>
-                      
-                      <div style={styles.peptideBlock}>
-                        <div style={styles.peptideLabel}>Potential Benefits</div>
-                        <ul style={styles.benefitsList}>
-                          {secondaryInfo.benefits.map((benefit, i) => (
-                            <li key={i} style={styles.benefitItem}>{benefit}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      {secondaryInfo.tip && (
-                        <div style={styles.peptideTip}>
-                          <div style={styles.tipLabel}>Timing Tip</div>
-                          {secondaryInfo.tip}
-                        </div>
-                      )}
-                      
-                      <div style={styles.peptideNote}>
-                        {secondaryInfo.note}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div style={styles.disclaimer}>
-                    This information is for educational purposes only. It is not medical advice. Always follow your provider's instructions. Contact Range Medical with any questions about your treatment.
+            {/* Weight Log (weight loss only) */}
+            {isWeightLoss && (
+              <button onClick={() => setShowWeightLog(true)} style={{ padding: '16px', background: '#fff3e0', border: 'none', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
+                <span style={{ fontSize: '24px' }}>⚖️</span>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>Log Weight</div>
+                  <div style={{ fontSize: '11px', color: '#888' }}>
+                    {weightLogs.stats?.currentWeight ? `Current: ${weightLogs.stats.currentWeight} lbs` : 'Track progress'}
                   </div>
-                </>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* Injection Grid */}
-        <div style={styles.sectionTitle}>
-          Tap each day when you complete your injection
-        </div>
-        
-        {frequency && (frequency.includes('days off') || frequency.includes('weekly') || frequency === 'Every other day') && (
-          <div style={styles.offDayLegend}>
-            <span style={styles.legendItem}><span style={styles.legendDotGrey}></span> Rest day (no injection)</span>
-            <span style={styles.legendItem}><span style={styles.legendDotGreen}></span> Completed</span>
-          </div>
-        )}
-
-        <div style={styles.daysGrid}>
-          {days.map((day) => {
-            const isOff = isOffDay(day.day, frequency, startDate);
-            return (
-              <button
-                key={day.day}
-                style={{
-                  ...styles.dayButton,
-                  ...(isOff ? styles.dayOff : {}),
-                  ...(day.completed && !isOff ? styles.dayCompleted : {}),
-                  ...(day.isCurrent && !day.completed && !isOff ? styles.dayCurrent : {}),
-                  ...(day.isFuture && !isOff ? styles.dayFuture : {}),
-                  opacity: saving === day.day ? 0.5 : 1,
-                  cursor: isOff ? 'default' : 'pointer'
-                }}
-                onClick={() => toggleDay(day.day, day.completed, isOff)}
-                disabled={saving !== null || isOff}
-              >
-                <div style={{...styles.dayNumber, ...(isOff ? styles.dayNumberOff : {})}}>Day {day.day}</div>
-                <div style={{...styles.dayDate, ...(isOff ? styles.dayDateOff : {})}}>
-                  {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
                 </div>
-                {day.completed && !isOff && <div style={styles.checkmark}>✓</div>}
-                {isOff && <div style={styles.offLabel}>OFF</div>}
-                {day.isCurrent && !day.completed && !isOff && <div style={styles.todayBadge}>TODAY</div>}
               </button>
-            );
-          })}
+            )}
+          </div>
+        )}
+
+        {/* Weight Loss Journey Dashboard */}
+        {isWeightLoss && !activeForm && (
+          <WeightLossJourney />
+        )}
+
+        {/* Wellness Progress Card */}
+        {symptoms.logs?.length >= 2 && !activeForm && (
+          <div style={{ margin: '0 20px 20px' }}>
+            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span style={{ fontSize: '15px', fontWeight: '600' }}>Your Progress</span>
+                <span style={{ fontSize: '11px', color: '#888' }}>{symptoms.logs.length} check-ins</span>
+              </div>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                {WELLNESS_METRICS.map(metric => {
+                  const values = symptoms.logs.map(l => l[metric.key]).filter(v => v !== null);
+                  if (values.length < 2) return null;
+                  const first = values[0];
+                  const last = values[values.length - 1];
+                  const change = last - first;
+                  const improved = metric.inverted ? change < 0 : change > 0;
+                  return (
+                    <div key={metric.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#fafafa', borderRadius: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>{metric.icon}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '500' }}>{metric.label}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <ProgressChart logs={symptoms.logs} metric={metric} />
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: improved ? '#4caf50' : change === 0 ? '#888' : '#ef5350' }}>
+                          {first}→{last}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Injection Progress */}
+        {!activeForm && (
+          <div style={{ margin: '0 20px 20px' }}>
+            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span style={{ fontSize: '15px', fontWeight: '600' }}>Injections</span>
+                <span style={{ fontSize: '20px', fontWeight: '700', color: isWeightLoss ? '#ff9800' : '#000' }}>
+                  {completedCount}<span style={{ fontSize: '14px', fontWeight: '400', color: '#888' }}>/{totalInjections}</span>
+                </span>
+              </div>
+              <div style={{ height: '10px', background: '#f0f0f0', borderRadius: '5px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${injectionProgress}%`, background: isWeightLoss ? '#ff9800' : '#000', transition: 'width 0.5s' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '12px', color: '#888' }}>
+                <span>{injectionProgress}% complete</span>
+                <span>{totalInjections - completedCount} remaining</span>
+              </div>
+              
+              {/* Calendar Grid */}
+              <div style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: isWeightLoss ? 'repeat(4, 1fr)' : 'repeat(5, 1fr)', gap: '8px' }}>
+                {injectionDays.map((item, idx) => {
+                  const isCompleted = completedDays.includes(Math.floor(item.day));
+                  const isSaving = saving === item.day;
+                  const accent = isWeightLoss ? '#ff9800' : '#000';
+                  return (
+                    <button 
+                      key={`${item.day}-${idx}`} 
+                      onClick={() => toggleDay(item.day, isCompleted)} 
+                      disabled={isSaving}
+                      style={{ 
+                        aspectRatio: '1', 
+                        borderRadius: '10px', 
+                        border: isCompleted ? `2px solid ${accent}` : '1px solid #e8e8e8', 
+                        background: isCompleted ? accent : '#fafafa', 
+                        color: isCompleted ? 'white' : '#333', 
+                        fontSize: '14px', 
+                        fontWeight: '600', 
+                        cursor: 'pointer', 
+                        opacity: isSaving ? 0.5 : 1, 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        justifyContent: 'center' 
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      {item.subLabel && <span style={{ fontSize: '9px', opacity: 0.7 }}>{item.subLabel}</span>}
+                      {isCompleted && <span style={{ fontSize: '10px' }}>✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Completion Summary Button */}
+        {isComplete && !activeForm && (
+          <div style={{ margin: '0 20px 20px' }}>
+            <button onClick={() => setShowCompletionSummary(true)} style={{ width: '100%', padding: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none', borderRadius: '16px', cursor: 'pointer', color: 'white' }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏆</div>
+              <div style={{ fontSize: '16px', fontWeight: '600' }}>View Your Results</div>
+              <div style={{ fontSize: '13px', opacity: 0.9 }}>See how far you've come!</div>
+            </button>
+          </div>
+        )}
+
+        {/* Call Button */}
+        <div style={{ textAlign: 'center', margin: '32px 20px' }}>
+          <a href="tel:9499973988" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '14px 28px', background: '#f5f5f5', borderRadius: '25px', color: '#333', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
+            📞 (949) 997-3988
+          </a>
         </div>
-
-        {/* Status Message */}
-        {protocol.status === 'completed' && (
-          <div style={styles.completedMessage}>
-            Protocol Complete! Great job staying consistent.
-          </div>
-        )}
-
-        {protocol.status === 'active' && adjustedCompletionRate === 100 && (
-          <div style={styles.completedMessage}>
-            All injections logged! You're doing amazing.
-          </div>
-        )}
 
         {/* Footer */}
-        <div style={styles.footer}>
-          <p>Questions? Text us anytime</p>
-          <a href="sms:+19499973988" style={styles.phoneLink}>(949) 997-3988</a>
-        </div>
+        <footer style={{ textAlign: 'center', padding: '24px 20px 40px', borderTop: '1px solid #f0f0f0', background: 'white' }}>
+          <div style={{ fontSize: '11px', color: '#ccc', letterSpacing: '2px' }}>RANGE MEDICAL</div>
+          <div style={{ fontSize: '11px', color: '#bbb' }}>Newport Beach, CA</div>
+        </footer>
       </div>
-    </div>
+    </>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#fafafa',
-    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  loading: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    fontSize: '16px',
-    color: '#666666',
-    fontWeight: '500'
-  },
-  errorContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    padding: '20px',
-    textAlign: 'center'
-  },
-  errorMessage: {
-    fontSize: '16px',
-    color: '#000000',
-    marginTop: '20px',
-    fontWeight: '500'
-  },
-  errorHelp: {
-    fontSize: '14px',
-    color: '#666666',
-    marginTop: '10px'
-  },
-  header: {
-    backgroundColor: '#000000',
-    color: 'white',
-    padding: '24px 20px',
-    paddingTop: '48px'
-  },
-  headerInner: {
-    maxWidth: '900px',
-    margin: '0 auto'
-  },
-  logo: {
-    fontSize: '11px',
-    fontWeight: '600',
-    letterSpacing: '3px',
-    textTransform: 'uppercase',
-    opacity: 0.7
-  },
-  greeting: {
-    fontSize: '28px',
-    fontWeight: '600',
-    marginTop: '8px',
-    letterSpacing: '-0.5px'
-  },
-  content: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '24px',
-    paddingBottom: '100px'
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: '16px',
-    padding: '28px',
-    border: '1px solid #e8e8e8',
-    marginBottom: '20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-  },
-  cardHeader: {
-    marginBottom: '28px'
-  },
-  protocolName: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#000000',
-    letterSpacing: '-0.3px'
-  },
-  peptides: {
-    fontSize: '15px',
-    color: '#555555',
-    marginTop: '6px',
-    fontWeight: '500'
-  },
-  frequency: {
-    fontSize: '13px',
-    color: '#888888',
-    marginTop: '4px',
-    fontWeight: '500'
-  },
-  statsRow: {
-    display: 'flex',
-    justifyContent: 'space-around',
-    marginBottom: '28px'
-  },
-  stat: {
-    textAlign: 'center'
-  },
-  statValue: {
-    fontSize: '36px',
-    fontWeight: '700',
-    color: '#000000',
-    letterSpacing: '-1px'
-  },
-  statLabel: {
-    fontSize: '11px',
-    color: '#888888',
-    textTransform: 'uppercase',
-    letterSpacing: '1.5px',
-    marginTop: '4px',
-    fontWeight: '600'
-  },
-  progressContainer: {
-    height: '10px',
-    backgroundColor: '#f0f0f0',
-    borderRadius: '5px',
-    overflow: 'hidden'
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#000000',
-    borderRadius: '5px',
-    transition: 'width 0.3s ease'
-  },
-  instructionsButton: {
-    display: 'block',
-    width: '100%',
-    padding: '16px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#000000',
-    backgroundColor: '#ffffff',
-    border: '1.5px solid #000000',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    textAlign: 'center',
-    marginBottom: '20px',
-    letterSpacing: '0.3px'
-  },
-  tabContainer: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '20px'
-  },
-  tabButton: {
-    flex: 1,
-    padding: '14px 16px',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#000000',
-    backgroundColor: '#ffffff',
-    border: '1.5px solid #000000',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    textAlign: 'center',
-    transition: 'all 0.2s ease',
-    letterSpacing: '0.3px'
-  },
-  tabButtonActive: {
-    backgroundColor: '#000000',
-    color: '#ffffff'
-  },
-  infoPanel: {
-    backgroundColor: '#ffffff',
-    borderRadius: '16px',
-    padding: '28px',
-    border: '1px solid #e8e8e8',
-    marginBottom: '20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-  },
-  instructionsPanel: {
-    backgroundColor: '#ffffff',
-    borderRadius: '16px',
-    padding: '28px',
-    border: '1px solid #e8e8e8',
-    marginBottom: '20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-  },
-  instructionsText: {
-    fontSize: '14px',
-    lineHeight: '1.9',
-    color: '#333333',
-    whiteSpace: 'pre-wrap',
-    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    margin: 0,
-    fontWeight: '400'
-  },
-  instructionsRow: {
-    display: 'flex',
-    gap: '20px',
-    marginTop: '16px'
-  },
-  instructionsCol: {
-    flex: 1
-  },
-  contactBox: {
-    marginTop: '28px',
-    paddingTop: '24px',
-    borderTop: '1px solid #e8e8e8',
-    textAlign: 'center'
-  },
-  contactLabel: {
-    fontSize: '13px',
-    color: '#888888',
-    marginBottom: '8px',
-    fontWeight: '500'
-  },
-  contactPhone: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#000000',
-    textDecoration: 'none',
-    letterSpacing: '-0.3px'
-  },
-  sectionTitle: {
-    fontSize: '14px',
-    color: '#666666',
-    textAlign: 'center',
-    marginBottom: '12px',
-    fontWeight: '500'
-  },
-  offDayLegend: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '24px',
-    marginBottom: '16px',
-    fontSize: '12px',
-    color: '#888888',
-    fontWeight: '500'
-  },
-  legendItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px'
-  },
-  legendDotGrey: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '3px',
-    backgroundColor: '#e0e0e0'
-  },
-  legendDotGreen: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '3px',
-    backgroundColor: '#000000'
-  },
-  daysGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(7, 1fr)',
-    gap: '8px'
-  },
-  dayButton: {
-    aspectRatio: '1',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    border: '1.5px solid #e0e0e0',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    position: 'relative',
-    transition: 'all 0.15s ease',
-    padding: '8px'
-  },
-  dayCompleted: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-    color: 'white'
-  },
-  dayCurrent: {
-    borderColor: '#000000',
-    borderWidth: '2px',
-    boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.08)'
-  },
-  dayFuture: {
-    opacity: 0.5
-  },
-  dayOff: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#e8e8e8',
-    cursor: 'default'
-  },
-  dayNumber: {
-    fontSize: '12px',
-    fontWeight: '600',
-    letterSpacing: '-0.2px'
-  },
-  dayNumberOff: {
-    color: '#bbbbbb'
-  },
-  dayDate: {
-    fontSize: '9px',
-    marginTop: '2px',
-    opacity: 0.7,
-    fontWeight: '500'
-  },
-  dayDateOff: {
-    color: '#bbbbbb'
-  },
-  checkmark: {
-    position: 'absolute',
-    top: '3px',
-    right: '5px',
-    fontSize: '10px',
-    fontWeight: 'bold'
-  },
-  offLabel: {
-    position: 'absolute',
-    bottom: '3px',
-    fontSize: '7px',
-    fontWeight: '700',
-    color: '#bbbbbb',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase'
-  },
-  todayBadge: {
-    position: 'absolute',
-    bottom: '3px',
-    fontSize: '7px',
-    fontWeight: '700',
-    color: '#000000',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase'
-  },
-  completedMessage: {
-    textAlign: 'center',
-    fontSize: '15px',
-    color: '#000000',
-    fontWeight: '600',
-    margin: '24px 0',
-    padding: '20px',
-    backgroundColor: '#f5f5f5',
-    borderRadius: '12px',
-    letterSpacing: '-0.2px'
-  },
-  peptideSection: {
-  },
-  peptideTitle: {
-    fontSize: '18px',
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: '20px',
-    marginTop: '0',
-    letterSpacing: '-0.3px'
-  },
-  peptideBlock: {
-    marginBottom: '20px'
-  },
-  peptideLabel: {
-    fontSize: '11px',
-    fontWeight: '700',
-    color: '#888888',
-    marginBottom: '6px',
-    textTransform: 'uppercase',
-    letterSpacing: '1.5px'
-  },
-  peptideText: {
-    fontSize: '14px',
-    lineHeight: '1.75',
-    color: '#444444',
-    margin: '0',
-    fontWeight: '400'
-  },
-  benefitsList: {
-    margin: '0',
-    paddingLeft: '18px'
-  },
-  benefitItem: {
-    fontSize: '14px',
-    lineHeight: '1.9',
-    color: '#444444',
-    fontWeight: '400'
-  },
-  peptideNote: {
-    fontSize: '13px',
-    lineHeight: '1.6',
-    color: '#888888',
-    fontStyle: 'italic',
-    marginTop: '20px',
-    paddingTop: '20px',
-    borderTop: '1px solid #e8e8e8'
-  },
-  peptideTip: {
-    fontSize: '13px',
-    lineHeight: '1.6',
-    color: '#000000',
-    backgroundColor: '#f8f8f8',
-    padding: '16px',
-    borderRadius: '10px',
-    marginTop: '20px',
-    border: '1px solid #e8e8e8'
-  },
-  tipLabel: {
-    fontSize: '10px',
-    fontWeight: '700',
-    color: '#000000',
-    textTransform: 'uppercase',
-    letterSpacing: '1.5px',
-    marginBottom: '6px'
-  },
-  disclaimer: {
-    fontSize: '11px',
-    lineHeight: '1.6',
-    color: '#aaaaaa',
-    marginTop: '28px',
-    paddingTop: '20px',
-    borderTop: '1px solid #e8e8e8',
-    textAlign: 'center',
-    fontWeight: '400'
-  },
-  footer: {
-    textAlign: 'center',
-    padding: '40px 0',
-    color: '#888888',
-    fontSize: '13px',
-    fontWeight: '500'
-  },
-  phoneLink: {
-    color: '#000000',
-    fontWeight: '600',
-    fontSize: '18px',
-    textDecoration: 'none',
-    letterSpacing: '-0.3px'
-  }
-};

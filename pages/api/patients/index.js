@@ -1,87 +1,45 @@
-import { supabase } from '../../../lib/supabase';
+// pages/api/patients/index.js
+// Fetch all patients
+// Deploy to: pages/api/patients/index.js
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    try {
-      // Get all patients
-      const { data: patients, error: patientsError } = await supabase
-        .from('patients')
-        .select('*')
-        .order('name');
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-      if (patientsError) throw patientsError;
+  try {
+    const { search, limit = 100 } = req.query;
 
-      // For each patient, get their protocols, labs, symptoms, measurements, and intakes
-      const patientsWithData = await Promise.all(
-        patients.map(async (patient) => {
-          // Get protocols
-          const { data: protocols } = await supabase
-            .from('protocols')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('start_date', { ascending: false });
+    let query = supabase
+      .from('patients')
+      .select('id, name, email, phone, ghl_contact_id, created_at')
+      .order('name', { ascending: true })
+      .limit(parseInt(limit));
 
-          // Get labs
-          const { data: labs } = await supabase
-            .from('labs')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('lab_date', { ascending: false });
-
-          // Get symptoms
-          const { data: symptoms } = await supabase
-            .from('symptoms')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('symptom_date', { ascending: false });
-
-          // Get measurements
-          const { data: measurements } = await supabase
-            .from('measurements')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('measurement_date', { ascending: false });
-
-          // Get intake forms
-          const { data: intakes } = await supabase
-            .from('intakes')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('submitted_at', { ascending: false });
-
-          return {
-            ...patient,
-            protocols: protocols || [],
-            labs: labs || [],
-            symptoms: symptoms || [],
-            measurements: measurements || [],
-            intakes: intakes || []
-          };
-        })
-      );
-
-      res.status(200).json(patientsWithData);
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-      res.status(500).json({ error: error.message });
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
     }
-  } else if (req.method === 'POST') {
-    try {
-      const { name, email, phone, date_of_birth } = req.body;
 
-      const { data, error } = await supabase
-        .from('patients')
-        .insert([{ name, email, phone, date_of_birth }])
-        .select();
+    const { data: patients, error } = await query;
 
-      if (error) throw error;
-
-      res.status(201).json(data[0]);
-    } catch (error) {
-      console.error('Error creating patient:', error);
-      res.status(500).json({ error: error.message });
+    if (error) {
+      console.error('Patients fetch error:', error);
+      return res.status(500).json({ error: 'Failed to fetch patients', details: error.message });
     }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+
+    return res.status(200).json({
+      patients: patients || []
+    });
+
+  } catch (error) {
+    console.error('Patients API error:', error);
+    return res.status(500).json({ error: 'Server error', details: error.message });
   }
 }

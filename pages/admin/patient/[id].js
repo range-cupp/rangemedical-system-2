@@ -82,7 +82,7 @@ export default function PatientProfile() {
 
   const fetchPatientData = async () => {
     try {
-      const res = await fetch(`/api/patients/${id}`);
+      const res = await fetch((`/api/patients/${id}`);
       if (!res.ok) throw new Error('Failed to fetch patient');
       const data = await res.json();
       
@@ -102,7 +102,7 @@ export default function PatientProfile() {
 
   const fetchLabDocuments = async () => {
     try {
-      const res = await fetch(`/api/patients/${id}/lab-documents`);
+      const res = await fetch((`/api/patients/${id}/lab-documents`);
       if (res.ok) {
         const data = await res.json();
         setLabDocuments(data.documents || []);
@@ -128,7 +128,7 @@ export default function PatientProfile() {
         reader.readAsDataURL(uploadForm.file);
       });
 
-      const res = await fetch(`/api/patients/${id}/upload-lab`, {
+      const res = await fetch((`/api/patients/${id}/upload-lab`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,7 +170,7 @@ export default function PatientProfile() {
     if (!confirm('Delete this lab document?')) return;
     
     try {
-      const res = await fetch(`/api/patients/${id}/lab-documents`, {
+      const res = await fetch((`/api/patients/${id}/lab-documents`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: docId })
@@ -187,7 +187,7 @@ export default function PatientProfile() {
     if (!confirm('Delete this lab order?')) return;
     
     try {
-      const res = await fetch(`/api/lab-orders/${orderId}`, {
+      const res = await fetch((`/api/lab-orders/${orderId}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -200,7 +200,7 @@ export default function PatientProfile() {
 
   const handleMarkLabComplete = async (orderId) => {
     try {
-      const res = await fetch(`/api/lab-orders/${orderId}`, {
+      const res = await fetch((`/api/lab-orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'completed' })
@@ -246,7 +246,7 @@ export default function PatientProfile() {
     try {
       if (editingPurchase) {
         // Update existing purchase
-        const res = await fetch(`/api/purchases/${editingPurchase.id}`, {
+        const res = await fetch((`/api/purchases/${editingPurchase.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -266,7 +266,7 @@ export default function PatientProfile() {
         }
       } else {
         // Create new purchase
-        const res = await fetch('/api/purchases', {
+        const res = await fetch(('/api/purchases', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -300,7 +300,7 @@ export default function PatientProfile() {
     if (!confirm('Delete this purchase?')) return;
 
     try {
-      const res = await fetch(`/api/purchases/${purchaseId}`, {
+      const res = await fetch((`/api/purchases/${purchaseId}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -315,7 +315,7 @@ export default function PatientProfile() {
 
   const handleDismissPurchase = async (purchaseId) => {
     try {
-      const res = await fetch(`/api/purchases/${purchaseId}`, {
+      const res = await fetch((`/api/purchases/${purchaseId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dismissed: true })

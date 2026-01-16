@@ -317,8 +317,6 @@ export default async function handler(req, res) {
       }
       if (intakeData.hasPCP === 'Yes') {
         noteContent += `Has PCP: Yes - ${intakeData.pcpName || 'Name not provided'}\n`;
-        if (intakeData.pcpPractice) noteContent += `  Practice: ${intakeData.pcpPractice}\n`;
-        if (intakeData.pcpPhone) noteContent += `  Phone: ${intakeData.pcpPhone}\n`;
       }
       if (intakeData.recentHospitalization === 'Yes') {
         noteContent += `Recent hospitalization: Yes\n`;

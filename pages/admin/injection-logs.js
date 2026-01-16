@@ -1,622 +1,155 @@
+// =====================================================
+// RANGE MEDICAL - INJECTION LOGS
 // /pages/admin/injection-logs.js
-// Injection Logs - Track injections and medication pickups
-// Range Medical
-// CREATED: 2026-01-14
+// Searchable patient input with autocomplete
+// =====================================================
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
-// ============================================
-// MEDICATION OPTIONS
-// ============================================
-
-const TESTOSTERONE_OPTIONS = {
-  male: {
-    label: 'Male HRT',
-    medication: 'Testosterone Cypionate 200mg/ml',
-    dosages: [
-      { value: '0.3ml', label: '0.3ml (60mg)' },
-      { value: '0.4ml', label: '0.4ml (80mg)' },
-      { value: '0.5ml', label: '0.5ml (100mg)' },
-      { value: '0.6ml', label: '0.6ml (120mg)' },
-      { value: 'custom', label: 'Custom dose' }
-    ]
-  },
-  female: {
-    label: 'Female HRT',
-    medication: 'Testosterone Cypionate 100mg/ml',
-    dosages: [
-      { value: '0.1ml', label: '0.1ml (10mg)' },
-      { value: '0.2ml', label: '0.2ml (20mg)' },
-      { value: '0.3ml', label: '0.3ml (30mg)' },
-      { value: '0.4ml', label: '0.4ml (40mg)' },
-      { value: '0.5ml', label: '0.5ml (50mg)' },
-      { value: 'custom', label: 'Custom dose' }
-    ]
-  }
-};
-
-const TESTOSTERONE_PICKUP_OPTIONS = {
-  prefilled: {
-    label: 'Prefilled Syringes',
-    quantities: [4, 8, 12, 16, 20, 24]
-  },
-  vial: {
-    label: 'Vial',
-    quantities: [1, 2, 3]
-  }
-};
-
-const WEIGHT_LOSS_OPTIONS = {
-  medications: [
-    { value: 'Semaglutide', label: 'Semaglutide' },
-    { value: 'Tirzepatide', label: 'Tirzepatide' },
-    { value: 'Retatrutide', label: 'Retatrutide' }
-  ],
-  dosages: {
-    Semaglutide: ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'],
-    Tirzepatide: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'],
-    Retatrutide: ['1mg', '2mg', '4mg', '8mg', '12mg']
-  }
-};
-
-const VITAMIN_INJECTION_OPTIONS = [
-  { value: 'Amino Blend', label: 'Amino Blend' },
-  { value: 'B12', label: 'B12' },
-  { value: 'B-Complex', label: 'B-Complex' },
-  { value: 'Biotin', label: 'Biotin' },
-  { value: 'Vitamin D3', label: 'Vitamin D3' },
-  { value: 'NAC', label: 'NAC' },
-  { value: 'BCAA', label: 'BCAA' },
-  { value: 'L-Carnitine', label: 'L-Carnitine' },
-  { value: 'Glutathione 200mg', label: 'Glutathione 200mg' },
-  { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
-  { value: 'NAD+ 75mg', label: 'NAD+ 75mg' },
-  { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
-  { value: 'NAD+ 125mg', label: 'NAD+ 125mg' },
-  { value: 'NAD+ 150mg', label: 'NAD+ 150mg' },
-  { value: 'Lipotropic (MIC)', label: 'Lipotropic (MIC)' }
+const TESTOSTERONE_DOSES = [
+  { value: '0.3ml', label: '0.3ml (60mg)' },
+  { value: '0.4ml', label: '0.4ml (80mg)' },
+  { value: '0.5ml', label: '0.5ml (100mg)' },
+  { value: '0.6ml', label: '0.6ml (120mg)' },
+  { value: '0.7ml', label: '0.7ml (140mg)' },
+  { value: '0.8ml', label: '0.8ml (160mg)' },
+  { value: '0.9ml', label: '0.9ml (180mg)' },
+  { value: '1.0ml', label: '1.0ml (200mg)' }
 ];
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
+const WEIGHT_LOSS_MEDS = [
+  { value: 'semaglutide', label: 'Semaglutide', doses: ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'] },
+  { value: 'tirzepatide', label: 'Tirzepatide', doses: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'] },
+  { value: 'retatrutide', label: 'Retatrutide', doses: ['1mg', '2mg', '4mg', '8mg', '12mg'] }
+];
+
+const VITAMIN_TYPES = [
+  'Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 
+  'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 
+  'NAD+ 100mg', 'NAD+ 250mg', 'NAD+ 500mg', 'Lipotropic'
+];
 
 export default function InjectionLogs() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState('testosterone');
   const [logs, setLogs] = useState([]);
-  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    patient_id: '',
-    patient_name: '',
-    log_type: 'injection', // injection or pickup
-    category: 'testosterone',
-    hrt_type: 'male',
-    medication: '',
-    dosage: '',
-    custom_dosage: '',
-    pickup_type: 'prefilled',
-    quantity: 8,
-    notes: '',
-    logged_at: new Date().toISOString().split('T')[0]
-  });
+  const [showModal, setShowModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stats, setStats] = useState({ today: 0, week: 0 });
 
-  // URL-based tab
   useEffect(() => {
-    const tab = router.query.tab;
-    if (tab && ['testosterone', 'weight_loss', 'vitamin'].includes(tab)) {
-      setActiveTab(tab);
-    }
-  }, [router.query.tab]);
-
-  // Fetch data
-  useEffect(() => {
-    fetchData();
+    fetchLogs();
   }, [activeTab]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchLogs = async () => {
     try {
-      const [logsRes, patientsRes] = await Promise.all([
-        fetch(`/api/injection-logs?category=${activeTab}`),
-        fetch('/api/patients?simple=true')
-      ]);
-      
-      if (logsRes.ok) {
-        const logsData = await logsRes.json();
-        setLogs(logsData.logs || []);
-      }
-      
-      if (patientsRes.ok) {
-        const patientsData = await patientsRes.json();
-        setPatients(patientsData.patients || patientsData || []);
+      setLoading(true);
+      const res = await fetch(`/api/injection-logs?category=${activeTab}`);
+      const data = await res.json();
+      if (data.success) {
+        setLogs(data.logs || []);
+        setStats(data.stats || { today: 0, week: 0 });
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('Error fetching logs:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleTabChange = (tab) => {
-    router.push(`/admin/injection-logs?tab=${tab}`, undefined, { shallow: true });
-    setActiveTab(tab);
-    setShowForm(false);
-    setFormData(prev => ({ ...prev, category: tab }));
-  };
-
-  const handlePatientSelect = (e) => {
-    const patientId = e.target.value;
-    const patient = patients.find(p => p.id === patientId);
-    setFormData(prev => ({
-      ...prev,
-      patient_id: patientId,
-      patient_name: patient ? patient.name : ''
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this entry?')) return;
     try {
-      const payload = {
-        ...formData,
-        category: activeTab,
-        dosage: formData.dosage === 'custom' ? formData.custom_dosage : formData.dosage
-      };
-      
-      const res = await fetch('/api/injection-logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      if (res.ok) {
-        setSuccessMessage('Log entry saved');
-        setTimeout(() => setSuccessMessage(''), 3000);
-        setShowForm(false);
-        setFormData({
-          patient_id: '',
-          patient_name: '',
-          log_type: 'injection',
-          category: activeTab,
-          hrt_type: 'male',
-          medication: '',
-          dosage: '',
-          custom_dosage: '',
-          pickup_type: 'prefilled',
-          quantity: 8,
-          notes: '',
-          logged_at: new Date().toISOString().split('T')[0]
-        });
-        fetchData();
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to save');
-      }
-    } catch (err) {
-      console.error('Error saving:', err);
-      alert('Failed to save log entry');
-    }
-    
-    setSaving(false);
-  };
-
-  const handleDelete = async (logId) => {
-    if (!confirm('Delete this log entry?')) return;
-    
-    try {
-      const res = await fetch(`/api/injection-logs?id=${logId}`, {
-        method: 'DELETE'
-      });
-      
-      if (res.ok) {
-        fetchData();
-      }
+      const res = await fetch(`/api/injection-logs?id=${id}`, { method: 'DELETE' });
+      if (res.ok) fetchLogs();
     } catch (err) {
       console.error('Error deleting:', err);
     }
   };
 
   const filteredLogs = logs.filter(log => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
     return (
-      log.patient_name?.toLowerCase().includes(searchLower) ||
-      log.medication?.toLowerCase().includes(searchLower) ||
-      log.notes?.toLowerCase().includes(searchLower)
+      log.patient_name?.toLowerCase().includes(search) ||
+      log.medication?.toLowerCase().includes(search) ||
+      log.notes?.toLowerCase().includes(search)
     );
   });
 
-  // Format date for display
   const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',
-      year: 'numeric'
+      timeZone: 'America/Los_Angeles'
     });
   };
 
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', { 
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/Los_Angeles'
     });
   };
 
   return (
     <>
       <Head>
-        <title>Injection Logs - Range Medical</title>
+        <title>Injection Logs | Range Medical</title>
       </Head>
 
       <div style={styles.container}>
-        {/* Header */}
+        <Link href="/admin/pipeline" style={styles.backLink}>← Back to Pipeline</Link>
+        
         <div style={styles.header}>
-          <div style={styles.headerLeft}>
-            <Link href="/admin/pipeline" style={styles.backLink}>← Back to Pipeline</Link>
-            <h1 style={styles.title}>Injection Logs</h1>
-          </div>
+          <h1 style={styles.title}>Injection Logs</h1>
           <div style={styles.headerRight}>
             <input
               type="text"
               placeholder="Search logs..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               style={styles.searchInput}
             />
-            <button 
-              onClick={() => setShowForm(!showForm)}
-              style={styles.addButton}
-            >
+            <button onClick={() => setShowModal(true)} style={styles.addButton}>
               + New Entry
             </button>
           </div>
         </div>
 
-        {/* Success Message */}
-        {successMessage && (
-          <div style={styles.successBanner}>{successMessage}</div>
-        )}
-
         {/* Tabs */}
         <div style={styles.tabs}>
-          <button
-            onClick={() => handleTabChange('testosterone')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'testosterone' ? styles.tabActive : {})
-            }}
-          >
-            Testosterone
-          </button>
-          <button
-            onClick={() => handleTabChange('weight_loss')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'weight_loss' ? styles.tabActive : {})
-            }}
-          >
-            Weight Loss
-          </button>
-          <button
-            onClick={() => handleTabChange('vitamin')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'vitamin' ? styles.tabActive : {})
-            }}
-          >
-            Vitamin Injections
-          </button>
+          {[
+            { id: 'testosterone', label: 'Testosterone' },
+            { id: 'weight_loss', label: 'Weight Loss' },
+            { id: 'vitamin', label: 'Vitamin Injections' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                ...styles.tab,
+                ...(activeTab === tab.id ? styles.tabActive : {})
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* New Entry Form */}
-        {showForm && (
-          <div style={styles.formCard}>
-            <h2 style={styles.formTitle}>
-              New {activeTab === 'testosterone' ? 'Testosterone' : activeTab === 'weight_loss' ? 'Weight Loss' : 'Vitamin'} Log Entry
-            </h2>
-            
-            <form onSubmit={handleSubmit}>
-              <div style={styles.formGrid}>
-                {/* Patient Selection */}
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Patient</label>
-                  <select
-                    value={formData.patient_id}
-                    onChange={handlePatientSelect}
-                    required
-                    style={styles.select}
-                  >
-                    <option value="">Select patient...</option>
-                    {patients.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Date */}
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Date</label>
-                  <input
-                    type="date"
-                    value={formData.logged_at}
-                    onChange={(e) => setFormData(prev => ({ ...prev, logged_at: e.target.value }))}
-                    style={styles.input}
-                  />
-                </div>
-
-                {/* Log Type - Testosterone only */}
-                {activeTab === 'testosterone' && (
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Entry Type</label>
-                    <div style={styles.radioGroup}>
-                      <label style={styles.radioLabel}>
-                        <input
-                          type="radio"
-                          name="log_type"
-                          value="injection"
-                          checked={formData.log_type === 'injection'}
-                          onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
-                        />
-                        <span>Injection</span>
-                      </label>
-                      <label style={styles.radioLabel}>
-                        <input
-                          type="radio"
-                          name="log_type"
-                          value="pickup"
-                          checked={formData.log_type === 'pickup'}
-                          onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
-                        />
-                        <span>Medication Pickup</span>
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {/* Testosterone Fields */}
-                {activeTab === 'testosterone' && (
-                  <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>HRT Type</label>
-                      <select
-                        value={formData.hrt_type}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          hrt_type: e.target.value,
-                          medication: TESTOSTERONE_OPTIONS[e.target.value].medication,
-                          dosage: ''
-                        }))}
-                        style={styles.select}
-                      >
-                        <option value="male">Male HRT (200mg/ml)</option>
-                        <option value="female">Female HRT (100mg/ml)</option>
-                      </select>
-                    </div>
-
-                    {formData.log_type === 'injection' ? (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Dosage</label>
-                        <select
-                          value={formData.dosage}
-                          onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-                          required
-                          style={styles.select}
-                        >
-                          <option value="">Select dosage...</option>
-                          {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages.map(d => (
-                            <option key={d.value} value={d.value}>{d.label}</option>
-                          ))}
-                        </select>
-                        {formData.dosage === 'custom' && (
-                          <input
-                            type="text"
-                            placeholder="Enter custom dosage..."
-                            value={formData.custom_dosage}
-                            onChange={(e) => setFormData(prev => ({ ...prev, custom_dosage: e.target.value }))}
-                            style={{ ...styles.input, marginTop: '8px' }}
-                            required
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                        <div style={styles.formGroup}>
-                          <label style={styles.label}>Pickup Type</label>
-                          <select
-                            value={formData.pickup_type}
-                            onChange={(e) => setFormData(prev => ({ ...prev, pickup_type: e.target.value }))}
-                            style={styles.select}
-                          >
-                            <option value="prefilled">Prefilled Syringes</option>
-                            <option value="vial">Vial</option>
-                          </select>
-                        </div>
-                        <div style={styles.formGroup}>
-                          <label style={styles.label}>Quantity</label>
-                          <select
-                            value={formData.quantity}
-                            onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                            style={styles.select}
-                          >
-                            {TESTOSTERONE_PICKUP_OPTIONS[formData.pickup_type].quantities.map(q => (
-                              <option key={q} value={q}>{q} {formData.pickup_type === 'vial' ? (q === 1 ? 'vial' : 'vials') : 'syringes'}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div style={styles.formGroup}>
-                          <label style={styles.label}>Dosage per injection</label>
-                          <select
-                            value={formData.dosage}
-                            onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-                            required
-                            style={styles.select}
-                          >
-                            <option value="">Select dosage...</option>
-                            {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages.map(d => (
-                              <option key={d.value} value={d.value}>{d.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* Weight Loss Fields */}
-                {activeTab === 'weight_loss' && (
-                  <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Medication</label>
-                      <select
-                        value={formData.medication}
-                        onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value, dosage: '' }))}
-                        required
-                        style={styles.select}
-                      >
-                        <option value="">Select medication...</option>
-                        {WEIGHT_LOSS_OPTIONS.medications.map(m => (
-                          <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {formData.medication && (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Dosage</label>
-                        <select
-                          value={formData.dosage}
-                          onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-                          required
-                          style={styles.select}
-                        >
-                          <option value="">Select dosage...</option>
-                          {WEIGHT_LOSS_OPTIONS.dosages[formData.medication]?.map(d => (
-                            <option key={d} value={d}>{d}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Entry Type</label>
-                      <div style={styles.radioGroup}>
-                        <label style={styles.radioLabel}>
-                          <input
-                            type="radio"
-                            name="log_type"
-                            value="injection"
-                            checked={formData.log_type === 'injection'}
-                            onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
-                          />
-                          <span>In-Clinic Injection</span>
-                        </label>
-                        <label style={styles.radioLabel}>
-                          <input
-                            type="radio"
-                            name="log_type"
-                            value="pickup"
-                            checked={formData.log_type === 'pickup'}
-                            onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
-                          />
-                          <span>Take-Home Pickup</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {formData.log_type === 'pickup' && (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Quantity (weeks supply)</label>
-                        <select
-                          value={formData.quantity}
-                          onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                          style={styles.select}
-                        >
-                          <option value={1}>1 week</option>
-                          <option value={2}>2 weeks</option>
-                          <option value={4}>4 weeks (1 month)</option>
-                          <option value={8}>8 weeks (2 months)</option>
-                          <option value={12}>12 weeks (3 months)</option>
-                        </select>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Vitamin Injection Fields */}
-                {activeTab === 'vitamin' && (
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Injection Type</label>
-                    <select
-                      value={formData.medication}
-                      onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
-                      required
-                      style={styles.select}
-                    >
-                      <option value="">Select injection...</option>
-                      {VITAMIN_INJECTION_OPTIONS.map(v => (
-                        <option key={v.value} value={v.value}>{v.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Notes - always visible */}
-                <div style={{ ...styles.formGroup, gridColumn: '1 / -1' }}>
-                  <label style={styles.label}>Notes (optional)</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Any additional notes..."
-                    rows={2}
-                    style={styles.textarea}
-                  />
-                </div>
-              </div>
-
-              <div style={styles.formActions}>
-                <button 
-                  type="button" 
-                  onClick={() => setShowForm(false)}
-                  style={styles.cancelButton}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={saving}
-                  style={styles.submitButton}
-                >
-                  {saving ? 'Saving...' : 'Save Entry'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
         {/* Logs Table */}
-        <div style={styles.tableCard}>
+        <div style={styles.tableWrapper}>
           {loading ? (
-            <div style={styles.loading}>Loading...</div>
+            <div style={styles.empty}>Loading...</div>
           ) : filteredLogs.length === 0 ? (
-            <div style={styles.empty}>
-              No log entries found. Click "+ New Entry" to add one.
-            </div>
+            <div style={styles.empty}>No log entries found. Click "+ New Entry" to add one.</div>
           ) : (
             <table style={styles.table}>
               <thead>
@@ -624,12 +157,7 @@ export default function InjectionLogs() {
                   <th style={styles.th}>Date</th>
                   <th style={styles.th}>Patient</th>
                   <th style={styles.th}>Type</th>
-                  {activeTab === 'testosterone' && <th style={styles.th}>HRT</th>}
-                  <th style={styles.th}>Medication</th>
-                  <th style={styles.th}>Dosage</th>
-                  {(activeTab === 'testosterone' || activeTab === 'weight_loss') && (
-                    <th style={styles.th}>Qty</th>
-                  )}
+                  <th style={styles.th}>Details</th>
                   <th style={styles.th}>Notes</th>
                   <th style={styles.th}></th>
                 </tr>
@@ -638,47 +166,27 @@ export default function InjectionLogs() {
                 {filteredLogs.map(log => (
                   <tr key={log.id} style={styles.tr}>
                     <td style={styles.td}>
-                      <div>{formatDate(log.logged_at)}</div>
-                      <div style={styles.timeText}>{formatTime(log.logged_at)}</div>
+                      <div>{formatDate(log.created_at)}</div>
+                      <div style={styles.timeText}>{formatTime(log.created_at)}</div>
                     </td>
                     <td style={styles.td}>
-                      <Link 
-                        href={`/admin/protocol/${log.patient_id}`}
-                        style={styles.patientLink}
-                      >
-                        {log.patient_name}
+                      <Link href={`/admin/patient/${log.patient_id}`} style={styles.patientLink}>
+                        {log.patient_name || 'Unknown'}
                       </Link>
                     </td>
                     <td style={styles.td}>
                       <span style={{
                         ...styles.badge,
-                        background: log.log_type === 'injection' ? '#111' : '#fff',
-                        color: log.log_type === 'injection' ? '#fff' : '#111',
-                        border: '1px solid #111'
+                        background: log.entry_type === 'injection' ? '#dcfce7' : '#dbeafe',
+                        color: log.entry_type === 'injection' ? '#166534' : '#1e40af'
                       }}>
-                        {log.log_type === 'injection' ? 'Injection' : 'Pickup'}
+                        {log.entry_type === 'injection' ? '💉 Injection' : '📦 Pickup'}
                       </span>
                     </td>
-                    {activeTab === 'testosterone' && (
-                      <td style={styles.td}>
-                        <span style={styles.hrtBadge}>
-                          {log.hrt_type === 'female' ? 'Female' : 'Male'}
-                        </span>
-                      </td>
-                    )}
-                    <td style={styles.td}>{log.medication}</td>
-                    <td style={styles.td}><strong>{log.dosage}</strong></td>
-                    {(activeTab === 'testosterone' || activeTab === 'weight_loss') && (
-                      <td style={styles.td}>
-                        {log.log_type === 'pickup' && (
-                          <>
-                            {log.quantity} {activeTab === 'testosterone' 
-                              ? (log.pickup_type === 'vial' ? 'vial(s)' : 'syringes')
-                              : 'wk'}
-                          </>
-                        )}
-                      </td>
-                    )}
+                    <td style={styles.td}>
+                      <div style={{ fontWeight: 500 }}>{log.medication || '-'}</div>
+                      {log.dosage && <div style={styles.hrtBadge}>{log.dosage}</div>}
+                    </td>
                     <td style={styles.td}>
                       <span style={styles.notesText}>{log.notes || '-'}</span>
                     </td>
@@ -698,231 +206,539 @@ export default function InjectionLogs() {
           )}
         </div>
 
-        {/* Stats Summary */}
-        {!loading && filteredLogs.length > 0 && (
-          <div style={styles.stats}>
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>Total Entries:</span>
-              <span style={styles.statValue}>{filteredLogs.length}</span>
-            </div>
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>Injections:</span>
-              <span style={styles.statValue}>
-                {filteredLogs.filter(l => l.log_type === 'injection').length}
-              </span>
-            </div>
-            {(activeTab === 'testosterone' || activeTab === 'weight_loss') && (
-              <div style={styles.statItem}>
-                <span style={styles.statLabel}>Pickups:</span>
-                <span style={styles.statValue}>
-                  {filteredLogs.filter(l => l.log_type === 'pickup').length}
-                </span>
-              </div>
-            )}
+        {/* Stats */}
+        <div style={styles.stats}>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Today:</span>
+            <span style={styles.statValue}>{stats.today}</span>
           </div>
-        )}
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>This Week:</span>
+            <span style={styles.statValue}>{stats.week}</span>
+          </div>
+        </div>
       </div>
+
+      {/* New Entry Modal */}
+      {showModal && (
+        <NewEntryModal
+          category={activeTab}
+          onClose={() => setShowModal(false)}
+          onSave={() => {
+            setShowModal(false);
+            fetchLogs();
+          }}
+        />
+      )}
     </>
   );
 }
 
-// ============================================
-// STYLES
-// ============================================
+// =====================================================
+// NEW ENTRY MODAL - with searchable patient input
+// =====================================================
+function NewEntryModal({ category, onClose, onSave }) {
+  const [allPatients, setAllPatients] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [loadingPatients, setLoadingPatients] = useState(true);
+  
+  const [entryType, setEntryType] = useState('injection');
+  const [medication, setMedication] = useState('');
+  const [dosage, setDosage] = useState('');
+  const [hrtType, setHrtType] = useState('male');
+  const [pickupQty, setPickupQty] = useState('');
+  const [pickupType, setPickupType] = useState('prefilled');
+  const [weekSupply, setWeekSupply] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
 
+  // Fetch all patients on mount
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchPatients = async () => {
+    setLoadingPatients(true);
+    try {
+      const res = await fetch('/api/patients?limit=2000');
+      if (res.ok) {
+        const data = await res.json();
+        // Sort alphabetically by name
+        const sorted = (data.patients || []).sort((a, b) => {
+          const nameA = (a.name || a.full_name || '').toLowerCase();
+          const nameB = (b.name || b.full_name || '').toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+        setAllPatients(sorted);
+      }
+    } catch (err) {
+      console.error('Error fetching patients:', err);
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
+
+  // Filter patients based on search query
+  const filteredPatients = allPatients.filter(p => {
+    if (!searchQuery || searchQuery.length < 1) return false;
+    const query = searchQuery.toLowerCase();
+    const name = (p.name || p.full_name || '').toLowerCase();
+    const email = (p.email || '').toLowerCase();
+    const phone = (p.phone || '');
+    return name.includes(query) || email.includes(query) || phone.includes(query);
+  }).slice(0, 15); // Limit to 15 results
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setShowDropdown(value.length >= 1);
+    // Clear selected patient if user starts typing again
+    if (selectedPatient && value !== (selectedPatient.name || selectedPatient.full_name)) {
+      setSelectedPatient(null);
+    }
+  };
+
+  const selectPatient = (patient) => {
+    setSelectedPatient(patient);
+    setSearchQuery(patient.name || patient.full_name || '');
+    setShowDropdown(false);
+    inputRef.current?.blur();
+  };
+
+  const clearPatient = () => {
+    setSelectedPatient(null);
+    setSearchQuery('');
+    inputRef.current?.focus();
+  };
+
+  const handleSave = async () => {
+    if (!selectedPatient) {
+      setError('Please select a patient');
+      return;
+    }
+
+    // Validate required fields based on category
+    if (category === 'testosterone') {
+      if (entryType === 'injection' && !dosage) {
+        setError('Please select a dosage');
+        return;
+      }
+      if (entryType === 'pickup' && !pickupQty) {
+        setError('Please select pickup quantity');
+        return;
+      }
+    } else if (category === 'weight_loss') {
+      if (!medication || !dosage) {
+        setError('Please select medication and dosage');
+        return;
+      }
+      if (entryType === 'pickup' && !weekSupply) {
+        setError('Please select week supply');
+        return;
+      }
+    } else if (category === 'vitamin') {
+      if (!medication) {
+        setError('Please select vitamin type');
+        return;
+      }
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const payload = {
+        patient_id: selectedPatient.id,
+        ghl_contact_id: selectedPatient.ghl_contact_id,
+        category,
+        entry_type: entryType,
+        medication: category === 'testosterone' 
+          ? `${hrtType === 'male' ? 'Male' : 'Female'} HRT`
+          : medication,
+        dosage: entryType === 'pickup' && category === 'testosterone'
+          ? `${pickupQty} ${pickupType === 'prefilled' ? 'Prefilled Syringes' : 'Vials'}`
+          : entryType === 'pickup' && category === 'weight_loss'
+          ? `${weekSupply} week supply`
+          : dosage,
+        notes
+      };
+
+      const res = await fetch('/api/injection-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        onSave();
+      } else {
+        setError(data.error || 'Failed to save');
+      }
+    } catch (err) {
+      setError('Failed to save entry');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getDisplayName = (patient) => {
+    return patient.name || patient.full_name || patient.email || 'Unknown';
+  };
+
+  return (
+    <div style={modalStyles.overlay}>
+      <div style={modalStyles.modal}>
+        <div style={modalStyles.header}>
+          <h2 style={modalStyles.title}>
+            New {category === 'testosterone' ? 'Testosterone' : 
+                 category === 'weight_loss' ? 'Weight Loss' : 'Vitamin'} Entry
+          </h2>
+          <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
+        </div>
+
+        <div style={modalStyles.body}>
+          {error && <div style={modalStyles.error}>{error}</div>}
+
+          {/* Patient Search Input */}
+          <div style={modalStyles.field}>
+            <label style={modalStyles.label}>Patient *</label>
+            <div style={modalStyles.searchWrapper} ref={dropdownRef}>
+              {selectedPatient ? (
+                <div style={modalStyles.selectedPatient}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{getDisplayName(selectedPatient)}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      {selectedPatient.phone || selectedPatient.email || 'No contact info'}
+                    </div>
+                  </div>
+                  <button onClick={clearPatient} style={modalStyles.clearBtn}>×</button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onFocus={() => searchQuery.length >= 1 && setShowDropdown(true)}
+                    placeholder={loadingPatients ? "Loading patients..." : "Type to search patient..."}
+                    style={modalStyles.input}
+                    disabled={loadingPatients}
+                  />
+                  {showDropdown && filteredPatients.length > 0 && (
+                    <div style={modalStyles.dropdown}>
+                      {filteredPatients.map(patient => (
+                        <div
+                          key={patient.id}
+                          onClick={() => selectPatient(patient)}
+                          style={modalStyles.dropdownItem}
+                        >
+                          <div style={{ fontWeight: 500 }}>{getDisplayName(patient)}</div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                            {patient.phone && <span>{patient.phone}</span>}
+                            {patient.phone && patient.email && <span> • </span>}
+                            {patient.email && <span>{patient.email}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {showDropdown && searchQuery.length >= 1 && filteredPatients.length === 0 && (
+                    <div style={modalStyles.dropdown}>
+                      <div style={{ ...modalStyles.dropdownItem, color: '#6b7280' }}>
+                        No patients found
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Entry Type */}
+          {category !== 'vitamin' && (
+            <div style={modalStyles.field}>
+              <label style={modalStyles.label}>Type</label>
+              <div style={modalStyles.radioGroup}>
+                <label style={modalStyles.radio}>
+                  <input
+                    type="radio"
+                    checked={entryType === 'injection'}
+                    onChange={() => setEntryType('injection')}
+                  />
+                  💉 In-Clinic Injection
+                </label>
+                <label style={modalStyles.radio}>
+                  <input
+                    type="radio"
+                    checked={entryType === 'pickup'}
+                    onChange={() => setEntryType('pickup')}
+                  />
+                  📦 Medication Pickup
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Category-specific fields */}
+          {category === 'testosterone' && (
+            <>
+              <div style={modalStyles.field}>
+                <label style={modalStyles.label}>HRT Type</label>
+                <select
+                  value={hrtType}
+                  onChange={(e) => setHrtType(e.target.value)}
+                  style={modalStyles.select}
+                >
+                  <option value="male">Male HRT (200mg/ml)</option>
+                  <option value="female">Female HRT (100mg/ml)</option>
+                </select>
+              </div>
+
+              {entryType === 'injection' ? (
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Dosage *</label>
+                  <select
+                    value={dosage}
+                    onChange={(e) => setDosage(e.target.value)}
+                    style={modalStyles.select}
+                  >
+                    <option value="">Select dosage...</option>
+                    {TESTOSTERONE_DOSES.map(d => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <>
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Pickup Type</label>
+                    <select
+                      value={pickupType}
+                      onChange={(e) => setPickupType(e.target.value)}
+                      style={modalStyles.select}
+                    >
+                      <option value="prefilled">Prefilled Syringes</option>
+                      <option value="vial">Vials</option>
+                    </select>
+                  </div>
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Quantity *</label>
+                    <select
+                      value={pickupQty}
+                      onChange={(e) => setPickupQty(e.target.value)}
+                      style={modalStyles.select}
+                    >
+                      <option value="">Select quantity...</option>
+                      {pickupType === 'prefilled' 
+                        ? [4, 8, 12, 16, 20, 24].map(n => (
+                            <option key={n} value={n}>{n} syringes</option>
+                          ))
+                        : [1, 2, 3].map(n => (
+                            <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>
+                          ))
+                      }
+                    </select>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {category === 'weight_loss' && (
+            <>
+              <div style={modalStyles.field}>
+                <label style={modalStyles.label}>Medication *</label>
+                <select
+                  value={medication}
+                  onChange={(e) => {
+                    setMedication(e.target.value);
+                    setDosage('');
+                  }}
+                  style={modalStyles.select}
+                >
+                  <option value="">Select medication...</option>
+                  {WEIGHT_LOSS_MEDS.map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={modalStyles.field}>
+                <label style={modalStyles.label}>Dosage *</label>
+                <select
+                  value={dosage}
+                  onChange={(e) => setDosage(e.target.value)}
+                  style={modalStyles.select}
+                  disabled={!medication}
+                >
+                  <option value="">Select dosage...</option>
+                  {(WEIGHT_LOSS_MEDS.find(m => m.value === medication)?.doses || []).map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              {entryType === 'pickup' && (
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Week Supply *</label>
+                  <select
+                    value={weekSupply}
+                    onChange={(e) => setWeekSupply(e.target.value)}
+                    style={modalStyles.select}
+                  >
+                    <option value="">Select supply...</option>
+                    {[1, 2, 4, 8, 12].map(w => (
+                      <option key={w} value={w}>{w} week{w > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
+          )}
+
+          {category === 'vitamin' && (
+            <div style={modalStyles.field}>
+              <label style={modalStyles.label}>Vitamin Type *</label>
+              <select
+                value={medication}
+                onChange={(e) => setMedication(e.target.value)}
+                style={modalStyles.select}
+              >
+                <option value="">Select type...</option>
+                {VITAMIN_TYPES.map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Notes */}
+          <div style={modalStyles.field}>
+            <label style={modalStyles.label}>Notes (optional)</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional notes..."
+              style={modalStyles.textarea}
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <div style={modalStyles.footer}>
+          <button onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
+          <button 
+            onClick={handleSave} 
+            disabled={saving}
+            style={modalStyles.saveBtn}
+          >
+            {saving ? 'Saving...' : 'Save Entry'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================
+// STYLES
+// =====================================================
 const styles = {
   container: {
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '24px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    color: '#111'
+    padding: '24px'
+  },
+  backLink: {
+    fontSize: '14px',
+    color: '#6b7280',
+    textDecoration: 'none',
+    display: 'inline-block',
+    marginBottom: '16px'
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: '24px',
     flexWrap: 'wrap',
     gap: '16px'
-  },
-  headerLeft: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  },
-  headerRight: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center',
-    flexWrap: 'wrap'
-  },
-  backLink: {
-    color: '#666',
-    textDecoration: 'none',
-    fontSize: '14px'
   },
   title: {
     fontSize: '28px',
     fontWeight: '700',
     margin: 0
   },
+  headerRight: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center'
+  },
   searchInput: {
     padding: '10px 16px',
-    border: '2px solid #e5e7eb',
+    border: '1px solid #e5e7eb',
     borderRadius: '8px',
     fontSize: '14px',
     width: '200px',
-    transition: 'all 0.15s'
+    outline: 'none'
   },
   addButton: {
     padding: '10px 20px',
-    background: '#111',
+    background: '#000',
     color: '#fff',
     border: 'none',
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer'
-  },
-  successBanner: {
-    background: '#10b981',
-    color: '#fff',
-    padding: '12px 20px',
-    borderRadius: '8px',
-    marginBottom: '16px',
-    fontWeight: '500'
   },
   tabs: {
     display: 'flex',
     gap: '0',
-    background: '#f3f4f6',
+    marginBottom: '24px',
     borderRadius: '10px',
-    padding: '4px',
-    marginBottom: '24px'
+    overflow: 'hidden',
+    border: '1px solid #e5e7eb'
   },
   tab: {
-    padding: '12px 24px',
-    border: 'none',
-    background: 'transparent',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#6b7280',
-    transition: 'all 0.15s',
     flex: 1,
-    textAlign: 'center'
+    padding: '14px 20px',
+    border: 'none',
+    background: '#fff',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    color: '#6b7280'
   },
   tabActive: {
-    background: '#111',
+    background: '#000',
     color: '#fff'
   },
-  formCard: {
+  tableWrapper: {
     background: '#fff',
-    border: '1px solid #e5e7eb',
     borderRadius: '12px',
-    padding: '24px',
-    marginBottom: '24px'
-  },
-  formTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    marginBottom: '20px'
-  },
-  formGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px'
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px'
-  },
-  label: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151'
-  },
-  input: {
-    padding: '10px 12px',
-    border: '2px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '14px',
-    transition: 'border-color 0.15s'
-  },
-  select: {
-    padding: '10px 12px',
-    border: '2px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '14px',
-    background: '#fff',
-    cursor: 'pointer'
-  },
-  textarea: {
-    padding: '10px 12px',
-    border: '2px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '14px',
-    resize: 'vertical',
-    fontFamily: 'inherit'
-  },
-  radioGroup: {
-    display: 'flex',
-    gap: '16px',
-    flexWrap: 'wrap'
-  },
-  radioLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    cursor: 'pointer',
-    fontSize: '14px'
-  },
-  formActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '12px',
-    marginTop: '24px',
-    paddingTop: '20px',
-    borderTop: '1px solid #e5e7eb'
-  },
-  cancelButton: {
-    padding: '10px 20px',
-    background: '#fff',
-    color: '#111',
-    border: '2px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  submitButton: {
-    padding: '10px 24px',
-    background: '#111',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  tableCard: {
-    background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '12px',
     overflow: 'hidden'
-  },
-  loading: {
-    padding: '40px',
-    textAlign: 'center',
-    color: '#6b7280'
-  },
-  empty: {
-    padding: '60px 40px',
-    textAlign: 'center',
-    color: '#6b7280'
   },
   table: {
     width: '100%',
@@ -969,7 +785,8 @@ const styles = {
     background: '#f3f4f6',
     borderRadius: '4px',
     fontSize: '12px',
-    color: '#374151'
+    color: '#374151',
+    marginTop: '4px'
   },
   notesText: {
     color: '#6b7280',
@@ -991,8 +808,12 @@ const styles = {
     borderRadius: '4px',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.15s'
+    justifyContent: 'center'
+  },
+  empty: {
+    padding: '60px 20px',
+    textAlign: 'center',
+    color: '#9ca3af'
   },
   stats: {
     display: 'flex',
@@ -1014,5 +835,186 @@ const styles = {
   statValue: {
     fontSize: '14px',
     fontWeight: '600'
+  }
+};
+
+const modalStyles = {
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px'
+  },
+  modal: {
+    background: '#fff',
+    borderRadius: '16px',
+    width: '100%',
+    maxWidth: '480px',
+    maxHeight: '90vh',
+    overflow: 'auto'
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  title: {
+    fontSize: '18px',
+    fontWeight: '600',
+    margin: 0
+  },
+  closeBtn: {
+    width: '32px',
+    height: '32px',
+    border: 'none',
+    background: '#f3f4f6',
+    borderRadius: '8px',
+    fontSize: '20px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  body: {
+    padding: '24px'
+  },
+  field: {
+    marginBottom: '20px'
+  },
+  label: {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: '600',
+    marginBottom: '8px',
+    color: '#374151'
+  },
+  input: {
+    width: '100%',
+    padding: '12px 14px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  select: {
+    width: '100%',
+    padding: '12px 14px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    background: '#fff',
+    cursor: 'pointer'
+  },
+  textarea: {
+    width: '100%',
+    padding: '12px 14px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    resize: 'vertical',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box'
+  },
+  searchWrapper: {
+    position: 'relative'
+  },
+  selectedPatient: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '12px 14px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    background: '#f9fafb'
+  },
+  clearBtn: {
+    width: '24px',
+    height: '24px',
+    border: 'none',
+    background: '#e5e7eb',
+    borderRadius: '50%',
+    fontSize: '16px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#6b7280'
+  },
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    marginTop: '4px',
+    maxHeight: '240px',
+    overflowY: 'auto',
+    zIndex: 10,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+  },
+  dropdownItem: {
+    padding: '12px 14px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f3f4f6',
+    transition: 'background 0.15s'
+  },
+  radioGroup: {
+    display: 'flex',
+    gap: '20px'
+  },
+  radio: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  error: {
+    padding: '12px',
+    background: '#fef2f2',
+    border: '1px solid #fecaca',
+    borderRadius: '8px',
+    color: '#dc2626',
+    fontSize: '14px',
+    marginBottom: '20px'
+  },
+  footer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    padding: '20px 24px',
+    borderTop: '1px solid #e5e7eb'
+  },
+  cancelBtn: {
+    padding: '10px 20px',
+    border: '1px solid #e5e7eb',
+    background: '#fff',
+    borderRadius: '8px',
+    fontSize: '14px',
+    cursor: 'pointer'
+  },
+  saveBtn: {
+    padding: '10px 24px',
+    border: 'none',
+    background: '#000',
+    color: '#fff',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer'
   }
 };

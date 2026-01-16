@@ -266,7 +266,7 @@ export default function PatientProfile() {
         }
       } else {
         // Create new purchase
-        const res = await fetch(('/api/purchases', {
+        const res = await fetch('/api/purchases', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

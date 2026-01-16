@@ -686,8 +686,25 @@ export default function IntakeForm() {
               <div className="form-row">
                 <div className="form-group full-width">
                   <label htmlFor="howHeardAboutUs">How Did You Hear About Us? <span className="required">*</span></label>
-                  <textarea id="howHeardAboutUs" name="howHeardAboutUs" rows="2" placeholder="Please tell us exactly how you heard about Range Medical (e.g., friend referral, Google search, Instagram, specific doctor referral, etc.)" required></textarea>
+                  <select id="howHeardAboutUs" name="howHeardAboutUs" required>
+                    <option value="">Select an option</option>
+                    <option value="Dr. G">Dr. G</option>
+                    <option value="Aaron Berger">Aaron Berger</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Walk-in">Walk-in</option>
+                    <option value="Friend or Family Member">Friend or Family Member</option>
+                    <option value="Other">Other</option>
+                  </select>
                   <span className="field-error" id="howHeardAboutUsError">Please let us know how you heard about us</span>
+                  
+                  <div className="conditional-field" id="howHeardOtherFields">
+                    <div className="form-group">
+                      <label htmlFor="howHeardOther">Please specify <span className="required">*</span></label>
+                      <input type="text" id="howHeardOther" name="howHeardOther" placeholder="Tell us how you heard about us..." />
+                      <span className="field-error" id="howHeardOtherError">Please specify how you heard about us</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1444,6 +1461,17 @@ function initializeForm() {
     });
   });
   
+  // NEW: How Heard About Us - Other conditional field
+  document.getElementById('howHeardAboutUs')?.addEventListener('change', function() {
+    const field = document.getElementById('howHeardOtherFields');
+    if (this.value === 'Other') {
+      field.classList.add('visible');
+    } else {
+      field.classList.remove('visible');
+      document.getElementById('howHeardOther').value = '';
+    }
+  });
+  
   // NEW: Primary Care Physician conditional field
   document.querySelectorAll('input[name="hasPCP"]').forEach(radio => {
     radio.addEventListener('change', function() {
@@ -1752,6 +1780,20 @@ function initializeForm() {
       }
     }
     
+    // NEW: Validate howHeardOther if Other is selected
+    const howHeard = document.getElementById('howHeardAboutUs');
+    if (howHeard.value === 'Other') {
+      const howHeardOther = document.getElementById('howHeardOther');
+      if (!howHeardOther.value.trim()) {
+        howHeardOther.classList.add('error');
+        document.getElementById('howHeardOtherError').classList.add('visible');
+        isValid = false;
+      } else {
+        howHeardOther.classList.remove('error');
+        document.getElementById('howHeardOtherError').classList.remove('visible');
+      }
+    }
+    
     // NEW: Validate PCP name if hasPCP is Yes
     const hasPCP = document.querySelector('input[name="hasPCP"]:checked');
     if (hasPCP && hasPCP.value === 'Yes') {
@@ -1901,8 +1943,10 @@ function initializeForm() {
       state: getValue('state'),
       country: getValue('country'),
       postalCode: getValue('postalCode'),
-      // NEW FIELD
-      howHeardAboutUs: getValue('howHeardAboutUs'),
+      // NEW FIELD - How Heard About Us (with Other handling)
+      howHeardAboutUs: getValue('howHeardAboutUs') === 'Other' 
+        ? `Other: ${getValue('howHeardOther')}` 
+        : getValue('howHeardAboutUs'),
       whatBringsYou: getValue('whatBringsYou'),
       injured: getRadio('injured'),
       injuryDescription: getValue('injuryDescription'),

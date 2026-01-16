@@ -806,20 +806,10 @@ export default function IntakeForm() {
                   <span className="field-error" id="hasPCPError">Please select an option</span>
                   
                   <div className="conditional-field" id="pcpFields">
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <div className="form-group">
                       <label htmlFor="pcpName">Physician Name <span className="required">*</span></label>
                       <input type="text" id="pcpName" name="pcpName" placeholder="Dr. First Last" />
                       <span className="field-error" id="pcpNameError">Please enter your physician's name</span>
-                    </div>
-                    <div className="form-row" style={{ marginBottom: 0 }}>
-                      <div className="form-group">
-                        <label htmlFor="pcpPractice">Practice/Clinic Name</label>
-                        <input type="text" id="pcpPractice" name="pcpPractice" placeholder="e.g., Newport Family Medicine" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="pcpPhone">Physician Phone</label>
-                        <input type="tel" id="pcpPhone" name="pcpPhone" placeholder="(555) 555-5555" />
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1463,8 +1453,6 @@ function initializeForm() {
       } else {
         field.classList.remove('visible');
         document.getElementById('pcpName').value = '';
-        document.getElementById('pcpPractice').value = '';
-        document.getElementById('pcpPhone').value = '';
       }
     });
   });
@@ -1610,21 +1598,6 @@ function initializeForm() {
   // ============================================
   
   document.getElementById('phone')?.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length > 0) {
-      if (value.length <= 3) {
-        value = '(' + value;
-      } else if (value.length <= 6) {
-        value = '(' + value.slice(0, 3) + ') ' + value.slice(3);
-      } else {
-        value = '(' + value.slice(0, 3) + ') ' + value.slice(3, 6) + '-' + value.slice(6, 10);
-      }
-    }
-    e.target.value = value;
-  });
-  
-  // NEW: PCP Phone formatting
-  document.getElementById('pcpPhone')?.addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 0) {
       if (value.length <= 3) {
@@ -1938,8 +1911,6 @@ function initializeForm() {
       // NEW FIELDS - Primary Care Physician
       hasPCP: getRadio('hasPCP'),
       pcpName: getValue('pcpName'),
-      pcpPractice: getValue('pcpPractice'),
-      pcpPhone: getValue('pcpPhone'),
       // NEW FIELDS - Recent Hospitalization
       recentHospitalization: getRadio('recentHospitalization'),
       hospitalizationReason: getValue('hospitalizationReason'),
@@ -2068,8 +2039,6 @@ function initializeForm() {
     addLabelValue('Has Primary Care Physician: ', formData.hasPCP);
     if (formData.hasPCP === 'Yes') {
       addLabelValue('PCP Name: ', formData.pcpName);
-      if (formData.pcpPractice) addLabelValue('PCP Practice: ', formData.pcpPractice);
-      if (formData.pcpPhone) addLabelValue('PCP Phone: ', formData.pcpPhone);
     }
     
     // NEW FIELDS - Recent Hospitalization
@@ -2184,8 +2153,6 @@ function initializeForm() {
         // NEW FIELDS - Primary Care Physician
         hasPCP: formData.hasPCP || '',
         pcpName: formData.pcpName || '',
-        pcpPractice: formData.pcpPractice || '',
-        pcpPhone: formData.pcpPhone || '',
         // NEW FIELDS - Recent Hospitalization
         recentHospitalization: formData.recentHospitalization || '',
         hospitalizationReason: formData.hospitalizationReason || '',

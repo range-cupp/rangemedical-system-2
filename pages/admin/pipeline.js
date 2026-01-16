@@ -1,5 +1,5 @@
 // pages/admin/pipeline.js
-// Unified Protocol Pipeline with Expiration Sorting
+// Unified Protocol Pipeline with Correct Tracking per Protocol Type
 // Deploy to: pages/admin/pipeline.js
 
 import { useState, useEffect } from 'react';
@@ -34,32 +34,49 @@ const getProtocolDisplay = (protocol) => {
   return { icon: '📋', label: 'OTHER', fullLabel: 'Protocol', color: '#64748b' };
 };
 
-// Get days remaining for a protocol
-const getDaysRemaining = (protocol) => {
-  if (protocol.sessions_remaining !== undefined && protocol.sessions_remaining !== null) {
-    return protocol.sessions_remaining;
+// Get urgency indicator based on days or sessions remaining
+const getUrgency = (protocol) => {
+  const daysLeft = protocol.days_remaining;
+  const sessionsLeft = protocol.sessions_remaining;
+  
+  // For session-based protocols
+  if (protocol.tracking_type === 'session_based' && sessionsLeft !== undefined) {
+    if (sessionsLeft <= 0) return { bg: '#dcfce7', text: '#166534', label: 'Complete' };
+    if (sessionsLeft <= 1) return { bg: '#fef2f2', text: '#dc2626', label: `${sessionsLeft} left!` };
+    if (sessionsLeft <= 2) return { bg: '#fffbeb', text: '#d97706', label: `${sessionsLeft} left` };
+    return null;
   }
-  if (protocol.days_remaining !== undefined && protocol.days_remaining !== null) {
-    return protocol.days_remaining;
-  }
-  if (protocol.start_date && protocol.duration_days) {
-    const start = new Date(protocol.start_date);
-    const end = new Date(start);
-    end.setDate(end.getDate() + protocol.duration_days);
-    const today = new Date();
-    return Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-  }
-  return null;
-};
-
-// Get urgency indicator
-const getUrgency = (daysLeft) => {
-  if (daysLeft === null) return null;
-  if (daysLeft <= 0) return { bg: '#fef2f2', text: '#dc2626', label: 'Expired' };
+  
+  // For day-based protocols
+  if (daysLeft === null || daysLeft === undefined) return null;
+  if (daysLeft <= 0) return { bg: '#fef2f2', text: '#dc2626', label: 'Ended/Overdue' };
   if (daysLeft <= 3) return { bg: '#fef2f2', text: '#dc2626', label: `${daysLeft}d left!` };
   if (daysLeft <= 7) return { bg: '#fffbeb', text: '#d97706', label: `${daysLeft}d left` };
   if (daysLeft <= 14) return { bg: '#fefce8', text: '#ca8a04', label: `${daysLeft}d left` };
   return null;
+};
+
+// Get progress percentage
+const getProgress = (protocol) => {
+  if (protocol.tracking_type === 'session_based') {
+    const total = protocol.total_sessions || 1;
+    const used = protocol.sessions_used || 0;
+    return Math.min(100, Math.max(0, (used / total) * 100));
+  }
+  
+  const totalDays = protocol.total_days || 30;
+  const daysLeft = protocol.days_remaining || 0;
+  const daysUsed = totalDays - daysLeft;
+  return Math.min(100, Math.max(0, (daysUsed / totalDays) * 100));
+};
+
+// Format delivery method for display
+const formatDeliveryMethod = (method) => {
+  if (!method) return '';
+  const m = method.toLowerCase();
+  if (m.includes('take') || m.includes('home')) return 'Take Home';
+  if (m.includes('clinic')) return 'In Clinic';
+  return method;
 };
 
 export default function Pipeline() {
@@ -82,7 +99,7 @@ export default function Pipeline() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/pipeline');
+      const res = await fetch('/api/admin/pipeline');
       if (res.ok) {
         const data = await res.json();
         setNeedsProtocol(data.needsProtocol || []);
@@ -108,8 +125,8 @@ export default function Pipeline() {
     return [...protocols].sort((a, b) => {
       switch (sortBy) {
         case 'expiration':
-          const aDays = getDaysRemaining(a) ?? 9999;
-          const bDays = getDaysRemaining(b) ?? 9999;
+          const aDays = a.days_remaining ?? a.sessions_remaining ?? 9999;
+          const bDays = b.days_remaining ?? b.sessions_remaining ?? 9999;
           return aDays - bDays;
         case 'name':
           return (a.patient_name || '').localeCompare(b.patient_name || '');
@@ -304,12 +321,27 @@ export default function Pipeline() {
       color: '#0f172a',
       marginBottom: '4px',
       textDecoration: 'none',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      display: 'block'
     },
     medication: {
       fontSize: '14px',
       color: '#64748b',
       marginBottom: '12px'
+    },
+    trackingInfo: {
+      fontSize: '12px',
+      color: '#64748b',
+      marginBottom: '8px',
+      display: 'flex',
+      gap: '8px',
+      flexWrap: 'wrap'
+    },
+    trackingBadge: {
+      padding: '2px 8px',
+      backgroundColor: '#f1f5f9',
+      borderRadius: '4px',
+      fontSize: '11px'
     },
     progressBar: {
       height: '4px',
@@ -361,6 +393,10 @@ export default function Pipeline() {
       fontWeight: '500',
       color: '#475569',
       transition: 'all 0.15s ease'
+    },
+    statusText: {
+      fontWeight: '500',
+      color: '#0f172a'
     }
   };
 
@@ -534,12 +570,12 @@ export default function Pipeline() {
                   <div
                     key={purchase.id}
                     style={styles.card}
-                    onClick={() => router.push(`/admin/purchases?highlight=${purchase.id}`)}
+                    onClick={() => router.push(`/admin/patient/${purchase.patient_id}`)}
                   >
                     <div style={styles.cardHeader}>
                       <div>
                         <Link
-                          href={`/admin/patients/${purchase.patient_id}`}
+                          href={`/admin/patient/${purchase.patient_id}`}
                           style={styles.patientName}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -571,11 +607,8 @@ export default function Pipeline() {
               ) : (
                 getFilteredActive().map(protocol => {
                   const display = getProtocolDisplay(protocol);
-                  const daysLeft = getDaysRemaining(protocol);
-                  const urgency = getUrgency(daysLeft);
-                  const totalDays = protocol.duration_days || 30;
-                  const daysUsed = totalDays - (daysLeft || 0);
-                  const progressPercent = Math.min(100, Math.max(0, (daysUsed / totalDays) * 100));
+                  const urgency = getUrgency(protocol);
+                  const progressPercent = getProgress(protocol);
 
                   return (
                     <div
@@ -601,7 +634,7 @@ export default function Pipeline() {
                         )}
                       </div>
                       <Link
-                        href={`/admin/patients/${protocol.patient_id}`}
+                        href={`/admin/patient/${protocol.patient_id}`}
                         style={styles.patientName}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -611,6 +644,26 @@ export default function Pipeline() {
                         {protocol.medication || protocol.program_name}
                         {protocol.selected_dose && ` • ${protocol.selected_dose}`}
                       </div>
+                      
+                      {/* Tracking info badges */}
+                      <div style={styles.trackingInfo}>
+                        {protocol.delivery_method && (
+                          <span style={styles.trackingBadge}>
+                            {formatDeliveryMethod(protocol.delivery_method)}
+                          </span>
+                        )}
+                        {protocol.supply_type && (
+                          <span style={styles.trackingBadge}>
+                            {protocol.supply_type}
+                          </span>
+                        )}
+                        {protocol.tracking_type === 'session_based' && (
+                          <span style={styles.trackingBadge}>
+                            {protocol.sessions_used || 0}/{protocol.total_sessions} sessions
+                          </span>
+                        )}
+                      </div>
+                      
                       <div style={styles.progressBar}>
                         <div style={{
                           ...styles.progressFill,
@@ -620,16 +673,10 @@ export default function Pipeline() {
                       </div>
                       <div style={styles.cardFooter}>
                         <span>
-                          {protocol.delivery_method || 'Take Home'}
+                          {protocol.start_date && new Date(protocol.start_date).toLocaleDateString()}
                         </span>
-                        <span>
-                          {daysLeft !== null ? (
-                            daysLeft > 0 ? `${daysLeft} days left` : 'Ended'
-                          ) : (
-                            protocol.sessions_remaining !== undefined 
-                              ? `${protocol.sessions_remaining} sessions left`
-                              : 'Ongoing'
-                          )}
+                        <span style={styles.statusText}>
+                          {protocol.status_text || 'Active'}
                         </span>
                       </div>
                     </div>
@@ -672,7 +719,7 @@ export default function Pipeline() {
                         </span>
                       </div>
                       <Link
-                        href={`/admin/patients/${protocol.patient_id}`}
+                        href={`/admin/patient/${protocol.patient_id}`}
                         style={styles.patientName}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -704,7 +751,7 @@ export default function Pipeline() {
                   <div
                     key={patient.id}
                     style={styles.card}
-                    onClick={() => router.push(`/admin/patients/${patient.id}`)}
+                    onClick={() => router.push(`/admin/patient/${patient.id}`)}
                   >
                     <div style={styles.patientName}>{patient.name}</div>
                     <div style={styles.medication}>

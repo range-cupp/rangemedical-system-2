@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const AVAILABLE_FORMS = [
   { id: 'intake', name: 'Medical Intake', path: '/intake', icon: '📋', time: '10 min', required: true },
@@ -24,6 +24,13 @@ const QUICK_SELECTIONS = [
 ];
 
 export default function SendForms() {
+  const [entryMode, setEntryMode] = useState('search'); // 'search' or 'manual'
+  const [patients, setPatients] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  
   const [phone, setPhone] = useState('');
   const [firstName, setFirstName] = useState('');
   const [selectedForms, setSelectedForms] = useState(['intake', 'hipaa']);
@@ -31,7 +38,39 @@ export default function SendForms() {
   const [loading, setLoading] = useState(false);
   const [recentSends, setRecentSends] = useState([]);
 
+  // Fetch patients on mount
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  const fetchPatients = async () => {
+    setLoadingPatients(true);
+    try {
+      const res = await fetch('/api/patients?limit=1000');
+      if (res.ok) {
+        const data = await res.json();
+        setPatients(data.patients || []);
+      }
+    } catch (err) {
+      console.error('Error fetching patients:', err);
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
+
+  // Filter patients based on search
+  const filteredPatients = patients.filter(p => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(query) ||
+      p.email?.toLowerCase().includes(query) ||
+      p.phone?.includes(query)
+    );
+  }).slice(0, 20); // Limit to 20 results
+
   const formatPhone = (value) => {
+    if (!value) return '';
     const digits = value.replace(/\D/g, '');
     if (digits.length <= 3) return digits;
     if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
@@ -40,6 +79,27 @@ export default function SendForms() {
 
   const handlePhoneChange = (e) => {
     setPhone(formatPhone(e.target.value));
+  };
+
+  const selectPatient = (patient) => {
+    setSelectedPatient(patient);
+    setSearchQuery(patient.name);
+    setShowDropdown(false);
+    // Auto-fill phone and name
+    if (patient.phone) {
+      setPhone(formatPhone(patient.phone));
+    }
+    if (patient.name) {
+      const nameParts = patient.name.split(' ');
+      setFirstName(nameParts[0] || '');
+    }
+  };
+
+  const clearPatient = () => {
+    setSelectedPatient(null);
+    setSearchQuery('');
+    setPhone('');
+    setFirstName('');
   };
 
   const toggleForm = (formId) => {
@@ -62,7 +122,6 @@ export default function SendForms() {
     setSelectedForms([]);
   };
 
-  // Helper to sort forms in display order (Medical Intake always first)
   const getSortedForms = (formIds) => {
     const formOrder = AVAILABLE_FORMS.map(f => f.id);
     return [...formIds].sort((a, b) => formOrder.indexOf(a) - formOrder.indexOf(b));
@@ -86,7 +145,6 @@ export default function SendForms() {
     setStatus({ type: 'loading', message: 'Sending forms...' });
 
     try {
-      // Sort forms to ensure Medical Intake is always first, then HIPAA, then others in display order
       const sortedForms = getSortedForms(selectedForms);
       
       const response = await fetch('/api/send-forms-sms', {
@@ -109,13 +167,17 @@ export default function SendForms() {
         setStatus({ type: 'success', message: `✓ ${selectedForms.length} form(s) sent to ${phone}` });
         setRecentSends(prev => [{
           phone,
-          firstName: firstName.trim() || 'Patient',
+          firstName: firstName.trim() || selectedPatient?.name || 'Patient',
           forms: formNames,
           count: selectedForms.length,
           time: new Date().toLocaleTimeString()
         }, ...prev.slice(0, 9)]);
+        
+        // Reset form
         setPhone('');
         setFirstName('');
+        setSelectedPatient(null);
+        setSearchQuery('');
       } else {
         setStatus({ type: 'error', message: result.error || 'Failed to send' });
       }
@@ -182,6 +244,36 @@ export default function SendForms() {
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
+        .mode-toggle {
+          display: flex;
+          gap: 0;
+          margin-bottom: 1.25rem;
+          border: 2px solid #000;
+        }
+        .mode-btn {
+          flex: 1;
+          padding: 0.75rem 1rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          border: none;
+          background: #fff;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.15s;
+        }
+        .mode-btn:first-child {
+          border-right: 1px solid #000;
+        }
+        .mode-btn:last-child {
+          border-left: 1px solid #000;
+        }
+        .mode-btn.active {
+          background: #000;
+          color: #fff;
+        }
+        .mode-btn:hover:not(.active) {
+          background: #f5f5f5;
+        }
         .form-group {
           margin-bottom: 1rem;
         }
@@ -197,7 +289,7 @@ export default function SendForms() {
         .input {
           width: 100%;
           padding: 0.875rem 1rem;
-          font-size: 1.25rem;
+          font-size: 1rem;
           font-family: inherit;
           border: 2px solid #d4d4d4;
           background: #fff;
@@ -212,8 +304,116 @@ export default function SendForms() {
           letter-spacing: 0.025em;
           text-align: center;
         }
-        .input-name {
+        .search-container {
+          position: relative;
+        }
+        .search-input {
+          width: 100%;
+          padding: 0.875rem 1rem;
+          padding-right: 40px;
           font-size: 1rem;
+          font-family: inherit;
+          border: 2px solid #d4d4d4;
+          background: #fff;
+          transition: border-color 0.2s;
+        }
+        .search-input:focus {
+          outline: none;
+          border-color: #000;
+        }
+        .clear-btn {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: #e5e5e5;
+          border: none;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .clear-btn:hover {
+          background: #d4d4d4;
+        }
+        .dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: #fff;
+          border: 2px solid #000;
+          border-top: none;
+          max-height: 300px;
+          overflow-y: auto;
+          z-index: 100;
+        }
+        .dropdown-item {
+          padding: 0.75rem 1rem;
+          cursor: pointer;
+          border-bottom: 1px solid #e5e5e5;
+          transition: background 0.1s;
+        }
+        .dropdown-item:last-child {
+          border-bottom: none;
+        }
+        .dropdown-item:hover {
+          background: #f5f5f5;
+        }
+        .dropdown-item.selected {
+          background: #000;
+          color: #fff;
+        }
+        .dropdown-name {
+          font-weight: 600;
+          font-size: 0.9375rem;
+        }
+        .dropdown-details {
+          font-size: 0.8125rem;
+          color: #737373;
+          margin-top: 2px;
+        }
+        .dropdown-item.selected .dropdown-details {
+          color: #a3a3a3;
+        }
+        .dropdown-empty {
+          padding: 1rem;
+          text-align: center;
+          color: #737373;
+          font-size: 0.875rem;
+        }
+        .selected-patient {
+          background: #f0fdf4;
+          border: 2px solid #16a34a;
+          padding: 1rem;
+          margin-bottom: 1rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .selected-patient-info {
+          flex: 1;
+        }
+        .selected-patient-name {
+          font-weight: 700;
+          font-size: 1rem;
+          color: #166534;
+        }
+        .selected-patient-phone {
+          font-size: 0.875rem;
+          color: #15803d;
+        }
+        .selected-patient-clear {
+          background: none;
+          border: none;
+          color: #dc2626;
+          cursor: pointer;
+          font-size: 0.875rem;
+          text-decoration: underline;
         }
         .quick-btns {
           display: flex;
@@ -429,30 +629,129 @@ export default function SendForms() {
           <div className="card">
             <h2 className="card-title">Patient Information</h2>
             
-            <div className="form-group">
-              <label className="label">Phone Number *</label>
-              <input
-                type="tel"
-                className="input input-phone"
-                placeholder="(555) 555-5555"
-                value={phone}
-                onChange={handlePhoneChange}
-                maxLength={14}
-                required
-                autoFocus
-              />
+            {/* Mode Toggle */}
+            <div className="mode-toggle">
+              <button 
+                type="button"
+                className={`mode-btn ${entryMode === 'search' ? 'active' : ''}`}
+                onClick={() => { setEntryMode('search'); clearPatient(); }}
+              >
+                🔍 Search Patient
+              </button>
+              <button 
+                type="button"
+                className={`mode-btn ${entryMode === 'manual' ? 'active' : ''}`}
+                onClick={() => { setEntryMode('manual'); clearPatient(); }}
+              >
+                ✏️ Enter Manually
+              </button>
             </div>
 
-            <div className="form-group">
-              <label className="label">First Name (optional)</label>
-              <input
-                type="text"
-                className="input input-name"
-                placeholder="For personalized message"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-              />
-            </div>
+            {entryMode === 'search' && (
+              <>
+                {selectedPatient ? (
+                  <div className="selected-patient">
+                    <div className="selected-patient-info">
+                      <div className="selected-patient-name">✓ {selectedPatient.name}</div>
+                      <div className="selected-patient-phone">{formatPhone(selectedPatient.phone) || selectedPatient.email || 'No contact info'}</div>
+                    </div>
+                    <button type="button" className="selected-patient-clear" onClick={clearPatient}>
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label className="label">Search by Name, Email, or Phone</label>
+                    <div className="search-container">
+                      <input
+                        type="text"
+                        className="search-input"
+                        placeholder={loadingPatients ? 'Loading patients...' : 'Start typing patient name...'}
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setShowDropdown(true);
+                        }}
+                        onFocus={() => setShowDropdown(true)}
+                        disabled={loadingPatients}
+                      />
+                      {searchQuery && (
+                        <button type="button" className="clear-btn" onClick={() => { setSearchQuery(''); setShowDropdown(false); }}>
+                          ×
+                        </button>
+                      )}
+                      {showDropdown && searchQuery && (
+                        <div className="dropdown">
+                          {filteredPatients.length === 0 ? (
+                            <div className="dropdown-empty">No patients found</div>
+                          ) : (
+                            filteredPatients.map(patient => (
+                              <div
+                                key={patient.id}
+                                className="dropdown-item"
+                                onClick={() => selectPatient(patient)}
+                              >
+                                <div className="dropdown-name">{patient.name}</div>
+                                <div className="dropdown-details">
+                                  {patient.phone && formatPhone(patient.phone)}
+                                  {patient.phone && patient.email && ' • '}
+                                  {patient.email}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Phone override for search mode */}
+                {selectedPatient && (
+                  <div className="form-group">
+                    <label className="label">Phone Number (editable)</label>
+                    <input
+                      type="tel"
+                      className="input"
+                      placeholder="(555) 555-5555"
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      maxLength={14}
+                      required
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            {entryMode === 'manual' && (
+              <>
+                <div className="form-group">
+                  <label className="label">Phone Number *</label>
+                  <input
+                    type="tel"
+                    className="input input-phone"
+                    placeholder="(555) 555-5555"
+                    value={phone}
+                    onChange={handlePhoneChange}
+                    maxLength={14}
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="label">First Name (optional)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="For personalized message"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Form Selection */}
@@ -508,7 +807,11 @@ export default function SendForms() {
           </div>
 
           {/* Submit */}
-          <button type="submit" className="btn" disabled={loading || selectedForms.length === 0}>
+          <button 
+            type="submit" 
+            className="btn" 
+            disabled={loading || selectedForms.length === 0 || !phone}
+          >
             {loading ? 'Sending...' : `Send ${selectedForms.length} Form${selectedForms.length !== 1 ? 's' : ''}`}
           </button>
 

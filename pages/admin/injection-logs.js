@@ -166,7 +166,7 @@ export default function InjectionLogs() {
                 {filteredLogs.map(log => (
                   <tr key={log.id} style={styles.tr}>
                     <td style={styles.td}>
-                      <div>{formatDate(log.created_at)}</div>
+                      <div>{formatDate(log.entry_date || log.created_at)}</div>
                       <div style={styles.timeText}>{formatTime(log.created_at)}</div>
                     </td>
                     <td style={styles.td}>
@@ -244,6 +244,7 @@ function NewEntryModal({ category, onClose, onSave }) {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [loadingPatients, setLoadingPatients] = useState(true);
   
+  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
   const [entryType, setEntryType] = useState('injection');
   const [medication, setMedication] = useState('');
   const [dosage, setDosage] = useState('');
@@ -375,6 +376,7 @@ function NewEntryModal({ category, onClose, onSave }) {
         ghl_contact_id: selectedPatient.ghl_contact_id,
         category,
         entry_type: entryType,
+        entry_date: entryDate,
         medication: category === 'testosterone' 
           ? `${hrtType === 'male' ? 'Male' : 'Female'} HRT`
           : medication,
@@ -479,6 +481,17 @@ function NewEntryModal({ category, onClose, onSave }) {
                 </>
               )}
             </div>
+          </div>
+
+          {/* Date Picker */}
+          <div style={modalStyles.field}>
+            <label style={modalStyles.label}>Date *</label>
+            <input
+              type="date"
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+              style={modalStyles.input}
+            />
           </div>
 
           {/* Entry Type */}

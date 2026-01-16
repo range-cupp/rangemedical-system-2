@@ -44,6 +44,7 @@ async function handleGet(req, res) {
         phone
       )
     `)
+    .order('entry_date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(100);
   
@@ -88,6 +89,7 @@ async function handlePost(req, res) {
     ghl_contact_id,
     category,
     entry_type,
+    entry_date,
     medication,
     dosage,
     notes
@@ -97,6 +99,9 @@ async function handlePost(req, res) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
   
+  // Use provided date or default to today
+  const logDate = entry_date || new Date().toISOString().split('T')[0];
+  
   // 1. Create the injection log entry
   const { data: logEntry, error: logError } = await supabase
     .from('injection_logs')
@@ -105,6 +110,7 @@ async function handlePost(req, res) {
       ghl_contact_id,
       category,
       entry_type: entry_type || 'injection',
+      entry_date: logDate,
       medication,
       dosage,
       notes,
@@ -122,9 +128,9 @@ async function handlePost(req, res) {
   let protocolUpdate = null;
   
   if (category === 'testosterone') {
-    protocolUpdate = await syncHRTProtocol(patient_id, ghl_contact_id, entry_type, dosage, medication);
+    protocolUpdate = await syncHRTProtocol(patient_id, ghl_contact_id, entry_type, dosage, medication, logDate);
   } else if (category === 'weight_loss') {
-    protocolUpdate = await syncWeightLossProtocol(patient_id, ghl_contact_id, entry_type, dosage);
+    protocolUpdate = await syncWeightLossProtocol(patient_id, ghl_contact_id, entry_type, dosage, logDate);
   }
   // Vitamin injections don't have protocol tracking
   
@@ -136,7 +142,7 @@ async function handlePost(req, res) {
 }
 
 // Sync HRT Protocol when testosterone entry is logged
-async function syncHRTProtocol(patientId, ghlContactId, entryType, dosage, medication) {
+async function syncHRTProtocol(patientId, ghlContactId, entryType, dosage, medication, entryDate) {
   // Find the patient's active HRT protocol
   const { data: protocols, error: findError } = await supabase
     .from('protocols')
@@ -153,7 +159,7 @@ async function syncHRTProtocol(patientId, ghlContactId, entryType, dosage, medic
   }
   
   const protocol = protocols[0];
-  const today = new Date().toISOString().split('T')[0];
+  const logDate = entryDate || new Date().toISOString().split('T')[0];
   
   if (entryType === 'pickup') {
     // Parse the dosage to determine supply type
@@ -191,7 +197,7 @@ async function syncHRTProtocol(patientId, ghlContactId, entryType, dosage, medic
     const { error: updateError } = await supabase
       .from('protocols')
       .update({
-        last_refill_date: today,
+        last_refill_date: logDate,
         supply_type: supplyType,
         current_dose: currentDose || protocol.current_dose,
         updated_at: new Date().toISOString()
@@ -206,7 +212,7 @@ async function syncHRTProtocol(patientId, ghlContactId, entryType, dosage, medic
     return { 
       updated: true, 
       protocolId: protocol.id,
-      changes: { last_refill_date: today, supply_type: supplyType }
+      changes: { last_refill_date: logDate, supply_type: supplyType }
     };
     
   } else if (entryType === 'injection') {
@@ -236,7 +242,7 @@ async function syncHRTProtocol(patientId, ghlContactId, entryType, dosage, medic
 }
 
 // Sync Weight Loss Protocol when entry is logged
-async function syncWeightLossProtocol(patientId, ghlContactId, entryType, dosage) {
+async function syncWeightLossProtocol(patientId, ghlContactId, entryType, dosage, entryDate) {
   // Find the patient's active Weight Loss protocol
   const { data: protocols, error: findError } = await supabase
     .from('protocols')
@@ -253,7 +259,7 @@ async function syncWeightLossProtocol(patientId, ghlContactId, entryType, dosage
   }
   
   const protocol = protocols[0];
-  const today = new Date().toISOString().split('T')[0];
+  const logDate = entryDate || new Date().toISOString().split('T')[0];
   
   if (entryType === 'pickup') {
     // Parse week supply from dosage: "4 week supply"
@@ -274,7 +280,7 @@ async function syncWeightLossProtocol(patientId, ghlContactId, entryType, dosage
       .from('protocols')
       .update({
         total_sessions: newTotal,
-        start_date: today,
+        start_date: logDate,
         updated_at: new Date().toISOString()
       })
       .eq('id', protocol.id);
@@ -289,7 +295,7 @@ async function syncWeightLossProtocol(patientId, ghlContactId, entryType, dosage
       protocolId: protocol.id,
       changes: { 
         total_sessions: newTotal,
-        start_date: today,
+        start_date: logDate,
         added_injections: weeksSupply
       }
     };
@@ -302,7 +308,7 @@ async function syncWeightLossProtocol(patientId, ghlContactId, entryType, dosage
       .from('protocols')
       .update({
         sessions_used: currentUsed + 1,
-        last_injection_date: today,
+        last_injection_date: logDate,
         updated_at: new Date().toISOString()
       })
       .eq('id', protocol.id);
@@ -329,7 +335,7 @@ async function syncWeightLossProtocol(patientId, ghlContactId, entryType, dosage
       protocolId: protocol.id,
       changes: { 
         sessions_used: currentUsed + 1,
-        last_injection_date: today
+        last_injection_date: logDate
       }
     };
   }

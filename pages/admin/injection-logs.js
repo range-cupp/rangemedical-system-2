@@ -565,9 +565,7 @@ function NewEntryModal({ category, onClose, onSave }) {
                           style={modalStyles.select}
                         >
                           <option value="">Select quantity...</option>
-                          {[1, 2, 3].map(n => (
-                            <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>
-                          ))}
+                          <option value="1">1 vial</option>
                         </select>
                       </div>
                     </>
@@ -594,9 +592,8 @@ function NewEntryModal({ category, onClose, onSave }) {
                           style={modalStyles.select}
                         >
                           <option value="">Select quantity...</option>
-                          {[4, 8, 12, 16, 20, 24].map(n => (
-                            <option key={n} value={n}>{n} syringes</option>
-                          ))}
+                          <option value="4">4 syringes</option>
+                          <option value="8">8 syringes</option>
                         </select>
                       </div>
                     </>

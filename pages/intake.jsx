@@ -681,6 +681,15 @@ export default function IntakeForm() {
                   <span className="field-error" id="phoneError">Phone number is required</span>
                 </div>
               </div>
+              
+              {/* NEW FIELD: How did you hear about us? */}
+              <div className="form-row">
+                <div className="form-group full-width">
+                  <label htmlFor="howHeardAboutUs">How Did You Hear About Us? <span className="required">*</span></label>
+                  <textarea id="howHeardAboutUs" name="howHeardAboutUs" rows="2" placeholder="Please tell us exactly how you heard about Range Medical (e.g., friend referral, Google search, Instagram, specific doctor referral, etc.)" required></textarea>
+                  <span className="field-error" id="howHeardAboutUsError">Please let us know how you heard about us</span>
+                </div>
+              </div>
             </div>
             
             {/* Address */}
@@ -777,6 +786,72 @@ export default function IntakeForm() {
             <div className="section">
               <h2 className="section-title">Medical History</h2>
               <p style={{ marginBottom: '1.5rem', color: 'var(--gray-700)', fontSize: '0.9375rem' }}>Please answer YES or NO for each condition. If YES, provide details to help us serve you better.</p>
+              
+              {/* NEW FIELD: Primary Care Physician */}
+              <div style={{ backgroundColor: '#ecfdf5', borderLeft: '4px solid #10b981', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#047857', letterSpacing: '0.5px' }}>👨‍⚕️ Primary Care Physician</h3>
+                
+                <div className="condition-item">
+                  <label className="condition-label"><strong>Do you have a Primary Care Physician?</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+                    <div className="radio-item">
+                      <input type="radio" id="hasPCP_yes" name="hasPCP" value="Yes" required />
+                      <label htmlFor="hasPCP_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="hasPCP_no" name="hasPCP" value="No" />
+                      <label htmlFor="hasPCP_no">No</label>
+                    </div>
+                  </div>
+                  <span className="field-error" id="hasPCPError">Please select an option</span>
+                  
+                  <div className="conditional-field" id="pcpFields">
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                      <label htmlFor="pcpName">Physician Name <span className="required">*</span></label>
+                      <input type="text" id="pcpName" name="pcpName" placeholder="Dr. First Last" />
+                      <span className="field-error" id="pcpNameError">Please enter your physician's name</span>
+                    </div>
+                    <div className="form-row" style={{ marginBottom: 0 }}>
+                      <div className="form-group">
+                        <label htmlFor="pcpPractice">Practice/Clinic Name</label>
+                        <input type="text" id="pcpPractice" name="pcpPractice" placeholder="e.g., Newport Family Medicine" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="pcpPhone">Physician Phone</label>
+                        <input type="tel" id="pcpPhone" name="pcpPhone" placeholder="(555) 555-5555" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* NEW FIELD: Recent Hospitalizations */}
+              <div style={{ backgroundColor: '#fef2f2', borderLeft: '4px solid #ef4444', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#b91c1c', letterSpacing: '0.5px' }}>🏥 Recent Hospitalizations</h3>
+                
+                <div className="condition-item">
+                  <label className="condition-label"><strong>Have you been hospitalized in the past year?</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+                    <div className="radio-item">
+                      <input type="radio" id="recentHospitalization_yes" name="recentHospitalization" value="Yes" required />
+                      <label htmlFor="recentHospitalization_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="recentHospitalization_no" name="recentHospitalization" value="No" />
+                      <label htmlFor="recentHospitalization_no">No</label>
+                    </div>
+                  </div>
+                  <span className="field-error" id="recentHospitalizationError">Please select an option</span>
+                  
+                  <div className="conditional-field" id="hospitalizationFields">
+                    <div className="form-group">
+                      <label htmlFor="hospitalizationReason">What was the reason for your hospitalization? <span className="required">*</span></label>
+                      <textarea id="hospitalizationReason" name="hospitalizationReason" rows="3" placeholder="Please describe the reason(s) for your hospitalization, including approximate dates if possible..."></textarea>
+                      <span className="field-error" id="hospitalizationReasonError">Please describe the reason for your hospitalization</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               
               {/* Cardiovascular Conditions */}
               <div style={{ backgroundColor: '#fef2f2', borderLeft: '4px solid #dc2626', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
@@ -1379,6 +1454,34 @@ function initializeForm() {
     });
   });
   
+  // NEW: Primary Care Physician conditional field
+  document.querySelectorAll('input[name="hasPCP"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      const field = document.getElementById('pcpFields');
+      if (this.value === 'Yes') {
+        field.classList.add('visible');
+      } else {
+        field.classList.remove('visible');
+        document.getElementById('pcpName').value = '';
+        document.getElementById('pcpPractice').value = '';
+        document.getElementById('pcpPhone').value = '';
+      }
+    });
+  });
+  
+  // NEW: Recent Hospitalization conditional field
+  document.querySelectorAll('input[name="recentHospitalization"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      const field = document.getElementById('hospitalizationFields');
+      if (this.value === 'Yes') {
+        field.classList.add('visible');
+      } else {
+        field.classList.remove('visible');
+        document.getElementById('hospitalizationReason').value = '';
+      }
+    });
+  });
+  
   // ============================================
   // FILE UPLOAD PREVIEW & STORAGE
   // ============================================
@@ -1520,6 +1623,21 @@ function initializeForm() {
     e.target.value = value;
   });
   
+  // NEW: PCP Phone formatting
+  document.getElementById('pcpPhone')?.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 0) {
+      if (value.length <= 3) {
+        value = '(' + value;
+      } else if (value.length <= 6) {
+        value = '(' + value.slice(0, 3) + ') ' + value.slice(3);
+      } else {
+        value = '(' + value.slice(0, 3) + ') ' + value.slice(3, 6) + '-' + value.slice(6, 10);
+      }
+    }
+    e.target.value = value;
+  });
+  
   // ============================================
   // DATE OF BIRTH AUTO-FORMATTING
   // ============================================
@@ -1571,7 +1689,8 @@ function initializeForm() {
       { id: 'state', error: 'stateError' },
       { id: 'country', error: 'countryError' },
       { id: 'postalCode', error: 'postalCodeError' },
-      { id: 'whatBringsYou', error: 'whatBringsYouError' }
+      { id: 'whatBringsYou', error: 'whatBringsYouError' },
+      { id: 'howHeardAboutUs', error: 'howHeardAboutUsError' }  // NEW FIELD
     ];
     
     requiredFields.forEach(field => {
@@ -1612,7 +1731,9 @@ function initializeForm() {
       { name: 'injured', error: 'injuredError' },
       { name: 'onMedications', error: 'onMedicationsError' },
       { name: 'hasAllergies', error: 'hasAllergiesError' },
-      { name: 'consent', error: 'consentError' }
+      { name: 'consent', error: 'consentError' },
+      { name: 'hasPCP', error: 'hasPCPError' },  // NEW FIELD
+      { name: 'recentHospitalization', error: 'recentHospitalizationError' }  // NEW FIELD
     ];
     
     radioGroups.forEach(group => {
@@ -1655,6 +1776,34 @@ function initializeForm() {
       } else {
         injuryLocation.classList.remove('error');
         document.getElementById('injuryLocationError').classList.remove('visible');
+      }
+    }
+    
+    // NEW: Validate PCP name if hasPCP is Yes
+    const hasPCP = document.querySelector('input[name="hasPCP"]:checked');
+    if (hasPCP && hasPCP.value === 'Yes') {
+      const pcpName = document.getElementById('pcpName');
+      if (!pcpName.value.trim()) {
+        pcpName.classList.add('error');
+        document.getElementById('pcpNameError').classList.add('visible');
+        isValid = false;
+      } else {
+        pcpName.classList.remove('error');
+        document.getElementById('pcpNameError').classList.remove('visible');
+      }
+    }
+    
+    // NEW: Validate hospitalization reason if recentHospitalization is Yes
+    const recentHosp = document.querySelector('input[name="recentHospitalization"]:checked');
+    if (recentHosp && recentHosp.value === 'Yes') {
+      const hospReason = document.getElementById('hospitalizationReason');
+      if (!hospReason.value.trim()) {
+        hospReason.classList.add('error');
+        document.getElementById('hospitalizationReasonError').classList.add('visible');
+        isValid = false;
+      } else {
+        hospReason.classList.remove('error');
+        document.getElementById('hospitalizationReasonError').classList.remove('visible');
       }
     }
     
@@ -1779,11 +1928,21 @@ function initializeForm() {
       state: getValue('state'),
       country: getValue('country'),
       postalCode: getValue('postalCode'),
+      // NEW FIELD
+      howHeardAboutUs: getValue('howHeardAboutUs'),
       whatBringsYou: getValue('whatBringsYou'),
       injured: getRadio('injured'),
       injuryDescription: getValue('injuryDescription'),
       injuryLocation: getValue('injuryLocation'),
       injuryDate: getValue('injuryDate'),
+      // NEW FIELDS - Primary Care Physician
+      hasPCP: getRadio('hasPCP'),
+      pcpName: getValue('pcpName'),
+      pcpPractice: getValue('pcpPractice'),
+      pcpPhone: getValue('pcpPhone'),
+      // NEW FIELDS - Recent Hospitalization
+      recentHospitalization: getRadio('recentHospitalization'),
+      hospitalizationReason: getValue('hospitalizationReason'),
       conditions: conditions,
       medicalHistory: medicalHistory,
       onHRT: getRadio('onHRT'),
@@ -1883,6 +2042,8 @@ function initializeForm() {
     addLabelValue('Date of Birth: ', formData.dateOfBirth);
     addLabelValue('Email: ', formData.email);
     addLabelValue('Phone: ', formData.phone);
+    // NEW FIELD
+    addLabelValue('How Heard About Us: ', formData.howHeardAboutUs);
     
     // Address
     addSectionHeader('ADDRESS');
@@ -1902,6 +2063,21 @@ function initializeForm() {
     
     // Medical History
     addSectionHeader('MEDICAL HISTORY');
+    
+    // NEW FIELDS - Primary Care Physician
+    addLabelValue('Has Primary Care Physician: ', formData.hasPCP);
+    if (formData.hasPCP === 'Yes') {
+      addLabelValue('PCP Name: ', formData.pcpName);
+      if (formData.pcpPractice) addLabelValue('PCP Practice: ', formData.pcpPractice);
+      if (formData.pcpPhone) addLabelValue('PCP Phone: ', formData.pcpPhone);
+    }
+    
+    // NEW FIELDS - Recent Hospitalization
+    addLabelValue('Hospitalized in Past Year: ', formData.recentHospitalization);
+    if (formData.recentHospitalization === 'Yes') {
+      addLabelValue('Hospitalization Reason: ', formData.hospitalizationReason);
+    }
+    
     if (formData.medicalHistory) {
       const conditionOrder = ['hypertension', 'highCholesterol', 'heartDisease', 
                               'diabetes', 'thyroid', 'depression', 
@@ -1998,11 +2174,21 @@ function initializeForm() {
       photoIdUrl: formData.photoIdUrl,
       // Intake data for notes - using actual form fields
       intakeData: {
+        // NEW FIELD
+        howHeardAboutUs: formData.howHeardAboutUs || '',
         whatBringsYou: formData.whatBringsYou || '',
         injured: formData.injured || '',
         injuryDescription: formData.injuryDescription || '',
         conditions: formData.conditions || '',
         medicalHistory: formData.medicalHistory || null,
+        // NEW FIELDS - Primary Care Physician
+        hasPCP: formData.hasPCP || '',
+        pcpName: formData.pcpName || '',
+        pcpPractice: formData.pcpPractice || '',
+        pcpPhone: formData.pcpPhone || '',
+        // NEW FIELDS - Recent Hospitalization
+        recentHospitalization: formData.recentHospitalization || '',
+        hospitalizationReason: formData.hospitalizationReason || '',
         onHRT: formData.onHRT || '',
         hrtDetails: formData.hrtDetails || '',
         onMedications: formData.onMedications || '',
@@ -2055,6 +2241,7 @@ NEW PATIENT INTAKE FORM SUBMISSION
 Name: ${formData.firstName} ${formData.lastName}
 Email: ${formData.email}
 Phone: ${formData.phone}
+How They Heard About Us: ${formData.howHeardAboutUs}
 Submitted: ${formData.submissionDate}
 ==================================
 PDF intake form is attached to this email.

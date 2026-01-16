@@ -340,9 +340,15 @@ function NewEntryModal({ category, onClose, onSave }) {
         setError('Please select a dosage');
         return;
       }
-      if (entryType === 'pickup' && !pickupQty) {
-        setError('Please select pickup quantity');
-        return;
+      if (entryType === 'pickup') {
+        if (!pickupQty) {
+          setError('Please select pickup quantity');
+          return;
+        }
+        if (pickupType === 'prefilled' && !dosage) {
+          setError('Please select dose per syringe');
+          return;
+        }
       }
     } else if (category === 'weight_loss') {
       if (!medication || !dosage) {
@@ -372,8 +378,10 @@ function NewEntryModal({ category, onClose, onSave }) {
         medication: category === 'testosterone' 
           ? `${hrtType === 'male' ? 'Male' : 'Female'} HRT`
           : medication,
-        dosage: entryType === 'pickup' && category === 'testosterone'
-          ? `${pickupQty} ${pickupType === 'prefilled' ? 'Prefilled Syringes' : 'Vials'}`
+        dosage: category === 'testosterone' && entryType === 'pickup'
+          ? pickupType === 'vial'
+            ? `${pickupQty} vial${pickupQty > 1 ? 's' : ''} (10mL @ ${hrtType === 'male' ? '200mg/ml' : '100mg/ml'})`
+            : `${pickupQty} prefilled @ ${dosage}`
           : entryType === 'pickup' && category === 'weight_loss'
           ? `${weekSupply} week supply`
           : dosage,
@@ -540,24 +548,59 @@ function NewEntryModal({ category, onClose, onSave }) {
                       <option value="vial">Vials</option>
                     </select>
                   </div>
-                  <div style={modalStyles.field}>
-                    <label style={modalStyles.label}>Quantity *</label>
-                    <select
-                      value={pickupQty}
-                      onChange={(e) => setPickupQty(e.target.value)}
-                      style={modalStyles.select}
-                    >
-                      <option value="">Select quantity...</option>
-                      {pickupType === 'prefilled' 
-                        ? [4, 8, 12, 16, 20, 24].map(n => (
-                            <option key={n} value={n}>{n} syringes</option>
-                          ))
-                        : [1, 2, 3].map(n => (
+                  
+                  {pickupType === 'vial' ? (
+                    <>
+                      <div style={modalStyles.field}>
+                        <label style={modalStyles.label}>Vial Size</label>
+                        <div style={modalStyles.infoBox}>
+                          10mL vial @ {hrtType === 'male' ? '200mg/ml' : '100mg/ml'}
+                        </div>
+                      </div>
+                      <div style={modalStyles.field}>
+                        <label style={modalStyles.label}>Quantity *</label>
+                        <select
+                          value={pickupQty}
+                          onChange={(e) => setPickupQty(e.target.value)}
+                          style={modalStyles.select}
+                        >
+                          <option value="">Select quantity...</option>
+                          {[1, 2, 3].map(n => (
                             <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>
-                          ))
-                      }
-                    </select>
-                  </div>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={modalStyles.field}>
+                        <label style={modalStyles.label}>Dose per Syringe *</label>
+                        <select
+                          value={dosage}
+                          onChange={(e) => setDosage(e.target.value)}
+                          style={modalStyles.select}
+                        >
+                          <option value="">Select dose...</option>
+                          {TESTOSTERONE_DOSES.map(d => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={modalStyles.field}>
+                        <label style={modalStyles.label}>Quantity *</label>
+                        <select
+                          value={pickupQty}
+                          onChange={(e) => setPickupQty(e.target.value)}
+                          style={modalStyles.select}
+                        >
+                          <option value="">Select quantity...</option>
+                          {[4, 8, 12, 16, 20, 24].map(n => (
+                            <option key={n} value={n}>{n} syringes</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </>
@@ -971,6 +1014,14 @@ const modalStyles = {
     cursor: 'pointer',
     borderBottom: '1px solid #f3f4f6',
     transition: 'background 0.15s'
+  },
+  infoBox: {
+    padding: '12px 14px',
+    background: '#f3f4f6',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151'
   },
   radioGroup: {
     display: 'flex',

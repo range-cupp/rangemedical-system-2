@@ -1,6 +1,6 @@
 // pages/api/patients/[id].js
-// Fetch single patient with their protocols
-// Deploy to: pages/api/patients/[id].js
+// Patient Profile API - Range Medical
+// Fetches patient details, protocols, labs, and purchases
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -12,71 +12,170 @@ const supabase = createClient(
 export default async function handler(req, res) {
   const { id } = req.query;
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (!id) {
+    return res.status(400).json({ error: 'Patient ID required' });
   }
 
-  try {
-    // Fetch patient
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('id', id)
-      .single();
+  if (req.method === 'GET') {
+    try {
+      // Get patient details
+      const { data: patient, error: patientError } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (patientError) {
-      console.error('Patient fetch error:', patientError);
-      return res.status(404).json({ error: 'Patient not found' });
-    }
+      if (patientError || !patient) {
+        console.error('Patient not found:', patientError);
+        return res.status(404).json({ error: 'Patient not found' });
+      }
 
-    // Fetch protocols for this patient with calculated fields
-    const { data: protocols, error: protocolsError } = await supabase
-      .from('protocols')
-      .select('*')
-      .eq('patient_id', id)
-      .order('created_at', { ascending: false });
+      // Get ALL protocols for this patient first (for debugging)
+      const { data: allProtocols, error: allProtocolsError } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('patient_id', id);
 
-    if (protocolsError) {
-      console.error('Protocols fetch error:', protocolsError);
-    }
+      if (allProtocolsError) {
+        console.error('Error fetching all protocols:', allProtocolsError);
+      }
 
-    // Add calculated fields to protocols
-    const protocolsWithCalcs = (protocols || []).map(p => {
-      let days_remaining = null;
-      let duration_days = null;
+      console.log(`Patient ${id} has ${allProtocols?.length || 0} total protocols`);
+
+      // Get active protocols (status != 'completed')
+      const { data: activeProtocols, error: activeError } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('patient_id', id)
+        .neq('status', 'completed')
+        .order('start_date', { ascending: false });
+
+      if (activeError) {
+        console.error('Error fetching active protocols:', activeError);
+      }
+
+      // Get completed protocols
+      const { data: completedProtocols, error: completedError } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('patient_id', id)
+        .eq('status', 'completed')
+        .order('end_date', { ascending: false });
+
+      if (completedError) {
+        console.error('Error fetching completed protocols:', completedError);
+      }
+
+      // Calculate days remaining for active protocols
+      const today = new Date();
+      const formattedActive = (activeProtocols || []).map(protocol => {
+        let daysRemaining = null;
+        if (protocol.end_date) {
+          const endDate = new Date(protocol.end_date);
+          daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+        }
+        return {
+          ...protocol,
+          days_remaining: daysRemaining
+        };
+      });
+
+      // Get pending lab orders
+      const { data: pendingLabOrders } = await supabase
+        .from('lab_orders')
+        .select('*')
+        .eq('patient_id', id)
+        .eq('status', 'pending')
+        .order('order_date', { ascending: false });
+
+      // Get lab results
+      const { data: labs } = await supabase
+        .from('patient_labs')
+        .select('*')
+        .eq('patient_id', id)
+        .order('collection_date', { ascending: false });
+
+      // Get pending purchases (needs protocol assignment)
+      // Try both patient_id and ghl_contact_id
+      let pendingNotifications = [];
       
-      if (p.end_date) {
-        const end = new Date(p.end_date);
-        const today = new Date();
-        days_remaining = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-      }
-      
-      if (p.start_date && p.end_date) {
-        const start = new Date(p.start_date);
-        const end = new Date(p.end_date);
-        duration_days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      // First try by patient_id
+      const { data: purchasesByPatientId } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('patient_id', id)
+        .eq('protocol_created', false)
+        .eq('dismissed', false)
+        .order('purchase_date', { ascending: false });
+
+      if (purchasesByPatientId && purchasesByPatientId.length > 0) {
+        pendingNotifications = purchasesByPatientId;
+      } else if (patient.ghl_contact_id) {
+        // Fall back to ghl_contact_id
+        const { data: purchasesByGhl } = await supabase
+          .from('purchases')
+          .select('*')
+          .eq('ghl_contact_id', patient.ghl_contact_id)
+          .eq('protocol_created', false)
+          .eq('dismissed', false)
+          .order('purchase_date', { ascending: false });
+        
+        pendingNotifications = purchasesByGhl || [];
       }
 
-      let sessions_remaining = null;
-      if (p.total_sessions !== null && p.sessions_used !== null) {
-        sessions_remaining = p.total_sessions - p.sessions_used;
-      }
-
-      return {
-        ...p,
-        days_remaining,
-        duration_days,
-        sessions_remaining
+      // Calculate stats
+      const stats = {
+        activeCount: formattedActive?.length || 0,
+        completedCount: completedProtocols?.length || 0,
+        pendingLabsCount: pendingLabOrders?.length || 0,
+        totalProtocols: allProtocols?.length || 0
       };
-    });
 
-    return res.status(200).json({
-      patient,
-      protocols: protocolsWithCalcs
-    });
+      console.log('Returning:', {
+        patientId: id,
+        patientName: patient.name,
+        activeProtocols: formattedActive?.length || 0,
+        completedProtocols: completedProtocols?.length || 0,
+        totalInDb: allProtocols?.length || 0
+      });
 
-  } catch (error) {
-    console.error('API error:', error);
-    return res.status(500).json({ error: 'Server error', details: error.message });
+      return res.status(200).json({
+        patient,
+        activeProtocols: formattedActive || [],
+        completedProtocols: completedProtocols || [],
+        pendingNotifications: pendingNotifications || [],
+        pendingLabOrders: pendingLabOrders || [],
+        labs: labs || [],
+        stats
+      });
+
+    } catch (error) {
+      console.error('Patient API error:', error);
+      return res.status(500).json({ error: 'Server error', details: error.message });
+    }
   }
+
+  // Handle PATCH for updating patient
+  if (req.method === 'PATCH') {
+    try {
+      const updates = req.body;
+      
+      const { data, error } = await supabase
+        .from('patients')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({ error: 'Failed to update patient' });
+      }
+
+      return res.status(200).json({ patient: data });
+    } catch (error) {
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
 }

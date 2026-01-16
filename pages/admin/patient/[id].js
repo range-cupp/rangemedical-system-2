@@ -1,11 +1,54 @@
 // /pages/admin/patient/[id].js
 // Patient Profile Page - Range Medical
-// Includes: Protocols, Labs, Forms/Consents, Purchase History
+// Updated with consistent tracking display matching pipeline
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+
+// Helper to get protocol type display
+const getProtocolDisplay = (protocol) => {
+  const type = (protocol.program_type || '').toLowerCase();
+  if (type.includes('weight') || type.includes('wl') || type.includes('glp')) {
+    return { icon: '💉', label: 'Weight Loss', color: '#f59e0b' };
+  }
+  if (type.includes('hrt') || type.includes('testosterone') || type.includes('hormone')) {
+    return { icon: '💊', label: 'HRT', color: '#8b5cf6' };
+  }
+  if (type.includes('peptide') || type.includes('bpc') || type.includes('recovery')) {
+    return { icon: '🧬', label: 'Peptide', color: '#10b981' };
+  }
+  if (type.includes('iv')) {
+    return { icon: '💧', label: 'IV', color: '#06b6d4' };
+  }
+  if (type.includes('hbot')) {
+    return { icon: '🫁', label: 'HBOT', color: '#6366f1' };
+  }
+  if (type.includes('rlt') || type.includes('red') || type.includes('light')) {
+    return { icon: '🔴', label: 'RLT', color: '#ef4444' };
+  }
+  return { icon: '📋', label: 'Protocol', color: '#64748b' };
+};
+
+// Get urgency styling
+const getUrgencyStyle = (protocol) => {
+  const days = protocol.days_remaining;
+  const sessions = protocol.sessions_remaining;
+  
+  if (sessions !== undefined && sessions !== null) {
+    if (sessions <= 0) return { bg: '#dcfce7', color: '#166534' };
+    if (sessions <= 1) return { bg: '#fef2f2', color: '#dc2626' };
+    if (sessions <= 2) return { bg: '#fffbeb', color: '#d97706' };
+    return null;
+  }
+  
+  if (days === null || days === undefined) return null;
+  if (days <= 0) return { bg: '#fef2f2', color: '#dc2626' };
+  if (days <= 3) return { bg: '#fef2f2', color: '#dc2626' };
+  if (days <= 7) return { bg: '#fffbeb', color: '#d97706' };
+  return null;
+};
 
 export default function PatientProfile() {
   const router = useRouter();
@@ -32,11 +75,6 @@ export default function PatientProfile() {
     notes: ''
   });
   const fileInputRef = useRef(null);
-  
-  // Edit protocol state
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedProtocol, setSelectedProtocol] = useState(null);
-  const [editForm, setEditForm] = useState({});
 
   // Purchase management state
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -54,7 +92,6 @@ export default function PatientProfile() {
 
   const PURCHASE_CATEGORIES = ['Peptide', 'IV', 'Injection', 'Weight Loss', 'HRT', 'Labs', 'Red Light', 'HBOT', 'Other'];
 
-  // Helper to get full PDF URL from file_path
   const getPdfUrl = (doc) => {
     if (doc.file_url) return doc.file_url;
     if (doc.file_path) {
@@ -120,7 +157,6 @@ export default function PatientProfile() {
 
     setUploading(true);
     try {
-      // Convert file to base64
       const reader = new FileReader();
       const fileData = await new Promise((resolve, reject) => {
         reader.onload = () => resolve(reader.result);
@@ -214,7 +250,7 @@ export default function PatientProfile() {
     }
   };
 
-  // Purchase management handlers
+  // Purchase handlers
   const openAddPurchase = () => {
     setEditingPurchase(null);
     setPurchaseForm({
@@ -245,7 +281,6 @@ export default function PatientProfile() {
 
     try {
       if (editingPurchase) {
-        // Update existing purchase
         const res = await fetch(`/api/purchases/${editingPurchase.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -265,7 +300,6 @@ export default function PatientProfile() {
           alert('Failed to update purchase');
         }
       } else {
-        // Create new purchase
         const res = await fetch('/api/purchases', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -337,6 +371,39 @@ export default function PatientProfile() {
     });
   };
 
+  // Format status text for display - matches pipeline logic
+  const getStatusDisplay = (protocol) => {
+    // Use status_text from API if available
+    if (protocol.status_text) {
+      return protocol.status_text;
+    }
+    
+    // Fallback display logic
+    if (protocol.sessions_remaining !== undefined && protocol.sessions_remaining !== null) {
+      return `${protocol.sessions_remaining} sessions left`;
+    }
+    
+    if (protocol.days_remaining !== null && protocol.days_remaining !== undefined) {
+      if (protocol.days_remaining <= 0) return 'Ended';
+      if (protocol.days_remaining > 14) {
+        const weeks = Math.floor(protocol.days_remaining / 7);
+        return `~${weeks} weeks left`;
+      }
+      return `${protocol.days_remaining} days left`;
+    }
+    
+    return 'Active';
+  };
+
+  // Format delivery method
+  const formatDelivery = (method) => {
+    if (!method) return '';
+    const m = method.toLowerCase();
+    if (m.includes('take') || m.includes('home')) return 'Take Home';
+    if (m.includes('clinic')) return 'In Clinic';
+    return method;
+  };
+
   if (loading) {
     return <div style={styles.loading}>Loading patient profile...</div>;
   }
@@ -348,7 +415,7 @@ export default function PatientProfile() {
   return (
     <>
       <Head>
-        <title>{patient.first_name} {patient.last_name} | Range Medical</title>
+        <title>{patient.first_name || patient.name} {patient.last_name || ''} | Range Medical</title>
         <style>{`
           @keyframes slideIn {
             from { transform: translateX(100%); }
@@ -361,7 +428,7 @@ export default function PatientProfile() {
         {/* Header */}
         <div style={styles.header}>
           <Link href="/admin/pipeline" style={styles.backLink}>← Back to Pipeline</Link>
-          <h1 style={styles.title}>{patient.first_name} {patient.last_name}</h1>
+          <h1 style={styles.title}>{patient.first_name || patient.name} {patient.last_name || ''}</h1>
           <div style={styles.patientMeta}>
             {patient.email && <span>{patient.email}</span>}
             {patient.phone && <span> • {patient.phone}</span>}
@@ -388,7 +455,7 @@ export default function PatientProfile() {
           </div>
         </div>
 
-        {/* Active Protocols Section */}
+        {/* Active Protocols Section - Updated to match Pipeline */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Active Protocols</h2>
           {activeProtocols.length === 0 ? (
@@ -396,55 +463,83 @@ export default function PatientProfile() {
           ) : (
             <div style={styles.protocolList}>
               {activeProtocols.map(protocol => {
-                const isWeightLoss = protocol.program_name?.toLowerCase().includes('weight');
-                const sessionsUsed = protocol.sessions_used || 0;
-                const daysSinceStart = protocol.start_date
-                  ? Math.ceil((new Date() - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24))
-                  : 0;
-                const expectedInjections = Math.floor(daysSinceStart / 7) + 1;
-                const injectionDue = isWeightLoss && protocol.total_sessions && sessionsUsed < expectedInjections && sessionsUsed < protocol.total_sessions;
-                const isTitrationTime = isWeightLoss && sessionsUsed === 3;
+                const display = getProtocolDisplay(protocol);
+                const urgency = getUrgencyStyle(protocol);
+                const statusText = getStatusDisplay(protocol);
                 
                 return (
                   <Link key={protocol.id} href={`/admin/protocol/${protocol.id}`} style={{ textDecoration: 'none' }}>
                     <div style={{...styles.protocolCard, cursor: 'pointer'}}>
                       <div style={styles.protocolHeader}>
-                        <span style={styles.protocolName}>
-                          {protocol.medication || protocol.program_name}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{
+                            fontSize: '20px',
+                            width: '36px',
+                            height: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '8px',
+                            backgroundColor: `${display.color}15`
+                          }}>
+                            {display.icon}
+                          </span>
+                          <span style={styles.protocolName}>
+                            {protocol.medication || protocol.program_name}
+                          </span>
+                        </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {injectionDue && (
-                            <span style={{padding: '2px 8px', background: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
-                              💉 Due
-                            </span>
-                          )}
-                          {isTitrationTime && (
-                            <span style={{padding: '2px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '11px', fontWeight: '600'}}>
-                              ⚠️ Titrate
+                          {urgency && (
+                            <span style={{
+                              padding: '3px 10px',
+                              background: urgency.bg,
+                              color: urgency.color,
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}>
+                              {protocol.days_remaining <= 0 ? 'Refill Due' : 
+                               protocol.days_remaining <= 7 ? `${protocol.days_remaining}d left` : ''}
                             </span>
                           )}
                           <span style={styles.statusBadge}>Active</span>
                         </div>
                       </div>
+                      
                       <div style={styles.protocolDetails}>
                         {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
                         {protocol.frequency && <span> • {protocol.frequency}</span>}
                       </div>
+                      
+                      {/* Info badges - matching pipeline */}
+                      <div style={styles.badgeRow}>
+                        {protocol.delivery_method && (
+                          <span style={styles.infoBadge}>
+                            {formatDelivery(protocol.delivery_method)}
+                          </span>
+                        )}
+                        {protocol.supply_type && (
+                          <span style={styles.infoBadge}>
+                            {protocol.supply_type}
+                          </span>
+                        )}
+                      </div>
+                      
                       <div style={styles.protocolMeta}>
-                        {protocol.start_date && <span>Started {formatDate(protocol.start_date)}</span>}
-                        {protocol.days_remaining !== null && (
-                          <span style={{
-                            marginLeft: '12px',
-                            color: protocol.days_remaining <= 3 ? '#dc2626' : '#666'
-                          }}>
-                            {protocol.days_remaining} days left
-                          </span>
-                        )}
-                        {protocol.total_sessions && (
-                          <span style={{ marginLeft: '12px' }}>
-                            {protocol.sessions_used || 0}/{protocol.total_sessions} {isWeightLoss ? 'injections' : 'sessions'}
-                          </span>
-                        )}
+                        <span>
+                          {protocol.last_refill_date 
+                            ? `Last refill ${formatDate(protocol.last_refill_date)}`
+                            : protocol.start_date 
+                              ? `Started ${formatDate(protocol.start_date)}`
+                              : ''
+                          }
+                        </span>
+                        <span style={{
+                          fontWeight: '600',
+                          color: urgency ? urgency.color : '#0f172a'
+                        }}>
+                          {statusText}
+                        </span>
                       </div>
                     </div>
                   </Link>
@@ -539,29 +634,44 @@ export default function PatientProfile() {
             <div style={styles.emptyState}>No completed protocols</div>
           ) : (
             <div style={styles.protocolList}>
-              {completedProtocols.map(protocol => (
-                <div key={protocol.id} style={{...styles.protocolCard, opacity: 0.7}}>
-                  <div style={styles.protocolHeader}>
-                    <span style={styles.protocolName}>
-                      {protocol.medication || protocol.program_name}
-                    </span>
-                    <span style={{...styles.statusBadge, background: '#9ca3af'}}>Completed</span>
+              {completedProtocols.map(protocol => {
+                const display = getProtocolDisplay(protocol);
+                return (
+                  <div key={protocol.id} style={{...styles.protocolCard, opacity: 0.7}}>
+                    <div style={styles.protocolHeader}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{
+                          fontSize: '20px',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '8px',
+                          backgroundColor: '#f1f5f9'
+                        }}>
+                          {display.icon}
+                        </span>
+                        <span style={styles.protocolName}>
+                          {protocol.medication || protocol.program_name}
+                        </span>
+                      </div>
+                      <span style={{...styles.statusBadge, background: '#9ca3af'}}>Completed</span>
+                    </div>
+                    <div style={styles.protocolDetails}>
+                      {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                    </div>
+                    <div style={styles.protocolMeta}>
+                      {formatDate(protocol.start_date)} → {formatDate(protocol.end_date)}
+                    </div>
                   </div>
-                  <div style={styles.protocolDetails}>
-                    {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
-                    {protocol.frequency && <span> • {protocol.frequency}</span>}
-                  </div>
-                  <div style={styles.protocolMeta}>
-                    {formatDate(protocol.start_date)} → {formatDate(protocol.end_date)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Purchase History Section */}
-        {/* Pending Purchases Section - Always show with add button */}
+        {/* Pending Purchases Section */}
         <div style={styles.section}>
           <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>Pending Purchases</h2>
@@ -870,7 +980,8 @@ const styles = {
     padding: '8px 16px',
     borderRadius: '6px',
     fontSize: '14px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    fontWeight: '500'
   },
   subsection: {
     marginBottom: '20px'
@@ -897,7 +1008,7 @@ const styles = {
   protocolCard: {
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '12px',
     padding: '16px'
   },
   protocolHeader: {
@@ -913,7 +1024,7 @@ const styles = {
   statusBadge: {
     background: '#22c55e',
     color: '#fff',
-    padding: '4px 10px',
+    padding: '4px 12px',
     borderRadius: '12px',
     fontSize: '12px',
     fontWeight: '500'
@@ -921,11 +1032,27 @@ const styles = {
   protocolDetails: {
     fontSize: '14px',
     color: '#374151',
-    marginBottom: '4px'
+    marginBottom: '8px'
+  },
+  badgeRow: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '8px',
+    flexWrap: 'wrap'
+  },
+  infoBadge: {
+    padding: '3px 10px',
+    backgroundColor: '#f1f5f9',
+    borderRadius: '4px',
+    fontSize: '12px',
+    color: '#475569'
   },
   protocolMeta: {
     fontSize: '13px',
-    color: '#9ca3af'
+    color: '#64748b',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   labOrderCard: {
     display: 'flex',
@@ -949,14 +1076,6 @@ const styles = {
   labOrderDate: {
     fontSize: '13px',
     color: '#92400e'
-  },
-  pendingBadge: {
-    background: '#fcd34d',
-    color: '#92400e',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500'
   },
   labOrderActions: {
     display: 'flex',
@@ -1065,14 +1184,6 @@ const styles = {
     fontSize: '13px',
     color: '#666'
   },
-  needsProtocolBadge: {
-    background: '#fef3c7',
-    color: '#92400e',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500'
-  },
   purchaseActions: {
     display: 'flex',
     gap: '8px',
@@ -1131,7 +1242,6 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '500'
   },
-  // Modal styles
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -1221,7 +1331,6 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px'
   },
-  // PDF Slide Panel Styles
   pdfOverlay: {
     position: 'fixed',
     top: 0,

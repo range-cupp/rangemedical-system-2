@@ -82,7 +82,7 @@ export default function PatientProfile() {
 
   const fetchPatientData = async () => {
     try {
-      const res = await fetch((`/api/patients/${id}`);
+      const res = await fetch(`/api/patients/${id}`);
       if (!res.ok) throw new Error('Failed to fetch patient');
       const data = await res.json();
       
@@ -102,7 +102,7 @@ export default function PatientProfile() {
 
   const fetchLabDocuments = async () => {
     try {
-      const res = await fetch((`/api/patients/${id}/lab-documents`);
+      const res = await fetch(`/api/patients/${id}/lab-documents`);
       if (res.ok) {
         const data = await res.json();
         setLabDocuments(data.documents || []);
@@ -128,7 +128,7 @@ export default function PatientProfile() {
         reader.readAsDataURL(uploadForm.file);
       });
 
-      const res = await fetch((`/api/patients/${id}/upload-lab`, {
+      const res = await fetch(`/api/patients/${id}/upload-lab`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,7 +170,7 @@ export default function PatientProfile() {
     if (!confirm('Delete this lab document?')) return;
     
     try {
-      const res = await fetch((`/api/patients/${id}/lab-documents`, {
+      const res = await fetch(`/api/patients/${id}/lab-documents`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: docId })
@@ -187,7 +187,7 @@ export default function PatientProfile() {
     if (!confirm('Delete this lab order?')) return;
     
     try {
-      const res = await fetch((`/api/lab-orders/${orderId}`, {
+      const res = await fetch(`/api/lab-orders/${orderId}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -200,7 +200,7 @@ export default function PatientProfile() {
 
   const handleMarkLabComplete = async (orderId) => {
     try {
-      const res = await fetch((`/api/lab-orders/${orderId}`, {
+      const res = await fetch(`/api/lab-orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'completed' })
@@ -246,7 +246,7 @@ export default function PatientProfile() {
     try {
       if (editingPurchase) {
         // Update existing purchase
-        const res = await fetch((`/api/purchases/${editingPurchase.id}`, {
+        const res = await fetch(`/api/purchases/${editingPurchase.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -300,7 +300,7 @@ export default function PatientProfile() {
     if (!confirm('Delete this purchase?')) return;
 
     try {
-      const res = await fetch((`/api/purchases/${purchaseId}`, {
+      const res = await fetch(`/api/purchases/${purchaseId}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -315,7 +315,7 @@ export default function PatientProfile() {
 
   const handleDismissPurchase = async (purchaseId) => {
     try {
-      const res = await fetch((`/api/purchases/${purchaseId}`, {
+      const res = await fetch(`/api/purchases/${purchaseId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dismissed: true })
@@ -1073,22 +1073,6 @@ const styles = {
     fontSize: '12px',
     fontWeight: '500'
   },
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px'
-  },
-  addButton: {
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    padding: '8px 14px',
-    borderRadius: '6px',
-    fontSize: '13px',
-    cursor: 'pointer',
-    fontWeight: '500'
-  },
   purchaseActions: {
     display: 'flex',
     gap: '8px',
@@ -1121,14 +1105,6 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '600'
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '24px',
-    color: '#9ca3af',
-    background: '#f9fafb',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb'
   },
   modalFooter: {
     display: 'flex',
@@ -1235,14 +1211,6 @@ const styles = {
     gap: '12px',
     justifyContent: 'flex-end',
     marginTop: '24px'
-  },
-  cancelButton: {
-    padding: '10px 20px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: '14px'
   },
   submitButton: {
     padding: '10px 20px',

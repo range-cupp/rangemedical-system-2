@@ -20,9 +20,14 @@ const TESTOSTERONE_DOSES = [
 ];
 
 const WEIGHT_LOSS_MEDS = [
-  { value: 'semaglutide', label: 'Semaglutide', doses: ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'] },
-  { value: 'tirzepatide', label: 'Tirzepatide', doses: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'] },
-  { value: 'retatrutide', label: 'Retatrutide', doses: ['1mg', '2mg', '4mg', '8mg', '12mg'] }
+  { value: 'semaglutide', label: 'Semaglutide' },
+  { value: 'tirzepatide', label: 'Tirzepatide' },
+  { value: 'retatrutide', label: 'Retatrutide' }
+];
+
+const WEIGHT_LOSS_DOSES = [
+  '1mg', '2mg', '3mg', '4mg', '5mg', '6mg', '7mg', '8mg', 
+  '9mg', '10mg', '11mg', '12mg', '13mg', '14mg', '15mg'
 ];
 
 const VITAMIN_TYPES = [
@@ -622,10 +627,7 @@ function NewEntryModal({ category, onClose, onSave }) {
                 <label style={modalStyles.label}>Medication *</label>
                 <select
                   value={medication}
-                  onChange={(e) => {
-                    setMedication(e.target.value);
-                    setDosage('');
-                  }}
+                  onChange={(e) => setMedication(e.target.value)}
                   style={modalStyles.select}
                 >
                   <option value="">Select medication...</option>
@@ -641,10 +643,9 @@ function NewEntryModal({ category, onClose, onSave }) {
                   value={dosage}
                   onChange={(e) => setDosage(e.target.value)}
                   style={modalStyles.select}
-                  disabled={!medication}
                 >
                   <option value="">Select dosage...</option>
-                  {(WEIGHT_LOSS_MEDS.find(m => m.value === medication)?.doses || []).map(d => (
+                  {WEIGHT_LOSS_DOSES.map(d => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>

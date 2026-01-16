@@ -20,19 +20,38 @@ function calculateRemaining(protocol) {
   const isHRT = programType.includes('hrt') || programType.includes('testosterone') || programType.includes('hormone');
   const isPeptide = programType.includes('peptide') || programType.includes('bpc') || programType.includes('recovery');
   const isTakeHome = deliveryMethod.includes('take') || deliveryMethod.includes('home');
+  const isInClinic = deliveryMethod.includes('clinic');
 
   // ===== WEIGHT LOSS =====
-  if (isWeightLoss && isTakeHome) {
-    const totalInjections = protocol.total_sessions || 4;
-    const supplyDays = totalInjections * 7;
-    
-    if (protocol.start_date) {
-      const startDate = new Date(protocol.start_date + 'T00:00:00');
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + supplyDays);
-      const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+  if (isWeightLoss) {
+    if (isTakeHome) {
+      // Take-home: track by time (total_sessions × 7 days from last_refill_date or start_date)
+      const totalInjections = protocol.total_sessions || 4;
+      const supplyDays = totalInjections * 7;
+      const trackingDate = protocol.last_refill_date || protocol.start_date;
       
-      return { days_remaining: daysRemaining, total_days: supplyDays };
+      if (trackingDate) {
+        const startDate = new Date(trackingDate + 'T00:00:00');
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + supplyDays);
+        const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+        
+        let statusText = daysRemaining <= 0 ? 'Supply exhausted' :
+                         daysRemaining <= 3 ? `${daysRemaining}d - Refill soon` :
+                         daysRemaining <= 14 ? `${daysRemaining} days left` :
+                         `~${Math.floor(daysRemaining / 7)} weeks left`;
+        
+        return { days_remaining: daysRemaining, total_days: supplyDays, status_text: statusText };
+      }
+    } else {
+      // In-clinic: track by sessions
+      if (protocol.total_sessions && protocol.total_sessions > 0) {
+        const sessionsUsed = protocol.sessions_used || 0;
+        const sessionsRemaining = protocol.total_sessions - sessionsUsed;
+        const statusText = sessionsRemaining <= 0 ? 'All sessions used' :
+                           `${sessionsRemaining}/${protocol.total_sessions} injections`;
+        return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
+      }
     }
   }
 
@@ -70,13 +89,22 @@ function calculateRemaining(protocol) {
         const vialDays = vialWeeks * 7;
         const daysRemaining = vialDays - daysSinceRefill;
         
-        return { days_remaining: daysRemaining, total_days: vialDays };
+        const statusText = daysRemaining <= 0 ? 'Refill overdue' :
+                           daysRemaining <= 14 ? `${daysRemaining}d - Refill soon` :
+                           `~${Math.floor(daysRemaining / 7)} weeks left`;
+        
+        return { days_remaining: daysRemaining, total_days: vialDays, status_text: statusText };
       } else {
+        // Prefilled
         const is4Week = supplyType.includes('4') || supplyType.includes('four') || supplyType.includes('month');
         const supplyDays = is4Week ? 28 : 14;
         const daysRemaining = supplyDays - daysSinceRefill;
         
-        return { days_remaining: daysRemaining, total_days: supplyDays };
+        const statusText = daysRemaining <= 0 ? 'Refill overdue' :
+                           daysRemaining <= 3 ? `${daysRemaining}d - Refill soon` :
+                           `${daysRemaining} days left`;
+        
+        return { days_remaining: daysRemaining, total_days: supplyDays, status_text: statusText };
       }
     }
   }
@@ -94,16 +122,23 @@ function calculateRemaining(protocol) {
     else if (programName.includes('20')) totalDays = 20;
     else if (programName.includes('30')) totalDays = 30;
     
-    return { days_remaining: daysRemaining, total_days: totalDays };
+    const statusText = daysRemaining <= 0 ? 'Protocol ended' :
+                       daysRemaining <= 3 ? `${daysRemaining}d left!` :
+                       `${daysRemaining} days left`;
+    
+    return { days_remaining: daysRemaining, total_days: totalDays, status_text: statusText };
   }
 
-  // ===== SESSION-BASED =====
+  // ===== SESSION-BASED (IV, HBOT, RLT) =====
   if (protocol.total_sessions && protocol.total_sessions > 0) {
-    const sessionsRemaining = protocol.total_sessions - (protocol.sessions_used || 0);
-    return { sessions_remaining: sessionsRemaining };
+    const sessionsUsed = protocol.sessions_used || 0;
+    const sessionsRemaining = protocol.total_sessions - sessionsUsed;
+    const statusText = sessionsRemaining <= 0 ? 'All sessions used' :
+                       `${sessionsRemaining}/${protocol.total_sessions} sessions`;
+    return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
   }
 
-  return { days_remaining: null };
+  return { days_remaining: null, status_text: 'Active' };
 }
 
 export default async function handler(req, res) {
@@ -150,7 +185,8 @@ export default async function handler(req, res) {
           ...protocol,
           days_remaining: tracking.days_remaining,
           total_days: tracking.total_days,
-          sessions_remaining: tracking.sessions_remaining
+          sessions_remaining: tracking.sessions_remaining,
+          status_text: tracking.status_text
         };
 
         // Determine if completed

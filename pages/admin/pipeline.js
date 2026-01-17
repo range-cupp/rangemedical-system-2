@@ -144,10 +144,11 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // Open GHL conversation (SMS)
+  // Open GHL conversation (SMS) - opens contact page where you can message
   const openGHLConversation = (ghlId) => {
     if (ghlId) {
-      window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/conversations/${ghlId}`, '_blank');
+      // Open contact detail page - conversation tab
+      window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${ghlId}`, '_blank');
     } else {
       alert('No GHL contact ID found for this patient');
     }

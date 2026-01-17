@@ -1,61 +1,153 @@
-// =====================================================
-// RANGE MEDICAL - INJECTION LOGS
 // /pages/admin/injection-logs.js
-// Searchable patient input with autocomplete
-// =====================================================
+// Injection Logs - Track injections and medication pickups
+// Range Medical
+// UPDATED: 2026-01-16 - Fixed female HRT dosages, syncs with protocols
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 
-const TESTOSTERONE_DOSES = [
-  { value: '0.3ml', label: '0.3ml (60mg)' },
-  { value: '0.4ml', label: '0.4ml (80mg)' },
-  { value: '0.5ml', label: '0.5ml (100mg)' },
-  { value: '0.6ml', label: '0.6ml (120mg)' },
-  { value: '0.7ml', label: '0.7ml (140mg)' },
-  { value: '0.8ml', label: '0.8ml (160mg)' },
-  { value: '0.9ml', label: '0.9ml (180mg)' },
-  { value: '1.0ml', label: '1.0ml (200mg)' }
+// ============================================
+// MEDICATION OPTIONS
+// ============================================
+
+const TESTOSTERONE_OPTIONS = {
+  male: {
+    label: 'Male HRT (200mg/ml)',
+    medication: 'Testosterone Cypionate 200mg/ml',
+    dosages: [
+      { value: '0.3ml/60mg', label: '0.3ml (60mg)' },
+      { value: '0.35ml/70mg', label: '0.35ml (70mg)' },
+      { value: '0.4ml/80mg', label: '0.4ml (80mg)' },
+      { value: '0.5ml/100mg', label: '0.5ml (100mg)' },
+      { value: 'custom', label: 'Custom dose' }
+    ]
+  },
+  female: {
+    label: 'Female HRT (100mg/ml)',
+    medication: 'Testosterone Cypionate 100mg/ml',
+    dosages: [
+      { value: '0.1ml/10mg', label: '0.1ml (10mg)' },
+      { value: '0.15ml/15mg', label: '0.15ml (15mg)' },
+      { value: '0.2ml/20mg', label: '0.2ml (20mg)' },
+      { value: '0.25ml/25mg', label: '0.25ml (25mg)' },
+      { value: '0.3ml/30mg', label: '0.3ml (30mg)' },
+      { value: '0.4ml/40mg', label: '0.4ml (40mg)' },
+      { value: '0.5ml/50mg', label: '0.5ml (50mg)' },
+      { value: 'custom', label: 'Custom dose' }
+    ]
+  }
+};
+
+const TESTOSTERONE_PICKUP_OPTIONS = {
+  prefilled: {
+    label: 'Prefilled Syringes',
+    quantities: [4, 8]
+  },
+  vial: {
+    label: 'Vial',
+    quantities: [1]
+  }
+};
+
+const WEIGHT_LOSS_OPTIONS = {
+  medications: [
+    { value: 'Semaglutide', label: 'Semaglutide' },
+    { value: 'Tirzepatide', label: 'Tirzepatide' },
+    { value: 'Retatrutide', label: 'Retatrutide' }
+  ],
+  dosages: {
+    Semaglutide: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'],
+    Tirzepatide: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'],
+    Retatrutide: ['1mg', '2mg', '4mg', '6mg', '8mg', '10mg', '12mg']
+  }
+};
+
+const VITAMIN_OPTIONS = [
+  { value: 'B12', label: 'B12' },
+  { value: 'B-Complex', label: 'B-Complex' },
+  { value: 'Amino Blend', label: 'Amino Blend' },
+  { value: 'Biotin', label: 'Biotin' },
+  { value: 'Vitamin D3', label: 'Vitamin D3' },
+  { value: 'Glutathione', label: 'Glutathione' },
+  { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
+  { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
+  { value: 'L-Carnitine', label: 'L-Carnitine' },
+  { value: 'Lipo-C', label: 'Lipo-C' }
 ];
 
-const WEIGHT_LOSS_MEDS = [
-  { value: 'semaglutide', label: 'Semaglutide' },
-  { value: 'tirzepatide', label: 'Tirzepatide' },
-  { value: 'retatrutide', label: 'Retatrutide' }
-];
-
-const WEIGHT_LOSS_DOSES = [
-  '1mg', '2mg', '3mg', '4mg', '5mg', '6mg', '7mg', '8mg', 
-  '9mg', '10mg', '11mg', '12mg', '13mg', '14mg', '15mg'
-];
-
-const VITAMIN_TYPES = [
-  'Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 
-  'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 
-  'NAD+ 100mg', 'NAD+ 250mg', 'NAD+ 500mg', 'Lipotropic'
-];
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 export default function InjectionLogs() {
+  const router = useRouter();
+  const { patient_id } = router.query;
+  
   const [activeTab, setActiveTab] = useState('testosterone');
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [stats, setStats] = useState({ today: 0, week: 0 });
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    patient_id: '',
+    patient_name: '',
+    log_type: 'injection',
+    category: 'testosterone',
+    hrt_type: 'male',
+    medication: '',
+    dosage: '',
+    custom_dosage: '',
+    pickup_type: 'vial',
+    quantity: 1,
+    week_supply: 4,
+    entry_date: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+  
+  // Edit mode
+  const [editingLog, setEditingLog] = useState(null);
+  
+  // Edit mode
+  const [editingLog, setEditingLog] = useState(null);
+  
+  // Patient search
+  const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [patientSearch, setPatientSearch] = useState('');
 
+  // Load logs
   useEffect(() => {
     fetchLogs();
+    fetchPatients();
   }, [activeTab]);
+
+  // Pre-select patient if passed in URL
+  useEffect(() => {
+    if (patient_id && patients.length > 0) {
+      const patient = patients.find(p => p.id === patient_id);
+      if (patient) {
+        setFormData(prev => ({
+          ...prev,
+          patient_id: patient.id,
+          patient_name: `${patient.first_name || ''} ${patient.last_name || ''}`.trim()
+        }));
+        setPatientSearch(`${patient.first_name || ''} ${patient.last_name || ''}`.trim());
+      }
+    }
+  }, [patient_id, patients]);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/injection-logs?category=${activeTab}`);
+      const res = await fetch(`/api/injection-logs?category=${activeTab}&limit=100`);
       const data = await res.json();
       if (data.success) {
         setLogs(data.logs || []);
-        setStats(data.stats || { today: 0, week: 0 });
       }
     } catch (err) {
       console.error('Error fetching logs:', err);
@@ -64,44 +156,216 @@ export default function InjectionLogs() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this entry?')) return;
+  const fetchPatients = async () => {
     try {
-      const res = await fetch(`/api/injection-logs?id=${id}`, { method: 'DELETE' });
-      if (res.ok) fetchLogs();
+      const res = await fetch('/api/patients');
+      const data = await res.json();
+      if (data.patients) {
+        setPatients(data.patients);
+      }
     } catch (err) {
-      console.error('Error deleting:', err);
+      console.error('Error fetching patients:', err);
     }
   };
 
-  const filteredLogs = logs.filter(log => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      log.patient_name?.toLowerCase().includes(search) ||
-      log.medication?.toLowerCase().includes(search) ||
-      log.notes?.toLowerCase().includes(search)
-    );
-  });
+  // Filter patients based on search
+  useEffect(() => {
+    if (patientSearch.length >= 2) {
+      const term = patientSearch.toLowerCase();
+      const filtered = patients.filter(p => {
+        const name = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
+        const phone = (p.phone || '').replace(/\D/g, '');
+        const email = (p.email || '').toLowerCase();
+        return name.includes(term) || phone.includes(term) || email.includes(term);
+      }).slice(0, 10);
+      setFilteredPatients(filtered);
+      setShowPatientDropdown(true);
+    } else {
+      setFilteredPatients([]);
+      setShowPatientDropdown(false);
+    }
+  }, [patientSearch, patients]);
+
+  const selectPatient = (patient) => {
+    const name = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.email || 'Unknown';
+    setFormData(prev => ({
+      ...prev,
+      patient_id: patient.id,
+      patient_name: name
+    }));
+    setPatientSearch(name);
+    setShowPatientDropdown(false);
+  };
+
+  const openModal = () => {
+    setEditingLog(null);
+    setFormData(prev => ({
+      ...prev,
+      category: activeTab,
+      log_type: 'injection',
+      dosage: '',
+      custom_dosage: '',
+      medication: activeTab === 'weight_loss' ? 'Semaglutide' : '',
+      notes: '',
+      entry_date: new Date().toISOString().split('T')[0]
+    }));
+    setShowModal(true);
+  };
+
+  const openEditModal = (log) => {
+    setEditingLog(log);
+    
+    // Parse the log data to fill the form
+    const isPickup = log.entry_type === 'pickup';
+    const isMale = (log.medication || '').toLowerCase().includes('male');
+    
+    setFormData({
+      patient_id: log.patient_id,
+      patient_name: log.patient_name || '',
+      log_type: log.entry_type || 'injection',
+      category: log.category || activeTab,
+      hrt_type: isMale ? 'male' : 'female',
+      medication: log.medication || '',
+      dosage: log.dosage || '',
+      custom_dosage: '',
+      pickup_type: (log.supply_type || '').includes('vial') ? 'vial' : 'prefilled',
+      quantity: log.quantity || 1,
+      week_supply: log.quantity || 4,
+      entry_date: (log.entry_date || log.created_at || '').split('T')[0],
+      notes: log.notes || ''
+    });
+    setPatientSearch(log.patient_name || '');
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setPatientSearch('');
+    setFormData(prev => ({
+      ...prev,
+      patient_id: '',
+      patient_name: ''
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.patient_id) {
+      alert('Please select a patient');
+      return;
+    }
+
+    // Build payload
+    const payload = {
+      patient_id: formData.patient_id,
+      category: activeTab,
+      entry_type: formData.log_type,
+      entry_date: formData.entry_date,
+      notes: formData.notes || null
+    };
+
+    // Add category-specific fields
+    if (activeTab === 'testosterone') {
+      payload.medication = formData.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
+      
+      if (formData.log_type === 'injection') {
+        payload.dosage = formData.dosage === 'custom' ? formData.custom_dosage : formData.dosage;
+      } else {
+        // Pickup
+        payload.supply_type = formData.pickup_type === 'vial' ? 'vial_10ml' : 
+          formData.quantity === 8 ? 'prefilled_4week' : 'prefilled_2week';
+        payload.quantity = formData.quantity;
+        payload.dosage = formData.pickup_type === 'vial' 
+          ? `1 vial (10ml @ ${formData.hrt_type === 'male' ? '200mg/ml' : '100mg/ml'})`
+          : `${formData.quantity} prefilled @ ${formData.dosage}`;
+      }
+    } else if (activeTab === 'weight_loss') {
+      payload.medication = formData.medication;
+      
+      if (formData.log_type === 'injection') {
+        payload.dosage = formData.dosage;
+      } else {
+        payload.quantity = formData.week_supply;
+        payload.dosage = `${formData.week_supply} week supply`;
+      }
+    } else if (activeTab === 'vitamin') {
+      payload.medication = formData.medication;
+      payload.dosage = 'Standard';
+    }
+
+    try {
+      const isEditing = !!editingLog;
+      const url = isEditing ? `/api/injection-logs?id=${editingLog.id}` : '/api/injection-logs';
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        closeModal();
+        setEditingLog(null);
+        fetchLogs();
+        
+        // Show protocol update info if applicable
+        if (data.protocol_update?.updated) {
+          alert(`✓ Entry ${isEditing ? 'updated' : 'logged'} and protocol updated!`);
+        }
+      } else {
+        alert('Error: ' + (data.error || 'Failed to save'));
+      }
+    } catch (err) {
+      console.error('Submit error:', err);
+      alert('Error saving entry');
+    }
+  };
+
+  const deleteLog = async (id) => {
+    if (!confirm('Delete this entry?')) return;
+    
+    try {
+      const res = await fetch(`/api/injection-logs?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchLogs();
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      timeZone: 'America/Los_Angeles'
-    });
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      timeZone: 'America/Los_Angeles'
-    });
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  // Filter logs by search term
+  const filteredLogs = logs.filter(log => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    const patientName = (log.patient_name || '').toLowerCase();
+    const medication = (log.medication || '').toLowerCase();
+    return patientName.includes(term) || medication.includes(term);
+  });
+
+  const getCategoryLabel = () => {
+    switch(activeTab) {
+      case 'testosterone': return 'Testosterone';
+      case 'weight_loss': return 'Weight Loss';
+      case 'vitamin': return 'Vitamin Injections';
+      default: return activeTab;
+    }
   };
 
   return (
@@ -113,23 +377,9 @@ export default function InjectionLogs() {
       <div style={styles.container}>
         <Link href="/admin/pipeline" style={styles.backLink}>← Back to Pipeline</Link>
         
-        <div style={styles.header}>
-          <h1 style={styles.title}>Injection Logs</h1>
-          <div style={styles.headerRight}>
-            <input
-              type="text"
-              placeholder="Search logs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={styles.searchInput}
-            />
-            <button onClick={() => setShowModal(true)} style={styles.addButton}>
-              + New Entry
-            </button>
-          </div>
-        </div>
+        <h1 style={styles.title}>Injection Logs</h1>
 
-        {/* Tabs */}
+        {/* Category Tabs */}
         <div style={styles.tabs}>
           {[
             { id: 'testosterone', label: 'Testosterone' },
@@ -138,661 +388,469 @@ export default function InjectionLogs() {
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
               style={{
                 ...styles.tab,
                 ...(activeTab === tab.id ? styles.tabActive : {})
               }}
+              onClick={() => setActiveTab(tab.id)}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
+        {/* Actions Bar */}
+        <div style={styles.actionsBar}>
+          <input
+            type="text"
+            placeholder="Search logs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
+          <button style={styles.newEntryBtn} onClick={openModal}>
+            + New Entry
+          </button>
+        </div>
+
         {/* Logs Table */}
-        <div style={styles.tableWrapper}>
-          {loading ? (
-            <div style={styles.empty}>Loading...</div>
-          ) : filteredLogs.length === 0 ? (
-            <div style={styles.empty}>No log entries found. Click "+ New Entry" to add one.</div>
-          ) : (
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Date</th>
-                  <th style={styles.th}>Patient</th>
-                  <th style={styles.th}>Type</th>
-                  <th style={styles.th}>Details</th>
-                  <th style={styles.th}>Notes</th>
-                  <th style={styles.th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLogs.map(log => (
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>DATE</th>
+                <th style={styles.th}>PATIENT</th>
+                <th style={styles.th}>TYPE</th>
+                <th style={styles.th}>MEDICATION</th>
+                <th style={styles.th}>DOSE/DETAILS</th>
+                <th style={styles.th}>NOTES</th>
+                <th style={styles.th}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="7" style={styles.loading}>Loading...</td></tr>
+              ) : filteredLogs.length === 0 ? (
+                <tr><td colSpan="7" style={styles.empty}>No entries found</td></tr>
+              ) : (
+                filteredLogs.map(log => (
                   <tr key={log.id} style={styles.tr}>
                     <td style={styles.td}>
                       <div>{formatDate(log.entry_date || log.created_at)}</div>
                       <div style={styles.timeText}>{formatTime(log.created_at)}</div>
                     </td>
-                    <td style={styles.td}>
-                      <Link href={`/admin/patient/${log.patient_id}`} style={styles.patientLink}>
-                        {log.patient_name || 'Unknown'}
-                      </Link>
-                    </td>
+                    <td style={styles.td}>{log.patient_name || 'Unknown'}</td>
                     <td style={styles.td}>
                       <span style={{
-                        ...styles.badge,
-                        background: log.entry_type === 'injection' ? '#dcfce7' : '#dbeafe',
-                        color: log.entry_type === 'injection' ? '#166534' : '#1e40af'
+                        ...styles.typeBadge,
+                        background: log.entry_type === 'pickup' ? '#dbeafe' : '#dcfce7',
+                        color: log.entry_type === 'pickup' ? '#1d4ed8' : '#166534'
                       }}>
-                        {log.entry_type === 'injection' ? '💉 Injection' : '📦 Pickup'}
+                        {log.entry_type === 'pickup' ? '📦 Pickup' : '💉 Injection'}
                       </span>
                     </td>
+                    <td style={styles.td}>{log.medication || '-'}</td>
+                    <td style={styles.td}>{log.dosage || '-'}</td>
+                    <td style={styles.td}>{log.notes || '-'}</td>
                     <td style={styles.td}>
-                      <div style={{ fontWeight: 500 }}>{log.medication || '-'}</div>
-                      {log.dosage && <div style={styles.hrtBadge}>{log.dosage}</div>}
-                    </td>
-                    <td style={styles.td}>
-                      <span style={styles.notesText}>{log.notes || '-'}</span>
-                    </td>
-                    <td style={styles.td}>
-                      <button
-                        onClick={() => handleDelete(log.id)}
-                        style={styles.deleteButton}
+                      <button 
+                        style={styles.editBtn}
+                        onClick={() => openEditModal(log)}
+                        title="Edit"
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        style={styles.deleteBtn}
+                        onClick={() => deleteLog(log.id)}
                         title="Delete"
                       >
                         ×
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* Stats */}
         <div style={styles.stats}>
-          <div style={styles.statItem}>
-            <span style={styles.statLabel}>Today:</span>
-            <span style={styles.statValue}>{stats.today}</span>
-          </div>
-          <div style={styles.statItem}>
-            <span style={styles.statLabel}>This Week:</span>
-            <span style={styles.statValue}>{stats.week}</span>
-          </div>
+          <span>Today: <strong>{logs.filter(l => {
+            const today = new Date().toISOString().split('T')[0];
+            const logDate = (l.entry_date || l.created_at || '').split('T')[0];
+            return logDate === today;
+          }).length}</strong></span>
+          <span style={{ marginLeft: '24px' }}>This Week: <strong>{logs.filter(l => {
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const logDate = new Date(l.entry_date || l.created_at);
+            return logDate >= weekAgo;
+          }).length}</strong></span>
         </div>
-      </div>
 
-      {/* New Entry Modal */}
-      {showModal && (
-        <NewEntryModal
-          category={activeTab}
-          onClose={() => setShowModal(false)}
-          onSave={() => {
-            setShowModal(false);
-            fetchLogs();
-          }}
-        />
-      )}
+        {/* Modal */}
+        {showModal && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <div style={styles.modalHeader}>
+                <h2 style={styles.modalTitle}>{editingLog ? 'Edit' : 'New'} {getCategoryLabel()} Entry</h2>
+                <button style={styles.closeBtn} onClick={closeModal}>×</button>
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                {/* Patient Search */}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Patient *</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      value={patientSearch}
+                      onChange={(e) => {
+                        setPatientSearch(e.target.value);
+                        setFormData(prev => ({ ...prev, patient_id: '', patient_name: '' }));
+                      }}
+                      placeholder="Type to search patient..."
+                      style={styles.input}
+                      autoComplete="off"
+                    />
+                    {showPatientDropdown && filteredPatients.length > 0 && (
+                      <div style={styles.dropdown}>
+                        {filteredPatients.map(p => (
+                          <div
+                            key={p.id}
+                            style={styles.dropdownItem}
+                            onClick={() => selectPatient(p)}
+                          >
+                            <div style={{ fontWeight: '500' }}>
+                              {p.first_name} {p.last_name}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                              {p.phone || p.email || 'No contact'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Date */}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Date *</label>
+                  <input
+                    type="date"
+                    value={formData.entry_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, entry_date: e.target.value }))}
+                    style={styles.input}
+                    required
+                  />
+                </div>
+
+                {/* Type (Injection vs Pickup) */}
+                {activeTab !== 'vitamin' && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Type</label>
+                    <div style={styles.radioGroup}>
+                      <label style={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          name="log_type"
+                          value="injection"
+                          checked={formData.log_type === 'injection'}
+                          onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
+                        />
+                        💉 In-Clinic Injection
+                      </label>
+                      <label style={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          name="log_type"
+                          value="pickup"
+                          checked={formData.log_type === 'pickup'}
+                          onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
+                        />
+                        📦 Medication Pickup
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Testosterone Fields */}
+                {activeTab === 'testosterone' && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>HRT Type</label>
+                      <select
+                        value={formData.hrt_type}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          hrt_type: e.target.value,
+                          dosage: '' // Reset dosage when type changes
+                        }))}
+                        style={styles.select}
+                      >
+                        <option value="male">Male HRT (200mg/ml)</option>
+                        <option value="female">Female HRT (100mg/ml)</option>
+                      </select>
+                    </div>
+
+                    {formData.log_type === 'injection' ? (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Dosage *</label>
+                        <select
+                          value={formData.dosage}
+                          onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                          style={styles.select}
+                          required
+                        >
+                          <option value="">Select dosage...</option>
+                          {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages.map(d => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))}
+                        </select>
+                        {formData.dosage === 'custom' && (
+                          <input
+                            type="text"
+                            placeholder="Enter custom dosage..."
+                            value={formData.custom_dosage}
+                            onChange={(e) => setFormData(prev => ({ ...prev, custom_dosage: e.target.value }))}
+                            style={{ ...styles.input, marginTop: '8px' }}
+                            required
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Pickup Type</label>
+                          <select
+                            value={formData.pickup_type}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              pickup_type: e.target.value,
+                              quantity: e.target.value === 'vial' ? 1 : 4
+                            }))}
+                            style={styles.select}
+                          >
+                            <option value="vial">Vial (10ml)</option>
+                            <option value="prefilled">Prefilled Syringes</option>
+                          </select>
+                        </div>
+
+                        {formData.pickup_type === 'vial' && (
+                          <div style={styles.infoBox}>
+                            10ml vial @ {formData.hrt_type === 'male' ? '200mg/ml (2000mg total)' : '100mg/ml (1000mg total)'}
+                          </div>
+                        )}
+
+                        {formData.pickup_type === 'prefilled' && (
+                          <>
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>Dose per Syringe</label>
+                              <select
+                                value={formData.dosage}
+                                onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                                style={styles.select}
+                                required
+                              >
+                                <option value="">Select dose...</option>
+                                {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages
+                                  .filter(d => d.value !== 'custom')
+                                  .map(d => (
+                                    <option key={d.value} value={d.value}>{d.label}</option>
+                                  ))
+                                }
+                              </select>
+                            </div>
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>Quantity</label>
+                              <select
+                                value={formData.quantity}
+                                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                                style={styles.select}
+                              >
+                                <option value="4">4 syringes (2 week supply)</option>
+                                <option value="8">8 syringes (4 week supply)</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* Weight Loss Fields */}
+                {activeTab === 'weight_loss' && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Medication</label>
+                      <select
+                        value={formData.medication}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          medication: e.target.value,
+                          dosage: ''
+                        }))}
+                        style={styles.select}
+                      >
+                        {WEIGHT_LOSS_OPTIONS.medications.map(m => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {formData.log_type === 'injection' ? (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Dosage *</label>
+                        <select
+                          value={formData.dosage}
+                          onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                          style={styles.select}
+                          required
+                        >
+                          <option value="">Select dosage...</option>
+                          {(WEIGHT_LOSS_OPTIONS.dosages[formData.medication] || []).map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Supply Duration</label>
+                        <select
+                          value={formData.week_supply}
+                          onChange={(e) => setFormData(prev => ({ ...prev, week_supply: parseInt(e.target.value) }))}
+                          style={styles.select}
+                        >
+                          <option value="2">2 weeks (2 injections)</option>
+                          <option value="4">4 weeks (4 injections)</option>
+                        </select>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Vitamin Fields */}
+                {activeTab === 'vitamin' && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Injection Type</label>
+                    <select
+                      value={formData.medication}
+                      onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
+                      style={styles.select}
+                      required
+                    >
+                      <option value="">Select injection...</option>
+                      {VITAMIN_OPTIONS.map(v => (
+                        <option key={v.value} value={v.value}>{v.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Notes</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Optional notes..."
+                    style={styles.textarea}
+                    rows={2}
+                  />
+                </div>
+
+                {/* Submit */}
+                <button type="submit" style={styles.submitBtn}>
+                  {editingLog ? 'Update Entry' : 'Save Entry'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }
 
-// =====================================================
-// NEW ENTRY MODAL - with searchable patient input
-// =====================================================
-function NewEntryModal({ category, onClose, onSave }) {
-  const [allPatients, setAllPatients] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [loadingPatients, setLoadingPatients] = useState(true);
-  
-  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
-  const [entryType, setEntryType] = useState('injection');
-  const [medication, setMedication] = useState('');
-  const [dosage, setDosage] = useState('');
-  const [hrtType, setHrtType] = useState('male');
-  const [pickupQty, setPickupQty] = useState('');
-  const [pickupType, setPickupType] = useState('prefilled');
-  const [weekSupply, setWeekSupply] = useState('');
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  
-  const dropdownRef = useRef(null);
-  const inputRef = useRef(null);
-
-  // Fetch all patients on mount
-  useEffect(() => {
-    fetchPatients();
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const fetchPatients = async () => {
-    setLoadingPatients(true);
-    try {
-      const res = await fetch('/api/patients?limit=2000');
-      if (res.ok) {
-        const data = await res.json();
-        // Sort alphabetically by name
-        const sorted = (data.patients || []).sort((a, b) => {
-          const nameA = (a.name || a.full_name || '').toLowerCase();
-          const nameB = (b.name || b.full_name || '').toLowerCase();
-          return nameA.localeCompare(nameB);
-        });
-        setAllPatients(sorted);
-      }
-    } catch (err) {
-      console.error('Error fetching patients:', err);
-    } finally {
-      setLoadingPatients(false);
-    }
-  };
-
-  // Filter patients based on search query
-  const filteredPatients = allPatients.filter(p => {
-    if (!searchQuery || searchQuery.length < 1) return false;
-    const query = searchQuery.toLowerCase();
-    const name = (p.name || p.full_name || '').toLowerCase();
-    const email = (p.email || '').toLowerCase();
-    const phone = (p.phone || '');
-    return name.includes(query) || email.includes(query) || phone.includes(query);
-  }).slice(0, 15); // Limit to 15 results
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    setShowDropdown(value.length >= 1);
-    // Clear selected patient if user starts typing again
-    if (selectedPatient && value !== (selectedPatient.name || selectedPatient.full_name)) {
-      setSelectedPatient(null);
-    }
-  };
-
-  const selectPatient = (patient) => {
-    setSelectedPatient(patient);
-    setSearchQuery(patient.name || patient.full_name || '');
-    setShowDropdown(false);
-    inputRef.current?.blur();
-  };
-
-  const clearPatient = () => {
-    setSelectedPatient(null);
-    setSearchQuery('');
-    inputRef.current?.focus();
-  };
-
-  const handleSave = async () => {
-    if (!selectedPatient) {
-      setError('Please select a patient');
-      return;
-    }
-
-    // Validate required fields based on category
-    if (category === 'testosterone') {
-      if (entryType === 'injection' && !dosage) {
-        setError('Please select a dosage');
-        return;
-      }
-      if (entryType === 'pickup') {
-        if (!pickupQty) {
-          setError('Please select pickup quantity');
-          return;
-        }
-        if (pickupType === 'prefilled' && !dosage) {
-          setError('Please select dose per syringe');
-          return;
-        }
-      }
-    } else if (category === 'weight_loss') {
-      if (!medication || !dosage) {
-        setError('Please select medication and dosage');
-        return;
-      }
-      if (entryType === 'pickup' && !weekSupply) {
-        setError('Please select week supply');
-        return;
-      }
-    } else if (category === 'vitamin') {
-      if (!medication) {
-        setError('Please select vitamin type');
-        return;
-      }
-    }
-
-    setSaving(true);
-    setError('');
-
-    try {
-      const payload = {
-        patient_id: selectedPatient.id,
-        ghl_contact_id: selectedPatient.ghl_contact_id,
-        category,
-        entry_type: entryType,
-        entry_date: entryDate,
-        medication: category === 'testosterone' 
-          ? `${hrtType === 'male' ? 'Male' : 'Female'} HRT`
-          : medication,
-        dosage: category === 'testosterone' && entryType === 'pickup'
-          ? pickupType === 'vial'
-            ? `${pickupQty} vial${pickupQty > 1 ? 's' : ''} (10mL @ ${hrtType === 'male' ? '200mg/ml' : '100mg/ml'})`
-            : `${pickupQty} prefilled @ ${dosage}`
-          : entryType === 'pickup' && category === 'weight_loss'
-          ? `${weekSupply} week supply`
-          : dosage,
-        notes
-      };
-
-      const res = await fetch('/api/injection-logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        onSave();
-      } else {
-        setError(data.error || 'Failed to save');
-      }
-    } catch (err) {
-      setError('Failed to save entry');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const getDisplayName = (patient) => {
-    return patient.name || patient.full_name || patient.email || 'Unknown';
-  };
-
-  return (
-    <div style={modalStyles.overlay}>
-      <div style={modalStyles.modal}>
-        <div style={modalStyles.header}>
-          <h2 style={modalStyles.title}>
-            New {category === 'testosterone' ? 'Testosterone' : 
-                 category === 'weight_loss' ? 'Weight Loss' : 'Vitamin'} Entry
-          </h2>
-          <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
-        </div>
-
-        <div style={modalStyles.body}>
-          {error && <div style={modalStyles.error}>{error}</div>}
-
-          {/* Patient Search Input */}
-          <div style={modalStyles.field}>
-            <label style={modalStyles.label}>Patient *</label>
-            <div style={modalStyles.searchWrapper} ref={dropdownRef}>
-              {selectedPatient ? (
-                <div style={modalStyles.selectedPatient}>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{getDisplayName(selectedPatient)}</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {selectedPatient.phone || selectedPatient.email || 'No contact info'}
-                    </div>
-                  </div>
-                  <button onClick={clearPatient} style={modalStyles.clearBtn}>×</button>
-                </div>
-              ) : (
-                <>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    onFocus={() => searchQuery.length >= 1 && setShowDropdown(true)}
-                    placeholder={loadingPatients ? "Loading patients..." : "Type to search patient..."}
-                    style={modalStyles.input}
-                    disabled={loadingPatients}
-                  />
-                  {showDropdown && filteredPatients.length > 0 && (
-                    <div style={modalStyles.dropdown}>
-                      {filteredPatients.map(patient => (
-                        <div
-                          key={patient.id}
-                          onClick={() => selectPatient(patient)}
-                          style={modalStyles.dropdownItem}
-                        >
-                          <div style={{ fontWeight: 500 }}>{getDisplayName(patient)}</div>
-                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                            {patient.phone && <span>{patient.phone}</span>}
-                            {patient.phone && patient.email && <span> • </span>}
-                            {patient.email && <span>{patient.email}</span>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {showDropdown && searchQuery.length >= 1 && filteredPatients.length === 0 && (
-                    <div style={modalStyles.dropdown}>
-                      <div style={{ ...modalStyles.dropdownItem, color: '#6b7280' }}>
-                        No patients found
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Date Picker */}
-          <div style={modalStyles.field}>
-            <label style={modalStyles.label}>Date *</label>
-            <input
-              type="date"
-              value={entryDate}
-              onChange={(e) => setEntryDate(e.target.value)}
-              style={modalStyles.input}
-            />
-          </div>
-
-          {/* Entry Type */}
-          {category !== 'vitamin' && (
-            <div style={modalStyles.field}>
-              <label style={modalStyles.label}>Type</label>
-              <div style={modalStyles.radioGroup}>
-                <label style={modalStyles.radio}>
-                  <input
-                    type="radio"
-                    checked={entryType === 'injection'}
-                    onChange={() => setEntryType('injection')}
-                  />
-                  💉 In-Clinic Injection
-                </label>
-                <label style={modalStyles.radio}>
-                  <input
-                    type="radio"
-                    checked={entryType === 'pickup'}
-                    onChange={() => setEntryType('pickup')}
-                  />
-                  📦 Medication Pickup
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Category-specific fields */}
-          {category === 'testosterone' && (
-            <>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>HRT Type</label>
-                <select
-                  value={hrtType}
-                  onChange={(e) => setHrtType(e.target.value)}
-                  style={modalStyles.select}
-                >
-                  <option value="male">Male HRT (200mg/ml)</option>
-                  <option value="female">Female HRT (100mg/ml)</option>
-                </select>
-              </div>
-
-              {entryType === 'injection' ? (
-                <div style={modalStyles.field}>
-                  <label style={modalStyles.label}>Dosage *</label>
-                  <select
-                    value={dosage}
-                    onChange={(e) => setDosage(e.target.value)}
-                    style={modalStyles.select}
-                  >
-                    <option value="">Select dosage...</option>
-                    {TESTOSTERONE_DOSES.map(d => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <>
-                  <div style={modalStyles.field}>
-                    <label style={modalStyles.label}>Pickup Type</label>
-                    <select
-                      value={pickupType}
-                      onChange={(e) => setPickupType(e.target.value)}
-                      style={modalStyles.select}
-                    >
-                      <option value="prefilled">Prefilled Syringes</option>
-                      <option value="vial">Vials</option>
-                    </select>
-                  </div>
-                  
-                  {pickupType === 'vial' ? (
-                    <>
-                      <div style={modalStyles.field}>
-                        <label style={modalStyles.label}>Vial Size</label>
-                        <div style={modalStyles.infoBox}>
-                          10mL vial @ {hrtType === 'male' ? '200mg/ml' : '100mg/ml'}
-                        </div>
-                      </div>
-                      <div style={modalStyles.field}>
-                        <label style={modalStyles.label}>Quantity *</label>
-                        <select
-                          value={pickupQty}
-                          onChange={(e) => setPickupQty(e.target.value)}
-                          style={modalStyles.select}
-                        >
-                          <option value="">Select quantity...</option>
-                          <option value="1">1 vial</option>
-                        </select>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={modalStyles.field}>
-                        <label style={modalStyles.label}>Dose per Syringe *</label>
-                        <select
-                          value={dosage}
-                          onChange={(e) => setDosage(e.target.value)}
-                          style={modalStyles.select}
-                        >
-                          <option value="">Select dose...</option>
-                          {TESTOSTERONE_DOSES.map(d => (
-                            <option key={d.value} value={d.value}>{d.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={modalStyles.field}>
-                        <label style={modalStyles.label}>Quantity *</label>
-                        <select
-                          value={pickupQty}
-                          onChange={(e) => setPickupQty(e.target.value)}
-                          style={modalStyles.select}
-                        >
-                          <option value="">Select quantity...</option>
-                          <option value="4">4 syringes</option>
-                          <option value="8">8 syringes</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-            </>
-          )}
-
-          {category === 'weight_loss' && (
-            <>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>Medication *</label>
-                <select
-                  value={medication}
-                  onChange={(e) => setMedication(e.target.value)}
-                  style={modalStyles.select}
-                >
-                  <option value="">Select medication...</option>
-                  {WEIGHT_LOSS_MEDS.map(m => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>Dosage *</label>
-                <select
-                  value={dosage}
-                  onChange={(e) => setDosage(e.target.value)}
-                  style={modalStyles.select}
-                >
-                  <option value="">Select dosage...</option>
-                  {WEIGHT_LOSS_DOSES.map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
-
-              {entryType === 'pickup' && (
-                <div style={modalStyles.field}>
-                  <label style={modalStyles.label}>Week Supply *</label>
-                  <select
-                    value={weekSupply}
-                    onChange={(e) => setWeekSupply(e.target.value)}
-                    style={modalStyles.select}
-                  >
-                    <option value="">Select supply...</option>
-                    {[1, 2, 4, 8, 12].map(w => (
-                      <option key={w} value={w}>{w} week{w > 1 ? 's' : ''}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </>
-          )}
-
-          {category === 'vitamin' && (
-            <div style={modalStyles.field}>
-              <label style={modalStyles.label}>Vitamin Type *</label>
-              <select
-                value={medication}
-                onChange={(e) => setMedication(e.target.value)}
-                style={modalStyles.select}
-              >
-                <option value="">Select type...</option>
-                {VITAMIN_TYPES.map(v => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Notes */}
-          <div style={modalStyles.field}>
-            <label style={modalStyles.label}>Notes (optional)</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional notes..."
-              style={modalStyles.textarea}
-              rows={2}
-            />
-          </div>
-        </div>
-
-        <div style={modalStyles.footer}>
-          <button onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
-          <button 
-            onClick={handleSave} 
-            disabled={saving}
-            style={modalStyles.saveBtn}
-          >
-            {saving ? 'Saving...' : 'Save Entry'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// =====================================================
+// ============================================
 // STYLES
-// =====================================================
+// ============================================
+
 const styles = {
   container: {
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     maxWidth: '1200px',
     margin: '0 auto',
     padding: '24px'
   },
   backLink: {
-    fontSize: '14px',
     color: '#6b7280',
     textDecoration: 'none',
+    fontSize: '14px',
     display: 'inline-block',
     marginBottom: '16px'
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
-    gap: '16px'
   },
   title: {
     fontSize: '28px',
     fontWeight: '700',
-    margin: 0
-  },
-  headerRight: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center'
-  },
-  searchInput: {
-    padding: '10px 16px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '14px',
-    width: '200px',
-    outline: 'none'
-  },
-  addButton: {
-    padding: '10px 20px',
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer'
+    marginBottom: '24px',
+    color: '#111'
   },
   tabs: {
     display: 'flex',
-    gap: '0',
-    marginBottom: '24px',
-    borderRadius: '10px',
-    overflow: 'hidden',
-    border: '1px solid #e5e7eb'
+    gap: '8px',
+    marginBottom: '24px'
   },
   tab: {
-    flex: 1,
-    padding: '14px 20px',
+    padding: '12px 24px',
     border: 'none',
-    background: '#fff',
+    background: '#f3f4f6',
+    borderRadius: '8px',
+    cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    color: '#6b7280'
+    color: '#374151',
+    transition: 'all 0.15s'
   },
   tabActive: {
-    background: '#000',
-    color: '#fff'
+    background: '#111',
+    color: 'white'
   },
-  tableWrapper: {
-    background: '#fff',
+  actionsBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+    gap: '16px'
+  },
+  searchInput: {
+    flex: 1,
+    maxWidth: '300px',
+    padding: '10px 14px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none'
+  },
+  newEntryBtn: {
+    padding: '10px 20px',
+    background: '#111',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  tableContainer: {
+    background: 'white',
     borderRadius: '12px',
-    border: '1px solid #e5e7eb',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
   },
   table: {
     width: '100%',
@@ -801,13 +859,12 @@ const styles = {
   th: {
     padding: '14px 16px',
     textAlign: 'left',
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: '600',
     color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    borderBottom: '1px solid #e5e7eb',
-    background: '#f9fafb'
+    borderBottom: '2px solid #e5e7eb',
+    background: '#fafafa',
+    letterSpacing: '0.5px'
   },
   tr: {
     borderBottom: '1px solid #f3f4f6'
@@ -815,85 +872,51 @@ const styles = {
   td: {
     padding: '14px 16px',
     fontSize: '14px',
-    verticalAlign: 'middle'
+    color: '#374151'
   },
   timeText: {
     fontSize: '12px',
     color: '#9ca3af'
   },
-  patientLink: {
-    color: '#111',
-    textDecoration: 'none',
-    fontWeight: '500'
-  },
-  badge: {
-    display: 'inline-block',
-    padding: '4px 10px',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  hrtBadge: {
+  typeBadge: {
     display: 'inline-block',
     padding: '4px 8px',
-    background: '#f3f4f6',
     borderRadius: '4px',
     fontSize: '12px',
-    color: '#374151',
-    marginTop: '4px'
+    fontWeight: '500'
   },
-  notesText: {
-    color: '#6b7280',
-    fontSize: '13px',
-    maxWidth: '200px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    display: 'block'
-  },
-  deleteButton: {
-    width: '28px',
-    height: '28px',
+  editBtn: {
+    background: 'none',
     border: 'none',
-    background: 'transparent',
-    color: '#9ca3af',
-    fontSize: '20px',
     cursor: 'pointer',
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
+    fontSize: '14px',
+    padding: '4px 8px',
+    marginRight: '4px'
+  },
+  deleteBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#9ca3af',
+    cursor: 'pointer',
+    fontSize: '18px',
+    padding: '4px 8px'
+  },
+  loading: {
+    padding: '40px',
+    textAlign: 'center',
+    color: '#6b7280'
   },
   empty: {
-    padding: '60px 20px',
+    padding: '40px',
     textAlign: 'center',
     color: '#9ca3af'
   },
   stats: {
-    display: 'flex',
-    gap: '24px',
     marginTop: '16px',
-    padding: '16px',
-    background: '#f9fafb',
-    borderRadius: '8px'
-  },
-  statItem: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center'
-  },
-  statLabel: {
-    fontSize: '13px',
+    fontSize: '14px',
     color: '#6b7280'
   },
-  statValue: {
-    fontSize: '14px',
-    fontWeight: '600'
-  }
-};
-
-const modalStyles = {
-  overlay: {
+  modalOverlay: {
     position: 'fixed',
     top: 0,
     left: 0,
@@ -903,58 +926,49 @@ const modalStyles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000,
-    padding: '20px'
+    zIndex: 1000
   },
   modal: {
-    background: '#fff',
+    background: 'white',
     borderRadius: '16px',
-    width: '100%',
-    maxWidth: '480px',
+    padding: '24px',
+    width: '480px',
+    maxWidth: '95vw',
     maxHeight: '90vh',
     overflow: 'auto'
   },
-  header: {
+  modalHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '20px 24px',
-    borderBottom: '1px solid #e5e7eb'
+    marginBottom: '20px'
   },
-  title: {
+  modalTitle: {
     fontSize: '18px',
     fontWeight: '600',
-    margin: 0
+    color: '#111'
   },
   closeBtn: {
-    width: '32px',
-    height: '32px',
+    background: 'none',
     border: 'none',
-    background: '#f3f4f6',
-    borderRadius: '8px',
-    fontSize: '20px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
+    fontSize: '24px',
+    color: '#9ca3af',
+    cursor: 'pointer'
   },
-  body: {
-    padding: '24px'
-  },
-  field: {
-    marginBottom: '20px'
+  formGroup: {
+    marginBottom: '16px'
   },
   label: {
     display: 'block',
-    fontSize: '13px',
-    fontWeight: '600',
-    marginBottom: '8px',
-    color: '#374151'
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '6px'
   },
   input: {
     width: '100%',
-    padding: '12px 14px',
-    border: '1px solid #e5e7eb',
+    padding: '10px 12px',
+    border: '2px solid #e5e7eb',
     borderRadius: '8px',
     fontSize: '14px',
     outline: 'none',
@@ -962,69 +976,34 @@ const modalStyles = {
   },
   select: {
     width: '100%',
-    padding: '12px 14px',
-    border: '1px solid #e5e7eb',
+    padding: '10px 12px',
+    border: '2px solid #e5e7eb',
     borderRadius: '8px',
     fontSize: '14px',
     outline: 'none',
-    background: '#fff',
-    cursor: 'pointer'
+    boxSizing: 'border-box',
+    background: 'white'
   },
   textarea: {
     width: '100%',
-    padding: '12px 14px',
-    border: '1px solid #e5e7eb',
+    padding: '10px 12px',
+    border: '2px solid #e5e7eb',
     borderRadius: '8px',
     fontSize: '14px',
     outline: 'none',
     resize: 'vertical',
-    fontFamily: 'inherit',
     boxSizing: 'border-box'
   },
-  searchWrapper: {
-    position: 'relative'
-  },
-  selectedPatient: {
+  radioGroup: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 14px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    background: '#f9fafb'
+    gap: '16px'
   },
-  clearBtn: {
-    width: '24px',
-    height: '24px',
-    border: 'none',
-    background: '#e5e7eb',
-    borderRadius: '50%',
-    fontSize: '16px',
-    cursor: 'pointer',
+  radioLabel: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    color: '#6b7280'
-  },
-  dropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    background: '#fff',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    marginTop: '4px',
-    maxHeight: '240px',
-    overflowY: 'auto',
-    zIndex: 10,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-  },
-  dropdownItem: {
-    padding: '12px 14px',
-    cursor: 'pointer',
-    borderBottom: '1px solid #f3f4f6',
-    transition: 'background 0.15s'
+    gap: '6px',
+    fontSize: '14px',
+    cursor: 'pointer'
   },
   infoBox: {
     padding: '12px 14px',
@@ -1032,51 +1011,37 @@ const modalStyles = {
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '500',
-    color: '#374151'
+    color: '#374151',
+    marginBottom: '16px'
   },
-  radioGroup: {
-    display: 'flex',
-    gap: '20px'
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: 'white',
+    border: '2px solid #e5e7eb',
+    borderTop: 'none',
+    borderRadius: '0 0 8px 8px',
+    maxHeight: '200px',
+    overflow: 'auto',
+    zIndex: 10
   },
-  radio: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    cursor: 'pointer'
+  dropdownItem: {
+    padding: '10px 12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f3f4f6'
   },
-  error: {
+  submitBtn: {
+    width: '100%',
     padding: '12px',
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
-    borderRadius: '8px',
-    color: '#dc2626',
-    fontSize: '14px',
-    marginBottom: '20px'
-  },
-  footer: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '12px',
-    padding: '20px 24px',
-    borderTop: '1px solid #e5e7eb'
-  },
-  cancelBtn: {
-    padding: '10px 20px',
-    border: '1px solid #e5e7eb',
-    background: '#fff',
-    borderRadius: '8px',
-    fontSize: '14px',
-    cursor: 'pointer'
-  },
-  saveBtn: {
-    padding: '10px 24px',
+    background: '#111',
+    color: 'white',
     border: 'none',
-    background: '#000',
-    color: '#fff',
     borderRadius: '8px',
     fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer'
+    fontWeight: '500',
+    cursor: 'pointer',
+    marginTop: '8px'
   }
 };

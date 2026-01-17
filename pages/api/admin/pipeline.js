@@ -282,14 +282,32 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
+    // Get all patients for GHL ID lookup (fallback for unlinked protocols)
+    const { data: allPatients } = await supabase
+      .from('patients')
+      .select('id, first_name, last_name, email, phone, ghl_contact_id');
+    
+    // Create lookup map by ghl_contact_id
+    const patientsByGHL = {};
+    (allPatients || []).forEach(p => {
+      if (p.ghl_contact_id) {
+        patientsByGHL[p.ghl_contact_id] = p;
+      }
+    });
+
     // Process each protocol with tracking calculations
     const processed = (protocols || []).map(protocol => {
       const tracking = calculateTracking(protocol);
-      const patient = protocol.patients;
+      
+      // Try to get patient from relationship first, then fallback to GHL lookup
+      let patient = protocol.patients;
+      if (!patient && protocol.ghl_contact_id) {
+        patient = patientsByGHL[protocol.ghl_contact_id];
+      }
       
       return {
         id: protocol.id,
-        patient_id: protocol.patient_id,
+        patient_id: patient?.id || protocol.patient_id,
         patient_name: patient ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() : 'Unknown',
         patient_email: patient?.email || null,
         patient_phone: patient?.phone || null,

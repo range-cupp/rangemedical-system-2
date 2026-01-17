@@ -292,7 +292,11 @@ export default function ActivityLog() {
                           background: log.entry_type === 'pickup' ? '#dbeafe' : '#f0fdf4',
                           color: log.entry_type === 'pickup' ? '#1d4ed8' : '#166534'
                         }}>
-                          {log.entry_type === 'pickup' ? '📦 Pickup' : '💉 Injection'}
+                          {log.entry_type === 'pickup' 
+                            ? '📦 Pickup' 
+                            : ['hbot', 'iv', 'rlt'].includes(log.category) 
+                              ? '🗓️ Session' 
+                              : '💉 Injection'}
                         </span>
                       </td>
                       <td style={styles.cell}>

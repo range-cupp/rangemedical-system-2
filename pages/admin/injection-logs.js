@@ -309,9 +309,13 @@ export default function InjectionLogs() {
         setEditingLog(null);
         fetchLogs();
         
-        // Show protocol update info if applicable
+        // Show feedback about protocol sync
         if (data.protocol_update?.updated) {
-          alert(`✓ Entry ${isEditing ? 'updated' : 'logged'} and protocol updated!`);
+          alert(`✓ Entry ${isEditing ? 'updated' : 'saved'}!\n\nProtocol updated:\n- Last refill: ${data.protocol_update.new_last_refill_date || 'updated'}\n- Supply type: ${data.protocol_update.changes?.supply_type || 'unchanged'}`);
+        } else if (data.protocol_update?.reason) {
+          alert(`✓ Entry ${isEditing ? 'updated' : 'saved'}.\n\n⚠️ Protocol not updated: ${data.protocol_update.reason}`);
+        } else {
+          // Just saved the log, no protocol sync attempted
         }
       } else {
         alert('Error: ' + (data.error || 'Failed to save'));

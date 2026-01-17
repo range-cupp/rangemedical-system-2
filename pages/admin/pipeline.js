@@ -144,22 +144,68 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // Send SMS
-  const sendSMS = (phone, name) => {
-    // TODO: Implement SMS modal
-    alert(`SMS to ${name}: ${phone}`);
+  // Open GHL conversation (SMS)
+  const openGHLConversation = (ghlId) => {
+    if (ghlId) {
+      window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/conversations/${ghlId}`, '_blank');
+    } else {
+      alert('No GHL contact ID found for this patient');
+    }
   };
 
   // Renew protocol
-  const renewProtocol = async (protocol) => {
-    // TODO: Implement renew modal
-    alert(`Renew protocol for ${protocol.patient_name}`);
+  const [renewingId, setRenewingId] = useState(null);
+  const [renewModal, setRenewModal] = useState(null);
+
+  const openRenewModal = (protocol) => {
+    setRenewModal({
+      protocol,
+      duration: protocol.total_days || 30
+    });
   };
 
-  // Edit protocol
+  const closeRenewModal = () => {
+    setRenewModal(null);
+  };
+
+  const confirmRenew = async () => {
+    if (!renewModal) return;
+    
+    setRenewingId(renewModal.protocol.id);
+    
+    try {
+      const startDate = new Date().toISOString().split('T')[0];
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + parseInt(renewModal.duration));
+      
+      const res = await fetch(`/api/protocols/${renewModal.protocol.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start_date: startDate,
+          end_date: endDate.toISOString().split('T')[0],
+          status: 'active',
+          sessions_used: 0
+        })
+      });
+      
+      if (res.ok) {
+        closeRenewModal();
+        fetchData(); // Refresh data
+      } else {
+        alert('Failed to renew protocol');
+      }
+    } catch (err) {
+      console.error('Renew error:', err);
+      alert('Error renewing protocol');
+    } finally {
+      setRenewingId(null);
+    }
+  };
+
+  // Edit - go to injection logs
   const editProtocol = (protocol) => {
-    // TODO: Implement edit modal
-    alert(`Edit protocol ${protocol.id}`);
+    window.location.href = `/admin/injection-logs?patient_id=${protocol.patient_id}`;
   };
 
   // Render protocol row
@@ -208,15 +254,15 @@ export default function UnifiedPipeline() {
         <td style={styles.cellActions}>
           <button 
             style={styles.actionBtn}
-            onClick={() => sendSMS(protocol.patient_phone, protocol.patient_name)}
-            title="Send SMS"
+            onClick={() => openGHLConversation(protocol.ghl_contact_id)}
+            title="Open SMS in GHL"
           >
             📱 SMS
           </button>
           <button 
             style={styles.actionBtn}
             onClick={() => editProtocol(protocol)}
-            title="Edit"
+            title="Log Injection/Pickup"
           >
             ✏️ Edit
           </button>
@@ -232,7 +278,7 @@ export default function UnifiedPipeline() {
           {(isEndingSoon || isOverdue || protocol.status === 'completed') && (
             <button 
               style={{ ...styles.actionBtn, ...styles.renewBtn }}
-              onClick={() => renewProtocol(protocol)}
+              onClick={() => openRenewModal(protocol)}
               title="Renew"
             >
               🔄 Renew
@@ -427,6 +473,56 @@ export default function UnifiedPipeline() {
             }}>
               Clear Filters
             </button>
+          </div>
+        )}
+
+        {/* Renew Modal */}
+        {renewModal && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <h3 style={styles.modalTitle}>Renew Protocol</h3>
+              <p style={{ marginBottom: '16px', color: '#6b7280' }}>
+                Renewing protocol for <strong>{renewModal.protocol.patient_name}</strong>
+              </p>
+              <p style={{ marginBottom: '8px', fontSize: '14px' }}>
+                {renewModal.protocol.medication || renewModal.protocol.program_name}
+              </p>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Duration (days)
+                </label>
+                <select
+                  value={renewModal.duration}
+                  onChange={(e) => setRenewModal({ ...renewModal, duration: e.target.value })}
+                  style={styles.modalSelect}
+                >
+                  <option value="7">7 days</option>
+                  <option value="10">10 days</option>
+                  <option value="14">14 days</option>
+                  <option value="20">20 days</option>
+                  <option value="30">30 days</option>
+                  <option value="60">60 days</option>
+                  <option value="90">90 days</option>
+                </select>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button 
+                  style={styles.modalCancelBtn}
+                  onClick={closeRenewModal}
+                >
+                  Cancel
+                </button>
+                <button 
+                  style={styles.modalConfirmBtn}
+                  onClick={confirmRenew}
+                  disabled={renewingId === renewModal.protocol.id}
+                >
+                  {renewingId === renewModal.protocol.id ? 'Renewing...' : 'Confirm Renewal'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -683,6 +779,59 @@ const styles = {
     padding: '10px 20px',
     border: 'none',
     background: '#111',
+    color: 'white',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modal: {
+    background: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+    width: '400px',
+    maxWidth: '90vw',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+  },
+  modalTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    marginBottom: '16px',
+    color: '#111'
+  },
+  modalSelect: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none'
+  },
+  modalCancelBtn: {
+    padding: '10px 20px',
+    border: '2px solid #e5e7eb',
+    background: 'white',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  modalConfirmBtn: {
+    padding: '10px 20px',
+    border: 'none',
+    background: '#10b981',
     color: 'white',
     borderRadius: '8px',
     cursor: 'pointer',

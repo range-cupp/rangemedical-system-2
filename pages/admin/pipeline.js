@@ -757,10 +757,16 @@ export default function UnifiedPipeline() {
                   const selected = e.target.value;
                   const allOptions = PEPTIDE_OPTIONS.flatMap(g => g.options);
                   const opt = allOptions.find(o => o.value === selected);
+                  // Auto-select frequency based on peptide
+                  let autoFrequency = protocolForm.peptide_frequency || 'Daily';
+                  if (selected === 'MOTS-c') {
+                    autoFrequency = '1x every 5 days';
+                  }
                   setProtocolForm({ 
                     ...protocolForm, 
                     peptide_medication: selected,
-                    peptide_dosage: opt?.dose || ''
+                    peptide_dosage: opt?.dose || '',
+                    peptide_frequency: autoFrequency
                   });
                 }}
                 style={styles.formSelect}
@@ -799,6 +805,7 @@ export default function UnifiedPipeline() {
                 <option value="2x daily">2x daily</option>
                 <option value="5 days on / 2 days off">5 days on / 2 days off</option>
                 <option value="Every other day">Every other day</option>
+                <option value="1x every 5 days">1x every 5 days</option>
                 <option value="3x per week">3x per week</option>
                 <option value="2x per week">2x per week</option>
                 <option value="1x per week">1x per week</option>

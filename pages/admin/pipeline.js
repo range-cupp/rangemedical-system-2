@@ -1,9 +1,71 @@
 // /pages/admin/pipeline.js
-// Unified Protocol Pipeline - Table Layout
-// Range Medical - Updated 2026-01-16
+// Unified Protocol Pipeline with Start Protocol & Activity Logging
+// Range Medical - Updated 2026-01-17
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+
+// Peptide options for the dropdown
+const PEPTIDE_OPTIONS = [
+  { group: 'Recovery / Tissue Repair', options: [
+    { value: 'BPC-157', dose: '250-500mcg' },
+    { value: 'TB-500', dose: '2-2.5mg' },
+    { value: 'Wolverine Blend (BPC/TB)', dose: '500mcg/500mcg' },
+    { value: 'KPV', dose: '200-400mcg' },
+    { value: 'LL-37', dose: '50-100mcg' },
+    { value: 'GHK-Cu', dose: '1-2mg' },
+  ]},
+  { group: 'Weight Loss / Metabolic', options: [
+    { value: 'AOD 9604', dose: '300mcg' },
+    { value: 'MOTS-c', dose: '5-10mg' },
+    { value: 'Tesamorelin', dose: '1-2mg' },
+    { value: 'Tesamorelin/Ipamorelin', dose: '0.3mL' },
+    { value: 'MK-677', dose: '10-25mg' },
+  ]},
+  { group: 'GH Secretagogues', options: [
+    { value: 'Ipamorelin', dose: '200-300mcg' },
+    { value: 'CJC-1295 No DAC', dose: '100-200mcg' },
+    { value: 'CJC/Ipamorelin', dose: '0.2-0.3mL' },
+    { value: 'Sermorelin', dose: '200-500mcg' },
+  ]},
+  { group: 'Longevity', options: [
+    { value: 'Epithalon', dose: '5-10mg' },
+    { value: 'Thymosin Alpha-1', dose: '1.6mg' },
+    { value: 'NAD+', dose: '50-200mg' },
+  ]},
+  { group: 'Cognitive', options: [
+    { value: 'Selank', dose: '250-500mcg' },
+    { value: 'Semax', dose: '200-600mcg' },
+    { value: 'Dihexa', dose: '10-20mg' },
+  ]},
+  { group: 'Sexual Health', options: [
+    { value: 'PT-141', dose: '1-2mg' },
+    { value: 'Kisspeptin', dose: '50-200mcg' },
+  ]},
+  { group: 'HRT Support', options: [
+    { value: 'Gonadorelin', dose: '100-200mcg' },
+    { value: 'HCG', dose: '500-1000 IU' },
+  ]},
+];
+
+// Testosterone dosage options
+const TESTOSTERONE_DOSES = {
+  male: [
+    { value: '0.3ml/60mg', label: '0.3ml / 60mg' },
+    { value: '0.35ml/70mg', label: '0.35ml / 70mg' },
+    { value: '0.4ml/80mg', label: '0.4ml / 80mg' },
+    { value: '0.5ml/100mg', label: '0.5ml / 100mg' },
+  ],
+  female: [
+    { value: '0.1ml/10mg', label: '0.1ml / 10mg' },
+    { value: '0.15ml/15mg', label: '0.15ml / 15mg' },
+    { value: '0.2ml/20mg', label: '0.2ml / 20mg' },
+    { value: '0.25ml/25mg', label: '0.25ml / 25mg' },
+    { value: '0.3ml/30mg', label: '0.3ml / 30mg' },
+    { value: '0.4ml/40mg', label: '0.4ml / 40mg' },
+    { value: '0.5ml/50mg', label: '0.5ml / 50mg' },
+  ]
+};
 
 export default function UnifiedPipeline() {
   const [data, setData] = useState(null);
@@ -11,13 +73,35 @@ export default function UnifiedPipeline() {
   const [error, setError] = useState(null);
   
   // Filters
-  const [statusFilter, setStatusFilter] = useState('active'); // active, completed, all
-  const [deliveryFilter, setDeliveryFilter] = useState('all'); // all, in_clinic, take_home
-  const [categoryFilter, setCategoryFilter] = useState('all'); // all, peptide, weight_loss, hrt, iv, etc.
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [deliveryFilter, setDeliveryFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Modals
+  const [renewModal, setRenewModal] = useState(null);
+  const [renewingId, setRenewingId] = useState(null);
+  const [startModal, setStartModal] = useState(false);
+  const [logModal, setLogModal] = useState(null);
+  
+  // Patient search for Start Protocol
+  const [patients, setPatients] = useState([]);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  
+  // Start Protocol form state
+  const [protocolType, setProtocolType] = useState('');
+  const [protocolForm, setProtocolForm] = useState({});
+  
+  // Log form state
+  const [logForm, setLogForm] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     fetchData();
+    fetchPatients();
   }, []);
 
   const fetchData = async () => {
@@ -37,13 +121,31 @@ export default function UnifiedPipeline() {
     }
   };
 
+  const fetchPatients = async () => {
+    try {
+      const res = await fetch('/api/patients');
+      const json = await res.json();
+      if (json.patients) {
+        setPatients(json.patients);
+      }
+    } catch (err) {
+      console.error('Failed to fetch patients:', err);
+    }
+  };
+
+  // Filter patients for search
+  const filteredPatients = patients.filter(p => {
+    if (!patientSearch || patientSearch.length < 1) return false;
+    const name = `${p.first_name || ''} ${p.last_name || ''} ${p.name || ''}`.toLowerCase();
+    return name.includes(patientSearch.toLowerCase());
+  }).slice(0, 10);
+
   // Get filtered protocols
   const getFilteredProtocols = () => {
     if (!data) return [];
     
     let protocols = [];
     
-    // Combine based on status filter
     if (statusFilter === 'active' || statusFilter === 'all') {
       protocols = [
         ...data.protocols.ending_soon,
@@ -55,17 +157,14 @@ export default function UnifiedPipeline() {
       protocols = [...protocols, ...data.protocols.completed];
     }
     
-    // Apply delivery filter
     if (deliveryFilter !== 'all') {
       protocols = protocols.filter(p => p.delivery === deliveryFilter);
     }
     
-    // Apply category filter
     if (categoryFilter !== 'all') {
       protocols = protocols.filter(p => p.category === categoryFilter);
     }
     
-    // Apply search
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       protocols = protocols.filter(p => 
@@ -78,139 +177,295 @@ export default function UnifiedPipeline() {
     return protocols;
   };
 
-  // Group by urgency for display
-  const groupByUrgency = (protocols) => {
-    const groups = {
-      ending_soon: [],
-      active: [],
-      just_started: [],
-      completed: []
-    };
-    
-    protocols.forEach(p => {
-      if (p.status === 'completed' || p.urgency === 'completed') {
-        groups.completed.push(p);
-      } else if (p.urgency === 'ending_soon' || p.urgency === 'overdue') {
-        groups.ending_soon.push(p);
-      } else if (p.urgency === 'just_started') {
-        groups.just_started.push(p);
-      } else {
-        groups.active.push(p);
-      }
-    });
-    
-    return groups;
+  // Toast helper
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
   };
 
-  const filteredProtocols = getFilteredProtocols();
-  const grouped = groupByUrgency(filteredProtocols);
+  // Category badge
+  const getCategoryBadge = (category) => {
+    const badges = {
+      peptide: { emoji: '🧬', color: '#ddd6fe', text: 'Peptide' },
+      weight_loss: { emoji: '💉', color: '#bbf7d0', text: 'Weight Loss' },
+      hrt: { emoji: '💊', color: '#fed7aa', text: 'HRT' },
+      iv: { emoji: '💧', color: '#bfdbfe', text: 'IV' },
+      hbot: { emoji: '🫁', color: '#fecaca', text: 'HBOT' },
+      rlt: { emoji: '🔴', color: '#fecdd3', text: 'RLT' },
+      injection: { emoji: '💉', color: '#e9d5ff', text: 'Injection' }
+    };
+    return badges[category] || { emoji: '📋', color: '#e5e7eb', text: 'Other' };
+  };
 
-  // Format date for display
+  // Format date
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
   };
 
-  // Get protocol duration label
+  // Get duration display
   const getDuration = (protocol) => {
-    const name = protocol.program_name || '';
-    const match = name.match(/(\d+)\s*day/i);
-    if (match) return `${match[1]} days`;
-    if (protocol.total_days) return `${protocol.total_days} days`;
-    if (protocol.total_sessions) return `${protocol.total_sessions} sessions`;
+    if (protocol.total_sessions) {
+      return `${protocol.sessions_used || 0}/${protocol.total_sessions} sessions`;
+    }
+    if (protocol.program_name) {
+      return protocol.program_name;
+    }
     return '-';
   };
 
-  // Get category badge
-  const getCategoryBadge = (category) => {
-    const badges = {
-      peptide: { emoji: '🧬', label: 'Peptide', color: '#8b5cf6' },
-      weight_loss: { emoji: '💉', label: 'WL', color: '#f59e0b' },
-      hrt: { emoji: '💊', label: 'HRT', color: '#3b82f6' },
-      iv: { emoji: '💧', label: 'IV', color: '#06b6d4' },
-      hbot: { emoji: '🫁', label: 'HBOT', color: '#10b981' },
-      rlt: { emoji: '🔴', label: 'RLT', color: '#ef4444' },
-      injection: { emoji: '💉', label: 'Inj', color: '#6b7280' },
-      other: { emoji: '📋', label: 'Other', color: '#6b7280' }
-    };
-    return badges[category] || badges.other;
-  };
-
-  // Open GHL contact
+  // GHL links
   const openGHL = (ghlId) => {
-    if (ghlId) {
-      window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${ghlId}`, '_blank');
+    if (!ghlId) {
+      showToast('No GHL contact linked', 'error');
+      return;
     }
+    window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${ghlId}`, '_blank');
   };
 
-  // Open GHL conversation (SMS) - opens contact page where you can message
   const openGHLConversation = (ghlId) => {
-    if (ghlId) {
-      // Open contact detail page - conversation tab
-      window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${ghlId}`, '_blank');
-    } else {
-      alert('No GHL contact ID found for this patient');
+    if (!ghlId) {
+      showToast('No GHL contact linked', 'error');
+      return;
     }
+    window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${ghlId}`, '_blank');
   };
 
-  // Renew protocol
-  const [renewingId, setRenewingId] = useState(null);
-  const [renewModal, setRenewModal] = useState(null);
-
+  // Renew modal
   const openRenewModal = (protocol) => {
     setRenewModal({
       protocol,
-      duration: protocol.total_days || 30
+      duration: '30',
+      startDate: new Date().toISOString().split('T')[0]
     });
   };
 
-  const closeRenewModal = () => {
-    setRenewModal(null);
-  };
+  const closeRenewModal = () => setRenewModal(null);
 
   const confirmRenew = async () => {
     if (!renewModal) return;
-    
     setRenewingId(renewModal.protocol.id);
     
     try {
-      const startDate = new Date().toISOString().split('T')[0];
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + parseInt(renewModal.duration));
-      
-      const res = await fetch(`/api/protocols/${renewModal.protocol.id}`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/protocols/${renewModal.protocol.id}/renew`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          start_date: startDate,
-          end_date: endDate.toISOString().split('T')[0],
-          status: 'active',
-          sessions_used: 0
+          duration_days: parseInt(renewModal.duration),
+          start_date: renewModal.startDate
         })
       });
       
-      if (res.ok) {
+      const result = await res.json();
+      if (result.success) {
+        showToast('Protocol renewed!');
         closeRenewModal();
-        fetchData(); // Refresh data
+        fetchData();
       } else {
-        alert('Failed to renew protocol');
+        showToast(result.error || 'Failed to renew', 'error');
       }
     } catch (err) {
-      console.error('Renew error:', err);
-      alert('Error renewing protocol');
+      showToast('Error renewing protocol', 'error');
     } finally {
       setRenewingId(null);
     }
   };
 
-  // Edit - go to injection logs
-  const editProtocol = (protocol) => {
-    window.location.href = `/admin/injection-logs?patient_id=${protocol.patient_id}`;
+  // ========== START PROTOCOL MODAL ==========
+  const openStartModal = () => {
+    setStartModal(true);
+    setSelectedPatient(null);
+    setPatientSearch('');
+    setProtocolType('');
+    setProtocolForm({
+      start_date: new Date().toISOString().split('T')[0]
+    });
+  };
+
+  const closeStartModal = () => {
+    setStartModal(false);
+    setSelectedPatient(null);
+    setProtocolType('');
+    setProtocolForm({});
+  };
+
+  const selectPatient = (patient) => {
+    setSelectedPatient(patient);
+    setPatientSearch('');
+    setShowPatientDropdown(false);
+  };
+
+  const submitStartProtocol = async () => {
+    if (!selectedPatient) {
+      showToast('Please select a patient', 'error');
+      return;
+    }
+    if (!protocolType) {
+      showToast('Please select a protocol type', 'error');
+      return;
+    }
+    
+    setSubmitting(true);
+    
+    const payload = {
+      patient_id: selectedPatient.id,
+      ghl_contact_id: selectedPatient.ghl_contact_id,
+      program_type: protocolType,
+      start_date: protocolForm.start_date,
+      notes: protocolForm.notes || null,
+      ...protocolForm
+    };
+    
+    // Add protocol-specific fields
+    switch (protocolType) {
+      case 'weight_loss':
+        payload.medication = protocolForm.wl_medication;
+        payload.dose = protocolForm.wl_starting_dose;
+        payload.delivery_method = protocolForm.wl_delivery;
+        payload.total_sessions = parseInt(protocolForm.wl_total_injections) || 4;
+        break;
+      case 'peptide':
+        payload.program_name = protocolForm.peptide_program;
+        payload.medication = protocolForm.peptide_medication;
+        payload.dose = protocolForm.peptide_dosage;
+        payload.frequency = protocolForm.peptide_frequency;
+        payload.delivery_method = protocolForm.peptide_delivery;
+        break;
+      case 'hrt':
+        payload.medication = protocolForm.hrt_medication;
+        payload.dose = protocolForm.hrt_dosage;
+        payload.delivery_method = protocolForm.hrt_delivery;
+        payload.supply_type = protocolForm.hrt_supply_type;
+        break;
+      case 'iv':
+        payload.program_name = protocolForm.iv_package;
+        payload.medication = protocolForm.iv_type;
+        payload.total_sessions = protocolForm.iv_package === 'Single' ? 1 : 
+                                 protocolForm.iv_package === '5 Pack' ? 5 : 10;
+        payload.delivery_method = 'in_clinic';
+        break;
+      case 'hbot':
+        payload.program_name = protocolForm.hbot_package;
+        payload.total_sessions = protocolForm.hbot_package === 'Single' ? 1 : 
+                                 protocolForm.hbot_package === '5 Pack' ? 5 : 10;
+        payload.delivery_method = 'in_clinic';
+        break;
+      case 'rlt':
+        payload.program_name = protocolForm.rlt_package;
+        payload.total_sessions = protocolForm.rlt_package === 'Single' ? 1 : 
+                                 protocolForm.rlt_package === '5 Pack' ? 5 : 10;
+        payload.delivery_method = 'in_clinic';
+        break;
+      case 'injection':
+        payload.program_name = protocolForm.injection_package;
+        payload.medication = protocolForm.injection_type;
+        payload.total_sessions = protocolForm.injection_package === 'Single' ? 1 : 
+                                 protocolForm.injection_package === '5 Pack' ? 5 : 10;
+        payload.delivery_method = protocolForm.injection_delivery;
+        break;
+    }
+
+    try {
+      const res = await fetch('/api/protocols/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await res.json();
+      if (result.success) {
+        showToast('Protocol created!');
+        closeStartModal();
+        fetchData();
+      } else {
+        showToast(result.error || 'Failed to create protocol', 'error');
+      }
+    } catch (err) {
+      showToast('Error creating protocol', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ========== LOG ACTIVITY MODAL ==========
+  const openLogModal = (protocol) => {
+    setLogModal(protocol);
+    setLogForm({
+      date: new Date().toISOString().split('T')[0],
+      log_type: getDefaultLogType(protocol.category)
+    });
+  };
+
+  const closeLogModal = () => {
+    setLogModal(null);
+    setLogForm({});
+  };
+
+  const getDefaultLogType = (category) => {
+    switch (category) {
+      case 'weight_loss': return 'injection';
+      case 'hrt': return 'injection';
+      case 'peptide': return 'session';
+      default: return 'session';
+    }
+  };
+
+  const submitLog = async () => {
+    if (!logModal) return;
+    setSubmitting(true);
+    
+    const category = logModal.category;
+    let endpoint = '/api/injection-logs';
+    
+    const payload = {
+      patient_id: logModal.patient_id,
+      ghl_contact_id: logModal.ghl_contact_id,
+      protocol_id: logModal.id,
+      entry_type: logForm.log_type === 'pickup' ? 'pickup' : 'injection',
+      log_date: logForm.date,
+      category: category,
+      medication: logModal.medication || logModal.program_name,
+      dosage: logForm.dosage || logModal.dose,
+      notes: logForm.notes || null
+    };
+
+    // Add category-specific fields
+    if (category === 'weight_loss') {
+      payload.weight = logForm.weight;
+    } else if (category === 'hrt' && logForm.log_type === 'pickup') {
+      payload.supply_type = logForm.supply_type;
+      payload.quantity = logForm.quantity || 1;
+    } else if (category === 'hrt' && logForm.log_type === 'blood_draw') {
+      endpoint = '/api/ghl/log-hrt-blooddraw';
+      payload.contact_id = logModal.ghl_contact_id;
+      payload.panel_type = logForm.panel_type;
+    }
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await res.json();
+      if (result.success) {
+        showToast('Activity logged!');
+        closeLogModal();
+        fetchData();
+      } else {
+        showToast(result.error || 'Failed to log activity', 'error');
+      }
+    } catch (err) {
+      showToast('Error logging activity', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Render protocol row
-  const renderRow = (protocol, index) => {
+  const renderRow = (protocol) => {
     const badge = getCategoryBadge(protocol.category);
     const isOverdue = protocol.days_remaining !== undefined && protocol.days_remaining <= 0;
     const isEndingSoon = protocol.urgency === 'ending_soon';
@@ -218,10 +473,7 @@ export default function UnifiedPipeline() {
     return (
       <tr key={protocol.id} style={styles.row}>
         <td style={styles.cell}>
-          <a 
-            href={`/admin/patient/${protocol.patient_id}`}
-            style={styles.patientLink}
-          >
+          <a href={`/admin/patient/${protocol.patient_id}`} style={styles.patientLink}>
             {protocol.patient_name || 'Unknown'}
           </a>
         </td>
@@ -259,6 +511,13 @@ export default function UnifiedPipeline() {
         </td>
         <td style={styles.cellActions}>
           <button 
+            style={{ ...styles.actionBtn, ...styles.logBtn }}
+            onClick={() => openLogModal(protocol)}
+            title="Log Activity"
+          >
+            ➕ Log
+          </button>
+          <button 
             style={styles.actionBtn}
             onClick={() => openGHLConversation(protocol.ghl_contact_id)}
             title="Open SMS in GHL"
@@ -267,27 +526,18 @@ export default function UnifiedPipeline() {
           </button>
           <button 
             style={styles.actionBtn}
-            onClick={() => editProtocol(protocol)}
-            title="Log Injection/Pickup"
+            onClick={() => openGHL(protocol.ghl_contact_id)}
+            title="Open in GHL"
           >
-            ✏️ Edit
+            ↗ GHL
           </button>
-          {protocol.ghl_contact_id && (
-            <button 
-              style={styles.actionBtn}
-              onClick={() => openGHL(protocol.ghl_contact_id)}
-              title="Open in GHL"
-            >
-              ↗ GHL
-            </button>
-          )}
           {(isEndingSoon || isOverdue || protocol.status === 'completed') && (
             <button 
               style={{ ...styles.actionBtn, ...styles.renewBtn }}
               onClick={() => openRenewModal(protocol)}
               title="Renew"
             >
-              🔄 Renew
+              🔄
             </button>
           )}
         </td>
@@ -295,38 +545,538 @@ export default function UnifiedPipeline() {
     );
   };
 
-  // Render section
-  const renderSection = (title, protocols, color, emoji) => {
-    if (protocols.length === 0) return null;
+  // Render table
+  const renderTable = () => {
+    const protocols = getFilteredProtocols();
     
-    return (
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <span style={{ ...styles.sectionDot, background: color }}></span>
-          <span style={styles.sectionTitle}>{emoji} {title}</span>
-          <span style={styles.sectionCount}>{protocols.length}</span>
+    if (protocols.length === 0) {
+      return (
+        <div style={styles.emptyState}>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>📋</div>
+          <p>No protocols found</p>
         </div>
+      );
+    }
+
+    return (
+      <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
             <tr style={styles.headerRow}>
-              <th style={styles.th}>PATIENT</th>
-              <th style={styles.th}>MEDICATION</th>
-              <th style={styles.th}>DOSE</th>
-              <th style={styles.th}>PROTOCOL</th>
-              <th style={styles.th}>LAST ACTIVITY</th>
-              <th style={styles.th}>STATUS</th>
-              <th style={styles.th}>DELIVERY</th>
-              <th style={{ ...styles.th, textAlign: 'right' }}>ACTIONS</th>
+              <th style={styles.headerCell}>PATIENT</th>
+              <th style={styles.headerCell}>MEDICATION</th>
+              <th style={styles.headerCell}>DOSE</th>
+              <th style={styles.headerCell}>PROTOCOL</th>
+              <th style={styles.headerCell}>LAST ACTIVITY</th>
+              <th style={styles.headerCell}>STATUS</th>
+              <th style={styles.headerCell}>DELIVERY</th>
+              <th style={styles.headerCell}>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
-            {protocols.map((p, i) => renderRow(p, i))}
+            {protocols.map(p => renderRow(p))}
           </tbody>
         </table>
       </div>
     );
   };
 
+  // ========== RENDER START PROTOCOL FORM FIELDS ==========
+  const renderProtocolFields = () => {
+    switch (protocolType) {
+      case 'weight_loss':
+        return (
+          <>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Medication *</label>
+              <select
+                value={protocolForm.wl_medication || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, wl_medication: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select medication...</option>
+                <option value="Semaglutide">Semaglutide</option>
+                <option value="Tirzepatide">Tirzepatide</option>
+                <option value="Retatrutide">Retatrutide</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Starting Dose</label>
+              <select
+                value={protocolForm.wl_starting_dose || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, wl_starting_dose: e.target.value })}
+                style={styles.formSelect}
+              >
+                <option value="">Select dose...</option>
+                {['0.25mg', '0.5mg', '1mg', '1.5mg', '2mg', '2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'].map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Delivery *</label>
+              <select
+                value={protocolForm.wl_delivery || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, wl_delivery: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select delivery...</option>
+                <option value="in_clinic">In Clinic - Patient comes in weekly</option>
+                <option value="take_home">Take Home - Patient self-injects</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Total Injections</label>
+              <select
+                value={protocolForm.wl_total_injections || '4'}
+                onChange={(e) => setProtocolForm({ ...protocolForm, wl_total_injections: e.target.value })}
+                style={styles.formSelect}
+              >
+                <option value="4">4 (Monthly)</option>
+                <option value="8">8 (2 Months)</option>
+                <option value="12">12 (3 Months)</option>
+              </select>
+            </div>
+          </>
+        );
+        
+      case 'peptide':
+        return (
+          <>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Program Duration *</label>
+              <select
+                value={protocolForm.peptide_program || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, peptide_program: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select program...</option>
+                <option value="7 Day">7 Day</option>
+                <option value="10 Day">10 Day</option>
+                <option value="20 Day">20 Day</option>
+                <option value="30 Day">30 Day</option>
+                <option value="Vial">Vial</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Peptide *</label>
+              <select
+                value={protocolForm.peptide_medication || ''}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  const allOptions = PEPTIDE_OPTIONS.flatMap(g => g.options);
+                  const opt = allOptions.find(o => o.value === selected);
+                  setProtocolForm({ 
+                    ...protocolForm, 
+                    peptide_medication: selected,
+                    peptide_dosage: opt?.dose || ''
+                  });
+                }}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select peptide...</option>
+                {PEPTIDE_OPTIONS.map(group => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.options.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.value}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Dosage</label>
+              <input
+                type="text"
+                value={protocolForm.peptide_dosage || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, peptide_dosage: e.target.value })}
+                placeholder="e.g. 500mcg"
+                style={styles.formInput}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Frequency</label>
+              <select
+                value={protocolForm.peptide_frequency || 'Daily'}
+                onChange={(e) => setProtocolForm({ ...protocolForm, peptide_frequency: e.target.value })}
+                style={styles.formSelect}
+              >
+                <option value="Daily">Daily</option>
+                <option value="1x daily (AM)">1x daily (AM)</option>
+                <option value="1x daily (PM/bedtime)">1x daily (PM/bedtime)</option>
+                <option value="2x daily">2x daily</option>
+                <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                <option value="Every other day">Every other day</option>
+                <option value="3x per week">3x per week</option>
+                <option value="2x per week">2x per week</option>
+                <option value="1x per week">1x per week</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Delivery *</label>
+              <select
+                value={protocolForm.peptide_delivery || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, peptide_delivery: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select delivery...</option>
+                <option value="in_clinic">In Clinic</option>
+                <option value="take_home">Take Home</option>
+              </select>
+            </div>
+          </>
+        );
+        
+      case 'hrt':
+        return (
+          <>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>HRT Type *</label>
+              <select
+                value={protocolForm.hrt_type || 'male'}
+                onChange={(e) => setProtocolForm({ ...protocolForm, hrt_type: e.target.value })}
+                style={styles.formSelect}
+              >
+                <option value="male">Male HRT (200mg/ml)</option>
+                <option value="female">Female HRT (100mg/ml)</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Medication</label>
+              <select
+                value={protocolForm.hrt_medication || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, hrt_medication: e.target.value })}
+                style={styles.formSelect}
+              >
+                <option value="">Select medication...</option>
+                <option value="Testosterone Cypionate">Testosterone Cypionate</option>
+                <option value="Testosterone Enanthate">Testosterone Enanthate</option>
+                <option value="Nandrolone">Nandrolone</option>
+                <option value="HCG">HCG</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Dosage *</label>
+              <select
+                value={protocolForm.hrt_dosage || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, hrt_dosage: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select dose...</option>
+                {(TESTOSTERONE_DOSES[protocolForm.hrt_type || 'male'] || []).map(d => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Delivery *</label>
+              <select
+                value={protocolForm.hrt_delivery || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, hrt_delivery: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select delivery...</option>
+                <option value="in_clinic">In Clinic (2x/week injections)</option>
+                <option value="take_home">Take Home (Self-inject)</option>
+              </select>
+            </div>
+            {protocolForm.hrt_delivery === 'take_home' && (
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Supply Type</label>
+                <select
+                  value={protocolForm.hrt_supply_type || ''}
+                  onChange={(e) => setProtocolForm({ ...protocolForm, hrt_supply_type: e.target.value })}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select type...</option>
+                  <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
+                  <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                  <option value="vial_5ml">Vial 5ml</option>
+                  <option value="vial_10ml">Vial 10ml</option>
+                </select>
+              </div>
+            )}
+          </>
+        );
+        
+      case 'iv':
+        return (
+          <>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Package *</label>
+              <select
+                value={protocolForm.iv_package || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, iv_package: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select package...</option>
+                <option value="Single">Single Session</option>
+                <option value="5 Pack">5 Pack</option>
+                <option value="10 Pack">10 Pack</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>IV Type</label>
+              <select
+                value={protocolForm.iv_type || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, iv_type: e.target.value })}
+                style={styles.formSelect}
+              >
+                <option value="">Select type...</option>
+                <option value="Myers Cocktail">Myers Cocktail</option>
+                <option value="NAD+">NAD+</option>
+                <option value="High Dose Vitamin C">High Dose Vitamin C</option>
+                <option value="Hydration">Hydration</option>
+                <option value="Immunity">Immunity</option>
+                <option value="Recovery">Recovery</option>
+                <option value="Custom">Custom</option>
+              </select>
+            </div>
+            <div style={styles.infoBox}>ℹ️ All IV Therapy sessions are In Clinic</div>
+          </>
+        );
+        
+      case 'hbot':
+        return (
+          <>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Package *</label>
+              <select
+                value={protocolForm.hbot_package || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, hbot_package: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select package...</option>
+                <option value="Single">Single Session</option>
+                <option value="5 Pack">5 Pack</option>
+                <option value="10 Pack">10 Pack</option>
+              </select>
+            </div>
+            <div style={styles.infoBox}>ℹ️ All HBOT sessions are In Clinic</div>
+          </>
+        );
+        
+      case 'rlt':
+        return (
+          <>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Package *</label>
+              <select
+                value={protocolForm.rlt_package || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, rlt_package: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select package...</option>
+                <option value="Single">Single Session</option>
+                <option value="5 Pack">5 Pack</option>
+                <option value="10 Pack">10 Pack</option>
+              </select>
+            </div>
+            <div style={styles.infoBox}>ℹ️ All Red Light sessions are In Clinic</div>
+          </>
+        );
+        
+      case 'injection':
+        return (
+          <>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Package *</label>
+              <select
+                value={protocolForm.injection_package || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, injection_package: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select package...</option>
+                <option value="Single">Single Session</option>
+                <option value="5 Pack">5 Pack</option>
+                <option value="10 Pack">10 Pack</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Injection Type</label>
+              <input
+                type="text"
+                value={protocolForm.injection_type || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, injection_type: e.target.value })}
+                placeholder="e.g. B12, Glutathione, Lipo-C"
+                style={styles.formInput}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Delivery *</label>
+              <select
+                value={protocolForm.injection_delivery || ''}
+                onChange={(e) => setProtocolForm({ ...protocolForm, injection_delivery: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select delivery...</option>
+                <option value="in_clinic">In Clinic</option>
+                <option value="take_home">Take Home</option>
+              </select>
+            </div>
+          </>
+        );
+        
+      default:
+        return <p style={{ color: '#6b7280' }}>Select a protocol type above.</p>;
+    }
+  };
+
+  // ========== RENDER LOG FORM FIELDS ==========
+  const renderLogFields = () => {
+    if (!logModal) return null;
+    const category = logModal.category;
+    
+    if (category === 'weight_loss') {
+      return (
+        <>
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>Current Weight (lbs) *</label>
+            <input
+              type="number"
+              step="0.1"
+              value={logForm.weight || ''}
+              onChange={(e) => setLogForm({ ...logForm, weight: e.target.value })}
+              placeholder="e.g. 215.5"
+              style={styles.formInput}
+              required
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>Dose</label>
+            <select
+              value={logForm.dosage || logModal.dose || ''}
+              onChange={(e) => setLogForm({ ...logForm, dosage: e.target.value })}
+              style={styles.formSelect}
+            >
+              <option value="">Same as protocol ({logModal.dose})</option>
+              {['0.25mg', '0.5mg', '1mg', '1.5mg', '2mg', '2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'].map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+        </>
+      );
+    }
+    
+    if (category === 'hrt') {
+      return (
+        <>
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>Log Type *</label>
+            <select
+              value={logForm.log_type || 'injection'}
+              onChange={(e) => setLogForm({ ...logForm, log_type: e.target.value })}
+              style={styles.formSelect}
+            >
+              <option value="injection">💉 In-Clinic Injection</option>
+              <option value="pickup">📦 Medication Pickup</option>
+              <option value="blood_draw">🩸 Blood Draw</option>
+            </select>
+          </div>
+          
+          {logForm.log_type === 'injection' && (
+            <>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Dose Administered</label>
+                <input
+                  type="text"
+                  value={logForm.dosage || logModal.dose || ''}
+                  onChange={(e) => setLogForm({ ...logForm, dosage: e.target.value })}
+                  placeholder={logModal.dose || 'e.g. 100mg'}
+                  style={styles.formInput}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Injection Site</label>
+                <select
+                  value={logForm.site || ''}
+                  onChange={(e) => setLogForm({ ...logForm, site: e.target.value })}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select site...</option>
+                  <option value="Deltoid - Left">Deltoid - Left</option>
+                  <option value="Deltoid - Right">Deltoid - Right</option>
+                  <option value="Glute - Left">Glute - Left</option>
+                  <option value="Glute - Right">Glute - Right</option>
+                  <option value="Thigh - Left">Thigh - Left</option>
+                  <option value="Thigh - Right">Thigh - Right</option>
+                </select>
+              </div>
+            </>
+          )}
+          
+          {logForm.log_type === 'pickup' && (
+            <>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Supply Type *</label>
+                <select
+                  value={logForm.supply_type || ''}
+                  onChange={(e) => setLogForm({ ...logForm, supply_type: e.target.value })}
+                  style={styles.formSelect}
+                  required
+                >
+                  <option value="">Select type...</option>
+                  <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
+                  <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                  <option value="vial_5ml">Vial 5ml</option>
+                  <option value="vial_10ml">Vial 10ml</option>
+                </select>
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Dose</label>
+                <input
+                  type="text"
+                  value={logForm.dosage || logModal.dose || ''}
+                  onChange={(e) => setLogForm({ ...logForm, dosage: e.target.value })}
+                  placeholder={logModal.dose || 'e.g. 0.4ml/80mg'}
+                  style={styles.formInput}
+                />
+              </div>
+            </>
+          )}
+          
+          {logForm.log_type === 'blood_draw' && (
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Panel Type *</label>
+              <select
+                value={logForm.panel_type || ''}
+                onChange={(e) => setLogForm({ ...logForm, panel_type: e.target.value })}
+                style={styles.formSelect}
+                required
+              >
+                <option value="">Select panel...</option>
+                <option value="Essential Panel">Essential Panel</option>
+                <option value="Elite Panel">Elite Panel</option>
+                <option value="Follow Up Panel">Follow Up Panel</option>
+              </select>
+            </div>
+          )}
+        </>
+      );
+    }
+    
+    // Default for peptide, IV, HBOT, RLT, injection
+    return (
+      <div style={styles.infoBox}>
+        ✓ Logging session for {logModal.medication || logModal.program_name}
+      </div>
+    );
+  };
+
+  // Main render
   if (loading) {
     return (
       <div style={styles.container}>
@@ -355,18 +1105,16 @@ export default function UnifiedPipeline() {
           <h1 style={styles.title}>💊 Protocol Pipeline</h1>
           
           <div style={styles.headerActions}>
-            {/* Search */}
             <input
               type="text"
-              placeholder="Search all protocols..."
+              placeholder="Search protocols..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={styles.searchInput}
             />
             
-            {/* Status Tabs */}
             <div style={styles.tabs}>
-              {['active', 'completed', 'all'].map(status => (
+              {['active', 'completed'].map(status => (
                 <button
                   key={status}
                   style={{
@@ -380,7 +1128,6 @@ export default function UnifiedPipeline() {
               ))}
             </div>
             
-            {/* Delivery Filter */}
             <div style={styles.tabs}>
               {[
                 { value: 'all', label: 'All' },
@@ -400,9 +1147,12 @@ export default function UnifiedPipeline() {
               ))}
             </div>
             
-            {/* Refresh */}
             <button style={styles.refreshBtn} onClick={fetchData}>
               ↻ Refresh
+            </button>
+            
+            <button style={styles.startProtocolBtn} onClick={openStartModal}>
+              ➕ Start Protocol
             </button>
           </div>
         </div>
@@ -418,13 +1168,13 @@ export default function UnifiedPipeline() {
               <div style={styles.statLabel}>ACTIVE (4-14 DAYS)</div>
               <div style={styles.statValue}>{data.counts.active}</div>
             </div>
-            <div style={{ ...styles.statCard, borderLeftColor: '#10b981' }}>
+            <div style={{ ...styles.statCard, borderLeftColor: '#22c55e' }}>
               <div style={styles.statLabel}>JUST STARTED (15+ DAYS)</div>
               <div style={styles.statValue}>{data.counts.just_started}</div>
             </div>
-            <div style={{ ...styles.statCard, borderLeftColor: '#8b5cf6' }}>
+            <div style={{ ...styles.statCard, borderLeftColor: '#6b7280' }}>
               <div style={styles.statLabel}>NEEDS FOLLOW-UP</div>
-              <div style={styles.statValue}>{data.counts.needs_follow_up}</div>
+              <div style={styles.statValue}>{data.counts.needs_followup}</div>
             </div>
           </div>
         )}
@@ -432,76 +1182,238 @@ export default function UnifiedPipeline() {
         {/* Category Filter */}
         <div style={styles.categoryFilters}>
           {[
-            { value: 'all', label: 'All Types' },
-            { value: 'peptide', label: '🧬 Peptide' },
-            { value: 'weight_loss', label: '💉 Weight Loss' },
-            { value: 'hrt', label: '💊 HRT' },
-            { value: 'iv', label: '💧 IV' },
-            { value: 'hbot', label: '🫁 HBOT' },
-            { value: 'rlt', label: '🔴 RLT' }
+            { value: 'all', label: 'All Types', emoji: '📋' },
+            { value: 'peptide', label: 'Peptide', emoji: '🧬' },
+            { value: 'weight_loss', label: 'Weight Loss', emoji: '💉' },
+            { value: 'hrt', label: 'HRT', emoji: '💊' },
+            { value: 'iv', label: 'IV', emoji: '💧' },
+            { value: 'hbot', label: 'HBOT', emoji: '🫁' },
+            { value: 'rlt', label: 'RLT', emoji: '🔴' }
           ].map(cat => (
             <button
               key={cat.value}
               style={{
-                ...styles.categoryBtn,
-                ...(categoryFilter === cat.value ? styles.categoryBtnActive : {})
+                ...styles.categoryTab,
+                ...(categoryFilter === cat.value ? styles.categoryTabActive : {})
               }}
               onClick={() => setCategoryFilter(cat.value)}
             >
-              {cat.label}
+              {cat.emoji} {cat.label}
             </button>
           ))}
         </div>
 
-        {/* Protocol Sections */}
-        {statusFilter !== 'completed' && (
-          <>
-            {renderSection('Ending Soon (≤3 days)', grouped.ending_soon, '#dc2626', '🔴')}
-            {renderSection('Active (4-14 days)', grouped.active, '#f59e0b', '🟡')}
-            {renderSection('Just Started (15+ days)', grouped.just_started, '#10b981', '🟢')}
-          </>
-        )}
-        
-        {(statusFilter === 'completed' || statusFilter === 'all') && (
-          renderSection('Completed', grouped.completed, '#6b7280', '⚪')
-        )}
+        {/* Table */}
+        {renderTable()}
 
-        {/* Empty State */}
-        {filteredProtocols.length === 0 && (
-          <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>💊</div>
-            <p>No protocols match your filters</p>
-            <button style={styles.clearBtn} onClick={() => {
-              setSearchTerm('');
-              setDeliveryFilter('all');
-              setCategoryFilter('all');
-              setStatusFilter('active');
-            }}>
-              Clear Filters
-            </button>
+        {/* ========== START PROTOCOL MODAL ========== */}
+        {startModal && (
+          <div style={styles.modalOverlay} onClick={closeStartModal}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <h2 style={styles.modalTitle}>➕ Start New Protocol</h2>
+              
+              {/* Patient Search */}
+              {!selectedPatient ? (
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Search Patient *</label>
+                  <input
+                    type="text"
+                    placeholder="Start typing patient name..."
+                    value={patientSearch}
+                    onChange={(e) => {
+                      setPatientSearch(e.target.value);
+                      setShowPatientDropdown(true);
+                    }}
+                    onFocus={() => setShowPatientDropdown(true)}
+                    style={styles.formInput}
+                  />
+                  {showPatientDropdown && filteredPatients.length > 0 && (
+                    <div style={styles.searchDropdown}>
+                      {filteredPatients.map(p => (
+                        <div
+                          key={p.id}
+                          style={styles.searchResult}
+                          onClick={() => selectPatient(p)}
+                        >
+                          <div style={{ fontWeight: '500' }}>
+                            {p.first_name} {p.last_name || p.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                            {p.ghl_contact_id ? `GHL: ${p.ghl_contact_id}` : 'No GHL ID'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={styles.selectedPatientBadge}>
+                  <div>
+                    <div style={{ fontWeight: '600' }}>
+                      {selectedPatient.first_name} {selectedPatient.last_name || selectedPatient.name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      {selectedPatient.ghl_contact_id ? `GHL: ${selectedPatient.ghl_contact_id}` : 'No GHL ID'}
+                    </div>
+                  </div>
+                  <button
+                    style={styles.changeBtn}
+                    onClick={() => setSelectedPatient(null)}
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
+              
+              {/* Protocol Type */}
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Protocol Type *</label>
+                <select
+                  value={protocolType}
+                  onChange={(e) => {
+                    setProtocolType(e.target.value);
+                    setProtocolForm({ ...protocolForm, start_date: protocolForm.start_date });
+                  }}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select type...</option>
+                  <option value="weight_loss">💉 Weight Loss</option>
+                  <option value="peptide">🧬 Peptide Protocol</option>
+                  <option value="hrt">💊 HRT Protocol</option>
+                  <option value="iv">💧 IV Therapy</option>
+                  <option value="hbot">🫁 HBOT (Hyperbaric)</option>
+                  <option value="rlt">🔴 Red Light Therapy</option>
+                  <option value="injection">💉 Injection Pack</option>
+                </select>
+              </div>
+              
+              {/* Protocol-specific fields */}
+              {renderProtocolFields()}
+              
+              {/* Start Date */}
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Start Date *</label>
+                <input
+                  type="date"
+                  value={protocolForm.start_date || ''}
+                  onChange={(e) => setProtocolForm({ ...protocolForm, start_date: e.target.value })}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              
+              {/* Notes */}
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Notes</label>
+                <textarea
+                  value={protocolForm.notes || ''}
+                  onChange={(e) => setProtocolForm({ ...protocolForm, notes: e.target.value })}
+                  placeholder="Any additional notes..."
+                  style={styles.formTextarea}
+                />
+              </div>
+              
+              <div style={styles.modalActions}>
+                <button style={styles.modalCancelBtn} onClick={closeStartModal}>
+                  Cancel
+                </button>
+                <button
+                  style={styles.modalConfirmBtn}
+                  onClick={submitStartProtocol}
+                  disabled={submitting || !selectedPatient || !protocolType}
+                >
+                  {submitting ? 'Creating...' : 'Start Protocol'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Renew Modal */}
-        {renewModal && (
-          <div style={styles.modalOverlay}>
-            <div style={styles.modal}>
-              <h3 style={styles.modalTitle}>Renew Protocol</h3>
-              <p style={{ marginBottom: '16px', color: '#6b7280' }}>
-                Renewing protocol for <strong>{renewModal.protocol.patient_name}</strong>
-              </p>
-              <p style={{ marginBottom: '8px', fontSize: '14px' }}>
-                {renewModal.protocol.medication || renewModal.protocol.program_name}
-              </p>
+        {/* ========== LOG ACTIVITY MODAL ========== */}
+        {logModal && (
+          <div style={styles.modalOverlay} onClick={closeLogModal}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <h2 style={styles.modalTitle}>➕ Log Activity</h2>
               
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Duration (days)
-                </label>
+              <div style={styles.selectedPatientBadge}>
+                <div>
+                  <div style={{ fontWeight: '600' }}>{logModal.patient_name}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    {getCategoryBadge(logModal.category).emoji} {logModal.medication || logModal.program_name}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Date *</label>
+                <input
+                  type="date"
+                  value={logForm.date || ''}
+                  onChange={(e) => setLogForm({ ...logForm, date: e.target.value })}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              
+              {renderLogFields()}
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Notes</label>
+                <textarea
+                  value={logForm.notes || ''}
+                  onChange={(e) => setLogForm({ ...logForm, notes: e.target.value })}
+                  placeholder="Any observations..."
+                  style={styles.formTextarea}
+                />
+              </div>
+              
+              <div style={styles.modalActions}>
+                <button style={styles.modalCancelBtn} onClick={closeLogModal}>
+                  Cancel
+                </button>
+                <button
+                  style={styles.modalConfirmBtn}
+                  onClick={submitLog}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Saving...' : 'Log Activity'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========== RENEW MODAL ========== */}
+        {renewModal && (
+          <div style={styles.modalOverlay} onClick={closeRenewModal}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <h2 style={styles.modalTitle}>🔄 Renew Protocol</h2>
+              
+              <div style={styles.selectedPatientBadge}>
+                <div>
+                  <div style={{ fontWeight: '600' }}>{renewModal.protocol.patient_name}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    {renewModal.protocol.medication || renewModal.protocol.program_name}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>New Start Date</label>
+                <input
+                  type="date"
+                  value={renewModal.startDate}
+                  onChange={(e) => setRenewModal({ ...renewModal, startDate: e.target.value })}
+                  style={styles.formInput}
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Duration</label>
                 <select
                   value={renewModal.duration}
                   onChange={(e) => setRenewModal({ ...renewModal, duration: e.target.value })}
-                  style={styles.modalSelect}
+                  style={styles.formSelect}
                 >
                   <option value="7">7 days</option>
                   <option value="10">10 days</option>
@@ -513,14 +1425,11 @@ export default function UnifiedPipeline() {
                 </select>
               </div>
               
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  style={styles.modalCancelBtn}
-                  onClick={closeRenewModal}
-                >
+              <div style={styles.modalActions}>
+                <button style={styles.modalCancelBtn} onClick={closeRenewModal}>
                   Cancel
                 </button>
-                <button 
+                <button
                   style={styles.modalConfirmBtn}
                   onClick={confirmRenew}
                   disabled={renewingId === renewModal.protocol.id}
@@ -529,6 +1438,16 @@ export default function UnifiedPipeline() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Toast */}
+        {toast && (
+          <div style={{
+            ...styles.toast,
+            background: toast.type === 'error' ? '#dc2626' : '#22c55e'
+          }}>
+            {toast.message}
           </div>
         )}
       </div>
@@ -579,9 +1498,8 @@ const styles = {
     border: '2px solid #e5e7eb',
     borderRadius: '8px',
     fontSize: '14px',
-    width: '220px',
-    outline: 'none',
-    transition: 'border-color 0.15s'
+    width: '200px',
+    outline: 'none'
   },
   tabs: {
     display: 'flex',
@@ -595,8 +1513,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    color: '#374151',
-    transition: 'all 0.15s'
+    color: '#374151'
   },
   tabActive: {
     background: '#111',
@@ -612,29 +1529,37 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500'
   },
+  startProtocolBtn: {
+    padding: '8px 20px',
+    border: 'none',
+    background: '#111',
+    color: 'white',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600'
+  },
   statsBar: {
     maxWidth: '1400px',
     margin: '0 auto 20px',
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px'
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '12px'
   },
   statCard: {
     background: 'white',
-    borderRadius: '8px',
-    padding: '16px 20px',
-    borderLeft: '4px solid #ccc',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+    borderRadius: '12px',
+    padding: '16px',
+    borderLeft: '4px solid #e5e7eb'
   },
   statLabel: {
     fontSize: '11px',
     fontWeight: '600',
     color: '#6b7280',
-    letterSpacing: '0.5px',
-    marginBottom: '4px'
+    letterSpacing: '0.5px'
   },
   statValue: {
-    fontSize: '32px',
+    fontSize: '28px',
     fontWeight: '700',
     color: '#111'
   },
@@ -645,112 +1570,84 @@ const styles = {
     gap: '8px',
     flexWrap: 'wrap'
   },
-  categoryBtn: {
-    padding: '6px 12px',
-    border: '1px solid #e5e7eb',
+  categoryTab: {
+    padding: '8px 14px',
+    border: '2px solid #e5e7eb',
     background: 'white',
-    borderRadius: '6px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: '500',
-    color: '#374151',
-    transition: 'all 0.15s'
+    color: '#374151'
   },
-  categoryBtnActive: {
+  categoryTabActive: {
     background: '#111',
     color: 'white',
     borderColor: '#111'
   },
-  section: {
+  tableContainer: {
     maxWidth: '1400px',
-    margin: '0 auto 24px',
+    margin: '0 auto',
     background: 'white',
     borderRadius: '12px',
     overflow: 'hidden',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-  },
-  sectionHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '16px 20px',
-    borderBottom: '1px solid #e5e7eb',
-    background: '#fafafa'
-  },
-  sectionDot: {
-    width: '12px',
-    height: '12px',
-    borderRadius: '50%'
-  },
-  sectionTitle: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#374151'
-  },
-  sectionCount: {
-    fontSize: '13px',
-    color: '#6b7280',
-    marginLeft: 'auto'
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse'
   },
   headerRow: {
-    borderBottom: '2px solid #e5e7eb'
+    background: '#f9fafb',
+    borderBottom: '1px solid #e5e7eb'
   },
-  th: {
+  headerCell: {
     padding: '12px 16px',
     textAlign: 'left',
     fontSize: '11px',
     fontWeight: '600',
     color: '#6b7280',
-    letterSpacing: '0.5px',
-    background: '#fafafa'
+    letterSpacing: '0.5px'
   },
   row: {
-    borderBottom: '1px solid #f3f4f6',
-    transition: 'background 0.1s'
+    borderBottom: '1px solid #f3f4f6'
   },
   cell: {
-    padding: '14px 16px',
+    padding: '12px 16px',
     fontSize: '14px',
-    color: '#374151',
-    verticalAlign: 'middle'
+    color: '#111'
   },
   cellActions: {
-    padding: '10px 16px',
-    textAlign: 'right',
-    whiteSpace: 'nowrap'
+    padding: '12px 16px',
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap'
   },
   patientLink: {
     color: '#111',
     textDecoration: 'none',
-    fontWeight: '600',
-    borderBottom: '1px solid #d1d5db'
+    fontWeight: '500'
   },
   categoryBadge: {
     display: 'inline-block',
     padding: '2px 6px',
     borderRadius: '4px',
     fontSize: '12px',
-    marginRight: '8px',
-    color: 'white'
+    marginRight: '8px'
   },
   daysLeft: {
     display: 'inline-block',
-    padding: '4px 10px',
+    padding: '4px 8px',
     borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500'
+    fontSize: '12px',
+    fontWeight: '600'
   },
   deliveryBadge: {
     display: 'inline-block',
     padding: '4px 8px',
-    borderRadius: '4px',
+    borderRadius: '6px',
     fontSize: '11px',
-    fontWeight: '600',
-    letterSpacing: '0.3px'
+    fontWeight: '600'
   },
   actionBtn: {
     padding: '6px 10px',
@@ -759,38 +1656,29 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '12px',
-    fontWeight: '500',
-    marginLeft: '6px',
-    transition: 'all 0.15s'
+    fontWeight: '500'
+  },
+  logBtn: {
+    background: '#f0fdf4',
+    borderColor: '#22c55e',
+    color: '#166534'
   },
   renewBtn: {
-    background: '#10b981',
-    color: 'white',
-    borderColor: '#10b981'
+    background: '#fffbeb',
+    borderColor: '#f59e0b',
+    color: '#92400e'
   },
   emptyState: {
+    textAlign: 'center',
+    padding: '60px',
+    color: '#6b7280',
     maxWidth: '1400px',
     margin: '0 auto',
-    padding: '60px 20px',
-    textAlign: 'center',
     background: 'white',
     borderRadius: '12px'
   },
-  emptyIcon: {
-    fontSize: '48px',
-    marginBottom: '16px'
-  },
-  clearBtn: {
-    marginTop: '16px',
-    padding: '10px 20px',
-    border: 'none',
-    background: '#111',
-    color: 'white',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
+  
+  // Modal styles
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -805,29 +1693,28 @@ const styles = {
   },
   modal: {
     background: 'white',
-    borderRadius: '12px',
+    borderRadius: '16px',
     padding: '24px',
-    width: '400px',
-    maxWidth: '90vw',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+    width: '90%',
+    maxWidth: '500px',
+    maxHeight: '90vh',
+    overflow: 'auto'
   },
   modalTitle: {
     fontSize: '18px',
     fontWeight: '600',
-    marginBottom: '16px',
+    marginBottom: '20px',
     color: '#111'
   },
-  modalSelect: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '2px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '14px',
-    outline: 'none'
+  modalActions: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    marginTop: '20px'
   },
   modalCancelBtn: {
     padding: '10px 20px',
-    border: '2px solid #e5e7eb',
+    border: '1px solid #e5e7eb',
     background: 'white',
     borderRadius: '8px',
     cursor: 'pointer',
@@ -837,11 +1724,109 @@ const styles = {
   modalConfirmBtn: {
     padding: '10px 20px',
     border: 'none',
-    background: '#10b981',
+    background: '#111',
     color: 'white',
     borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '500'
+    fontWeight: '600'
+  },
+  
+  // Form styles
+  formGroup: {
+    marginBottom: '16px'
+  },
+  formLabel: {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '6px'
+  },
+  formInput: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  formSelect: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    background: 'white'
+  },
+  formTextarea: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    minHeight: '80px',
+    resize: 'vertical',
+    fontFamily: 'inherit'
+  },
+  infoBox: {
+    background: '#f3f4f6',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    color: '#374151'
+  },
+  
+  // Patient search
+  searchDropdown: {
+    background: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    marginTop: '4px',
+    maxHeight: '200px',
+    overflow: 'auto',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+  },
+  searchResult: {
+    padding: '10px 12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f3f4f6'
+  },
+  selectedPatientBadge: {
+    background: '#f3f4f6',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  changeBtn: {
+    padding: '4px 12px',
+    border: '1px solid #d1d5db',
+    background: 'white',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    color: '#6b7280'
+  },
+  
+  // Toast
+  toast: {
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    color: 'white',
+    fontSize: '14px',
+    fontWeight: '500',
+    zIndex: 1001,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
   }
 };

@@ -259,14 +259,14 @@ export default function UnifiedPipeline() {
       
       const result = await res.json();
       if (result.success) {
-        showToast('Protocol renewed!');
+        showToast('Protocol extended!');
         closeRenewModal();
         fetchData();
       } else {
         showToast(result.error || 'Failed to renew', 'error');
       }
     } catch (err) {
-      showToast('Error renewing protocol', 'error');
+      showToast('Error extending protocol', 'error');
     } finally {
       setRenewingId(null);
     }
@@ -531,13 +531,14 @@ export default function UnifiedPipeline() {
           >
             ↗ GHL
           </button>
-          {(isEndingSoon || isOverdue || protocol.status === 'completed') && (
+          {/* Only show Extend for peptide protocols - HRT uses Refill via Log button */}
+          {protocol.category === 'peptide' && (isEndingSoon || isOverdue || protocol.status === 'completed') && (
             <button 
               style={{ ...styles.actionBtn, ...styles.renewBtn }}
               onClick={() => openRenewModal(protocol)}
-              title="Renew"
+              title="Extend Protocol"
             >
-              🔄
+              ⏳
             </button>
           )}
         </td>
@@ -1387,7 +1388,7 @@ export default function UnifiedPipeline() {
         {renewModal && (
           <div style={styles.modalOverlay} onClick={closeRenewModal}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <h2 style={styles.modalTitle}>🔄 Renew Protocol</h2>
+              <h2 style={styles.modalTitle}>⏳ Extend Peptide Protocol</h2>
               
               <div style={styles.selectedPatientBadge}>
                 <div>
@@ -1399,7 +1400,7 @@ export default function UnifiedPipeline() {
               </div>
               
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>New Start Date</label>
+                <label style={styles.formLabel}>Extension Start Date</label>
                 <input
                   type="date"
                   value={renewModal.startDate}
@@ -1409,19 +1410,19 @@ export default function UnifiedPipeline() {
               </div>
               
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Duration</label>
+                <label style={styles.formLabel}>Add Days</label>
                 <select
                   value={renewModal.duration}
                   onChange={(e) => setRenewModal({ ...renewModal, duration: e.target.value })}
                   style={styles.formSelect}
                 >
-                  <option value="7">7 days</option>
-                  <option value="10">10 days</option>
-                  <option value="14">14 days</option>
-                  <option value="20">20 days</option>
-                  <option value="30">30 days</option>
-                  <option value="60">60 days</option>
-                  <option value="90">90 days</option>
+                  <option value="7">+ 7 days</option>
+                  <option value="10">+ 10 days</option>
+                  <option value="14">+ 14 days</option>
+                  <option value="20">+ 20 days</option>
+                  <option value="30">+ 30 days</option>
+                  <option value="60">+ 60 days</option>
+                  <option value="90">+ 90 days</option>
                 </select>
               </div>
               
@@ -1434,7 +1435,7 @@ export default function UnifiedPipeline() {
                   onClick={confirmRenew}
                   disabled={renewingId === renewModal.protocol.id}
                 >
-                  {renewingId === renewModal.protocol.id ? 'Renewing...' : 'Confirm Renewal'}
+                  {renewingId === renewModal.protocol.id ? 'Extending...' : 'Extend Protocol'}
                 </button>
               </div>
             </div>

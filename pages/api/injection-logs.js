@@ -16,6 +16,8 @@ export default async function handler(req, res) {
         return await handleGet(req, res);
       case 'POST':
         return await handlePost(req, res);
+      case 'PUT':
+        return await handlePut(req, res);
       case 'DELETE':
         return await handleDelete(req, res);
       default:
@@ -327,6 +329,51 @@ async function incrementWeightLossSession(patientId, ghlContactId) {
     sessions_used: newSessionsUsed,
     total_sessions: wlProtocol.total_sessions
   };
+}
+
+// PUT - Update injection log
+async function handlePut(req, res) {
+  const { id } = req.query;
+  
+  if (!id) {
+    return res.status(400).json({ error: 'Log ID is required' });
+  }
+  
+  const {
+    entry_type,
+    entry_date,
+    medication,
+    dosage,
+    supply_type,
+    quantity,
+    notes
+  } = req.body;
+  
+  const updateData = {
+    updated_at: new Date().toISOString()
+  };
+  
+  if (entry_type !== undefined) updateData.entry_type = entry_type;
+  if (entry_date !== undefined) updateData.entry_date = entry_date;
+  if (medication !== undefined) updateData.medication = medication;
+  if (dosage !== undefined) updateData.dosage = dosage;
+  if (supply_type !== undefined) updateData.supply_type = supply_type;
+  if (quantity !== undefined) updateData.quantity = quantity;
+  if (notes !== undefined) updateData.notes = notes;
+  
+  const { data, error } = await supabase
+    .from('injection_logs')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('Error updating injection log:', error);
+    return res.status(500).json({ error: error.message });
+  }
+  
+  return res.status(200).json({ success: true, log: data });
 }
 
 // DELETE - Delete injection log

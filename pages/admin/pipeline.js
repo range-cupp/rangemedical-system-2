@@ -1323,22 +1323,37 @@ export default function UnifiedPipeline() {
                         <button
                           style={{ ...styles.actionBtn, ...styles.startBtn }}
                           onClick={() => {
-                            // Pre-fill start modal with purchase info
-                            const patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+                            // Try multiple ways to find the patient
+                            let patient = null;
+                            
+                            // 1. Try by patient_id first (most reliable)
+                            if (purchase.patient_id) {
+                              patient = patients.find(p => p.id === purchase.patient_id);
+                            }
+                            
+                            // 2. Try by ghl_contact_id
+                            if (!patient && purchase.ghl_contact_id) {
+                              patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+                            }
+                            
+                            // 3. Try by exact name match
+                            if (!patient && purchase.patient_name) {
+                              const purchaseName = purchase.patient_name.toLowerCase().trim();
+                              patient = patients.find(p => {
+                                const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
+                                return fullName === purchaseName;
+                              });
+                            }
+                            
+                            // Set the patient if found
                             if (patient) {
                               setSelectedPatient(patient);
                               setPatientSearch(`${patient.first_name || ''} ${patient.last_name || ''}`.trim());
                             } else {
-                              // Try matching by name if GHL ID didn't work
-                              const byName = patients.find(p => {
-                                const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
-                                return fullName === (purchase.patient_name || '').toLowerCase().trim();
-                              });
-                              if (byName) {
-                                setSelectedPatient(byName);
-                                setPatientSearch(`${byName.first_name || ''} ${byName.last_name || ''}`.trim());
-                              }
+                              // Pre-fill search with purchase patient name
+                              setPatientSearch(purchase.patient_name || '');
                             }
+                            
                             // Set protocol type based on category
                             const categoryMap = {
                               'peptide': 'peptide',
@@ -1364,7 +1379,7 @@ export default function UnifiedPipeline() {
                           onClick={() => openGHL(purchase.ghl_contact_id)}
                           title="Open in GHL"
                         >
-                          ↗ GHL
+                          GHL
                         </button>
                       </td>
                     </tr>

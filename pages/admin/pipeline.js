@@ -1,409 +1,292 @@
-// pages/admin/pipeline.js
-// Unified Protocol Pipeline with Correct Tracking per Protocol Type
-// Deploy to: pages/admin/pipeline.js
+// /pages/admin/pipeline.js
+// Unified Protocol Pipeline - Table Layout
+// Range Medical - Updated 2026-01-16
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
 
-// Protocol type display configuration
-const getProtocolDisplay = (protocol) => {
-  const type = (protocol.program_type || protocol.category || '').toLowerCase();
-  if (type.includes('weight') || type.includes('wl') || type.includes('glp')) {
-    return { icon: '💉', label: 'WL', fullLabel: 'Weight Loss', color: '#f59e0b' };
-  }
-  if (type.includes('hrt') || type.includes('testosterone') || type.includes('hormone')) {
-    return { icon: '💊', label: 'HRT', fullLabel: 'HRT', color: '#8b5cf6' };
-  }
-  if (type.includes('peptide') || type.includes('bpc') || type.includes('recovery')) {
-    return { icon: '🧬', label: 'PEP', fullLabel: 'Peptide', color: '#10b981' };
-  }
-  if (type.includes('iv')) {
-    return { icon: '💧', label: 'IV', fullLabel: 'IV Therapy', color: '#06b6d4' };
-  }
-  if (type.includes('hbot') || type.includes('hyperbaric')) {
-    return { icon: '🫁', label: 'HBOT', fullLabel: 'HBOT', color: '#6366f1' };
-  }
-  if (type.includes('red') || type.includes('light') || type.includes('rlt')) {
-    return { icon: '🔴', label: 'RLT', fullLabel: 'Red Light', color: '#ef4444' };
-  }
-  if (type.includes('vitamin') || type.includes('b12') || type.includes('injection')) {
-    return { icon: '💉', label: 'INJ', fullLabel: 'Injection', color: '#64748b' };
-  }
-  return { icon: '📋', label: 'OTHER', fullLabel: 'Protocol', color: '#64748b' };
-};
-
-// Get urgency indicator based on days or sessions remaining
-const getUrgency = (protocol) => {
-  const daysLeft = protocol.days_remaining;
-  const sessionsLeft = protocol.sessions_remaining;
-  
-  // For session-based protocols
-  if (protocol.tracking_type === 'session_based' && sessionsLeft !== undefined) {
-    if (sessionsLeft <= 0) return { bg: '#dcfce7', text: '#166534', label: 'Complete' };
-    if (sessionsLeft <= 1) return { bg: '#fef2f2', text: '#dc2626', label: `${sessionsLeft} left!` };
-    if (sessionsLeft <= 2) return { bg: '#fffbeb', text: '#d97706', label: `${sessionsLeft} left` };
-    return null;
-  }
-  
-  // For day-based protocols
-  if (daysLeft === null || daysLeft === undefined) return null;
-  if (daysLeft <= 0) return { bg: '#fef2f2', text: '#dc2626', label: 'Ended/Overdue' };
-  if (daysLeft <= 3) return { bg: '#fef2f2', text: '#dc2626', label: `${daysLeft}d left!` };
-  if (daysLeft <= 7) return { bg: '#fffbeb', text: '#d97706', label: `${daysLeft}d left` };
-  if (daysLeft <= 14) return { bg: '#fefce8', text: '#ca8a04', label: `${daysLeft}d left` };
-  return null;
-};
-
-// Get progress percentage
-const getProgress = (protocol) => {
-  if (protocol.tracking_type === 'session_based') {
-    const total = protocol.total_sessions || 1;
-    const used = protocol.sessions_used || 0;
-    return Math.min(100, Math.max(0, (used / total) * 100));
-  }
-  
-  const totalDays = protocol.total_days || 30;
-  const daysLeft = protocol.days_remaining || 0;
-  const daysUsed = totalDays - daysLeft;
-  return Math.min(100, Math.max(0, (daysUsed / totalDays) * 100));
-};
-
-// Format delivery method for display
-const formatDeliveryMethod = (method) => {
-  if (!method) return '';
-  const m = method.toLowerCase();
-  if (m.includes('take') || m.includes('home')) return 'Take Home';
-  if (m.includes('clinic')) return 'In Clinic';
-  return method;
-};
-
-export default function Pipeline() {
-  const router = useRouter();
-  const [mainTab, setMainTab] = useState('active');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('expiration');
-  const [search, setSearch] = useState('');
+export default function UnifiedPipeline() {
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  const [needsProtocol, setNeedsProtocol] = useState([]);
-  const [activeProtocols, setActiveProtocols] = useState([]);
-  const [completedProtocols, setCompletedProtocols] = useState([]);
-  const [patients, setPatients] = useState([]);
+  // Filters
+  const [statusFilter, setStatusFilter] = useState('active'); // active, completed, all
+  const [deliveryFilter, setDeliveryFilter] = useState('all'); // all, in_clinic, take_home
+  const [categoryFilter, setCategoryFilter] = useState('all'); // all, peptide, weight_loss, hrt, iv, etc.
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const res = await fetch('/api/admin/pipeline');
-      if (res.ok) {
-        const data = await res.json();
-        setNeedsProtocol(data.needsProtocol || []);
-        setActiveProtocols(data.activeProtocols || []);
-        setCompletedProtocols(data.completedProtocols || []);
-      }
-      
-      // Also fetch patients for the patients tab
-      const patientsRes = await fetch('/api/patients');
-      if (patientsRes.ok) {
-        const patientsData = await patientsRes.json();
-        setPatients(patientsData.patients || patientsData || []);
+      const json = await res.json();
+      if (json.success) {
+        setData(json);
+      } else {
+        setError(json.error);
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Sort protocols
-  const sortProtocols = (protocols) => {
-    return [...protocols].sort((a, b) => {
-      switch (sortBy) {
-        case 'expiration':
-          const aDays = a.days_remaining ?? a.sessions_remaining ?? 9999;
-          const bDays = b.days_remaining ?? b.sessions_remaining ?? 9999;
-          return aDays - bDays;
-        case 'name':
-          return (a.patient_name || '').localeCompare(b.patient_name || '');
-        case 'type':
-          return (a.program_type || '').localeCompare(b.program_type || '');
-        case 'date':
-          return new Date(b.start_date || 0) - new Date(a.start_date || 0);
-        default:
-          return 0;
-      }
-    });
-  };
-
-  // Filter by type
-  const filterByType = (protocols) => {
-    if (typeFilter === 'all') return protocols;
-    return protocols.filter(p => {
-      const type = (p.program_type || p.category || '').toLowerCase();
-      switch (typeFilter) {
-        case 'wl': return type.includes('weight') || type.includes('wl') || type.includes('glp');
-        case 'hrt': return type.includes('hrt') || type.includes('testosterone') || type.includes('hormone');
-        case 'peptide': return type.includes('peptide') || type.includes('bpc') || type.includes('recovery');
-        case 'iv': return type.includes('iv');
-        case 'hbot': return type.includes('hbot') || type.includes('hyperbaric');
-        case 'rlt': return type.includes('red') || type.includes('light') || type.includes('rlt');
-        default: return true;
-      }
-    });
-  };
-
-  // Search filter
-  const searchFilter = (items) => {
-    if (!search) return items;
-    const searchLower = search.toLowerCase();
-    return items.filter(item => {
-      const name = (item.patient_name || item.name || '').toLowerCase();
-      const medication = (item.medication || item.program_name || item.item_name || '').toLowerCase();
-      return name.includes(searchLower) || medication.includes(searchLower);
-    });
-  };
-
-  // Get filtered and sorted protocols
-  const getFilteredActive = () => searchFilter(filterByType(sortProtocols(activeProtocols)));
-  const getFilteredCompleted = () => searchFilter(filterByType(completedProtocols));
-  const getFilteredNeedsProtocol = () => searchFilter(needsProtocol);
-  const getFilteredPatients = () => searchFilter(patients);
-
-  // Count by type
-  const countByType = (type) => {
-    return activeProtocols.filter(p => {
-      const pType = (p.program_type || p.category || '').toLowerCase();
-      switch (type) {
-        case 'wl': return pType.includes('weight') || pType.includes('wl') || pType.includes('glp');
-        case 'hrt': return pType.includes('hrt') || pType.includes('testosterone') || pType.includes('hormone');
-        case 'peptide': return pType.includes('peptide') || pType.includes('bpc') || pType.includes('recovery');
-        case 'iv': return pType.includes('iv');
-        case 'hbot': return pType.includes('hbot') || pType.includes('hyperbaric');
-        case 'rlt': return pType.includes('red') || pType.includes('light') || pType.includes('rlt');
-        default: return true;
-      }
-    }).length;
-  };
-
-  // Styles
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#f8fafc',
-      padding: '24px'
-    },
-    header: {
-      maxWidth: '1400px',
-      margin: '0 auto 24px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: '16px'
-    },
-    title: {
-      fontSize: '24px',
-      fontWeight: '700',
-      color: '#0f172a',
-      margin: 0
-    },
-    headerRight: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      flexWrap: 'wrap'
-    },
-    select: {
-      padding: '10px 14px',
-      borderRadius: '8px',
-      border: '1px solid #e2e8f0',
-      backgroundColor: '#fff',
-      fontSize: '14px',
-      cursor: 'pointer'
-    },
-    searchInput: {
-      padding: '10px 14px',
-      borderRadius: '8px',
-      border: '1px solid #e2e8f0',
-      fontSize: '14px',
-      width: '200px'
-    },
-    content: {
-      maxWidth: '1400px',
-      margin: '0 auto'
-    },
-    mainTabs: {
-      display: 'flex',
-      gap: '4px',
-      marginBottom: '16px',
-      backgroundColor: '#fff',
-      padding: '4px',
-      borderRadius: '12px',
-      border: '1px solid #e2e8f0',
-      width: 'fit-content'
-    },
-    mainTab: {
-      padding: '10px 20px',
-      borderRadius: '8px',
-      border: 'none',
-      backgroundColor: 'transparent',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#64748b',
-      transition: 'all 0.15s ease'
-    },
-    mainTabActive: {
-      backgroundColor: '#0f172a',
-      color: '#fff'
-    },
-    typeTabs: {
-      display: 'flex',
-      gap: '8px',
-      marginBottom: '24px',
-      flexWrap: 'wrap'
-    },
-    typeTab: {
-      padding: '8px 14px',
-      borderRadius: '20px',
-      border: '1px solid #e2e8f0',
-      backgroundColor: '#fff',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500',
-      color: '#64748b',
-      transition: 'all 0.15s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px'
-    },
-    typeTabActive: {
-      backgroundColor: '#0f172a',
-      color: '#fff',
-      borderColor: '#0f172a'
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-      gap: '16px'
-    },
-    card: {
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      border: '1px solid #e2e8f0',
-      padding: '16px',
-      cursor: 'pointer',
-      transition: 'all 0.15s ease'
-    },
-    cardHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: '8px'
-    },
-    typeBadge: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '36px',
-      height: '36px',
-      borderRadius: '8px',
-      fontSize: '16px'
-    },
-    patientName: {
-      fontSize: '16px',
-      fontWeight: '600',
-      color: '#0f172a',
-      marginBottom: '4px',
-      textDecoration: 'none',
-      cursor: 'pointer',
-      display: 'block'
-    },
-    medication: {
-      fontSize: '14px',
-      color: '#64748b',
-      marginBottom: '12px'
-    },
-    trackingInfo: {
-      fontSize: '12px',
-      color: '#64748b',
-      marginBottom: '8px',
-      display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap'
-    },
-    trackingBadge: {
-      padding: '2px 8px',
-      backgroundColor: '#f1f5f9',
-      borderRadius: '4px',
-      fontSize: '11px'
-    },
-    progressBar: {
-      height: '4px',
-      backgroundColor: '#e2e8f0',
-      borderRadius: '2px',
-      overflow: 'hidden',
-      marginBottom: '8px'
-    },
-    progressFill: {
-      height: '100%',
-      borderRadius: '2px',
-      transition: 'width 0.3s ease'
-    },
-    cardFooter: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      fontSize: '12px',
-      color: '#64748b'
-    },
-    urgencyBadge: {
-      padding: '3px 8px',
-      borderRadius: '4px',
-      fontSize: '11px',
-      fontWeight: '600'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '48px 24px',
-      color: '#64748b',
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      border: '1px solid #e2e8f0'
-    },
-    loading: {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '300px',
-      color: '#64748b'
-    },
-    quickAction: {
-      padding: '6px 10px',
-      borderRadius: '6px',
-      border: 'none',
-      backgroundColor: '#f1f5f9',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: '500',
-      color: '#475569',
-      transition: 'all 0.15s ease'
-    },
-    statusText: {
-      fontWeight: '500',
-      color: '#0f172a'
+  // Get filtered protocols
+  const getFilteredProtocols = () => {
+    if (!data) return [];
+    
+    let protocols = [];
+    
+    // Combine based on status filter
+    if (statusFilter === 'active' || statusFilter === 'all') {
+      protocols = [
+        ...data.protocols.ending_soon,
+        ...data.protocols.active,
+        ...data.protocols.just_started
+      ];
     }
+    if (statusFilter === 'completed' || statusFilter === 'all') {
+      protocols = [...protocols, ...data.protocols.completed];
+    }
+    
+    // Apply delivery filter
+    if (deliveryFilter !== 'all') {
+      protocols = protocols.filter(p => p.delivery === deliveryFilter);
+    }
+    
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      protocols = protocols.filter(p => p.category === categoryFilter);
+    }
+    
+    // Apply search
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      protocols = protocols.filter(p => 
+        (p.patient_name || '').toLowerCase().includes(term) ||
+        (p.medication || '').toLowerCase().includes(term) ||
+        (p.program_name || '').toLowerCase().includes(term)
+      );
+    }
+    
+    return protocols;
+  };
+
+  // Group by urgency for display
+  const groupByUrgency = (protocols) => {
+    const groups = {
+      ending_soon: [],
+      active: [],
+      just_started: [],
+      completed: []
+    };
+    
+    protocols.forEach(p => {
+      if (p.status === 'completed' || p.urgency === 'completed') {
+        groups.completed.push(p);
+      } else if (p.urgency === 'ending_soon' || p.urgency === 'overdue') {
+        groups.ending_soon.push(p);
+      } else if (p.urgency === 'just_started') {
+        groups.just_started.push(p);
+      } else {
+        groups.active.push(p);
+      }
+    });
+    
+    return groups;
+  };
+
+  const filteredProtocols = getFilteredProtocols();
+  const grouped = groupByUrgency(filteredProtocols);
+
+  // Format date for display
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  };
+
+  // Get protocol duration label
+  const getDuration = (protocol) => {
+    const name = protocol.program_name || '';
+    const match = name.match(/(\d+)\s*day/i);
+    if (match) return `${match[1]} days`;
+    if (protocol.total_days) return `${protocol.total_days} days`;
+    if (protocol.total_sessions) return `${protocol.total_sessions} sessions`;
+    return '-';
+  };
+
+  // Get category badge
+  const getCategoryBadge = (category) => {
+    const badges = {
+      peptide: { emoji: '🧬', label: 'Peptide', color: '#8b5cf6' },
+      weight_loss: { emoji: '💉', label: 'WL', color: '#f59e0b' },
+      hrt: { emoji: '💊', label: 'HRT', color: '#3b82f6' },
+      iv: { emoji: '💧', label: 'IV', color: '#06b6d4' },
+      hbot: { emoji: '🫁', label: 'HBOT', color: '#10b981' },
+      rlt: { emoji: '🔴', label: 'RLT', color: '#ef4444' },
+      injection: { emoji: '💉', label: 'Inj', color: '#6b7280' },
+      other: { emoji: '📋', label: 'Other', color: '#6b7280' }
+    };
+    return badges[category] || badges.other;
+  };
+
+  // Open GHL contact
+  const openGHL = (ghlId) => {
+    if (ghlId) {
+      window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${ghlId}`, '_blank');
+    }
+  };
+
+  // Send SMS
+  const sendSMS = (phone, name) => {
+    // TODO: Implement SMS modal
+    alert(`SMS to ${name}: ${phone}`);
+  };
+
+  // Renew protocol
+  const renewProtocol = async (protocol) => {
+    // TODO: Implement renew modal
+    alert(`Renew protocol for ${protocol.patient_name}`);
+  };
+
+  // Edit protocol
+  const editProtocol = (protocol) => {
+    // TODO: Implement edit modal
+    alert(`Edit protocol ${protocol.id}`);
+  };
+
+  // Render protocol row
+  const renderRow = (protocol, index) => {
+    const badge = getCategoryBadge(protocol.category);
+    const isOverdue = protocol.days_remaining !== undefined && protocol.days_remaining <= 0;
+    const isEndingSoon = protocol.urgency === 'ending_soon';
+    
+    return (
+      <tr key={protocol.id} style={styles.row}>
+        <td style={styles.cell}>
+          <a 
+            href={`/admin/patient/${protocol.patient_id}`}
+            style={styles.patientLink}
+          >
+            {protocol.patient_name || 'Unknown'}
+          </a>
+        </td>
+        <td style={styles.cell}>
+          <span style={{ ...styles.categoryBadge, background: badge.color }}>
+            {badge.emoji}
+          </span>
+          {protocol.medication || protocol.program_name || '-'}
+        </td>
+        <td style={styles.cell}>{protocol.dose || '-'}</td>
+        <td style={styles.cell}>{getDuration(protocol)}</td>
+        <td style={styles.cell}>{formatDate(protocol.start_date)}</td>
+        <td style={styles.cell}>
+          <span style={{
+            ...styles.daysLeft,
+            color: isOverdue ? '#dc2626' : isEndingSoon ? '#f59e0b' : '#059669',
+            background: isOverdue ? '#fef2f2' : isEndingSoon ? '#fffbeb' : '#f0fdf4'
+          }}>
+            {protocol.status_text}
+          </span>
+        </td>
+        <td style={styles.cell}>
+          <span style={{
+            ...styles.deliveryBadge,
+            background: protocol.delivery === 'take_home' ? '#dbeafe' : '#f3f4f6',
+            color: protocol.delivery === 'take_home' ? '#1d4ed8' : '#374151'
+          }}>
+            {protocol.delivery === 'take_home' ? 'TAKE HOME' : 'IN CLINIC'}
+          </span>
+        </td>
+        <td style={styles.cellActions}>
+          <button 
+            style={styles.actionBtn}
+            onClick={() => sendSMS(protocol.patient_phone, protocol.patient_name)}
+            title="Send SMS"
+          >
+            📱 SMS
+          </button>
+          <button 
+            style={styles.actionBtn}
+            onClick={() => editProtocol(protocol)}
+            title="Edit"
+          >
+            ✏️ Edit
+          </button>
+          {protocol.ghl_contact_id && (
+            <button 
+              style={styles.actionBtn}
+              onClick={() => openGHL(protocol.ghl_contact_id)}
+              title="Open in GHL"
+            >
+              ↗ GHL
+            </button>
+          )}
+          {(isEndingSoon || isOverdue || protocol.status === 'completed') && (
+            <button 
+              style={{ ...styles.actionBtn, ...styles.renewBtn }}
+              onClick={() => renewProtocol(protocol)}
+              title="Renew"
+            >
+              🔄 Renew
+            </button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  // Render section
+  const renderSection = (title, protocols, color, emoji) => {
+    if (protocols.length === 0) return null;
+    
+    return (
+      <div style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <span style={{ ...styles.sectionDot, background: color }}></span>
+          <span style={styles.sectionTitle}>{emoji} {title}</span>
+          <span style={styles.sectionCount}>{protocols.length}</span>
+        </div>
+        <table style={styles.table}>
+          <thead>
+            <tr style={styles.headerRow}>
+              <th style={styles.th}>PATIENT</th>
+              <th style={styles.th}>MEDICATION</th>
+              <th style={styles.th}>DOSE</th>
+              <th style={styles.th}>PROTOCOL</th>
+              <th style={styles.th}>STARTED</th>
+              <th style={styles.th}>STATUS</th>
+              <th style={styles.th}>DELIVERY</th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {protocols.map((p, i) => renderRow(p, i))}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.loading}>Loading pipeline...</div>
+        <div style={styles.loading}>Loading protocols...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.error}>Error: {error}</div>
       </div>
     );
   }
@@ -411,363 +294,399 @@ export default function Pipeline() {
   return (
     <>
       <Head>
-        <title>Protocol Pipeline - Range Medical</title>
+        <title>Protocol Pipeline | Range Medical</title>
       </Head>
-
+      
       <div style={styles.container}>
         {/* Header */}
         <div style={styles.header}>
-          <h1 style={styles.title}>Protocol Pipeline</h1>
-          <div style={styles.headerRight}>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={styles.select}
-            >
-              <option value="expiration">Sort: Expiring Soon</option>
-              <option value="name">Sort: Patient Name</option>
-              <option value="type">Sort: Protocol Type</option>
-              <option value="date">Sort: Start Date</option>
-            </select>
+          <h1 style={styles.title}>💊 Protocol Pipeline</h1>
+          
+          <div style={styles.headerActions}>
+            {/* Search */}
             <input
               type="text"
-              placeholder="Search patients..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search all protocols..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               style={styles.searchInput}
             />
-            <Link href="/admin/injection-logs" style={{
-              ...styles.select,
-              textDecoration: 'none',
-              color: '#0f172a',
-              fontWeight: '500'
+            
+            {/* Status Tabs */}
+            <div style={styles.tabs}>
+              {['active', 'completed', 'all'].map(status => (
+                <button
+                  key={status}
+                  style={{
+                    ...styles.tab,
+                    ...(statusFilter === status ? styles.tabActive : {})
+                  }}
+                  onClick={() => setStatusFilter(status)}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
+            
+            {/* Delivery Filter */}
+            <div style={styles.tabs}>
+              {[
+                { value: 'all', label: 'All' },
+                { value: 'in_clinic', label: 'In Clinic' },
+                { value: 'take_home', label: 'Take Home' }
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  style={{
+                    ...styles.tab,
+                    ...(deliveryFilter === opt.value ? styles.tabActive : {})
+                  }}
+                  onClick={() => setDeliveryFilter(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            
+            {/* Refresh */}
+            <button style={styles.refreshBtn} onClick={fetchData}>
+              ↻ Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        {data && (
+          <div style={styles.statsBar}>
+            <div style={{ ...styles.statCard, borderLeftColor: '#dc2626' }}>
+              <div style={styles.statLabel}>ENDING SOON (≤3 DAYS)</div>
+              <div style={styles.statValue}>{data.counts.ending_soon}</div>
+            </div>
+            <div style={{ ...styles.statCard, borderLeftColor: '#f59e0b' }}>
+              <div style={styles.statLabel}>ACTIVE (4-14 DAYS)</div>
+              <div style={styles.statValue}>{data.counts.active}</div>
+            </div>
+            <div style={{ ...styles.statCard, borderLeftColor: '#10b981' }}>
+              <div style={styles.statLabel}>JUST STARTED (15+ DAYS)</div>
+              <div style={styles.statValue}>{data.counts.just_started}</div>
+            </div>
+            <div style={{ ...styles.statCard, borderLeftColor: '#8b5cf6' }}>
+              <div style={styles.statLabel}>NEEDS FOLLOW-UP</div>
+              <div style={styles.statValue}>{data.counts.needs_follow_up}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Category Filter */}
+        <div style={styles.categoryFilters}>
+          {[
+            { value: 'all', label: 'All Types' },
+            { value: 'peptide', label: '🧬 Peptide' },
+            { value: 'weight_loss', label: '💉 Weight Loss' },
+            { value: 'hrt', label: '💊 HRT' },
+            { value: 'iv', label: '💧 IV' },
+            { value: 'hbot', label: '🫁 HBOT' },
+            { value: 'rlt', label: '🔴 RLT' }
+          ].map(cat => (
+            <button
+              key={cat.value}
+              style={{
+                ...styles.categoryBtn,
+                ...(categoryFilter === cat.value ? styles.categoryBtnActive : {})
+              }}
+              onClick={() => setCategoryFilter(cat.value)}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Protocol Sections */}
+        {statusFilter !== 'completed' && (
+          <>
+            {renderSection('Ending Soon (≤3 days)', grouped.ending_soon, '#dc2626', '🔴')}
+            {renderSection('Active (4-14 days)', grouped.active, '#f59e0b', '🟡')}
+            {renderSection('Just Started (15+ days)', grouped.just_started, '#10b981', '🟢')}
+          </>
+        )}
+        
+        {(statusFilter === 'completed' || statusFilter === 'all') && (
+          renderSection('Completed', grouped.completed, '#6b7280', '⚪')
+        )}
+
+        {/* Empty State */}
+        {filteredProtocols.length === 0 && (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>💊</div>
+            <p>No protocols match your filters</p>
+            <button style={styles.clearBtn} onClick={() => {
+              setSearchTerm('');
+              setDeliveryFilter('all');
+              setCategoryFilter('all');
+              setStatusFilter('active');
             }}>
-              Injection Logs →
-            </Link>
-          </div>
-        </div>
-
-        <div style={styles.content}>
-          {/* Main Tabs */}
-          <div style={styles.mainTabs}>
-            <button
-              onClick={() => setMainTab('needs')}
-              style={{
-                ...styles.mainTab,
-                ...(mainTab === 'needs' ? styles.mainTabActive : {})
-              }}
-            >
-              Needs Protocol ({needsProtocol.length})
-            </button>
-            <button
-              onClick={() => setMainTab('active')}
-              style={{
-                ...styles.mainTab,
-                ...(mainTab === 'active' ? styles.mainTabActive : {})
-              }}
-            >
-              Active ({activeProtocols.length})
-            </button>
-            <button
-              onClick={() => setMainTab('completed')}
-              style={{
-                ...styles.mainTab,
-                ...(mainTab === 'completed' ? styles.mainTabActive : {})
-              }}
-            >
-              Completed ({completedProtocols.length})
-            </button>
-            <button
-              onClick={() => setMainTab('patients')}
-              style={{
-                ...styles.mainTab,
-                ...(mainTab === 'patients' ? styles.mainTabActive : {})
-              }}
-            >
-              Patients ({patients.length})
+              Clear Filters
             </button>
           </div>
-
-          {/* Type Filter Tabs (only show for active) */}
-          {mainTab === 'active' && (
-            <div style={styles.typeTabs}>
-              <button
-                onClick={() => setTypeFilter('all')}
-                style={{
-                  ...styles.typeTab,
-                  ...(typeFilter === 'all' ? styles.typeTabActive : {})
-                }}
-              >
-                All ({activeProtocols.length})
-              </button>
-              <button
-                onClick={() => setTypeFilter('wl')}
-                style={{
-                  ...styles.typeTab,
-                  ...(typeFilter === 'wl' ? styles.typeTabActive : {})
-                }}
-              >
-                💉 WL ({countByType('wl')})
-              </button>
-              <button
-                onClick={() => setTypeFilter('hrt')}
-                style={{
-                  ...styles.typeTab,
-                  ...(typeFilter === 'hrt' ? styles.typeTabActive : {})
-                }}
-              >
-                💊 HRT ({countByType('hrt')})
-              </button>
-              <button
-                onClick={() => setTypeFilter('peptide')}
-                style={{
-                  ...styles.typeTab,
-                  ...(typeFilter === 'peptide' ? styles.typeTabActive : {})
-                }}
-              >
-                🧬 Peptide ({countByType('peptide')})
-              </button>
-              <button
-                onClick={() => setTypeFilter('iv')}
-                style={{
-                  ...styles.typeTab,
-                  ...(typeFilter === 'iv' ? styles.typeTabActive : {})
-                }}
-              >
-                💧 IV ({countByType('iv')})
-              </button>
-              <button
-                onClick={() => setTypeFilter('hbot')}
-                style={{
-                  ...styles.typeTab,
-                  ...(typeFilter === 'hbot' ? styles.typeTabActive : {})
-                }}
-              >
-                🫁 HBOT ({countByType('hbot')})
-              </button>
-              <button
-                onClick={() => setTypeFilter('rlt')}
-                style={{
-                  ...styles.typeTab,
-                  ...(typeFilter === 'rlt' ? styles.typeTabActive : {})
-                }}
-              >
-                🔴 RLT ({countByType('rlt')})
-              </button>
-            </div>
-          )}
-
-          {/* Needs Protocol Tab */}
-          {mainTab === 'needs' && (
-            <div style={styles.grid}>
-              {getFilteredNeedsProtocol().length === 0 ? (
-                <div style={styles.emptyState}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                  <div>All purchases have protocols assigned</div>
-                </div>
-              ) : (
-                getFilteredNeedsProtocol().map(purchase => (
-                  <div
-                    key={purchase.id}
-                    style={styles.card}
-                    onClick={() => router.push(`/admin/patient/${purchase.patient_id}`)}
-                  >
-                    <div style={styles.cardHeader}>
-                      <div>
-                        <Link
-                          href={`/admin/patient/${purchase.patient_id}`}
-                          style={styles.patientName}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {purchase.patient_name || 'Unknown'}
-                        </Link>
-                        <div style={styles.medication}>
-                          {purchase.product_name || purchase.item_name}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={styles.cardFooter}>
-                      <span>Purchased {new Date(purchase.purchase_date).toLocaleDateString()}</span>
-                      <button style={styles.quickAction}>Assign Protocol →</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* Active Protocols Tab */}
-          {mainTab === 'active' && (
-            <div style={styles.grid}>
-              {getFilteredActive().length === 0 ? (
-                <div style={styles.emptyState}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-                  <div>No active protocols {typeFilter !== 'all' && 'for this type'}</div>
-                </div>
-              ) : (
-                getFilteredActive().map(protocol => {
-                  const display = getProtocolDisplay(protocol);
-                  const urgency = getUrgency(protocol);
-                  const progressPercent = getProgress(protocol);
-
-                  return (
-                    <div
-                      key={protocol.id}
-                      style={styles.card}
-                      onClick={() => router.push(`/admin/protocol/${protocol.id}`)}
-                    >
-                      <div style={styles.cardHeader}>
-                        <div style={{
-                          ...styles.typeBadge,
-                          backgroundColor: `${display.color}15`
-                        }}>
-                          {display.icon}
-                        </div>
-                        {urgency && (
-                          <span style={{
-                            ...styles.urgencyBadge,
-                            backgroundColor: urgency.bg,
-                            color: urgency.text
-                          }}>
-                            {urgency.label}
-                          </span>
-                        )}
-                      </div>
-                      <Link
-                        href={`/admin/patient/${protocol.patient_id}`}
-                        style={styles.patientName}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {protocol.patient_name}
-                      </Link>
-                      <div style={styles.medication}>
-                        {protocol.medication || protocol.program_name}
-                        {protocol.selected_dose && ` • ${protocol.selected_dose}`}
-                      </div>
-                      
-                      {/* Tracking info badges */}
-                      <div style={styles.trackingInfo}>
-                        {protocol.delivery_method && (
-                          <span style={styles.trackingBadge}>
-                            {formatDeliveryMethod(protocol.delivery_method)}
-                          </span>
-                        )}
-                        {protocol.supply_type && (
-                          <span style={styles.trackingBadge}>
-                            {protocol.supply_type}
-                          </span>
-                        )}
-                        {protocol.tracking_type === 'session_based' && (
-                          <span style={styles.trackingBadge}>
-                            {protocol.sessions_used || 0}/{protocol.total_sessions} sessions
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div style={styles.progressBar}>
-                        <div style={{
-                          ...styles.progressFill,
-                          width: `${progressPercent}%`,
-                          backgroundColor: display.color
-                        }} />
-                      </div>
-                      <div style={styles.cardFooter}>
-                        <span>
-                          {protocol.start_date && new Date(protocol.start_date).toLocaleDateString()}
-                        </span>
-                        <span style={styles.statusText}>
-                          {protocol.status_text || 'Active'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
-
-          {/* Completed Tab */}
-          {mainTab === 'completed' && (
-            <div style={styles.grid}>
-              {getFilteredCompleted().length === 0 ? (
-                <div style={styles.emptyState}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-                  <div>No completed protocols</div>
-                </div>
-              ) : (
-                getFilteredCompleted().map(protocol => {
-                  const display = getProtocolDisplay(protocol);
-                  return (
-                    <div
-                      key={protocol.id}
-                      style={{ ...styles.card, opacity: 0.7 }}
-                      onClick={() => router.push(`/admin/protocol/${protocol.id}`)}
-                    >
-                      <div style={styles.cardHeader}>
-                        <div style={{
-                          ...styles.typeBadge,
-                          backgroundColor: '#f1f5f9'
-                        }}>
-                          {display.icon}
-                        </div>
-                        <span style={{
-                          ...styles.urgencyBadge,
-                          backgroundColor: '#dcfce7',
-                          color: '#166534'
-                        }}>
-                          ✓ Completed
-                        </span>
-                      </div>
-                      <Link
-                        href={`/admin/patient/${protocol.patient_id}`}
-                        style={styles.patientName}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {protocol.patient_name}
-                      </Link>
-                      <div style={styles.medication}>
-                        {protocol.medication || protocol.program_name}
-                      </div>
-                      <div style={styles.cardFooter}>
-                        <span>{new Date(protocol.end_date || protocol.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
-
-          {/* Patients Tab */}
-          {mainTab === 'patients' && (
-            <div style={styles.grid}>
-              {getFilteredPatients().length === 0 ? (
-                <div style={styles.emptyState}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>👤</div>
-                  <div>No patients found</div>
-                </div>
-              ) : (
-                getFilteredPatients().map(patient => (
-                  <div
-                    key={patient.id}
-                    style={styles.card}
-                    onClick={() => router.push(`/admin/patient/${patient.id}`)}
-                  >
-                    <div style={styles.patientName}>{patient.name}</div>
-                    <div style={styles.medication}>
-                      {patient.email || patient.phone || 'No contact info'}
-                    </div>
-                    <div style={styles.cardFooter}>
-                      <span>Added {new Date(patient.created_at).toLocaleDateString()}</span>
-                      <span style={{ color: '#0f172a', fontWeight: '500' }}>View Profile →</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </>
   );
 }
+
+const styles = {
+  container: {
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    background: '#f8f9fa',
+    minHeight: '100vh',
+    padding: '20px'
+  },
+  loading: {
+    textAlign: 'center',
+    padding: '60px',
+    color: '#6b7280'
+  },
+  error: {
+    textAlign: 'center',
+    padding: '60px',
+    color: '#dc2626'
+  },
+  header: {
+    maxWidth: '1400px',
+    margin: '0 auto 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '16px'
+  },
+  title: {
+    fontSize: '24px',
+    fontWeight: '700',
+    color: '#111',
+    margin: 0
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap'
+  },
+  searchInput: {
+    padding: '8px 16px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    width: '220px',
+    outline: 'none',
+    transition: 'border-color 0.15s'
+  },
+  tabs: {
+    display: 'flex',
+    gap: '4px'
+  },
+  tab: {
+    padding: '8px 16px',
+    border: '2px solid #e5e7eb',
+    background: 'white',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    transition: 'all 0.15s'
+  },
+  tabActive: {
+    background: '#111',
+    color: 'white',
+    borderColor: '#111'
+  },
+  refreshBtn: {
+    padding: '8px 16px',
+    border: '2px solid #e5e7eb',
+    background: 'white',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  statsBar: {
+    maxWidth: '1400px',
+    margin: '0 auto 20px',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '16px'
+  },
+  statCard: {
+    background: 'white',
+    borderRadius: '8px',
+    padding: '16px 20px',
+    borderLeft: '4px solid #ccc',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+  },
+  statLabel: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#6b7280',
+    letterSpacing: '0.5px',
+    marginBottom: '4px'
+  },
+  statValue: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: '#111'
+  },
+  categoryFilters: {
+    maxWidth: '1400px',
+    margin: '0 auto 20px',
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap'
+  },
+  categoryBtn: {
+    padding: '6px 12px',
+    border: '1px solid #e5e7eb',
+    background: 'white',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#374151',
+    transition: 'all 0.15s'
+  },
+  categoryBtnActive: {
+    background: '#111',
+    color: 'white',
+    borderColor: '#111'
+  },
+  section: {
+    maxWidth: '1400px',
+    margin: '0 auto 24px',
+    background: 'white',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '16px 20px',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#fafafa'
+  },
+  sectionDot: {
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%'
+  },
+  sectionTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151'
+  },
+  sectionCount: {
+    fontSize: '13px',
+    color: '#6b7280',
+    marginLeft: 'auto'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse'
+  },
+  headerRow: {
+    borderBottom: '2px solid #e5e7eb'
+  },
+  th: {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#6b7280',
+    letterSpacing: '0.5px',
+    background: '#fafafa'
+  },
+  row: {
+    borderBottom: '1px solid #f3f4f6',
+    transition: 'background 0.1s'
+  },
+  cell: {
+    padding: '14px 16px',
+    fontSize: '14px',
+    color: '#374151',
+    verticalAlign: 'middle'
+  },
+  cellActions: {
+    padding: '10px 16px',
+    textAlign: 'right',
+    whiteSpace: 'nowrap'
+  },
+  patientLink: {
+    color: '#111',
+    textDecoration: 'none',
+    fontWeight: '600',
+    borderBottom: '1px solid #d1d5db'
+  },
+  categoryBadge: {
+    display: 'inline-block',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    marginRight: '8px',
+    color: 'white'
+  },
+  daysLeft: {
+    display: 'inline-block',
+    padding: '4px 10px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500'
+  },
+  deliveryBadge: {
+    display: 'inline-block',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    letterSpacing: '0.3px'
+  },
+  actionBtn: {
+    padding: '6px 10px',
+    border: '1px solid #e5e7eb',
+    background: 'white',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: '500',
+    marginLeft: '6px',
+    transition: 'all 0.15s'
+  },
+  renewBtn: {
+    background: '#10b981',
+    color: 'white',
+    borderColor: '#10b981'
+  },
+  emptyState: {
+    maxWidth: '1400px',
+    margin: '0 auto',
+    padding: '60px 20px',
+    textAlign: 'center',
+    background: 'white',
+    borderRadius: '12px'
+  },
+  emptyIcon: {
+    fontSize: '48px',
+    marginBottom: '16px'
+  },
+  clearBtn: {
+    marginTop: '16px',
+    padding: '10px 20px',
+    border: 'none',
+    background: '#111',
+    color: 'white',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  }
+};

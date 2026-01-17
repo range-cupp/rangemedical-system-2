@@ -1324,28 +1324,21 @@ export default function UnifiedPipeline() {
                           style={{ ...styles.actionBtn, ...styles.startBtn }}
                           onClick={() => {
                             // Pre-fill start modal with purchase info
-                            // First try to match by ghl_contact_id
-                            let patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
-                            
-                            // If not found by GHL ID, try matching by name
-                            if (!patient && purchase.patient_name) {
-                              const purchaseName = (purchase.patient_name || '').toLowerCase().trim();
-                              patient = patients.find(p => {
-                                const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
-                                const altName = (p.name || '').toLowerCase().trim();
-                                return fullName === purchaseName || altName === purchaseName;
-                              });
-                            }
-                            
+                            const patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
                             if (patient) {
                               setSelectedPatient(patient);
-                              const displayName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.name || '';
-                              setPatientSearch(displayName);
+                              setPatientSearch(`${patient.first_name || ''} ${patient.last_name || ''}`.trim());
                             } else {
-                              // Pre-fill search with purchase patient name so user can find them
-                              setPatientSearch(purchase.patient_name || '');
+                              // Try matching by name if GHL ID didn't work
+                              const byName = patients.find(p => {
+                                const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
+                                return fullName === (purchase.patient_name || '').toLowerCase().trim();
+                              });
+                              if (byName) {
+                                setSelectedPatient(byName);
+                                setPatientSearch(`${byName.first_name || ''} ${byName.last_name || ''}`.trim());
+                              }
                             }
-                            
                             // Set protocol type based on category
                             const categoryMap = {
                               'peptide': 'peptide',
@@ -1359,12 +1352,12 @@ export default function UnifiedPipeline() {
                             };
                             const mappedType = categoryMap[(purchase.category || '').toLowerCase()] || '';
                             setProtocolType(mappedType);
-                            setSelectedPurchase(purchase);  // Track which purchase we're creating protocol for
+                            setSelectedPurchase(purchase);
                             setStartModal(true);
                           }}
                           title="Start Protocol"
                         >
-                          ➕ Start
+                          + Start
                         </button>
                         <button
                           style={styles.actionBtn}

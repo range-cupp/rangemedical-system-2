@@ -299,6 +299,50 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Get query params for purchases date filter
+    const { purchases_since } = req.query;
+    const purchasesSinceDate = purchases_since || '2026-01-13'; // Default to this past Monday
+
+    // Fetch recent purchases (payments from GHL)
+    const { data: purchases, error: purchasesError } = await supabase
+      .from('purchases')
+      .select('*')
+      .gte('purchase_date', purchasesSinceDate)
+      .order('purchase_date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (purchasesError) {
+      console.error('Error fetching purchases:', purchasesError);
+    }
+
+    // Categories that need protocols
+    const protocolCategories = ['peptide', 'hrt', 'weight_loss', 'weight loss', 'iv', 'iv_therapy', 'hbot', 'rlt', 'red_light'];
+    
+    // Process purchases to determine which need protocols
+    const processedPurchases = (purchases || []).map(p => {
+      const category = (p.category || '').toLowerCase();
+      const needsProtocol = protocolCategories.some(c => category.includes(c));
+      
+      return {
+        id: p.id,
+        patient_name: p.patient_name,
+        ghl_contact_id: p.ghl_contact_id,
+        item_name: p.item_name || p.product_name,
+        amount: p.amount || p.amount_paid || 0,
+        purchase_date: p.purchase_date,
+        category: p.category,
+        protocol_created: p.protocol_created || false,
+        protocol_id: p.protocol_id,
+        needs_protocol: needsProtocol && !p.protocol_created,
+        invoice_number: p.invoice_number
+      };
+    });
+
+    // Separate into needs protocol vs already handled
+    const purchasesNeedingProtocol = processedPurchases.filter(p => p.needs_protocol);
+    const purchasesWithProtocol = processedPurchases.filter(p => p.protocol_created);
+    const otherPurchases = processedPurchases.filter(p => !p.needs_protocol && !p.protocol_created);
+
     // Fetch all protocols with patient info
     const { data: protocols, error } = await supabase
       .from('protocols')
@@ -425,7 +469,9 @@ export default async function handler(req, res) {
         needs_follow_up: needsFollowUp.length,
         completed: completed.length,
         needs_protocol: needsProtocol.length,
-        total: processed.length
+        total: processed.length,
+        purchases_needing_protocol: purchasesNeedingProtocol.length,
+        purchases_total: processedPurchases.length
       },
       protocols: {
         ending_soon: endingSoon,
@@ -434,6 +480,12 @@ export default async function handler(req, res) {
         needs_follow_up: needsFollowUp,
         completed: completed,
         needs_protocol: needsProtocol
+      },
+      purchases: {
+        needs_protocol: purchasesNeedingProtocol,
+        with_protocol: purchasesWithProtocol,
+        other: otherPurchases,
+        since_date: purchasesSinceDate
       }
     });
 

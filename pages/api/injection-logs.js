@@ -27,14 +27,23 @@ export default async function handler(req, res) {
   }
 }
 
-// GET - Fetch injection logs
+// GET - Fetch injection logs with patient names
 async function handleGet(req, res) {
   const { patient_id, category, limit = 100 } = req.query;
   
   let query = supabase
     .from('injection_logs')
-    .select('*')
-    .order('entry_date', { ascending: false })
+    .select(`
+      *,
+      patients (
+        id,
+        first_name,
+        last_name,
+        email,
+        phone
+      )
+    `)
+    .order('entry_date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(parseInt(limit));
   
@@ -50,7 +59,22 @@ async function handleGet(req, res) {
   
   if (error) throw error;
   
-  return res.status(200).json({ success: true, logs: data });
+  // Add patient_name to each log
+  const logsWithNames = (data || []).map(log => {
+    const patient = log.patients;
+    let patientName = 'Unknown';
+    if (patient) {
+      const name = `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+      patientName = name || patient.email || 'Unknown';
+    }
+    return {
+      ...log,
+      patient_name: patientName,
+      patients: undefined // Remove nested object
+    };
+  });
+  
+  return res.status(200).json({ success: true, logs: logsWithNames });
 }
 
 // POST - Create log entry AND sync with protocol

@@ -233,7 +233,12 @@ export default function UnifiedPipeline() {
         </td>
         <td style={styles.cell}>{protocol.dose || '-'}</td>
         <td style={styles.cell}>{getDuration(protocol)}</td>
-        <td style={styles.cell}>{formatDate(protocol.start_date)}</td>
+        <td style={styles.cell}>
+          <div>{formatDate(protocol.last_refill_date || protocol.start_date)}</div>
+          <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+            {protocol.last_refill_date ? 'Last refill' : 'Started'}
+          </div>
+        </td>
         <td style={styles.cell}>
           <span style={{
             ...styles.daysLeft,
@@ -308,7 +313,7 @@ export default function UnifiedPipeline() {
               <th style={styles.th}>MEDICATION</th>
               <th style={styles.th}>DOSE</th>
               <th style={styles.th}>PROTOCOL</th>
-              <th style={styles.th}>STARTED</th>
+              <th style={styles.th}>LAST ACTIVITY</th>
               <th style={styles.th}>STATUS</th>
               <th style={styles.th}>DELIVERY</th>
               <th style={{ ...styles.th, textAlign: 'right' }}>ACTIONS</th>

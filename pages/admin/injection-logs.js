@@ -155,10 +155,15 @@ export default function InjectionLogs() {
 
   const fetchPatients = async () => {
     try {
+      console.log('Fetching patients...');
       const res = await fetch('/api/patients');
       const data = await res.json();
-      if (data.patients) {
+      console.log('Patients response:', data);
+      if (data.patients && data.patients.length > 0) {
         setPatients(data.patients);
+        console.log('Loaded', data.patients.length, 'patients');
+      } else if (data.error) {
+        console.error('API error:', data.error);
       }
     } catch (err) {
       console.error('Error fetching patients:', err);
@@ -167,7 +172,7 @@ export default function InjectionLogs() {
 
   // Filter patients based on search
   useEffect(() => {
-    if (patientSearch.length >= 2) {
+    if (patientSearch.length >= 1 && patients.length > 0) {
       const term = patientSearch.toLowerCase();
       const filtered = patients.filter(p => {
         const name = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
@@ -176,7 +181,7 @@ export default function InjectionLogs() {
         return name.includes(term) || phone.includes(term) || email.includes(term);
       }).slice(0, 10);
       setFilteredPatients(filtered);
-      setShowPatientDropdown(true);
+      setShowPatientDropdown(filtered.length > 0);
     } else {
       setFilteredPatients([]);
       setShowPatientDropdown(false);
@@ -196,8 +201,15 @@ export default function InjectionLogs() {
 
   const openModal = () => {
     setEditingLog(null);
+    // Make sure patients are loaded
+    if (patients.length === 0) {
+      fetchPatients();
+    }
+    setPatientSearch('');
     setFormData(prev => ({
       ...prev,
+      patient_id: '',
+      patient_name: '',
       category: activeTab,
       log_type: 'injection',
       dosage: '',

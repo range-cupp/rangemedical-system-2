@@ -175,10 +175,11 @@ export default function InjectionLogs() {
     if (patientSearch.length >= 1 && patients.length > 0) {
       const term = patientSearch.toLowerCase();
       const filtered = patients.filter(p => {
-        const name = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
+        const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
+        const altName = (p.name || '').toLowerCase();
         const phone = (p.phone || '').replace(/\D/g, '');
         const email = (p.email || '').toLowerCase();
-        return name.includes(term) || phone.includes(term) || email.includes(term);
+        return fullName.includes(term) || altName.includes(term) || phone.includes(term) || email.includes(term);
       }).slice(0, 10);
       setFilteredPatients(filtered);
       setShowPatientDropdown(filtered.length > 0);
@@ -189,7 +190,7 @@ export default function InjectionLogs() {
   }, [patientSearch, patients]);
 
   const selectPatient = (patient) => {
-    const name = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.email || 'Unknown';
+    const name = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.name || patient.email || 'Unknown';
     setFormData(prev => ({
       ...prev,
       patient_id: patient.id,
@@ -530,20 +531,23 @@ export default function InjectionLogs() {
                     />
                     {showPatientDropdown && filteredPatients.length > 0 && (
                       <div style={styles.dropdown}>
-                        {filteredPatients.map(p => (
-                          <div
-                            key={p.id}
-                            style={styles.dropdownItem}
-                            onClick={() => selectPatient(p)}
-                          >
-                            <div style={{ fontWeight: '500' }}>
-                              {p.first_name} {p.last_name}
+                        {filteredPatients.map(p => {
+                          const displayName = `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.name || p.email || p.phone || 'Unknown';
+                          return (
+                            <div
+                              key={p.id}
+                              style={styles.dropdownItem}
+                              onClick={() => selectPatient(p)}
+                            >
+                              <div style={{ fontWeight: '500' }}>
+                                {displayName}
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                                {p.phone || p.email || 'No contact'}
+                              </div>
                             </div>
-                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                              {p.phone || p.email || 'No contact'}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>

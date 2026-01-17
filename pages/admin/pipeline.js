@@ -1324,11 +1324,28 @@ export default function UnifiedPipeline() {
                           style={{ ...styles.actionBtn, ...styles.startBtn }}
                           onClick={() => {
                             // Pre-fill start modal with purchase info
-                            const patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+                            // First try to match by ghl_contact_id
+                            let patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+                            
+                            // If not found by GHL ID, try matching by name
+                            if (!patient && purchase.patient_name) {
+                              const purchaseName = (purchase.patient_name || '').toLowerCase().trim();
+                              patient = patients.find(p => {
+                                const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
+                                const altName = (p.name || '').toLowerCase().trim();
+                                return fullName === purchaseName || altName === purchaseName;
+                              });
+                            }
+                            
                             if (patient) {
                               setSelectedPatient(patient);
-                              setPatientSearch(`${patient.first_name || ''} ${patient.last_name || ''}`.trim());
+                              const displayName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.name || '';
+                              setPatientSearch(displayName);
+                            } else {
+                              // Pre-fill search with purchase patient name so user can find them
+                              setPatientSearch(purchase.patient_name || '');
                             }
+                            
                             // Set protocol type based on category
                             const categoryMap = {
                               'peptide': 'peptide',

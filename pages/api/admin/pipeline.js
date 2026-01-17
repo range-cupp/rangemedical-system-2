@@ -123,10 +123,24 @@ function calculateTracking(protocol) {
           delivery: 'take_home'
         };
       }
-    } else if (supplyType.includes('prefill') || supplyType.includes('2_week') || supplyType.includes('4_week')) {
+    } else if (supplyType.includes('prefill') || supplyType.includes('2_week') || supplyType.includes('4_week') || selectedDose.includes('prefilled')) {
       // Prefilled syringes: 2-week or 4-week supply
-      const is4Week = supplyType.includes('4') || supplyType.includes('four');
-      const supplyDays = is4Week ? 28 : 14;
+      // Check supply_type first, then fall back to parsing selected_dose
+      let supplyDays = 14; // default to 2 weeks
+      
+      if (supplyType.includes('4week') || supplyType.includes('4_week')) {
+        supplyDays = 28;
+      } else if (supplyType.includes('2week') || supplyType.includes('2_week')) {
+        supplyDays = 14;
+      } else if (selectedDose) {
+        // Parse quantity from selected_dose (e.g., "4 prefilled @ 0.4ml" or "8 prefilled @ 0.3ml")
+        const qtyMatch = selectedDose.match(/(\d+)\s*prefilled/i);
+        if (qtyMatch) {
+          const qty = parseInt(qtyMatch[1]);
+          // 4 syringes = 2 weeks (2x/week), 8 syringes = 4 weeks
+          supplyDays = qty <= 4 ? 14 : 28;
+        }
+      }
       
       if (lastRefill) {
         const refillDate = new Date(lastRefill + 'T00:00:00');

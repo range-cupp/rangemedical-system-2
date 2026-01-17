@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     const {
       patient_id,
       ghl_contact_id,
+      purchase_id,      // Optional: link to a purchase
       program_type,
       program_name,
       medication,
@@ -78,6 +79,7 @@ export default async function handler(req, res) {
     const protocolData = {
       patient_id,
       ghl_contact_id: ghl_contact_id || null,
+      purchase_id: purchase_id || null,
       program_type,
       program_name: program_name || getProgramName(program_type),
       medication: medication || null,
@@ -107,6 +109,22 @@ export default async function handler(req, res) {
     if (error) {
       console.error('Error creating protocol:', error);
       return res.status(500).json({ error: error.message });
+    }
+
+    // If linked to a purchase, mark it as protocol_created
+    if (purchase_id && protocol) {
+      const { error: purchaseError } = await supabase
+        .from('purchases')
+        .update({
+          protocol_created: true,
+          protocol_id: protocol.id
+        })
+        .eq('id', purchase_id);
+      
+      if (purchaseError) {
+        console.error('Error updating purchase:', purchaseError);
+        // Don't fail the whole request, just log it
+      }
     }
 
     // TODO: Sync to GHL if needed

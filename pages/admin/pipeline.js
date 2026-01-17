@@ -1376,7 +1376,9 @@ export default function UnifiedPipeline() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.purchases.needs_protocol.map(purchase => (
+                  {data.purchases.needs_protocol.map(purchase => {
+                    const existingProtocol = findExistingProtocol(purchase);
+                    return (
                     <tr key={purchase.id} style={styles.row}>
                       <td style={styles.cell}>{formatDate(purchase.purchase_date)}</td>
                       <td style={styles.cell}>
@@ -1395,94 +1397,70 @@ export default function UnifiedPipeline() {
                         ${(purchase.amount || 0).toFixed(2)}
                       </td>
                       <td style={styles.cell}>
-                        {(() => {
-                          const existingProtocol = findExistingProtocol(purchase);
-                          if (existingProtocol) {
-                            // Has existing protocol - show Link button
-                            return (
-                              <>
-                                <button
-                                  style={{ ...styles.actionBtn, ...styles.linkBtn }}
-                                  onClick={() => linkPaymentToProtocol(purchase, existingProtocol)}
-                                  disabled={submitting}
-                                  title={`Link to existing ${existingProtocol.medication || existingProtocol.program_name} protocol`}
-                                >
-                                  🔗 Link
-                                </button>
-                                <button
-                                  style={styles.actionBtn}
-                                  onClick={() => openGHL(purchase.ghl_contact_id)}
-                                  title="Open in GHL"
-                                >
-                                  GHL
-                                </button>
-                              </>
-                            );
-                          } else {
-                            // No existing protocol - show Start button
-                            return (
-                              <>
-                                <button
-                                  style={{ ...styles.actionBtn, ...styles.startBtn }}
-                                  onClick={() => {
-                                    // Match patient by name (like send-forms)
-                                    let patient = null;
-                                    const purchaseName = (purchase.patient_name || '').toLowerCase().trim();
-                                    
-                                    if (purchaseName) {
-                                      patient = patients.find(p => {
-                                        const pName = (p.name || '').toLowerCase().trim();
-                                        return pName === purchaseName;
-                                      });
-                                    }
-                                    
-                                    if (!patient && purchase.ghl_contact_id) {
-                                      patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
-                                    }
-                                    
-                                    if (patient) {
-                                      setSelectedPatient(patient);
-                                      setPatientSearch(patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim());
-                                      setShowPatientDropdown(false);
-                                    } else {
-                                      alert(`Patient "${purchase.patient_name}" not found. Please search manually.`);
-                                      setSelectedPatient(null);
-                                      setPatientSearch(purchase.patient_name || '');
-                                    }
-                                    
-                                    const categoryMap = {
-                                      'peptide': 'peptide',
-                                      'hrt': 'hrt',
-                                      'weight_loss': 'weight_loss',
-                                      'weight loss': 'weight_loss',
-                                      'iv': 'iv',
-                                      'iv_therapy': 'iv',
-                                      'hbot': 'hbot',
-                                      'rlt': 'rlt'
-                                    };
-                                    const mappedType = categoryMap[(purchase.category || '').toLowerCase()] || '';
-                                    setProtocolType(mappedType);
-                                    setSelectedPurchase(purchase);
-                                    setStartModal(true);
-                                  }}
-                                  title="Start New Protocol"
-                                >
-                                  + Start
-                                </button>
-                                <button
-                                  style={styles.actionBtn}
-                                  onClick={() => openGHL(purchase.ghl_contact_id)}
-                                  title="Open in GHL"
-                                >
-                                  GHL
-                                </button>
-                              </>
-                            );
-                          }
-                        })()}
+                        {existingProtocol ? (
+                          <>
+                            <button
+                              style={{ ...styles.actionBtn, ...styles.linkBtn }}
+                              onClick={() => linkPaymentToProtocol(purchase, existingProtocol)}
+                              disabled={submitting}
+                              title={`Link to ${existingProtocol.medication || existingProtocol.program_name}`}
+                            >
+                              🔗 Link
+                            </button>
+                            <button
+                              style={styles.actionBtn}
+                              onClick={() => openGHL(purchase.ghl_contact_id)}
+                              title="Open in GHL"
+                            >
+                              GHL
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              style={{ ...styles.actionBtn, ...styles.startBtn }}
+                              onClick={() => {
+                                let patient = null;
+                                const purchaseName = (purchase.patient_name || '').toLowerCase().trim();
+                                
+                                if (purchaseName) {
+                                  patient = patients.find(p => (p.name || '').toLowerCase().trim() === purchaseName);
+                                }
+                                if (!patient && purchase.ghl_contact_id) {
+                                  patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+                                }
+                                
+                                if (patient) {
+                                  setSelectedPatient(patient);
+                                  setPatientSearch(patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim());
+                                  setShowPatientDropdown(false);
+                                } else {
+                                  setSelectedPatient(null);
+                                  setPatientSearch(purchase.patient_name || '');
+                                }
+                                
+                                const catMap = { 'peptide': 'peptide', 'hrt': 'hrt', 'weight_loss': 'weight_loss', 'weight loss': 'weight_loss', 'iv': 'iv', 'iv_therapy': 'iv', 'hbot': 'hbot', 'rlt': 'rlt' };
+                                setProtocolType(catMap[(purchase.category || '').toLowerCase()] || '');
+                                setSelectedPurchase(purchase);
+                                setStartModal(true);
+                              }}
+                              title="Start New Protocol"
+                            >
+                              + Start
+                            </button>
+                            <button
+                              style={styles.actionBtn}
+                              onClick={() => openGHL(purchase.ghl_contact_id)}
+                              title="Open in GHL"
+                            >
+                              GHL
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

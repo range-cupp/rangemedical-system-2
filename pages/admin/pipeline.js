@@ -131,11 +131,12 @@ export default function UnifiedPipeline() {
 
   const fetchPatients = async () => {
     try {
-      const res = await fetch('/api/patients');
+      // Use patients-all endpoint to get ALL patients
+      const res = await fetch('/api/patients-all');
       const json = await res.json();
       if (json.patients) {
         setPatients(json.patients);
-        console.log('Patients loaded:', json.patients.length);
+        console.log('Patients loaded:', json.patients.length, 'at', json.timestamp);
       }
     } catch (err) {
       console.error('Failed to fetch patients:', err);

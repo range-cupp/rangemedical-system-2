@@ -325,6 +325,7 @@ export default async function handler(req, res) {
       
       return {
         id: p.id,
+        patient_id: p.patient_id,
         patient_name: p.patient_name,
         ghl_contact_id: p.ghl_contact_id,
         item_name: p.item_name || p.product_name,

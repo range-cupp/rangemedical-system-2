@@ -1,6 +1,6 @@
 // /pages/api/patients.js
 // Simple patients API for dropdowns and search
-// Range Medical
+// Range Medical - Updated 2026-01-17
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,16 +15,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { search, limit = 2000 } = req.query;
+    const { search } = req.query;
 
+    // Fetch ALL patients with ghl_contact_id (these are the ones that can be matched to purchases)
+    // Supabase has a default limit, so we explicitly set it high
     let query = supabase
       .from('patients')
       .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
-      .limit(parseInt(limit));
+      .not('ghl_contact_id', 'is', null)  // Only patients with GHL ID
+      .order('created_at', { ascending: false })
+      .limit(5000);
 
     // If search term provided, filter
     if (search && search.length >= 2) {
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      query = supabase
+        .from('patients')
+        .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
+        .or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
+        .limit(5000);
     }
 
     const { data: patients, error } = await query;
@@ -33,6 +41,8 @@ export default async function handler(req, res) {
       console.error('Error fetching patients:', error);
       return res.status(500).json({ error: error.message });
     }
+
+    console.log('Patients API returning:', patients?.length || 0, 'patients');
 
     return res.status(200).json({ 
       success: true,

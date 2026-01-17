@@ -156,7 +156,7 @@ export default function InjectionLogs() {
   const fetchPatients = async () => {
     try {
       console.log('Fetching patients...');
-      const res = await fetch('/api/patients');
+      const res = await fetch('/api/patients?limit=2000');
       const data = await res.json();
       console.log('Patients response:', data);
       if (data.patients && data.patients.length > 0) {

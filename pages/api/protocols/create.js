@@ -15,10 +15,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    const body = req.body;
+    console.log('Create protocol request:', JSON.stringify(body, null, 2));
+
     const {
       patient_id,
       ghl_contact_id,
-      purchase_id,      // Optional: link to a purchase
+      purchase_id,
       program_type,
       program_name,
       medication,
@@ -29,7 +32,7 @@ export default async function handler(req, res) {
       total_sessions,
       start_date,
       notes
-    } = req.body;
+    } = body;
 
     if (!patient_id) {
       return res.status(400).json({ error: 'Patient ID is required' });
@@ -53,7 +56,6 @@ export default async function handler(req, res) {
 
     // Session-based protocols (IV, HBOT, RLT, Injection)
     if (['iv', 'hbot', 'rlt', 'injection'].includes(program_type) && total_sessions) {
-      // Estimate ~1 session per week
       duration_days = total_sessions * 7;
     }
 
@@ -68,36 +70,36 @@ export default async function handler(req, res) {
     }
 
     // Calculate end date
-    if (duration_days && start_date) {
-      const startD = new Date(start_date);
+    const startDateValue = start_date || new Date().toISOString().split('T')[0];
+    if (duration_days && startDateValue) {
+      const startD = new Date(startDateValue + 'T00:00:00');
       const endD = new Date(startD);
       endD.setDate(endD.getDate() + duration_days);
       end_date = endD.toISOString().split('T')[0];
     }
 
-    // Build protocol record
+    // Build protocol record - only include columns that exist in the table
     const protocolData = {
       patient_id,
-      ghl_contact_id: ghl_contact_id || null,
-      purchase_id: purchase_id || null,
       program_type,
       program_name: program_name || getProgramName(program_type),
       medication: medication || null,
-      dose: dose || null,
       selected_dose: dose || null,
       starting_dose: dose || null,
       frequency: frequency || getDefaultFrequency(program_type),
       delivery_method: delivery_method || 'in_clinic',
       supply_type: supply_type || null,
-      total_sessions: total_sessions || null,
+      total_sessions: total_sessions ? parseInt(total_sessions) : null,
       sessions_used: 0,
-      start_date: start_date || new Date().toISOString().split('T')[0],
+      start_date: startDateValue,
       end_date,
       status: 'active',
       notes: notes || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+
+    console.log('Inserting protocol:', JSON.stringify(protocolData, null, 2));
 
     // Insert protocol
     const { data: protocol, error } = await supabase
@@ -107,11 +109,18 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
-      console.error('Error creating protocol:', error);
-      return res.status(500).json({ error: error.message });
+      console.error('Supabase error creating protocol:', error);
+      return res.status(500).json({ 
+        error: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
     }
 
-    // If linked to a purchase, mark it as protocol_created
+    console.log('Protocol created:', protocol?.id);
+
+    // If linked to a purchase, mark it as protocol_created in purchases table
     if (purchase_id && protocol) {
       const { error: purchaseError } = await supabase
         .from('purchases')
@@ -123,11 +132,11 @@ export default async function handler(req, res) {
       
       if (purchaseError) {
         console.error('Error updating purchase:', purchaseError);
-        // Don't fail the whole request, just log it
+        // Don't fail - just log
+      } else {
+        console.log('Purchase marked as protocol_created:', purchase_id);
       }
     }
-
-    // TODO: Sync to GHL if needed
 
     return res.status(200).json({
       success: true,
@@ -137,7 +146,10 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Create protocol error:', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 }
 

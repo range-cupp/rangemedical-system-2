@@ -452,7 +452,7 @@ export default function UnifiedPipeline() {
       ghl_contact_id: logModal.ghl_contact_id,
       protocol_id: logModal.id,
       entry_type: logForm.log_type === 'pickup' ? 'pickup' : 'injection',
-      log_date: logForm.date,
+      entry_date: logForm.date,
       category: category,
       medication: logModal.medication || logModal.program_name,
       dosage: logForm.dosage || logModal.dose,
@@ -1191,6 +1191,10 @@ export default function UnifiedPipeline() {
               ↻ Refresh
             </button>
             
+            <a href="/admin/activity-log" style={styles.activityLogBtn}>
+              📋 Activity Log
+            </a>
+            
             <button style={styles.startProtocolBtn} onClick={openStartModal}>
               ➕ Start Protocol
             </button>
@@ -1578,6 +1582,18 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '600'
+  },
+  activityLogBtn: {
+    padding: '8px 16px',
+    border: '2px solid #e5e7eb',
+    background: 'white',
+    color: '#374151',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    textDecoration: 'none',
+    display: 'inline-block'
   },
   statsBar: {
     maxWidth: '1400px',

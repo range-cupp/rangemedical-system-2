@@ -84,6 +84,7 @@ async function handlePost(req, res) {
   const {
     patient_id,
     ghl_contact_id,
+    protocol_id,     // Optional: direct link to protocol
     category,
     entry_type,      // 'injection' or 'pickup'
     entry_date,      // Date of the entry (can be backdated)
@@ -106,6 +107,7 @@ async function handlePost(req, res) {
     .insert({
       patient_id,
       ghl_contact_id,
+      protocol_id,
       category,
       entry_type: entry_type || 'injection',
       entry_date: logDate,
@@ -137,6 +139,9 @@ async function handlePost(req, res) {
   } else if (entry_type === 'injection' && category === 'weight_loss') {
     // In-clinic injection - increment sessions_used
     protocolUpdate = await incrementWeightLossSession(patient_id, ghl_contact_id);
+  } else if (['hbot', 'iv', 'rlt', 'injection', 'peptide'].includes(category)) {
+    // Session-based protocols - increment sessions_used
+    protocolUpdate = await incrementSessionProtocol(patient_id, category, protocol_id);
   }
   
   return res.status(201).json({
@@ -341,6 +346,104 @@ async function incrementWeightLossSession(patientId, ghlContactId) {
     protocol_id: wlProtocol.id,
     sessions_used: newSessionsUsed,
     total_sessions: wlProtocol.total_sessions
+  };
+}
+
+// Increment session for session-based protocols (HBOT, IV, RLT, Injection, Peptide)
+async function incrementSessionProtocol(patientId, category, protocolId = null) {
+  let protocol = null;
+  
+  // If we have a protocol_id, use it directly
+  if (protocolId) {
+    const { data, error } = await supabase
+      .from('protocols')
+      .select('*')
+      .eq('id', protocolId)
+      .single();
+    
+    if (!error && data) {
+      protocol = data;
+    }
+  }
+  
+  // If no protocol found via ID, search for it
+  if (!protocol) {
+    // Map category to program_type values
+    const typeMap = {
+      'hbot': ['hbot', 'hyperbaric'],
+      'iv': ['iv', 'iv_therapy'],
+      'rlt': ['rlt', 'red_light', 'red light'],
+      'injection': ['injection'],
+      'peptide': ['peptide']
+    };
+    
+    const matchTypes = typeMap[category] || [category];
+    
+    // Find the patient's active protocol of this type
+    const { data: protocols, error: findError } = await supabase
+      .from('protocols')
+      .select('*')
+      .eq('patient_id', patientId)
+      .neq('status', 'completed')
+      .order('created_at', { ascending: false });
+    
+    if (findError) {
+      console.error('Error finding protocol:', findError);
+      return { updated: false, error: findError.message };
+    }
+    
+    // Find matching protocol
+    protocol = (protocols || []).find(p => {
+      const programType = (p.program_type || '').toLowerCase();
+      const programName = (p.program_name || '').toLowerCase();
+      const medication = (p.medication || '').toLowerCase();
+      
+      return matchTypes.some(type => 
+        programType.includes(type) || 
+        programName.includes(type) || 
+        medication.includes(type)
+      );
+    });
+  }
+  
+  if (!protocol) {
+    console.log(`No active ${category} protocol found for patient:`, patientId);
+    return { updated: false, reason: `No active ${category} protocol found` };
+  }
+  
+  const newSessionsUsed = (protocol.sessions_used || 0) + 1;
+  const totalSessions = protocol.total_sessions || 0;
+  
+  // Check if protocol should be marked completed
+  const isComplete = totalSessions > 0 && newSessionsUsed >= totalSessions;
+  
+  const updateData = {
+    sessions_used: newSessionsUsed,
+    updated_at: new Date().toISOString()
+  };
+  
+  if (isComplete) {
+    updateData.status = 'completed';
+  }
+  
+  const { error: updateError } = await supabase
+    .from('protocols')
+    .update(updateData)
+    .eq('id', protocol.id);
+  
+  if (updateError) {
+    console.error('Error updating protocol session:', updateError);
+    return { updated: false, error: updateError.message };
+  }
+  
+  console.log(`Session logged: ${category} - ${newSessionsUsed}/${totalSessions} for patient ${patientId}`);
+  
+  return {
+    updated: true,
+    protocol_id: protocol.id,
+    sessions_used: newSessionsUsed,
+    total_sessions: totalSessions,
+    completed: isComplete
   };
 }
 

@@ -1336,21 +1336,25 @@ export default function UnifiedPipeline() {
                               patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
                             }
                             
-                            // 3. Try by exact name match
+                            // 3. Try by name match (check both first+last and name field)
                             if (!patient && purchase.patient_name) {
                               const purchaseName = purchase.patient_name.toLowerCase().trim();
                               patient = patients.find(p => {
                                 const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
-                                return fullName === purchaseName;
+                                const altName = (p.name || '').toLowerCase().trim();
+                                return fullName === purchaseName || altName === purchaseName;
                               });
                             }
                             
-                            // Set the patient if found
+                            // Set the patient if found - ACTUALLY SELECT THEM
                             if (patient) {
                               setSelectedPatient(patient);
-                              setPatientSearch(`${patient.first_name || ''} ${patient.last_name || ''}`.trim());
+                              const displayName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.name || '';
+                              setPatientSearch(displayName);
+                              setShowPatientDropdown(false);
                             } else {
-                              // Pre-fill search with purchase patient name
+                              // Not found - clear selection and pre-fill search
+                              setSelectedPatient(null);
                               setPatientSearch(purchase.patient_name || '');
                             }
                             

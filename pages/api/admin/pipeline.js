@@ -305,10 +305,26 @@ export default async function handler(req, res) {
         patient = patientsByGHL[protocol.ghl_contact_id];
       }
       
+      // Build patient name with fallbacks
+      let patientName = 'Unknown';
+      if (patient) {
+        const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+        if (fullName) {
+          patientName = fullName;
+        } else if (patient.email) {
+          // Use email prefix as fallback
+          patientName = patient.email.split('@')[0];
+        } else if (patient.phone) {
+          // Use last 4 digits of phone as fallback
+          const cleanPhone = (patient.phone || '').replace(/\D/g, '');
+          patientName = `Patient ...${cleanPhone.slice(-4)}`;
+        }
+      }
+
       return {
         id: protocol.id,
         patient_id: patient?.id || protocol.patient_id,
-        patient_name: patient ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() : 'Unknown',
+        patient_name: patientName,
         patient_email: patient?.email || null,
         patient_phone: patient?.phone || null,
         ghl_contact_id: patient?.ghl_contact_id || protocol.ghl_contact_id,

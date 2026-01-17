@@ -96,6 +96,7 @@ export default function UnifiedPipeline() {
   // Start Protocol form state
   const [protocolType, setProtocolType] = useState('');
   const [protocolForm, setProtocolForm] = useState({});
+  const [selectedPurchase, setSelectedPurchase] = useState(null);  // Track purchase being processed
   
   // Log form state
   const [logForm, setLogForm] = useState({});
@@ -362,6 +363,7 @@ export default function UnifiedPipeline() {
     setSelectedPatient(null);
     setProtocolType('');
     setProtocolForm({});
+    setSelectedPurchase(null);  // Clear purchase tracking
   };
 
   const selectPatient = (patient) => {
@@ -385,6 +387,7 @@ export default function UnifiedPipeline() {
     const payload = {
       patient_id: selectedPatient.id,
       ghl_contact_id: selectedPatient.ghl_contact_id,
+      purchase_id: selectedPurchase?.id || null,  // Link to purchase if starting from payment
       program_type: protocolType,
       start_date: protocolForm.start_date,
       notes: protocolForm.notes || null,
@@ -1268,6 +1271,93 @@ export default function UnifiedPipeline() {
           </div>
         )}
 
+        {/* Recent Payments Needing Protocol */}
+        {data?.purchases?.needs_protocol?.length > 0 && (
+          <div style={styles.purchasesSection}>
+            <div style={styles.purchasesHeader}>
+              <h3 style={styles.purchasesTitle}>
+                💳 Payments Needing Protocol ({data.purchases.needs_protocol.length})
+              </h3>
+              <span style={styles.purchasesSubtitle}>
+                Since {formatDate(data.purchases.since_date)}
+              </span>
+            </div>
+            <div style={styles.purchasesTable}>
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.headerRow}>
+                    <th style={styles.headerCell}>DATE</th>
+                    <th style={styles.headerCell}>PATIENT</th>
+                    <th style={styles.headerCell}>PRODUCT</th>
+                    <th style={styles.headerCell}>AMOUNT</th>
+                    <th style={styles.headerCell}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.purchases.needs_protocol.map(purchase => (
+                    <tr key={purchase.id} style={styles.row}>
+                      <td style={styles.cell}>{formatDate(purchase.purchase_date)}</td>
+                      <td style={styles.cell}>
+                        <strong>{purchase.patient_name || 'Unknown'}</strong>
+                      </td>
+                      <td style={styles.cell}>
+                        <span style={{
+                          ...styles.categoryBadge,
+                          background: getCategoryBadge(purchase.category).color
+                        }}>
+                          {getCategoryBadge(purchase.category).emoji}
+                        </span>
+                        {purchase.item_name}
+                      </td>
+                      <td style={styles.cell}>
+                        ${(purchase.amount || 0).toFixed(2)}
+                      </td>
+                      <td style={styles.cell}>
+                        <button
+                          style={{ ...styles.actionBtn, ...styles.startBtn }}
+                          onClick={() => {
+                            // Pre-fill start modal with purchase info
+                            const patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+                            if (patient) {
+                              setSelectedPatient(patient);
+                              setPatientSearch(`${patient.first_name || ''} ${patient.last_name || ''}`.trim());
+                            }
+                            // Set protocol type based on category
+                            const categoryMap = {
+                              'peptide': 'peptide',
+                              'hrt': 'hrt',
+                              'weight_loss': 'weight_loss',
+                              'weight loss': 'weight_loss',
+                              'iv': 'iv',
+                              'iv_therapy': 'iv',
+                              'hbot': 'hbot',
+                              'rlt': 'rlt'
+                            };
+                            const mappedType = categoryMap[(purchase.category || '').toLowerCase()] || '';
+                            setProtocolType(mappedType);
+                            setSelectedPurchase(purchase);  // Track which purchase we're creating protocol for
+                            setStartModal(true);
+                          }}
+                          title="Start Protocol"
+                        >
+                          ➕ Start
+                        </button>
+                        <button
+                          style={styles.actionBtn}
+                          onClick={() => openGHL(purchase.ghl_contact_id)}
+                          title="Open in GHL"
+                        >
+                          ↗ GHL
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Category Filter */}
         <div style={styles.categoryFilters}>
           {[
@@ -1639,6 +1729,40 @@ const styles = {
     fontWeight: '500',
     textDecoration: 'none',
     display: 'inline-block'
+  },
+  purchasesSection: {
+    maxWidth: '1400px',
+    margin: '0 auto 20px',
+    background: '#fffbeb',
+    borderRadius: '12px',
+    border: '2px solid #f59e0b',
+    overflow: 'hidden'
+  },
+  purchasesHeader: {
+    padding: '16px 20px',
+    background: '#fef3c7',
+    borderBottom: '1px solid #fcd34d',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  purchasesTitle: {
+    margin: 0,
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#92400e'
+  },
+  purchasesSubtitle: {
+    fontSize: '13px',
+    color: '#b45309'
+  },
+  purchasesTable: {
+    background: 'white'
+  },
+  startBtn: {
+    background: '#f0fdf4',
+    borderColor: '#22c55e',
+    color: '#166534'
   },
   statsBar: {
     maxWidth: '1400px',

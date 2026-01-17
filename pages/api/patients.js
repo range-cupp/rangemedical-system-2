@@ -19,8 +19,8 @@ export default async function handler(req, res) {
 
     let query = supabase
       .from('patients')
-      .select('id, first_name, last_name, email, phone, ghl_contact_id')
-      .order('first_name', { ascending: true })
+      .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
+      .order('first_name', { ascending: true, nullsFirst: false })
       .limit(parseInt(limit));
 
     // If search term provided, filter

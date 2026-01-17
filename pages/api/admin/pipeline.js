@@ -84,6 +84,8 @@ function calculateTracking(protocol) {
   if (isHRT) {
     const supplyType = (protocol.supply_type || '').toLowerCase();
     const selectedDose = protocol.selected_dose || '';
+    const dose = protocol.dose || '';
+    const startingDose = protocol.starting_dose || '';
     const lastRefill = protocol.last_refill_date;
     
     if (supplyType.includes('vial') || supplyType.includes('10ml')) {
@@ -94,12 +96,30 @@ function calculateTracking(protocol) {
       const vialMl = 10;
       const totalMg = vialMl * concentration;
       
-      // Parse dose (e.g., "0.4ml/80mg" -> 160mg/week for 2x)
-      let weeklyMg = 160; // default
-      if (selectedDose) {
-        const match = selectedDose.match(/(\d+)mg/);
+      // Parse dose from multiple possible fields
+      // Look for pattern like "0.4ml/80mg" or "80mg" but NOT "200mg/ml" (concentration)
+      let weeklyMg = isMale ? 160 : 40; // default: male 80mg×2, female 20mg×2
+      
+      // Try to find the actual dose from various fields
+      const doseFields = [dose, selectedDose, startingDose];
+      for (const field of doseFields) {
+        if (!field) continue;
+        
+        // Skip if this looks like concentration info (e.g., "200mg/ml")
+        if (field.includes('mg/ml')) continue;
+        
+        // Look for dose pattern like "0.4ml/80mg" or just "80mg"
+        const match = field.match(/(\d+)mg(?!\/ml)/);
         if (match) {
-          weeklyMg = parseInt(match[1]) * 2; // assuming 2x/week
+          const mgPerInjection = parseInt(match[1]);
+          // Sanity check: male doses are 60-100mg, female 10-50mg
+          if (isMale && mgPerInjection >= 50 && mgPerInjection <= 120) {
+            weeklyMg = mgPerInjection * 2; // 2x per week
+            break;
+          } else if (!isMale && mgPerInjection >= 5 && mgPerInjection <= 60) {
+            weeklyMg = mgPerInjection * 2;
+            break;
+          }
         }
       }
       
@@ -116,6 +136,7 @@ function calculateTracking(protocol) {
           days_remaining: daysRemaining,
           weeks_remaining: weeksRemaining,
           total_weeks: weeksSupply,
+          weekly_mg: weeklyMg,
           status_text: daysRemaining <= 0 ? 'Refill needed' : `~${weeksRemaining} weeks left`,
           tracking_type: 'vial_based',
           urgency: daysRemaining <= 0 ? 'overdue' : daysRemaining <= 14 ? 'ending_soon' : daysRemaining <= 28 ? 'active' : 'just_started',

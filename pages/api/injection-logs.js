@@ -148,38 +148,42 @@ async function handlePost(req, res) {
 
 // Sync HRT Protocol when pickup is logged
 async function syncHRTProtocol(patientId, ghlContactId, supplyType, dosage, logDate) {
-  // Find the patient's active HRT protocol
-  let query = supabase
+  console.log('syncHRTProtocol called:', { patientId, supplyType, dosage, logDate });
+  
+  // Find the patient's HRT protocol - don't filter by status initially
+  const { data: protocols, error: findError } = await supabase
     .from('protocols')
     .select('*')
-    .eq('status', 'active')
+    .eq('patient_id', patientId)
     .order('created_at', { ascending: false });
-  
-  // Try patient_id first
-  if (patientId) {
-    query = query.eq('patient_id', patientId);
-  }
-  
-  const { data: protocols, error: findError } = await query;
   
   if (findError) {
     console.error('Error finding HRT protocol:', findError);
     return { updated: false, error: findError.message };
   }
   
-  // Find HRT protocol
+  console.log('Found protocols for patient:', protocols?.length || 0);
+  
+  // Find HRT protocol (any status except completed)
   const hrtProtocol = (protocols || []).find(p => {
     const med = (p.medication || '').toLowerCase();
     const name = (p.program_name || '').toLowerCase();
     const type = (p.program_type || '').toLowerCase();
-    return med.includes('hrt') || med.includes('testosterone') || 
-           name.includes('hrt') || type.includes('hrt');
+    const status = (p.status || '').toLowerCase();
+    
+    const isHRT = med.includes('hrt') || med.includes('testosterone') || 
+                  name.includes('hrt') || type.includes('hrt');
+    const isNotCompleted = status !== 'completed';
+    
+    return isHRT && isNotCompleted;
   });
   
   if (!hrtProtocol) {
-    console.log('No active HRT protocol found for patient:', patientId);
-    return { updated: false, reason: 'No active HRT protocol found' };
+    console.log('No HRT protocol found for patient:', patientId);
+    return { updated: false, reason: 'No HRT protocol found' };
   }
+  
+  console.log('Found HRT protocol:', hrtProtocol.id, hrtProtocol.medication);
   
   // Update the protocol with new refill date and supply type
   const updateData = {
@@ -187,28 +191,37 @@ async function syncHRTProtocol(patientId, ghlContactId, supplyType, dosage, logD
     updated_at: new Date().toISOString()
   };
   
+  // Set supply_type based on what was passed
   if (supplyType) {
     updateData.supply_type = supplyType;
   }
   
+  // Store the dose info
   if (dosage) {
     updateData.selected_dose = dosage;
   }
   
-  const { error: updateError } = await supabase
+  console.log('Updating protocol with:', updateData);
+  
+  const { data: updatedProtocol, error: updateError } = await supabase
     .from('protocols')
     .update(updateData)
-    .eq('id', hrtProtocol.id);
+    .eq('id', hrtProtocol.id)
+    .select()
+    .single();
   
   if (updateError) {
     console.error('Error updating HRT protocol:', updateError);
     return { updated: false, error: updateError.message };
   }
   
+  console.log('Protocol updated successfully:', updatedProtocol?.last_refill_date);
+  
   return {
     updated: true,
     protocol_id: hrtProtocol.id,
-    changes: updateData
+    changes: updateData,
+    new_last_refill_date: updatedProtocol?.last_refill_date
   };
 }
 

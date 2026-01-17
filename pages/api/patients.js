@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
     // If search term provided, filter
     if (search && search.length >= 2) {
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
     }
 
     const { data: patients, error } = await query;

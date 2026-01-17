@@ -3,6 +3,7 @@
 // Range Medical - Updated 2026-01-17
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 
 // Peptide options for the dropdown
@@ -68,9 +69,11 @@ const TESTOSTERONE_DOSES = {
 };
 
 export default function UnifiedPipeline() {
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Filters
   const [statusFilter, setStatusFilter] = useState('active');
@@ -102,7 +105,11 @@ export default function UnifiedPipeline() {
   useEffect(() => {
     fetchData();
     fetchPatients();
-  }, []);
+    // Check for admin mode
+    if (router.query.admin === 'true') {
+      setIsAdmin(true);
+    }
+  }, [router.query]);
 
   const fetchData = async () => {
     try {
@@ -269,6 +276,28 @@ export default function UnifiedPipeline() {
       showToast('Error extending protocol', 'error');
     } finally {
       setRenewingId(null);
+    }
+  };
+
+  // Delete protocol (admin only)
+  const deleteProtocol = async (protocol) => {
+    const confirmMsg = `DELETE protocol for ${protocol.patient_name}?\n\n${protocol.medication || protocol.program_name}\n\nThis cannot be undone.`;
+    if (!confirm(confirmMsg)) return;
+    
+    try {
+      const res = await fetch(`/api/protocols/${protocol.id}`, {
+        method: 'DELETE'
+      });
+      
+      const result = await res.json();
+      if (result.success) {
+        showToast('Protocol deleted');
+        fetchData();
+      } else {
+        showToast(result.error || 'Failed to delete', 'error');
+      }
+    } catch (err) {
+      showToast('Error deleting protocol', 'error');
     }
   };
 
@@ -539,6 +568,16 @@ export default function UnifiedPipeline() {
               title="Extend Protocol"
             >
               ⏳
+            </button>
+          )}
+          {/* Admin-only delete button - add ?admin=true to URL */}
+          {isAdmin && (
+            <button 
+              style={{ ...styles.actionBtn, ...styles.deleteBtn }}
+              onClick={() => deleteProtocol(protocol)}
+              title="Delete Protocol"
+            >
+              🗑️
             </button>
           )}
         </td>
@@ -1668,6 +1707,11 @@ const styles = {
     background: '#fffbeb',
     borderColor: '#f59e0b',
     color: '#92400e'
+  },
+  deleteBtn: {
+    background: '#fef2f2',
+    borderColor: '#dc2626',
+    color: '#dc2626'
   },
   emptyState: {
     textAlign: 'center',

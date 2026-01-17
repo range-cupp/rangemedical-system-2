@@ -135,6 +135,7 @@ export default function UnifiedPipeline() {
       const json = await res.json();
       if (json.patients) {
         setPatients(json.patients);
+        console.log('Patients loaded:', json.patients.length);
       }
     } catch (err) {
       console.error('Failed to fetch patients:', err);
@@ -373,8 +374,13 @@ export default function UnifiedPipeline() {
   };
 
   const submitStartProtocol = async () => {
+    console.log('=== SUBMIT START PROTOCOL ===');
+    console.log('selectedPatient:', selectedPatient);
+    console.log('protocolType:', protocolType);
+    
     if (!selectedPatient) {
-      showToast('Please select a patient', 'error');
+      showToast('Please select a patient from the dropdown', 'error');
+      alert('No patient selected! Please click on a patient from the search results.');
       return;
     }
     if (!protocolType) {
@@ -1323,17 +1329,24 @@ export default function UnifiedPipeline() {
                         <button
                           style={{ ...styles.actionBtn, ...styles.startBtn }}
                           onClick={() => {
+                            console.log('=== START BUTTON CLICKED ===');
+                            console.log('Purchase:', purchase);
+                            console.log('Purchase ghl_contact_id:', purchase.ghl_contact_id);
+                            console.log('Patients loaded:', patients.length);
+                            
                             // Try multiple ways to find the patient
                             let patient = null;
                             
                             // 1. Try by patient_id first (most reliable)
                             if (purchase.patient_id) {
                               patient = patients.find(p => p.id === purchase.patient_id);
+                              console.log('Found by patient_id:', patient);
                             }
                             
                             // 2. Try by ghl_contact_id
                             if (!patient && purchase.ghl_contact_id) {
                               patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+                              console.log('Found by ghl_contact_id:', patient);
                             }
                             
                             // 3. Try by name match (check both first+last and name field)
@@ -1344,16 +1357,22 @@ export default function UnifiedPipeline() {
                                 const altName = (p.name || '').toLowerCase().trim();
                                 return fullName === purchaseName || altName === purchaseName;
                               });
+                              console.log('Found by name:', patient);
                             }
                             
-                            // Set the patient if found - ACTUALLY SELECT THEM
+                            console.log('Final patient found:', patient);
+                            
+                            // Set the patient if found
                             if (patient) {
                               setSelectedPatient(patient);
                               const displayName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.name || '';
                               setPatientSearch(displayName);
                               setShowPatientDropdown(false);
+                              console.log('Patient selected:', patient.id, displayName);
                             } else {
-                              // Not found - clear selection and pre-fill search
+                              // Not found - show alert
+                              console.log('NO PATIENT FOUND!');
+                              alert('Patient not found in database. Please search manually.');
                               setSelectedPatient(null);
                               setPatientSearch(purchase.patient_name || '');
                             }

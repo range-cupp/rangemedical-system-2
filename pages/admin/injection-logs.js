@@ -286,9 +286,21 @@ export default function InjectionLogs() {
         payload.supply_type = formData.pickup_type === 'vial' ? 'vial_10ml' : 
           formData.quantity === 8 ? 'prefilled_4week' : 'prefilled_2week';
         payload.quantity = formData.quantity;
-        payload.dosage = formData.pickup_type === 'vial' 
-          ? `1 vial (10ml @ ${formData.hrt_type === 'male' ? '200mg/ml' : '100mg/ml'})`
-          : `${formData.quantity} prefilled @ ${formData.dosage}`;
+        
+        if (formData.pickup_type === 'vial') {
+          // Include dosage for vial so we can calculate duration
+          const totalMg = formData.hrt_type === 'male' ? 2000 : 1000;
+          const match = formData.dosage.match(/(\d+)mg/);
+          let weeks = 12; // default
+          if (match) {
+            const dosePerInjection = parseInt(match[1]);
+            const weeklyMg = dosePerInjection * 2;
+            weeks = Math.floor(totalMg / weeklyMg);
+          }
+          payload.dosage = `1 vial @ ${formData.dosage} (${weeks} weeks)`;
+        } else {
+          payload.dosage = `${formData.quantity} prefilled @ ${formData.dosage}`;
+        }
       }
     } else if (activeTab === 'weight_loss') {
       payload.medication = formData.medication;
@@ -657,9 +669,43 @@ export default function InjectionLogs() {
                         </div>
 
                         {formData.pickup_type === 'vial' && (
-                          <div style={styles.infoBox}>
-                            10ml vial @ {formData.hrt_type === 'male' ? '200mg/ml (2000mg total)' : '100mg/ml (1000mg total)'}
-                          </div>
+                          <>
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>Patient's Weekly Dose *</label>
+                              <select
+                                value={formData.dosage}
+                                onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                                style={styles.select}
+                                required
+                              >
+                                <option value="">Select dose...</option>
+                                {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages
+                                  .filter(d => d.value !== 'custom')
+                                  .map(d => (
+                                    <option key={d.value} value={d.value}>{d.label}</option>
+                                  ))
+                                }
+                              </select>
+                            </div>
+                            <div style={styles.infoBox}>
+                              <div>10ml vial @ {formData.hrt_type === 'male' ? '200mg/ml (2000mg total)' : '100mg/ml (1000mg total)'}</div>
+                              {formData.dosage && (
+                                <div style={{ marginTop: '8px', fontWeight: '600', color: '#059669' }}>
+                                  {(() => {
+                                    const totalMg = formData.hrt_type === 'male' ? 2000 : 1000;
+                                    const match = formData.dosage.match(/(\d+)mg/);
+                                    if (match) {
+                                      const dosePerInjection = parseInt(match[1]);
+                                      const weeklyMg = dosePerInjection * 2; // 2x per week
+                                      const weeks = Math.floor(totalMg / weeklyMg);
+                                      return `≈ ${weeks} weeks supply (at ${dosePerInjection}mg × 2/week)`;
+                                    }
+                                    return '';
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          </>
                         )}
 
                         {formData.pickup_type === 'prefilled' && (

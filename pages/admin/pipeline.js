@@ -213,9 +213,54 @@ export default function UnifiedPipeline() {
 
   // Get duration display
   const getDuration = (protocol) => {
-    if (protocol.total_sessions) {
+    // For session-based protocols (IV, HBOT, RLT)
+    if (protocol.total_sessions && ['iv', 'hbot', 'rlt', 'injection'].includes(protocol.category)) {
       return `${protocol.sessions_used || 0}/${protocol.total_sessions} sessions`;
     }
+    
+    // For peptide protocols - show the program duration
+    if (protocol.category === 'peptide') {
+      const programName = (protocol.program_name || '').toLowerCase();
+      
+      // Extract duration from program_name (e.g., "10 Day", "7 Day", "30 Day")
+      const durationMatch = programName.match(/(\d+)\s*day/i);
+      if (durationMatch) {
+        return `${durationMatch[1]} Day Program`;
+      }
+      
+      // Check if it's a vial protocol
+      if (programName.includes('vial')) {
+        return 'Vial Protocol';
+      }
+      
+      // Try to use total_days from API calculation
+      if (protocol.total_days) {
+        return `${protocol.total_days} Day Program`;
+      }
+      
+      // Fallback to program_name if it exists
+      if (protocol.program_name) {
+        return protocol.program_name;
+      }
+    }
+    
+    // For HRT protocols
+    if (protocol.category === 'hrt') {
+      if (protocol.weeks_remaining) {
+        return `~${protocol.weeks_remaining} weeks left`;
+      }
+      return protocol.supply_type || 'Ongoing';
+    }
+    
+    // For weight loss
+    if (protocol.category === 'weight_loss') {
+      if (protocol.total_sessions) {
+        return `${protocol.sessions_used || 0}/${protocol.total_sessions} injections`;
+      }
+      return protocol.program_name || 'Weight Loss';
+    }
+    
+    // Default
     if (protocol.program_name) {
       return protocol.program_name;
     }
@@ -606,7 +651,7 @@ export default function UnifiedPipeline() {
               <th style={styles.headerCell}>PATIENT</th>
               <th style={styles.headerCell}>MEDICATION</th>
               <th style={styles.headerCell}>DOSE</th>
-              <th style={styles.headerCell}>PROTOCOL</th>
+              <th style={styles.headerCell}>PROGRAM</th>
               <th style={styles.headerCell}>LAST ACTIVITY</th>
               <th style={styles.headerCell}>STATUS</th>
               <th style={styles.headerCell}>DELIVERY</th>

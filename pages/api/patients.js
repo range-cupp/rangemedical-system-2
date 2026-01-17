@@ -15,12 +15,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { search, limit = 500 } = req.query;
+    const { search, limit = 2000 } = req.query;
 
     let query = supabase
       .from('patients')
       .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
-      .order('first_name', { ascending: true, nullsFirst: false })
       .limit(parseInt(limit));
 
     // If search term provided, filter

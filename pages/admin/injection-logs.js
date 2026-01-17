@@ -111,9 +111,6 @@ export default function InjectionLogs() {
   // Edit mode
   const [editingLog, setEditingLog] = useState(null);
   
-  // Edit mode
-  const [editingLog, setEditingLog] = useState(null);
-  
   // Patient search
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);

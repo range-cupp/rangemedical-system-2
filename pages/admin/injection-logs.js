@@ -104,6 +104,7 @@ export default function InjectionLogs() {
     pickup_type: 'vial',
     quantity: 1,
     week_supply: 4,
+    weight: '',
     entry_date: new Date().toISOString().split('T')[0],
     notes: ''
   });
@@ -215,6 +216,7 @@ export default function InjectionLogs() {
       log_type: 'injection',
       dosage: '',
       custom_dosage: '',
+      weight: '',
       medication: activeTab === 'weight_loss' ? 'Semaglutide' : '',
       notes: '',
       entry_date: new Date().toISOString().split('T')[0]
@@ -241,6 +243,7 @@ export default function InjectionLogs() {
       pickup_type: (log.supply_type || '').includes('vial') ? 'vial' : 'prefilled',
       quantity: log.quantity || 1,
       week_supply: log.quantity || 4,
+      weight: log.weight || '',
       entry_date: (log.entry_date || log.created_at || '').split('T')[0],
       notes: log.notes || ''
     });
@@ -307,6 +310,7 @@ export default function InjectionLogs() {
       
       if (formData.log_type === 'injection') {
         payload.dosage = formData.dosage;
+        payload.weight = formData.weight ? parseFloat(formData.weight) : null;
       } else {
         payload.quantity = formData.week_supply;
         payload.dosage = `${formData.week_supply} week supply`;
@@ -766,20 +770,34 @@ export default function InjectionLogs() {
                     </div>
 
                     {formData.log_type === 'injection' ? (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Dosage *</label>
-                        <select
-                          value={formData.dosage}
-                          onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-                          style={styles.select}
-                          required
-                        >
-                          <option value="">Select dosage...</option>
-                          {(WEIGHT_LOSS_OPTIONS.dosages[formData.medication] || []).map(d => (
-                            <option key={d} value={d}>{d}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Current Weight (lbs) *</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={formData.weight || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
+                            placeholder="e.g. 215.5"
+                            style={styles.input}
+                            required
+                          />
+                        </div>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Dosage *</label>
+                          <select
+                            value={formData.dosage}
+                            onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                            style={styles.select}
+                            required
+                          >
+                            <option value="">Select dosage...</option>
+                            {(WEIGHT_LOSS_OPTIONS.dosages[formData.medication] || []).map(d => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
                     ) : (
                       <div style={styles.formGroup}>
                         <label style={styles.label}>Supply Duration</label>

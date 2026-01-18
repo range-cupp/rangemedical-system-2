@@ -86,6 +86,8 @@ export default function UnifiedPipeline() {
   const [renewingId, setRenewingId] = useState(null);
   const [startModal, setStartModal] = useState(false);
   const [logModal, setLogModal] = useState(null);
+  const [editModal, setEditModal] = useState(null);
+  const [editForm, setEditForm] = useState({});
   
   // Patient search for Start Protocol
   const [patients, setPatients] = useState([]);
@@ -616,6 +618,72 @@ export default function UnifiedPipeline() {
     }
   };
 
+  // ========== EDIT PROTOCOL MODAL ==========
+  const openEditModal = (protocol) => {
+    setEditModal(protocol);
+    setEditForm({
+      medication: protocol.medication || protocol.program_name || '',
+      dose: protocol.dose || protocol.selected_dose || '',
+      frequency: protocol.frequency || '',
+      program_name: protocol.program_name || '',
+      delivery_method: protocol.delivery_method || protocol.delivery || '',
+      start_date: protocol.start_date ? protocol.start_date.split('T')[0] : '',
+      end_date: protocol.end_date ? protocol.end_date.split('T')[0] : '',
+      last_refill_date: protocol.last_refill_date ? protocol.last_refill_date.split('T')[0] : '',
+      total_sessions: protocol.total_sessions || '',
+      sessions_used: protocol.sessions_used || 0,
+      status: protocol.status || 'active',
+      notes: protocol.notes || ''
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditModal(null);
+    setEditForm({});
+  };
+
+  const submitEdit = async () => {
+    if (!editModal) return;
+    setSubmitting(true);
+
+    try {
+      const payload = {
+        medication: editForm.medication || null,
+        selected_dose: editForm.dose || null,
+        frequency: editForm.frequency || null,
+        delivery_method: editForm.delivery_method || null,
+        start_date: editForm.start_date || null,
+        end_date: editForm.end_date || null,
+        last_refill_date: editForm.last_refill_date || null,
+        total_sessions: editForm.total_sessions ? parseInt(editForm.total_sessions) : null,
+        sessions_used: editForm.sessions_used ? parseInt(editForm.sessions_used) : 0,
+        status: editForm.status || 'active',
+        notes: editForm.notes || null,
+        program_name: editForm.program_name || null
+      };
+
+      const res = await fetch(`/api/protocols/${editModal.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        showToast('Protocol updated!');
+        closeEditModal();
+        fetchData();
+      } else {
+        showToast(result.error || 'Failed to update', 'error');
+      }
+    } catch (err) {
+      console.error('Edit error:', err);
+      showToast('Error updating protocol', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Render protocol row
   const renderRow = (protocol) => {
     const badge = getCategoryBadge(protocol.category);
@@ -662,6 +730,13 @@ export default function UnifiedPipeline() {
           </span>
         </td>
         <td style={styles.cellActions}>
+          <button 
+            style={{ ...styles.actionBtn, ...styles.editBtn }}
+            onClick={() => openEditModal(protocol)}
+            title="Edit Protocol"
+          >
+            ✏️ Edit
+          </button>
           <button 
             style={{ ...styles.actionBtn, ...styles.logBtn }}
             onClick={() => openLogModal(protocol)}
@@ -1704,6 +1779,172 @@ export default function UnifiedPipeline() {
           </div>
         )}
 
+        {/* Edit Protocol Modal */}
+        {editModal && (
+          <div style={styles.modalOverlay} onClick={closeEditModal}>
+            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+              <h2 style={styles.modalTitle}>Edit Protocol</h2>
+              <div style={{ marginBottom: '12px', padding: '8px', background: '#f3f4f6', borderRadius: '6px' }}>
+                <strong>{editModal.patient_name}</strong> - {editModal.category?.toUpperCase()}
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Medication/Program</label>
+                <input
+                  type="text"
+                  value={editForm.medication || ''}
+                  onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })}
+                  style={styles.formInput}
+                  placeholder="e.g. Wolverine Blend, Testosterone Cypionate"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Dose</label>
+                  <input
+                    type="text"
+                    value={editForm.dose || ''}
+                    onChange={(e) => setEditForm({ ...editForm, dose: e.target.value })}
+                    style={styles.formInput}
+                    placeholder="e.g. 500mcg, 100mg"
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Frequency</label>
+                  <select
+                    value={editForm.frequency || ''}
+                    onChange={(e) => setEditForm({ ...editForm, frequency: e.target.value })}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select...</option>
+                    <option value="Daily">Daily</option>
+                    <option value="1x daily (AM)">1x daily (AM)</option>
+                    <option value="1x daily (PM/bedtime)">1x daily (PM/bedtime)</option>
+                    <option value="2x daily">2x daily</option>
+                    <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                    <option value="Every other day">Every other day</option>
+                    <option value="1x every 5 days">1x every 5 days</option>
+                    <option value="3x per week">3x per week</option>
+                    <option value="2x per week">2x per week</option>
+                    <option value="1x per week">1x per week</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Program Duration</label>
+                <select
+                  value={editForm.program_name || ''}
+                  onChange={(e) => setEditForm({ ...editForm, program_name: e.target.value })}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select duration...</option>
+                  <option value="7 Day Program">7 Day Program</option>
+                  <option value="10 Day Program">10 Day Program</option>
+                  <option value="20 Day Program">20 Day Program</option>
+                  <option value="30 Day Program">30 Day Program</option>
+                  <option value="Vial Protocol">Vial Protocol</option>
+                  <option value="Monthly Membership">Monthly Membership</option>
+                  <option value="10-Session Package">10-Session Package</option>
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Delivery Method</label>
+                <select
+                  value={editForm.delivery_method || ''}
+                  onChange={(e) => setEditForm({ ...editForm, delivery_method: e.target.value })}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select...</option>
+                  <option value="take_home">Take Home</option>
+                  <option value="in_clinic">In Clinic</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Start Date</label>
+                  <input
+                    type="date"
+                    value={editForm.start_date || ''}
+                    onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
+                    style={styles.formInput}
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Last Refill Date</label>
+                  <input
+                    type="date"
+                    value={editForm.last_refill_date || ''}
+                    onChange={(e) => setEditForm({ ...editForm, last_refill_date: e.target.value })}
+                    style={styles.formInput}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Total Sessions</label>
+                  <input
+                    type="number"
+                    value={editForm.total_sessions || ''}
+                    onChange={(e) => setEditForm({ ...editForm, total_sessions: e.target.value })}
+                    style={styles.formInput}
+                    placeholder="e.g. 10"
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Sessions Used</label>
+                  <input
+                    type="number"
+                    value={editForm.sessions_used || 0}
+                    onChange={(e) => setEditForm({ ...editForm, sessions_used: e.target.value })}
+                    style={styles.formInput}
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Status</label>
+                  <select
+                    value={editForm.status || 'active'}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                    style={styles.formSelect}
+                  >
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="paused">Paused</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Notes</label>
+                <textarea
+                  value={editForm.notes || ''}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  style={styles.formTextarea}
+                  placeholder="Any additional notes..."
+                />
+              </div>
+
+              <div style={styles.modalActions}>
+                <button style={styles.modalCancelBtn} onClick={closeEditModal}>
+                  Cancel
+                </button>
+                <button
+                  style={styles.modalConfirmBtn}
+                  onClick={submitEdit}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Toast */}
         {toast && (
           <div style={{
@@ -1976,6 +2217,11 @@ const styles = {
     background: '#f0fdf4',
     borderColor: '#22c55e',
     color: '#166534'
+  },
+  editBtn: {
+    background: '#fef3c7',
+    borderColor: '#f59e0b',
+    color: '#92400e'
   },
   renewBtn: {
     background: '#fffbeb',

@@ -633,7 +633,8 @@ export default function UnifiedPipeline() {
       total_sessions: protocol.total_sessions || '',
       sessions_used: protocol.sessions_used || 0,
       status: protocol.status || 'active',
-      notes: protocol.notes || ''
+      notes: protocol.notes || '',
+      starting_weight: protocol.starting_weight || ''
     });
   };
 
@@ -659,7 +660,8 @@ export default function UnifiedPipeline() {
         sessions_used: editForm.sessions_used ? parseInt(editForm.sessions_used) : 0,
         status: editForm.status || 'active',
         notes: editForm.notes || null,
-        program_name: editForm.program_name || null
+        program_name: editForm.program_name || null,
+        starting_weight: editForm.starting_weight ? parseFloat(editForm.starting_weight) : null
       };
 
       const res = await fetch(`/api/protocols/${editModal.id}`, {
@@ -702,6 +704,24 @@ export default function UnifiedPipeline() {
             {badge.emoji}
           </span>
           {protocol.medication || protocol.program_name || '-'}
+          {/* Weight tracking for weight_loss protocols */}
+          {protocol.category === 'weight_loss' && (protocol.starting_weight || protocol.current_weight) && (
+            <div style={{ fontSize: '11px', marginTop: '4px', color: '#6b7280' }}>
+              {protocol.starting_weight && <span>Start: {protocol.starting_weight} lbs</span>}
+              {protocol.starting_weight && protocol.current_weight && <span> → </span>}
+              {protocol.current_weight && <span>Now: {protocol.current_weight} lbs</span>}
+              {protocol.weight_lost > 0 && (
+                <span style={{ color: '#059669', fontWeight: '600', marginLeft: '6px' }}>
+                  ↓{protocol.weight_lost} lbs
+                </span>
+              )}
+              {protocol.weight_lost < 0 && (
+                <span style={{ color: '#dc2626', fontWeight: '600', marginLeft: '6px' }}>
+                  ↑{Math.abs(protocol.weight_lost)} lbs
+                </span>
+              )}
+            </div>
+          )}
         </td>
         <td style={styles.cell}>{protocol.dose || '-'}</td>
         <td style={styles.cell}>{getDuration(protocol)}</td>
@@ -1862,6 +1882,21 @@ export default function UnifiedPipeline() {
                   <option value="in_clinic">In Clinic</option>
                 </select>
               </div>
+
+              {/* Starting Weight for weight_loss protocols */}
+              {editModal.category === 'weight_loss' && (
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Starting Weight (lbs)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editForm.starting_weight || ''}
+                    onChange={(e) => setEditForm({ ...editForm, starting_weight: e.target.value })}
+                    style={styles.formInput}
+                    placeholder="e.g. 215.5"
+                  />
+                </div>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div style={styles.formGroup}>

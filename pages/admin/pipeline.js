@@ -1553,6 +1553,27 @@ export default function UnifiedPipeline() {
                         >
                           GHL
                         </button>
+                        <button
+                          style={{ ...styles.actionBtn, color: '#dc2626' }}
+                          onClick={async () => {
+                            if (!confirm(`Delete payment for ${purchase.patient_name}?\n\n${purchase.item_name} - $${purchase.amount}`)) return;
+                            try {
+                              const res = await fetch(`/api/purchases/${purchase.id}`, { method: 'DELETE' });
+                              const result = await res.json();
+                              if (result.success) {
+                                showToast('Payment deleted');
+                                fetchData();
+                              } else {
+                                showToast(result.error || 'Failed to delete', 'error');
+                              }
+                            } catch (err) {
+                              showToast('Error deleting payment', 'error');
+                            }
+                          }}
+                          title="Delete Payment"
+                        >
+                          🗑️
+                        </button>
                       </td>
                     </tr>
                   ))}

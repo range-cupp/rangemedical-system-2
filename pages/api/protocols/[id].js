@@ -72,7 +72,9 @@ async function updateProtocol(id, updates, res) {
     'total_sessions',
     'last_refill_date',
     'supply_type',
-    'notes'
+    'notes',
+    'program_name',
+    'program_type'
   ];
   
   // Filter to only allowed fields

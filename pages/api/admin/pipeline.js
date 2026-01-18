@@ -1,6 +1,6 @@
 // /pages/api/admin/pipeline.js
 // Unified Pipeline API - Returns all protocols with correct tracking logic
-// Range Medical - Updated 2026-01-16
+// Range Medical - Updated 2026-01-17
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -8,6 +8,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Convert UTC timestamp to Pacific date string (YYYY-MM-DD)
+function toPacificDate(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // en-CA gives YYYY-MM-DD format
+}
 
 // Calculate tracking based on protocol type
 function calculateTracking(protocol) {
@@ -330,7 +337,7 @@ export default async function handler(req, res) {
         ghl_contact_id: p.ghl_contact_id,
         item_name: p.item_name || p.product_name,
         amount: p.amount || p.amount_paid || 0,
-        purchase_date: p.purchase_date,
+        purchase_date: toPacificDate(p.purchase_date),
         category: p.category,
         protocol_created: p.protocol_created || false,
         protocol_id: p.protocol_id,

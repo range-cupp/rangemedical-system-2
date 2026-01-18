@@ -92,6 +92,7 @@ async function handlePost(req, res) {
     dosage,
     supply_type,     // For HRT: 'vial_10ml', 'prefilled_2week', 'prefilled_4week'
     quantity,        // For prefilled: number of syringes
+    weight,          // For weight loss: current weight in lbs
     notes
   } = req.body;
   
@@ -115,6 +116,7 @@ async function handlePost(req, res) {
       dosage,
       supply_type,
       quantity,
+      weight: weight ? parseFloat(weight) : null,
       notes,
       created_at: new Date().toISOString()
     })

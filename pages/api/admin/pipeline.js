@@ -362,6 +362,33 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
+    // Fetch weight logs for weight_loss protocols
+    const { data: weightLogs } = await supabase
+      .from('injection_logs')
+      .select('protocol_id, patient_id, weight, entry_date')
+      .eq('category', 'weight_loss')
+      .not('weight', 'is', null)
+      .order('entry_date', { ascending: false });
+    
+    // Build weight data lookup by protocol_id
+    const weightDataByProtocol = {};
+    (weightLogs || []).forEach(log => {
+      const key = log.protocol_id || `patient_${log.patient_id}`;
+      if (!weightDataByProtocol[key]) {
+        weightDataByProtocol[key] = {
+          current_weight: log.weight, // First (most recent) becomes current
+          all_weights: []
+        };
+      }
+      weightDataByProtocol[key].all_weights.push(log.weight);
+    });
+    
+    // Calculate starting weight (first logged weight) for each
+    Object.keys(weightDataByProtocol).forEach(key => {
+      const weights = weightDataByProtocol[key].all_weights;
+      weightDataByProtocol[key].starting_weight = weights[weights.length - 1]; // Last in array = earliest
+    });
+
     // Get all patients for GHL ID lookup (fallback for unlinked protocols)
     const { data: allPatients } = await supabase
       .from('patients')
@@ -401,6 +428,28 @@ export default async function handler(req, res) {
         }
       }
 
+      // Get weight data for weight_loss protocols
+      let weightData = {};
+      if (tracking.category === 'weight_loss') {
+        const key = protocol.id || `patient_${protocol.patient_id}`;
+        const wd = weightDataByProtocol[key] || weightDataByProtocol[`patient_${protocol.patient_id}`];
+        if (wd) {
+          weightData = {
+            starting_weight: wd.starting_weight || protocol.starting_weight,
+            current_weight: wd.current_weight,
+            weight_lost: wd.starting_weight && wd.current_weight 
+              ? Math.round((wd.starting_weight - wd.current_weight) * 10) / 10 
+              : null
+          };
+        } else if (protocol.starting_weight) {
+          weightData = {
+            starting_weight: protocol.starting_weight,
+            current_weight: null,
+            weight_lost: null
+          };
+        }
+      }
+
       return {
         id: protocol.id,
         patient_id: patient?.id || protocol.patient_id,
@@ -426,6 +475,9 @@ export default async function handler(req, res) {
         
         status: protocol.status,
         notes: protocol.notes,
+        
+        // Weight data for weight_loss protocols
+        ...weightData,
         
         // Tracking data
         ...tracking

@@ -17,6 +17,7 @@ const TESTOSTERONE_OPTIONS = {
     label: 'Male HRT (200mg/ml)',
     medication: 'Testosterone Cypionate 200mg/ml',
     dosages: [
+      { value: '0.2ml/40mg', label: '0.2ml (40mg)' },
       { value: '0.3ml/60mg', label: '0.3ml (60mg)' },
       { value: '0.35ml/70mg', label: '0.35ml (70mg)' },
       { value: '0.4ml/80mg', label: '0.4ml (80mg)' },

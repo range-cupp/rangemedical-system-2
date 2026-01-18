@@ -1856,25 +1856,74 @@ export default function UnifiedPipeline() {
               
               <div style={styles.formGroup}>
                 <label style={styles.formLabel}>Medication/Program</label>
-                <input
-                  type="text"
-                  value={editForm.medication || ''}
-                  onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })}
-                  style={styles.formInput}
-                  placeholder="e.g. Wolverine Blend, Testosterone Cypionate"
-                />
+                {editModal.category === 'weight_loss' ? (
+                  <select
+                    value={editForm.medication || ''}
+                    onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select medication...</option>
+                    <option value="TBD">TBD (Not yet selected)</option>
+                    <option value="Semaglutide">Semaglutide</option>
+                    <option value="Tirzepatide">Tirzepatide</option>
+                    <option value="Retatrutide">Retatrutide</option>
+                  </select>
+                ) : editModal.category === 'peptide' ? (
+                  <select
+                    value={editForm.medication || ''}
+                    onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select peptide...</option>
+                    {PEPTIDE_OPTIONS.map(group => (
+                      <optgroup key={group.group} label={group.group}>
+                        {group.options.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.value}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={editForm.medication || ''}
+                    onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })}
+                    style={styles.formInput}
+                    placeholder="e.g. Testosterone Cypionate, Male HRT"
+                  />
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div style={styles.formGroup}>
                   <label style={styles.formLabel}>Dose</label>
-                  <input
-                    type="text"
-                    value={editForm.dose || ''}
-                    onChange={(e) => setEditForm({ ...editForm, dose: e.target.value })}
-                    style={styles.formInput}
-                    placeholder="e.g. 500mcg, 100mg"
-                  />
+                  {editModal.category === 'weight_loss' ? (
+                    <select
+                      value={editForm.dose || ''}
+                      onChange={(e) => setEditForm({ ...editForm, dose: e.target.value })}
+                      style={styles.formSelect}
+                    >
+                      <option value="">Select dose...</option>
+                      <option value="TBD">TBD</option>
+                      {editForm.medication === 'Semaglutide' ? (
+                        ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))
+                      ) : (
+                        ['1mg', '2mg', '3mg', '4mg', '5mg', '6mg', '7mg', '8mg', '9mg', '10mg', '11mg', '12mg', '13mg', '14mg', '15mg'].map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))
+                      )}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={editForm.dose || ''}
+                      onChange={(e) => setEditForm({ ...editForm, dose: e.target.value })}
+                      style={styles.formInput}
+                      placeholder="e.g. 500mcg, 100mg"
+                    />
+                  )}
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.formLabel}>Frequency</label>

@@ -204,7 +204,8 @@ export default function UnifiedPipeline() {
       iv: { emoji: '💧', color: '#bfdbfe', text: 'IV' },
       hbot: { emoji: '🫁', color: '#fecaca', text: 'HBOT' },
       rlt: { emoji: '🔴', color: '#fecdd3', text: 'RLT' },
-      injection: { emoji: '💉', color: '#e9d5ff', text: 'Injection' }
+      injection: { emoji: '💉', color: '#e9d5ff', text: 'Injection' },
+      other: { emoji: '📁', color: '#e5e7eb', text: 'Other' }
     };
     return badges[category] || { emoji: '📋', color: '#e5e7eb', text: 'Other' };
   };
@@ -469,11 +470,13 @@ export default function UnifiedPipeline() {
       
       const result = await res.json();
       if (result.success) {
-        showToast('Protocol created!');
+        const patientName = selectedPatient.name || `${selectedPatient.first_name} ${selectedPatient.last_name}`;
+        showToast(`Protocol created for ${patientName}!`);
         closeStartModal();
         fetchData();
       } else {
         showToast(result.error || 'Failed to create protocol', 'error');
+        console.error('Protocol creation failed:', result);
       }
     } catch (err) {
       showToast('Error creating protocol', 'error');
@@ -1593,7 +1596,8 @@ export default function UnifiedPipeline() {
             { value: 'hrt', label: 'HRT', emoji: '💊' },
             { value: 'iv', label: 'IV', emoji: '💧' },
             { value: 'hbot', label: 'HBOT', emoji: '🫁' },
-            { value: 'rlt', label: 'RLT', emoji: '🔴' }
+            { value: 'rlt', label: 'RLT', emoji: '🔴' },
+            { value: 'other', label: 'Other', emoji: '📁' }
           ].map(cat => (
             <button
               key={cat.value}

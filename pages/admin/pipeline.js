@@ -104,12 +104,10 @@ export default function UnifiedPipeline() {
   const [logForm, setLogForm] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
-  const [peptideOptions, setPeptideOptions] = useState(PEPTIDE_OPTIONS);
 
   useEffect(() => {
     fetchData();
     fetchPatients();
-    fetchPeptides();
     // Check for admin mode
     if (router.query.admin === 'true') {
       setIsAdmin(true);
@@ -143,20 +141,6 @@ export default function UnifiedPipeline() {
       }
     } catch (err) {
       console.error('Failed to fetch patients:', err);
-    }
-  };
-
-  const fetchPeptides = async () => {
-    try {
-      const res = await fetch('/api/peptides');
-      const json = await res.json();
-      if (json.success && json.peptides && json.peptides.length > 0) {
-        setPeptideOptions(json.peptides);
-      }
-      // If no peptides returned, keep using PEPTIDE_OPTIONS (default)
-    } catch (err) {
-      console.error('Failed to fetch peptides:', err);
-      // Keep using PEPTIDE_OPTIONS (default)
     }
   };
 
@@ -960,10 +944,10 @@ export default function UnifiedPipeline() {
                 value={protocolForm.peptide_medication || ''}
                 onChange={(e) => {
                   const selected = e.target.value;
-                  const allOptions = peptideOptions.flatMap(g => g.options || []);
+                  const allOptions = PEPTIDE_OPTIONS.flatMap(g => g.options);
                   const opt = allOptions.find(o => o.value === selected);
                   // Auto-select frequency based on peptide
-                  let autoFrequency = opt?.frequency || protocolForm.peptide_frequency || 'Daily';
+                  let autoFrequency = protocolForm.peptide_frequency || 'Daily';
                   if (selected === 'MOTS-c') {
                     autoFrequency = '1x every 5 days';
                   }
@@ -978,9 +962,9 @@ export default function UnifiedPipeline() {
                 required
               >
                 <option value="">Select peptide...</option>
-                {peptideOptions.map(group => (
+                {PEPTIDE_OPTIONS.map(group => (
                   <optgroup key={group.group} label={group.group}>
-                    {(group.options || []).map(opt => (
+                    {group.options.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.value}</option>
                     ))}
                   </optgroup>

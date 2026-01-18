@@ -336,7 +336,7 @@ export default async function handler(req, res) {
         patient_name: p.patient_name,
         ghl_contact_id: p.ghl_contact_id,
         item_name: p.item_name || p.product_name,
-        amount: p.amount || p.amount_paid || 0,
+        amount: p.amount_paid || p.amount || 0,
         purchase_date: toPacificDate(p.purchase_date),
         category: p.category,
         protocol_created: p.protocol_created || false,

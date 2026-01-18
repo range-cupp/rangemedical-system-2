@@ -464,6 +464,7 @@ async function handlePut(req, res) {
     dosage,
     supply_type,
     quantity,
+    weight,
     notes
   } = req.body;
   
@@ -477,6 +478,7 @@ async function handlePut(req, res) {
   if (dosage !== undefined) updateData.dosage = dosage;
   if (supply_type !== undefined) updateData.supply_type = supply_type;
   if (quantity !== undefined) updateData.quantity = quantity;
+  if (weight !== undefined) updateData.weight = weight ? parseFloat(weight) : null;
   if (notes !== undefined) updateData.notes = notes;
   
   const { data, error } = await supabase

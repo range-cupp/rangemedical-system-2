@@ -208,11 +208,24 @@ export default function UnifiedPipeline() {
     return badges[category] || { emoji: '📋', color: '#e5e7eb', text: 'Other' };
   };
 
-  // Format date
+  // Format date in Pacific time
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+    // Handle both date-only strings (YYYY-MM-DD) and full timestamps
+    let d;
+    if (dateStr.length === 10) {
+      // Date only - treat as midnight Pacific
+      d = new Date(dateStr + 'T00:00:00');
+    } else {
+      // Full timestamp - convert to Pacific
+      d = new Date(dateStr);
+    }
+    return d.toLocaleDateString('en-US', { 
+      month: 'numeric', 
+      day: 'numeric', 
+      year: 'numeric',
+      timeZone: 'America/Los_Angeles'
+    });
   };
 
   // Get duration display

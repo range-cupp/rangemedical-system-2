@@ -106,7 +106,7 @@ export default function InjectionLogs() {
     quantity: 1,
     week_supply: 4,
     weight: '',
-    entry_date: new Date().toISOString().split('T')[0],
+    entry_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
     notes: ''
   });
   
@@ -220,7 +220,7 @@ export default function InjectionLogs() {
       weight: '',
       medication: activeTab === 'weight_loss' ? 'Semaglutide' : '',
       notes: '',
-      entry_date: new Date().toISOString().split('T')[0]
+      entry_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
     }));
     setShowModal(true);
   };
@@ -371,14 +371,31 @@ export default function InjectionLogs() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    // Handle date-only strings (YYYY-MM-DD) as local time to avoid timezone shift
+    let d;
+    if (dateStr.length === 10 && dateStr.includes('-')) {
+      // Date only - treat as local time
+      d = new Date(dateStr + 'T00:00:00');
+    } else {
+      // Full timestamp - convert to Pacific
+      d = new Date(dateStr);
+    }
+    return d.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      timeZone: 'America/Los_Angeles'
+    });
   };
 
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true,
+      timeZone: 'America/Los_Angeles'
+    });
   };
 
   // Filter logs by search term
@@ -509,7 +526,7 @@ export default function InjectionLogs() {
         {/* Stats */}
         <div style={styles.stats}>
           <span>Today: <strong>{logs.filter(l => {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
             const logDate = (l.entry_date || l.created_at || '').split('T')[0];
             return logDate === today;
           }).length}</strong></span>

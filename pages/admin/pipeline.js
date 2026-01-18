@@ -862,7 +862,7 @@ export default function UnifiedPipeline() {
               <label style={styles.formLabel}>Medication *</label>
               <select
                 value={protocolForm.wl_medication || ''}
-                onChange={(e) => setProtocolForm({ ...protocolForm, wl_medication: e.target.value })}
+                onChange={(e) => setProtocolForm({ ...protocolForm, wl_medication: e.target.value, wl_starting_dose: '' })}
                 style={styles.formSelect}
                 required
               >
@@ -880,9 +880,15 @@ export default function UnifiedPipeline() {
                 style={styles.formSelect}
               >
                 <option value="">Select dose...</option>
-                {['0.25mg', '0.5mg', '1mg', '1.5mg', '2mg', '2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'].map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
+                {protocolForm.wl_medication === 'Semaglutide' ? (
+                  ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))
+                ) : (
+                  ['1mg', '2mg', '3mg', '4mg', '5mg', '6mg', '7mg', '8mg', '9mg', '10mg', '11mg', '12mg', '13mg', '14mg', '15mg'].map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))
+                )}
               </select>
             </div>
             <div style={styles.formGroup}>
@@ -1240,9 +1246,15 @@ export default function UnifiedPipeline() {
               style={styles.formSelect}
             >
               <option value="">Same as protocol ({logModal.dose})</option>
-              {['0.25mg', '0.5mg', '1mg', '1.5mg', '2mg', '2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'].map(d => (
-                <option key={d} value={d}>{d}</option>
-              ))}
+              {(logModal.medication || '').toLowerCase().includes('semaglutide') ? (
+                ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))
+              ) : (
+                ['1mg', '2mg', '3mg', '4mg', '5mg', '6mg', '7mg', '8mg', '9mg', '10mg', '11mg', '12mg', '13mg', '14mg', '15mg'].map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))
+              )}
             </select>
           </div>
         </>

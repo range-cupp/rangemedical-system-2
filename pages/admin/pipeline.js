@@ -805,16 +805,14 @@ export default function UnifiedPipeline() {
               ⏳
             </button>
           )}
-          {/* Admin-only delete button - add ?admin=true to URL */}
-          {isAdmin && (
-            <button 
-              style={{ ...styles.actionBtn, ...styles.deleteBtn }}
-              onClick={() => deleteProtocol(protocol)}
-              title="Delete Protocol"
-            >
-              🗑️
-            </button>
-          )}
+          {/* Delete button */}
+          <button 
+            style={{ ...styles.actionBtn, ...styles.deleteBtn }}
+            onClick={() => deleteProtocol(protocol)}
+            title="Delete Protocol"
+          >
+            🗑️
+          </button>
         </td>
       </tr>
     );

@@ -74,7 +74,8 @@ async function updateProtocol(id, updates, res) {
     'supply_type',
     'notes',
     'program_name',
-    'program_type'
+    'program_type',
+    'starting_weight'
   ];
   
   // Filter to only allowed fields

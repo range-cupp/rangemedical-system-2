@@ -153,19 +153,19 @@ export default function UnifiedPipeline() {
 
   // Get filtered protocols
   const getFilteredProtocols = () => {
-    if (!data) return [];
+    if (!data || !data.protocols) return [];
     
     let protocols = [];
     
     if (statusFilter === 'active' || statusFilter === 'all') {
       protocols = [
-        ...data.protocols.ending_soon,
-        ...data.protocols.active,
-        ...data.protocols.just_started
+        ...(data.protocols.ending_soon || []),
+        ...(data.protocols.active || []),
+        ...(data.protocols.just_started || [])
       ];
     }
     if (statusFilter === 'completed' || statusFilter === 'all') {
-      protocols = [...protocols, ...data.protocols.completed];
+      protocols = [...protocols, ...(data.protocols.completed || [])];
     }
     
     if (deliveryFilter !== 'all') {
@@ -1452,23 +1452,23 @@ export default function UnifiedPipeline() {
         </div>
 
         {/* Stats Cards */}
-        {data && (
+        {data && data.counts && (
           <div style={styles.statsBar}>
             <div style={{ ...styles.statCard, borderLeftColor: '#dc2626' }}>
               <div style={styles.statLabel}>ENDING SOON (≤3 DAYS)</div>
-              <div style={styles.statValue}>{data.counts.ending_soon}</div>
+              <div style={styles.statValue}>{data.counts.ending_soon || 0}</div>
             </div>
             <div style={{ ...styles.statCard, borderLeftColor: '#f59e0b' }}>
               <div style={styles.statLabel}>ACTIVE (4-14 DAYS)</div>
-              <div style={styles.statValue}>{data.counts.active}</div>
+              <div style={styles.statValue}>{data.counts.active || 0}</div>
             </div>
             <div style={{ ...styles.statCard, borderLeftColor: '#22c55e' }}>
               <div style={styles.statLabel}>JUST STARTED (15+ DAYS)</div>
-              <div style={styles.statValue}>{data.counts.just_started}</div>
+              <div style={styles.statValue}>{data.counts.just_started || 0}</div>
             </div>
             <div style={{ ...styles.statCard, borderLeftColor: '#6b7280' }}>
               <div style={styles.statLabel}>NEEDS FOLLOW-UP</div>
-              <div style={styles.statValue}>{data.counts.needs_followup}</div>
+              <div style={styles.statValue}>{data.counts.needs_followup || 0}</div>
             </div>
           </div>
         )}

@@ -1,4 +1,5 @@
 import React from 'react';
+import Head from 'next/head';
 
 const CellularEnergyResetLanding = () => {
   const styles = `
@@ -1171,6 +1172,25 @@ const CellularEnergyResetLanding = () => {
   `;
 
   return (
+    <>
+      <Head>
+        <title>6-Week Cellular Energy Reset | Range Medical</title>
+        <meta name="description" content="36 HBOT + Red Light sessions, before-and-after labs, and weekly tracking to rebuild your energy at the cellular level. Newport Beach, CA." />
+        
+        {/* Open Graph / Link Preview */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://range-medical.com/cellular-energy-reset" />
+        <meta property="og:title" content="6-Week Cellular Energy Reset" />
+        <meta property="og:description" content="Restore your energy at the cellular level. 36 sessions, lab-tracked results, weekly check-ins." />
+        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="6-Week Cellular Energy Reset" />
+        <meta name="twitter:description" content="Restore your energy at the cellular level. 36 sessions, lab-tracked results, weekly check-ins." />
+        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+      </Head>
+      
     <div className="cer-page">
       <style>{styles}</style>
       
@@ -1748,6 +1768,7 @@ const CellularEnergyResetLanding = () => {
         </p>
       </footer>
     </div>
+    </>
   );
 };
 

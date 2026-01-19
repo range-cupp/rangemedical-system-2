@@ -372,7 +372,7 @@ const CellularEnergyResetLanding = () => {
       font-weight: 700;
     }
     
-    /* How It Works */
+    /* How It Works - FIXED TIMELINE */
     .cer-timeline {
       max-width: 800px;
       margin: 0 auto;
@@ -383,6 +383,7 @@ const CellularEnergyResetLanding = () => {
       gap: 2rem;
       padding: 2rem 0;
       border-bottom: 1px solid #333333;
+      align-items: flex-start;
     }
     
     .cer-timeline-item:last-child {
@@ -391,7 +392,7 @@ const CellularEnergyResetLanding = () => {
     
     .cer-timeline-week {
       flex-shrink: 0;
-      width: 80px;
+      width: 90px;
     }
     
     .cer-timeline-badge {
@@ -399,22 +400,27 @@ const CellularEnergyResetLanding = () => {
       color: #000000;
       padding: 0.5rem 0.75rem;
       border-radius: 6px;
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      display: inline-block;
+      text-align: center;
     }
     
     .cer-timeline-content h4 {
       font-size: 1.125rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
+      margin-top: 0;
     }
     
     .cer-timeline-content p {
       font-size: 0.9375rem;
       color: #a3a3a3;
       line-height: 1.6;
+      margin: 0;
     }
     
     /* Science Section */
@@ -999,7 +1005,7 @@ const CellularEnergyResetLanding = () => {
         </div>
       </section>
       
-      {/* How It Works (Timeline) */}
+      {/* How It Works (Timeline) - FIXED */}
       <section id="how-it-works" className="cer-section cer-section-dark">
         <div className="cer-container">
           <p className="cer-section-kicker">Your Journey</p>

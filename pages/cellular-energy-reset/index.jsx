@@ -1307,7 +1307,7 @@ const CellularEnergyResetLanding = () => {
                   <li>Comprehensive symptom & energy questionnaire</li>
                   <li>1:1 provider review of your results</li>
                   <li>Written plan with personalized recommendations</li>
-                  <li>Optional: 1 Red Light OR 1 HBOT experience session</li>
+                  <li>1 Red Light + 1 HBOT experience session</li>
                 </ul>
               </div>
               

@@ -1,6 +1,6 @@
 // /pages/admin/pipeline.js
 // Unified Protocol Pipeline with Start Protocol & Activity Logging
-// Range Medical - Updated 2026-01-17
+// Range Medical - Updated 2026-01-19
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -15,6 +15,10 @@ const PEPTIDE_OPTIONS = [
     { value: 'KPV', dose: '200-400mcg' },
     { value: 'LL-37', dose: '50-100mcg' },
     { value: 'GHK-Cu', dose: '1-2mg' },
+  ]},
+  { group: 'Anti-Inflammatory', options: [
+    { value: 'GLOW', dose: '1-2mg' },
+    { value: 'KLOW', dose: '1-3mg' },
   ]},
   { group: 'Weight Loss / Metabolic', options: [
     { value: 'AOD 9604', dose: '300mcg' },
@@ -46,6 +50,9 @@ const PEPTIDE_OPTIONS = [
   { group: 'HRT Support', options: [
     { value: 'Gonadorelin', dose: '100-200mcg' },
     { value: 'HCG', dose: '500-1000 IU' },
+  ]},
+  { group: 'Topical', options: [
+    { value: 'GHK-Cu Topical Cream', dose: 'Apply as directed' },
   ]},
 ];
 

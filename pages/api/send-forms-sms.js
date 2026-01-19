@@ -46,8 +46,8 @@ export default async function handler(req, res) {
     // Format phone for GHL (+1 prefix)
     const formattedPhone = '+1' + phone;
 
-    // Build the base URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.range-medical.com';
+    // Build the base URL - USE APP DOMAIN for GHL sync to work
+    const baseUrl = 'https://app.range-medical.com';
 
     // Step 1: Find or create contact in GHL
     let contactId = null;
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
     if (validFormIds.length === 1) {
       // Single form - simple message
       const form = FORM_DEFINITIONS[validFormIds[0]];
-      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}\n\nQuestions? (949) 997-3988`;
+      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
     } else {
       // Multiple forms - list them out
       const formLinks = validFormIds.map(id => {
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
         return `• ${form.name}: ${baseUrl}${form.path}`;
       }).join('\n');
       
-      messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988`;
+      messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
     }
 
     // Step 3: Send SMS via GHL

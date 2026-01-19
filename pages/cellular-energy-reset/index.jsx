@@ -302,6 +302,125 @@ const CellularEnergyResetLanding = () => {
       color: #1a1a1a;
     }
     
+    /* Assessment Section - NEW */
+    .cer-assessment-section {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border: 2px solid #0284c7;
+      border-radius: 16px;
+      padding: 3rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .cer-assessment-badge {
+      display: inline-block;
+      background: #0284c7;
+      color: #ffffff;
+      padding: 0.375rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+    
+    .cer-assessment-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cer-assessment-subtitle {
+      font-size: 1rem;
+      color: #525252;
+      margin-bottom: 1.5rem;
+    }
+    
+    .cer-assessment-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .cer-assessment-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .cer-assessment-includes h4 {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #0284c7;
+      margin-bottom: 0.75rem;
+    }
+    
+    .cer-assessment-includes ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .cer-assessment-includes li {
+      font-size: 0.9375rem;
+      padding: 0.375rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+    
+    .cer-assessment-includes li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #0284c7;
+      font-weight: 700;
+    }
+    
+    .cer-assessment-pricing {
+      text-align: center;
+      padding: 1.5rem;
+      background: #ffffff;
+      border-radius: 12px;
+    }
+    
+    .cer-assessment-price {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    
+    .cer-assessment-credit {
+      font-size: 0.9375rem;
+      color: #0284c7;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    
+    .cer-assessment-cta {
+      text-align: center;
+    }
+    
+    .cer-btn-blue {
+      display: inline-block;
+      background: #0284c7;
+      color: #ffffff;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    .cer-btn-blue:hover {
+      background: #0369a1;
+      transform: translateY(-1px);
+    }
+    
     /* What's Included */
     .cer-included-grid {
       display: grid;
@@ -590,85 +709,293 @@ const CellularEnergyResetLanding = () => {
       color: #525252;
     }
     
-    /* Pricing Section */
-    .cer-pricing-card {
+    /* VALUE STACK PRICING - NEW */
+    .cer-pricing-section {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .cer-value-stack {
       background: #ffffff;
       border: 3px solid #000000;
       border-radius: 16px;
-      padding: 3rem;
-      max-width: 600px;
-      margin: 0 auto;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    
+    .cer-value-header {
+      background: #000000;
+      color: #ffffff;
+      padding: 1.5rem 2rem;
       text-align: center;
     }
     
-    .cer-pricing-header {
-      margin-bottom: 2rem;
-    }
-    
-    .cer-pricing-title {
+    .cer-value-header h3 {
       font-size: 1.5rem;
       font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    
+    .cer-value-header p {
+      font-size: 0.9375rem;
+      color: #a3a3a3;
+      margin: 0;
+    }
+    
+    .cer-value-body {
+      padding: 2rem;
+    }
+    
+    .cer-value-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .cer-value-item:last-child {
+      border-bottom: none;
+    }
+    
+    .cer-value-item-name {
+      font-size: 0.9375rem;
+      color: #1a1a1a;
+    }
+    
+    .cer-value-item-price {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: #737373;
+    }
+    
+    .cer-value-total {
+      background: #fafafa;
+      padding: 1.5rem 2rem;
+      border-top: 2px solid #000000;
+    }
+    
+    .cer-value-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 0.5rem;
     }
     
-    .cer-pricing-duration {
+    .cer-value-total-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    .cer-value-total-label {
       font-size: 1rem;
       color: #525252;
     }
     
-    .cer-pricing-price {
-      margin-bottom: 1.5rem;
-    }
-    
-    .cer-price-amount {
-      font-size: 3.5rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-    }
-    
-    .cer-price-note {
-      font-size: 0.9375rem;
-      color: #525252;
-    }
-    
-    .cer-pricing-value {
-      background: #fafafa;
-      border-radius: 8px;
-      padding: 1.25rem;
-      margin-bottom: 2rem;
-    }
-    
-    .cer-value-comparison {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.75rem;
-    }
-    
-    .cer-value-label {
-      font-size: 0.9375rem;
-      color: #525252;
-    }
-    
-    .cer-value-original {
+    .cer-value-total-amount {
       font-size: 1rem;
       color: #737373;
       text-decoration: line-through;
     }
     
-    .cer-value-savings {
+    .cer-value-today-label {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #000000;
+    }
+    
+    .cer-value-today-amount {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #000000;
+    }
+    
+    .cer-value-savings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #e5e5e5;
+    }
+    
+    .cer-value-savings-label {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #22c55e;
+    }
+    
+    .cer-value-savings-amount {
       font-size: 1rem;
       font-weight: 700;
       color: #22c55e;
-      text-align: right;
     }
     
-    .cer-pricing-includes {
-      text-align: left;
+    /* Payment Options */
+    .cer-payment-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+      .cer-payment-options {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .cer-payment-card {
+      border: 2px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    
+    .cer-payment-card.featured {
+      border-color: #000000;
+      background: #fafafa;
+    }
+    
+    .cer-payment-badge {
+      display: inline-block;
+      background: #22c55e;
+      color: #ffffff;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+    
+    .cer-payment-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #737373;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cer-payment-price {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cer-payment-note {
+      font-size: 0.8125rem;
+      color: #525252;
+    }
+    
+    .cer-payment-bonus {
+      font-size: 0.8125rem;
+      color: #22c55e;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    
+    /* Guarantee */
+    .cer-guarantee {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    
+    .cer-guarantee-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cer-guarantee-text {
+      font-size: 0.9375rem;
+      color: #78350f;
+      line-height: 1.6;
+      margin: 0;
+    }
+    
+    /* Scarcity */
+    .cer-scarcity {
+      background: #fef2f2;
+      border: 2px solid #dc2626;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    
+    .cer-scarcity-text {
+      font-size: 0.9375rem;
+      color: #991b1b;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    /* CTA Button */
+    .cer-main-cta {
+      text-align: center;
+    }
+    
+    .cer-main-cta .cer-btn-primary {
+      padding: 1.25rem 3rem;
+      font-size: 1.125rem;
+    }
+    
+    .cer-cta-subtext {
+      font-size: 0.875rem;
+      color: #737373;
+      margin-top: 1rem;
+    }
+    
+    /* Maintenance Membership - NEW */
+    .cer-maintenance-section {
+      background: #ffffff;
+      border: 2px solid #e5e5e5;
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .cer-maintenance-header {
+      text-align: center;
       margin-bottom: 2rem;
     }
     
-    .cer-pricing-includes h4 {
+    .cer-maintenance-badge {
+      display: inline-block;
+      background: #7c3aed;
+      color: #ffffff;
+      padding: 0.375rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+    
+    .cer-maintenance-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cer-maintenance-subtitle {
+      font-size: 1rem;
+      color: #525252;
+    }
+    
+    .cer-maintenance-includes {
+      margin-bottom: 2rem;
+    }
+    
+    .cer-maintenance-includes h4 {
       font-size: 0.875rem;
       font-weight: 700;
       text-transform: uppercase;
@@ -676,13 +1003,13 @@ const CellularEnergyResetLanding = () => {
       margin-bottom: 1rem;
     }
     
-    .cer-pricing-includes ul {
+    .cer-maintenance-includes ul {
       list-style: none;
       padding: 0;
       margin: 0;
     }
     
-    .cer-pricing-includes li {
+    .cer-maintenance-includes li {
       font-size: 0.9375rem;
       padding: 0.5rem 0;
       padding-left: 1.75rem;
@@ -690,31 +1017,41 @@ const CellularEnergyResetLanding = () => {
       border-bottom: 1px solid #f5f5f5;
     }
     
-    .cer-pricing-includes li:last-child {
+    .cer-maintenance-includes li:last-child {
       border-bottom: none;
     }
     
-    .cer-pricing-includes li::before {
+    .cer-maintenance-includes li::before {
       content: "✓";
       position: absolute;
       left: 0;
-      color: #22c55e;
+      color: #7c3aed;
       font-weight: 700;
     }
     
-    .cer-pricing-cta {
-      margin-bottom: 1rem;
+    .cer-maintenance-pricing {
+      text-align: center;
+      padding: 1.5rem;
+      background: #f5f3ff;
+      border-radius: 12px;
     }
     
-    .cer-pricing-cta .cer-btn-primary {
-      width: 100%;
-      padding: 1.125rem 2rem;
-      font-size: 1.0625rem;
+    .cer-maintenance-price {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #7c3aed;
     }
     
-    .cer-pricing-guarantee {
+    .cer-maintenance-price span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #525252;
+    }
+    
+    .cer-maintenance-compare {
       font-size: 0.875rem;
-      color: #737373;
+      color: #525252;
+      margin-top: 0.5rem;
     }
     
     /* FAQ */
@@ -847,7 +1184,7 @@ const CellularEnergyResetLanding = () => {
           </a>
           <div className="cer-header-cta">
             <span className="cer-header-phone">Questions? <a href="tel:+19499973988">(949) 997-3988</a></span>
-            <a href="sms:+19499973988?body=Hi, I'm interested in the 6-Week Cellular Energy Reset program." className="cer-btn-small">Get Started</a>
+            <a href="sms:+19499973988?body=Hi, I'm interested in the Cellular Energy Assessment." className="cer-btn-small">Get Started</a>
           </div>
         </div>
       </header>
@@ -861,10 +1198,10 @@ const CellularEnergyResetLanding = () => {
             <span>Restore your energy at the cellular level</span>
           </h1>
           <p className="cer-hero-subtitle">
-            Combine the power of red light therapy and hyperbaric oxygen to optimize mitochondrial function, reduce inflammation, and restore your body's natural energy production—with lab work to prove it.
+            36 HBOT + Red Light sessions, before-and-after labs, and weekly tracking to rebuild your energy at the cellular level.
           </p>
           <div className="cer-hero-cta">
-            <a href="sms:+19499973988?body=Hi, I'm interested in the 6-Week Cellular Energy Reset program." className="cer-btn-primary">Start Your Reset →</a>
+            <a href="#assessment" className="cer-btn-primary">Start With an Assessment →</a>
             <a href="#how-it-works" className="cer-btn-outline">See How It Works</a>
           </div>
         </div>
@@ -944,11 +1281,55 @@ const CellularEnergyResetLanding = () => {
         </div>
       </section>
       
-      {/* What's Included */}
-      <section className="cer-section cer-section-alt">
+      {/* STEP 1: Assessment - NEW */}
+      <section id="assessment" className="cer-section cer-section-alt">
         <div className="cer-container">
-          <p className="cer-section-kicker">The Protocol</p>
-          <h2 className="cer-section-title">What's Included</h2>
+          <p className="cer-section-kicker">Step 1</p>
+          <h2 className="cer-section-title">Start With a Cellular Energy Assessment</h2>
+          <p className="cer-section-subtitle">
+            Before committing to the full Reset, get your baseline data. Know exactly where you stand.
+          </p>
+          
+          <div className="cer-assessment-section">
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <span className="cer-assessment-badge">First Step</span>
+              <h3 className="cer-assessment-title">Cellular Energy Assessment</h3>
+              <p className="cer-assessment-subtitle">The diagnostic that tells you exactly what's going on at the cellular level</p>
+            </div>
+            
+            <div className="cer-assessment-grid">
+              <div className="cer-assessment-includes">
+                <h4>What's Included:</h4>
+                <ul>
+                  <li>Cellular Energy Lab Panel (12 biomarkers)</li>
+                  <li>Comprehensive symptom & energy questionnaire</li>
+                  <li>1:1 provider review of your results</li>
+                  <li>Written plan with personalized recommendations</li>
+                  <li>Optional: 1 Red Light OR 1 HBOT experience session</li>
+                </ul>
+              </div>
+              
+              <div className="cer-assessment-pricing">
+                <div className="cer-assessment-price">$497</div>
+                <div className="cer-assessment-credit">100% applies to the 6-Week Reset</div>
+                <p style={{ fontSize: '0.8125rem', color: '#525252', margin: '0' }}>
+                  If you enroll in the Reset within 7 days, your entire $497 is credited toward the program.
+                </p>
+              </div>
+            </div>
+            
+            <div className="cer-assessment-cta">
+              <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cer-btn-blue">Book Your Assessment →</a>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* What's Included in Reset */}
+      <section className="cer-section">
+        <div className="cer-container">
+          <p className="cer-section-kicker">Step 2: The Protocol</p>
+          <h2 className="cer-section-title">The 6-Week Cellular Energy Reset</h2>
           <p className="cer-section-subtitle">
             A complete system designed to restore cellular energy over 6 weeks—not a one-time session.
           </p>
@@ -992,26 +1373,26 @@ const CellularEnergyResetLanding = () => {
             
             <div className="cer-included-card">
               <div className="cer-included-number">4</div>
-              <h3 className="cer-included-title">6 Weekly Check-Ins</h3>
-              <p className="cer-included-detail">Progress tracking • Symptom assessment • Protocol adjustments</p>
+              <h3 className="cer-included-title">Complete Support & Tracking</h3>
+              <p className="cer-included-detail">Provider consultations • Weekly check-ins • Concierge scheduling</p>
               <ul className="cer-included-features">
-                <li>Energy level tracking (1-10 scale)</li>
-                <li>Sleep quality assessment</li>
-                <li>Recovery and soreness monitoring</li>
-                <li>Provider support throughout</li>
+                <li>2 provider lab review visits with written plans</li>
+                <li>Weekly energy tracking & progress check-ins</li>
+                <li>Priority scheduling & coordination</li>
+                <li>Protocol adjustments as needed</li>
               </ul>
             </div>
           </div>
         </div>
       </section>
       
-      {/* How It Works (Timeline) - FIXED */}
+      {/* How It Works (Timeline) */}
       <section id="how-it-works" className="cer-section cer-section-dark">
         <div className="cer-container">
           <p className="cer-section-kicker">Your Journey</p>
           <h2 className="cer-section-title">How The 6 Weeks Work</h2>
           <p className="cer-section-subtitle">
-            A structured protocol with clear milestones so you know exactly what to expect.
+            3 visits per week for 6 weeks. Each visit: HBOT + Red Light together, ~90 minutes door-to-door. We schedule all 18 combo visits at enrollment.
           </p>
           
           <div className="cer-timeline">
@@ -1061,7 +1442,7 @@ const CellularEnergyResetLanding = () => {
               </div>
               <div className="cer-timeline-content">
                 <h4>Results Review</h4>
-                <p>Meet with your provider to compare baseline and follow-up labs. Review your weekly tracking data. Discuss maintenance protocol options to preserve your gains.</p>
+                <p>Meet with your provider to compare baseline and follow-up labs. Review your weekly tracking data. Discuss maintenance options to preserve your gains.</p>
               </div>
             </div>
           </div>
@@ -1159,80 +1540,137 @@ const CellularEnergyResetLanding = () => {
         </div>
       </section>
       
-      {/* Weekly Check-Ins */}
+      {/* PRICING - VALUE STACK */}
       <section className="cer-section">
         <div className="cer-container">
-          <p className="cer-section-kicker">Accountability</p>
-          <h2 className="cer-section-title">Weekly Check-Ins Keep You On Track</h2>
+          <p className="cer-section-kicker">Investment</p>
+          <h2 className="cer-section-title">6-Week Reset Pricing</h2>
           <p className="cer-section-subtitle">
-            Beyond labs, we track subjective markers weekly so you can see progress in real-time.
+            Everything you need to restore your cellular energy. One program. One price.
           </p>
           
-          <div className="cer-checkin-features">
-            <div className="cer-checkin-feature">
-              <div className="cer-checkin-icon">📊</div>
-              <h3 className="cer-checkin-title">Energy Tracking</h3>
-              <p className="cer-checkin-desc">Rate your daily energy 1-10 and watch the trend improve over 6 weeks</p>
+          <div className="cer-pricing-section">
+            {/* Value Stack */}
+            <div className="cer-value-stack">
+              <div className="cer-value-header">
+                <h3>6-Week Cellular Energy Reset</h3>
+                <p>Complete Protocol</p>
+              </div>
+              
+              <div className="cer-value-body">
+                <div className="cer-value-item">
+                  <span className="cer-value-item-name">18 Hyperbaric Oxygen Sessions (60 min each)</span>
+                  <span className="cer-value-item-price">$3,330</span>
+                </div>
+                <div className="cer-value-item">
+                  <span className="cer-value-item-name">18 Full-Body Red Light Sessions (20 min each)</span>
+                  <span className="cer-value-item-price">$1,530</span>
+                </div>
+                <div className="cer-value-item">
+                  <span className="cer-value-item-name">2 Cellular Energy Lab Panels</span>
+                  <span className="cer-value-item-price">$700</span>
+                </div>
+                <div className="cer-value-item">
+                  <span className="cer-value-item-name">2 Provider Lab Review Visits + Written Plans</span>
+                  <span className="cer-value-item-price">$400</span>
+                </div>
+                <div className="cer-value-item">
+                  <span className="cer-value-item-name">Weekly Progress Check-ins & Energy Tracking</span>
+                  <span className="cer-value-item-price">$300</span>
+                </div>
+                <div className="cer-value-item">
+                  <span className="cer-value-item-name">Priority Scheduling & Concierge Coordination</span>
+                  <span className="cer-value-item-price">$200</span>
+                </div>
+              </div>
+              
+              <div className="cer-value-total">
+                <div className="cer-value-total-row">
+                  <span className="cer-value-total-label">Total Value</span>
+                  <span className="cer-value-total-amount">$6,460</span>
+                </div>
+                <div className="cer-value-total-row">
+                  <span className="cer-value-today-label">Your Price Today</span>
+                  <span className="cer-value-today-amount">$3,997</span>
+                </div>
+                <div className="cer-value-savings-row">
+                  <span className="cer-value-savings-label">You Save</span>
+                  <span className="cer-value-savings-amount">$2,463 (38% off)</span>
+                </div>
+              </div>
             </div>
-            <div className="cer-checkin-feature">
-              <div className="cer-checkin-icon">😴</div>
-              <h3 className="cer-checkin-title">Sleep Quality</h3>
-              <p className="cer-checkin-desc">Track sleep duration and quality—often the first thing to improve</p>
+            
+            {/* Payment Options */}
+            <div className="cer-payment-options">
+              <div className="cer-payment-card featured">
+                <span className="cer-payment-badge">Best Value</span>
+                <div className="cer-payment-title">Pay in Full</div>
+                <div className="cer-payment-price">$3,997</div>
+                <div className="cer-payment-note">One-time payment</div>
+                <div className="cer-payment-bonus">+ Bonus: 2 extra Red Light sessions</div>
+              </div>
+              <div className="cer-payment-card">
+                <div className="cer-payment-title">Payment Plan</div>
+                <div className="cer-payment-price">3 × $1,450</div>
+                <div className="cer-payment-note">$4,350 total</div>
+              </div>
             </div>
-            <div className="cer-checkin-feature">
-              <div className="cer-checkin-icon">💪</div>
-              <h3 className="cer-checkin-title">Recovery Speed</h3>
-              <p className="cer-checkin-desc">Monitor how quickly you bounce back from workouts and stress</p>
+            
+            {/* Guarantee */}
+            <div className="cer-guarantee">
+              <div className="cer-guarantee-title">🛡️ Our Week-3 Energy Guarantee</div>
+              <p className="cer-guarantee-text">
+                If your self-rated energy hasn't improved by at least 2 points (on a 1-10 scale) by the end of week 3, we'll add 2 extra weeks of red light therapy (6 sessions) at no charge.
+              </p>
+            </div>
+            
+            {/* Scarcity */}
+            <div className="cer-scarcity">
+              <p className="cer-scarcity-text">
+                ⚠️ Limited availability: We can only run 8 Cellular Energy Resets at a time due to chamber capacity. Currently enrolling for this month.
+              </p>
+            </div>
+            
+            {/* CTA */}
+            <div className="cer-main-cta">
+              <a href="sms:+19499973988?body=Hi, I'm interested in the 6-Week Cellular Energy Reset program." className="cer-btn-primary">Reserve Your Spot →</a>
+              <p className="cer-cta-subtext">Questions? Text or call (949) 997-3988</p>
             </div>
           </div>
         </div>
       </section>
       
-      {/* Pricing */}
+      {/* STEP 3: Maintenance Membership - NEW */}
       <section className="cer-section cer-section-alt">
         <div className="cer-container">
-          <p className="cer-section-kicker">Investment</p>
-          <h2 className="cer-section-title">Program Pricing</h2>
+          <p className="cer-section-kicker">Step 3: After Your Reset</p>
+          <h2 className="cer-section-title">Maintain Your Results</h2>
           <p className="cer-section-subtitle">
-            One price. Everything included. No hidden costs.
+            After your 6-week transformation, keep your gains with our maintenance membership.
           </p>
           
-          <div className="cer-pricing-card">
-            <div className="cer-pricing-header">
-              <h3 className="cer-pricing-title">6-Week Cellular Energy Reset</h3>
-              <p className="cer-pricing-duration">Complete Protocol</p>
+          <div className="cer-maintenance-section">
+            <div className="cer-maintenance-header">
+              <span className="cer-maintenance-badge">Continuity</span>
+              <h3 className="cer-maintenance-title">Cellular Energy Maintenance</h3>
+              <p className="cer-maintenance-subtitle">Stay optimized without starting over</p>
             </div>
             
-            <div className="cer-pricing-price">
-              <div className="cer-price-amount">$3,997</div>
-              <p className="cer-price-note">Payment plans available</p>
-            </div>
-            
-            <div className="cer-pricing-value">
-              <div className="cer-value-comparison">
-                <span className="cer-value-label">À la carte value</span>
-                <span className="cer-value-original">$5,560</span>
-              </div>
-              <div className="cer-value-savings">You save $1,563 (28% off)</div>
-            </div>
-            
-            <div className="cer-pricing-includes">
-              <h4>Everything Included:</h4>
+            <div className="cer-maintenance-includes">
+              <h4>Every 4 Weeks:</h4>
               <ul>
-                <li>18 Red Light Therapy sessions ($1,530 value)</li>
-                <li>18 Hyperbaric Oxygen sessions ($3,330 value)</li>
-                <li>2 Cellular Energy Lab Panels ($700 value)</li>
-                <li>6 Weekly check-ins with tracking</li>
-                <li>Provider consultations at baseline + completion</li>
-                <li>Personalized protocol adjustments</li>
+                <li>4 Hyperbaric Oxygen sessions</li>
+                <li>4 Red Light Therapy sessions</li>
+                <li>Quarterly mini check-in (10-15 min)</li>
+                <li>Annual Cellular Energy Lab Panel at preferred rate</li>
+                <li>Priority scheduling</li>
               </ul>
             </div>
             
-            <div className="cer-pricing-cta">
-              <a href="sms:+19499973988?body=Hi, I'm interested in the 6-Week Cellular Energy Reset program. Can we schedule a consultation?" className="cer-btn-primary">Reserve Your Spot →</a>
+            <div className="cer-maintenance-pricing">
+              <div className="cer-maintenance-price">$597 <span>/ every 4 weeks</span></div>
+              <p className="cer-maintenance-compare">À la carte value: $1,080+ per month</p>
             </div>
-            
-            <p className="cer-pricing-guarantee">Questions first? Text us or call (949) 997-3988</p>
           </div>
         </div>
       </section>
@@ -1245,18 +1683,18 @@ const CellularEnergyResetLanding = () => {
           
           <div className="cer-faq-list">
             <div className="cer-faq-item">
-              <h3 className="cer-faq-question">How long does each session take?</h3>
-              <p className="cer-faq-answer">Red light therapy sessions are 20 minutes (10 minutes on each side). Hyperbaric oxygen sessions are 60 minutes. Plan for about 90 minutes total when doing both on the same day.</p>
+              <h3 className="cer-faq-question">Should I start with the Assessment or the full Reset?</h3>
+              <p className="cer-faq-answer">If you're unsure whether this is right for you, start with the Cellular Energy Assessment ($497). You'll get your labs, a provider consultation, and a clear picture of your cellular health. If you decide to move forward with the Reset within 7 days, your entire $497 is credited toward the program.</p>
             </div>
             
             <div className="cer-faq-item">
-              <h3 className="cer-faq-question">Can I do red light and HBOT on the same day?</h3>
-              <p className="cer-faq-answer">Yes, and we recommend it for convenience. Most people do both therapies back-to-back, 3 times per week. The order doesn't matter—do whichever feels better for you.</p>
+              <h3 className="cer-faq-question">How long does each session take?</h3>
+              <p className="cer-faq-answer">Plan for about 90 minutes door-to-door when doing HBOT + Red Light together. Red light is 20 minutes (10 per side), HBOT is 60 minutes. Most people do both therapies back-to-back, 3 times per week.</p>
             </div>
             
             <div className="cer-faq-item">
               <h3 className="cer-faq-question">When will I start feeling results?</h3>
-              <p className="cer-faq-answer">Most people notice improved sleep quality within the first 1-2 weeks. Energy improvements typically become noticeable around weeks 2-3. The full benefits continue building through week 6 and beyond.</p>
+              <p className="cer-faq-answer">Most people notice improved sleep quality within the first 1-2 weeks. Energy improvements typically become noticeable around weeks 2-3. The full benefits continue building through week 6 and beyond. That's why we include the Week-3 guarantee.</p>
             </div>
             
             <div className="cer-faq-item">
@@ -1271,12 +1709,12 @@ const CellularEnergyResetLanding = () => {
             
             <div className="cer-faq-item">
               <h3 className="cer-faq-question">What happens after the 6 weeks?</h3>
-              <p className="cer-faq-answer">After reviewing your results, we'll discuss maintenance options. Many people continue with 1-2 sessions per week of each therapy to maintain their gains. We'll recommend what makes sense for your goals.</p>
+              <p className="cer-faq-answer">At your Week 7 results review, we'll compare your labs and discuss the Maintenance Membership ($597/4 weeks) to preserve your gains. Most people continue with ongoing sessions to maintain their cellular energy improvements.</p>
             </div>
             
             <div className="cer-faq-item">
-              <h3 className="cer-faq-question">Is financing available?</h3>
-              <p className="cer-faq-answer">Yes, we offer payment plans. Text or call us to discuss options that work for your budget.</p>
+              <h3 className="cer-faq-question">How many spots are available?</h3>
+              <p className="cer-faq-answer">Due to chamber and bed capacity, we can only run 8 Cellular Energy Resets simultaneously. Each patient uses approximately 24 hours of equipment time over 6 weeks. We encourage you to reach out early to secure your spot.</p>
             </div>
           </div>
         </div>
@@ -1287,15 +1725,15 @@ const CellularEnergyResetLanding = () => {
         <div className="cer-container">
           <h2 className="cer-section-title">Ready to Reset Your Energy?</h2>
           <p className="cer-section-subtitle">
-            Text us to schedule a consultation and see if the 6-Week Cellular Energy Reset is right for you.
+            Start with an Assessment to see your baseline, or jump straight into the 6-Week Reset.
           </p>
           
           <div className="cer-cta-buttons">
-            <a href="sms:+19499973988?body=Hi, I'm interested in the 6-Week Cellular Energy Reset program." className="cer-btn-primary">Text Us to Get Started →</a>
-            <a href="tel:+19499973988" className="cer-btn-outline">Call (949) 997-3988</a>
+            <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cer-btn-primary">Book Assessment ($497) →</a>
+            <a href="sms:+19499973988?body=Hi, I'm ready to start the 6-Week Cellular Energy Reset." className="cer-btn-outline">Start Full Reset ($3,997) →</a>
           </div>
           
-          <p className="cer-cta-phone">Range Medical • Newport Beach, CA</p>
+          <p className="cer-cta-phone">Questions? Call <a href="tel:+19499973988">(949) 997-3988</a></p>
         </div>
       </section>
       

@@ -734,12 +734,14 @@ const CellularEnergyResetLanding = () => {
       font-size: 1.5rem;
       font-weight: 700;
       margin-bottom: 0.25rem;
+      color: #ffffff;
     }
     
     .cer-value-header p {
       font-size: 0.9375rem;
       color: #a3a3a3;
       margin: 0;
+      color: #d4d4d4;
     }
     
     .cer-value-body {

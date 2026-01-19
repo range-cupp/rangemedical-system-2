@@ -122,6 +122,187 @@ const CellularEnergyResetGuide = () => {
       letter-spacing: 0.05em;
     }
     
+    /* Value Stack Box - NEW */
+    .cer-guide-value-box {
+      border: 2px solid #000000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+    
+    .cer-guide-value-header {
+      background: #000000;
+      color: #ffffff;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .cer-guide-value-header h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0;
+      color: #ffffff;
+    }
+    
+    .cer-guide-value-header span {
+      font-size: 0.875rem;
+      color: #a3a3a3;
+    }
+    
+    .cer-guide-value-body {
+      padding: 1.25rem 1.5rem;
+    }
+    
+    .cer-guide-value-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 0.875rem;
+    }
+    
+    .cer-guide-value-row:last-child {
+      border-bottom: none;
+    }
+    
+    .cer-guide-value-row span:last-child {
+      color: #737373;
+      font-weight: 500;
+    }
+    
+    .cer-guide-value-footer {
+      background: #fafafa;
+      padding: 1rem 1.5rem;
+      border-top: 2px solid #000000;
+    }
+    
+    .cer-guide-value-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cer-guide-value-total span:first-child {
+      font-size: 0.875rem;
+      color: #525252;
+    }
+    
+    .cer-guide-value-total span:last-child {
+      font-size: 0.875rem;
+      color: #737373;
+      text-decoration: line-through;
+    }
+    
+    .cer-guide-value-price {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .cer-guide-value-price span:first-child {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    
+    .cer-guide-value-price span:last-child {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    
+    .cer-guide-value-savings {
+      text-align: right;
+      font-size: 0.8125rem;
+      color: #22c55e;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    
+    /* Payment Options - NEW */
+    .cer-guide-payment-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .cer-guide-payment-card {
+      border: 2px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    
+    .cer-guide-payment-card.featured {
+      border-color: #000000;
+      background: #fafafa;
+    }
+    
+    .cer-guide-payment-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #737373;
+      margin-bottom: 0.25rem;
+    }
+    
+    .cer-guide-payment-card.featured .cer-guide-payment-label {
+      color: #22c55e;
+    }
+    
+    .cer-guide-payment-price {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    
+    .cer-guide-payment-note {
+      font-size: 0.75rem;
+      color: #525252;
+    }
+    
+    .cer-guide-payment-bonus {
+      font-size: 0.75rem;
+      color: #22c55e;
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+    
+    /* Guarantee Box - NEW */
+    .cer-guide-guarantee {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    
+    .cer-guide-guarantee-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    
+    .cer-guide-guarantee-content h4 {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 0.25rem;
+    }
+    
+    .cer-guide-guarantee-content p {
+      font-size: 0.8125rem;
+      color: #78350f;
+      margin: 0;
+      line-height: 1.5;
+    }
+    
     /* What's Included */
     .cer-guide-included-section {
       margin-bottom: 2.5rem;
@@ -206,6 +387,10 @@ const CellularEnergyResetGuide = () => {
       justify-content: center;
     }
     
+    .cer-guide-timeline-week.purple {
+      background: #7c3aed;
+    }
+    
     .cer-guide-timeline-content {
       padding: 1rem 1.25rem;
     }
@@ -220,6 +405,11 @@ const CellularEnergyResetGuide = () => {
       font-size: 0.8125rem;
       color: #525252;
       margin: 0;
+    }
+    
+    .cer-guide-timeline-content .guarantee-note {
+      color: #d97706;
+      font-weight: 600;
     }
     
     /* Lab Panel */
@@ -265,12 +455,12 @@ const CellularEnergyResetGuide = () => {
     }
     
     .cer-guide-lab-category li {
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       color: #1a1a1a;
       padding: 0.125rem 0;
     }
     
-    /* Schedule Grid */
+    /* Schedule */
     .cer-guide-schedule-section {
       margin-bottom: 2.5rem;
     }
@@ -278,31 +468,26 @@ const CellularEnergyResetGuide = () => {
     .cer-guide-schedule-table {
       width: 100%;
       border-collapse: collapse;
-      border: 2px solid #000000;
-      border-radius: 8px;
-      overflow: hidden;
+      font-size: 0.875rem;
     }
     
     .cer-guide-schedule-table th {
       background: #000000;
       color: #ffffff;
-      padding: 0.75rem;
+      padding: 0.75rem 0.5rem;
       font-size: 0.75rem;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
       text-align: center;
     }
     
     .cer-guide-schedule-table td {
-      padding: 0.75rem;
+      padding: 0.75rem 0.5rem;
       text-align: center;
       border-bottom: 1px solid #e5e5e5;
-      font-size: 0.8125rem;
     }
     
-    .cer-guide-schedule-table tr:last-child td {
-      border-bottom: none;
+    .cer-guide-schedule-table td:first-child {
+      text-align: left;
     }
     
     .cer-guide-check {
@@ -336,7 +521,6 @@ const CellularEnergyResetGuide = () => {
       background: #fafafa;
       border-radius: 8px;
       padding: 1.25rem;
-      text-align: center;
     }
     
     .cer-guide-expect-week {
@@ -349,14 +533,15 @@ const CellularEnergyResetGuide = () => {
     }
     
     .cer-guide-expect-title {
-      font-size: 0.875rem;
+      font-size: 0.9375rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
     }
     
     .cer-guide-expect-desc {
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       color: #525252;
+      line-height: 1.5;
     }
     
     /* Tips */
@@ -371,13 +556,13 @@ const CellularEnergyResetGuide = () => {
     }
     
     .cer-guide-tips-card {
-      border: 2px solid #e5e5e5;
+      border: 1px solid #e5e5e5;
       border-radius: 8px;
       padding: 1.25rem;
     }
     
     .cer-guide-tips-card h4 {
-      font-size: 0.875rem;
+      font-size: 0.9375rem;
       font-weight: 700;
       margin-bottom: 0.75rem;
     }
@@ -400,13 +585,65 @@ const CellularEnergyResetGuide = () => {
       content: "→";
       position: absolute;
       left: 0;
+      color: #a3a3a3;
+    }
+    
+    /* Assessment Note - NEW */
+    .cer-guide-assessment-note {
+      background: #f0f9ff;
+      border: 2px solid #0284c7;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+    
+    .cer-guide-assessment-note h4 {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: #0284c7;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cer-guide-assessment-note p {
+      font-size: 0.8125rem;
+      color: #0369a1;
+      margin: 0;
+      line-height: 1.5;
+    }
+    
+    /* Maintenance Teaser - NEW */
+    .cer-guide-maintenance-box {
+      background: #f5f3ff;
+      border: 2px solid #7c3aed;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+    
+    .cer-guide-maintenance-box h4 {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: #7c3aed;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cer-guide-maintenance-box p {
+      font-size: 0.8125rem;
+      color: #5b21b6;
+      margin: 0;
+      line-height: 1.5;
+    }
+    
+    .cer-guide-maintenance-box strong {
+      color: #7c3aed;
     }
     
     /* Footer */
     .cer-guide-footer {
-      border-top: 2px solid #000000;
-      padding-top: 1.5rem;
       text-align: center;
+      padding-top: 2rem;
+      border-top: 2px solid #e5e5e5;
+      margin-top: 2rem;
     }
     
     .cer-guide-footer-title {
@@ -418,10 +655,6 @@ const CellularEnergyResetGuide = () => {
     .cer-guide-footer-contact {
       font-size: 0.9375rem;
       color: #525252;
-    }
-    
-    .cer-guide-footer-contact strong {
-      color: #000000;
     }
     
     @media (max-width: 768px) {
@@ -440,6 +673,9 @@ const CellularEnergyResetGuide = () => {
       .cer-guide-tips-grid {
         grid-template-columns: 1fr;
       }
+      .cer-guide-payment-grid {
+        grid-template-columns: 1fr;
+      }
     }
   `;
 
@@ -455,8 +691,8 @@ const CellularEnergyResetGuide = () => {
           className="cer-guide-logo"
         />
         <div className="cer-guide-contact">
-          Newport Beach, CA<br />
-          <strong>(949) 997-3988</strong>
+          <strong>(949) 997-3988</strong><br />
+          Newport Beach, CA
         </div>
       </header>
       
@@ -464,10 +700,12 @@ const CellularEnergyResetGuide = () => {
       <section className="cer-guide-title-section">
         <span className="cer-guide-badge">Patient Program Guide</span>
         <h1>6-Week Cellular Energy Reset</h1>
-        <p className="cer-guide-subtitle">Your complete guide to restoring energy at the cellular level through red light therapy, hyperbaric oxygen, and lab-tracked progress.</p>
+        <p className="cer-guide-subtitle">
+          Your complete guide to the protocol, timeline, and what to expect over the next 6 weeks.
+        </p>
       </section>
       
-      {/* Overview */}
+      {/* Overview Stats */}
       <div className="cer-guide-overview-grid">
         <div className="cer-guide-overview-card">
           <div className="cer-guide-overview-number">6</div>
@@ -484,6 +722,85 @@ const CellularEnergyResetGuide = () => {
         <div className="cer-guide-overview-card">
           <div className="cer-guide-overview-number">2</div>
           <div className="cer-guide-overview-label">Lab Panels</div>
+        </div>
+      </div>
+      
+      {/* Assessment Note - NEW */}
+      <div className="cer-guide-assessment-note">
+        <h4>📋 Started with the Cellular Energy Assessment?</h4>
+        <p>
+          If you completed the Assessment ($497) before enrolling, your entire Assessment fee has been credited toward this program. Your baseline labs are already done—you're ready to begin the Reset.
+        </p>
+      </div>
+      
+      {/* Value Stack - NEW */}
+      <div className="cer-guide-value-box">
+        <div className="cer-guide-value-header">
+          <h3>Your Program Investment</h3>
+          <span>Complete Protocol</span>
+        </div>
+        <div className="cer-guide-value-body">
+          <div className="cer-guide-value-row">
+            <span>18 Hyperbaric Oxygen Sessions (60 min each)</span>
+            <span>$3,330</span>
+          </div>
+          <div className="cer-guide-value-row">
+            <span>18 Full-Body Red Light Sessions (20 min each)</span>
+            <span>$1,530</span>
+          </div>
+          <div className="cer-guide-value-row">
+            <span>2 Cellular Energy Lab Panels</span>
+            <span>$700</span>
+          </div>
+          <div className="cer-guide-value-row">
+            <span>2 Provider Lab Review Visits + Written Plans</span>
+            <span>$400</span>
+          </div>
+          <div className="cer-guide-value-row">
+            <span>Weekly Progress Check-ins & Energy Tracking</span>
+            <span>$300</span>
+          </div>
+          <div className="cer-guide-value-row">
+            <span>Priority Scheduling & Concierge Coordination</span>
+            <span>$200</span>
+          </div>
+        </div>
+        <div className="cer-guide-value-footer">
+          <div className="cer-guide-value-total">
+            <span>Total Value</span>
+            <span>$6,460</span>
+          </div>
+          <div className="cer-guide-value-price">
+            <span>Your Price</span>
+            <span>$3,997</span>
+          </div>
+          <div className="cer-guide-value-savings">You save $2,463 (38%)</div>
+        </div>
+      </div>
+      
+      {/* Payment Options - NEW */}
+      <div className="cer-guide-payment-grid">
+        <div className="cer-guide-payment-card featured">
+          <div className="cer-guide-payment-label">Pay in Full</div>
+          <div className="cer-guide-payment-price">$3,997</div>
+          <div className="cer-guide-payment-note">One-time payment</div>
+          <div className="cer-guide-payment-bonus">+ 2 Bonus Red Light Sessions</div>
+        </div>
+        <div className="cer-guide-payment-card">
+          <div className="cer-guide-payment-label">Payment Plan</div>
+          <div className="cer-guide-payment-price">3 × $1,450</div>
+          <div className="cer-guide-payment-note">$4,350 total</div>
+        </div>
+      </div>
+      
+      {/* Guarantee - NEW */}
+      <div className="cer-guide-guarantee">
+        <span className="cer-guide-guarantee-icon">🛡️</span>
+        <div className="cer-guide-guarantee-content">
+          <h4>Our Week-3 Energy Guarantee</h4>
+          <p>
+            If your self-rated energy hasn't improved by at least 2 points (on a 1-10 scale) by the end of week 3, we'll add 2 extra weeks of red light therapy (6 sessions) at no charge.
+          </p>
         </div>
       </div>
       
@@ -527,8 +844,8 @@ const CellularEnergyResetGuide = () => {
           </div>
           
           <div className="cer-guide-included-card">
-            <h3 className="cer-guide-included-title">6 Weekly Check-Ins</h3>
-            <p className="cer-guide-included-detail">Progress tracking + support</p>
+            <h3 className="cer-guide-included-title">Weekly Check-Ins & Support</h3>
+            <p className="cer-guide-included-detail">Progress tracking throughout</p>
             <ul className="cer-guide-included-list">
               <li>Energy level tracking (1-10 scale)</li>
               <li>Sleep quality assessment</li>
@@ -563,7 +880,8 @@ const CellularEnergyResetGuide = () => {
             <div className="cer-guide-timeline-week">Week 3-4</div>
             <div className="cer-guide-timeline-content">
               <h4>Adaptation Phase</h4>
-              <p>Mitochondrial biogenesis • Noticeable energy improvement • 6 RLT + 6 HBOT sessions</p>
+              <p>Mitochondrial biogenesis • Noticeable energy improvement • 6 RLT + 6 HBOT sessions<br />
+              <span className="guarantee-note">⚡ Week 3 Guarantee Check-In: We assess your energy improvement</span></p>
             </div>
           </div>
           <div className="cer-guide-timeline-row">
@@ -574,10 +892,10 @@ const CellularEnergyResetGuide = () => {
             </div>
           </div>
           <div className="cer-guide-timeline-row">
-            <div className="cer-guide-timeline-week">Week 7</div>
+            <div className="cer-guide-timeline-week purple">Week 7</div>
             <div className="cer-guide-timeline-content">
-              <h4>Results Review</h4>
-              <p>Compare labs, review progress, discuss maintenance options</p>
+              <h4>Results Review + What's Next</h4>
+              <p>Compare labs, review progress, discuss Maintenance Membership options</p>
             </div>
           </div>
         </div>
@@ -666,7 +984,8 @@ const CellularEnergyResetGuide = () => {
         </table>
         
         <p className="cer-guide-schedule-note">
-          Schedule is flexible. Sessions can be done on any 3 days with at least 1 rest day between.
+          Schedule is flexible. Sessions can be done on any 3 days with at least 1 rest day between.<br />
+          Plan for ~90 minutes per visit when doing both therapies back-to-back.
         </p>
       </section>
       
@@ -720,6 +1039,14 @@ const CellularEnergyResetGuide = () => {
           </div>
         </div>
       </section>
+      
+      {/* Maintenance Teaser - NEW */}
+      <div className="cer-guide-maintenance-box">
+        <h4>🔮 What Comes After Week 6?</h4>
+        <p>
+          At your Week 7 results review, we'll discuss the <strong>Cellular Energy Maintenance Membership</strong>—a way to preserve your gains with ongoing sessions at a reduced frequency. Maintenance includes 4 HBOT + 4 Red Light sessions every 4 weeks for <strong>$597/month</strong>, plus quarterly check-ins and annual labs at a preferred rate.
+        </p>
+      </div>
       
       {/* Footer */}
       <footer className="cer-guide-footer">

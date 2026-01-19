@@ -32,8 +32,8 @@ export default async function handler(req, res) {
       tags,
       signatureUrl,
       pdfUrl,
-      healthScreening, // For IV consent G6PD alerts
-      intakeData // Additional data from forms
+      healthScreening,
+      intakeData
     } = req.body;
 
     console.log(`📝 Processing ${consentType || 'consent'} form for: ${firstName} ${lastName}`);
@@ -149,10 +149,9 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // BUILD CONTACT PAYLOAD WITH DEMOGRAPHICS
+    // BUILD CONTACT PAYLOAD
     // ============================================
     const contactPayload = {
-      locationId: GHL_LOCATION_ID,
       tags: tags || []
     };
 
@@ -167,7 +166,7 @@ export default async function handler(req, res) {
     if (email) contactPayload.email = email;
     if (formattedPhone) contactPayload.phone = formattedPhone;
 
-    // Address fields (if provided - some consent forms may include these)
+    // Address fields (if provided)
     if (address) contactPayload.address1 = address;
     if (city) contactPayload.city = city;
     if (state) contactPayload.state = state;
@@ -193,9 +192,10 @@ export default async function handler(req, res) {
     // CREATE OR UPDATE CONTACT
     // ============================================
     let response;
+    let finalContactId;
     
     if (contactId) {
-      // UPDATE existing contact
+      // UPDATE existing contact - DO NOT include locationId
       console.log('📝 Updating existing contact:', contactId);
       response = await fetch(
         `https://services.leadconnectorhq.com/contacts/${contactId}`,
@@ -209,9 +209,14 @@ export default async function handler(req, res) {
           body: JSON.stringify(contactPayload)
         }
       );
+      finalContactId = contactId;
     } else {
-      // CREATE new contact
+      // CREATE new contact - include locationId only for create
       console.log('➕ Creating new contact');
+      const createPayload = {
+        ...contactPayload,
+        locationId: GHL_LOCATION_ID
+      };
       response = await fetch(
         'https://services.leadconnectorhq.com/contacts/',
         {
@@ -221,7 +226,7 @@ export default async function handler(req, res) {
             'Version': '2021-07-28',
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(contactPayload)
+          body: JSON.stringify(createPayload)
         }
       );
     }
@@ -236,8 +241,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get the contact ID from response
-    const finalContactId = contactId || result.contact?.id;
+    // Get the contact ID from response (for new contacts)
+    if (!finalContactId) {
+      finalContactId = result.contact?.id;
+    }
     console.log('✅ Contact synced:', finalContactId, contactId ? '(updated)' : '(created)');
 
     // ============================================
@@ -269,7 +276,7 @@ export default async function handler(req, res) {
     
     const consentName = consentNames[consentType] || `${consentType} Consent`;
     
-    let noteContent = `${consentName.toUpperCase()} SIGNED\n`;
+    let noteContent = `✅ ${consentName.toUpperCase()} SIGNED\n`;
     noteContent += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     noteContent += `Date: ${consentDate || new Date().toLocaleDateString()}\n`;
     noteContent += `Patient: ${firstName} ${lastName}\n`;
@@ -304,7 +311,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Add intake data if provided (for forms with additional info)
+    // Add intake data if provided
     if (intakeData) {
       noteContent += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
       noteContent += `ADDITIONAL INFORMATION:\n`;
@@ -350,7 +357,7 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
               body: noteContent,
-              userId: null // System note
+              userId: null
             })
           }
         );
@@ -363,7 +370,6 @@ export default async function handler(req, res) {
         }
       } catch (noteError) {
         console.error('⚠️ Failed to add note:', noteError);
-        // Don't fail the whole request for note errors
       }
     }
 

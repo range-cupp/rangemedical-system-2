@@ -1,4 +1,5 @@
 import React from 'react';
+import Head from 'next/head';
 
 const CellularEnergyMaintenance = () => {
   const styles = `
@@ -611,6 +612,25 @@ const CellularEnergyMaintenance = () => {
   `;
 
   return (
+    <>
+      <Head>
+        <title>Cellular Energy Maintenance | Range Medical</title>
+        <meta name="description" content="Stay optimized after your 6-Week Reset. 4 HBOT + 4 Red Light sessions every 4 weeks for $597. Newport Beach, CA." />
+        
+        {/* Open Graph / Link Preview */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://range-medical.com/cellular-energy-maintenance" />
+        <meta property="og:title" content="Cellular Energy Maintenance — $597/4wk" />
+        <meta property="og:description" content="Stay optimized after your Reset. 4 HBOT + 4 Red Light sessions every 4 weeks." />
+        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Cellular Energy Maintenance — $597/4wk" />
+        <meta name="twitter:description" content="Stay optimized after your Reset. 4 HBOT + 4 Red Light sessions every 4 weeks." />
+        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+      </Head>
+      
     <div className="cem-page">
       <style>{styles}</style>
       
@@ -900,6 +920,7 @@ const CellularEnergyMaintenance = () => {
         </p>
       </footer>
     </div>
+    </>
   );
 };
 

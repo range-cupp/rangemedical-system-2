@@ -1,4 +1,5 @@
 import React from 'react';
+import Head from 'next/head';
 
 const CellularEnergyAssessment = () => {
   const styles = `
@@ -602,6 +603,25 @@ const CellularEnergyAssessment = () => {
   `;
 
   return (
+    <>
+      <Head>
+        <title>Cellular Energy Assessment | Range Medical</title>
+        <meta name="description" content="Labs, provider review, and experience sessions to know exactly what's happening at the cellular level. $497, 100% credits toward the 6-Week Reset." />
+        
+        {/* Open Graph / Link Preview */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://range-medical.com/cellular-energy-assessment" />
+        <meta property="og:title" content="Cellular Energy Assessment — $497" />
+        <meta property="og:description" content="Labs, provider review, and experience sessions. 100% credits toward the 6-Week Reset." />
+        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Cellular Energy Assessment — $497" />
+        <meta name="twitter:description" content="Labs, provider review, and experience sessions. 100% credits toward the 6-Week Reset." />
+        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+      </Head>
+      
     <div className="cea-page">
       <style>{styles}</style>
       
@@ -699,8 +719,8 @@ const CellularEnergyAssessment = () => {
             </div>
             <div className="cea-included-card">
               <div className="cea-included-number">5</div>
-              <h3 className="cea-included-title">Experience Session (Optional)</h3>
-              <p className="cea-included-desc">Try a red light therapy OR hyperbaric oxygen session same day so you can feel what the therapies are like.</p>
+              <h3 className="cea-included-title">Experience Sessions</h3>
+              <p className="cea-included-desc">Try both therapies same day—1 red light session + 1 HBOT session—so you know exactly what the Reset will feel like.</p>
             </div>
             <div className="cea-included-card">
               <div className="cea-included-number">✓</div>
@@ -781,7 +801,7 @@ const CellularEnergyAssessment = () => {
               <div className="cea-step-number">2</div>
               <div className="cea-step-content">
                 <h4>Lab Draw (Visit 1)</h4>
-                <p>Come in fasting for your blood draw. Takes about 15 minutes. Optional: do an experience session same day.</p>
+                <p>Come in fasting for your blood draw. Takes about 15 minutes. Then do your experience sessions—1 Red Light + 1 HBOT—so you feel both therapies.</p>
               </div>
             </div>
             <div className="cea-step">
@@ -834,7 +854,7 @@ const CellularEnergyAssessment = () => {
                 <li>Energy & symptom questionnaire</li>
                 <li>1:1 provider review of results</li>
                 <li>Written personalized plan</li>
-                <li>Optional experience session (RLT or HBOT)</li>
+                <li>1 Red Light + 1 HBOT experience session</li>
               </ul>
             </div>
             
@@ -867,8 +887,8 @@ const CellularEnergyAssessment = () => {
               <p className="cea-faq-answer">Great! You can skip the Assessment and go straight to the Reset. The Assessment is designed for people who want to see their data before committing to the full program.</p>
             </div>
             <div className="cea-faq-item">
-              <h3 className="cea-faq-question">What's the experience session?</h3>
-              <p className="cea-faq-answer">After your lab draw, you can do either a 20-minute red light therapy session or a 60-minute hyperbaric oxygen session—your choice. It's included in the $497 and lets you feel what the therapies are like.</p>
+              <h3 className="cea-faq-question">What are the experience sessions?</h3>
+              <p className="cea-faq-answer">After your lab draw, you'll do both a 20-minute red light therapy session and a 60-minute hyperbaric oxygen session. This lets you feel exactly what the 6-Week Reset will be like—since you'll be doing both therapies back-to-back, 3x per week.</p>
             </div>
             <div className="cea-faq-item">
               <h3 className="cea-faq-question">What if I decide not to do the Reset?</h3>
@@ -898,6 +918,7 @@ const CellularEnergyAssessment = () => {
         </p>
       </footer>
     </div>
+    </>
   );
 };
 

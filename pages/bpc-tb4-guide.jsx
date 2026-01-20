@@ -332,6 +332,10 @@ export default function BPCTB4Guide() {
           color: rgba(255,255,255,0.8);
         }
         
+        .section-dark .section-title {
+          color: #ffffff;
+        }
+        
         .body-text {
           font-size: 0.95rem;
           color: #525252;

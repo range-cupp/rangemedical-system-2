@@ -106,7 +106,7 @@ export default function UnifiedPipeline() {
   // Start Protocol form state
   const [protocolType, setProtocolType] = useState('');
   const [protocolForm, setProtocolForm] = useState({});
-  const [selectedPurchase, setSelectedPurchase] = useState(null);  // Track purchase being processed
+  const [selectedPurchase, setSelectedPurchase] = useState(null);
   
   // Log form state
   const [logForm, setLogForm] = useState({});
@@ -116,7 +116,6 @@ export default function UnifiedPipeline() {
   useEffect(() => {
     fetchData();
     fetchPatients();
-    // Check for admin mode
     if (router.query.admin === 'true') {
       setIsAdmin(true);
     }
@@ -141,7 +140,6 @@ export default function UnifiedPipeline() {
 
   const fetchPatients = async () => {
     try {
-      // Use patients-all endpoint to get ALL patients
       const res = await fetch('/api/patients-all');
       const json = await res.json();
       if (json.patients) {
@@ -152,14 +150,12 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // Filter patients for search
   const filteredPatients = patients.filter(p => {
     if (!patientSearch || patientSearch.length < 1) return false;
     const name = `${p.first_name || ''} ${p.last_name || ''} ${p.name || ''}`.toLowerCase();
     return name.includes(patientSearch.toLowerCase());
   }).slice(0, 10);
 
-  // Get filtered protocols
   const getFilteredProtocols = () => {
     if (!data || !data.protocols) return [];
     
@@ -196,13 +192,11 @@ export default function UnifiedPipeline() {
     return protocols;
   };
 
-  // Toast helper
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Category badge
   const getCategoryBadge = (category) => {
     const badges = {
       peptide: { emoji: '🧬', color: '#ddd6fe', text: 'Peptide' },
@@ -217,16 +211,12 @@ export default function UnifiedPipeline() {
     return badges[category] || { emoji: '📋', color: '#e5e7eb', text: 'Other' };
   };
 
-  // Format date in Pacific time
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    // Handle both date-only strings (YYYY-MM-DD) and full timestamps
     let d;
     if (dateStr.length === 10) {
-      // Date only - treat as midnight Pacific
       d = new Date(dateStr + 'T00:00:00');
     } else {
-      // Full timestamp - convert to Pacific
       d = new Date(dateStr);
     }
     return d.toLocaleDateString('en-US', { 
@@ -237,40 +227,28 @@ export default function UnifiedPipeline() {
     });
   };
 
-  // Get duration display
   const getDuration = (protocol) => {
-    // For session-based protocols (IV, HBOT, RLT)
     if (protocol.total_sessions && ['iv', 'hbot', 'rlt', 'injection'].includes(protocol.category)) {
       return `${protocol.sessions_used || 0}/${protocol.total_sessions} sessions`;
     }
     
-    // For peptide protocols - show the program duration
     if (protocol.category === 'peptide') {
       const programName = (protocol.program_name || '').toLowerCase();
-      
-      // Extract duration from program_name (e.g., "10 Day", "7 Day", "30 Day")
       const durationMatch = programName.match(/(\d+)\s*day/i);
       if (durationMatch) {
         return `${durationMatch[1]} Day Program`;
       }
-      
-      // Check if it's a vial protocol
       if (programName.includes('vial')) {
         return 'Vial Protocol';
       }
-      
-      // Try to use total_days from API calculation
       if (protocol.total_days) {
         return `${protocol.total_days} Day Program`;
       }
-      
-      // Fallback to program_name if it exists
       if (protocol.program_name) {
         return protocol.program_name;
       }
     }
     
-    // For HRT protocols
     if (protocol.category === 'hrt') {
       if (protocol.weeks_remaining) {
         return `~${protocol.weeks_remaining} weeks left`;
@@ -278,7 +256,6 @@ export default function UnifiedPipeline() {
       return protocol.supply_type || 'Ongoing';
     }
     
-    // For weight loss
     if (protocol.category === 'weight_loss') {
       if (protocol.total_sessions) {
         return `${protocol.sessions_used || 0}/${protocol.total_sessions} injections`;
@@ -286,14 +263,12 @@ export default function UnifiedPipeline() {
       return protocol.program_name || 'Weight Loss';
     }
     
-    // Default
     if (protocol.program_name) {
       return protocol.program_name;
     }
     return '-';
   };
 
-  // GHL links
   const openGHL = (ghlId) => {
     if (!ghlId) {
       showToast('No GHL contact linked', 'error');
@@ -310,7 +285,6 @@ export default function UnifiedPipeline() {
     window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${ghlId}`, '_blank');
   };
 
-  // Renew modal
   const openRenewModal = (protocol) => {
     setRenewModal({
       protocol,
@@ -350,7 +324,6 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // Delete protocol (admin only)
   const deleteProtocol = async (protocol) => {
     const confirmMsg = `DELETE protocol for ${protocol.patient_name}?\n\n${protocol.medication || protocol.program_name}\n\nThis cannot be undone.`;
     if (!confirm(confirmMsg)) return;
@@ -372,7 +345,6 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // ========== START PROTOCOL MODAL ==========
   const openStartModal = () => {
     setStartModal(true);
     setSelectedPatient(null);
@@ -388,7 +360,7 @@ export default function UnifiedPipeline() {
     setSelectedPatient(null);
     setProtocolType('');
     setProtocolForm({});
-    setSelectedPurchase(null);  // Clear purchase tracking
+    setSelectedPurchase(null);
   };
 
   const selectPatient = (patient) => {
@@ -412,14 +384,13 @@ export default function UnifiedPipeline() {
     const payload = {
       patient_id: selectedPatient.id,
       ghl_contact_id: selectedPatient.ghl_contact_id,
-      purchase_id: selectedPurchase?.id || null,  // Link to purchase if starting from payment
+      purchase_id: selectedPurchase?.id || null,
       program_type: protocolType,
       start_date: protocolForm.start_date,
       notes: protocolForm.notes || null,
       ...protocolForm
     };
     
-    // Add protocol-specific fields
     switch (protocolType) {
       case 'weight_loss':
         payload.medication = protocolForm.wl_medication;
@@ -492,7 +463,6 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // ========== LOG ACTIVITY MODAL ==========
   const openLogModal = (protocol) => {
     setLogModal(protocol);
     setLogForm({
@@ -515,13 +485,10 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // Check if purchase has an existing active protocol
   const findExistingProtocol = (purchase) => {
     if (!data?.protocols || !purchase.ghl_contact_id) return null;
     
     const purchaseCategory = (purchase.category || '').toLowerCase();
-    
-    // Map purchase category to protocol category
     const categoryMap = {
       'peptide': 'peptide',
       'hrt': 'hrt',
@@ -535,7 +502,6 @@ export default function UnifiedPipeline() {
     const targetCategory = categoryMap[purchaseCategory];
     if (!targetCategory) return null;
     
-    // Find active protocol for this patient with matching category
     return data.protocols.find(p => 
       p.ghl_contact_id === purchase.ghl_contact_id &&
       p.category === targetCategory &&
@@ -543,7 +509,6 @@ export default function UnifiedPipeline() {
     );
   };
 
-  // Link payment to existing protocol (renewal)
   const linkPaymentToProtocol = async (purchase, protocol) => {
     if (!confirm(`Link this payment to ${protocol.patient_name}'s ${protocol.medication || protocol.program_name} protocol?\n\nThis will update their refill date and mark the payment as handled.`)) {
       return;
@@ -553,7 +518,6 @@ export default function UnifiedPipeline() {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Update protocol's last_refill_date via PATCH
       const res = await fetch(`/api/protocols/${protocol.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -564,7 +528,6 @@ export default function UnifiedPipeline() {
       
       if (!res.ok) throw new Error('Failed to update protocol');
       
-      // Mark purchase as handled
       const purchaseRes = await fetch('/api/purchases/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -580,7 +543,7 @@ export default function UnifiedPipeline() {
       }
       
       showToast(`Payment linked to ${protocol.patient_name}'s protocol`, 'success');
-      fetchData(); // Refresh
+      fetchData();
     } catch (err) {
       console.error('Link payment error:', err);
       showToast('Failed to link payment', 'error');
@@ -608,7 +571,6 @@ export default function UnifiedPipeline() {
       notes: logForm.notes || null
     };
 
-    // Add category-specific fields
     if (category === 'weight_loss') {
       payload.weight = logForm.weight;
     } else if (category === 'hrt' && logForm.log_type === 'pickup') {
@@ -642,7 +604,6 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // ========== EDIT PROTOCOL MODAL ==========
   const openEditModal = (protocol) => {
     setEditModal(protocol);
     setEditForm({
@@ -710,7 +671,6 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // Render protocol row
   const renderRow = (protocol) => {
     const badge = getCategoryBadge(protocol.category);
     const isOverdue = protocol.days_remaining !== undefined && protocol.days_remaining <= 0;
@@ -728,7 +688,6 @@ export default function UnifiedPipeline() {
             {badge.emoji}
           </span>
           {protocol.medication || protocol.program_name || '-'}
-          {/* Weight tracking for weight_loss protocols */}
           {protocol.category === 'weight_loss' && (protocol.starting_weight || protocol.current_weight) && (
             <div style={{ fontSize: '11px', marginTop: '4px', color: '#6b7280' }}>
               {protocol.starting_weight && <span>Start: {protocol.starting_weight} lbs</span>}
@@ -802,7 +761,6 @@ export default function UnifiedPipeline() {
           >
             ↗ GHL
           </button>
-          {/* Only show Extend for peptide protocols - HRT uses Refill via Log button */}
           {protocol.category === 'peptide' && (isEndingSoon || isOverdue || protocol.status === 'completed') && (
             <button 
               style={{ ...styles.actionBtn, ...styles.renewBtn }}
@@ -812,7 +770,6 @@ export default function UnifiedPipeline() {
               ⏳
             </button>
           )}
-          {/* Delete button */}
           <button 
             style={{ ...styles.actionBtn, ...styles.deleteBtn }}
             onClick={() => deleteProtocol(protocol)}
@@ -825,7 +782,6 @@ export default function UnifiedPipeline() {
     );
   };
 
-  // Render table
   const renderTable = () => {
     const protocols = getFilteredProtocols();
     
@@ -861,7 +817,6 @@ export default function UnifiedPipeline() {
     );
   };
 
-  // ========== RENDER START PROTOCOL FORM FIELDS ==========
   const renderProtocolFields = () => {
     switch (protocolType) {
       case 'weight_loss':
@@ -914,15 +869,16 @@ export default function UnifiedPipeline() {
               </select>
             </div>
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Total Injections</label>
+              <label style={styles.formLabel}>Supply Duration</label>
               <select
                 value={protocolForm.wl_total_injections || '4'}
                 onChange={(e) => setProtocolForm({ ...protocolForm, wl_total_injections: e.target.value })}
                 style={styles.formSelect}
               >
-                <option value="4">4 (Monthly)</option>
-                <option value="8">8 (2 Months)</option>
-                <option value="12">12 (3 Months)</option>
+                <option value="1">1 Week (1 injection)</option>
+                <option value="2">2 Weeks (2 injections)</option>
+                <option value="4">4 Weeks (4 injections)</option>
+                <option value="8">8 Weeks (8 injections)</option>
               </select>
             </div>
           </>
@@ -955,7 +911,6 @@ export default function UnifiedPipeline() {
                   const selected = e.target.value;
                   const allOptions = PEPTIDE_OPTIONS.flatMap(g => g.options);
                   const opt = allOptions.find(o => o.value === selected);
-                  // Auto-select frequency based on peptide
                   let autoFrequency = protocolForm.peptide_frequency || 'Daily';
                   if (selected === 'MOTS-c') {
                     autoFrequency = '1x every 5 days';
@@ -1227,7 +1182,6 @@ export default function UnifiedPipeline() {
     }
   };
 
-  // ========== RENDER LOG FORM FIELDS ==========
   const renderLogFields = () => {
     if (!logModal) return null;
     const category = logModal.category;
@@ -1367,7 +1321,6 @@ export default function UnifiedPipeline() {
       );
     }
     
-    // Default for peptide, IV, HBOT, RLT, injection
     return (
       <div style={styles.infoBox}>
         ✓ Logging session for {logModal.medication || logModal.program_name}
@@ -1375,7 +1328,6 @@ export default function UnifiedPipeline() {
     );
   };
 
-  // Main render
   if (loading) {
     return (
       <div style={styles.container}>
@@ -1399,7 +1351,6 @@ export default function UnifiedPipeline() {
       </Head>
       
       <div style={styles.container}>
-        {/* Header */}
         <div style={styles.header}>
           <h1 style={styles.title}>💊 Protocol Pipeline</h1>
           
@@ -1460,7 +1411,6 @@ export default function UnifiedPipeline() {
           </div>
         </div>
 
-        {/* Stats Cards */}
         {data && data.counts && (
           <div style={styles.statsBar}>
             <div style={{ ...styles.statCard, borderLeftColor: '#dc2626' }}>
@@ -1482,7 +1432,6 @@ export default function UnifiedPipeline() {
           </div>
         )}
 
-        {/* Recent Payments Needing Protocol */}
         {data?.purchases?.needs_protocol?.length > 0 && (
           <div style={styles.purchasesSection}>
             <div style={styles.purchasesHeader}>
@@ -1592,7 +1541,6 @@ export default function UnifiedPipeline() {
           </div>
         )}
 
-        {/* Category Filter */}
         <div style={styles.categoryFilters}>
           {[
             { value: 'all', label: 'All Types', emoji: '📋' },
@@ -1617,16 +1565,13 @@ export default function UnifiedPipeline() {
           ))}
         </div>
 
-        {/* Table */}
         {renderTable()}
 
-        {/* ========== START PROTOCOL MODAL ========== */}
         {startModal && (
           <div style={styles.modalOverlay} onClick={closeStartModal}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <h2 style={styles.modalTitle}>➕ Start New Protocol</h2>
               
-              {/* Patient Search */}
               {!selectedPatient ? (
                 <div style={styles.formGroup}>
                   <label style={styles.formLabel}>Search Patient *</label>
@@ -1679,7 +1624,6 @@ export default function UnifiedPipeline() {
                 </div>
               )}
               
-              {/* Protocol Type */}
               <div style={styles.formGroup}>
                 <label style={styles.formLabel}>Protocol Type *</label>
                 <select
@@ -1701,10 +1645,8 @@ export default function UnifiedPipeline() {
                 </select>
               </div>
               
-              {/* Protocol-specific fields */}
               {renderProtocolFields()}
               
-              {/* Start Date */}
               <div style={styles.formGroup}>
                 <label style={styles.formLabel}>Start Date *</label>
                 <input
@@ -1716,7 +1658,6 @@ export default function UnifiedPipeline() {
                 />
               </div>
               
-              {/* Notes */}
               <div style={styles.formGroup}>
                 <label style={styles.formLabel}>Notes</label>
                 <textarea
@@ -1743,7 +1684,6 @@ export default function UnifiedPipeline() {
           </div>
         )}
 
-        {/* ========== LOG ACTIVITY MODAL ========== */}
         {logModal && (
           <div style={styles.modalOverlay} onClick={closeLogModal}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -1797,7 +1737,6 @@ export default function UnifiedPipeline() {
           </div>
         )}
 
-        {/* ========== RENEW MODAL ========== */}
         {renewModal && (
           <div style={styles.modalOverlay} onClick={closeRenewModal}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -1855,7 +1794,6 @@ export default function UnifiedPipeline() {
           </div>
         )}
 
-        {/* Edit Protocol Modal */}
         {editModal && (
           <div style={styles.modalOverlay} onClick={closeEditModal}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
@@ -1988,7 +1926,6 @@ export default function UnifiedPipeline() {
                 </select>
               </div>
 
-              {/* Starting Weight for weight_loss protocols */}
               {editModal.category === 'weight_loss' && (
                 <div style={styles.formGroup}>
                   <label style={styles.formLabel}>Starting Weight (lbs)</label>
@@ -2085,7 +2022,6 @@ export default function UnifiedPipeline() {
           </div>
         )}
 
-        {/* Toast */}
         {toast && (
           <div style={{
             ...styles.toast,
@@ -2382,8 +2318,6 @@ const styles = {
     background: 'white',
     borderRadius: '12px'
   },
-  
-  // Modal styles
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -2436,8 +2370,6 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600'
   },
-  
-  // Form styles
   formGroup: {
     marginBottom: '16px'
   },
@@ -2486,8 +2418,6 @@ const styles = {
     fontSize: '13px',
     color: '#374151'
   },
-  
-  // Patient search
   searchDropdown: {
     background: 'white',
     border: '1px solid #e5e7eb',
@@ -2520,8 +2450,6 @@ const styles = {
     fontSize: '12px',
     color: '#6b7280'
   },
-  
-  // Toast
   toast: {
     position: 'fixed',
     bottom: '20px',

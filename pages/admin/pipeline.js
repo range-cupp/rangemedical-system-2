@@ -1,60 +1,152 @@
 // /pages/admin/pipeline.js
 // Unified Protocol Pipeline with Start Protocol & Activity Logging
-// Range Medical - Updated 2026-01-19
+// Range Medical - Updated 2026-01-20
+// Updated with complete Peptide Dosing Guide
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
-// Peptide options for the dropdown
+// ================================================================
+// PEPTIDE OPTIONS - Complete Dosing Guide from Range Medical
+// When a peptide is selected, starting dose and frequency auto-fill
+// ================================================================
 const PEPTIDE_OPTIONS = [
-  { group: 'Recovery / Tissue Repair', options: [
-    { value: 'BPC-157', dose: '250-500mcg' },
-    { value: 'TB-500', dose: '2-2.5mg' },
-    { value: 'Wolverine Blend (BPC/TB)', dose: '500mcg/500mcg' },
-    { value: 'KPV', dose: '200-400mcg' },
-    { value: 'LL-37', dose: '50-100mcg' },
-    { value: 'GHK-Cu', dose: '1-2mg' },
-  ]},
-  { group: 'Anti-Inflammatory', options: [
-    { value: 'GLOW', dose: '1-2mg' },
-    { value: 'KLOW', dose: '1-3mg' },
-  ]},
-  { group: 'Weight Loss / Metabolic', options: [
-    { value: 'AOD 9604', dose: '300mcg' },
-    { value: 'MOTS-c', dose: '5-10mg' },
-    { value: 'Tesamorelin', dose: '1-2mg' },
-    { value: 'Tesamorelin/Ipamorelin', dose: '0.3mL' },
-    { value: 'MK-677', dose: '10-25mg' },
-  ]},
-  { group: 'GH Secretagogues', options: [
-    { value: 'Ipamorelin', dose: '200-300mcg' },
-    { value: 'CJC-1295 No DAC', dose: '100-200mcg' },
-    { value: 'CJC/Ipamorelin', dose: '0.2-0.3mL' },
-    { value: 'Sermorelin', dose: '200-500mcg' },
-  ]},
-  { group: 'Longevity', options: [
-    { value: 'Epithalon', dose: '5-10mg' },
-    { value: 'Thymosin Alpha-1', dose: '1.6mg' },
-    { value: 'NAD+', dose: '50-200mg' },
-  ]},
-  { group: 'Cognitive', options: [
-    { value: 'Selank', dose: '250-500mcg' },
-    { value: 'Semax', dose: '200-600mcg' },
-    { value: 'Dihexa', dose: '10-20mg' },
-  ]},
-  { group: 'Sexual Health', options: [
-    { value: 'PT-141', dose: '1-2mg' },
-    { value: 'Kisspeptin', dose: '50-200mcg' },
-  ]},
-  { group: 'HRT Support', options: [
-    { value: 'Gonadorelin', dose: '100-200mcg' },
-    { value: 'HCG', dose: '500-1000 IU' },
-  ]},
-  { group: 'Topical', options: [
-    { value: 'GHK-Cu Topical Cream', dose: 'Apply as directed' },
-  ]},
+  {
+    group: 'GH Secretagogue Blends',
+    options: [
+      { value: '2X Blend: CJC No DAC / Ipamorelin', startingDose: '1mg', maxDose: '4mg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+      { value: '2X Blend: Tesamorelin / Ipamorelin', startingDose: '1mg', maxDose: '4mg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+      { value: '3X Blend: Tesa / MGF / Ipamorelin', startingDose: '1.6mg', maxDose: '3.2mg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+      { value: '4X Blend: GHRP-2 / Tesa / MGF / Ipa', startingDose: '1.8mg', maxDose: '5.2mg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Growth Hormone',
+    options: [
+      { value: 'CJC-1295 No DAC', startingDose: '0.2mg', maxDose: '1mg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'CJC-1295 with DAC', startingDose: '2mg', maxDose: '4mg', frequency: '1-2x per week', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'GHRP-2', startingDose: '200mcg', maxDose: '1mg', frequency: '5 on / 2 off (up to 8 wks)', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Hexarelin', startingDose: '100mcg', maxDose: '100mcg', frequency: '3x daily x 20 weeks', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Ipamorelin', startingDose: '200mcg', maxDose: '300mcg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'MK-677 (tablet)', startingDose: '10mg', maxDose: '50mg', frequency: '1-2x daily', notes: 'Oral tablet' },
+      { value: 'Sermorelin', startingDose: '500mcg', maxDose: '2mg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Tesamorelin', startingDose: '1mg', maxDose: '2mg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'IGF-1 LR3', startingDose: '100mcg', maxDose: '200mcg', frequency: '5 on / 2 off', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Follistatin 344', startingDose: '200mcg', maxDose: '200mcg', frequency: 'Daily x 20 days', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'MGF', startingDose: '200mcg', maxDose: '600mcg', frequency: 'After workout', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Recovery/Healing',
+    options: [
+      { value: 'BPC-157', startingDose: '250mcg', maxDose: '750mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'TB500 (Thymosin Beta 4)', startingDose: '2.5mg', maxDose: '5mg', frequency: '2x per week', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Wolverine Blend (BPC / TB500)', startingDose: '500mcg', maxDose: '2mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Weight Loss',
+    options: [
+      { value: 'AOD 9604', startingDose: '500mcg', maxDose: '1mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Skin/Hair',
+    options: [
+      { value: 'GHK-Cu', startingDose: '1mg', maxDose: '2mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'GHK-Cu Topical Cream', startingDose: 'Apply thin layer', maxDose: '2x daily', frequency: 'Daily', notes: 'Topical application' },
+      { value: 'GLOW (GHK-Cu / BPC / TB500)', startingDose: '900mcg', maxDose: '1800mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'KLOW (GHK-Cu / KPV / BPC / TB)', startingDose: '1mg', maxDose: '3mg', frequency: 'Daily x 30 days', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Melanotan II', startingDose: '500mcg', maxDose: '1mg', frequency: 'Before tanning', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Immune',
+    options: [
+      { value: 'TA1 (Thymosin Alpha 1)', startingDose: '3mg', maxDose: '8mg', frequency: 'When sick, 2x/week', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'TA1 Complex', startingDose: '3mg', maxDose: '8mg', frequency: 'When sick, 2x/week', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Thymalin', startingDose: '1mg', maxDose: '10mg', frequency: 'Daily x 10 days', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Thymagen', startingDose: '100mcg', maxDose: '200mcg', frequency: 'Daily x 3-10 days', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'LL-37', startingDose: '300mcg', maxDose: '1mg', frequency: 'Daily (when sick)', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'LL-37 Complex', startingDose: '250mcg', maxDose: '250mcg', frequency: 'Daily (when sick)', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'KPV', startingDose: '250mcg', maxDose: '500mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Longevity',
+    options: [
+      { value: 'Epithalon', startingDose: '10mg', maxDose: '10mg', frequency: 'Daily x 20 days', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'MOTS-C', startingDose: '5mg', maxDose: '10mg', frequency: 'Every 5 days x 20 days (3x/yr)', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'FOXO4-DRI', startingDose: '3mg', maxDose: '3mg', frequency: 'Every other day x 5 days', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'PNC-28', startingDose: '1mg', maxDose: '2mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Bioregulators',
+    options: [
+      { value: 'Cardiogen', startingDose: '1mg', maxDose: '5mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Cartalax', startingDose: '2mg', maxDose: '5mg', frequency: 'Daily x 10-20 days', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Cognitive',
+    options: [
+      { value: 'BDNF', startingDose: '500mcg', maxDose: '2mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Dihexa (tablet)', startingDose: '8mg', maxDose: '24mg', frequency: 'Daily', notes: 'Oral tablet' },
+      { value: 'PE-22-28', startingDose: '300mcg', maxDose: '1mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Selank', startingDose: '250mcg', maxDose: '500mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Semax', startingDose: '500mcg', maxDose: '1000mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Sleep',
+    options: [
+      { value: 'DSIP', startingDose: '500mcg', maxDose: '1mg', frequency: 'PRN before bed', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Sexual Health',
+    options: [
+      { value: 'PT-141', startingDose: '500mcg', maxDose: '1mg', frequency: 'PRN 2 hrs before activity', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Kisspeptin', startingDose: '100mcg', maxDose: '200mcg', frequency: 'PRN', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Oxytocin', startingDose: '250mcg', maxDose: '500mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'HRT Support',
+    options: [
+      { value: 'Gonadorelin', startingDose: '250mcg', maxDose: '250mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'HCG', startingDose: '500 IU', maxDose: '1000 IU', frequency: '2x per week', notes: 'Reconstitute with 2mL BAC water' },
+    ]
+  },
+  {
+    group: 'Specialty',
+    options: [
+      { value: 'ARA-290', startingDose: '1.6mg', maxDose: '4mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'Curcumin (injectable)', startingDose: '45mg', maxDose: '90mg', frequency: 'Daily', notes: 'Injectable form' },
+      { value: 'FLGR242', startingDose: '10mg', maxDose: '10mg', frequency: 'Every 2 weeks', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'NAD+', startingDose: '50mg', maxDose: '200mg', frequency: 'Daily or 2-3x weekly', notes: 'Injectable' },
+    ]
+  },
+  {
+    group: 'Oral Peptides',
+    options: [
+      { value: '5-Amino-1MQ (tablet)', startingDose: '15mg', maxDose: '150mg', frequency: 'Daily', notes: 'Oral tablet' },
+      { value: 'SLU-PP-332', startingDose: '250mcg', maxDose: '1.5mg', frequency: 'Daily', notes: 'Oral' },
+      { value: 'Tesofensine (tablet)', startingDose: '250mcg', maxDose: '1000mcg', frequency: 'Daily', notes: 'Oral tablet' },
+    ]
+  }
 ];
+
+// Helper function to find peptide info by name
+const findPeptideInfo = (peptideName) => {
+  for (const group of PEPTIDE_OPTIONS) {
+    const found = group.options.find(opt => opt.value === peptideName);
+    if (found) return found;
+  }
+  return null;
+};
 
 // Testosterone dosage options
 const TESTOSTERONE_DOSES = {
@@ -817,6 +909,9 @@ export default function UnifiedPipeline() {
     );
   };
 
+  // ================================================================
+  // RENDER PROTOCOL FIELDS - Updated peptide section with dosing guide
+  // ================================================================
   const renderProtocolFields = () => {
     switch (protocolType) {
       case 'weight_loss':
@@ -885,6 +980,9 @@ export default function UnifiedPipeline() {
         );
         
       case 'peptide':
+        // Get currently selected peptide info for auto-fill
+        const selectedPeptideInfo = findPeptideInfo(protocolForm.peptide_medication);
+        
         return (
           <>
             <div style={styles.formGroup}>
@@ -909,17 +1007,14 @@ export default function UnifiedPipeline() {
                 value={protocolForm.peptide_medication || ''}
                 onChange={(e) => {
                   const selected = e.target.value;
-                  const allOptions = PEPTIDE_OPTIONS.flatMap(g => g.options);
-                  const opt = allOptions.find(o => o.value === selected);
-                  let autoFrequency = protocolForm.peptide_frequency || 'Daily';
-                  if (selected === 'MOTS-c') {
-                    autoFrequency = '1x every 5 days';
-                  }
+                  const peptideInfo = findPeptideInfo(selected);
+                  
+                  // Auto-fill dose and frequency from dosing guide
                   setProtocolForm({ 
                     ...protocolForm, 
                     peptide_medication: selected,
-                    peptide_dosage: opt?.dose || '',
-                    peptide_frequency: autoFrequency
+                    peptide_dosage: peptideInfo?.startingDose || '',
+                    peptide_frequency: peptideInfo?.frequency || 'Daily'
                   });
                 }}
                 style={styles.formSelect}
@@ -929,22 +1024,72 @@ export default function UnifiedPipeline() {
                 {PEPTIDE_OPTIONS.map(group => (
                   <optgroup key={group.group} label={group.group}>
                     {group.options.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.value}</option>
+                      <option key={opt.value} value={opt.value}>
+                        {opt.value} ({opt.startingDose})
+                      </option>
                     ))}
                   </optgroup>
                 ))}
               </select>
             </div>
+            
+            {/* Dosage - Shows starting and max dose options */}
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Dosage</label>
-              <input
-                type="text"
-                value={protocolForm.peptide_dosage || ''}
-                onChange={(e) => setProtocolForm({ ...protocolForm, peptide_dosage: e.target.value })}
-                placeholder="e.g. 500mcg"
-                style={styles.formInput}
-              />
+              <label style={styles.formLabel}>Dosage *</label>
+              {selectedPeptideInfo ? (
+                <>
+                  <select
+                    value={protocolForm.peptide_dosage || ''}
+                    onChange={(e) => setProtocolForm({ ...protocolForm, peptide_dosage: e.target.value })}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select dose...</option>
+                    <option value={selectedPeptideInfo.startingDose}>
+                      {selectedPeptideInfo.startingDose} (Starting)
+                    </option>
+                    {selectedPeptideInfo.maxDose !== selectedPeptideInfo.startingDose && (
+                      <option value={selectedPeptideInfo.maxDose}>
+                        {selectedPeptideInfo.maxDose} (Max)
+                      </option>
+                    )}
+                    <option value="custom">Custom dose...</option>
+                  </select>
+                  {selectedPeptideInfo.notes && (
+                    <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
+                      💡 {selectedPeptideInfo.notes}
+                    </small>
+                  )}
+                </>
+              ) : (
+                <input
+                  type="text"
+                  value={protocolForm.peptide_dosage || ''}
+                  onChange={(e) => setProtocolForm({ ...protocolForm, peptide_dosage: e.target.value })}
+                  placeholder="Select a peptide first..."
+                  style={styles.formInput}
+                />
+              )}
             </div>
+            
+            {/* Custom dose input if "custom" is selected */}
+            {protocolForm.peptide_dosage === 'custom' && (
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Custom Dose</label>
+                <input
+                  type="text"
+                  value={protocolForm.peptide_custom_dose || ''}
+                  onChange={(e) => setProtocolForm({ 
+                    ...protocolForm, 
+                    peptide_custom_dose: e.target.value,
+                    peptide_dosage: e.target.value 
+                  })}
+                  placeholder="e.g. 400mcg"
+                  style={styles.formInput}
+                />
+              </div>
+            )}
+            
+            {/* Frequency - Auto-filled but editable */}
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Frequency</label>
               <select
@@ -952,18 +1097,30 @@ export default function UnifiedPipeline() {
                 onChange={(e) => setProtocolForm({ ...protocolForm, peptide_frequency: e.target.value })}
                 style={styles.formSelect}
               >
+                <option value="">Select frequency...</option>
+                {selectedPeptideInfo?.frequency && (
+                  <option value={selectedPeptideInfo.frequency}>
+                    {selectedPeptideInfo.frequency} (Recommended)
+                  </option>
+                )}
                 <option value="Daily">Daily</option>
                 <option value="1x daily (AM)">1x daily (AM)</option>
                 <option value="1x daily (PM/bedtime)">1x daily (PM/bedtime)</option>
                 <option value="2x daily">2x daily</option>
-                <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                <option value="3x daily">3x daily</option>
+                <option value="5 on / 2 off">5 on / 2 off</option>
                 <option value="Every other day">Every other day</option>
-                <option value="1x every 5 days">1x every 5 days</option>
+                <option value="Every 5 days">Every 5 days</option>
                 <option value="3x per week">3x per week</option>
                 <option value="2x per week">2x per week</option>
                 <option value="1x per week">1x per week</option>
+                <option value="Every 2 weeks">Every 2 weeks</option>
+                <option value="PRN">PRN (as needed)</option>
+                <option value="After workout">After workout</option>
+                <option value="Before tanning">Before tanning</option>
               </select>
             </div>
+            
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Delivery *</label>
               <select
@@ -1819,14 +1976,24 @@ export default function UnifiedPipeline() {
                 ) : editModal.category === 'peptide' ? (
                   <select
                     value={editForm.medication || ''}
-                    onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })}
+                    onChange={(e) => {
+                      const peptideInfo = findPeptideInfo(e.target.value);
+                      setEditForm({ 
+                        ...editForm, 
+                        medication: e.target.value,
+                        dose: peptideInfo?.startingDose || editForm.dose,
+                        frequency: peptideInfo?.frequency || editForm.frequency
+                      });
+                    }}
                     style={styles.formSelect}
                   >
                     <option value="">Select peptide...</option>
                     {PEPTIDE_OPTIONS.map(group => (
                       <optgroup key={group.group} label={group.group}>
                         {group.options.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.value}</option>
+                          <option key={opt.value} value={opt.value}>
+                            {opt.value} ({opt.startingDose})
+                          </option>
                         ))}
                       </optgroup>
                     ))}
@@ -1863,6 +2030,31 @@ export default function UnifiedPipeline() {
                         ))
                       )}
                     </select>
+                  ) : editModal.category === 'peptide' ? (
+                    (() => {
+                      const peptideInfo = findPeptideInfo(editForm.medication);
+                      return peptideInfo ? (
+                        <select
+                          value={editForm.dose || ''}
+                          onChange={(e) => setEditForm({ ...editForm, dose: e.target.value })}
+                          style={styles.formSelect}
+                        >
+                          <option value="">Select dose...</option>
+                          <option value={peptideInfo.startingDose}>{peptideInfo.startingDose} (Starting)</option>
+                          {peptideInfo.maxDose !== peptideInfo.startingDose && (
+                            <option value={peptideInfo.maxDose}>{peptideInfo.maxDose} (Max)</option>
+                          )}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={editForm.dose || ''}
+                          onChange={(e) => setEditForm({ ...editForm, dose: e.target.value })}
+                          style={styles.formInput}
+                          placeholder="e.g. 500mcg"
+                        />
+                      );
+                    })()
                   ) : (
                     <input
                       type="text"
@@ -1881,16 +2073,24 @@ export default function UnifiedPipeline() {
                     style={styles.formSelect}
                   >
                     <option value="">Select...</option>
+                    {editModal.category === 'peptide' && findPeptideInfo(editForm.medication)?.frequency && (
+                      <option value={findPeptideInfo(editForm.medication).frequency}>
+                        {findPeptideInfo(editForm.medication).frequency} (Recommended)
+                      </option>
+                    )}
                     <option value="Daily">Daily</option>
                     <option value="1x daily (AM)">1x daily (AM)</option>
                     <option value="1x daily (PM/bedtime)">1x daily (PM/bedtime)</option>
                     <option value="2x daily">2x daily</option>
-                    <option value="5 days on / 2 days off">5 days on / 2 days off</option>
+                    <option value="3x daily">3x daily</option>
+                    <option value="5 on / 2 off">5 on / 2 off</option>
                     <option value="Every other day">Every other day</option>
-                    <option value="1x every 5 days">1x every 5 days</option>
+                    <option value="Every 5 days">Every 5 days</option>
                     <option value="3x per week">3x per week</option>
                     <option value="2x per week">2x per week</option>
                     <option value="1x per week">1x per week</option>
+                    <option value="Every 2 weeks">Every 2 weeks</option>
+                    <option value="PRN">PRN (as needed)</option>
                   </select>
                 </div>
               </div>

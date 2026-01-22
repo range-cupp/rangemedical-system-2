@@ -1,8 +1,16 @@
-import React from 'react';
+import Head from 'next/head';
 
 export default function ThreeXBlendGuide() {
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <>
+      <Head>
+        <title>3X Blend Guide | Range Medical</title>
+        <meta name="description" content="Everything you need to know about your 3X Blend peptide therapy — how it works, how to inject, and what to expect." />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </Head>
+      <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
       {/* Header */}
       <header className="border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
@@ -392,5 +400,6 @@ export default function ThreeXBlendGuide() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

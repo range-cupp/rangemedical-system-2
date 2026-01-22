@@ -52,11 +52,6 @@ export default function GiftCards() {
         />
       </Head>
 
-      {/* Holiday Banner */}
-      <div className="holiday-banner">
-        <p>🎁 <strong>The Perfect Holiday Gift</strong> — Give the gift of health this season</p>
-      </div>
-
       {/* Hero */}
       <section className="hero">
         <div className="hero-icon">🎁</div>
@@ -217,24 +212,6 @@ export default function GiftCards() {
       </section>
 
       <style jsx>{`
-        /* Holiday Banner */
-        .holiday-banner {
-          background: linear-gradient(90deg, #1a472a 0%, #2d5a3d 100%);
-          color: #ffffff;
-          padding: 1rem 1.5rem;
-          text-align: center;
-        }
-        
-        .holiday-banner p {
-          font-size: 1rem;
-          font-weight: 500;
-          margin: 0;
-        }
-        
-        .holiday-banner strong {
-          font-weight: 700;
-        }
-
         /* Hero Section */
         .hero {
           padding: 4rem 1.5rem 3rem;

@@ -898,6 +898,83 @@ const CellularEnergyResetLanding = () => {
       margin-top: 0.5rem;
     }
     
+    /* IV Upgrade */
+    .cer-iv-upgrade {
+      background: #f0fdf4;
+      border: 2px solid #22c55e;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    
+    .cer-iv-upgrade-header {
+      background: #22c55e;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .cer-iv-upgrade-badge {
+      background: #ffffff;
+      color: #22c55e;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    
+    .cer-iv-upgrade-title {
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0;
+    }
+    
+    .cer-iv-upgrade-body {
+      padding: 1.25rem;
+    }
+    
+    .cer-iv-upgrade-desc {
+      font-size: 0.9375rem;
+      color: #166534;
+      line-height: 1.6;
+      margin: 0 0 1rem 0;
+    }
+    
+    .cer-iv-upgrade-pricing {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+    }
+    
+    .cer-iv-upgrade-value,
+    .cer-iv-upgrade-price {
+      text-align: center;
+    }
+    
+    .cer-iv-upgrade-label {
+      display: block;
+      font-size: 0.75rem;
+      color: #166534;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    
+    .cer-iv-upgrade-amount {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #166534;
+    }
+    
+    .cer-iv-upgrade-amount.strikethrough {
+      text-decoration: line-through;
+      color: #737373;
+    }
+    
     /* Guarantee */
     .cer-guarantee {
       background: #fef3c7;
@@ -994,37 +1071,87 @@ const CellularEnergyResetLanding = () => {
       color: #525252;
     }
     
-    .cer-maintenance-includes {
-      margin-bottom: 2rem;
+    /* Maintenance Tiers */
+    .cer-maintenance-tiers {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
     }
     
-    .cer-maintenance-includes h4 {
-      font-size: 0.875rem;
+    .cer-maintenance-tier {
+      background: #ffffff;
+      border: 2px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: relative;
+    }
+    
+    .cer-maintenance-tier.featured {
+      border-color: #7c3aed;
+      background: #faf5ff;
+    }
+    
+    .cer-maintenance-tier-badge {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #7c3aed;
+      color: #ffffff;
+      font-size: 0.6875rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 1rem;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
     }
     
-    .cer-maintenance-includes ul {
+    .cer-maintenance-tier-name {
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      color: #1a1a1a;
+    }
+    
+    .cer-maintenance-tier.featured .cer-maintenance-tier-name {
+      color: #7c3aed;
+    }
+    
+    .cer-maintenance-tier-price {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #1a1a1a;
+    }
+    
+    .cer-maintenance-tier.featured .cer-maintenance-tier-price {
+      color: #7c3aed;
+    }
+    
+    .cer-maintenance-tier-price span {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #737373;
+    }
+    
+    .cer-maintenance-tier-list {
       list-style: none;
       padding: 0;
       margin: 0;
     }
     
-    .cer-maintenance-includes li {
-      font-size: 0.9375rem;
-      padding: 0.5rem 0;
-      padding-left: 1.75rem;
+    .cer-maintenance-tier-list li {
+      font-size: 0.875rem;
+      color: #525252;
+      padding: 0.375rem 0;
+      padding-left: 1.5rem;
       position: relative;
-      border-bottom: 1px solid #f5f5f5;
     }
     
-    .cer-maintenance-includes li:last-child {
-      border-bottom: none;
-    }
-    
-    .cer-maintenance-includes li::before {
+    .cer-maintenance-tier-list li::before {
       content: "✓";
       position: absolute;
       left: 0;
@@ -1032,29 +1159,17 @@ const CellularEnergyResetLanding = () => {
       font-weight: 700;
     }
     
-    .cer-maintenance-pricing {
+    .cer-maintenance-note {
       text-align: center;
-      padding: 1.5rem;
-      background: #f5f3ff;
-      border-radius: 12px;
-    }
-    
-    .cer-maintenance-price {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #7c3aed;
-    }
-    
-    .cer-maintenance-price span {
-      font-size: 1rem;
-      font-weight: 500;
-      color: #525252;
-    }
-    
-    .cer-maintenance-compare {
       font-size: 0.875rem;
-      color: #525252;
-      margin-top: 0.5rem;
+      color: #737373;
+      margin: 0;
+    }
+    
+    @media (max-width: 640px) {
+      .cer-maintenance-tiers {
+        grid-template-columns: 1fr;
+      }
     }
     
     /* FAQ */
@@ -1175,19 +1290,19 @@ const CellularEnergyResetLanding = () => {
     <>
       <Head>
         <title>6-Week Cellular Energy Reset | Range Medical</title>
-        <meta name="description" content="36 HBOT + Red Light sessions, before-and-after labs, and weekly tracking to rebuild your energy at the cellular level. Newport Beach, CA." />
+        <meta name="description" content="36 HBOT + Red Light sessions with weekly tracking to rebuild your energy at the cellular level. Newport Beach, CA." />
         
         {/* Open Graph / Link Preview */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://range-medical.com/cellular-energy-reset" />
         <meta property="og:title" content="6-Week Cellular Energy Reset" />
-        <meta property="og:description" content="Restore your energy at the cellular level. 36 sessions, lab-tracked results, weekly check-ins." />
+        <meta property="og:description" content="Restore your energy at the cellular level. 36 sessions, weekly check-ins, guaranteed results." />
         <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
         
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="6-Week Cellular Energy Reset" />
-        <meta name="twitter:description" content="Restore your energy at the cellular level. 36 sessions, lab-tracked results, weekly check-ins." />
+        <meta name="twitter:description" content="Restore your energy at the cellular level. 36 sessions, weekly check-ins, guaranteed results." />
         <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
       </Head>
       
@@ -1220,7 +1335,7 @@ const CellularEnergyResetLanding = () => {
             <span>Restore your energy at the cellular level</span>
           </h1>
           <p className="cer-hero-subtitle">
-            36 HBOT + Red Light sessions, before-and-after labs, and weekly tracking to rebuild your energy at the cellular level.
+            36 HBOT + Red Light sessions with weekly tracking to rebuild your energy at the cellular level.
           </p>
           <div className="cer-hero-cta">
             <a href="#assessment" className="cer-btn-primary">Start With an Assessment →</a>
@@ -1383,25 +1498,13 @@ const CellularEnergyResetLanding = () => {
             
             <div className="cer-included-card">
               <div className="cer-included-number">3</div>
-              <h3 className="cer-included-title">2 Cellular Energy Lab Panels</h3>
-              <p className="cer-included-detail">Baseline + 6-week follow-up • 12 targeted biomarkers</p>
-              <ul className="cer-included-features">
-                <li>Inflammation markers (CRP-HS, Homocysteine)</li>
-                <li>Oxygen utilization (CBC, Ferritin, Iron)</li>
-                <li>Growth factors (IGF-1, DHEA-S)</li>
-                <li>Metabolic efficiency (Insulin, HgbA1c, Thyroid)</li>
-              </ul>
-            </div>
-            
-            <div className="cer-included-card">
-              <div className="cer-included-number">4</div>
               <h3 className="cer-included-title">Complete Support & Tracking</h3>
-              <p className="cer-included-detail">Provider consultations • Weekly check-ins • Concierge scheduling</p>
+              <p className="cer-included-detail">Orientation • Weekly check-ins • Week-7 review • Concierge scheduling</p>
               <ul className="cer-included-features">
-                <li>2 provider lab review visits with written plans</li>
+                <li>Program orientation to get you started right</li>
                 <li>Weekly energy tracking & progress check-ins</li>
+                <li>Week-7 results review & next steps</li>
                 <li>Priority scheduling & coordination</li>
-                <li>Protocol adjustments as needed</li>
               </ul>
             </div>
           </div>
@@ -1589,11 +1692,7 @@ const CellularEnergyResetLanding = () => {
                   <span className="cer-value-item-price">$1,530</span>
                 </div>
                 <div className="cer-value-item">
-                  <span className="cer-value-item-name">2 Cellular Energy Lab Panels</span>
-                  <span className="cer-value-item-price">$700</span>
-                </div>
-                <div className="cer-value-item">
-                  <span className="cer-value-item-name">2 Provider Lab Review Visits + Written Plans</span>
+                  <span className="cer-value-item-name">Orientation & Week-7 Review</span>
                   <span className="cer-value-item-price">$400</span>
                 </div>
                 <div className="cer-value-item">
@@ -1609,7 +1708,7 @@ const CellularEnergyResetLanding = () => {
               <div className="cer-value-total">
                 <div className="cer-value-total-row">
                   <span className="cer-value-total-label">Total Value</span>
-                  <span className="cer-value-total-amount">$6,460</span>
+                  <span className="cer-value-total-amount">$5,760</span>
                 </div>
                 <div className="cer-value-total-row">
                   <span className="cer-value-today-label">Your Price Today</span>
@@ -1617,7 +1716,7 @@ const CellularEnergyResetLanding = () => {
                 </div>
                 <div className="cer-value-savings-row">
                   <span className="cer-value-savings-label">You Save</span>
-                  <span className="cer-value-savings-amount">$2,463 (38% off)</span>
+                  <span className="cer-value-savings-amount">$1,763 (31% off)</span>
                 </div>
               </div>
             </div>
@@ -1635,6 +1734,29 @@ const CellularEnergyResetLanding = () => {
                 <div className="cer-payment-title">Payment Plan</div>
                 <div className="cer-payment-price">3 × $1,450</div>
                 <div className="cer-payment-note">$4,350 total</div>
+              </div>
+            </div>
+            
+            {/* IV Upgrade */}
+            <div className="cer-iv-upgrade">
+              <div className="cer-iv-upgrade-header">
+                <span className="cer-iv-upgrade-badge">Optional Add-On</span>
+                <h4 className="cer-iv-upgrade-title">Cellular Energy IV Upgrade</h4>
+              </div>
+              <div className="cer-iv-upgrade-body">
+                <p className="cer-iv-upgrade-desc">
+                  Want every advantage? Add 6 IV therapy sessions (1 per week) timed with your protocol for enhanced cellular recovery and energy support.
+                </p>
+                <div className="cer-iv-upgrade-pricing">
+                  <div className="cer-iv-upgrade-value">
+                    <span className="cer-iv-upgrade-label">Value (6 IVs)</span>
+                    <span className="cer-iv-upgrade-amount strikethrough">$1,350</span>
+                  </div>
+                  <div className="cer-iv-upgrade-price">
+                    <span className="cer-iv-upgrade-label">Add-On Price</span>
+                    <span className="cer-iv-upgrade-amount">$1,097</span>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -1678,21 +1800,32 @@ const CellularEnergyResetLanding = () => {
               <p className="cer-maintenance-subtitle">Stay optimized without starting over</p>
             </div>
             
-            <div className="cer-maintenance-includes">
-              <h4>Every 4 Weeks:</h4>
-              <ul>
-                <li>4 Hyperbaric Oxygen sessions</li>
-                <li>4 Red Light Therapy sessions</li>
-                <li>Quarterly mini check-in (10-15 min)</li>
-                <li>Annual Cellular Energy Lab Panel at preferred rate</li>
-                <li>Priority scheduling</li>
-              </ul>
+            <div className="cer-maintenance-tiers">
+              <div className="cer-maintenance-tier">
+                <div className="cer-maintenance-tier-name">Base</div>
+                <div className="cer-maintenance-tier-price">$597 <span>/ 4 weeks</span></div>
+                <ul className="cer-maintenance-tier-list">
+                  <li>4 Hyperbaric Oxygen sessions</li>
+                  <li>4 Red Light Therapy sessions</li>
+                  <li>Quarterly check-in</li>
+                  <li>Priority scheduling</li>
+                </ul>
+              </div>
+              <div className="cer-maintenance-tier featured">
+                <div className="cer-maintenance-tier-badge">Enhanced</div>
+                <div className="cer-maintenance-tier-name">Maintenance + IV</div>
+                <div className="cer-maintenance-tier-price">$797 <span>/ 4 weeks</span></div>
+                <ul className="cer-maintenance-tier-list">
+                  <li>4 Hyperbaric Oxygen sessions</li>
+                  <li>4 Red Light Therapy sessions</li>
+                  <li>1 Energy IV per cycle</li>
+                  <li>Quarterly check-in</li>
+                  <li>Priority scheduling</li>
+                </ul>
+              </div>
             </div>
             
-            <div className="cer-maintenance-pricing">
-              <div className="cer-maintenance-price">$597 <span>/ every 4 weeks</span></div>
-              <p className="cer-maintenance-compare">À la carte value: $1,080+ per month</p>
-            </div>
+            <p className="cer-maintenance-note">Both tiers: À la carte value $1,080+ • Discussed at your Week-7 results review</p>
           </div>
         </div>
       </section>

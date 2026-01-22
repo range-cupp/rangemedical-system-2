@@ -1,22 +1,29 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function GiftCards() {
-  // Load GHL gift card script after component mounts
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://storage.googleapis.com/leadgen-payment-products-preview-nuxt-assets/js/iframe-resizer/gc-embed.parent.js';
-    script.async = true;
-    document.body.appendChild(script);
+  const embedRef = useRef(null);
 
-    return () => {
-      // Cleanup on unmount
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
+  useEffect(() => {
+    // Clear any existing content and re-add the div
+    if (embedRef.current) {
+      embedRef.current.innerHTML = '<div data-gc-id="693c37bfbb0ac97ef238ff6a"></div>';
+      
+      // Remove any existing script
+      const existingScript = document.querySelector('script[src*="gc-embed.parent.js"]');
+      if (existingScript) {
+        existingScript.remove();
       }
-    };
+      
+      // Add fresh script after div is in DOM
+      setTimeout(() => {
+        const script = document.createElement('script');
+        script.src = 'https://storage.googleapis.com/leadgen-payment-products-preview-nuxt-assets/js/iframe-resizer/gc-embed.parent.js';
+        document.body.appendChild(script);
+      }, 100);
+    }
   }, []);
 
   return (
@@ -77,9 +84,8 @@ export default function GiftCards() {
               <h2>Purchase a Gift Card</h2>
               <p>Select an amount and send it instantly via email.</p>
             </div>
-            <div className="gift-card-embed">
-              {/* Embedded Gift Card Live Mode Checkout */}
-              <div data-gc-id="693c37bfbb0ac97ef238ff6a"></div>
+            <div className="gift-card-embed" ref={embedRef}>
+              {/* GHL embed will be inserted here */}
             </div>
           </div>
         </div>

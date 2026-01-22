@@ -1,9 +1,24 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
-import Script from 'next/script';
+import { useEffect } from 'react';
 
 export default function GiftCards() {
+  // Load GHL gift card script after component mounts
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://storage.googleapis.com/leadgen-payment-products-preview-nuxt-assets/js/iframe-resizer/gc-embed.parent.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      // Cleanup on unmount
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
   return (
     <Layout 
       title="Gift Cards | Range Medical | Newport Beach"
@@ -200,12 +215,6 @@ export default function GiftCards() {
         <p className="cta-phone"><a href="tel:+19499973988">(949) 997-3988</a></p>
         <p className="cta-location">📍 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
       </section>
-
-      {/* GHL Gift Card Script */}
-      <Script 
-        src="https://storage.googleapis.com/leadgen-payment-products-preview-nuxt-assets/js/iframe-resizer/gc-embed.parent.js"
-        strategy="afterInteractive"
-      />
 
       <style jsx>{`
         /* Holiday Banner */

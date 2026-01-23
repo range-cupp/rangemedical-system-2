@@ -1,147 +1,172 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import Head from 'next/head';
 
-export default function HomePage() {
+export default function Home() {
   return (
-    <Layout 
-      title="Range Medical | Health Optimization & Longevity | Newport Beach"
-      description="Newport Beach health optimization clinic. Labs-first approach to hormones, weight loss, and longevity. Essential Panel $350, Elite Panel $750. (949) 997-3988."
+    <Layout
+      title="Range Medical | Newport Beach Wellness & Recovery"
+      description="Two ways to feel like yourself again. Speed up injury recovery or fix low energy and brain fog with personalized medical care in Newport Beach."
     >
-      {/* Hero */}
-      <section className="hero">
-        <div className="container">
-          <span className="hero-badge">Newport Beach Health Optimization</span>
-          <h1>Feel Like Yourself Again</h1>
-          <p className="hero-sub">We use labs, not guesswork. Whether you're recovering from an injury or optimizing your health, everything starts with understanding what's actually going on inside.</p>
-          
-          <div className="hero-buttons">
-            <Link href="/range-assessment" className="btn-primary">
-              Start with a Range Assessment
-            </Link>
-          </div>
-          <p className="hero-secondary">
-            Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a>
-          </p>
-        </div>
-      </section>
+      <Head>
+        <meta name="keywords" content="wellness clinic Newport Beach, injury recovery, low energy treatment, brain fog help, hormone optimization, medical weight loss" />
+        <link rel="canonical" href="https://www.range-medical.com/" />
+        <meta property="og:title" content="Range Medical | Newport Beach Wellness & Recovery" />
+        <meta property="og:description" content="Two ways to feel like yourself again. Speed up injury recovery or fix low energy and brain fog." />
+        <meta property="og:url" content="https://www.range-medical.com/" />
+      </Head>
 
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
-          <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ Labs Before Treatment</span>
-          <span className="trust-item">✓ Personalized Protocols</span>
-          <span className="trust-item">✓ Ongoing Monitoring</span>
-          <span className="trust-item">✓ HSA & FSA Welcome</span>
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">🔬 Evidence-Based Care</span>
         </div>
       </div>
 
-      {/* Two Doors */}
-      <section className="section">
+      {/* Hero - Two Doors */}
+      <section className="hero">
+        <h1>Two Ways We Help You Feel Like Yourself Again</h1>
+        <p className="hero-sub">
+          Whether you're trying to heal from an injury or you're just tired of feeling tired, 
+          start with the path that fits you best.
+        </p>
+        <div className="two-door-buttons">
+          <Link href="/injury-recovery" className="door-button door-recovery">
+            <span className="door-icon">🩹</span>
+            <span className="door-label">Speed Up Injury Recovery</span>
+            <span className="door-desc">10-Day Recovery Jumpstart</span>
+          </Link>
+          <Link href="/range-assessment" className="door-button door-optimization">
+            <span className="door-icon">⚡</span>
+            <span className="door-label">Fix Low Energy & Brain Fog</span>
+            <span className="door-desc">Range Assessment</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* Quick Overview */}
+      <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Two Ways We Help</div>
-          <h2 className="section-title">What Brings You In?</h2>
-          <p className="section-subtitle">Whether you're dealing with an injury or want to optimize how you feel, we'll start with the right assessment for your situation.</p>
-          
+          <p className="section-kicker">How It Works</p>
+          <h2 className="section-title">Two Doors, One Goal: Help You Feel Better</h2>
+          <p className="section-subtitle">
+            We keep it simple. Pick the door that matches your main concern right now.
+          </p>
+
           <div className="doors-grid">
             <div className="door-card">
-              <div className="door-icon">🏃</div>
-              <h3>Injury & Recovery</h3>
-              <p>Dealing with pain, injury, or slow recovery? We'll assess what's going on and build a plan using hyperbaric oxygen, red light, peptides, and more.</p>
+              <div className="door-icon">🩹</div>
+              <h3>Recovery Door</h3>
+              <p>You're rehabbing an injury and healing feels slow. You want to speed things up.</p>
               <ul>
-                <li>Post-surgery recovery</li>
-                <li>Sports injuries</li>
-                <li>Chronic pain</li>
-                <li>Slow-healing wounds</li>
+                <li>10-Day Recovery Jumpstart</li>
+                <li>No labs required</li>
+                <li>Supports your existing rehab</li>
+                <li>$250 to start</li>
               </ul>
-              <Link href="/injury-recovery" className="btn-outline">
-                Learn About Recovery
+              <Link href="/injury-recovery" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
+                Learn More
               </Link>
             </div>
-            
+
             <div className="door-card featured">
-              <div className="door-badge">Most Popular</div>
+              <span className="door-badge">Most Popular</span>
               <div className="door-icon">⚡</div>
-              <h3>Optimize Your Health</h3>
-              <p>Tired, gaining weight, low drive? We run comprehensive labs to find what's off, then build a protocol to get you back to your best.</p>
+              <h3>Optimization Door</h3>
+              <p>You're tired, foggy, or just don't feel like yourself. You want answers and a plan.</p>
               <ul>
-                <li>Hormone optimization</li>
-                <li>Medical weight loss</li>
-                <li>Energy & performance</li>
-                <li>Longevity protocols</li>
+                <li>Range Assessment with a provider</li>
+                <li>Labs when they help your plan</li>
+                <li>Leads to personalized programs</li>
+                <li>$199 to start</li>
               </ul>
-              <Link href="/range-assessment" className="btn-primary">
-                Book Your Assessment
+              <Link href="/range-assessment" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
+                Learn More
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How We Treat */}
-      <section className="section section-gray">
+      {/* Services Overview */}
+      <section className="section">
         <div className="container">
-          <div className="section-kicker">Our Toolkit</div>
-          <h2 className="section-title">How We Treat</h2>
-          <p className="section-subtitle">We don't pick a treatment and hope it works. We look at your labs, understand your goals, and use the right tools for your situation.</p>
-          
+          <p className="section-kicker">What We Offer</p>
+          <h2 className="section-title">Tools We Use to Help You Feel Better</h2>
+          <p className="section-subtitle">
+            Your provider picks the right tools for your situation. You don't have to figure it out yourself.
+          </p>
+
           <div className="tools-grid">
-            <Link href="/hormone-optimization" className="tool-card">
-              <h4>Hormone Optimization</h4>
-              <p>Testosterone, estrogen, thyroid—balanced based on your labs, not symptoms alone.</p>
-            </Link>
-            <Link href="/weight-loss" className="tool-card">
-              <h4>Medical Weight Loss</h4>
-              <p>GLP-1 medications like tirzepatide, guided by metabolic labs and ongoing monitoring.</p>
-            </Link>
-            <Link href="/peptide-therapy" className="tool-card">
-              <h4>Peptide Therapy</h4>
-              <p>BPC-157, thymosin, and other peptides for recovery, healing, and performance.</p>
-            </Link>
             <Link href="/hyperbaric-oxygen-therapy" className="tool-card">
               <h4>Hyperbaric Oxygen</h4>
-              <p>Pressurized oxygen therapy for faster healing, reduced inflammation, and recovery.</p>
+              <p>More oxygen to your cells to support healing and energy.</p>
             </Link>
             <Link href="/red-light-therapy" className="tool-card">
               <h4>Red Light Therapy</h4>
-              <p>Cellular regeneration, skin health, and recovery support.</p>
+              <p>Light wavelengths that help cells recover and function better.</p>
             </Link>
             <Link href="/iv-therapy" className="tool-card">
-              <h4>IV & NAD+ Therapy</h4>
-              <p>Direct nutrient delivery for energy, recovery, and cellular health.</p>
+              <h4>IV Therapy</h4>
+              <p>Vitamins and nutrients delivered directly to your bloodstream.</p>
+            </Link>
+            <Link href="/hormone-optimization" className="tool-card">
+              <h4>Hormone Optimization</h4>
+              <p>Balanced hormones for energy, mood, and how you feel every day.</p>
+            </Link>
+            <Link href="/weight-loss" className="tool-card">
+              <h4>Medical Weight Loss</h4>
+              <p>Medical support for weight, appetite, and metabolism.</p>
+            </Link>
+            <Link href="/peptide-therapy" className="tool-card">
+              <h4>Peptide Therapy</h4>
+              <p>Targeted peptides for recovery, performance, and longevity.</p>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Process */}
-      <section className="section">
+      {/* Testimonials */}
+      <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">The Range Method</div>
-          <h2 className="section-title">How It Works</h2>
-          <p className="section-subtitle">Simple process, personalized results.</p>
-          
-          <div className="process-steps">
-            <div className="process-step">
-              <div className="step-number">1</div>
-              <h4>Get Your Labs</h4>
-              <p>We draw blood at our Newport Beach office. Results in 3-4 days.</p>
+          <p className="section-kicker">Results</p>
+          <h2 className="section-title">What Our Patients Say</h2>
+
+          <div className="testimonials-grid">
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <blockquote>
+                "I was skeptical, but after the Assessment I finally understood why I'd been so tired. 
+                Six weeks later I feel like myself again."
+              </blockquote>
+              <cite>— Sarah M., Newport Beach</cite>
             </div>
-            <div className="process-step">
-              <div className="step-number">2</div>
-              <h4>Meet Your Provider</h4>
-              <p>1:1 review of your results. We explain what's off and why it matters.</p>
+
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <blockquote>
+                "My shoulder was taking forever to heal. The Recovery Jumpstart got me back to training 
+                weeks faster than I expected."
+              </blockquote>
+              <cite>— Michael R., Costa Mesa</cite>
             </div>
-            <div className="process-step">
-              <div className="step-number">3</div>
-              <h4>Start Your Protocol</h4>
-              <p>Personalized plan based on your labs, goals, and lifestyle.</p>
+
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <blockquote>
+                "Clear communication, no pressure, and a plan that actually made sense. 
+                This is what healthcare should be."
+              </blockquote>
+              <cite>— Jennifer K., Irvine</cite>
             </div>
-            <div className="process-step">
-              <div className="step-number">4</div>
-              <h4>Ongoing Support</h4>
-              <p>Regular check-ins, lab monitoring, and protocol adjustments.</p>
-            </div>
+          </div>
+
+          <div className="testimonials-cta">
+            <Link href="/reviews" className="btn-outline">Read More Reviews</Link>
           </div>
         </div>
       </section>
@@ -150,246 +175,86 @@ export default function HomePage() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to Feel Like Yourself Again?</h2>
-          <p>It starts with understanding what's going on inside. Book your Range Assessment and get a clear picture of your health.</p>
-          <Link href="/range-assessment" className="btn-white">
-            Book Your Assessment
-          </Link>
-          <p className="cta-location">📍 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
+          <p>Pick the path that fits your situation. We'll take it from there.</p>
+          <div className="cta-buttons">
+            <Link href="/injury-recovery" className="btn-white">
+              Injury Recovery — $250
+            </Link>
+            <Link href="/range-assessment" className="btn-outline-white">
+              Range Assessment — $199
+            </Link>
+          </div>
+          <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
         </div>
       </section>
 
       <style jsx>{`
-        .hero {
-          padding: 4rem 1.5rem 3rem;
-          text-align: center;
-          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
-        }
-        
-        .hero-badge {
-          display: inline-block;
-          background: #000000;
-          color: #ffffff;
-          padding: 0.5rem 1rem;
-          border-radius: 100px;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          margin-bottom: 1.5rem;
-          letter-spacing: 0.02em;
-        }
-        
-        .hero h1 {
-          margin-bottom: 1rem;
-          max-width: 700px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        
-        .hero-sub {
-          font-size: 1.125rem;
-          color: #525252;
-          max-width: 650px;
-          margin: 0 auto 2rem;
-          line-height: 1.7;
-        }
-        
-        .hero-buttons {
-          margin-bottom: 1rem;
-        }
-        
-        .hero-secondary {
-          font-size: 0.9375rem;
-          color: #737373;
-        }
-        
-        .hero-secondary a {
-          color: #171717;
-          font-weight: 600;
-        }
-        
-        .doors-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 2rem;
-          max-width: 900px;
-          margin: 0 auto;
-        }
-        
-        .door-card {
-          background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 16px;
-          padding: 2rem;
-          position: relative;
-        }
-        
-        .door-card.featured {
-          border: 2px solid #000000;
-        }
-        
-        .door-badge {
-          position: absolute;
-          top: -12px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #000000;
-          color: #ffffff;
-          padding: 0.25rem 1rem;
-          border-radius: 100px;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-        
-        .door-icon {
-          font-size: 2rem;
-          margin-bottom: 1rem;
-        }
-        
-        .door-card h3 {
-          font-size: 1.25rem;
-          margin-bottom: 0.75rem;
-        }
-        
-        .door-card > p {
-          font-size: 0.9375rem;
-          margin-bottom: 1rem;
-        }
-        
-        .door-card ul {
-          list-style: none;
-          margin-bottom: 1.5rem;
-        }
-        
-        .door-card ul li {
-          padding: 0.375rem 0;
-          font-size: 0.875rem;
-          color: #525252;
+        .two-door-buttons {
           display: flex;
+          gap: 1.5rem;
+          justify-content: center;
+          margin-top: 2rem;
+          flex-wrap: wrap;
+        }
+        
+        .door-button {
+          display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 0.5rem;
-        }
-        
-        .door-card ul li::before {
-          content: "✓";
-          color: #000000;
-          font-weight: 600;
-        }
-        
-        .tools-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
-          max-width: 1000px;
-          margin: 0 auto;
-        }
-        
-        .tool-card {
-          background: #ffffff;
-          border: 1px solid #e5e5e5;
+          padding: 2rem 2.5rem;
           border-radius: 12px;
-          padding: 1.5rem;
-          transition: all 0.2s;
           text-decoration: none;
+          transition: all 0.2s;
+          min-width: 280px;
         }
         
-        .tool-card:hover {
+        .door-recovery {
+          background: #ffffff;
+          border: 2px solid #e5e5e5;
+          color: #171717;
+        }
+        
+        .door-recovery:hover {
           border-color: #000000;
           transform: translateY(-2px);
         }
         
-        .tool-card h4 {
-          font-size: 1rem;
-          color: #171717;
-          margin-bottom: 0.5rem;
-        }
-        
-        .tool-card p {
-          font-size: 0.875rem;
-          color: #525252;
-          margin: 0;
-        }
-        
-        .process-steps {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 2rem;
-          max-width: 1000px;
-          margin: 0 auto;
-        }
-        
-        .process-step {
-          text-align: center;
-        }
-        
-        .step-number {
-          width: 48px;
-          height: 48px;
+        .door-optimization {
           background: #000000;
+          border: 2px solid #000000;
           color: #ffffff;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 1.25rem;
-          margin: 0 auto 1rem;
         }
         
-        .process-step h4 {
-          font-size: 1rem;
-          margin-bottom: 0.5rem;
+        .door-optimization:hover {
+          background: #262626;
+          transform: translateY(-2px);
         }
         
-        .process-step p {
-          font-size: 0.875rem;
-          color: #525252;
-        }
-        
-        .final-cta {
-          background: #000000;
-          padding: 4rem 1.5rem;
-          text-align: center;
-        }
-        
-        .final-cta h2 {
-          color: #ffffff;
+        .door-button .door-icon {
+          font-size: 2rem;
           margin-bottom: 0.75rem;
         }
         
-        .final-cta > .container > p {
-          color: rgba(255,255,255,0.8);
-          margin-bottom: 2rem;
-          max-width: 500px;
-          margin-left: auto;
-          margin-right: auto;
+        .door-button .door-label {
+          font-size: 1.125rem;
+          font-weight: 700;
+          margin-bottom: 0.25rem;
         }
         
-        .cta-location {
-          margin-top: 1.5rem;
-          color: rgba(255,255,255,0.6) !important;
-          font-size: 0.9375rem;
-        }
-        
-        @media (max-width: 900px) {
-          .doors-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .tools-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .process-steps {
-            grid-template-columns: 1fr 1fr;
-          }
+        .door-button .door-desc {
+          font-size: 0.875rem;
+          opacity: 0.7;
         }
         
         @media (max-width: 640px) {
-          .hero {
-            padding: 3rem 1.5rem 2rem;
+          .two-door-buttons {
+            flex-direction: column;
+            align-items: center;
           }
           
-          .process-steps {
-            grid-template-columns: 1fr;
+          .door-button {
+            width: 100%;
+            max-width: 320px;
           }
         }
       `}</style>

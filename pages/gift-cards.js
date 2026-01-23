@@ -1,28 +1,23 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 export default function GiftCards() {
-  const embedRef = useRef(null);
-
   useEffect(() => {
-    // Clear any existing content and re-add the div
-    if (embedRef.current) {
-      embedRef.current.innerHTML = '<div data-gc-id="693c37bfbb0ac97ef238ff6a"></div>';
+    // Create the embed div
+    const container = document.getElementById('ghl-gift-card-container');
+    if (container && !container.hasChildNodes()) {
+      // Add the data-gc-id div
+      const gcDiv = document.createElement('div');
+      gcDiv.setAttribute('data-gc-id', '693c37bfbb0ac97ef238ff6a');
+      container.appendChild(gcDiv);
       
-      // Remove any existing script
-      const existingScript = document.querySelector('script[src*="gc-embed.parent.js"]');
-      if (existingScript) {
-        existingScript.remove();
-      }
-      
-      // Add fresh script after div is in DOM
-      setTimeout(() => {
-        const script = document.createElement('script');
-        script.src = 'https://storage.googleapis.com/leadgen-payment-products-preview-nuxt-assets/js/iframe-resizer/gc-embed.parent.js';
-        document.body.appendChild(script);
-      }, 100);
+      // Create and append the script
+      const script = document.createElement('script');
+      script.src = 'https://storage.googleapis.com/leadgen-payment-products-preview-nuxt-assets/js/iframe-resizer/gc-embed.parent.js';
+      script.async = false;
+      container.appendChild(script);
     }
   }, []);
 
@@ -84,8 +79,8 @@ export default function GiftCards() {
               <h2>Purchase a Gift Card</h2>
               <p>Select an amount and send it instantly via email.</p>
             </div>
-            <div className="gift-card-embed" ref={embedRef}>
-              {/* GHL embed will be inserted here */}
+            <div className="gift-card-embed" id="ghl-gift-card-container">
+              {/* GHL embed loads here via useEffect */}
             </div>
           </div>
         </div>

@@ -2,276 +2,170 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 
-export default function HomePage() {
+export default function Home() {
   return (
-    <Layout 
-      title="Range Medical | Health Optimization & Longevity | Newport Beach"
-      description="Newport Beach health optimization clinic. Labs-first approach to hormones, weight loss, and longevity. Essential Panel $350, Elite Panel $750. (949) 997-3988."
+    <Layout
+      title="Range Medical | Newport Beach Wellness & Recovery"
+      description="Two ways to feel like yourself again. Start with an Assessment for injury recovery or low energy. $199 to start."
     >
       <Head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "MedicalBusiness",
-              "name": "Range Medical",
-              "description": "Newport Beach health optimization clinic. Labs-first approach to hormones, weight loss, and longevity.",
-              "url": "https://www.range-medical.com",
-              "telephone": "+1-949-997-3988",
-              "address": {
-                "@type": "PostalAddress",
-                "streetAddress": "1901 Westcliff Dr. Suite 10",
-                "addressLocality": "Newport Beach",
-                "addressRegion": "CA",
-                "postalCode": "92660",
-                "addressCountry": "US"
-              },
-              "geo": {
-                "@type": "GeoCoordinates",
-                "latitude": 33.6189,
-                "longitude": -117.9298
-              },
-              "openingHoursSpecification": {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                "opens": "09:00",
-                "closes": "17:00"
-              },
-              "priceRange": "$$",
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "5.0",
-                "reviewCount": "9",
-                "bestRating": "5",
-                "worstRating": "1"
-              },
-              "areaServed": ["Newport Beach", "Costa Mesa", "Irvine", "Laguna Beach", "Huntington Beach", "Orange County"],
-              "hasOfferCatalog": {
-                "@type": "OfferCatalog",
-                "name": "Services",
-                "itemListElement": [
-                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Hormone Optimization"}},
-                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Medical Weight Loss"}},
-                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Peptide Therapy"}},
-                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "IV Therapy"}},
-                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Hyperbaric Oxygen Therapy"}},
-                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Red Light Therapy"}},
-                  {"@type": "Offer", "itemOffered": {"@type": "MedicalProcedure", "name": "Injury Recovery"}}
-                ]
-              }
-            })
-          }}
-        />
+        <meta name="keywords" content="wellness clinic Newport Beach, injury recovery, low energy treatment, brain fog help, hormone optimization, medical weight loss" />
+        <link rel="canonical" href="https://www.range-medical.com/" />
+        <meta property="og:title" content="Range Medical | Newport Beach Wellness & Recovery" />
+        <meta property="og:description" content="Two ways to feel like yourself again. Start with an Assessment." />
+        <meta property="og:url" content="https://www.range-medical.com/" />
       </Head>
 
-      {/* Hero */}
-      <section className="hero">
-        <div className="container">
-          <span className="hero-badge">Newport Beach Health Optimization</span>
-          <h1>Feel Like Yourself Again</h1>
-          <p className="hero-sub">We use labs, not guesswork. Whether you're recovering from an injury or optimizing your health, everything starts with understanding what's actually going on inside.</p>
-          
-          <div className="hero-buttons">
-            <Link href="/range-assessment" className="btn-primary">
-              Start with a Range Assessment
-            </Link>
-          </div>
-          <p className="hero-secondary">
-            Not sure where to start? <Link href="/quiz" className="quiz-link">Take the 2-min quiz →</Link>
-          </p>
-          <p className="hero-phone">
-            Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a>
-          </p>
-        </div>
-      </section>
-
-      {/* Trust Bar - Updated with Google Rating */}
+      {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
-          <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ Labs Before Treatment</span>
-          <span className="trust-item">✓ Personalized Protocols</span>
-          <span className="trust-item">✓ Ongoing Monitoring</span>
-          <span className="trust-item trust-rating">★ 5.0 on Google</span>
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">🔬 Evidence-Based Care</span>
         </div>
       </div>
 
-      {/* Two Doors */}
-      <section className="section">
-        <div className="container">
-          <div className="section-kicker">Two Ways We Help</div>
-          <h2 className="section-title">What Brings You In?</h2>
-          <p className="section-subtitle">Whether you're dealing with an injury or want to optimize how you feel, we'll start with the right assessment for your situation.</p>
-          
-          <div className="doors-grid">
-            <div className="door-card">
-              <div className="door-icon">🏃</div>
-              <h3>Injury & Recovery</h3>
-              <p>Dealing with pain, injury, or slow recovery? We'll assess what's going on and build a plan using hyperbaric oxygen, red light, peptides, and more.</p>
-              <ul>
-                <li>Post-surgery recovery</li>
-                <li>Sports injuries</li>
-                <li>Chronic pain</li>
-                <li>Slow-healing wounds</li>
-              </ul>
-              <Link href="/injury-recovery" className="btn-outline">
-                Learn About Recovery
-              </Link>
-            </div>
-            
-            <div className="door-card featured">
-              <div className="door-badge">Most Popular</div>
-              <div className="door-icon">⚡</div>
-              <h3>Optimize Your Health</h3>
-              <p>Tired, gaining weight, low drive? We run comprehensive labs to find what's off, then build a protocol to get you back to your best.</p>
-              <ul>
-                <li>Hormone optimization</li>
-                <li>Medical weight loss</li>
-                <li>Energy & performance</li>
-                <li>Longevity protocols</li>
-              </ul>
-              <Link href="/range-assessment" className="btn-primary">
-                Book Your Assessment
-              </Link>
-            </div>
-          </div>
+      {/* Hero - Two Doors */}
+      <section className="hero">
+        <h1>Two Ways We Help You Feel Like Yourself Again</h1>
+        <p className="hero-sub">
+          Start with an Assessment for your biggest problem: injury recovery or low energy.
+        </p>
+        <div className="two-door-buttons">
+          <Link href="/injury-recovery" className="door-button door-recovery">
+            <span className="door-icon">🩹</span>
+            <span className="door-label">Injury Recovery Assessment</span>
+            <span className="door-price">$199</span>
+          </Link>
+          <Link href="/range-assessment" className="door-button door-optimization">
+            <span className="door-icon">⚡</span>
+            <span className="door-label">Range Assessment</span>
+            <span className="door-price">$199</span>
+          </Link>
         </div>
       </section>
 
-      {/* Quiz CTA Section */}
+      {/* Quick Overview */}
       <section className="section section-gray">
         <div className="container">
-          <div className="quiz-cta-box">
-            <div className="quiz-cta-content">
-              <div className="quiz-cta-badge">2-Minute Assessment</div>
-              <h2>Not Sure Where to Start?</h2>
-              <p>Answer 10 quick questions about how you feel. We'll show you which biomarkers explain your symptoms—and what we can do about it.</p>
-              <Link href="/quiz" className="btn-primary">Take the Quiz →</Link>
+          <p className="section-kicker">How It Works</p>
+          <h2 className="section-title">Two Doors, One Goal: Help You Feel Better</h2>
+          <p className="section-subtitle">
+            Pick the door that matches your main concern. Both start with a $199 Assessment.
+          </p>
+
+          <div className="doors-grid">
+            <div className="door-card">
+              <div className="door-icon">🩹</div>
+              <h3>Injury Recovery</h3>
+              <p>You're rehabbing an injury and healing feels slow. You want to speed things up.</p>
+              <ul>
+                <li>$199 Injury Recovery Assessment</li>
+                <li>Review your injury and rehab plan</li>
+                <li>Get a clear recovery protocol</li>
+                <li>$199 credited toward your protocol</li>
+              </ul>
+              <Link href="/injury-recovery" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
+                Learn More
+              </Link>
             </div>
-            <div className="quiz-cta-preview">
-              <div className="preview-card">
-                <div className="preview-icon">🧬</div>
-                <div className="preview-text">See which biomarkers to test</div>
-              </div>
-              <div className="preview-card">
-                <div className="preview-icon">💡</div>
-                <div className="preview-text">Get personalized insights</div>
-              </div>
-              <div className="preview-card">
-                <div className="preview-icon">🎯</div>
-                <div className="preview-text">Unlock $50 off your labs</div>
-              </div>
+
+            <div className="door-card featured">
+              <span className="door-badge">Most Popular</span>
+              <div className="door-icon">⚡</div>
+              <h3>Energy & Optimization</h3>
+              <p>You're tired, foggy, or just don't feel like yourself. You want answers and a plan.</p>
+              <ul>
+                <li>$199 Range Assessment</li>
+                <li>Connect symptoms to a plan</li>
+                <li>Labs when they help</li>
+                <li>Programs tailored to you</li>
+              </ul>
+              <Link href="/range-assessment" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
+                Learn More
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* NEW: Testimonials Section */}
+      {/* Services Overview */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Patient Reviews</div>
+          <p className="section-kicker">What We Offer</p>
+          <h2 className="section-title">Tools We Use to Help You Feel Better</h2>
+          <p className="section-subtitle">
+            Your provider picks the right tools for your situation. You don't have to figure it out yourself.
+          </p>
+
+          <div className="tools-grid">
+            <Link href="/hyperbaric-oxygen-therapy" className="tool-card">
+              <h4>Hyperbaric Oxygen</h4>
+              <p>More oxygen to your cells to support healing and energy.</p>
+            </Link>
+            <Link href="/red-light-therapy" className="tool-card">
+              <h4>Red Light Therapy</h4>
+              <p>Light wavelengths that help cells recover and function better.</p>
+            </Link>
+            <Link href="/iv-therapy" className="tool-card">
+              <h4>IV Therapy</h4>
+              <p>Vitamins and nutrients delivered directly to your bloodstream.</p>
+            </Link>
+            <Link href="/hormone-optimization" className="tool-card">
+              <h4>Hormone Optimization</h4>
+              <p>Balanced hormones for energy, mood, and how you feel every day.</p>
+            </Link>
+            <Link href="/weight-loss" className="tool-card">
+              <h4>Medical Weight Loss</h4>
+              <p>Medical support for weight, appetite, and metabolism.</p>
+            </Link>
+            <Link href="/peptide-therapy" className="tool-card">
+              <h4>Peptide Therapy</h4>
+              <p>Targeted peptides for recovery, performance, and longevity.</p>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="section section-gray">
+        <div className="container">
+          <p className="section-kicker">Results</p>
           <h2 className="section-title">What Our Patients Say</h2>
-          <p className="section-subtitle">Real results from real people.</p>
-          
+
           <div className="testimonials-grid">
             <div className="testimonial-card">
               <div className="testimonial-stars">★★★★★</div>
               <blockquote>
-                "Labs were thoroughly reviewed, clearly explained, and a thoughtful health plan was put in place. From start to finish, the entire experience was professional, efficient, and genuinely personalized."
+                "I was skeptical, but after the Assessment I finally understood why I'd been so tired. 
+                Six weeks later I feel like myself again."
               </blockquote>
-              <cite>— Mark T.</cite>
+              <cite>— Sarah M., Newport Beach</cite>
             </div>
-            
+
             <div className="testimonial-card">
               <div className="testimonial-stars">★★★★★</div>
               <blockquote>
-                "My results are consistent and I trust the quality and providers. The facility is absolutely beautiful and all of the providers are friendly, incredibly knowledgeable and go above and beyond."
+                "My shoulder was taking forever to heal. The recovery protocol got me back to training 
+                weeks faster than I expected."
               </blockquote>
-              <cite>— Jessica R.</cite>
+              <cite>— Michael R., Costa Mesa</cite>
             </div>
-            
+
             <div className="testimonial-card">
               <div className="testimonial-stars">★★★★★</div>
               <blockquote>
-                "No pushy sales people, real face time with people who understand all the options. They helped me get back on track."
+                "Clear communication, no pressure, and a plan that actually made sense. 
+                This is what healthcare should be."
               </blockquote>
-              <cite>— Pierre R.</cite>
+              <cite>— Jennifer K., Irvine</cite>
             </div>
           </div>
-          
+
           <div className="testimonials-cta">
-            <Link href="/reviews" className="btn-outline">
-              Read All Reviews →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* How We Treat */}
-      <section className="section section-gray">
-        <div className="container">
-          <div className="section-kicker">Our Toolkit</div>
-          <h2 className="section-title">How We Treat</h2>
-          <p className="section-subtitle">We don't pick a treatment and hope it works. We look at your labs, understand your goals, and use the right tools for your situation.</p>
-          
-          <div className="tools-grid">
-            <Link href="/hormone-optimization" className="tool-card">
-              <h4>Hormone Optimization</h4>
-              <p>Testosterone, estrogen, thyroid—balanced based on your labs, not symptoms alone.</p>
-            </Link>
-            <Link href="/weight-loss" className="tool-card">
-              <h4>Medical Weight Loss</h4>
-              <p>GLP-1 medications like tirzepatide, guided by metabolic labs and ongoing monitoring.</p>
-            </Link>
-            <Link href="/peptide-therapy" className="tool-card">
-              <h4>Peptide Therapy</h4>
-              <p>BPC-157, thymosin, and other peptides for recovery, healing, and performance.</p>
-            </Link>
-            <Link href="/hyperbaric-oxygen-therapy" className="tool-card">
-              <h4>Hyperbaric Oxygen</h4>
-              <p>Pressurized oxygen therapy for faster healing, reduced inflammation, and recovery.</p>
-            </Link>
-            <Link href="/red-light-therapy" className="tool-card">
-              <h4>Red Light Therapy</h4>
-              <p>Cellular regeneration, skin health, and recovery support.</p>
-            </Link>
-            <Link href="/iv-therapy" className="tool-card">
-              <h4>IV & NAD+ Therapy</h4>
-              <p>Direct nutrient delivery for energy, recovery, and cellular health.</p>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Process */}
-      <section className="section">
-        <div className="container">
-          <div className="section-kicker">The Range Method</div>
-          <h2 className="section-title">How It Works</h2>
-          <p className="section-subtitle">Simple process, personalized results.</p>
-          
-          <div className="process-steps">
-            <div className="process-step">
-              <div className="step-number">1</div>
-              <h4>Get Your Labs</h4>
-              <p>We draw blood at our Newport Beach office. Results in 3-4 days.</p>
-            </div>
-            <div className="process-step">
-              <div className="step-number">2</div>
-              <h4>Meet Your Provider</h4>
-              <p>1:1 review of your results. We explain what's off and why it matters.</p>
-            </div>
-            <div className="process-step">
-              <div className="step-number">3</div>
-              <h4>Start Your Protocol</h4>
-              <p>Personalized plan based on your labs, goals, and lifestyle.</p>
-            </div>
-            <div className="process-step">
-              <div className="step-number">4</div>
-              <h4>Ongoing Support</h4>
-              <p>Regular check-ins, lab monitoring, and protocol adjustments.</p>
-            </div>
+            <Link href="/reviews" className="btn-outline">Read More Reviews</Link>
           </div>
         </div>
       </section>
@@ -280,13 +174,90 @@ export default function HomePage() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to Feel Like Yourself Again?</h2>
-          <p>It starts with understanding what's going on inside. Book your Range Assessment and get a clear picture of your health.</p>
-          <Link href="/range-assessment" className="btn-white">
-            Book Your Assessment
-          </Link>
-          <p className="cta-location">📍 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
+          <p>Pick the Assessment that fits your situation. Both are $199.</p>
+          <div className="cta-buttons">
+            <Link href="/injury-recovery" className="btn-white">
+              Injury Recovery Assessment
+            </Link>
+            <Link href="/range-assessment" className="btn-outline-white">
+              Range Assessment
+            </Link>
+          </div>
+          <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
         </div>
       </section>
+
+      <style jsx>{`
+        .two-door-buttons {
+          display: flex;
+          gap: 1.5rem;
+          justify-content: center;
+          margin-top: 2rem;
+          flex-wrap: wrap;
+        }
+        
+        .door-button {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 2rem 2.5rem;
+          border-radius: 12px;
+          text-decoration: none;
+          transition: all 0.2s;
+          min-width: 280px;
+        }
+        
+        .door-recovery {
+          background: #ffffff;
+          border: 2px solid #e5e5e5;
+          color: #171717;
+        }
+        
+        .door-recovery:hover {
+          border-color: #000000;
+          transform: translateY(-2px);
+        }
+        
+        .door-optimization {
+          background: #000000;
+          border: 2px solid #000000;
+          color: #ffffff;
+        }
+        
+        .door-optimization:hover {
+          background: #262626;
+          transform: translateY(-2px);
+        }
+        
+        .door-button .door-icon {
+          font-size: 2rem;
+          margin-bottom: 0.75rem;
+        }
+        
+        .door-button .door-label {
+          font-size: 1.125rem;
+          font-weight: 700;
+          margin-bottom: 0.25rem;
+        }
+        
+        .door-button .door-price {
+          font-size: 1.5rem;
+          font-weight: 700;
+          opacity: 0.9;
+        }
+        
+        @media (max-width: 640px) {
+          .two-door-buttons {
+            flex-direction: column;
+            align-items: center;
+          }
+          
+          .door-button {
+            width: 100%;
+            max-width: 320px;
+          }
+        }
+      `}</style>
     </Layout>
   );
 }

@@ -1,99 +1,100 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import Head from 'next/head';
 
 export default function InjuryRecovery() {
   return (
-    <Layout 
-      title="Injury & Recovery Support Newport Beach | Peptides, PRP, IVs | Range Medical"
-      description="Recovering from injury or surgery? Range Medical offers peptide therapy, PRP, and IV support to help you heal faster. No labs required to start. Newport Beach, CA. (949) 997-3988."
+    <Layout
+      title="10-Day Recovery Jumpstart | Range Medical | Newport Beach"
+      description="Speed up injury recovery with our 10-Day Recovery Jumpstart. No labs required. $250 to start. Located in the same building as Range Sports Therapy."
     >
-      {/* Hero */}
-      <section className="hero">
-        <div className="container">
-          <span className="hero-badge">No Labs Required to Start</span>
-          <h1>Recover Stronger While You Heal</h1>
-          <p className="hero-sub">Already working with a chiropractor, PT, or surgeon? Our medical team can evaluate whether peptide therapies, PRP, IVs, or other tools can help support your recovery.</p>
-          
-          <div className="hero-cta">
-            <Link href="/book-recovery" className="btn-primary">Book Recovery Assessment</Link>
-            <p className="hero-secondary">Prefer to call? <a href="tel:+19499973988">(949) 997-3988</a></p>
-          </div>
-        </div>
-      </section>
+      <Head>
+        <meta name="keywords" content="injury recovery Newport Beach, speed up healing, recovery jumpstart, HBOT injury, red light therapy recovery" />
+        <link rel="canonical" href="https://www.range-medical.com/injury-recovery" />
+        <meta property="og:title" content="10-Day Recovery Jumpstart | Range Medical" />
+        <meta property="og:description" content="If you're already doing rehab and feel like healing is taking too long, this is for you." />
+        <meta property="og:url" content="https://www.range-medical.com/injury-recovery" />
+      </Head>
 
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
-          <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ No Labs Required</span>
-          <span className="trust-item">✓ Works With Your Current Care</span>
-          <span className="trust-item">✓ Short Protocols Available</span>
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">🩹 No Labs Required</span>
         </div>
       </div>
 
-      {/* Who It's For */}
+      {/* Hero */}
+      <section className="hero">
+        <span className="hero-badge">Recovery Door</span>
+        <h1>10-Day Recovery Jumpstart for Injuries</h1>
+        <p className="hero-sub">
+          If you're already doing rehab and feel like healing is taking too long, this is for you.
+        </p>
+        <div className="hero-cta">
+          <div className="hero-buttons">
+            <Link href="/book-recovery" className="btn-primary">
+              Book Recovery Jumpstart — $250
+            </Link>
+          </div>
+          <p className="hero-secondary">
+            Located in the same building as Range Sports Therapy. No labs required to start.
+          </p>
+        </div>
+      </section>
+
+      {/* Who This Is For */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Who This Is For</div>
-          <h2 className="section-title">You Might Be a Good Fit If...</h2>
-          <p className="section-subtitle">This path is designed for people actively dealing with an injury or recovering from a procedure.</p>
-          
-          <div className="conditions-grid">
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🏥</span>Post-Surgery</h4>
-                <p>You just had a procedure and want to support your body's healing process during the critical recovery window.</p>
-              </div>
-            </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🦵</span>Chronic Pain</h4>
-                <p>A nagging tendon, joint, or muscle issue that won't fully resolve despite other treatments.</p>
-              </div>
-            </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">⚡</span>New Injury</h4>
-                <p>Something just happened and you want to get ahead of it fast before it becomes a bigger problem.</p>
-              </div>
-            </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🏃</span>Getting Back to Activity</h4>
-                <p>You're an athlete or active person who can't afford extended downtime and needs to recover quickly.</p>
-              </div>
-            </div>
+          <p className="section-kicker">Is This You?</p>
+          <h2 className="section-title">Who the Recovery Jumpstart Is For</h2>
+
+          <div className="pain-points">
+            <ul>
+              <li>You're rehabbing an injury and progress feels slow.</li>
+              <li>Pain and swelling keep coming back between visits.</li>
+              <li>You want to get back to work, training, or daily life faster.</li>
+              <li>Your therapist or chiropractor thinks extra recovery support could help.</li>
+            </ul>
           </div>
         </div>
       </section>
 
-      {/* What We Offer */}
+      {/* What You Get */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Our Toolkit</div>
-          <h2 className="section-title">Tools to Support Recovery</h2>
-          <p className="section-subtitle">We use peptides, PRP, IVs, and other tools to support tissue repair, reduce inflammation, and accelerate healing.</p>
-          
-          <div className="problem-cards">
-            <div className="problem-card">
-              <div className="problem-icon">🧬</div>
-              <h4>Peptide Protocols</h4>
-              <p>Short-term protocols using peptides like BPC-157 and Thymosin Beta-4 to support tissue repair and reduce inflammation.</p>
+          <p className="section-kicker">The Program</p>
+          <h2 className="section-title">What You Get in 10 Days</h2>
+          <p className="section-subtitle">
+            A structured plan to support your healing — not a menu of random treatments.
+          </p>
+
+          <div className="benefits-grid">
+            <div className="benefit-card">
+              <h4><span>📋</span> Custom 10-Day Plan</h4>
+              <p>A recovery plan built by our medical team based on your injury and goals.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">💉</div>
-              <h4>PRP Therapy</h4>
-              <p>Your own concentrated platelets reinjected to support healing in joints, tendons, and soft tissue.</p>
+            <div className="benefit-card">
+              <h4><span>🏥</span> In-Clinic Sessions</h4>
+              <p>Recovery sessions using tools like red light therapy, hyperbaric oxygen, and targeted injections when appropriate.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">💧</div>
-              <h4>IV Support</h4>
-              <p>Vitamins, minerals, and amino acids delivered directly to support recovery and reduce downtime.</p>
+            <div className="benefit-card">
+              <h4><span>🔥</span> Inflammation Support</h4>
+              <p>Help calm inflammation, support circulation, and give your body what it needs to repair.</p>
+            </div>
+            <div className="benefit-card">
+              <h4><span>✅</span> Progress Check-In</h4>
+              <p>A quick check-in at the end of the 10 days to talk about how you're doing and what comes next.</p>
             </div>
           </div>
-          
-          <div className="additional-tools">
-            <p>We may also recommend <Link href="/hyperbaric-oxygen-therapy">hyperbaric oxygen therapy</Link>, <Link href="/red-light-therapy">red light therapy</Link>, or other treatments depending on your situation.</p>
+
+          <div style={{textAlign: 'center', marginTop: '2rem'}}>
+            <p style={{fontSize: '0.9375rem', color: '#525252', maxWidth: '600px', margin: '0 auto'}}>
+              We're selling you a <strong>10-day program and outcome</strong>, not individual treatments as separate line items.
+            </p>
           </div>
         </div>
       </section>
@@ -101,135 +102,97 @@ export default function InjuryRecovery() {
       {/* How It Works */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">The Process</div>
-          <h2 className="section-title">How Recovery Support Works</h2>
-          <p className="section-subtitle">A simple path from evaluation to active recovery support.</p>
-          
-          <div className="experience-grid">
-            <div className="experience-step">
-              <div className="experience-number">1</div>
-              <div className="experience-content">
-                <span className="duration">20-30 minutes</span>
-                <h4>Recovery Assessment</h4>
-                <p>Meet with a provider who reviews your injury history, current treatment, and goals. No labs required. We determine if and how we can help, and explain your options clearly.</p>
+          <p className="section-kicker">The Process</p>
+          <h2 className="section-title">How the 10-Day Jumpstart Works</h2>
+
+          <div className="process-timeline">
+            <div className="timeline-step">
+              <div className="timeline-marker">1</div>
+              <div className="timeline-content">
+                <h4>Book Your Recovery Jumpstart</h4>
+                <p>Choose a time that works for you using our online booking.</p>
               </div>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">2</div>
-              <div className="experience-content">
-                <h4>Get Your Protocol</h4>
-                <p>Based on your assessment, your provider recommends a recovery protocol—whether that's a short 10-day jumpstart for acute issues or a longer program for chronic problems.</p>
+
+            <div className="timeline-step">
+              <div className="timeline-marker">2</div>
+              <div className="timeline-content">
+                <h4>Come In for Your First Visit</h4>
+                <p>We review your injury, your current rehab plan, and make sure this is a safe fit.</p>
               </div>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">3</div>
-              <div className="experience-content">
-                <h4>Start Treatment</h4>
-                <p>Most peptide protocols involve simple self-injections at home. We teach you exactly how to do it. PRP and IVs are done at our office.</p>
+
+            <div className="timeline-step">
+              <div className="timeline-marker">3</div>
+              <div className="timeline-content">
+                <h4>Follow Your 10-Day Protocol</h4>
+                <p>You come in for your scheduled recovery sessions and follow the simple at-home steps we give you.</p>
               </div>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">4</div>
-              <div className="experience-content">
-                <h4>Monitor & Adjust</h4>
-                <p>We check in regularly to track your progress. If something needs adjustment, we adapt your protocol. The goal is to get you back to full activity as quickly as possible.</p>
+
+            <div className="timeline-step">
+              <div className="timeline-marker">4</div>
+              <div className="timeline-content">
+                <h4>Review Your Progress</h4>
+                <p>At the end of the 10 days, we check in on pain, swelling, and function and decide together what the best next step is.</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Protocol Options */}
+      {/* Price & FAQ */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Protocol Options</div>
-          <h2 className="section-title">Recovery Programs</h2>
-          <p className="section-subtitle">We offer flexible options based on your injury and recovery timeline.</p>
-          
-          <div className="protocol-options-grid">
-            <div className="protocol-option">
-              <h3>Recovery Jumpstart</h3>
-              <p className="protocol-duration">10-day protocol</p>
-              <p className="protocol-desc">For acute flare-ups or post-op support. A short, focused peptide protocol designed to get you through the critical early phase of healing.</p>
-              <ul>
-                <li>10-day peptide protocol</li>
-                <li>All supplies included</li>
-                <li>Provider guidance</li>
-                <li>Best for: acute injuries, post-surgery</li>
-              </ul>
-            </div>
-            <div className="protocol-option featured">
-              <div className="protocol-badge">Most Comprehensive</div>
-              <h3>Recovery Month</h3>
-              <p className="protocol-duration">30-day program</p>
-              <p className="protocol-desc">For longer recoveries or chronic issues. Includes a full month of peptide support, provider check-ins, and adjustments based on your progress.</p>
-              <ul>
-                <li>Full month of peptide support</li>
-                <li>Regular provider check-ins</li>
-                <li>Adjustments based on progress</li>
-                <li>Best for: chronic issues, complex injuries</li>
-              </ul>
-            </div>
-            <div className="protocol-option">
-              <h3>Add-On Therapies</h3>
-              <p className="protocol-duration">As needed</p>
-              <p className="protocol-desc">Enhance your recovery with complementary treatments that work synergistically with your peptide protocol.</p>
-              <ul>
-                <li>PRP injections</li>
-                <li>Hyperbaric oxygen sessions</li>
-                <li>Red light therapy</li>
-                <li>IV nutrient support</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+          <p className="section-kicker">Details</p>
+          <h2 className="section-title">Price and Common Questions</h2>
 
-      {/* Works Alongside */}
-      <section className="section section-gray">
-        <div className="container">
-          <div className="works-alongside">
-            <div className="works-alongside-content">
-              <div className="section-kicker">Important Note</div>
-              <h2>We Work Alongside Your Current Care Team</h2>
-              <p>Recovery support at Range Medical is designed to complement—not replace—your existing treatment. If you're seeing a chiropractor, physical therapist, orthopedic surgeon, or other provider, we work with them, not instead of them.</p>
-              <p>Think of us as an additional tool in your recovery toolkit. We focus on the cellular and systemic support that can help your body heal faster while your other providers handle the structural and rehabilitative work.</p>
-            </div>
+          <div style={{maxWidth: '600px', margin: '0 auto 2rem', textAlign: 'center', background: '#fafafa', borderRadius: '12px', padding: '2rem'}}>
+            <div style={{fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem'}}>$250</div>
+            <p style={{fontSize: '1rem', color: '#525252', marginBottom: '0'}}>10-Day Recovery Jumpstart</p>
+            <p style={{fontSize: '0.875rem', color: '#737373', marginTop: '0.5rem'}}>No lab work required for this program.</p>
           </div>
-        </div>
-      </section>
 
-      {/* FAQ */}
-      <section className="section">
-        <div className="container">
-          <div className="section-kicker">Questions</div>
-          <h2 className="section-title">Frequently Asked Questions</h2>
-          
           <div className="faq-container">
             <div className="faq-item">
-              <h4>Does this replace my chiropractor or physical therapist?</h4>
-              <p>No. We work alongside your existing care team, not instead of them. Think of us as an additional tool to support your recovery—we're not replacing the structural work your chiro or PT does.</p>
+              <h4>Do I have to be a patient at Range Sports Therapy first?</h4>
+              <p>No. Many people are referred from there, but you can also book directly with us.</p>
             </div>
+
             <div className="faq-item">
-              <h4>Do I need labs for recovery support?</h4>
-              <p>Usually no. Most recovery protocols don't require bloodwork. If your provider thinks labs would be helpful for your specific situation, they'll recommend it—but it's not a default requirement.</p>
+              <h4>Does this replace my rehab?</h4>
+              <p>No. This is designed to support and speed up the recovery work you're already doing.</p>
             </div>
+
             <div className="faq-item">
-              <h4>How soon can I expect to see results?</h4>
-              <p>It depends on your injury and protocol. Some patients notice improvement within the first week or two. Others take longer. Your provider will set realistic expectations based on your specific situation.</p>
+              <h4>Will I need labs or blood work?</h4>
+              <p>No. This program uses treatments we can safely do without lab work.</p>
             </div>
+
             <div className="faq-item">
-              <h4>What if I'm not sure this is right for me?</h4>
-              <p>That's exactly what the assessment is for. We'll evaluate your situation and give you an honest answer about whether we think we can help. No pressure to start anything.</p>
+              <h4>What kinds of injuries does this help with?</h4>
+              <p>Most orthopedic injuries — sprains, strains, post-surgical recovery, chronic pain that's slow to heal. We'll confirm it's a good fit at your first visit.</p>
             </div>
-            <div className="faq-item">
-              <h4>Can I combine this with hormone therapy or weight loss?</h4>
-              <p>Yes. If you're interested in our optimization services (hormones, weight loss, longevity), we can discuss that too. Those programs require labs. Many patients do both.</p>
-            </div>
-            <div className="faq-item">
-              <h4>Do you accept insurance?</h4>
-              <p>We're a cash-pay clinic and don't bill insurance directly. We can provide documentation for you to submit for potential reimbursement. Many patients use HSA or FSA funds.</p>
-            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Bridge to Optimization */}
+      <section className="section section-gray">
+        <div className="container">
+          <div style={{maxWidth: '700px', margin: '0 auto', textAlign: 'center'}}>
+            <p className="section-kicker">What's Next?</p>
+            <h2 className="section-title">What Happens After the 10 Days?</h2>
+            <p style={{fontSize: '1rem', color: '#525252', lineHeight: '1.7', marginBottom: '1.5rem'}}>
+              If your only goal is to get this injury calmed down, the Jumpstart may be all you need.
+            </p>
+            <p style={{fontSize: '1rem', color: '#525252', lineHeight: '1.7', marginBottom: '2rem'}}>
+              If you also want to work on bigger things like energy, sleep, hormones, or weight, 
+              your provider may recommend a separate visit called the Range Assessment.
+            </p>
+            <Link href="/range-assessment" className="btn-outline">
+              Learn About the Range Assessment
+            </Link>
           </div>
         </div>
       </section>
@@ -237,13 +200,15 @@ export default function InjuryRecovery() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <h2>Ready to Support Your Recovery?</h2>
-          <p>Book a Recovery Assessment and we'll evaluate whether our tools can help you heal faster.</p>
+          <span className="cta-step">Get Started</span>
+          <h2>Ready to Speed Up Your Recovery?</h2>
+          <p>Book your 10-Day Recovery Jumpstart and give your body the support it needs to heal faster.</p>
           <div className="cta-buttons">
-            <Link href="/book-recovery" className="btn-white">Book Recovery Assessment</Link>
-            <a href="tel:+19499973988" className="btn-outline-white">Call (949) 997-3988</a>
+            <Link href="/book-recovery" className="btn-white">
+              Book Recovery Jumpstart — $250
+            </Link>
           </div>
-          <p className="cta-location">📍 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
+          <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
         </div>
       </section>
     </Layout>

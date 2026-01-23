@@ -666,18 +666,18 @@ const CellularEnergyMaintenance = () => {
     <>
       <Head>
         <title>Cellular Energy Maintenance | Range Medical</title>
-        <meta name="description" content="Stay optimized after your 6-Week Reset. 4 HBOT + 4 Red Light sessions every 4 weeks for $597. Newport Beach, CA." />
+        <meta name="description" content="Stay optimized after your 6-Week Reset. 4 HBOT + 4 Red Light sessions every 4 weeks for $599. Newport Beach, CA." />
         
         {/* Open Graph / Link Preview */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://range-medical.com/cellular-energy-maintenance" />
-        <meta property="og:title" content="Cellular Energy Maintenance — $597/4wk" />
+        <meta property="og:title" content="Cellular Energy Maintenance — $599/4wk" />
         <meta property="og:description" content="Stay optimized after your Reset. 4 HBOT + 4 Red Light sessions every 4 weeks." />
         <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
         
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Cellular Energy Maintenance — $597/4wk" />
+        <meta name="twitter:title" content="Cellular Energy Maintenance — $599/4wk" />
         <meta name="twitter:description" content="Stay optimized after your Reset. 4 HBOT + 4 Red Light sessions every 4 weeks." />
         <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
       </Head>
@@ -711,7 +711,7 @@ const CellularEnergyMaintenance = () => {
             You built something in 6 weeks. Don't lose it. Stay optimized with ongoing HBOT + Red Light at a fraction of the cost.
           </p>
           <div className="cem-hero-price-box">
-            <div className="cem-hero-price">$597 <span>/ 4 weeks</span></div>
+            <div className="cem-hero-price">$599 <span>/ 4 weeks</span></div>
             <div className="cem-hero-compare">À la carte value: $1,080+</div>
           </div>
           <div>
@@ -840,7 +840,7 @@ const CellularEnergyMaintenance = () => {
                 </tr>
                 <tr className="membership-row">
                   <td>Maintenance Membership</td>
-                  <td>$597</td>
+                  <td>$599</td>
                 </tr>
                 <tr className="savings-row">
                   <td>You Save</td>
@@ -898,7 +898,7 @@ const CellularEnergyMaintenance = () => {
           <div className="cem-pricing-tiers">
             <div className="cem-pricing-tier">
               <div className="cem-pricing-tier-name">Base</div>
-              <div className="cem-pricing-tier-price">$597 <span>/ 4 weeks</span></div>
+              <div className="cem-pricing-tier-price">$599 <span>/ 4 weeks</span></div>
               <ul className="cem-pricing-tier-list">
                 <li>4 Hyperbaric Oxygen sessions</li>
                 <li>4 Red Light Therapy sessions</li>
@@ -913,7 +913,7 @@ const CellularEnergyMaintenance = () => {
             <div className="cem-pricing-tier featured">
               <div className="cem-pricing-tier-badge">Enhanced</div>
               <div className="cem-pricing-tier-name">Maintenance + IV</div>
-              <div className="cem-pricing-tier-price">$797 <span>/ 4 weeks</span></div>
+              <div className="cem-pricing-tier-price">$799 <span>/ 4 weeks</span></div>
               <ul className="cem-pricing-tier-list">
                 <li>4 Hyperbaric Oxygen sessions</li>
                 <li>4 Red Light Therapy sessions</li>

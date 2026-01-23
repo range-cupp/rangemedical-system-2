@@ -1,5 +1,6 @@
 import React from 'react';
 import Head from 'next/head';
+import Header from '../../Header';
 
 const CellularEnergyResetLanding = () => {
   const styles = `
@@ -14,61 +15,6 @@ const CellularEnergyResetLanding = () => {
       max-width: 1100px;
       margin: 0 auto;
       padding: 0 1.5rem;
-    }
-    
-    /* Header */
-    .cer-header {
-      background: #ffffff;
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #e5e5e5;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    
-    .cer-header-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .cer-logo {
-      height: 40px;
-      width: auto;
-    }
-    
-    .cer-header-cta {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-    
-    .cer-header-phone {
-      font-size: 0.9375rem;
-      color: #525252;
-    }
-    
-    .cer-header-phone a {
-      color: #000000;
-      font-weight: 600;
-      text-decoration: none;
-    }
-    
-    .cer-btn-small {
-      background: #000000;
-      color: #ffffff;
-      padding: 0.625rem 1.25rem;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 0.875rem;
-      transition: background 0.2s;
-    }
-    
-    .cer-btn-small:hover {
-      background: #262626;
     }
     
     /* Hero Section */
@@ -1310,21 +1256,7 @@ const CellularEnergyResetLanding = () => {
       <style>{styles}</style>
       
       {/* Header */}
-      <header className="cer-header">
-        <div className="cer-header-inner">
-          <a href="https://range-medical.com">
-            <img 
-              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
-              alt="Range Medical" 
-              className="cer-logo"
-            />
-          </a>
-          <div className="cer-header-cta">
-            <span className="cer-header-phone">Questions? <a href="tel:+19499973988">(949) 997-3988</a></span>
-            <a href="sms:+19499973988?body=Hi, I'm interested in the Cellular Energy Assessment." className="cer-btn-small">Get Started</a>
-          </div>
-        </div>
-      </header>
+      <Header />
       
       {/* Hero */}
       <section className="cer-hero">

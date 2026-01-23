@@ -720,20 +720,20 @@ const CellularEnergyResetGuide = () => {
           <div className="cer-guide-overview-label">Per Week</div>
         </div>
         <div className="cer-guide-overview-card">
-          <div className="cer-guide-overview-number">2</div>
-          <div className="cer-guide-overview-label">Lab Panels</div>
+          <div className="cer-guide-overview-number">~90</div>
+          <div className="cer-guide-overview-label">Min/Visit</div>
         </div>
       </div>
       
-      {/* Assessment Note - NEW */}
+      {/* Assessment Note */}
       <div className="cer-guide-assessment-note">
         <h4>📋 Started with the Cellular Energy Assessment?</h4>
         <p>
-          If you completed the Assessment ($497) before enrolling, your entire Assessment fee has been credited toward this program. Your baseline labs are already done—you're ready to begin the Reset.
+          If you completed the Assessment ($199) before enrolling, your entire Assessment fee has been credited toward this program. You're ready to begin the Reset.
         </p>
       </div>
       
-      {/* Value Stack - NEW */}
+      {/* Value Stack */}
       <div className="cer-guide-value-box">
         <div className="cer-guide-value-header">
           <h3>Your Program Investment</h3>
@@ -749,11 +749,7 @@ const CellularEnergyResetGuide = () => {
             <span>$1,530</span>
           </div>
           <div className="cer-guide-value-row">
-            <span>2 Cellular Energy Lab Panels</span>
-            <span>$700</span>
-          </div>
-          <div className="cer-guide-value-row">
-            <span>2 Provider Lab Review Visits + Written Plans</span>
+            <span>Orientation & Week-7 Review</span>
             <span>$400</span>
           </div>
           <div className="cer-guide-value-row">
@@ -768,13 +764,13 @@ const CellularEnergyResetGuide = () => {
         <div className="cer-guide-value-footer">
           <div className="cer-guide-value-total">
             <span>Total Value</span>
-            <span>$6,460</span>
+            <span>$5,760</span>
           </div>
           <div className="cer-guide-value-price">
             <span>Your Price</span>
-            <span>$3,997</span>
+            <span>$3,999</span>
           </div>
-          <div className="cer-guide-value-savings">You save $2,463 (38%)</div>
+          <div className="cer-guide-value-savings">You save $1,763 (31%)</div>
         </div>
       </div>
       
@@ -782,14 +778,14 @@ const CellularEnergyResetGuide = () => {
       <div className="cer-guide-payment-grid">
         <div className="cer-guide-payment-card featured">
           <div className="cer-guide-payment-label">Pay in Full</div>
-          <div className="cer-guide-payment-price">$3,997</div>
+          <div className="cer-guide-payment-price">$3,999</div>
           <div className="cer-guide-payment-note">One-time payment</div>
           <div className="cer-guide-payment-bonus">+ 2 Bonus Red Light Sessions</div>
         </div>
         <div className="cer-guide-payment-card">
           <div className="cer-guide-payment-label">Payment Plan</div>
-          <div className="cer-guide-payment-price">3 × $1,450</div>
-          <div className="cer-guide-payment-note">$4,350 total</div>
+          <div className="cer-guide-payment-price">3 × $1,399</div>
+          <div className="cer-guide-payment-note">$4,197 total</div>
         </div>
       </div>
       
@@ -833,23 +829,12 @@ const CellularEnergyResetGuide = () => {
           </div>
           
           <div className="cer-guide-included-card">
-            <h3 className="cer-guide-included-title">2 Cellular Energy Lab Panels</h3>
-            <p className="cer-guide-included-detail">Baseline + 6-week follow-up</p>
-            <ul className="cer-guide-included-list">
-              <li>12 targeted biomarkers</li>
-              <li>Inflammation markers (CRP-HS, Homocysteine)</li>
-              <li>Growth factors (IGF-1, DHEA-S)</li>
-              <li>Metabolic markers (Insulin, Thyroid)</li>
-            </ul>
-          </div>
-          
-          <div className="cer-guide-included-card">
             <h3 className="cer-guide-included-title">Weekly Check-Ins & Support</h3>
             <p className="cer-guide-included-detail">Progress tracking throughout</p>
             <ul className="cer-guide-included-list">
+              <li>Program orientation to start strong</li>
               <li>Energy level tracking (1-10 scale)</li>
-              <li>Sleep quality assessment</li>
-              <li>Recovery monitoring</li>
+              <li>Week-7 results review & next steps</li>
               <li>Protocol adjustments as needed</li>
             </ul>
           </div>
@@ -865,8 +850,8 @@ const CellularEnergyResetGuide = () => {
           <div className="cer-guide-timeline-row">
             <div className="cer-guide-timeline-week">Week 0</div>
             <div className="cer-guide-timeline-content">
-              <h4>Baseline Assessment</h4>
-              <p>Complete lab panel, review results with provider, orientation to therapies</p>
+              <h4>Orientation</h4>
+              <p>Program overview, therapy orientation, schedule all 18 combo visits</p>
             </div>
           </div>
           <div className="cer-guide-timeline-row">
@@ -888,55 +873,15 @@ const CellularEnergyResetGuide = () => {
             <div className="cer-guide-timeline-week">Week 5-6</div>
             <div className="cer-guide-timeline-content">
               <h4>Optimization Phase</h4>
-              <p>Peak benefits • Follow-up labs drawn • 6 RLT + 6 HBOT sessions</p>
+              <p>Peak benefits • Full cellular adaptation • 6 RLT + 6 HBOT sessions</p>
             </div>
           </div>
           <div className="cer-guide-timeline-row">
             <div className="cer-guide-timeline-week purple">Week 7</div>
             <div className="cer-guide-timeline-content">
               <h4>Results Review + What's Next</h4>
-              <p>Compare labs, review progress, discuss Maintenance Membership options</p>
+              <p>Review your progress, discuss Maintenance Membership options</p>
             </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Lab Panel */}
-      <section className="cer-guide-lab-section">
-        <h3 className="cer-guide-lab-title">Cellular Energy Lab Panel — 12 Biomarkers</h3>
-        <p className="cer-guide-lab-subtitle">Drawn at baseline and week 6 to measure your transformation</p>
-        
-        <div className="cer-guide-lab-grid">
-          <div className="cer-guide-lab-category">
-            <h4>Inflammation</h4>
-            <ul>
-              <li>CRP-HS</li>
-              <li>Homocysteine</li>
-            </ul>
-          </div>
-          <div className="cer-guide-lab-category">
-            <h4>Oxygen & Iron</h4>
-            <ul>
-              <li>CBC (complete)</li>
-              <li>Ferritin</li>
-              <li>Iron/TIBC</li>
-            </ul>
-          </div>
-          <div className="cer-guide-lab-category">
-            <h4>Growth Factors</h4>
-            <ul>
-              <li>IGF-1</li>
-              <li>DHEA-S</li>
-            </ul>
-          </div>
-          <div className="cer-guide-lab-category">
-            <h4>Metabolism</h4>
-            <ul>
-              <li>Fasting Insulin</li>
-              <li>HgbA1c</li>
-              <li>Free T3 / TSH</li>
-              <li>Vitamin D</li>
-            </ul>
           </div>
         </div>
       </section>
@@ -1008,7 +953,7 @@ const CellularEnergyResetGuide = () => {
           <div className="cer-guide-expect-card">
             <p className="cer-guide-expect-week">Week 5-6</p>
             <h4 className="cer-guide-expect-title">Full Benefits</h4>
-            <p className="cer-guide-expect-desc">Sustained energy, reduced inflammation markers on labs, overall vitality boost</p>
+            <p className="cer-guide-expect-desc">Sustained energy, reduced inflammation, overall vitality boost</p>
           </div>
         </div>
       </section>
@@ -1040,11 +985,11 @@ const CellularEnergyResetGuide = () => {
         </div>
       </section>
       
-      {/* Maintenance Teaser - NEW */}
+      {/* Maintenance Teaser */}
       <div className="cer-guide-maintenance-box">
         <h4>🔮 What Comes After Week 6?</h4>
         <p>
-          At your Week 7 results review, we'll discuss the <strong>Cellular Energy Maintenance Membership</strong>—a way to preserve your gains with ongoing sessions at a reduced frequency. Maintenance includes 4 HBOT + 4 Red Light sessions every 4 weeks for <strong>$597/month</strong>, plus quarterly check-ins and annual labs at a preferred rate.
+          At your Week 7 results review, we'll discuss the <strong>Cellular Energy Maintenance Membership</strong>—a way to preserve your gains with ongoing sessions at a reduced frequency. Two options: <strong>Base ($599/4wk)</strong> includes 4 HBOT + 4 Red Light sessions with quarterly check-ins. <strong>Maintenance + IV ($799/4wk)</strong> adds 1 Energy IV per cycle for extra cellular support.
         </p>
       </div>
       

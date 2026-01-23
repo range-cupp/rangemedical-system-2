@@ -2,18 +2,18 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 
-export default function InjuryRecovery() {
+export default function RangeAssessment() {
   return (
     <Layout
-      title="10-Day Recovery Jumpstart | Range Medical | Newport Beach"
-      description="Speed up injury recovery with our 10-Day Recovery Jumpstart. No labs required. $250 to start. Located in the same building as Range Sports Therapy."
+      title="Range Assessment | Your First Step | Range Medical | Newport Beach"
+      description="One visit with a medical provider to finally connect your symptoms, your labs, and a clear plan. $199 to start. Newport Beach."
     >
       <Head>
-        <meta name="keywords" content="injury recovery Newport Beach, speed up healing, recovery jumpstart, HBOT injury, red light therapy recovery" />
-        <link rel="canonical" href="https://www.range-medical.com/injury-recovery" />
-        <meta property="og:title" content="10-Day Recovery Jumpstart | Range Medical" />
-        <meta property="og:description" content="If you're already doing rehab and feel like healing is taking too long, this is for you." />
-        <meta property="og:url" content="https://www.range-medical.com/injury-recovery" />
+        <meta name="keywords" content="wellness assessment Newport Beach, fatigue help, brain fog treatment, hormone testing, energy optimization" />
+        <link rel="canonical" href="https://www.range-medical.com/range-assessment" />
+        <meta property="og:title" content="Range Assessment | Range Medical | Newport Beach" />
+        <meta property="og:description" content="One visit with a medical provider to finally connect your symptoms, your labs, and a clear plan." />
+        <meta property="og:url" content="https://www.range-medical.com/range-assessment" />
       </Head>
 
       {/* Trust Bar */}
@@ -23,25 +23,25 @@ export default function InjuryRecovery() {
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
           <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">🩹 No Labs Required</span>
+          <span className="trust-item">⚡ Your First Step</span>
         </div>
       </div>
 
       {/* Hero */}
       <section className="hero">
-        <span className="hero-badge">Recovery Door</span>
-        <h1>10-Day Recovery Jumpstart for Injuries</h1>
+        <span className="hero-badge">Optimization Door</span>
+        <h1>The Range Assessment: Your First Step to Feeling Like Yourself Again</h1>
         <p className="hero-sub">
-          If you're already doing rehab and feel like healing is taking too long, this is for you.
+          One visit with a medical provider to finally connect your symptoms, your labs, and a clear plan.
         </p>
         <div className="hero-cta">
           <div className="hero-buttons">
-            <Link href="/book-recovery" className="btn-primary">
-              Book Recovery Jumpstart — $250
+            <Link href="/book" className="btn-primary">
+              Schedule Your Range Assessment — $199
             </Link>
           </div>
           <p className="hero-secondary">
-            Located in the same building as Range Sports Therapy. No labs required to start.
+            Most visits last 60–75 minutes.
           </p>
         </div>
       </section>
@@ -50,148 +50,143 @@ export default function InjuryRecovery() {
       <section className="section section-gray">
         <div className="container">
           <p className="section-kicker">Is This You?</p>
-          <h2 className="section-title">Who the Recovery Jumpstart Is For</h2>
+          <h2 className="section-title">Who the Range Assessment Is For</h2>
 
           <div className="pain-points">
             <ul>
-              <li>You're rehabbing an injury and progress feels slow.</li>
-              <li>Pain and swelling keep coming back between visits.</li>
-              <li>You want to get back to work, training, or daily life faster.</li>
-              <li>Your therapist or chiropractor thinks extra recovery support could help.</li>
+              <li>You feel tired or foggy even though your regular labs were "normal."</li>
+              <li>You rely on coffee or energy drinks just to get through the day.</li>
+              <li>Your sleep, mood, or libido is off and you can't figure out why.</li>
+              <li>You want a long-term plan for hormones, weight, or longevity — not guesswork.</li>
             </ul>
           </div>
         </div>
       </section>
 
-      {/* What You Get */}
+      {/* What Happens */}
       <section className="section">
         <div className="container">
-          <p className="section-kicker">The Program</p>
-          <h2 className="section-title">What You Get in 10 Days</h2>
+          <p className="section-kicker">Your Visit</p>
+          <h2 className="section-title">What Happens During Your Assessment</h2>
           <p className="section-subtitle">
-            A structured plan to support your healing — not a menu of random treatments.
+            A real conversation with a provider who listens, not a rushed 10-minute appointment.
           </p>
 
           <div className="benefits-grid">
             <div className="benefit-card">
-              <h4><span>📋</span> Custom 10-Day Plan</h4>
-              <p>A recovery plan built by our medical team based on your injury and goals.</p>
+              <h4><span>📋</span> Review Your History</h4>
+              <p>We go over your symptoms, history, and what you've already tried that hasn't worked.</p>
             </div>
             <div className="benefit-card">
-              <h4><span>🏥</span> In-Clinic Sessions</h4>
-              <p>Recovery sessions using tools like red light therapy, hyperbaric oxygen, and targeted injections when appropriate.</p>
+              <h4><span>🔬</span> Explain Your Labs</h4>
+              <p>We review any labs you've had done this year and explain what they actually mean for how you feel.</p>
             </div>
             <div className="benefit-card">
-              <h4><span>🔥</span> Inflammation Support</h4>
-              <p>Help calm inflammation, support circulation, and give your body what it needs to repair.</p>
+              <h4><span>🎯</span> Recommend Next Steps</h4>
+              <p>If deeper lab work would change your plan, we recommend specific panels and timing.</p>
             </div>
             <div className="benefit-card">
-              <h4><span>✅</span> Progress Check-In</h4>
-              <p>A quick check-in at the end of the 10 days to talk about how you're doing and what comes next.</p>
+              <h4><span>📝</span> Leave With a Plan</h4>
+              <p>You leave with a written plan and clear next steps — not just "let's wait and see."</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How Labs Fit In */}
+      <section className="section section-gray">
+        <div className="container">
+          <p className="section-kicker">Important</p>
+          <h2 className="section-title">How Labs Fit Into the Range Assessment</h2>
+
+          <div style={{maxWidth: '700px', margin: '0 auto'}}>
+            <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
+              Every person is different. During your Assessment, your provider reviews your symptoms, history, and current treatments.
+            </p>
+            <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
+              If deeper lab work will change your plan, they'll recommend which labs to run and when.
+            </p>
+            <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
+              Some patients start with treatments we can do right away and add labs later. Others start with labs first. You and your provider decide together what makes the most sense.
+            </p>
+            <div style={{background: '#ffffff', border: '1px solid #e5e5e5', borderRadius: '12px', padding: '1.5rem', marginTop: '1.5rem'}}>
+              <p style={{fontSize: '0.9375rem', color: '#404040', marginBottom: '0', textAlign: 'center'}}>
+                <strong>This means labs are not automatically included for everyone.</strong><br />
+                They are added when they truly help us build a better plan for you.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What Comes Next */}
+      <section className="section">
+        <div className="container">
+          <p className="section-kicker">After Your Assessment</p>
+          <h2 className="section-title">What Happens After Your Assessment</h2>
+          <p className="section-subtitle">
+            Based on your goals and results, your provider may recommend one or more of these programs:
+          </p>
+
+          <div className="tools-grid">
+            <Link href="/cellular-energy-reset" className="tool-card">
+              <h4>Cellular Energy Reset</h4>
+              <p>6-week program for low energy, brain fog, and slow recovery. Combines in-clinic treatments with a clear plan.</p>
+            </Link>
+            <Link href="/hormone-optimization" className="tool-card">
+              <h4>Hormone Optimization</h4>
+              <p>For men and women with symptoms of hormone imbalance who want bioidentical hormone therapy with close follow-up.</p>
+            </Link>
+            <Link href="/weight-loss" className="tool-card">
+              <h4>Medical Weight Loss</h4>
+              <p>Medical support with weight, appetite, and metabolism — not just another diet.</p>
+            </Link>
+            <Link href="/peptide-therapy" className="tool-card">
+              <h4>Peptide Therapy</h4>
+              <p>Recovery, performance, and longevity support using targeted peptide protocols.</p>
+            </Link>
+            <Link href="/iv-therapy" className="tool-card">
+              <h4>IV Therapy</h4>
+              <p>Vitamins, nutrients, and hydration delivered directly to your bloodstream for faster results.</p>
+            </Link>
+            <Link href="/lab-panels" className="tool-card">
+              <h4>Advanced Lab Testing</h4>
+              <p>Deeper lab panels when your provider recommends them for your specific situation.</p>
+            </Link>
           </div>
 
           <div style={{textAlign: 'center', marginTop: '2rem'}}>
-            <p style={{fontSize: '0.9375rem', color: '#525252', maxWidth: '600px', margin: '0 auto'}}>
-              We're selling you a <strong>10-day program and outcome</strong>, not individual treatments as separate line items.
+            <p style={{fontSize: '0.9375rem', color: '#737373', maxWidth: '500px', margin: '0 auto'}}>
+              You're not buying these from this page. Your Assessment helps us figure out which path is right for you.
             </p>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* Pricing Box */}
       <section className="section section-gray">
         <div className="container">
-          <p className="section-kicker">The Process</p>
-          <h2 className="section-title">How the 10-Day Jumpstart Works</h2>
-
-          <div className="process-timeline">
-            <div className="timeline-step">
-              <div className="timeline-marker">1</div>
-              <div className="timeline-content">
-                <h4>Book Your Recovery Jumpstart</h4>
-                <p>Choose a time that works for you using our online booking.</p>
-              </div>
-            </div>
-
-            <div className="timeline-step">
-              <div className="timeline-marker">2</div>
-              <div className="timeline-content">
-                <h4>Come In for Your First Visit</h4>
-                <p>We review your injury, your current rehab plan, and make sure this is a safe fit.</p>
-              </div>
-            </div>
-
-            <div className="timeline-step">
-              <div className="timeline-marker">3</div>
-              <div className="timeline-content">
-                <h4>Follow Your 10-Day Protocol</h4>
-                <p>You come in for your scheduled recovery sessions and follow the simple at-home steps we give you.</p>
-              </div>
-            </div>
-
-            <div className="timeline-step">
-              <div className="timeline-marker">4</div>
-              <div className="timeline-content">
-                <h4>Review Your Progress</h4>
-                <p>At the end of the 10 days, we check in on pain, swelling, and function and decide together what the best next step is.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Price & FAQ */}
-      <section className="section">
-        <div className="container">
-          <p className="section-kicker">Details</p>
-          <h2 className="section-title">Price and Common Questions</h2>
-
-          <div style={{maxWidth: '600px', margin: '0 auto 2rem', textAlign: 'center', background: '#fafafa', borderRadius: '12px', padding: '2rem'}}>
-            <div style={{fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem'}}>$250</div>
-            <p style={{fontSize: '1rem', color: '#525252', marginBottom: '0'}}>10-Day Recovery Jumpstart</p>
-            <p style={{fontSize: '0.875rem', color: '#737373', marginTop: '0.5rem'}}>No lab work required for this program.</p>
-          </div>
-
-          <div className="faq-container">
-            <div className="faq-item">
-              <h4>Do I have to be a patient at Range Sports Therapy first?</h4>
-              <p>No. Many people are referred from there, but you can also book directly with us.</p>
-            </div>
-
-            <div className="faq-item">
-              <h4>Does this replace my rehab?</h4>
-              <p>No. This is designed to support and speed up the recovery work you're already doing.</p>
-            </div>
-
-            <div className="faq-item">
-              <h4>Will I need labs or blood work?</h4>
-              <p>No. This program uses treatments we can safely do without lab work.</p>
-            </div>
-
-            <div className="faq-item">
-              <h4>What kinds of injuries does this help with?</h4>
-              <p>Most orthopedic injuries — sprains, strains, post-surgical recovery, chronic pain that's slow to heal. We'll confirm it's a good fit at your first visit.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Bridge to Optimization */}
-      <section className="section section-gray">
-        <div className="container">
-          <div style={{maxWidth: '700px', margin: '0 auto', textAlign: 'center'}}>
-            <p className="section-kicker">What's Next?</p>
-            <h2 className="section-title">What Happens After the 10 Days?</h2>
-            <p style={{fontSize: '1rem', color: '#525252', lineHeight: '1.7', marginBottom: '1.5rem'}}>
-              If your only goal is to get this injury calmed down, the Jumpstart may be all you need.
-            </p>
-            <p style={{fontSize: '1rem', color: '#525252', lineHeight: '1.7', marginBottom: '2rem'}}>
-              If you also want to work on bigger things like energy, sleep, hormones, or weight, 
-              your provider may recommend a separate visit called the Range Assessment.
-            </p>
-            <Link href="/range-assessment" className="btn-outline">
-              Learn About the Range Assessment
+          <div style={{maxWidth: '600px', margin: '0 auto', background: '#ffffff', border: '2px solid #000000', borderRadius: '16px', padding: '2.5rem', textAlign: 'center'}}>
+            <span style={{display: 'inline-block', background: '#000', color: '#fff', padding: '0.25rem 1rem', borderRadius: '100px', fontSize: '0.75rem', fontWeight: '600', marginBottom: '1rem'}}>Start Here</span>
+            <h3 style={{marginBottom: '0.5rem'}}>Range Assessment</h3>
+            <div style={{fontSize: '3rem', fontWeight: '700', marginBottom: '0.5rem'}}>$199</div>
+            <p style={{fontSize: '0.9375rem', color: '#525252', marginBottom: '1.5rem'}}>60–75 minute visit with a provider</p>
+            <ul style={{textAlign: 'left', listStyle: 'none', padding: '0', marginBottom: '1.5rem'}}>
+              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
+                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Full review of your symptoms and history
+              </li>
+              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
+                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Review of any labs you've already done
+              </li>
+              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
+                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Lab recommendations if they help your plan
+              </li>
+              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
+                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Written plan with clear next steps
+              </li>
+            </ul>
+            <Link href="/book" className="btn-primary" style={{width: '100%', textAlign: 'center'}}>
+              Schedule Your Assessment
             </Link>
           </div>
         </div>
@@ -200,12 +195,12 @@ export default function InjuryRecovery() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <span className="cta-step">Get Started</span>
-          <h2>Ready to Speed Up Your Recovery?</h2>
-          <p>Book your 10-Day Recovery Jumpstart and give your body the support it needs to heal faster.</p>
+          <span className="cta-step">Start With One Visit</span>
+          <h2>Tired of Guessing?</h2>
+          <p>If you want a clear plan built around your symptoms and data, the Range Assessment is the first step.</p>
           <div className="cta-buttons">
-            <Link href="/book-recovery" className="btn-white">
-              Book Recovery Jumpstart — $250
+            <Link href="/book" className="btn-white">
+              Schedule Your Range Assessment — $199
             </Link>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>

@@ -2,18 +2,18 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 
-export default function RangeAssessment() {
+export default function CellularEnergyReset() {
   return (
     <Layout
-      title="Range Assessment | Your First Step | Range Medical | Newport Beach"
-      description="One visit with a medical provider to finally connect your symptoms, your labs, and a clear plan. $199 to start. Newport Beach."
+      title="6-Week Cellular Energy Reset | Range Medical | Newport Beach"
+      description="A structured 6-week program for low energy, brain fog, and slow recovery. Combines HBOT, Red Light Therapy, and provider guidance."
     >
       <Head>
-        <meta name="keywords" content="wellness assessment Newport Beach, fatigue help, brain fog treatment, hormone testing, energy optimization" />
-        <link rel="canonical" href="https://www.range-medical.com/range-assessment" />
-        <meta property="og:title" content="Range Assessment | Range Medical | Newport Beach" />
-        <meta property="og:description" content="One visit with a medical provider to finally connect your symptoms, your labs, and a clear plan." />
-        <meta property="og:url" content="https://www.range-medical.com/range-assessment" />
+        <meta name="keywords" content="cellular energy reset, low energy treatment, brain fog help, HBOT Newport Beach, red light therapy program" />
+        <link rel="canonical" href="https://www.range-medical.com/cellular-energy-reset" />
+        <meta property="og:title" content="6-Week Cellular Energy Reset | Range Medical" />
+        <meta property="og:description" content="A structured 6-week program for low energy, brain fog, and slow recovery." />
+        <meta property="og:url" content="https://www.range-medical.com/cellular-energy-reset" />
       </Head>
 
       {/* Trust Bar */}
@@ -23,171 +23,250 @@ export default function RangeAssessment() {
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
           <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">⚡ Your First Step</span>
+          <span className="trust-item">⚡ 6-Week Program</span>
         </div>
       </div>
 
       {/* Hero */}
       <section className="hero">
-        <span className="hero-badge">Optimization Door</span>
-        <h1>The Range Assessment: Your First Step to Feeling Like Yourself Again</h1>
+        <span className="hero-badge">Program Details</span>
+        <h1>6-Week Cellular Energy Reset</h1>
         <p className="hero-sub">
-          One visit with a medical provider to finally connect your symptoms, your labs, and a clear plan.
+          A structured program for people whose main problem is low energy, brain fog, or slow recovery — 
+          and who want a clear plan to fix it at the cellular level.
         </p>
         <div className="hero-cta">
-          <div className="hero-buttons">
-            <Link href="/book" className="btn-primary">
-              Schedule Your Range Assessment — $199
+          <p className="hero-secondary">
+            This program is recommended through a <Link href="/range-assessment"><strong>Range Assessment</strong></Link>. 
+            If you haven't had your Assessment yet, start there.
+          </p>
+          <div className="hero-buttons" style={{marginTop: '1rem'}}>
+            <Link href="/range-assessment" className="btn-outline">
+              Book Range Assessment First — $199
             </Link>
           </div>
-          <p className="hero-secondary">
-            Most visits last 60–75 minutes.
-          </p>
         </div>
       </section>
 
-      {/* Who This Is For */}
+      {/* What This Program Is */}
       <section className="section section-gray">
         <div className="container">
+          <p className="section-kicker">The Program</p>
+          <h2 className="section-title">What Is the Cellular Energy Reset?</h2>
+          <p className="section-subtitle">
+            A 6-week protocol designed to restore energy at the cellular level — not by masking symptoms, 
+            but by supporting your mitochondria to produce real, lasting energy.
+          </p>
+
+          <div className="comparison">
+            <div className="comparison-col">
+              <h4>What Hasn't Worked</h4>
+              <ul>
+                <li>More supplements and vitamins</li>
+                <li>Energy drinks and caffeine</li>
+                <li>Sleep apps and trackers</li>
+                <li>Hoping it's "just stress"</li>
+                <li>Doctors saying labs look "fine"</li>
+              </ul>
+            </div>
+            <div className="comparison-col range">
+              <h4>What the Reset Does</h4>
+              <ul>
+                <li>Increases oxygen delivery to cells (HBOT)</li>
+                <li>Stimulates mitochondrial function (Red Light)</li>
+                <li>Reduces cellular inflammation</li>
+                <li>Supports natural ATP production</li>
+                <li>Tracks progress with weekly check-ins</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Who It's For */}
+      <section className="section">
+        <div className="container">
           <p className="section-kicker">Is This You?</p>
-          <h2 className="section-title">Who the Range Assessment Is For</h2>
+          <h2 className="section-title">Who This Program Is For</h2>
 
           <div className="pain-points">
             <ul>
-              <li>You feel tired or foggy even though your regular labs were "normal."</li>
-              <li>You rely on coffee or energy drinks just to get through the day.</li>
-              <li>Your sleep, mood, or libido is off and you can't figure out why.</li>
-              <li>You want a long-term plan for hormones, weight, or longevity — not guesswork.</li>
+              <li>Exhausted by 2pm despite a full night's sleep</li>
+              <li>Brain fog that makes focusing feel impossible</li>
+              <li>Needing caffeine just to function at baseline</li>
+              <li>Workouts that drain you for days instead of energizing you</li>
+              <li>Your Range Assessment pointed to cellular energy as a core issue</li>
             </ul>
           </div>
         </div>
       </section>
 
-      {/* What Happens */}
-      <section className="section">
+      {/* What's Included */}
+      <section className="section section-gray">
         <div className="container">
-          <p className="section-kicker">Your Visit</p>
-          <h2 className="section-title">What Happens During Your Assessment</h2>
-          <p className="section-subtitle">
-            A real conversation with a provider who listens, not a rushed 10-minute appointment.
-          </p>
+          <p className="section-kicker">What You Get</p>
+          <h2 className="section-title">What's Included in the 6-Week Reset</h2>
 
           <div className="benefits-grid">
             <div className="benefit-card">
-              <h4><span>📋</span> Review Your History</h4>
-              <p>We go over your symptoms, history, and what you've already tried that hasn't worked.</p>
+              <h4><span>💨</span> 18 HBOT Sessions</h4>
+              <p>60 minutes each at 1.5 ATA. Increased oxygen delivery to support cellular repair and energy production.</p>
             </div>
             <div className="benefit-card">
-              <h4><span>🔬</span> Explain Your Labs</h4>
-              <p>We review any labs you've had done this year and explain what they actually mean for how you feel.</p>
+              <h4><span>🔴</span> 18 Red Light Sessions</h4>
+              <p>Full-body treatment (20 min each). Specific wavelengths that stimulate mitochondrial function.</p>
             </div>
             <div className="benefit-card">
-              <h4><span>🎯</span> Recommend Next Steps</h4>
-              <p>If deeper lab work would change your plan, we recommend specific panels and timing.</p>
+              <h4><span>👨‍⚕️</span> Provider Consultations</h4>
+              <p>Initial consultation to build your plan, plus Week 7 results review to measure progress.</p>
             </div>
             <div className="benefit-card">
-              <h4><span>📝</span> Leave With a Plan</h4>
-              <p>You leave with a written plan and clear next steps — not just "let's wait and see."</p>
+              <h4><span>📊</span> Weekly Check-Ins</h4>
+              <p>Track energy, sleep, and mental clarity throughout the program so we can adjust as needed.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How Labs Fit In */}
-      <section className="section section-gray">
-        <div className="container">
-          <p className="section-kicker">Important</p>
-          <h2 className="section-title">How Labs Fit Into the Range Assessment</h2>
-
-          <div style={{maxWidth: '700px', margin: '0 auto'}}>
-            <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
-              Every person is different. During your Assessment, your provider reviews your symptoms, history, and current treatments.
-            </p>
-            <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
-              If deeper lab work will change your plan, they'll recommend which labs to run and when.
-            </p>
-            <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
-              Some patients start with treatments we can do right away and add labs later. Others start with labs first. You and your provider decide together what makes the most sense.
-            </p>
-            <div style={{background: '#ffffff', border: '1px solid #e5e5e5', borderRadius: '12px', padding: '1.5rem', marginTop: '1.5rem'}}>
-              <p style={{fontSize: '0.9375rem', color: '#404040', marginBottom: '0', textAlign: 'center'}}>
-                <strong>This means labs are not automatically included for everyone.</strong><br />
-                They are added when they truly help us build a better plan for you.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* What Comes Next */}
+      {/* Timeline */}
       <section className="section">
         <div className="container">
-          <p className="section-kicker">After Your Assessment</p>
-          <h2 className="section-title">What Happens After Your Assessment</h2>
-          <p className="section-subtitle">
-            Based on your goals and results, your provider may recommend one or more of these programs:
-          </p>
+          <p className="section-kicker">Your Journey</p>
+          <h2 className="section-title">The 6-Week Timeline</h2>
 
-          <div className="tools-grid">
-            <Link href="/cellular-energy-reset" className="tool-card">
-              <h4>Cellular Energy Reset</h4>
-              <p>6-week program for low energy, brain fog, and slow recovery. Combines in-clinic treatments with a clear plan.</p>
-            </Link>
-            <Link href="/hormone-optimization" className="tool-card">
-              <h4>Hormone Optimization</h4>
-              <p>For men and women with symptoms of hormone imbalance who want bioidentical hormone therapy with close follow-up.</p>
-            </Link>
-            <Link href="/weight-loss" className="tool-card">
-              <h4>Medical Weight Loss</h4>
-              <p>Medical support with weight, appetite, and metabolism — not just another diet.</p>
-            </Link>
-            <Link href="/peptide-therapy" className="tool-card">
-              <h4>Peptide Therapy</h4>
-              <p>Recovery, performance, and longevity support using targeted peptide protocols.</p>
-            </Link>
-            <Link href="/iv-therapy" className="tool-card">
-              <h4>IV Therapy</h4>
-              <p>Vitamins, nutrients, and hydration delivered directly to your bloodstream for faster results.</p>
-            </Link>
-            <Link href="/lab-panels" className="tool-card">
-              <h4>Advanced Lab Testing</h4>
-              <p>Deeper lab panels when your provider recommends them for your specific situation.</p>
-            </Link>
-          </div>
+          <div className="process-timeline">
+            <div className="timeline-step">
+              <div className="timeline-marker">1</div>
+              <div className="timeline-content">
+                <span className="timeline-day">Weeks 1-2</span>
+                <h4>Foundation Phase</h4>
+                <p>3 HBOT + 3 Red Light sessions per week. Your cells begin adapting to increased oxygen and light stimulation.</p>
+              </div>
+            </div>
 
-          <div style={{textAlign: 'center', marginTop: '2rem'}}>
-            <p style={{fontSize: '0.9375rem', color: '#737373', maxWidth: '500px', margin: '0 auto'}}>
-              You're not buying these from this page. Your Assessment helps us figure out which path is right for you.
-            </p>
+            <div className="timeline-step">
+              <div className="timeline-marker">2</div>
+              <div className="timeline-content">
+                <span className="timeline-day">Weeks 3-4</span>
+                <h4>Optimization Phase</h4>
+                <p>Continuing 3x weekly sessions. Most patients report noticeable energy improvements by Week 3.</p>
+              </div>
+            </div>
+
+            <div className="timeline-step">
+              <div className="timeline-marker">3</div>
+              <div className="timeline-content">
+                <span className="timeline-day">Weeks 5-6</span>
+                <h4>Integration Phase</h4>
+                <p>Final sessions lock in your gains. Your mitochondria are functioning at a higher baseline.</p>
+              </div>
+            </div>
+
+            <div className="timeline-step">
+              <div className="timeline-marker">✓</div>
+              <div className="timeline-content">
+                <span className="timeline-day">Week 7</span>
+                <h4>Results Review</h4>
+                <p>Final consultation to measure progress and discuss maintenance options to keep your results.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Box */}
+      {/* Pricing */}
       <section className="section section-gray">
         <div className="container">
-          <div style={{maxWidth: '600px', margin: '0 auto', background: '#ffffff', border: '2px solid #000000', borderRadius: '16px', padding: '2.5rem', textAlign: 'center'}}>
-            <span style={{display: 'inline-block', background: '#000', color: '#fff', padding: '0.25rem 1rem', borderRadius: '100px', fontSize: '0.75rem', fontWeight: '600', marginBottom: '1rem'}}>Start Here</span>
-            <h3 style={{marginBottom: '0.5rem'}}>Range Assessment</h3>
-            <div style={{fontSize: '3rem', fontWeight: '700', marginBottom: '0.5rem'}}>$199</div>
-            <p style={{fontSize: '0.9375rem', color: '#525252', marginBottom: '1.5rem'}}>60–75 minute visit with a provider</p>
-            <ul style={{textAlign: 'left', listStyle: 'none', padding: '0', marginBottom: '1.5rem'}}>
-              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
-                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Full review of your symptoms and history
-              </li>
-              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
-                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Review of any labs you've already done
-              </li>
-              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
-                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Lab recommendations if they help your plan
-              </li>
-              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
-                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Written plan with clear next steps
-              </li>
-            </ul>
-            <Link href="/book" className="btn-primary" style={{width: '100%', textAlign: 'center'}}>
-              Schedule Your Assessment
-            </Link>
+          <p className="section-kicker">Investment</p>
+          <h2 className="section-title">Program Investment</h2>
+
+          <div className="offer-grid" style={{maxWidth: '800px', margin: '0 auto'}}>
+            <div className="offer-card">
+              <h3>Pay in Full</h3>
+              <div className="offer-price">$3,999</div>
+              <p className="offer-note">Single payment</p>
+              <ul>
+                <li>All 36 sessions (18 HBOT + 18 Red Light)</li>
+                <li>Provider consultations included</li>
+                <li>Weekly check-ins</li>
+                <li><strong>Bonus: 2 extra Red Light sessions</strong></li>
+              </ul>
+            </div>
+
+            <div className="offer-card">
+              <h3>Payment Plan</h3>
+              <div className="offer-price">3 × $1,399</div>
+              <p className="offer-note">$4,197 total</p>
+              <ul>
+                <li>All 36 sessions (18 HBOT + 18 Red Light)</li>
+                <li>Provider consultations included</li>
+                <li>Weekly check-ins</li>
+                <li>Spread over 3 monthly payments</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* IV Upgrade */}
+          <div style={{maxWidth: '600px', margin: '2rem auto 0', background: '#ffffff', border: '1px solid #e5e5e5', borderRadius: '12px', padding: '1.5rem', textAlign: 'center'}}>
+            <h4 style={{marginBottom: '0.5rem'}}>⚡ Optional: IV Upgrade</h4>
+            <p style={{fontSize: '0.9375rem', color: '#525252', marginBottom: '0.75rem'}}>
+              Add 6 weekly Energy IVs (B-Complex, Amino Acids, Magnesium) to accelerate results.
+            </p>
+            <div style={{fontSize: '1.25rem', fontWeight: '700'}}>+$999</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Maintenance Preview */}
+      <section className="section">
+        <div className="container">
+          <p className="section-kicker">After the Reset</p>
+          <h2 className="section-title">Maintaining Your Results</h2>
+          <p className="section-subtitle">
+            At your Week 7 review, we'll discuss maintenance options to preserve your gains.
+          </p>
+
+          <div className="doors-grid" style={{maxWidth: '700px', margin: '0 auto'}}>
+            <div className="door-card">
+              <h3>Base Maintenance</h3>
+              <p>4 HBOT + 4 Red Light sessions every 4 weeks, plus quarterly check-in.</p>
+              <div style={{fontSize: '1.5rem', fontWeight: '700', marginTop: '1rem'}}>$599<span style={{fontSize: '0.875rem', fontWeight: '400'}}>/4wk</span></div>
+            </div>
+            <div className="door-card">
+              <h3>Maintenance + IV</h3>
+              <p>Everything in Base, plus 1 Energy IV per cycle for maximum support.</p>
+              <div style={{fontSize: '1.5rem', fontWeight: '700', marginTop: '1rem'}}>$799<span style={{fontSize: '0.875rem', fontWeight: '400'}}>/4wk</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="section section-gray">
+        <div className="container">
+          <p className="section-kicker">Questions</p>
+          <h2 className="section-title">Common Questions</h2>
+
+          <div className="faq-container">
+            <div className="faq-item">
+              <h4>Can I start the Reset without a Range Assessment?</h4>
+              <p>We recommend starting with a Range Assessment ($199) so your provider can confirm this is the right program for your situation. The Assessment ensures we're not missing something else that might be causing your symptoms.</p>
+            </div>
+
+            <div className="faq-item">
+              <h4>How long does each session take?</h4>
+              <p>Plan for about 90 minutes door-to-door when doing HBOT + Red Light together. Red Light is 20 minutes, HBOT is 60 minutes. Most patients do both in the same visit.</p>
+            </div>
+
+            <div className="faq-item">
+              <h4>When will I feel results?</h4>
+              <p>Most patients notice improvements by Week 3 — less fatigue, better sleep, improved mental clarity. The full benefits compound through Week 6 and beyond with maintenance.</p>
+            </div>
+
+            <div className="faq-item">
+              <h4>Is this covered by insurance?</h4>
+              <p>HBOT and Red Light Therapy for optimization are typically not covered by insurance. We can provide superbills for HSA/FSA reimbursement.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -195,12 +274,12 @@ export default function RangeAssessment() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <span className="cta-step">Start With One Visit</span>
-          <h2>Tired of Guessing?</h2>
-          <p>If you want a clear plan built around your symptoms and data, the Range Assessment is the first step.</p>
+          <span className="cta-step">First Step</span>
+          <h2>Ready to Restore Your Energy?</h2>
+          <p>Start with a Range Assessment. Your provider will confirm if the Cellular Energy Reset is right for you.</p>
           <div className="cta-buttons">
-            <Link href="/book" className="btn-white">
-              Schedule Your Range Assessment — $199
+            <Link href="/range-assessment" className="btn-white">
+              Book Range Assessment — $199
             </Link>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>

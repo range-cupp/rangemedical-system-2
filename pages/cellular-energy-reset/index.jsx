@@ -1447,10 +1447,10 @@ const CellularEnergyResetLanding = () => {
               </div>
               
               <div className="cer-assessment-pricing">
-                <div className="cer-assessment-price">$497</div>
+                <div className="cer-assessment-price">$199</div>
                 <div className="cer-assessment-credit">100% applies to the 6-Week Reset</div>
                 <p style={{ fontSize: '0.8125rem', color: '#525252', margin: '0' }}>
-                  If you enroll in the Reset within 7 days, your entire $497 is credited toward the program.
+                  If you enroll in the Reset within 7 days, your entire $199 is credited toward the program.
                 </p>
               </div>
             </div>
@@ -1712,7 +1712,7 @@ const CellularEnergyResetLanding = () => {
                 </div>
                 <div className="cer-value-total-row">
                   <span className="cer-value-today-label">Your Price Today</span>
-                  <span className="cer-value-today-amount">$3,997</span>
+                  <span className="cer-value-today-amount">$3,999</span>
                 </div>
                 <div className="cer-value-savings-row">
                   <span className="cer-value-savings-label">You Save</span>
@@ -1726,14 +1726,14 @@ const CellularEnergyResetLanding = () => {
               <div className="cer-payment-card featured">
                 <span className="cer-payment-badge">Best Value</span>
                 <div className="cer-payment-title">Pay in Full</div>
-                <div className="cer-payment-price">$3,997</div>
+                <div className="cer-payment-price">$3,999</div>
                 <div className="cer-payment-note">One-time payment</div>
                 <div className="cer-payment-bonus">+ Bonus: 2 extra Red Light sessions</div>
               </div>
               <div className="cer-payment-card">
                 <div className="cer-payment-title">Payment Plan</div>
-                <div className="cer-payment-price">3 × $1,450</div>
-                <div className="cer-payment-note">$4,350 total</div>
+                <div className="cer-payment-price">3 × $1,399</div>
+                <div className="cer-payment-note">$4,197 total</div>
               </div>
             </div>
             
@@ -1754,7 +1754,7 @@ const CellularEnergyResetLanding = () => {
                   </div>
                   <div className="cer-iv-upgrade-price">
                     <span className="cer-iv-upgrade-label">Add-On Price</span>
-                    <span className="cer-iv-upgrade-amount">$1,097</span>
+                    <span className="cer-iv-upgrade-amount">$999</span>
                   </div>
                 </div>
               </div>
@@ -1803,7 +1803,7 @@ const CellularEnergyResetLanding = () => {
             <div className="cer-maintenance-tiers">
               <div className="cer-maintenance-tier">
                 <div className="cer-maintenance-tier-name">Base</div>
-                <div className="cer-maintenance-tier-price">$597 <span>/ 4 weeks</span></div>
+                <div className="cer-maintenance-tier-price">$599 <span>/ 4 weeks</span></div>
                 <ul className="cer-maintenance-tier-list">
                   <li>4 Hyperbaric Oxygen sessions</li>
                   <li>4 Red Light Therapy sessions</li>
@@ -1814,7 +1814,7 @@ const CellularEnergyResetLanding = () => {
               <div className="cer-maintenance-tier featured">
                 <div className="cer-maintenance-tier-badge">Enhanced</div>
                 <div className="cer-maintenance-tier-name">Maintenance + IV</div>
-                <div className="cer-maintenance-tier-price">$797 <span>/ 4 weeks</span></div>
+                <div className="cer-maintenance-tier-price">$799 <span>/ 4 weeks</span></div>
                 <ul className="cer-maintenance-tier-list">
                   <li>4 Hyperbaric Oxygen sessions</li>
                   <li>4 Red Light Therapy sessions</li>
@@ -1839,7 +1839,7 @@ const CellularEnergyResetLanding = () => {
           <div className="cer-faq-list">
             <div className="cer-faq-item">
               <h3 className="cer-faq-question">Should I start with the Assessment or the full Reset?</h3>
-              <p className="cer-faq-answer">If you're unsure whether this is right for you, start with the Cellular Energy Assessment ($497). You'll get your labs, a provider consultation, and a clear picture of your cellular health. If you decide to move forward with the Reset within 7 days, your entire $497 is credited toward the program.</p>
+              <p className="cer-faq-answer">If you're unsure whether this is right for you, start with the Cellular Energy Assessment ($199). You'll get your labs, a provider consultation, and a clear picture of your cellular health. If you decide to move forward with the Reset within 7 days, your entire $199 is credited toward the program.</p>
             </div>
             
             <div className="cer-faq-item">
@@ -1864,7 +1864,7 @@ const CellularEnergyResetLanding = () => {
             
             <div className="cer-faq-item">
               <h3 className="cer-faq-question">What happens after the 6 weeks?</h3>
-              <p className="cer-faq-answer">At your Week 7 results review, we'll compare your labs and discuss the Maintenance Membership ($597/4 weeks) to preserve your gains. Most people continue with ongoing sessions to maintain their cellular energy improvements.</p>
+              <p className="cer-faq-answer">At your Week 7 results review, we'll compare your labs and discuss the Maintenance Membership ($599/4 weeks) to preserve your gains. Most people continue with ongoing sessions to maintain their cellular energy improvements.</p>
             </div>
             
             <div className="cer-faq-item">
@@ -1884,8 +1884,8 @@ const CellularEnergyResetLanding = () => {
           </p>
           
           <div className="cer-cta-buttons">
-            <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cer-btn-primary">Book Assessment ($497) →</a>
-            <a href="sms:+19499973988?body=Hi, I'm ready to start the 6-Week Cellular Energy Reset." className="cer-btn-outline">Start Full Reset ($3,997) →</a>
+            <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cer-btn-primary">Book Assessment ($199) →</a>
+            <a href="sms:+19499973988?body=Hi, I'm ready to start the 6-Week Cellular Energy Reset." className="cer-btn-outline">Start Full Reset ($3,999) →</a>
           </div>
           
           <p className="cer-cta-phone">Questions? Call <a href="tel:+19499973988">(949) 997-3988</a></p>

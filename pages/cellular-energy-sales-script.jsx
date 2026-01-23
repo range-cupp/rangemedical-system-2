@@ -1,4 +1,5 @@
-import Layout from '../../components/Layout';
+import Layout from '../components/Layout';
+// NOTE: Place this file directly at /pages/cellular-energy-sales-script.jsx
 import Head from 'next/head';
 
 export default function CellularEnergySalesScript() {

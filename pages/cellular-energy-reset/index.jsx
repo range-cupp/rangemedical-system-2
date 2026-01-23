@@ -1252,16 +1252,16 @@ const CellularEnergyResetLanding = () => {
         <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
       </Head>
       
-    <div className="cer-page">
-      <style>{styles}</style>
-      
       {/* Header */}
       <Header />
+      
+    <div className="cer-page">
+      <style>{styles}</style>
       
       {/* Hero */}
       <section className="cer-hero">
         <div className="cer-hero-inner">
-          <div className="cer-hero-badge">Lab-Tracked Protocol</div>
+          <div className="cer-hero-badge">6-Week Protocol</div>
           <h1 className="cer-hero-title">
             6-Week Cellular Energy Reset
             <span>Restore your energy at the cellular level</span>
@@ -1280,7 +1280,7 @@ const CellularEnergyResetLanding = () => {
       <div className="cer-trust-bar">
         <div className="cer-trust-inner">
           <div className="cer-trust-item">📍 Newport Beach, CA</div>
-          <div className="cer-trust-item">🔬 Lab-Tracked Results</div>
+          <div className="cer-trust-item">📊 Weekly Progress Tracking</div>
           <div className="cer-trust-item">⏱️ 36 Sessions Over 6 Weeks</div>
           <div className="cer-trust-item">📋 Weekly Check-Ins</div>
         </div>
@@ -1538,60 +1538,6 @@ const CellularEnergyResetLanding = () => {
                 <li>Reduces inflammation systemically</li>
                 <li>Accelerates wound and tissue healing</li>
               </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Lab Tracking */}
-      <section className="cer-section cer-section-alt">
-        <div className="cer-container">
-          <p className="cer-section-kicker">Measurable Results</p>
-          <h2 className="cer-section-title">Lab-Tracked Progress</h2>
-          <p className="cer-section-subtitle">
-            This isn't guesswork. We measure specific biomarkers before and after so you can see exactly what changed.
-          </p>
-          
-          <div className="cer-lab-section">
-            <div className="cer-lab-header">
-              <span className="cer-lab-badge">Cellular Energy Panel</span>
-              <h3 className="cer-lab-title">12 Targeted Biomarkers</h3>
-              <p className="cer-lab-subtitle">Drawn at baseline and week 6 to track your transformation</p>
-            </div>
-            
-            <div className="cer-lab-markers">
-              <div className="cer-marker-category">
-                <h4>Inflammation</h4>
-                <ul>
-                  <li>CRP-HS</li>
-                  <li>Homocysteine</li>
-                </ul>
-              </div>
-              <div className="cer-marker-category">
-                <h4>Oxygen & Iron</h4>
-                <ul>
-                  <li>CBC (complete)</li>
-                  <li>Ferritin</li>
-                  <li>Iron/TIBC</li>
-                </ul>
-              </div>
-              <div className="cer-marker-category">
-                <h4>Growth Factors</h4>
-                <ul>
-                  <li>IGF-1</li>
-                  <li>DHEA-S</li>
-                </ul>
-              </div>
-              <div className="cer-marker-category">
-                <h4>Metabolism</h4>
-                <ul>
-                  <li>Fasting Insulin</li>
-                  <li>HgbA1c</li>
-                  <li>Free T3</li>
-                  <li>TSH</li>
-                  <li>Vitamin D</li>
-                </ul>
-              </div>
             </div>
           </div>
         </div>

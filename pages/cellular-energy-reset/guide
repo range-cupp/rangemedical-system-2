@@ -1,1008 +1,271 @@
-import React from 'react';
+import Layout from '../../components/Layout';
+import Head from 'next/head';
 
-const CellularEnergyResetGuide = () => {
-  const styles = `
-    .cer-guide {
-      font-family: 'DM Sans', sans-serif;
-      color: #1a1a1a;
-      line-height: 1.6;
-      background: #ffffff;
-      max-width: 850px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    
-    @media print {
-      .cer-guide { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .cer-guide-page-break { page-break-after: always; }
-    }
-    
-    /* Header */
-    .cer-guide-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 1.5rem;
-      border-bottom: 3px solid #000000;
-      margin-bottom: 2rem;
-    }
-    
-    .cer-guide-logo {
-      height: 36px;
-      width: auto;
-    }
-    
-    .cer-guide-contact {
-      text-align: right;
-      font-size: 0.875rem;
-      color: #525252;
-    }
-    
-    .cer-guide-contact strong {
-      color: #000000;
-    }
-    
-    /* Title Section */
-    .cer-guide-title-section {
-      text-align: center;
-      padding: 2rem 0;
-      margin-bottom: 2rem;
-    }
-    
-    .cer-guide-badge {
-      display: inline-block;
-      background: #000000;
-      color: #ffffff;
-      padding: 0.5rem 1rem;
-      border-radius: 100px;
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 1rem;
-    }
-    
-    .cer-guide h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.75rem;
-    }
-    
-    .cer-guide-subtitle {
-      font-size: 1.0625rem;
-      color: #525252;
-      max-width: 550px;
-      margin: 0 auto;
-    }
-    
-    /* Section Headers */
-    .cer-guide-section-header {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      color: #737373;
-      margin-bottom: 0.75rem;
-    }
-    
-    .cer-guide h2 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-    }
-    
-    /* Overview Grid */
-    .cer-guide-overview-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-overview-card {
-      background: #fafafa;
-      border: 2px solid #e5e5e5;
-      border-radius: 8px;
-      padding: 1.25rem;
-      text-align: center;
-    }
-    
-    .cer-guide-overview-number {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #000000;
-      margin-bottom: 0.25rem;
-    }
-    
-    .cer-guide-overview-label {
-      font-size: 0.75rem;
-      color: #525252;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    
-    /* Value Stack Box - NEW */
-    .cer-guide-value-box {
-      border: 2px solid #000000;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-value-header {
-      background: #000000;
-      color: #ffffff;
-      padding: 1rem 1.5rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .cer-guide-value-header h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      margin: 0;
-      color: #ffffff;
-    }
-    
-    .cer-guide-value-header span {
-      font-size: 0.875rem;
-      color: #a3a3a3;
-    }
-    
-    .cer-guide-value-body {
-      padding: 1.25rem 1.5rem;
-    }
-    
-    .cer-guide-value-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #f5f5f5;
-      font-size: 0.875rem;
-    }
-    
-    .cer-guide-value-row:last-child {
-      border-bottom: none;
-    }
-    
-    .cer-guide-value-row span:last-child {
-      color: #737373;
-      font-weight: 500;
-    }
-    
-    .cer-guide-value-footer {
-      background: #fafafa;
-      padding: 1rem 1.5rem;
-      border-top: 2px solid #000000;
-    }
-    
-    .cer-guide-value-total {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-    
-    .cer-guide-value-total span:first-child {
-      font-size: 0.875rem;
-      color: #525252;
-    }
-    
-    .cer-guide-value-total span:last-child {
-      font-size: 0.875rem;
-      color: #737373;
-      text-decoration: line-through;
-    }
-    
-    .cer-guide-value-price {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .cer-guide-value-price span:first-child {
-      font-size: 1rem;
-      font-weight: 700;
-    }
-    
-    .cer-guide-value-price span:last-child {
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-    
-    .cer-guide-value-savings {
-      text-align: right;
-      font-size: 0.8125rem;
-      color: #22c55e;
-      font-weight: 600;
-      margin-top: 0.5rem;
-    }
-    
-    /* Payment Options - NEW */
-    .cer-guide-payment-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    
-    .cer-guide-payment-card {
-      border: 2px solid #e5e5e5;
-      border-radius: 8px;
-      padding: 1rem;
-      text-align: center;
-    }
-    
-    .cer-guide-payment-card.featured {
-      border-color: #000000;
-      background: #fafafa;
-    }
-    
-    .cer-guide-payment-label {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #737373;
-      margin-bottom: 0.25rem;
-    }
-    
-    .cer-guide-payment-card.featured .cer-guide-payment-label {
-      color: #22c55e;
-    }
-    
-    .cer-guide-payment-price {
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-    }
-    
-    .cer-guide-payment-note {
-      font-size: 0.75rem;
-      color: #525252;
-    }
-    
-    .cer-guide-payment-bonus {
-      font-size: 0.75rem;
-      color: #22c55e;
-      font-weight: 600;
-      margin-top: 0.25rem;
-    }
-    
-    /* Guarantee Box - NEW */
-    .cer-guide-guarantee {
-      background: #fef3c7;
-      border: 2px solid #f59e0b;
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 2.5rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-    }
-    
-    .cer-guide-guarantee-icon {
-      font-size: 1.25rem;
-      flex-shrink: 0;
-    }
-    
-    .cer-guide-guarantee-content h4 {
-      font-size: 0.875rem;
-      font-weight: 700;
-      color: #92400e;
-      margin-bottom: 0.25rem;
-    }
-    
-    .cer-guide-guarantee-content p {
-      font-size: 0.8125rem;
-      color: #78350f;
-      margin: 0;
-      line-height: 1.5;
-    }
-    
-    /* What's Included */
-    .cer-guide-included-section {
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-included-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1.25rem;
-    }
-    
-    .cer-guide-included-card {
-      border: 2px solid #000000;
-      border-radius: 8px;
-      padding: 1.25rem;
-    }
-    
-    .cer-guide-included-title {
-      font-size: 0.9375rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-    }
-    
-    .cer-guide-included-detail {
-      font-size: 0.8125rem;
-      color: #525252;
-      margin-bottom: 0.75rem;
-    }
-    
-    .cer-guide-included-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    
-    .cer-guide-included-list li {
-      font-size: 0.8125rem;
-      color: #525252;
-      padding: 0.25rem 0;
-      padding-left: 1.25rem;
-      position: relative;
-    }
-    
-    .cer-guide-included-list li::before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: #000000;
-      font-weight: 700;
-    }
-    
-    /* Timeline */
-    .cer-guide-timeline-section {
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-timeline {
-      border: 2px solid #000000;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    
-    .cer-guide-timeline-row {
-      display: grid;
-      grid-template-columns: 100px 1fr;
-      border-bottom: 1px solid #e5e5e5;
-    }
-    
-    .cer-guide-timeline-row:last-child {
-      border-bottom: none;
-    }
-    
-    .cer-guide-timeline-week {
-      background: #000000;
-      color: #ffffff;
-      padding: 1rem;
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .cer-guide-timeline-week.purple {
-      background: #7c3aed;
-    }
-    
-    .cer-guide-timeline-content {
-      padding: 1rem 1.25rem;
-    }
-    
-    .cer-guide-timeline-content h4 {
-      font-size: 0.875rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-    }
-    
-    .cer-guide-timeline-content p {
-      font-size: 0.8125rem;
-      color: #525252;
-      margin: 0;
-    }
-    
-    .cer-guide-timeline-content .guarantee-note {
-      color: #d97706;
-      font-weight: 600;
-    }
-    
-    /* Lab Panel */
-    .cer-guide-lab-section {
-      background: #f0fdf4;
-      border: 2px solid #22c55e;
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-lab-title {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-    }
-    
-    .cer-guide-lab-subtitle {
-      font-size: 0.8125rem;
-      color: #525252;
-      margin-bottom: 1rem;
-    }
-    
-    .cer-guide-lab-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-    }
-    
-    .cer-guide-lab-category h4 {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #22c55e;
-      margin-bottom: 0.5rem;
-    }
-    
-    .cer-guide-lab-category ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    
-    .cer-guide-lab-category li {
-      font-size: 0.8125rem;
-      color: #1a1a1a;
-      padding: 0.125rem 0;
-    }
-    
-    /* Schedule */
-    .cer-guide-schedule-section {
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-schedule-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.875rem;
-    }
-    
-    .cer-guide-schedule-table th {
-      background: #000000;
-      color: #ffffff;
-      padding: 0.75rem 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-align: center;
-    }
-    
-    .cer-guide-schedule-table td {
-      padding: 0.75rem 0.5rem;
-      text-align: center;
-      border-bottom: 1px solid #e5e5e5;
-    }
-    
-    .cer-guide-schedule-table td:first-child {
-      text-align: left;
-    }
-    
-    .cer-guide-check {
-      color: #22c55e;
-      font-weight: 700;
-    }
-    
-    .cer-guide-dash {
-      color: #d4d4d4;
-    }
-    
-    .cer-guide-schedule-note {
-      font-size: 0.8125rem;
-      color: #525252;
-      margin-top: 0.75rem;
-      text-align: center;
-    }
-    
-    /* What to Expect */
-    .cer-guide-expect-section {
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-expect-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-    }
-    
-    .cer-guide-expect-card {
-      background: #fafafa;
-      border-radius: 8px;
-      padding: 1.25rem;
-    }
-    
-    .cer-guide-expect-week {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #737373;
-      margin-bottom: 0.5rem;
-    }
-    
-    .cer-guide-expect-title {
-      font-size: 0.9375rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-    
-    .cer-guide-expect-desc {
-      font-size: 0.8125rem;
-      color: #525252;
-      line-height: 1.5;
-    }
-    
-    /* Tips */
-    .cer-guide-tips-section {
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-tips-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1.25rem;
-    }
-    
-    .cer-guide-tips-card {
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-      padding: 1.25rem;
-    }
-    
-    .cer-guide-tips-card h4 {
-      font-size: 0.9375rem;
-      font-weight: 700;
-      margin-bottom: 0.75rem;
-    }
-    
-    .cer-guide-tips-card ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    
-    .cer-guide-tips-card li {
-      font-size: 0.8125rem;
-      color: #525252;
-      padding: 0.25rem 0;
-      padding-left: 1.25rem;
-      position: relative;
-    }
-    
-    .cer-guide-tips-card li::before {
-      content: "→";
-      position: absolute;
-      left: 0;
-      color: #a3a3a3;
-    }
-    
-    /* Assessment Note - NEW */
-    .cer-guide-assessment-note {
-      background: #f0f9ff;
-      border: 2px solid #0284c7;
-      border-radius: 8px;
-      padding: 1.25rem;
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-assessment-note h4 {
-      font-size: 0.875rem;
-      font-weight: 700;
-      color: #0284c7;
-      margin-bottom: 0.5rem;
-    }
-    
-    .cer-guide-assessment-note p {
-      font-size: 0.8125rem;
-      color: #0369a1;
-      margin: 0;
-      line-height: 1.5;
-    }
-    
-    /* Maintenance Teaser - NEW */
-    .cer-guide-maintenance-box {
-      background: #f5f3ff;
-      border: 2px solid #7c3aed;
-      border-radius: 8px;
-      padding: 1.25rem;
-      margin-bottom: 2.5rem;
-    }
-    
-    .cer-guide-maintenance-box h4 {
-      font-size: 0.875rem;
-      font-weight: 700;
-      color: #7c3aed;
-      margin-bottom: 0.5rem;
-    }
-    
-    .cer-guide-maintenance-box p {
-      font-size: 0.8125rem;
-      color: #5b21b6;
-      margin: 0;
-      line-height: 1.5;
-    }
-    
-    .cer-guide-maintenance-box strong {
-      color: #7c3aed;
-    }
-    
-    /* Footer */
-    .cer-guide-footer {
-      text-align: center;
-      padding-top: 2rem;
-      border-top: 2px solid #e5e5e5;
-      margin-top: 2rem;
-    }
-    
-    .cer-guide-footer-title {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-    
-    .cer-guide-footer-contact {
-      font-size: 0.9375rem;
-      color: #525252;
-    }
-    
-    @media (max-width: 768px) {
-      .cer-guide-overview-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .cer-guide-included-grid {
-        grid-template-columns: 1fr;
-      }
-      .cer-guide-lab-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .cer-guide-expect-grid {
-        grid-template-columns: 1fr;
-      }
-      .cer-guide-tips-grid {
-        grid-template-columns: 1fr;
-      }
-      .cer-guide-payment-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  `;
-
+export default function CellularEnergyResetGuide() {
   return (
-    <div className="cer-guide">
-      <style>{styles}</style>
-      
+    <Layout>
+      <Head>
+        <title>Your 6-Week Reset Guide | Range Medical</title>
+        <meta name="robots" content="noindex" />
+      </Head>
+
       {/* Header */}
-      <header className="cer-guide-header">
-        <img 
-          src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
-          alt="Range Medical" 
-          className="cer-guide-logo"
-        />
-        <div className="cer-guide-contact">
-          <strong>(949) 997-3988</strong><br />
-          Newport Beach, CA
-        </div>
-      </header>
-      
-      {/* Title */}
-      <section className="cer-guide-title-section">
-        <span className="cer-guide-badge">Patient Program Guide</span>
-        <h1>6-Week Cellular Energy Reset</h1>
-        <p className="cer-guide-subtitle">
-          Your complete guide to the protocol, timeline, and what to expect over the next 6 weeks.
+      <section className="hero" style={{paddingBottom: '2rem'}}>
+        <span className="hero-badge">Patient Guide</span>
+        <h1>Your 6-Week Cellular Energy Reset</h1>
+        <p className="hero-sub">
+          Everything you need to know to get the most out of your program.
         </p>
       </section>
-      
-      {/* Overview Stats */}
-      <div className="cer-guide-overview-grid">
-        <div className="cer-guide-overview-card">
-          <div className="cer-guide-overview-number">6</div>
-          <div className="cer-guide-overview-label">Weeks</div>
-        </div>
-        <div className="cer-guide-overview-card">
-          <div className="cer-guide-overview-number">36</div>
-          <div className="cer-guide-overview-label">Total Sessions</div>
-        </div>
-        <div className="cer-guide-overview-card">
-          <div className="cer-guide-overview-number">3x</div>
-          <div className="cer-guide-overview-label">Per Week</div>
-        </div>
-        <div className="cer-guide-overview-card">
-          <div className="cer-guide-overview-number">~90</div>
-          <div className="cer-guide-overview-label">Min/Visit</div>
-        </div>
-      </div>
-      
-      {/* Assessment Note */}
-      <div className="cer-guide-assessment-note">
-        <h4>📋 Started with the Cellular Energy Assessment?</h4>
-        <p>
-          If you completed the Assessment ($199) before enrolling, your entire Assessment fee has been credited toward this program. You're ready to begin the Reset.
-        </p>
-      </div>
-      
-      {/* Value Stack */}
-      <div className="cer-guide-value-box">
-        <div className="cer-guide-value-header">
-          <h3>Your Program Investment</h3>
-          <span>Complete Protocol</span>
-        </div>
-        <div className="cer-guide-value-body">
-          <div className="cer-guide-value-row">
-            <span>18 Hyperbaric Oxygen Sessions (60 min each)</span>
-            <span>$3,330</span>
-          </div>
-          <div className="cer-guide-value-row">
-            <span>18 Full-Body Red Light Sessions (20 min each)</span>
-            <span>$1,530</span>
-          </div>
-          <div className="cer-guide-value-row">
-            <span>Orientation & Week-7 Review</span>
-            <span>$400</span>
-          </div>
-          <div className="cer-guide-value-row">
-            <span>Weekly Progress Check-ins & Energy Tracking</span>
-            <span>$300</span>
-          </div>
-          <div className="cer-guide-value-row">
-            <span>Priority Scheduling & Concierge Coordination</span>
-            <span>$200</span>
+
+      {/* Welcome */}
+      <section className="section">
+        <div className="container" style={{maxWidth: '800px'}}>
+          <h2>Welcome to the Reset</h2>
+          <p style={{fontSize: '1rem', lineHeight: '1.8', marginBottom: '1.5rem'}}>
+            You've made an important decision to address your energy at the cellular level. Over the next six weeks, 
+            you'll be restoring your mitochondrial function through a proven combination of Hyperbaric Oxygen Therapy 
+            and Red Light Therapy.
+          </p>
+          <p style={{fontSize: '1rem', lineHeight: '1.8', marginBottom: '1.5rem'}}>
+            This guide covers what to expect, how to prepare for each session, and how to maximize your results. 
+            Keep it handy—you can reference it anytime.
+          </p>
+
+          <div style={{background: '#fafafa', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem'}}>
+            <h3 style={{marginBottom: '1rem'}}>📋 Your Program at a Glance</h3>
+            <ul style={{marginBottom: '0'}}>
+              <li style={{padding: '0.5rem 0'}}>18 Hyperbaric Oxygen Sessions (60 min each)</li>
+              <li style={{padding: '0.5rem 0'}}>18 Red Light Therapy Sessions (20 min each)</li>
+              <li style={{padding: '0.5rem 0'}}>Initial consultation + Week 7 results review</li>
+              <li style={{padding: '0.5rem 0'}}>Weekly check-ins to track your progress</li>
+              <li style={{padding: '0.5rem 0', borderBottom: 'none'}}>Priority scheduling throughout</li>
+            </ul>
           </div>
         </div>
-        <div className="cer-guide-value-footer">
-          <div className="cer-guide-value-total">
-            <span>Total Value</span>
-            <span>$5,760</span>
+      </section>
+
+      {/* Your Schedule */}
+      <section className="section section-gray">
+        <div className="container" style={{maxWidth: '800px'}}>
+          <h2>Your Weekly Schedule</h2>
+          <p style={{fontSize: '1rem', marginBottom: '1.5rem'}}>
+            You'll visit three times per week for six weeks. Most patients come Monday/Wednesday/Friday or Tuesday/Thursday/Saturday.
+          </p>
+
+          <div style={{background: '#fff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e5e5e5'}}>
+            <h3 style={{marginBottom: '1rem'}}>Typical Visit (90 minutes)</h3>
+            <div className="process-timeline" style={{maxWidth: '100%'}}>
+              <div className="timeline-step">
+                <div className="timeline-marker" style={{width: '36px', height: '36px', fontSize: '0.875rem'}}>1</div>
+                <div className="timeline-content" style={{padding: '1rem'}}>
+                  <h4 style={{fontSize: '1rem'}}>Check In (5 min)</h4>
+                  <p style={{fontSize: '0.875rem'}}>Arrive, change if needed, brief energy check-in</p>
+                </div>
+              </div>
+              <div className="timeline-step">
+                <div className="timeline-marker" style={{width: '36px', height: '36px', fontSize: '0.875rem'}}>2</div>
+                <div className="timeline-content" style={{padding: '1rem'}}>
+                  <h4 style={{fontSize: '1rem'}}>Red Light Therapy (20 min)</h4>
+                  <p style={{fontSize: '0.875rem'}}>10 minutes front, 10 minutes back</p>
+                </div>
+              </div>
+              <div className="timeline-step">
+                <div className="timeline-marker" style={{width: '36px', height: '36px', fontSize: '0.875rem'}}>3</div>
+                <div className="timeline-content" style={{padding: '1rem'}}>
+                  <h4 style={{fontSize: '1rem'}}>Hyperbaric Oxygen (60 min)</h4>
+                  <p style={{fontSize: '0.875rem'}}>Relax, read, or nap inside the chamber</p>
+                </div>
+              </div>
+              <div className="timeline-step" style={{paddingBottom: '0'}}>
+                <div className="timeline-marker" style={{width: '36px', height: '36px', fontSize: '0.875rem'}}>4</div>
+                <div className="timeline-content" style={{padding: '1rem'}}>
+                  <h4 style={{fontSize: '1rem'}}>Check Out (5 min)</h4>
+                  <p style={{fontSize: '0.875rem'}}>Quick debrief, schedule confirmed for next visit</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="cer-guide-value-price">
-            <span>Your Price</span>
-            <span>$3,999</span>
+        </div>
+      </section>
+
+      {/* What to Expect */}
+      <section className="section">
+        <div className="container" style={{maxWidth: '800px'}}>
+          <h2>What to Expect Each Phase</h2>
+          
+          <div className="faq-item" style={{marginBottom: '1.5rem'}}>
+            <h4>Weeks 1-2: Foundation</h4>
+            <p>Your cells are adapting to increased oxygen and light stimulation. Some patients feel slightly more tired initially as the body adjusts—this is normal. Stay hydrated and maintain your regular sleep schedule.</p>
           </div>
-          <div className="cer-guide-value-savings">You save $1,763 (31%)</div>
+
+          <div className="faq-item" style={{marginBottom: '1.5rem'}}>
+            <h4>Weeks 3-4: Optimization</h4>
+            <p>This is when most patients notice real changes. Energy typically improves, brain fog lifts, and sleep quality gets better. You may find you need less caffeine to function.</p>
+          </div>
+
+          <div className="faq-item" style={{marginBottom: '1.5rem'}}>
+            <h4>Weeks 5-6: Integration</h4>
+            <p>Your new energy levels start to feel normal. Final sessions lock in the gains. You're establishing a higher baseline that maintenance will preserve.</p>
+          </div>
+
+          <div className="faq-item">
+            <h4>Week 7: Results Review</h4>
+            <p>Meet with your provider to review your progress. We'll discuss what changed, what to expect going forward, and maintenance options to keep your results.</p>
+          </div>
         </div>
-      </div>
-      
-      {/* Payment Options - NEW */}
-      <div className="cer-guide-payment-grid">
-        <div className="cer-guide-payment-card featured">
-          <div className="cer-guide-payment-label">Pay in Full</div>
-          <div className="cer-guide-payment-price">$3,999</div>
-          <div className="cer-guide-payment-note">One-time payment</div>
-          <div className="cer-guide-payment-bonus">+ 2 Bonus Red Light Sessions</div>
+      </section>
+
+      {/* Preparation Tips */}
+      <section className="section section-gray">
+        <div className="container" style={{maxWidth: '800px'}}>
+          <h2>How to Prepare</h2>
+          
+          <div className="benefits-grid" style={{maxWidth: '100%'}}>
+            <div className="benefit-card">
+              <h4><span>💧</span> Hydration</h4>
+              <p>Drink plenty of water before and after each session. Proper hydration helps your cells utilize oxygen more effectively.</p>
+            </div>
+            <div className="benefit-card">
+              <h4><span>🍽️</span> Nutrition</h4>
+              <p>Eat a light meal 1-2 hours before your session. Avoid heavy meals right before—you'll be lying down for 60+ minutes.</p>
+            </div>
+            <div className="benefit-card">
+              <h4><span>👕</span> Clothing</h4>
+              <p>Wear comfortable, loose-fitting clothes. For Red Light, you can wear minimal clothing or use the robes we provide.</p>
+            </div>
+            <div className="benefit-card">
+              <h4><span>📱</span> Entertainment</h4>
+              <p>Bring a book, podcast, or just relax. The HBOT chamber has space for reading material. WiFi is available.</p>
+            </div>
+          </div>
         </div>
-        <div className="cer-guide-payment-card">
-          <div className="cer-guide-payment-label">Payment Plan</div>
-          <div className="cer-guide-payment-price">3 × $1,399</div>
-          <div className="cer-guide-payment-note">$4,197 total</div>
+      </section>
+
+      {/* FAQ */}
+      <section className="section">
+        <div className="container" style={{maxWidth: '800px'}}>
+          <h2>Common Questions</h2>
+          
+          <div className="faq-container" style={{maxWidth: '100%'}}>
+            <div className="faq-item">
+              <h4>What if I need to miss a session?</h4>
+              <p>Life happens. Give us at least 24 hours notice to reschedule. We'll fit you in another day that week if possible. Consistency matters, so try to maintain your 3x weekly rhythm.</p>
+            </div>
+
+            <div className="faq-item">
+              <h4>Are there any side effects?</h4>
+              <p>Both therapies are very safe. Some people experience mild ear pressure during HBOT (like on an airplane)—we'll show you how to equalize. Slight fatigue after the first few sessions is normal as your body adapts.</p>
+            </div>
+
+            <div className="faq-item">
+              <h4>Can I exercise on treatment days?</h4>
+              <p>Yes. Some patients prefer to exercise before sessions, others after. Listen to your body. The therapies don't limit your activity.</p>
+            </div>
+
+            <div className="faq-item">
+              <h4>What should I avoid?</h4>
+              <p>No smoking before HBOT (it reduces oxygen-carrying capacity). Avoid alcohol for a few hours after sessions. Remove jewelry before Red Light therapy.</p>
+            </div>
+
+            <div className="faq-item">
+              <h4>When should I contact you?</h4>
+              <p>Reach out if you have persistent ear pain, unusual symptoms, need to reschedule, or have any questions. We're here to support you.</p>
+            </div>
+          </div>
         </div>
-      </div>
-      
-      {/* Guarantee - NEW */}
-      <div className="cer-guide-guarantee">
-        <span className="cer-guide-guarantee-icon">🛡️</span>
-        <div className="cer-guide-guarantee-content">
-          <h4>Our Week-3 Energy Guarantee</h4>
-          <p>
-            If your self-rated energy hasn't improved by at least 2 points (on a 1-10 scale) by the end of week 3, we'll add 2 extra weeks of red light therapy (6 sessions) at no charge.
+      </section>
+
+      {/* Tracking Progress */}
+      <section className="section section-gray">
+        <div className="container" style={{maxWidth: '800px'}}>
+          <h2>Tracking Your Progress</h2>
+          <p style={{fontSize: '1rem', marginBottom: '1.5rem'}}>
+            Each week, we'll check in on these key markers. Pay attention to how you're feeling so you can report accurately.
+          </p>
+
+          <div className="markers-grid" style={{gridTemplateColumns: '1fr 1fr', maxWidth: '100%'}}>
+            <div className="marker-card">
+              <h4>Energy Level</h4>
+              <p>1-10 scale. How's your overall energy throughout the day?</p>
+            </div>
+            <div className="marker-card">
+              <h4>Morning Energy</h4>
+              <p>How do you feel within 30 minutes of waking?</p>
+            </div>
+            <div className="marker-card">
+              <h4>Afternoon Crashes</h4>
+              <p>Are you still crashing mid-afternoon?</p>
+            </div>
+            <div className="marker-card">
+              <h4>Sleep Quality</h4>
+              <p>How restful is your sleep? Waking up refreshed?</p>
+            </div>
+            <div className="marker-card">
+              <h4>Mental Clarity</h4>
+              <p>Brain fog levels? Ability to focus?</p>
+            </div>
+            <div className="marker-card">
+              <h4>Caffeine Dependence</h4>
+              <p>How much do you need to function?</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What Comes After */}
+      <section className="section">
+        <div className="container" style={{maxWidth: '800px'}}>
+          <h2>What Comes After Week 6?</h2>
+          <p style={{fontSize: '1rem', marginBottom: '1.5rem'}}>
+            At your Week 7 results review, we'll discuss maintenance options to preserve your gains.
+          </p>
+
+          <div className="doors-grid" style={{maxWidth: '100%'}}>
+            <div className="door-card">
+              <h3>Base Maintenance</h3>
+              <p>4 HBOT + 4 Red Light sessions every 4 weeks, quarterly check-in, priority scheduling.</p>
+              <div className="offer-price" style={{fontSize: '1.5rem'}}>$599<span style={{fontSize: '0.875rem', fontWeight: '400'}}>/4wk</span></div>
+            </div>
+            <div className="door-card">
+              <h3>Maintenance + IV</h3>
+              <p>Everything in Base, plus 1 Energy IV per cycle for enhanced nutrient support.</p>
+              <div className="offer-price" style={{fontSize: '1.5rem'}}>$799<span style={{fontSize: '0.875rem', fontWeight: '400'}}>/4wk</span></div>
+            </div>
+          </div>
+
+          <p style={{fontSize: '0.9375rem', color: '#525252', textAlign: 'center', marginTop: '1.5rem'}}>
+            Your provider will recommend the right tier based on your results and goals.
           </p>
         </div>
-      </div>
-      
-      {/* What's Included */}
-      <section className="cer-guide-included-section">
-        <p className="cer-guide-section-header">What's Included</p>
-        <h2>Your Complete Protocol</h2>
-        
-        <div className="cer-guide-included-grid">
-          <div className="cer-guide-included-card">
-            <h3 className="cer-guide-included-title">18 Red Light Therapy Sessions</h3>
-            <p className="cer-guide-included-detail">20 minutes • Full-body LED bed</p>
-            <ul className="cer-guide-included-list">
-              <li>Stimulates ATP production in mitochondria</li>
-              <li>Reduces inflammation at the cellular level</li>
-              <li>Supports tissue repair and collagen</li>
-              <li>Customizable Nogier frequencies</li>
-            </ul>
-          </div>
-          
-          <div className="cer-guide-included-card">
-            <h3 className="cer-guide-included-title">18 Hyperbaric Oxygen Sessions</h3>
-            <p className="cer-guide-included-detail">60 minutes • Pressurized chamber</p>
-            <ul className="cer-guide-included-list">
-              <li>Floods tissues with 10-15x normal oxygen</li>
-              <li>Stimulates stem cell release</li>
-              <li>Promotes new blood vessel formation</li>
-              <li>Accelerates healing and recovery</li>
-            </ul>
-          </div>
-          
-          <div className="cer-guide-included-card">
-            <h3 className="cer-guide-included-title">Weekly Check-Ins & Support</h3>
-            <p className="cer-guide-included-detail">Progress tracking throughout</p>
-            <ul className="cer-guide-included-list">
-              <li>Program orientation to start strong</li>
-              <li>Energy level tracking (1-10 scale)</li>
-              <li>Week-7 results review & next steps</li>
-              <li>Protocol adjustments as needed</li>
-            </ul>
-          </div>
-        </div>
       </section>
-      
-      {/* Timeline */}
-      <section className="cer-guide-timeline-section">
-        <p className="cer-guide-section-header">Your Journey</p>
-        <h2>6-Week Protocol Timeline</h2>
-        
-        <div className="cer-guide-timeline">
-          <div className="cer-guide-timeline-row">
-            <div className="cer-guide-timeline-week">Week 0</div>
-            <div className="cer-guide-timeline-content">
-              <h4>Orientation</h4>
-              <p>Program overview, therapy orientation, schedule all 18 combo visits</p>
-            </div>
-          </div>
-          <div className="cer-guide-timeline-row">
-            <div className="cer-guide-timeline-week">Week 1-2</div>
-            <div className="cer-guide-timeline-content">
-              <h4>Activation Phase</h4>
-              <p>Body begins responding • Improved sleep • 6 RLT + 6 HBOT sessions</p>
-            </div>
-          </div>
-          <div className="cer-guide-timeline-row">
-            <div className="cer-guide-timeline-week">Week 3-4</div>
-            <div className="cer-guide-timeline-content">
-              <h4>Adaptation Phase</h4>
-              <p>Mitochondrial biogenesis • Noticeable energy improvement • 6 RLT + 6 HBOT sessions<br />
-              <span className="guarantee-note">⚡ Week 3 Guarantee Check-In: We assess your energy improvement</span></p>
-            </div>
-          </div>
-          <div className="cer-guide-timeline-row">
-            <div className="cer-guide-timeline-week">Week 5-6</div>
-            <div className="cer-guide-timeline-content">
-              <h4>Optimization Phase</h4>
-              <p>Peak benefits • Full cellular adaptation • 6 RLT + 6 HBOT sessions</p>
-            </div>
-          </div>
-          <div className="cer-guide-timeline-row">
-            <div className="cer-guide-timeline-week purple">Week 7</div>
-            <div className="cer-guide-timeline-content">
-              <h4>Results Review + What's Next</h4>
-              <p>Review your progress, discuss Maintenance Membership options</p>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Weekly Schedule */}
-      <section className="cer-guide-schedule-section">
-        <p className="cer-guide-section-header">Weekly Schedule</p>
-        <h2>Sample 3-Day Protocol</h2>
-        
-        <table className="cer-guide-schedule-table">
-          <thead>
-            <tr>
-              <th>Therapy</th>
-              <th>Mon</th>
-              <th>Tue</th>
-              <th>Wed</th>
-              <th>Thu</th>
-              <th>Fri</th>
-              <th>Sat</th>
-              <th>Sun</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Red Light</strong> (20 min)</td>
-              <td className="cer-guide-check">✓</td>
-              <td className="cer-guide-dash">—</td>
-              <td className="cer-guide-check">✓</td>
-              <td className="cer-guide-dash">—</td>
-              <td className="cer-guide-check">✓</td>
-              <td className="cer-guide-dash">—</td>
-              <td className="cer-guide-dash">—</td>
-            </tr>
-            <tr>
-              <td><strong>HBOT</strong> (60 min)</td>
-              <td className="cer-guide-check">✓</td>
-              <td className="cer-guide-dash">—</td>
-              <td className="cer-guide-check">✓</td>
-              <td className="cer-guide-dash">—</td>
-              <td className="cer-guide-check">✓</td>
-              <td className="cer-guide-dash">—</td>
-              <td className="cer-guide-dash">—</td>
-            </tr>
-          </tbody>
-        </table>
-        
-        <p className="cer-guide-schedule-note">
-          Schedule is flexible. Sessions can be done on any 3 days with at least 1 rest day between.<br />
-          Plan for ~90 minutes per visit when doing both therapies back-to-back.
-        </p>
-      </section>
-      
-      {/* What to Expect */}
-      <section className="cer-guide-expect-section">
-        <p className="cer-guide-section-header">What to Expect</p>
-        <h2>Typical Progress Timeline</h2>
-        
-        <div className="cer-guide-expect-grid">
-          <div className="cer-guide-expect-card">
-            <p className="cer-guide-expect-week">Week 1-2</p>
-            <h4 className="cer-guide-expect-title">Early Signals</h4>
-            <p className="cer-guide-expect-desc">Improved sleep quality, slight energy boost, reduced muscle soreness after workouts</p>
-          </div>
-          <div className="cer-guide-expect-card">
-            <p className="cer-guide-expect-week">Week 3-4</p>
-            <h4 className="cer-guide-expect-title">Building Momentum</h4>
-            <p className="cer-guide-expect-desc">Noticeable energy increase, faster recovery, mental clarity improvements</p>
-          </div>
-          <div className="cer-guide-expect-card">
-            <p className="cer-guide-expect-week">Week 5-6</p>
-            <h4 className="cer-guide-expect-title">Full Benefits</h4>
-            <p className="cer-guide-expect-desc">Sustained energy, reduced inflammation, overall vitality boost</p>
-          </div>
-        </div>
-      </section>
-      
-      {/* Tips */}
-      <section className="cer-guide-tips-section">
-        <p className="cer-guide-section-header">Maximize Your Results</p>
-        <h2>Tips for Success</h2>
-        
-        <div className="cer-guide-tips-grid">
-          <div className="cer-guide-tips-card">
-            <h4>Before Each Session</h4>
-            <ul>
-              <li>Stay hydrated (drink water before + after)</li>
-              <li>Avoid heavy meals 1 hour before HBOT</li>
-              <li>Wear comfortable clothing</li>
-              <li>Remove jewelry for red light sessions</li>
-            </ul>
-          </div>
-          <div className="cer-guide-tips-card">
-            <h4>Between Sessions</h4>
-            <ul>
-              <li>Prioritize 7-8 hours of sleep</li>
-              <li>Eat nutrient-dense whole foods</li>
-              <li>Manage stress (the therapies help, but lifestyle matters)</li>
-              <li>Light movement on rest days</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-      
-      {/* Maintenance Teaser */}
-      <div className="cer-guide-maintenance-box">
-        <h4>🔮 What Comes After Week 6?</h4>
-        <p>
-          At your Week 7 results review, we'll discuss the <strong>Cellular Energy Maintenance Membership</strong>—a way to preserve your gains with ongoing sessions at a reduced frequency. Two options: <strong>Base ($599/4wk)</strong> includes 4 HBOT + 4 Red Light sessions with quarterly check-ins. <strong>Maintenance + IV ($799/4wk)</strong> adds 1 Energy IV per cycle for extra cellular support.
-        </p>
-      </div>
-      
-      {/* Footer */}
-      <footer className="cer-guide-footer">
-        <p className="cer-guide-footer-title">Questions? We're Here to Help.</p>
-        <p className="cer-guide-footer-contact">
-          Text or call <strong>(949) 997-3988</strong><br />
-          Range Medical • Newport Beach, CA
-        </p>
-      </footer>
-    </div>
-  );
-};
 
-export default CellularEnergyResetGuide;
+      {/* Contact */}
+      <section className="section section-gray">
+        <div className="container" style={{maxWidth: '800px'}}>
+          <h2>Need Help?</h2>
+          <div style={{background: '#fff', borderRadius: '12px', padding: '2rem', border: '1px solid #e5e5e5', textAlign: 'center'}}>
+            <p style={{fontSize: '1rem', marginBottom: '1rem'}}>
+              Questions, concerns, or need to reschedule? We're here for you.
+            </p>
+            <p style={{fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem'}}>
+              <a href="tel:+19499973988" style={{color: '#000'}}>(949) 997-3988</a>
+            </p>
+            <p style={{fontSize: '0.9375rem', color: '#525252'}}>
+              Range Medical • Fashion Island, Newport Beach
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Print-friendly note */}
+      <section className="section">
+        <div className="container" style={{maxWidth: '800px', textAlign: 'center'}}>
+          <p style={{fontSize: '0.875rem', color: '#737373'}}>
+            💡 Tip: Bookmark this page or print it for easy reference during your Reset.
+          </p>
+        </div>
+      </section>
+    </Layout>
+  );
+}

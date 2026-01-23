@@ -410,73 +410,93 @@ const CellularEnergyMaintenance = () => {
       color: #525252;
     }
     
-    /* Pricing */
-    .cem-pricing-box {
+    /* Pricing Tiers */
+    .cem-pricing-tiers {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      max-width: 800px;
+      margin: 0 auto 1.5rem;
+    }
+    
+    .cem-pricing-tier {
       background: #ffffff;
-      border: 3px solid #7c3aed;
+      border: 2px solid #e5e5e5;
       border-radius: 16px;
-      padding: 2.5rem;
-      max-width: 500px;
-      margin: 0 auto;
+      padding: 2rem;
       text-align: center;
+      position: relative;
     }
     
-    .cem-pricing-title {
-      font-size: 1.25rem;
+    .cem-pricing-tier.featured {
+      border-color: #7c3aed;
+      background: #faf5ff;
+    }
+    
+    .cem-pricing-tier-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #7c3aed;
+      color: #ffffff;
+      font-size: 0.75rem;
       font-weight: 700;
-      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.375rem 1rem;
+      border-radius: 100px;
     }
     
-    .cem-pricing-subtitle {
-      font-size: 0.9375rem;
-      color: #525252;
-      margin-bottom: 1.5rem;
-    }
-    
-    .cem-pricing-price {
-      font-size: 3rem;
+    .cem-pricing-tier-name {
+      font-size: 1.125rem;
       font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #1a1a1a;
+    }
+    
+    .cem-pricing-tier.featured .cem-pricing-tier-name {
       color: #7c3aed;
-      margin-bottom: 0.25rem;
     }
     
-    .cem-pricing-price span {
-      font-size: 1.25rem;
+    .cem-pricing-tier-price {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 1.5rem;
+    }
+    
+    .cem-pricing-tier.featured .cem-pricing-tier-price {
+      color: #7c3aed;
+    }
+    
+    .cem-pricing-tier-price span {
+      font-size: 1rem;
       font-weight: 500;
-      color: #525252;
+      color: #737373;
     }
     
-    .cem-pricing-compare {
-      font-size: 0.9375rem;
-      color: #22c55e;
-      font-weight: 600;
-      margin-bottom: 1.5rem;
-    }
-    
-    .cem-pricing-includes {
-      text-align: left;
-      margin-bottom: 1.5rem;
-    }
-    
-    .cem-pricing-includes ul {
+    .cem-pricing-tier-list {
       list-style: none;
       padding: 0;
-      margin: 0;
+      margin: 0 0 1.5rem 0;
+      text-align: left;
     }
     
-    .cem-pricing-includes li {
+    .cem-pricing-tier-list li {
       font-size: 0.9375rem;
-      padding: 0.375rem 0;
+      color: #525252;
+      padding: 0.5rem 0;
       padding-left: 1.5rem;
       position: relative;
       border-bottom: 1px solid #f5f5f5;
     }
     
-    .cem-pricing-includes li:last-child {
+    .cem-pricing-tier-list li:last-child {
       border-bottom: none;
     }
     
-    .cem-pricing-includes li::before {
+    .cem-pricing-tier-list li::before {
       content: "✓";
       position: absolute;
       left: 0;
@@ -484,17 +504,48 @@ const CellularEnergyMaintenance = () => {
       font-weight: 700;
     }
     
-    .cem-pricing-cta {
-      margin-bottom: 1rem;
+    .cem-pricing-tier-list li.highlight {
+      color: #7c3aed;
+      font-weight: 600;
     }
     
-    .cem-pricing-cta .cem-btn-primary {
+    .cem-pricing-tier-cta {
+      margin-top: auto;
+    }
+    
+    .cem-pricing-tier-cta .cem-btn-primary,
+    .cem-pricing-tier-cta .cem-btn-outline {
       width: 100%;
     }
     
+    .cem-btn-outline {
+      display: inline-block;
+      background: transparent;
+      color: #7c3aed;
+      border: 2px solid #7c3aed;
+      padding: 0.875rem 1.75rem;
+      border-radius: 100px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    
+    .cem-btn-outline:hover {
+      background: #7c3aed;
+      color: #ffffff;
+    }
+    
     .cem-pricing-note {
-      font-size: 0.8125rem;
+      font-size: 0.875rem;
       color: #737373;
+      text-align: center;
+    }
+    
+    @media (max-width: 640px) {
+      .cem-pricing-tiers {
+        grid-template-columns: 1fr;
+      }
     }
     
     /* FAQ */
@@ -841,31 +892,42 @@ const CellularEnergyMaintenance = () => {
       <section className="cem-section cem-section-alt">
         <div className="cem-container">
           <p className="cem-section-kicker">Investment</p>
-          <h2 className="cem-section-title">Membership Pricing</h2>
+          <h2 className="cem-section-title">Choose Your Tier</h2>
+          <p className="cem-section-subtitle">Both options maintain your results. The + IV tier adds extra cellular support.</p>
           
-          <div className="cem-pricing-box">
-            <h3 className="cem-pricing-title">Cellular Energy Maintenance</h3>
-            <p className="cem-pricing-subtitle">Ongoing optimization</p>
-            
-            <div className="cem-pricing-price">$597 <span>/ 4 weeks</span></div>
-            <div className="cem-pricing-compare">Save $483 vs. à la carte (45% off)</div>
-            
-            <div className="cem-pricing-includes">
-              <ul>
-                <li>4 Hyperbaric Oxygen sessions (60 min each)</li>
-                <li>4 Red Light Therapy sessions (20 min each)</li>
+          <div className="cem-pricing-tiers">
+            <div className="cem-pricing-tier">
+              <div className="cem-pricing-tier-name">Base</div>
+              <div className="cem-pricing-tier-price">$597 <span>/ 4 weeks</span></div>
+              <ul className="cem-pricing-tier-list">
+                <li>4 Hyperbaric Oxygen sessions</li>
+                <li>4 Red Light Therapy sessions</li>
                 <li>Quarterly provider check-in</li>
-                <li>Annual Cellular Energy Lab Panel at preferred rate</li>
                 <li>Priority scheduling</li>
               </ul>
+              <div className="cem-pricing-tier-cta">
+                <a href="sms:+19499973988?body=Hi, I'm interested in the Base Maintenance membership." className="cem-btn-outline">Start Base →</a>
+              </div>
             </div>
             
-            <div className="cem-pricing-cta">
-              <a href="sms:+19499973988?body=Hi, I'm interested in the Cellular Energy Maintenance membership." className="cem-btn-primary">Start Maintenance →</a>
+            <div className="cem-pricing-tier featured">
+              <div className="cem-pricing-tier-badge">Enhanced</div>
+              <div className="cem-pricing-tier-name">Maintenance + IV</div>
+              <div className="cem-pricing-tier-price">$797 <span>/ 4 weeks</span></div>
+              <ul className="cem-pricing-tier-list">
+                <li>4 Hyperbaric Oxygen sessions</li>
+                <li>4 Red Light Therapy sessions</li>
+                <li className="highlight">1 Energy IV per cycle</li>
+                <li>Quarterly provider check-in</li>
+                <li>Priority scheduling</li>
+              </ul>
+              <div className="cem-pricing-tier-cta">
+                <a href="sms:+19499973988?body=Hi, I'm interested in the Maintenance + IV membership." className="cem-btn-primary">Start + IV →</a>
+              </div>
             </div>
-            
-            <p className="cem-pricing-note">Cancel anytime. No long-term contracts.</p>
           </div>
+          
+          <p className="cem-pricing-note">Both tiers: Save 45%+ vs. à la carte • Cancel anytime • No long-term contracts</p>
         </div>
       </section>
       

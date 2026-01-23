@@ -1,194 +1,198 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import Head from 'next/head';
 
-export default function RangeAssessment() {
+export default function InjuryRecovery() {
   return (
-    <Layout 
-      title="Range Assessment | Labs + Provider Consult | Range Medical"
-      description="Comprehensive lab panel + 1:1 provider consult. Essential Panel $350, Elite Panel $750. Newport Beach health optimization. (949) 997-3988."
+    <Layout
+      title="10-Day Recovery Jumpstart | Range Medical | Newport Beach"
+      description="Speed up injury recovery with our 10-Day Recovery Jumpstart. No labs required. $250 to start. Located in the same building as Range Sports Therapy."
     >
-      {/* Hero */}
-      <section className="hero">
-        <div className="container">
-          <span className="hero-badge">Your Starting Point</span>
-          <h1>The Range Assessment</h1>
-          <p className="hero-sub">Comprehensive labs plus a 1:1 provider consult. We'll find out what's actually going on and build a plan that fits your goals.</p>
-          
-          <div className="hero-cta">
-            <a href="#book" className="btn-primary">Book Your Assessment</a>
-            <p className="hero-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a></p>
-          </div>
-        </div>
-      </section>
+      <Head>
+        <meta name="keywords" content="injury recovery Newport Beach, speed up healing, recovery jumpstart, HBOT injury, red light therapy recovery" />
+        <link rel="canonical" href="https://www.range-medical.com/injury-recovery" />
+        <meta property="og:title" content="10-Day Recovery Jumpstart | Range Medical" />
+        <meta property="og:description" content="If you're already doing rehab and feel like healing is taking too long, this is for you." />
+        <meta property="og:url" content="https://www.range-medical.com/injury-recovery" />
+      </Head>
 
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
-          <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ Blood Draw On-Site</span>
-          <span className="trust-item">✓ Results in 3-4 Days</span>
-          <span className="trust-item">✓ HSA & FSA Welcome</span>
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">🩹 No Labs Required</span>
         </div>
       </div>
 
-      {/* Offer Cards */}
-      <section className="section" id="book">
+      {/* Hero */}
+      <section className="hero">
+        <span className="hero-badge">Recovery Door</span>
+        <h1>10-Day Recovery Jumpstart for Injuries</h1>
+        <p className="hero-sub">
+          If you're already doing rehab and feel like healing is taking too long, this is for you.
+        </p>
+        <div className="hero-cta">
+          <div className="hero-buttons">
+            <Link href="/book-recovery" className="btn-primary">
+              Book Recovery Jumpstart — $250
+            </Link>
+          </div>
+          <p className="hero-secondary">
+            Located in the same building as Range Sports Therapy. No labs required to start.
+          </p>
+        </div>
+      </section>
+
+      {/* Who This Is For */}
+      <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Choose Your Panel</div>
-          <h2 className="section-title">Two Options, One Goal: Clarity</h2>
-          <p className="section-subtitle">Both panels include a symptoms questionnaire, blood draw at our Newport Beach office, and a 1:1 provider review of your results.</p>
-          
-          <div className="offer-grid">
-            <div className="offer-card">
-              <h3>Essential Panel</h3>
-              <div className="offer-price">$350</div>
-              <p className="offer-note">Provider assessment included</p>
-              <ul>
-                <li>Core hormone markers (testosterone, estrogen, thyroid)</li>
-                <li>Metabolic panel + basic inflammation</li>
-                <li>Symptoms questionnaire</li>
-                <li>1:1 provider review of results</li>
-                <li>Written protocol recommendations</li>
-              </ul>
-              <p className="offer-best">Best for: First-time patients or general health check</p>
-              <a href="tel:+19499973988" className="btn-outline">Call to Book</a>
+          <p className="section-kicker">Is This You?</p>
+          <h2 className="section-title">Who the Recovery Jumpstart Is For</h2>
+
+          <div className="pain-points">
+            <ul>
+              <li>You're rehabbing an injury and progress feels slow.</li>
+              <li>Pain and swelling keep coming back between visits.</li>
+              <li>You want to get back to work, training, or daily life faster.</li>
+              <li>Your therapist or chiropractor thinks extra recovery support could help.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* What You Get */}
+      <section className="section">
+        <div className="container">
+          <p className="section-kicker">The Program</p>
+          <h2 className="section-title">What You Get in 10 Days</h2>
+          <p className="section-subtitle">
+            A structured plan to support your healing — not a menu of random treatments.
+          </p>
+
+          <div className="benefits-grid">
+            <div className="benefit-card">
+              <h4><span>📋</span> Custom 10-Day Plan</h4>
+              <p>A recovery plan built by our medical team based on your injury and goals.</p>
             </div>
-            
-            <div className="offer-card featured">
-              <div className="offer-badge">Most Comprehensive</div>
-              <h3>Elite Panel</h3>
-              <div className="offer-price">$750</div>
-              <p className="offer-note">Provider assessment included</p>
-              <ul>
-                <li>Everything in Essential, plus:</li>
-                <li>Advanced thyroid + adrenal markers</li>
-                <li>Insulin sensitivity + metabolic deep-dive</li>
-                <li>Full hormone panel (men or women)</li>
-                <li>Inflammation + cardiovascular markers</li>
-                <li>1:1 provider review of results</li>
-                <li>Written protocol recommendations</li>
-              </ul>
-              <p className="offer-best">Best for: Patients who want the full picture</p>
-              <a href="tel:+19499973988" className="btn-primary">Call to Book</a>
+            <div className="benefit-card">
+              <h4><span>🏥</span> In-Clinic Sessions</h4>
+              <p>Recovery sessions using tools like red light therapy, hyperbaric oxygen, and targeted injections when appropriate.</p>
+            </div>
+            <div className="benefit-card">
+              <h4><span>🔥</span> Inflammation Support</h4>
+              <p>Help calm inflammation, support circulation, and give your body what it needs to repair.</p>
+            </div>
+            <div className="benefit-card">
+              <h4><span>✅</span> Progress Check-In</h4>
+              <p>A quick check-in at the end of the 10 days to talk about how you're doing and what comes next.</p>
             </div>
           </div>
-          
-          <p className="offer-subtext">Not sure which panel? Call us at <a href="tel:+19499973988">(949) 997-3988</a> and we'll help you decide.</p>
+
+          <div style={{textAlign: 'center', marginTop: '2rem'}}>
+            <p style={{fontSize: '0.9375rem', color: '#525252', maxWidth: '600px', margin: '0 auto'}}>
+              We're selling you a <strong>10-day program and outcome</strong>, not individual treatments as separate line items.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* How It Works */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">The Process</div>
-          <h2 className="section-title">How the Range Assessment Works</h2>
-          <p className="section-subtitle">Simple process, clear results, personalized plan.</p>
-          
+          <p className="section-kicker">The Process</p>
+          <h2 className="section-title">How the 10-Day Jumpstart Works</h2>
+
           <div className="process-timeline">
             <div className="timeline-step">
               <div className="timeline-marker">1</div>
               <div className="timeline-content">
-                <div className="timeline-day">Day 1</div>
-                <h4>Blood Draw</h4>
-                <p>Come to our Newport Beach office. Quick blood draw, no fasting required for most panels. We'll also have you complete a symptoms questionnaire.</p>
+                <h4>Book Your Recovery Jumpstart</h4>
+                <p>Choose a time that works for you using our online booking.</p>
               </div>
             </div>
-            
+
             <div className="timeline-step">
               <div className="timeline-marker">2</div>
               <div className="timeline-content">
-                <div className="timeline-day">Days 3-4</div>
-                <h4>Results Ready</h4>
-                <p>Your labs come back. Your provider reviews everything before your consult so they're prepared to explain what they see.</p>
+                <h4>Come In for Your First Visit</h4>
+                <p>We review your injury, your current rehab plan, and make sure this is a safe fit.</p>
               </div>
             </div>
-            
+
             <div className="timeline-step">
               <div className="timeline-marker">3</div>
               <div className="timeline-content">
-                <div className="timeline-day">Days 5-6</div>
-                <h4>Provider Consult</h4>
-                <p>1:1 review of your results. We explain what's off, why it matters, and what we recommend. No rushing, no pressure.</p>
+                <h4>Follow Your 10-Day Protocol</h4>
+                <p>You come in for your scheduled recovery sessions and follow the simple at-home steps we give you.</p>
               </div>
             </div>
-            
+
             <div className="timeline-step">
               <div className="timeline-marker">4</div>
               <div className="timeline-content">
-                <div className="timeline-day">Day 7+</div>
-                <h4>Start Your Protocol</h4>
-                <p>If treatment makes sense, we'll get you started. Could be hormones, peptides, GLP-1s, or other tools—whatever your labs say you need.</p>
+                <h4>Review Your Progress</h4>
+                <p>At the end of the 10 days, we check in on pain, swelling, and function and decide together what the best next step is.</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* What We Check */}
+      {/* Price & FAQ */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">What We Look At</div>
-          <h2 className="section-title">More Than Just Numbers</h2>
-          <p className="section-subtitle">We check the markers that actually explain why you feel the way you do.</p>
-          
-          <div className="markers-grid">
-            <div className="marker-card">
-              <h4>Hormones</h4>
-              <p>Testosterone, estrogen, progesterone, DHEA—the signals that drive energy, mood, and body composition.</p>
+          <p className="section-kicker">Details</p>
+          <h2 className="section-title">Price and Common Questions</h2>
+
+          <div style={{maxWidth: '600px', margin: '0 auto 2rem', textAlign: 'center', background: '#fafafa', borderRadius: '12px', padding: '2rem'}}>
+            <div style={{fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem'}}>$250</div>
+            <p style={{fontSize: '1rem', color: '#525252', marginBottom: '0'}}>10-Day Recovery Jumpstart</p>
+            <p style={{fontSize: '0.875rem', color: '#737373', marginTop: '0.5rem'}}>No lab work required for this program.</p>
+          </div>
+
+          <div className="faq-container">
+            <div className="faq-item">
+              <h4>Do I have to be a patient at Range Sports Therapy first?</h4>
+              <p>No. Many people are referred from there, but you can also book directly with us.</p>
             </div>
-            <div className="marker-card">
-              <h4>Thyroid</h4>
-              <p>TSH, Free T3, Free T4, and antibodies. Your metabolism's control center.</p>
+
+            <div className="faq-item">
+              <h4>Does this replace my rehab?</h4>
+              <p>No. This is designed to support and speed up the recovery work you're already doing.</p>
             </div>
-            <div className="marker-card">
-              <h4>Metabolic Health</h4>
-              <p>Fasting glucose, insulin, HbA1c. How your body processes energy and stores fat.</p>
+
+            <div className="faq-item">
+              <h4>Will I need labs or blood work?</h4>
+              <p>No. This program uses treatments we can safely do without lab work.</p>
             </div>
-            <div className="marker-card">
-              <h4>Inflammation</h4>
-              <p>CRP, homocysteine, and other markers that reveal hidden stress on your system.</p>
-            </div>
-            <div className="marker-card">
-              <h4>Nutrients</h4>
-              <p>Vitamin D, B12, iron, ferritin. The building blocks your body needs to function.</p>
-            </div>
-            <div className="marker-card">
-              <h4>Cardiovascular</h4>
-              <p>Lipid panel, Lp(a), ApoB. Heart health markers that go beyond basic cholesterol.</p>
+
+            <div className="faq-item">
+              <h4>What kinds of injuries does this help with?</h4>
+              <p>Most orthopedic injuries — sprains, strains, post-surgical recovery, chronic pain that's slow to heal. We'll confirm it's a good fit at your first visit.</p>
             </div>
           </div>
-          
-          <p className="markers-note">Want the full biomarker list? <Link href="/lab-panels">See our detailed lab panels breakdown →</Link></p>
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* Bridge to Optimization */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Questions</div>
-          <h2 className="section-title">Frequently Asked Questions</h2>
-          
-          <div className="faq-container">
-            <div className="faq-item">
-              <h4>Do I need to fast before my blood draw?</h4>
-              <p>For most panels, no. If fasting is required for your specific panel, we'll let you know when you book.</p>
-            </div>
-            <div className="faq-item">
-              <h4>How long does the blood draw take?</h4>
-              <p>About 10-15 minutes. You'll also complete a symptoms questionnaire which takes another 5-10 minutes.</p>
-            </div>
-            <div className="faq-item">
-              <h4>What if my labs are normal but I still feel off?</h4>
-              <p>"Normal" ranges are wide. We look at optimal ranges and how your markers relate to each other—not just whether you're technically in range.</p>
-            </div>
-            <div className="faq-item">
-              <h4>Do you accept insurance?</h4>
-              <p>We're a cash-pay clinic and don't bill insurance directly. Many patients use HSA or FSA funds. We can provide documentation for potential reimbursement.</p>
-            </div>
-            <div className="faq-item">
-              <h4>What happens after my consult?</h4>
-              <p>If treatment is appropriate, we'll discuss options and you can start as soon as you're ready. If you want to think about it, no pressure—your results are yours.</p>
-            </div>
+          <div style={{maxWidth: '700px', margin: '0 auto', textAlign: 'center'}}>
+            <p className="section-kicker">What's Next?</p>
+            <h2 className="section-title">What Happens After the 10 Days?</h2>
+            <p style={{fontSize: '1rem', color: '#525252', lineHeight: '1.7', marginBottom: '1.5rem'}}>
+              If your only goal is to get this injury calmed down, the Jumpstart may be all you need.
+            </p>
+            <p style={{fontSize: '1rem', color: '#525252', lineHeight: '1.7', marginBottom: '2rem'}}>
+              If you also want to work on bigger things like energy, sleep, hormones, or weight, 
+              your provider may recommend a separate visit called the Range Assessment.
+            </p>
+            <Link href="/range-assessment" className="btn-outline">
+              Learn About the Range Assessment
+            </Link>
           </div>
         </div>
       </section>
@@ -196,10 +200,15 @@ export default function RangeAssessment() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <h2>Ready to See What's Going On Inside?</h2>
-          <p>Book your Range Assessment and get the clarity you need to make real changes.</p>
-          <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988 to Book</a>
-          <p className="cta-location">📍 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
+          <span className="cta-step">Get Started</span>
+          <h2>Ready to Speed Up Your Recovery?</h2>
+          <p>Book your 10-Day Recovery Jumpstart and give your body the support it needs to heal faster.</p>
+          <div className="cta-buttons">
+            <Link href="/book-recovery" className="btn-white">
+              Book Recovery Jumpstart — $250
+            </Link>
+          </div>
+          <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
         </div>
       </section>
     </Layout>

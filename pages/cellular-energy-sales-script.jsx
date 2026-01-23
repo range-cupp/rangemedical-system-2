@@ -398,6 +398,29 @@ const CellularEnergyResetSalesScript = () => {
       margin-top: 0.25rem;
     }
     
+    .cer-script-flow-addon {
+      font-size: 0.625rem;
+      font-weight: 500;
+      opacity: 0.75;
+      margin-top: 0.125rem;
+    }
+    
+    /* IV Upgrade Box */
+    .cer-script-iv-upgrade {
+      background: #f0fdf4;
+      border: 2px solid #22c55e;
+    }
+    
+    .cer-script-iv-upgrade .cer-script-label {
+      color: #166534;
+    }
+    
+    .cer-script-iv-upgrade .cer-script-note {
+      font-size: 0.8125rem;
+      color: #166534;
+      margin-top: 0.75rem;
+    }
+    
     /* Default Rule Callout */
     .cer-script-default-rule {
       background: #fef3c7;
@@ -485,24 +508,25 @@ const CellularEnergyResetSalesScript = () => {
       
       {/* Money Model Line */}
       <div className="cer-script-money-model">
-        Assessment ($497, 100% credit) <span>→</span> 6-Week Reset ($3,997) <span>→</span> Maintenance ($597/4wk)
+        Assessment ($199, 100% credit) <span>→</span> 6-Week Reset ($3,999 + optional IV $999) <span>→</span> Maintenance ($599 or $799/4wk)
       </div>
       
       {/* Visual Flow */}
       <div className="cer-script-flow">
         <div className="cer-script-flow-step blue">
           Assessment
-          <div className="cer-script-flow-price">$497</div>
+          <div className="cer-script-flow-price">$199</div>
         </div>
         <div className="cer-script-flow-arrow">→</div>
         <div className="cer-script-flow-step black">
           6-Week Reset
-          <div className="cer-script-flow-price">$3,997</div>
+          <div className="cer-script-flow-price">$3,999</div>
+          <div className="cer-script-flow-addon">+IV: $999</div>
         </div>
         <div className="cer-script-flow-arrow">→</div>
         <div className="cer-script-flow-step purple">
           Maintenance
-          <div className="cer-script-flow-price">$597/4wk</div>
+          <div className="cer-script-flow-price">$599 or $799</div>
         </div>
       </div>
       
@@ -514,21 +538,23 @@ const CellularEnergyResetSalesScript = () => {
           <div className="cer-script-offer-row">
             <div className="cer-script-offer-name blue">Assessment</div>
             <div className="cer-script-offer-details">
-              <strong>$497</strong> | <strong>100% credit within 7 days</strong> | Labs + review + experience session
+              <strong>$199</strong> | <strong>100% credit within 7 days</strong> | Labs + review + RLT & HBOT experience
             </div>
           </div>
           
           <div className="cer-script-offer-row">
             <div className="cer-script-offer-name black">6-Week Reset</div>
             <div className="cer-script-offer-details">
-              <strong>$3,997 PIF (+2 RLT)</strong> or <strong>3 × $1,450</strong> | Value $6,460 | 6 weeks, 3x/week, 18 HBOT + 18 RLT, 2 labs, guarantee, 8 spots max
+              <strong>$3,999 PIF (+2 RLT)</strong> or <strong>3 × $1,399</strong> | Value $5,760 | 6 weeks, 3x/week, 18 HBOT + 18 RLT, guarantee, 8 spots max<br />
+              <em>IV Upgrade: +$999 for 6 weekly IVs (value $1,350)</em>
             </div>
           </div>
           
           <div className="cer-script-offer-row">
             <div className="cer-script-offer-name purple">Maintenance</div>
             <div className="cer-script-offer-details">
-              <strong>$597 / 4 weeks</strong> | 4 HBOT + 4 RLT | Quarterly check-in + annual labs preferred
+              <strong>Base: $599 / 4 weeks</strong> | 4 HBOT + 4 RLT | Quarterly check-in<br />
+              <strong>+ IV: $799 / 4 weeks</strong> | Adds 1 Energy IV per cycle
             </div>
           </div>
           
@@ -639,13 +665,13 @@ const CellularEnergyResetSalesScript = () => {
         <h3>What's Included in the Assessment:</h3>
         <div className="cer-script-box">
           <p className="cer-script-label">Explain</p>
-          <p className="cer-script-text">"The Assessment includes a comprehensive lab panel—12 biomarkers that tell us about inflammation, oxygen utilization, growth factors, and metabolism. You'll also complete an energy questionnaire, then meet with me to review everything. I'll give you a written plan with exactly what I'd recommend based on your results. And if you want, we can also do an experience session—either red light or HBOT—so you can feel what it's like."</p>
+          <p className="cer-script-text">"The Assessment includes a comprehensive lab panel—12 biomarkers that tell us about inflammation, oxygen utilization, growth factors, and metabolism. You'll also complete an energy questionnaire, then meet with me to review everything. I'll give you a written plan with exactly what I'd recommend based on your results. You'll also do both a red light session and an HBOT session so you can feel exactly what the Reset will be like."</p>
         </div>
         
         <h3>Price Presentation:</h3>
         <div className="cer-script-box cer-script-transition">
           <p className="cer-script-label">Price + Credit</p>
-          <p className="cer-script-text">"The Assessment is $497. Here's the important part: if you decide to move forward with the full 6-Week Reset within 7 days of your results visit, that entire $497 is credited toward the program. So you're not paying twice—you're just getting the data first."</p>
+          <p className="cer-script-text">"The Assessment is $199. Here's the important part: if you decide to move forward with the full 6-Week Reset within 7 days of your results visit, that entire $199 is credited toward the program. So you're not paying twice—you're just getting the data first."</p>
         </div>
         
         <div className="cer-script-box cer-script-close">
@@ -671,7 +697,7 @@ const CellularEnergyResetSalesScript = () => {
         
         <div className="cer-script-box">
           <p className="cer-script-label">Overview</p>
-          <p className="cer-script-text">"The 6-Week Cellular Energy Reset is our complete protocol. You'll come in three times a week for red light therapy and hyperbaric oxygen—both of which directly support your mitochondria. We do before-and-after labs so you can see exactly what changed, plus weekly check-ins to track your progress."</p>
+          <p className="cer-script-text">"The 6-Week Cellular Energy Reset is our complete protocol. You'll come in three times a week for red light therapy and hyperbaric oxygen—both of which directly support your mitochondria. We do weekly check-ins to track your progress and make sure you're seeing results."</p>
         </div>
         
         <h3>The Value Stack:</h3>
@@ -694,11 +720,7 @@ const CellularEnergyResetSalesScript = () => {
               <td className="value-col">$1,530</td>
             </tr>
             <tr>
-              <td>2 Cellular Energy Lab Panels</td>
-              <td className="value-col">$700</td>
-            </tr>
-            <tr>
-              <td>2 Provider Lab Review Visits + Written Plans</td>
+              <td>Orientation & Week-7 Review</td>
               <td className="value-col">$400</td>
             </tr>
             <tr>
@@ -711,29 +733,36 @@ const CellularEnergyResetSalesScript = () => {
             </tr>
             <tr className="total-row">
               <td>Total Value</td>
-              <td className="value-col">$6,460</td>
+              <td className="value-col">$5,760</td>
             </tr>
             <tr className="price-row">
               <td>Your Price</td>
-              <td className="value-col">$3,997</td>
+              <td className="value-col">$3,999</td>
             </tr>
           </tbody>
         </table>
         
         <div className="cer-script-box cer-script-transition">
           <p className="cer-script-label">Anchor + Price</p>
-          <p className="cer-script-text">"If you did all of this separately, you're looking at over $6,400. The complete program is $3,997—you're saving almost $2,500 and getting the structure and accountability to actually get results."</p>
+          <p className="cer-script-text">"If you did all of this separately, you're looking at over $5,700. The complete program is $3,999—you're saving over $1,700 and getting the structure and accountability to actually get results."</p>
         </div>
         
         <h3>Payment Options:</h3>
         <div className="cer-script-box cer-script-close">
           <p className="cer-script-label">Present Both</p>
-          <p className="cer-script-text">"You can pay in full at $3,997 and we'll add 2 extra red light sessions as a bonus. Or if you'd prefer a payment plan, it's three monthly payments of $1,450."</p>
+          <p className="cer-script-text">"You can pay in full at $3,999 and we'll add 2 extra red light sessions as a bonus. Or if you'd prefer a payment plan, it's three monthly payments of $1,399."</p>
         </div>
         
         {/* SHUT UP RULE - NEW */}
         <div className="cer-script-shutup-rule">
           <p>⛔ After presenting both options: PAUSE. Shut up. Let them choose.</p>
+        </div>
+        
+        <h3>IV Upgrade (Optional Upsell):</h3>
+        <div className="cer-script-box cer-script-iv-upgrade">
+          <p className="cer-script-label">After They Commit to Reset</p>
+          <p className="cer-script-text">"One more thing—some people want every advantage. We have an IV Upgrade: 6 IV therapy sessions over your 6 weeks, one per week, timed with your protocol. It's basically turbo fuel for what we're already doing. Normally $1,350, but as part of your Reset enrollment it's $999. Want me to add that?"</p>
+          <p className="cer-script-note"><strong>Note:</strong> Only offer after they've committed to the Reset. Simple yes/no. Don't oversell.</p>
         </div>
         
         <h3>The Guarantee:</h3>
@@ -763,21 +792,21 @@ const CellularEnergyResetSalesScript = () => {
           <div className="cer-script-objection-item">
             <div className="cer-script-objection-header">"That's expensive."</div>
             <div className="cer-script-objection-response">
-              "I hear you. Let me ask—how much do you think low energy is costing you right now? In productivity? In quality of life? For most people, this program pays for itself pretty quickly. And we're not masking symptoms—we're fixing the root cause, which means lasting results. Would a payment plan make this more comfortable? It's $1,450 a month for three months."
+              "I hear you. Let me ask—how much do you think low energy is costing you right now? In productivity? In quality of life? For most people, this program pays for itself pretty quickly. And we're not masking symptoms—we're fixing the root cause, which means lasting results. Would a payment plan make this more comfortable? It's $1,399 a month for three months."
             </div>
           </div>
           
           <div className="cer-script-objection-item">
             <div className="cer-script-objection-header">"Can I just do a few sessions and see?"</div>
             <div className="cer-script-objection-response">
-              "I understand wanting to test it. The challenge is that cellular changes take time—a few sessions won't give you the full picture. It's like going to the gym three times and wondering why you're not in shape yet. That said, if you want to start smaller, the Assessment is a great first step. You get your labs, an experience session, and a clear picture of what's going on. Then you can decide."
+              "I understand wanting to test it. The challenge is that cellular changes take time—a few sessions won't give you the full picture. It's like going to the gym three times and wondering why you're not in shape yet. That said, if you want to start smaller, the Assessment is a great first step. You get your labs, experience both therapies, and a clear picture of what's going on. Then you can decide."
             </div>
           </div>
           
           <div className="cer-script-objection-item">
             <div className="cer-script-objection-header">"I need to think about it."</div>
             <div className="cer-script-objection-response">
-              "Of course. What specifically are you weighing? Is it the time commitment, the investment, or something else?" <em>[Listen, address the specific concern.]</em> "If you're not ready for the full Reset, start with the Assessment—$497, and it all credits toward the program if you move forward within 7 days."
+              "Of course. What specifically are you weighing? Is it the time commitment, the investment, or something else?" <em>[Listen, address the specific concern.]</em> "If you're not ready for the full Reset, start with the Assessment—$199, and it all credits toward the program if you move forward within 7 days."
             </div>
           </div>
           
@@ -798,7 +827,7 @@ const CellularEnergyResetSalesScript = () => {
           <div className="cer-script-objection-item">
             <div className="cer-script-objection-header">"I'll just try red light (or just HBOT)."</div>
             <div className="cer-script-objection-response">
-              "You can do them separately. The reason we combine them is they work through different mechanisms that amplify each other. Red light stimulates your mitochondria, HBOT gives them the oxygen they need. Together, faster and stronger results. But if budget is a concern, the Assessment is a good starting point—$497 and you'll know exactly where you stand."
+              "You can do them separately. The reason we combine them is they work through different mechanisms that amplify each other. Red light stimulates your mitochondria, HBOT gives them the oxygen they need. Together, faster and stronger results. But if budget is a concern, the Assessment is a good starting point—$199 and you'll know exactly where you stand."
             </div>
           </div>
         </div>
@@ -819,17 +848,21 @@ const CellularEnergyResetSalesScript = () => {
         
         <div className="cer-script-box cer-script-purple">
           <p className="cer-script-label">Transition From Results</p>
-          <p className="cer-script-text">"These results are great—look at your CRP, look at your energy scores. The question now is: how do we maintain this? You've built something. Let's not lose it."</p>
+          <p className="cer-script-text">"These results are great—look at your energy scores, how you're feeling. The question now is: how do we maintain this? You've built something. Let's not lose it."</p>
         </div>
         
         <div className="cer-script-box">
-          <p className="cer-script-label">Present Maintenance</p>
-          <p className="cer-script-text">"We have a Maintenance Membership designed exactly for this. Instead of 3x a week, you'd come in once a week—4 sessions each of HBOT and red light every 4 weeks. We do a quick check-in each quarter and repeat your labs once a year at a preferred rate."</p>
+          <p className="cer-script-label">Present Two Tiers</p>
+          <p className="cer-script-text">"We have a Maintenance Membership designed exactly for this. Instead of 3x a week, you'd come in once a week—4 sessions each of HBOT and red light every 4 weeks, plus a quarterly check-in."</p>
         </div>
         
         <div className="cer-script-box cer-script-transition">
-          <p className="cer-script-label">Price + Anchor</p>
-          <p className="cer-script-text">"The membership is $597 every 4 weeks. If you did those sessions à la carte, you're looking at over $1,000 a month. This keeps you in the system, keeps your results, and keeps you optimized without having to think about it."</p>
+          <p className="cer-script-label">Price + Options</p>
+          <p className="cer-script-text">"There are two options: Base is $599 every 4 weeks. Or if you want to keep the IV support going, the Maintenance + IV tier is $799—that adds one Energy IV per cycle. À la carte, either option would run you over $1,000 a month. Which sounds right for you?"</p>
+        </div>
+        
+        <div className="cer-script-shutup-rule">
+          <p>⛔ After presenting both tiers: PAUSE. Let them choose.</p>
         </div>
         
         <div className="cer-script-box cer-script-close">

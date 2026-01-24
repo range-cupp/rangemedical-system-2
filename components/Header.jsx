@@ -13,6 +13,7 @@ export default function Header() {
     { href: '/iv-therapy', label: 'IV Therapy' },
     { href: '/hormone-optimization', label: 'Hormone Optimization' },
     { href: '/weight-loss', label: 'Weight Loss' },
+    { href: '/cellular-energy-reset', label: 'Cellular Energy Reset' },
   ];
 
   const isActiveTreatment = treatments.some(t => router.pathname === t.href);
@@ -29,6 +30,13 @@ export default function Header() {
         
         <nav className="rm-nav">
           <div className="rm-nav-links">
+            <Link 
+              href="/injury-recovery" 
+              className={`rm-nav-link ${router.pathname === '/injury-recovery' ? 'active' : ''}`}
+            >
+              Injury Recovery
+            </Link>
+
             <Link 
               href="/range-assessment" 
               className={`rm-nav-start ${router.pathname === '/range-assessment' ? 'active' : ''}`}
@@ -78,6 +86,9 @@ export default function Header() {
       
       {mobileOpen && (
         <div className="rm-mobile-menu">
+          <Link href="/injury-recovery" onClick={() => setMobileOpen(false)}>
+            Injury Recovery
+          </Link>
           <Link href="/range-assessment" className="rm-mobile-start" onClick={() => setMobileOpen(false)}>
             Range Assessment
           </Link>

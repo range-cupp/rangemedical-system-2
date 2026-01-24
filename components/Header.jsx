@@ -7,13 +7,13 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const treatments = [
-    { href: '/hyperbaric-oxygen-therapy', label: 'Hyperbaric Oxygen' },
-    { href: '/red-light-therapy', label: 'Red Light Therapy' },
-    { href: '/peptide-therapy', label: 'Peptide Therapy' },
-    { href: '/iv-therapy', label: 'IV Therapy' },
     { href: '/hormone-optimization', label: 'Hormone Optimization' },
     { href: '/weight-loss', label: 'Weight Loss' },
     { href: '/cellular-energy-reset', label: 'Cellular Energy Reset' },
+    { href: '/iv-therapy', label: 'IV Therapy' },
+    { href: '/peptide-therapy', label: 'Peptide Therapy' },
+    { href: '/hyperbaric-oxygen-therapy', label: 'Hyperbaric Oxygen' },
+    { href: '/red-light-therapy', label: 'Red Light Therapy' },
   ];
 
   const isActiveTreatment = treatments.some(t => router.pathname === t.href);

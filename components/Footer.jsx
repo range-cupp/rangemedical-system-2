@@ -17,7 +17,7 @@ export default function Footer() {
           <h4>Get Started</h4>
           <ul>
             <li><Link href="/range-assessment">Range Assessment</Link></li>
-            <li><Link href="/injury-recovery">Injury & Recovery</Link></li>
+            <li><Link href="/injury-recovery">Injury Recovery</Link></li>
             <li><Link href="/lab-panels">Labs & Testing</Link></li>
           </ul>
         </div>
@@ -25,12 +25,15 @@ export default function Footer() {
         <div className="rm-footer-col">
           <h4>How We Treat</h4>
           <ul>
-            <li><Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link></li>
-            <li><Link href="/red-light-therapy">Red Light Therapy</Link></li>
-            <li><Link href="/peptide-therapy">Peptide Therapy</Link></li>
-            <li><Link href="/iv-therapy">IV Therapy</Link></li>
             <li><Link href="/hormone-optimization">Hormone Optimization</Link></li>
             <li><Link href="/weight-loss">Weight Loss</Link></li>
+            <li><Link href="/cellular-energy-reset">Cellular Energy Reset</Link></li>
+            <li><Link href="/iv-therapy">IV Therapy</Link></li>
+            <li><Link href="/peptide-therapy">Peptide Therapy</Link></li>
+            <li><Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link></li>
+            <li><Link href="/red-light-therapy">Red Light Therapy</Link></li>
+            <li><Link href="/prp-injections">PRP Injections</Link></li>
+            <li><Link href="/exosome-therapy">Exosome Therapy</Link></li>
           </ul>
         </div>
         

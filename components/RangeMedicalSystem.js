@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, TrendingUp, Users, DollarSign, AlertCircle, Activity, Syringe, Droplet, Sun, Wind, FileText, Bell, ChevronRight, X, Loader, Trash2 } from 'lucide-react';
+import { Plus, Search, Calendar, TrendingUp, Users, DollarSign, AlertCircle, Activity, Syringe, Droplet, Sun, Wind, FileText, Bell, ChevronRight, X, Loader, Trash2, Zap } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseClient = createClient(
@@ -1155,6 +1155,7 @@ const RangeMedicalSystem = () => {
       iv: 0,
       hbot: 0,
       rlt: 0,
+      cellular_energy: 0,
       total: 0
     };
     
@@ -1202,7 +1203,8 @@ const RangeMedicalSystem = () => {
     weightloss: { icon: TrendingUp, label: 'Weight Loss', color: '#000000' },
     iv: { icon: Droplet, label: 'IV Therapy', color: '#000000' },
     hbot: { icon: Wind, label: 'HBOT', color: '#000000' },
-    rlt: { icon: Sun, label: 'Red Light', color: '#000000' }
+    rlt: { icon: Sun, label: 'Red Light', color: '#000000' },
+    cellular_energy: { icon: Zap, label: 'Cellular Energy', color: '#000000' }
   };
 
   const filteredPatients = patients.filter(patient =>
@@ -1411,6 +1413,7 @@ const RangeMedicalSystem = () => {
                       case 'iv': return <Droplet size={20} />;
                       case 'hbot': return <Wind size={20} />;
                       case 'rlt': return <Sun size={20} />;
+                      case 'cellular_energy': return <Zap size={20} />;
                       default: return <FileText size={20} />;
                     }
                   };
@@ -4513,6 +4516,7 @@ const RangeMedicalSystem = () => {
                   <option value="iv">IV Therapy</option>
                   <option value="hbot">HBOT</option>
                   <option value="rlt">Red Light Therapy</option>
+                  <option value="cellular_energy">Cellular Energy Reset</option>
                 </select>
               </div>
 

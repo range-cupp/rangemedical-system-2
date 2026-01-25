@@ -1,8 +1,37 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
+import { useState } from 'react';
 
 export default function RangeAssessment() {
+  const [allChecked, setAllChecked] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [checkboxes, setCheckboxes] = useState({
+    check1: false,
+    check2: false,
+    check3: false,
+    check4: false,
+    check5: false,
+    check6: false,
+  });
+
+  const handleCheckboxChange = (id) => {
+    const newCheckboxes = { ...checkboxes, [id]: !checkboxes[id] };
+    setCheckboxes(newCheckboxes);
+    setAllChecked(Object.values(newCheckboxes).every(Boolean));
+  };
+
+  const handleShowCalendar = () => {
+    if (!allChecked) {
+      alert('Please confirm all items before booking.');
+      return;
+    }
+    setShowCalendar(true);
+    setTimeout(() => {
+      document.getElementById('calendarContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   return (
     <Layout
       title="Range Assessment | Your First Step | Range Medical | Newport Beach"
@@ -36,12 +65,12 @@ export default function RangeAssessment() {
         </p>
         <div className="hero-cta">
           <div className="hero-buttons">
-            <Link href="/book" className="btn-primary">
+            <a href="#book" className="btn-primary">
               Schedule Your Range Assessment — $199
-            </Link>
+            </a>
           </div>
           <p className="hero-secondary">
-            Most visits last 60–75 minutes.
+            Most visits last 30–45 minutes.
           </p>
         </div>
       </section>
@@ -163,31 +192,102 @@ export default function RangeAssessment() {
         </div>
       </section>
 
-      {/* Pricing Box */}
-      <section className="section section-gray">
+      {/* Booking Section */}
+      <section className="section section-gray" id="book">
         <div className="container">
-          <div style={{maxWidth: '600px', margin: '0 auto', background: '#ffffff', border: '2px solid #000000', borderRadius: '16px', padding: '2.5rem', textAlign: 'center'}}>
-            <span style={{display: 'inline-block', background: '#000', color: '#fff', padding: '0.25rem 1rem', borderRadius: '100px', fontSize: '0.75rem', fontWeight: '600', marginBottom: '1rem'}}>Start Here</span>
-            <h3 style={{marginBottom: '0.5rem'}}>Range Assessment</h3>
-            <div style={{fontSize: '3rem', fontWeight: '700', marginBottom: '0.5rem'}}>$199</div>
-            <p style={{fontSize: '0.9375rem', color: '#525252', marginBottom: '1.5rem'}}>60–75 minute visit with a provider</p>
-            <ul style={{textAlign: 'left', listStyle: 'none', padding: '0', marginBottom: '1.5rem'}}>
-              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
-                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Full review of your symptoms and history
-              </li>
-              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
-                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Review of any labs you've already done
-              </li>
-              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
-                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Lab recommendations if they help your plan
-              </li>
-              <li style={{padding: '0.5rem 0', fontSize: '0.9375rem', color: '#525252', display: 'flex', alignItems: 'flex-start', gap: '0.5rem'}}>
-                <span style={{color: '#000', fontWeight: '600'}}>✓</span> Written plan with clear next steps
-              </li>
-            </ul>
-            <Link href="/book" className="btn-primary" style={{width: '100%', textAlign: 'center'}}>
-              Schedule Your Assessment
-            </Link>
+          <div className="section-kicker">Schedule Now</div>
+          <h2 className="section-title">Book Your Range Assessment</h2>
+          <p className="section-subtitle">Review the information below, then select a time that works for you.</p>
+
+          {/* Prep Instructions */}
+          <div className="booking-checkbox-area">
+            <h3>Before Your Visit</h3>
+            <p className="checkbox-intro">Please confirm you understand the following:</p>
+            
+            <div className="checkbox-item">
+              <input 
+                type="checkbox" 
+                id="check1" 
+                checked={checkboxes.check1}
+                onChange={() => handleCheckboxChange('check1')}
+              />
+              <label htmlFor="check1"><strong>This is a 30–45 minute visit.</strong> Plan your schedule accordingly and arrive ready to discuss your goals.</label>
+            </div>
+            <div className="checkbox-item">
+              <input 
+                type="checkbox" 
+                id="check2"
+                checked={checkboxes.check2}
+                onChange={() => handleCheckboxChange('check2')}
+              />
+              <label htmlFor="check2"><strong>You'll receive a symptoms form to complete before your visit.</strong> This helps us make the most of your time together.</label>
+            </div>
+            <div className="checkbox-item">
+              <input 
+                type="checkbox" 
+                id="check3"
+                checked={checkboxes.check3}
+                onChange={() => handleCheckboxChange('check3')}
+              />
+              <label htmlFor="check3"><strong>Bring any labs from the past year if you have them.</strong> We'll review them together. If you don't have any, that's okay.</label>
+            </div>
+            <div className="checkbox-item">
+              <input 
+                type="checkbox" 
+                id="check4"
+                checked={checkboxes.check4}
+                onChange={() => handleCheckboxChange('check4')}
+              />
+              <label htmlFor="check4"><strong>This is a consultation to build your plan.</strong> You'll leave with clear next steps, not a "wait and see" answer.</label>
+            </div>
+            <div className="checkbox-item">
+              <input 
+                type="checkbox" 
+                id="check5"
+                checked={checkboxes.check5}
+                onChange={() => handleCheckboxChange('check5')}
+              />
+              <label htmlFor="check5"><strong>Arrive 5–10 minutes early</strong> with a valid ID so we can start on time.</label>
+            </div>
+            <div className="checkbox-item">
+              <input 
+                type="checkbox" 
+                id="check6"
+                checked={checkboxes.check6}
+                onChange={() => handleCheckboxChange('check6')}
+              />
+              <label htmlFor="check6">I understand the <strong>assessment fee is $199</strong>, payable at the clinic. This is credited toward any treatment, including labs.</label>
+            </div>
+          </div>
+
+          <div className="booking-cta-area">
+            <button 
+              className={`btn-primary booking-btn ${allChecked ? 'active' : ''}`}
+              onClick={handleShowCalendar}
+              disabled={!allChecked}
+            >
+              Continue to Select a Time
+            </button>
+            <p className="booking-price-note">You'll pay $199 at the clinic when you arrive.</p>
+          </div>
+
+          <div className="info-note">
+            <p><strong>Looking for injury recovery, PRP, or peptide support?</strong> That doesn't require labs. <Link href="/book-recovery">Book a Recovery Assessment instead →</Link></p>
+          </div>
+
+          {/* Calendar Container */}
+          <div 
+            className={`calendar-container ${showCalendar ? 'visible' : ''}`}
+            id="calendarContainer"
+          >
+            <div className="calendar-embed">
+              <iframe 
+                src="https://link.range-medical.com/booking/range-medical/sv/69769eed725303dcad0eb2da?heightMode=fixed&showHeader=true" 
+                style={{ width: '100%', height: '700px', border: 'none', overflow: 'hidden' }}
+                scrolling="no" 
+                id="69769eed725303dcad0eb2da_booking"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -199,13 +299,16 @@ export default function RangeAssessment() {
           <h2>Tired of Guessing?</h2>
           <p>If you want a clear plan built around your symptoms and data, the Range Assessment is the first step.</p>
           <div className="cta-buttons">
-            <Link href="/book" className="btn-white">
+            <a href="#book" className="btn-white">
               Schedule Your Range Assessment — $199
-            </Link>
+            </a>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
         </div>
       </section>
+
+      {/* GHL Form Script */}
+      <script src="https://link.range-medical.com/js/form_embed.js" type="text/javascript" async />
     </Layout>
   );
 }

@@ -12,7 +12,7 @@ export default function PeptideTherapy() {
         <div className="container">
           <span className="hero-badge">Peptide Therapy</span>
           <h1>Targeted Healing at the Cellular Level</h1>
-          <p className="hero-sub">Peptides are short chains of amino acids that signal your body to heal, recover, and optimize. We use them to accelerate injury repair, support hormone function, and enhance performance—guided by your labs.</p>
+          <p className="hero-sub">Peptides are short chains of amino acids that signal your body to heal, recover, and optimize. We use them to accelerate injury repair, support hormone function, and enhance performance—guided by your goals.</p>
           
           <div className="hero-cta">
             <Link href="/range-assessment" className="btn-primary">Start with a Range Assessment</Link>
@@ -26,8 +26,8 @@ export default function PeptideTherapy() {
         <div className="trust-inner">
           <span className="trust-item">✓ US-Licensed Pharmacies</span>
           <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ Labs Before Treatment</span>
           <span className="trust-item">✓ Personalized Protocols</span>
+          <span className="trust-item">✓ Ongoing Support</span>
         </div>
       </div>
 
@@ -63,7 +63,7 @@ export default function PeptideTherapy() {
         <div className="container">
           <div className="section-kicker">Our Peptide Toolkit</div>
           <h2 className="section-title">Peptides We Use</h2>
-          <p className="section-subtitle">We source all peptides from US-licensed compounding pharmacies. Your protocol is selected based on your labs and goals.</p>
+          <p className="section-subtitle">We source all peptides from US-licensed compounding pharmacies. Your protocol is selected based on your goals and situation.</p>
           
           <div className="peptide-categories">
             <div className="peptide-category">
@@ -178,14 +178,14 @@ export default function PeptideTherapy() {
         <div className="container">
           <div className="section-kicker">Your Protocol</div>
           <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">Peptide therapy is personalized to your labs, symptoms, and goals. Here's how we approach it.</p>
+          <p className="section-subtitle">Peptide therapy is personalized to your symptoms and goals. Here's how we approach it.</p>
           
           <div className="experience-grid">
             <div className="experience-step">
               <div className="experience-number">1</div>
               <div className="experience-content">
                 <h4>Range Assessment</h4>
-                <p>We review your labs, symptoms, and goals to determine if peptides are right for you—and which ones make sense for your situation.</p>
+                <p>Meet with a provider to discuss your goals, symptoms, and situation. We'll determine if peptides are right for you—and which ones make sense.</p>
               </div>
             </div>
             <div className="experience-step">
@@ -214,7 +214,7 @@ export default function PeptideTherapy() {
               <div className="experience-number">5</div>
               <div className="experience-content">
                 <h4>Monitoring & Adjustments</h4>
-                <p>We check in regularly and may retest labs to track progress. Protocols are adjusted based on your response.</p>
+                <p>We check in regularly to track progress. Protocols are adjusted based on your response.</p>
               </div>
             </div>
           </div>
@@ -259,7 +259,7 @@ export default function PeptideTherapy() {
           <div className="faq-container">
             <div className="faq-item">
               <h4>Are peptides safe?</h4>
-              <p>When prescribed by a licensed provider and sourced from US-licensed pharmacies, peptides have a strong safety profile. We review your health history and labs before recommending any peptide, and we monitor you throughout treatment.</p>
+              <p>When prescribed by a licensed provider and sourced from US-licensed pharmacies, peptides have a strong safety profile. We review your health history before recommending any peptide, and we monitor you throughout treatment.</p>
             </div>
             <div className="faq-item">
               <h4>Are peptides legal?</h4>
@@ -290,7 +290,7 @@ export default function PeptideTherapy() {
         <div className="container">
           <div className="cta-step">Step 1</div>
           <h2>Get Your Range Assessment</h2>
-          <p>We'll review your labs, symptoms, and goals to determine if peptide therapy is right for you—and which peptides make sense for your situation.</p>
+          <p>Meet with a provider to discuss your goals and situation—then determine if peptide therapy is right for you and which peptides make sense.</p>
           <Link href="/range-assessment" className="btn-white">Book Your Assessment</Link>
           <p className="cta-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a> to discuss peptide options.</p>
         </div>

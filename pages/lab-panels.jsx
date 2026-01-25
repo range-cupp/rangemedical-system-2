@@ -267,30 +267,36 @@ export default function LabPanels() {
       <section className="section">
         <div className="container">
           <div className="section-kicker">The Process</div>
-          <h2 className="section-title">How the Range Assessment Works</h2>
-          <p className="section-subtitle">Simple process, clear results.</p>
+          <h2 className="section-title">How to Get Started</h2>
+          <p className="section-subtitle">Labs are recommended based on your goals and symptoms—not required for everyone.</p>
           
           <div className="process-steps">
             <div className="step">
               <div className="step-num">1</div>
-              <h4>Book & Complete Questionnaire</h4>
-              <p>Schedule your blood draw. We'll send a symptoms questionnaire beforehand.</p>
+              <h4>Book Your Range Assessment</h4>
+              <p>Meet with a provider to discuss your symptoms and goals. We'll determine if labs will help build a better plan for you.</p>
             </div>
             <div className="step">
               <div className="step-num">2</div>
-              <h4>Blood Draw at Our Office</h4>
-              <p>Come to our Newport Beach location. Quick and easy, about 15 minutes.</p>
+              <h4>Get Your Labs (If Recommended)</h4>
+              <p>If labs make sense for your situation, we do the blood draw on-site. Quick and easy, about 15 minutes.</p>
             </div>
             <div className="step">
               <div className="step-num">3</div>
               <h4>Results in 3-4 Days</h4>
-              <p>Your provider reviews everything before your consult.</p>
+              <p>Your provider reviews everything before your follow-up.</p>
             </div>
             <div className="step">
               <div className="step-num">4</div>
               <h4>1:1 Provider Review</h4>
-              <p>We explain what's off, why it matters, and what we recommend.</p>
+              <p>We explain what's off, why it matters, and what we recommend for your plan.</p>
             </div>
+          </div>
+          
+          <div style={{textAlign: 'center', marginTop: '2rem'}}>
+            <p style={{fontSize: '0.9375rem', color: '#525252', maxWidth: '500px', margin: '0 auto'}}>
+              Your $199 Range Assessment fee is credited toward any treatment, including labs.
+            </p>
           </div>
         </div>
       </section>
@@ -299,7 +305,7 @@ export default function LabPanels() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to See the Full Picture?</h2>
-          <p>Book your Range Assessment and get clarity on what's really going on inside.</p>
+          <p>Start with a Range Assessment. Your provider will recommend the right labs for your situation.</p>
           <Link href="/range-assessment" className="btn-white">Book Your Range Assessment</Link>
           <p className="cta-secondary">Already a patient? <a href="tel:+19499973988">Call or text to schedule</a></p>
         </div>

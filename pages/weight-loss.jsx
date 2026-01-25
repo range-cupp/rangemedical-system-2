@@ -225,7 +225,7 @@ export default function WeightLoss() {
         <div className="container">
           <div className="cta-step">Step 1</div>
           <h2>Get Your Range Assessment</h2>
-          <p>We'll review your labs, symptoms, and goals to build a personalized protocol—including whether GLP-1 medication is right for you.</p>
+          <p>Meet with a provider to discuss your symptoms, goals, and history—then build a clear plan together, including whether GLP-1 medication is right for you.</p>
           <Link href="/range-assessment" className="btn-white">Book Your Assessment</Link>
           <p className="cta-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a></p>
         </div>

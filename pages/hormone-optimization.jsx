@@ -203,7 +203,7 @@ export default function HormoneOptimization() {
         <div className="container">
           <div className="cta-step">Step 1</div>
           <h2>Get Your Range Assessment</h2>
-          <p>We'll check your hormones, thyroid, metabolism, and more—then build a protocol that fits your body.</p>
+          <p>Meet with a provider to review your symptoms and goals, then build a clear plan together—including whether labs or treatment make sense for you.</p>
           <Link href="/range-assessment" className="btn-white">Book Your Assessment</Link>
           <p className="cta-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a></p>
         </div>

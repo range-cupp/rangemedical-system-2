@@ -14,6 +14,8 @@ export default function Header() {
     { href: '/peptide-therapy', label: 'Peptide Therapy' },
     { href: '/hyperbaric-oxygen-therapy', label: 'Hyperbaric Oxygen' },
     { href: '/red-light-therapy', label: 'Red Light Therapy' },
+    { href: '/prp-injections', label: 'PRP Injections' },
+    { href: '/exosome-therapy', label: 'Exosome Therapy' },
   ];
 
   const isActiveTreatment = treatments.some(t => router.pathname === t.href);

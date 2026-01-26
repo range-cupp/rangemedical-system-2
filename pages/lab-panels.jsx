@@ -39,35 +39,92 @@ export default function LabPanels() {
           <h2 className="section-title">Which Panel Is Right For You?</h2>
           <p className="section-subtitle">Both panels give us valuable information. Here's how to decide.</p>
           
-          <div className="comparison">
-            <div className="comparison-col">
+          <div className="panel-choice-grid">
+            <div className="panel-choice-card">
               <h4>Essential Panel — $350</h4>
-              <p style={{fontWeight: '500', marginBottom: '1rem', color: '#525252'}}>The smart starting point</p>
-              <ul>
+              <p className="panel-choice-tagline">The smart starting point</p>
+              <ul className="panel-choice-list">
                 <li>Getting labs for the first time with us</li>
                 <li>Want a solid baseline of key markers</li>
                 <li>No major symptoms or health history</li>
                 <li>Cost-conscious but still want quality data</li>
               </ul>
-              <p style={{marginTop: '1.5rem', fontSize: '0.9375rem', color: '#525252'}}><strong>Covers:</strong> Core hormones, basic thyroid, metabolic health, cholesterol, blood sugar, and general wellness markers.</p>
+              <p className="panel-choice-covers"><strong>Covers:</strong> Core hormones, basic thyroid, metabolic health, cholesterol, blood sugar, and general wellness markers.</p>
             </div>
-            <div className="comparison-col range">
+            <div className="panel-choice-card featured">
               <h4>Elite Panel — $750</h4>
-              <p style={{fontWeight: '500', marginBottom: '1rem', color: '#525252'}}>The complete picture</p>
-              <ul>
+              <p className="panel-choice-tagline">The complete picture</p>
+              <ul className="panel-choice-list">
                 <li>Stubborn symptoms that need answers</li>
                 <li>Want to catch problems before they start</li>
                 <li>Family history of heart disease or diabetes</li>
                 <li>Serious about long-term optimization</li>
                 <li>Tried treatments before that didn't work</li>
               </ul>
-              <p style={{marginTop: '1.5rem', fontSize: '0.9375rem', color: '#525252'}}><strong>Adds:</strong> Complete thyroid with antibodies, advanced heart markers (ApoB, Lp(a)), insulin resistance testing, inflammation markers, cortisol, and DHEA.</p>
+              <p className="panel-choice-covers"><strong>Adds:</strong> Complete thyroid with antibodies, advanced heart markers (ApoB, Lp(a)), insulin resistance testing, inflammation markers, cortisol, and DHEA.</p>
             </div>
           </div>
           
           <p style={{textAlign: 'center', marginTop: '2rem', color: '#525252', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto'}}><strong>Not sure?</strong> Start with Essential. If we find something that needs a closer look, we can always add specific tests. Your provider will help you decide at your Range Assessment.</p>
         </div>
       </section>
+
+      <style jsx>{`
+        .panel-choice-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 2rem;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+        @media (max-width: 768px) {
+          .panel-choice-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .panel-choice-card {
+          background: #fff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 2rem;
+        }
+        .panel-choice-card.featured {
+          border: 2px solid #000;
+        }
+        .panel-choice-card h4 {
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+        }
+        .panel-choice-tagline {
+          color: #525252;
+          font-weight: 500;
+          margin-bottom: 1.5rem;
+        }
+        .panel-choice-list {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 1.5rem 0;
+        }
+        .panel-choice-list li {
+          padding: 0.5rem 0;
+          padding-left: 1.75rem;
+          position: relative;
+          color: #374151;
+        }
+        .panel-choice-list li::before {
+          content: "✓";
+          position: absolute;
+          left: 0;
+          color: #000;
+          font-weight: 600;
+        }
+        .panel-choice-covers {
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.6;
+        }
+      `}</style>
 
       {/* Men's Panels */}
       <section className="section">

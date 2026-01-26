@@ -1,7 +1,7 @@
 // /pages/admin/pipeline.js
 // Unified Protocol Pipeline with Start Protocol & Activity Logging
-// Range Medical - Updated 2026-01-20
-// Updated with complete Peptide Dosing Guide
+// Range Medical - Updated 2026-01-26
+// Updated with complete Peptide Dosing Guide + 14 Day option
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -996,6 +996,7 @@ export default function UnifiedPipeline() {
                 <option value="">Select program...</option>
                 <option value="7 Day">7 Day</option>
                 <option value="10 Day">10 Day</option>
+                <option value="14 Day">14 Day</option>
                 <option value="20 Day">20 Day</option>
                 <option value="30 Day">30 Day</option>
                 <option value="Vial">Vial</option>
@@ -2105,6 +2106,7 @@ export default function UnifiedPipeline() {
                   <option value="">Select duration...</option>
                   <option value="7 Day Program">7 Day Program</option>
                   <option value="10 Day Program">10 Day Program</option>
+                  <option value="14 Day Program">14 Day Program</option>
                   <option value="20 Day Program">20 Day Program</option>
                   <option value="30 Day Program">30 Day Program</option>
                   <option value="Vial Protocol">Vial Protocol</option>

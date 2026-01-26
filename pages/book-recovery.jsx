@@ -36,15 +36,6 @@ export default function BookRecovery() {
       title="Book Recovery Assessment | Range Medical"
       description="Schedule your Recovery Assessment at Range Medical in Newport Beach. Consultation for peptide therapy, PRP, and IV support. No labs required."
     >
-      {/* Hero */}
-      <section className="hero">
-        <div className="container">
-          <span className="hero-badge">No Labs Required</span>
-          <h1>Book Your Recovery Assessment</h1>
-          <p className="hero-sub">A consultation to evaluate whether peptide therapy, PRP, IVs, or other tools can support your recovery.</p>
-        </div>
-      </section>
-
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
@@ -55,6 +46,15 @@ export default function BookRecovery() {
           <span className="trust-item">✓ 20-30 Minute Visit</span>
         </div>
       </div>
+
+      {/* Hero */}
+      <section className="hero">
+        <div className="container">
+          <span className="hero-badge">No Labs Required</span>
+          <h1>Book Your Recovery Assessment</h1>
+          <p className="hero-sub">A consultation to evaluate whether peptide therapy, PRP, IVs, or other tools can support your recovery.</p>
+        </div>
+      </section>
 
       {/* What's Included */}
       <section className="section">

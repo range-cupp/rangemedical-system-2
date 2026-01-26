@@ -7,6 +7,17 @@ export default function WeightLoss() {
       title="Medical Weight Loss Newport Beach | Tirzepatide & Semaglutide | Range Medical"
       description="Medical weight loss with tirzepatide and semaglutide in Newport Beach. Labs first, licensed providers, ongoing monitoring. GLP-1 therapy done right. (949) 997-3988."
     >
+      {/* Trust Bar */}
+      <div className="trust-bar">
+        <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">✓ Licensed Providers</span>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="hero">
         <div className="container">
@@ -20,17 +31,6 @@ export default function WeightLoss() {
           </div>
         </div>
       </section>
-
-      {/* Trust Bar */}
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
-          </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
-        </div>
-      </div>
 
       {/* Pain Points */}
       <section className="section">

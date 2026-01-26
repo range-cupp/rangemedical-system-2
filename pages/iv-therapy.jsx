@@ -7,6 +7,17 @@ export default function IVTherapy() {
       title="IV Therapy & Injections Newport Beach | NAD+ | Range Medical"
       description="IV therapy and vitamin injections in Newport Beach. Custom Range IV, NAD+ infusions, methylene blue, B12, glutathione, and more. (949) 997-3988."
     >
+      {/* Trust Bar */}
+      <div className="trust-bar">
+        <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">✓ Licensed Providers</span>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="hero">
         <div className="container">
@@ -20,17 +31,6 @@ export default function IVTherapy() {
           </div>
         </div>
       </section>
-
-      {/* Trust Bar */}
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
-          </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
-        </div>
-      </div>
 
       {/* Why IV */}
       <section className="section">

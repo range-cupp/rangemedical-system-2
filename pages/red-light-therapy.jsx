@@ -7,6 +7,17 @@ export default function RedLightTherapy() {
       title="Red Light Therapy Newport Beach | Photobiomodulation | Range Medical"
       description="Red light therapy (photobiomodulation) in Newport Beach. Boost cellular energy, reduce inflammation, and accelerate healing. Start with a Range Assessment. (949) 997-3988."
     >
+      {/* Trust Bar */}
+      <div className="trust-bar">
+        <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">✓ Licensed Providers</span>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="hero">
         <div className="container">
@@ -20,17 +31,6 @@ export default function RedLightTherapy() {
           </div>
         </div>
       </section>
-
-      {/* Trust Bar */}
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
-          </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
-        </div>
-      </div>
 
       {/* What Is Red Light */}
       <section className="section">

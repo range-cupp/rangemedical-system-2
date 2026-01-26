@@ -7,6 +7,17 @@ export default function HormoneOptimization() {
       title="Hormone Optimization Newport Beach | HRT | Range Medical"
       description="Hormone optimization and HRT in Newport Beach. Labs-first approach to testosterone, estrogen, and thyroid. For men and women. (949) 997-3988."
     >
+      {/* Trust Bar */}
+      <div className="trust-bar">
+        <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">✓ Licensed Providers</span>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="hero">
         <div className="container">
@@ -20,17 +31,6 @@ export default function HormoneOptimization() {
           </div>
         </div>
       </section>
-
-      {/* Trust Bar */}
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
-          </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
-        </div>
-      </div>
 
       {/* Symptoms */}
       <section className="section">

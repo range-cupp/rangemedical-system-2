@@ -7,6 +7,17 @@ export default function PeptideTherapy() {
       title="Peptide Therapy Newport Beach | BPC-157, Thymosin | Range Medical"
       description="Peptide therapy in Newport Beach. BPC-157, Thymosin Beta-4, growth hormone peptides, and more. Labs-first approach with licensed providers. (949) 997-3988."
     >
+      {/* Trust Bar */}
+      <div className="trust-bar">
+        <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">✓ Licensed Providers</span>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="hero">
         <div className="container">
@@ -20,17 +31,6 @@ export default function PeptideTherapy() {
           </div>
         </div>
       </section>
-
-      {/* Trust Bar */}
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
-          </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
-        </div>
-      </div>
 
       {/* What Are Peptides */}
       <section className="section">

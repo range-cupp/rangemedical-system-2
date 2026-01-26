@@ -7,6 +7,17 @@ export default function HyperbaricOxygenTherapy() {
       title="Hyperbaric Oxygen Therapy Newport Beach | HBOT | Range Medical"
       description="Hyperbaric oxygen therapy (HBOT) in Newport Beach. Accelerate healing, reduce inflammation, and boost recovery. Start with a Range Assessment. (949) 997-3988."
     >
+      {/* Trust Bar */}
+      <div className="trust-bar">
+        <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">✓ Licensed Providers</span>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="hero">
         <div className="container">
@@ -20,17 +31,6 @@ export default function HyperbaricOxygenTherapy() {
           </div>
         </div>
       </section>
-
-      {/* Trust Bar */}
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
-          </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
-        </div>
-      </div>
 
       {/* What Is HBOT */}
       <section className="section">

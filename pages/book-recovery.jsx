@@ -48,9 +48,11 @@ export default function BookRecovery() {
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
           <span className="trust-item">✓ 20-30 Minute Visit</span>
-          <span className="trust-item">✓ No Labs Required</span>
-          <span className="trust-item">✓ Fee Credited Toward Treatment</span>
         </div>
       </div>
 

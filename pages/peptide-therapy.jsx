@@ -24,10 +24,11 @@ export default function PeptideTherapy() {
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
-          <span className="trust-item">✓ US-Licensed Pharmacies</span>
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
           <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ Personalized Protocols</span>
-          <span className="trust-item">✓ Ongoing Support</span>
         </div>
       </div>
 

@@ -24,10 +24,11 @@ export default function WeightLoss() {
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
           <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ Labs Required First</span>
-          <span className="trust-item">✓ US Pharmacies Only</span>
-          <span className="trust-item">✓ Ongoing Monitoring</span>
         </div>
       </div>
 

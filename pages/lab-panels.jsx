@@ -24,10 +24,11 @@ export default function LabPanels() {
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
           <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ Blood Draw On-Site</span>
-          <span className="trust-item">✓ Results in 3-4 Days</span>
-          <span className="trust-item">✓ HSA & FSA Welcome</span>
         </div>
       </div>
 

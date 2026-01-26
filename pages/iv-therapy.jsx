@@ -24,10 +24,11 @@ export default function IVTherapy() {
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
           <span className="trust-item">✓ Licensed Providers</span>
-          <span className="trust-item">✓ Medical-Grade Ingredients</span>
-          <span className="trust-item">✓ Custom Formulations</span>
-          <span className="trust-item">✓ Comfortable Lounge Setting</span>
         </div>
       </div>
 
@@ -395,7 +396,7 @@ export default function IVTherapy() {
         <div className="container">
           <div className="cta-step">Step 1</div>
           <h2>Get Your Range Assessment</h2>
-          <p>We'll review your labs, symptoms, and goals to recommend the right IV and injection protocol for your situation.</p>
+          <p>Meet with a provider to discuss your goals and build a plan—including whether IV or injection therapy is right for you.</p>
           <Link href="/range-assessment" className="btn-white">Book Your Assessment</Link>
           <p className="cta-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a> to schedule.</p>
         </div>

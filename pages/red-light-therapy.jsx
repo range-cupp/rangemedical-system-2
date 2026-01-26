@@ -24,10 +24,11 @@ export default function RedLightTherapy() {
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
-          <span className="trust-item">✓ Medical-Grade Panels</span>
-          <span className="trust-item">✓ Full-Body Coverage</span>
-          <span className="trust-item">✓ Evidence-Based Protocols</span>
-          <span className="trust-item">✓ Newport Beach Location</span>
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">✓ Licensed Providers</span>
         </div>
       </div>
 
@@ -252,7 +253,7 @@ export default function RedLightTherapy() {
         <div className="container">
           <div className="cta-step">Step 1</div>
           <h2>Get Your Range Assessment</h2>
-          <p>We'll review your labs, symptoms, and goals to build a personalized protocol—including whether red light therapy is right for you.</p>
+          <p>Meet with a provider to discuss your goals and build a personalized protocol—including whether red light therapy is right for you.</p>
           <Link href="/range-assessment" className="btn-white">Book Your Assessment</Link>
           <p className="cta-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a> to schedule your next session.</p>
         </div>

@@ -16,7 +16,7 @@ const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
 
 // Calendar IDs to match against
 const CALENDAR_IDS = {
-  NEW_PATIENT_BLOOD_DRAW: '68f01aea7ed18b27a8b12e64',
+  NEW_PATIENT_BLOOD_DRAW: '69363659022462924d66805c',  // Confirmed from GHL
   FOLLOW_UP_BLOOD_DRAW: '68fbc3300d41ec836e706680',
   INITIAL_LAB_REVIEW: '68fbc3cc4cbe5615edb2016d'
 };
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { startDate, endDate, dryRun = true, limit = 100 } = req.body;
+    const { startDate, endDate, dryRun = true, limit = 500 } = req.body;
 
     if (!startDate || !endDate) {
       return res.status(400).json({ 

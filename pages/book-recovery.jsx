@@ -63,9 +63,9 @@ export default function BookRecovery() {
 
           <div className="included-box">
             <div className="included-left">
-              <div className="included-price">$197</div>
+              <div className="included-price">$199</div>
               <div className="included-duration">One-on-one consultation</div>
-              <span className="included-credit">✓ Credited toward any program</span>
+              <span className="included-credit">✓ Credited toward any treatment</span>
             </div>
             <div className="included-right">
               <h3>Your assessment includes:</h3>
@@ -116,7 +116,7 @@ export default function BookRecovery() {
             </div>
           </div>
           
-          <p className="credit-note-text">Your $197 assessment fee is credited toward any recovery program you start within 7 days.</p>
+          <p className="credit-note-text">Your $199 assessment fee is credited toward any treatment you start.</p>
         </div>
       </section>
 
@@ -184,7 +184,7 @@ export default function BookRecovery() {
                 checked={checkboxes.check6}
                 onChange={() => handleCheckboxChange('check6')}
               />
-              <label htmlFor="check6">I understand the <strong>assessment fee is $197</strong>, payable at the clinic. This is credited toward any program I start within 7 days.</label>
+              <label htmlFor="check6">I understand the <strong>assessment fee is $199</strong>, payable at the clinic. This is credited toward any treatment.</label>
             </div>
           </div>
 
@@ -196,11 +196,11 @@ export default function BookRecovery() {
             >
               Continue to Select a Time
             </button>
-            <p className="booking-price-note">You'll pay $197 at the clinic when you arrive.</p>
+            <p className="booking-price-note">You'll pay $199 at the clinic when you arrive.</p>
           </div>
 
           <div className="info-note">
-            <p><strong>Looking for hormone therapy, weight loss, or longevity services?</strong> Those require labs first. <Link href="/range-assessment">Book a Range Assessment instead →</Link></p>
+            <p><strong>Looking for hormone therapy, weight loss, or longevity services?</strong> <Link href="/range-assessment">Book a Range Assessment instead →</Link></p>
           </div>
 
           {/* Calendar Container */}

@@ -8,8 +8,8 @@ export default function handler(req, res) {
   
   // Current version info - UPDATE THIS WHEN YOU RELEASE NEW VERSIONS
   const versionInfo = {
-    version: '1.2.3',
-    notes: 'Fixed Supabase authentication',
+    version: '1.2.5',
+    notes: 'Documents inline + Photo ID support',
     releaseDate: '2026-01-26',
     downloadUrl: 'https://app.range-medical.com/api/extension/download'
   };

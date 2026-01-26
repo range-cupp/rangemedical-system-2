@@ -39,49 +39,33 @@ export default function LabPanels() {
           <h2 className="section-title">Which Panel Is Right For You?</h2>
           <p className="section-subtitle">Both panels give us valuable information. Here's how to decide.</p>
           
-          <div className="comparison-panels">
-            <div className="comparison-card">
-              <h3>Essential Panel — $350</h3>
-              <p className="comparison-tagline">The smart starting point</p>
-              <div className="comparison-best-for">
-                <h4>Best if you:</h4>
-                <ul>
-                  <li>Are getting labs for the first time with us</li>
-                  <li>Want a solid baseline of key markers</li>
-                  <li>Have no major symptoms or health history</li>
-                  <li>Are cost-conscious but still want quality data</li>
-                </ul>
-              </div>
-              <div className="comparison-covers">
-                <h4>Covers:</h4>
-                <p>Core hormones, basic thyroid, metabolic health, cholesterol, blood sugar, and general wellness markers.</p>
-              </div>
+          <div className="comparison">
+            <div className="comparison-col">
+              <h4>Essential Panel — $350</h4>
+              <p style={{fontWeight: '500', marginBottom: '1rem', color: '#525252'}}>The smart starting point</p>
+              <ul>
+                <li>Getting labs for the first time with us</li>
+                <li>Want a solid baseline of key markers</li>
+                <li>No major symptoms or health history</li>
+                <li>Cost-conscious but still want quality data</li>
+              </ul>
+              <p style={{marginTop: '1.5rem', fontSize: '0.9375rem', color: '#525252'}}><strong>Covers:</strong> Core hormones, basic thyroid, metabolic health, cholesterol, blood sugar, and general wellness markers.</p>
             </div>
-            
-            <div className="comparison-card featured">
-              <div className="panel-badge">Recommended</div>
-              <h3>Elite Panel — $750</h3>
-              <p className="comparison-tagline">The complete picture</p>
-              <div className="comparison-best-for">
-                <h4>Best if you:</h4>
-                <ul>
-                  <li>Have stubborn symptoms that need answers</li>
-                  <li>Want to catch problems before they start</li>
-                  <li>Have a family history of heart disease or diabetes</li>
-                  <li>Are serious about optimizing long-term health</li>
-                  <li>Have tried treatments before that didn't work</li>
-                </ul>
-              </div>
-              <div className="comparison-covers">
-                <h4>What you get that Essential doesn't:</h4>
-                <p>Complete thyroid panel (including antibodies), advanced heart markers (ApoB, Lp(a)), insulin resistance testing, inflammation markers, and deeper hormone insights like cortisol and DHEA.</p>
-              </div>
+            <div className="comparison-col range">
+              <h4>Elite Panel — $750</h4>
+              <p style={{fontWeight: '500', marginBottom: '1rem', color: '#525252'}}>The complete picture</p>
+              <ul>
+                <li>Stubborn symptoms that need answers</li>
+                <li>Want to catch problems before they start</li>
+                <li>Family history of heart disease or diabetes</li>
+                <li>Serious about long-term optimization</li>
+                <li>Tried treatments before that didn't work</li>
+              </ul>
+              <p style={{marginTop: '1.5rem', fontSize: '0.9375rem', color: '#525252'}}><strong>Adds:</strong> Complete thyroid with antibodies, advanced heart markers (ApoB, Lp(a)), insulin resistance testing, inflammation markers, cortisol, and DHEA.</p>
             </div>
           </div>
           
-          <div className="comparison-note">
-            <p><strong>Not sure?</strong> Start with Essential. If we find something that needs a closer look, we can always add specific tests. Your provider will help you decide at your Range Assessment.</p>
-          </div>
+          <p style={{textAlign: 'center', marginTop: '2rem', color: '#525252', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto'}}><strong>Not sure?</strong> Start with Essential. If we find something that needs a closer look, we can always add specific tests. Your provider will help you decide at your Range Assessment.</p>
         </div>
       </section>
 

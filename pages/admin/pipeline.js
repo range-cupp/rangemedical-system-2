@@ -1,11 +1,12 @@
 // /pages/admin/pipeline.js
 // Unified Protocol Pipeline with Start Protocol & Activity Logging
 // Range Medical - Updated 2026-01-26
-// Updated with complete Peptide Dosing Guide + 14 Day option
+// Added Labs Pipeline Tab for Blood Draw tracking
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import LabsPipelineTab from '../../components/LabsPipelineTab';
 
 // ================================================================
 // PEPTIDE OPTIONS - Complete Dosing Guide from Range Medical
@@ -175,6 +176,9 @@ export default function UnifiedPipeline() {
   const [error, setError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   
+  // Main view tab: 'protocols' or 'labs'
+  const [mainView, setMainView] = useState('protocols');
+  
   // Filters
   const [statusFilter, setStatusFilter] = useState('active');
   const [deliveryFilter, setDeliveryFilter] = useState('all');
@@ -205,11 +209,18 @@ export default function UnifiedPipeline() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // Labs pipeline data
+  const [labsData, setLabsData] = useState(null);
+
   useEffect(() => {
     fetchData();
     fetchPatients();
     if (router.query.admin === 'true') {
       setIsAdmin(true);
+    }
+    // Check for view query param
+    if (router.query.view === 'labs') {
+      setMainView('labs');
     }
   }, [router.query]);
 
@@ -544,6 +555,26 @@ export default function UnifiedPipeline() {
         showToast(`Protocol created for ${patientName}!`);
         closeStartModal();
         fetchData();
+        
+        // Schedule follow-up labs for HRT and Weight Loss
+        if (protocolType === 'hrt' || protocolType === 'weight_loss') {
+          try {
+            await fetch('/api/protocols/schedule-follow-up-labs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                protocolId: result.protocol?.id,
+                patientId: selectedPatient.id,
+                patientName: patientName,
+                ghlContactId: selectedPatient.ghl_contact_id,
+                programType: protocolType,
+                startDate: protocolForm.start_date
+              })
+            });
+          } catch (err) {
+            console.log('Follow-up scheduling skipped:', err);
+          }
+        }
       } else {
         showToast(result.error || 'Failed to create protocol', 'error');
         console.error('Protocol creation failed:', result);
@@ -1509,222 +1540,257 @@ export default function UnifiedPipeline() {
       </Head>
       
       <div style={styles.container}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>💊 Protocol Pipeline</h1>
-          
-          <div style={styles.headerActions}>
-            <input
-              type="text"
-              placeholder="Search protocols..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={styles.searchInput}
-            />
-            
-            <div style={styles.tabs}>
-              {['active', 'completed'].map(status => (
-                <button
-                  key={status}
-                  style={{
-                    ...styles.tab,
-                    ...(statusFilter === status ? styles.tabActive : {})
-                  }}
-                  onClick={() => setStatusFilter(status)}
-                >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-              ))}
-            </div>
-            
-            <div style={styles.tabs}>
-              {[
-                { value: 'all', label: 'All' },
-                { value: 'in_clinic', label: 'In Clinic' },
-                { value: 'take_home', label: 'Take Home' }
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  style={{
-                    ...styles.tab,
-                    ...(deliveryFilter === opt.value ? styles.tabActive : {})
-                  }}
-                  onClick={() => setDeliveryFilter(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            
-            <button style={styles.refreshBtn} onClick={fetchData}>
-              ↻ Refresh
-            </button>
-            
-            <a href="/admin/activity-log" style={styles.activityLogBtn}>
-              📋 Activity Log
-            </a>
-            
-            <button style={styles.startProtocolBtn} onClick={openStartModal}>
-              ➕ Start Protocol
-            </button>
-          </div>
+        {/* MAIN VIEW TABS - Protocols vs Labs */}
+        <div style={styles.mainViewTabs}>
+          <button
+            style={{
+              ...styles.mainViewTab,
+              ...(mainView === 'protocols' ? styles.mainViewTabActive : {})
+            }}
+            onClick={() => setMainView('protocols')}
+          >
+            💊 Protocols
+          </button>
+          <button
+            style={{
+              ...styles.mainViewTab,
+              ...(mainView === 'labs' ? styles.mainViewTabActive : {})
+            }}
+            onClick={() => setMainView('labs')}
+          >
+            🩸 Labs
+          </button>
         </div>
 
-        {data && data.counts && (
-          <div style={styles.statsBar}>
-            <div style={{ ...styles.statCard, borderLeftColor: '#dc2626' }}>
-              <div style={styles.statLabel}>ENDING SOON (≤3 DAYS)</div>
-              <div style={styles.statValue}>{data.counts.ending_soon || 0}</div>
-            </div>
-            <div style={{ ...styles.statCard, borderLeftColor: '#f59e0b' }}>
-              <div style={styles.statLabel}>ACTIVE (4-14 DAYS)</div>
-              <div style={styles.statValue}>{data.counts.active || 0}</div>
-            </div>
-            <div style={{ ...styles.statCard, borderLeftColor: '#22c55e' }}>
-              <div style={styles.statLabel}>JUST STARTED (15+ DAYS)</div>
-              <div style={styles.statValue}>{data.counts.just_started || 0}</div>
-            </div>
-            <div style={{ ...styles.statCard, borderLeftColor: '#6b7280' }}>
-              <div style={styles.statLabel}>NEEDS FOLLOW-UP</div>
-              <div style={styles.statValue}>{data.counts.needs_followup || 0}</div>
-            </div>
+        {/* LABS VIEW */}
+        {mainView === 'labs' && (
+          <div style={styles.labsContainer}>
+            <LabsPipelineTab />
           </div>
         )}
 
-        {data?.purchases?.needs_protocol?.length > 0 && (
-          <div style={styles.purchasesSection}>
-            <div style={styles.purchasesHeader}>
-              <h3 style={styles.purchasesTitle}>
-                💳 Payments Needing Protocol ({data.purchases.needs_protocol.length})
-              </h3>
-              <span style={styles.purchasesSubtitle}>
-                Since {formatDate(data.purchases.since_date)}
-              </span>
-            </div>
-            <div style={styles.purchasesTable}>
-              <table style={styles.table}>
-                <thead>
-                  <tr style={styles.headerRow}>
-                    <th style={styles.headerCell}>DATE</th>
-                    <th style={styles.headerCell}>PATIENT</th>
-                    <th style={styles.headerCell}>PRODUCT</th>
-                    <th style={styles.headerCell}>AMOUNT</th>
-                    <th style={styles.headerCell}>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.purchases.needs_protocol.map(purchase => (
-                    <tr key={purchase.id} style={styles.row}>
-                      <td style={styles.cell}>{formatDate(purchase.purchase_date)}</td>
-                      <td style={styles.cell}>
-                        <strong>{purchase.patient_name || 'Unknown'}</strong>
-                      </td>
-                      <td style={styles.cell}>
-                        <span style={{
-                          ...styles.categoryBadge,
-                          background: getCategoryBadge(purchase.category).color
-                        }}>
-                          {getCategoryBadge(purchase.category).emoji}
-                        </span>
-                        {purchase.item_name}
-                      </td>
-                      <td style={styles.cell}>
-                        ${(purchase.amount || 0).toFixed(2)}
-                      </td>
-                      <td style={styles.cell}>
-                        <button
-                          style={{ ...styles.actionBtn, ...styles.startBtn }}
-                          onClick={() => {
-                            let patient = null;
-                            const purchaseName = (purchase.patient_name || '').toLowerCase().trim();
-                            
-                            if (purchaseName) {
-                              patient = patients.find(p => (p.name || '').toLowerCase().trim() === purchaseName);
-                            }
-                            if (!patient && purchase.ghl_contact_id) {
-                              patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
-                            }
-                            
-                            if (patient) {
-                              setSelectedPatient(patient);
-                              setPatientSearch(patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim());
-                              setShowPatientDropdown(false);
-                            } else {
-                              setSelectedPatient(null);
-                              setPatientSearch(purchase.patient_name || '');
-                            }
-                            
-                            const catMap = { 'peptide': 'peptide', 'hrt': 'hrt', 'weight_loss': 'weight_loss', 'weight loss': 'weight_loss', 'iv': 'iv', 'iv_therapy': 'iv', 'hbot': 'hbot', 'rlt': 'rlt' };
-                            setProtocolType(catMap[(purchase.category || '').toLowerCase()] || '');
-                            setSelectedPurchase(purchase);
-                            setStartModal(true);
-                          }}
-                          title="Start Protocol"
-                        >
-                          + Start
-                        </button>
-                        <button
-                          style={styles.actionBtn}
-                          onClick={() => openGHL(purchase.ghl_contact_id)}
-                          title="Open in GHL"
-                        >
-                          GHL
-                        </button>
-                        <button
-                          style={{ ...styles.actionBtn, color: '#dc2626' }}
-                          onClick={async () => {
-                            if (!confirm(`Delete payment for ${purchase.patient_name}?\n\n${purchase.item_name} - $${purchase.amount}`)) return;
-                            try {
-                              const res = await fetch(`/api/purchases/${purchase.id}`, { method: 'DELETE' });
-                              const result = await res.json();
-                              if (result.success) {
-                                showToast('Payment deleted');
-                                fetchData();
-                              } else {
-                                showToast(result.error || 'Failed to delete', 'error');
-                              }
-                            } catch (err) {
-                              showToast('Error deleting payment', 'error');
-                            }
-                          }}
-                          title="Delete Payment"
-                        >
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
+        {/* PROTOCOLS VIEW */}
+        {mainView === 'protocols' && (
+          <>
+            <div style={styles.header}>
+              <h1 style={styles.title}>💊 Protocol Pipeline</h1>
+              
+              <div style={styles.headerActions}>
+                <input
+                  type="text"
+                  placeholder="Search protocols..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={styles.searchInput}
+                />
+                
+                <div style={styles.tabs}>
+                  {['active', 'completed'].map(status => (
+                    <button
+                      key={status}
+                      style={{
+                        ...styles.tab,
+                        ...(statusFilter === status ? styles.tabActive : {})
+                      }}
+                      onClick={() => setStatusFilter(status)}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
                   ))}
-                </tbody>
-              </table>
+                </div>
+                
+                <div style={styles.tabs}>
+                  {[
+                    { value: 'all', label: 'All' },
+                    { value: 'in_clinic', label: 'In Clinic' },
+                    { value: 'take_home', label: 'Take Home' }
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      style={{
+                        ...styles.tab,
+                        ...(deliveryFilter === opt.value ? styles.tabActive : {})
+                      }}
+                      onClick={() => setDeliveryFilter(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                
+                <button style={styles.refreshBtn} onClick={fetchData}>
+                  ↻ Refresh
+                </button>
+                
+                <a href="/admin/activity-log" style={styles.activityLogBtn}>
+                  📋 Activity Log
+                </a>
+                
+                <button style={styles.startProtocolBtn} onClick={openStartModal}>
+                  ➕ Start Protocol
+                </button>
+              </div>
             </div>
-          </div>
+
+            {data && data.counts && (
+              <div style={styles.statsBar}>
+                <div style={{ ...styles.statCard, borderLeftColor: '#dc2626' }}>
+                  <div style={styles.statLabel}>ENDING SOON (≤3 DAYS)</div>
+                  <div style={styles.statValue}>{data.counts.ending_soon || 0}</div>
+                </div>
+                <div style={{ ...styles.statCard, borderLeftColor: '#f59e0b' }}>
+                  <div style={styles.statLabel}>ACTIVE (4-14 DAYS)</div>
+                  <div style={styles.statValue}>{data.counts.active || 0}</div>
+                </div>
+                <div style={{ ...styles.statCard, borderLeftColor: '#22c55e' }}>
+                  <div style={styles.statLabel}>JUST STARTED (15+ DAYS)</div>
+                  <div style={styles.statValue}>{data.counts.just_started || 0}</div>
+                </div>
+                <div style={{ ...styles.statCard, borderLeftColor: '#6b7280' }}>
+                  <div style={styles.statLabel}>NEEDS FOLLOW-UP</div>
+                  <div style={styles.statValue}>{data.counts.needs_followup || 0}</div>
+                </div>
+              </div>
+            )}
+
+            {data?.purchases?.needs_protocol?.length > 0 && (
+              <div style={styles.purchasesSection}>
+                <div style={styles.purchasesHeader}>
+                  <h3 style={styles.purchasesTitle}>
+                    💳 Payments Needing Protocol ({data.purchases.needs_protocol.length})
+                  </h3>
+                  <span style={styles.purchasesSubtitle}>
+                    Since {formatDate(data.purchases.since_date)}
+                  </span>
+                </div>
+                <div style={styles.purchasesTable}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr style={styles.headerRow}>
+                        <th style={styles.headerCell}>DATE</th>
+                        <th style={styles.headerCell}>PATIENT</th>
+                        <th style={styles.headerCell}>PRODUCT</th>
+                        <th style={styles.headerCell}>AMOUNT</th>
+                        <th style={styles.headerCell}>ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.purchases.needs_protocol.map(purchase => (
+                        <tr key={purchase.id} style={styles.row}>
+                          <td style={styles.cell}>{formatDate(purchase.purchase_date)}</td>
+                          <td style={styles.cell}>
+                            <strong>{purchase.patient_name || 'Unknown'}</strong>
+                          </td>
+                          <td style={styles.cell}>
+                            <span style={{
+                              ...styles.categoryBadge,
+                              background: getCategoryBadge(purchase.category).color
+                            }}>
+                              {getCategoryBadge(purchase.category).emoji}
+                            </span>
+                            {purchase.item_name}
+                          </td>
+                          <td style={styles.cell}>
+                            ${(purchase.amount || 0).toFixed(2)}
+                          </td>
+                          <td style={styles.cell}>
+                            <button
+                              style={{ ...styles.actionBtn, ...styles.startBtn }}
+                              onClick={() => {
+                                let patient = null;
+                                const purchaseName = (purchase.patient_name || '').toLowerCase().trim();
+                                
+                                if (purchaseName) {
+                                  patient = patients.find(p => (p.name || '').toLowerCase().trim() === purchaseName);
+                                }
+                                if (!patient && purchase.ghl_contact_id) {
+                                  patient = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+                                }
+                                
+                                if (patient) {
+                                  setSelectedPatient(patient);
+                                  setPatientSearch(patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim());
+                                  setShowPatientDropdown(false);
+                                } else {
+                                  setSelectedPatient(null);
+                                  setPatientSearch(purchase.patient_name || '');
+                                }
+                                
+                                const catMap = { 'peptide': 'peptide', 'hrt': 'hrt', 'weight_loss': 'weight_loss', 'weight loss': 'weight_loss', 'iv': 'iv', 'iv_therapy': 'iv', 'hbot': 'hbot', 'rlt': 'rlt' };
+                                setProtocolType(catMap[(purchase.category || '').toLowerCase()] || '');
+                                setSelectedPurchase(purchase);
+                                setStartModal(true);
+                              }}
+                              title="Start Protocol"
+                            >
+                              + Start
+                            </button>
+                            <button
+                              style={styles.actionBtn}
+                              onClick={() => openGHL(purchase.ghl_contact_id)}
+                              title="Open in GHL"
+                            >
+                              GHL
+                            </button>
+                            <button
+                              style={{ ...styles.actionBtn, color: '#dc2626' }}
+                              onClick={async () => {
+                                if (!confirm(`Delete payment for ${purchase.patient_name}?\n\n${purchase.item_name} - $${purchase.amount}`)) return;
+                                try {
+                                  const res = await fetch(`/api/purchases/${purchase.id}`, { method: 'DELETE' });
+                                  const result = await res.json();
+                                  if (result.success) {
+                                    showToast('Payment deleted');
+                                    fetchData();
+                                  } else {
+                                    showToast(result.error || 'Failed to delete', 'error');
+                                  }
+                                } catch (err) {
+                                  showToast('Error deleting payment', 'error');
+                                }
+                              }}
+                              title="Delete Payment"
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div style={styles.categoryFilters}>
+              {[
+                { value: 'all', label: 'All Types', emoji: '📋' },
+                { value: 'peptide', label: 'Peptide', emoji: '🧬' },
+                { value: 'weight_loss', label: 'Weight Loss', emoji: '💉' },
+                { value: 'hrt', label: 'HRT', emoji: '💊' },
+                { value: 'iv', label: 'IV', emoji: '💧' },
+                { value: 'hbot', label: 'HBOT', emoji: '🫁' },
+                { value: 'rlt', label: 'RLT', emoji: '🔴' },
+                { value: 'other', label: 'Other', emoji: '📁' }
+              ].map(cat => (
+                <button
+                  key={cat.value}
+                  style={{
+                    ...styles.categoryTab,
+                    ...(categoryFilter === cat.value ? styles.categoryTabActive : {})
+                  }}
+                  onClick={() => setCategoryFilter(cat.value)}
+                >
+                  {cat.emoji} {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {renderTable()}
+          </>
         )}
 
-        <div style={styles.categoryFilters}>
-          {[
-            { value: 'all', label: 'All Types', emoji: '📋' },
-            { value: 'peptide', label: 'Peptide', emoji: '🧬' },
-            { value: 'weight_loss', label: 'Weight Loss', emoji: '💉' },
-            { value: 'hrt', label: 'HRT', emoji: '💊' },
-            { value: 'iv', label: 'IV', emoji: '💧' },
-            { value: 'hbot', label: 'HBOT', emoji: '🫁' },
-            { value: 'rlt', label: 'RLT', emoji: '🔴' },
-            { value: 'other', label: 'Other', emoji: '📁' }
-          ].map(cat => (
-            <button
-              key={cat.value}
-              style={{
-                ...styles.categoryTab,
-                ...(categoryFilter === cat.value ? styles.categoryTabActive : {})
-              }}
-              onClick={() => setCategoryFilter(cat.value)}
-            >
-              {cat.emoji} {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {renderTable()}
-
+        {/* MODALS - These stay the same */}
         {startModal && (
           <div style={styles.modalOverlay} onClick={closeStartModal}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -2243,6 +2309,37 @@ const styles = {
     background: '#f8f9fa',
     minHeight: '100vh',
     padding: '20px'
+  },
+  // Main view tabs (Protocols vs Labs)
+  mainViewTabs: {
+    maxWidth: '1400px',
+    margin: '0 auto 20px',
+    display: 'flex',
+    gap: '0',
+    background: '#e5e7eb',
+    borderRadius: '12px',
+    padding: '4px',
+    width: 'fit-content'
+  },
+  mainViewTab: {
+    padding: '12px 32px',
+    border: 'none',
+    background: 'transparent',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#6b7280',
+    transition: 'all 0.2s'
+  },
+  mainViewTabActive: {
+    background: 'white',
+    color: '#111',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  },
+  labsContainer: {
+    maxWidth: '1400px',
+    margin: '0 auto'
   },
   loading: {
     textAlign: 'center',

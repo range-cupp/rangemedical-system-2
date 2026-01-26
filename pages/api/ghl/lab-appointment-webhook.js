@@ -13,7 +13,7 @@ const supabase = createClient(
 
 // Calendar IDs for lab-related appointments
 const CALENDAR_IDS = {
-  NEW_PATIENT_BLOOD_DRAW: '68f01aea7ed18b27a8b12e64',
+  NEW_PATIENT_BLOOD_DRAW: '69363659022462924d66805c',  // Confirmed from GHL
   FOLLOW_UP_BLOOD_DRAW: '68fbc3300d41ec836e706680',
   INITIAL_LAB_REVIEW: '68fbc3cc4cbe5615edb2016d'
 };

@@ -24,6 +24,7 @@ const FOLLOW_UP_STAGES = [
 const OUTCOMES = [
   { value: 'hrt', label: 'HRT', color: '#3b82f6' },
   { value: 'weight_loss', label: 'Weight Loss', color: '#10b981' },
+  { value: 'peptide', label: 'Peptides', color: '#8b5cf6' },
   { value: 'thinking', label: 'Thinking About It', color: '#f59e0b' },
   { value: 'declined', label: 'Declined', color: '#6b7280' }
 ];

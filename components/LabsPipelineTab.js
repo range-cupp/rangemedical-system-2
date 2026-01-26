@@ -191,12 +191,21 @@ export default function LabsPipelineTab() {
             <span style={styles.alertBadge}>{data.alerts.overdueFollowUps} overdue</span>
           )}
         </button>
-        <button
-          style={styles.addButton}
-          onClick={() => setShowAddModal(true)}
-        >
-          + Add Manually
-        </button>
+        <div style={styles.headerActions}>
+          <button
+            style={styles.refreshButton}
+            onClick={fetchData}
+            disabled={loading}
+          >
+            ↻ Refresh
+          </button>
+          <button
+            style={styles.addButton}
+            onClick={() => setShowAddModal(true)}
+          >
+            + Add Manually
+          </button>
+        </div>
       </div>
 
       {/* New Patient Journey View */}
@@ -617,8 +626,22 @@ const styles = {
     fontSize: '11px',
     fontWeight: '600'
   },
-  addButton: {
+  headerActions: {
     marginLeft: 'auto',
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  refreshButton: {
+    padding: '10px 16px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    backgroundColor: 'white',
+    color: '#374151',
+    cursor: 'pointer',
+    fontWeight: '500'
+  },
+  addButton: {
     padding: '10px 16px',
     border: '2px dashed #d1d5db',
     borderRadius: '8px',

@@ -135,6 +135,13 @@ export default function SocietyOC() {
           <div style={styles.discountBanner}>
             <span style={{ color: '#4ade80' }}>10% OFF</span> All Services
           </div>
+
+          <div style={styles.heroButtons}>
+            <a href="#signup" style={styles.primaryBtn}>Get Started</a>
+            <a href="tel:+19499973988" style={styles.secondaryBtn}>
+              <span style={{ marginRight: 8 }}>📞</span> Call Now
+            </a>
+          </div>
         </section>
 
         {/* Services Section */}
@@ -282,6 +289,9 @@ export default function SocietyOC() {
                   We've received your information and will reach out within 24 hours to schedule your consultation. 
                   Your 10% Society OC member discount will be applied automatically.
                 </p>
+                <a href="tel:+19499973988" style={styles.callNowBtn}>
+                  <span style={{ marginRight: 8 }}>📞</span> Call Now: (949) 997-3988
+                </a>
               </div>
             )}
           </div>
@@ -380,6 +390,38 @@ const styles = {
     fontSize: 20,
     fontWeight: 600,
     letterSpacing: '0.02em'
+  },
+  heroButtons: {
+    display: 'flex',
+    gap: 16,
+    justifyContent: 'center',
+    marginTop: 32,
+    flexWrap: 'wrap'
+  },
+  primaryBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '16px 32px',
+    background: '#111',
+    color: '#fff',
+    borderRadius: 10,
+    fontSize: 16,
+    fontWeight: 600,
+    textDecoration: 'none',
+    transition: 'all 0.2s'
+  },
+  secondaryBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '16px 32px',
+    background: '#fff',
+    color: '#111',
+    border: '2px solid #111',
+    borderRadius: 10,
+    fontSize: 16,
+    fontWeight: 600,
+    textDecoration: 'none',
+    transition: 'all 0.2s'
   },
   servicesSection: {
     padding: '60px 24px',
@@ -553,6 +595,19 @@ const styles = {
   successText: {
     color: '#666',
     fontSize: 16
+  },
+  callNowBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '16px 32px',
+    background: '#111',
+    color: '#fff',
+    borderRadius: 10,
+    fontSize: 16,
+    fontWeight: 600,
+    textDecoration: 'none',
+    marginTop: 24
   },
   locationSection: {
     padding: '60px 24px',

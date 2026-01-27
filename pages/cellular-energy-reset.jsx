@@ -180,29 +180,19 @@ export default function CellularEnergyReset() {
           <p className="section-kicker">Investment</p>
           <h2 className="section-title">Program Investment</h2>
 
-          <div className="offer-grid" style={{maxWidth: '800px', margin: '0 auto'}}>
-            <div className="offer-card">
-              <h3>Pay in Full</h3>
+          <div style={{maxWidth: '500px', margin: '0 auto'}}>
+            <div className="offer-card" style={{textAlign: 'center'}}>
+              <h3>6-Week Cellular Energy Reset</h3>
               <div className="offer-price">$3,999</div>
-              <p className="offer-note">Single payment</p>
-              <ul>
+              <ul style={{textAlign: 'left'}}>
                 <li>All 36 sessions (18 HBOT + 18 Red Light)</li>
                 <li>Provider consultations included</li>
                 <li>Weekly check-ins</li>
                 <li><strong>Bonus: 2 extra Red Light sessions</strong></li>
               </ul>
-            </div>
-
-            <div className="offer-card">
-              <h3>Payment Plan</h3>
-              <div className="offer-price">3 × $1,399</div>
-              <p className="offer-note">$4,197 total</p>
-              <ul>
-                <li>All 36 sessions (18 HBOT + 18 Red Light)</li>
-                <li>Provider consultations included</li>
-                <li>Weekly check-ins</li>
-                <li>Spread over 3 monthly payments</li>
-              </ul>
+              <p style={{fontSize: '0.875rem', color: '#525252', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e5e5e5'}}>
+                Financing available at checkout through Affirm, Afterpay, and more.
+              </p>
             </div>
           </div>
 

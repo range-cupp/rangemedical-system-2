@@ -821,7 +821,8 @@ const styles = {
   locationTitle: {
     fontSize: 20,
     fontWeight: 600,
-    marginBottom: 8
+    marginBottom: 8,
+    color: '#fff'
   },
   locationText: {
     color: '#aaa',

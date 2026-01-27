@@ -9,7 +9,8 @@ export default function SocietyOC() {
     phone: '',
     services: [],
     goals: '',
-    referral: ''
+    referral: '',
+    trainerName: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -352,17 +353,29 @@ export default function SocietyOC() {
                   <label style={styles.label}>How did you hear about this partnership?</label>
                   <select
                     value={formData.referral}
-                    onChange={(e) => setFormData({ ...formData, referral: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, referral: e.target.value, trainerName: '' })}
                     style={styles.select}
                   >
                     <option value="">Select one...</option>
-                    <option value="Society OC Email">Society OC Email</option>
-                    <option value="Society OC Event">Society OC Event</option>
-                    <option value="Society OC Member">Fellow Society OC Member</option>
+                    <option value="JustSocietyOC">JustSocietyOC</option>
+                    <option value="Fellow Society OC Member">Fellow Society OC Member</option>
                     <option value="Instagram">Instagram</option>
-                    <option value="Other">Other</option>
+                    <option value="Society OC Trainer">Society OC Trainer</option>
                   </select>
                 </div>
+
+                {formData.referral === 'Society OC Trainer' && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Which trainer?</label>
+                    <input
+                      type="text"
+                      placeholder="Enter trainer's name"
+                      value={formData.trainerName}
+                      onChange={(e) => setFormData({ ...formData, trainerName: e.target.value })}
+                      style={styles.input}
+                    />
+                  </div>
+                )}
 
                 {error && <p style={styles.error}>{error}</p>}
 
@@ -433,7 +446,7 @@ const styles = {
     minHeight: '100vh'
   },
   header: {
-    padding: '24px',
+    padding: '28px 24px',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -444,7 +457,7 @@ const styles = {
     zIndex: 100
   },
   logo: {
-    height: 60
+    height: 80
   },
   hero: {
     padding: '80px 24px 60px',
@@ -825,7 +838,7 @@ const styles = {
     borderTop: '1px solid #eee'
   },
   footerLogo: {
-    height: 48,
+    height: 64,
     marginBottom: 16,
     opacity: 0.8
   },

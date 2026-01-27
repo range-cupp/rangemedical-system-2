@@ -339,7 +339,7 @@ function JourneyCard({ journey, stage, onAction, isOverdue, formatDate, formatDa
   return (
     <div style={styles.card(isOverdue)}>
       <div style={styles.cardHeader}>
-        <Link href={`/admin/patients/${journey.patient_id}`} style={styles.patientName}>
+        <Link href={`/admin/patient/${journey.patient_id}`} style={styles.patientName}>
           {journey.patient_name || 'Unknown'}
         </Link>
         {journey.patient_phone && (
@@ -398,7 +398,7 @@ function FollowUpCard({ followUp, stage, isOverdue, formatDate, onMarkReviewed }
   return (
     <div style={styles.card(isOverdue)}>
       <div style={styles.cardHeader}>
-        <Link href={`/admin/patients/${followUp.patient_id}`} style={styles.patientName}>
+        <Link href={`/admin/patient/${followUp.patient_id}`} style={styles.patientName}>
           {followUp.patient_name || 'Unknown'}
         </Link>
         <span style={styles.protocolBadge}>{protocolType}</span>

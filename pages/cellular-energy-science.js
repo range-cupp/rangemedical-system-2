@@ -237,9 +237,9 @@ export default function CellularEnergyScience() {
       {/* CTA Section */}
       <section className="final-cta">
         <div className="container">
-          <h2>Ready to Learn More?</h2>
-          <p>If you're struggling with persistent fatigue, consult with a healthcare professional to understand the underlying causes. At Range Medical, we offer both Red Light Therapy and Hyperbaric Oxygen Therapy as part of our comprehensive recovery services.</p>
-          <Link href="/range-assessment" className="btn-white">Book a Consultation</Link>
+          <h2>Ready to Experience It?</h2>
+          <p>At Range Medical, we offer both Red Light Therapy and Hyperbaric Oxygen Therapy — and they work even better together. See our Cellular Energy Reset package.</p>
+          <Link href="/cellular-energy-reset" className="btn-white">View Cellular Energy Reset</Link>
           <p className="cta-secondary">Questions? <a href="tel:+19499973988">Call or text (949) 997-3988</a></p>
         </div>
       </section>

@@ -33,16 +33,18 @@ export default function Home() {
         <p className="hero-sub">
           Start with an Assessment for your biggest problem: injury recovery or low energy.
         </p>
-        <div className="two-door-buttons">
-          <Link href="/injury-recovery" className="door-button door-recovery">
-            <span className="door-icon">🩹</span>
-            <span className="door-label">Injury Recovery Assessment</span>
-            <span className="door-price">$199</span>
+        <div className="assessment-options">
+          <Link href="/injury-recovery" className="assessment-button">
+            <span className="button-icon">✎</span>
+            <span>Injury Recovery Assessment</span>
+            <span className="button-divider"></span>
+            <span className="button-price">$199</span>
           </Link>
-          <Link href="/range-assessment" className="door-button door-optimization">
-            <span className="door-icon">⚡</span>
-            <span className="door-label">Range Assessment</span>
-            <span className="door-price">$199</span>
+          <Link href="/range-assessment" className="assessment-button">
+            <span className="button-icon">⚡</span>
+            <span>Range Assessment</span>
+            <span className="button-divider"></span>
+            <span className="button-price">$199</span>
           </Link>
         </div>
       </section>
@@ -188,73 +190,65 @@ export default function Home() {
       </section>
 
       <style jsx>{`
-        .two-door-buttons {
+        .assessment-options {
           display: flex;
-          gap: 1.5rem;
           justify-content: center;
+          gap: 0.75rem;
           margin-top: 2rem;
           flex-wrap: wrap;
         }
-        
-        .door-button {
-          display: flex;
-          flex-direction: column;
+
+        .assessment-button {
+          display: inline-flex;
           align-items: center;
-          padding: 2rem 2.5rem;
-          border-radius: 12px;
-          text-decoration: none;
-          transition: all 0.2s;
-          min-width: 280px;
-        }
-        
-        .door-recovery {
+          gap: 0.5rem;
+          padding: 0.75rem 1.25rem;
           background: #ffffff;
-          border: 2px solid #e5e5e5;
+          border: 1px solid #e5e5e5;
+          border-radius: 8px;
+          text-decoration: none;
           color: #171717;
+          font-size: 0.875rem;
+          font-weight: 500;
+          transition: all 0.2s ease;
         }
-        
-        .door-recovery:hover {
-          border-color: #000000;
-          transform: translateY(-2px);
-        }
-        
-        .door-optimization {
-          background: #000000;
-          border: 2px solid #000000;
+
+        .assessment-button:hover {
+          background: #171717;
           color: #ffffff;
+          border-color: #171717;
         }
-        
-        .door-optimization:hover {
-          background: #262626;
-          transform: translateY(-2px);
+
+        .button-icon {
+          font-size: 1rem;
+          opacity: 0.7;
         }
-        
-        .door-button .door-icon {
-          font-size: 2rem;
-          margin-bottom: 0.75rem;
+
+        .button-divider {
+          width: 1px;
+          height: 16px;
+          background: #e5e5e5;
+          margin: 0 0.25rem;
         }
-        
-        .door-button .door-label {
-          font-size: 1.125rem;
-          font-weight: 700;
-          margin-bottom: 0.25rem;
+
+        .assessment-button:hover .button-divider {
+          background: rgba(255, 255, 255, 0.3);
         }
-        
-        .door-button .door-price {
-          font-size: 1.5rem;
-          font-weight: 700;
-          opacity: 0.9;
+
+        .button-price {
+          font-weight: 600;
         }
-        
+
         @media (max-width: 640px) {
-          .two-door-buttons {
+          .assessment-options {
             flex-direction: column;
             align-items: center;
           }
           
-          .door-button {
+          .assessment-button {
             width: 100%;
-            max-width: 320px;
+            max-width: 300px;
+            justify-content: center;
           }
         }
       `}</style>

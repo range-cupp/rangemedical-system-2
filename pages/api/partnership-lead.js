@@ -21,6 +21,7 @@ export default async function handler(req, res) {
       services,
       goals,
       referral,
+      trainerName,
       partner = 'Society OC',
       discount = '10%'
     } = req.body;
@@ -34,6 +35,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Please select at least one service' });
     }
 
+    // Build referral source with trainer name if applicable
+    let referralSource = referral || null;
+    if (referral === 'Society OC Trainer' && trainerName) {
+      referralSource = `Society OC Trainer: ${trainerName.trim()}`;
+    }
+
     // Insert into Supabase
     const { data, error } = await supabase
       .from('partnership_leads')
@@ -44,7 +51,7 @@ export default async function handler(req, res) {
         phone: phone.trim(),
         services_interested: services,
         health_goals: goals?.trim() || null,
-        referral_source: referral || null,
+        referral_source: referralSource,
         partner_name: partner,
         discount_code: discount,
         status: 'new'

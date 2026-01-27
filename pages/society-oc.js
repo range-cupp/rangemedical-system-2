@@ -14,6 +14,7 @@ export default function SocietyOC() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [openPanel, setOpenPanel] = useState(null);
 
   const services = [
     { value: 'Hormone Optimization', label: 'Hormone Optimization' },
@@ -23,6 +24,7 @@ export default function SocietyOC() {
     { value: 'Red Light Therapy', label: 'Red Light Therapy' },
     { value: 'PRP Injections', label: 'PRP Injections' },
     { value: 'Exosome Therapy', label: 'Exosome Therapy' },
+    { value: 'Diagnostic Labs', label: 'Diagnostic Labs' },
     { value: 'Range Assessment', label: 'Range Assessment (Labs)' },
     { value: 'Not Sure', label: 'Not sure yet — help me decide' }
   ];
@@ -34,7 +36,8 @@ export default function SocietyOC() {
     { icon: '🫁', title: 'Hyperbaric Oxygen', desc: 'Increased oxygen delivery to support healing, recovery, and cellular energy.' },
     { icon: '🔴', title: 'Red Light Therapy', desc: 'Light wavelengths that help cells recover, reduce inflammation, and function better.' },
     { icon: '🩸', title: 'PRP Injections', desc: 'Your own platelets concentrated and used to accelerate healing and regeneration.' },
-    { icon: '🧬', title: 'Exosome Therapy', desc: 'Advanced regenerative therapy using cellular signaling for tissue repair.' }
+    { icon: '🧬', title: 'Exosome Therapy', desc: 'Advanced regenerative therapy using cellular signaling for tissue repair.' },
+    { icon: '🔬', title: 'Diagnostic Labs', desc: 'Comprehensive blood panels to understand your hormones, metabolism, and overall health.' }
   ];
 
   const formatPhone = (value) => {
@@ -158,6 +161,101 @@ export default function SocietyOC() {
               </div>
             ))}
           </div>
+        </section>
+
+        {/* Labs Section */}
+        <section style={styles.labsSection}>
+          <h2 style={styles.sectionTitle}>Diagnostic Lab Panels</h2>
+          <p style={styles.sectionSubtitle}>Comprehensive blood work to understand what's happening inside your body</p>
+
+          <div style={styles.labsContainer}>
+            {/* Essential Panel */}
+            <div style={styles.labPanel}>
+              <button 
+                onClick={() => setOpenPanel(openPanel === 'essential' ? null : 'essential')}
+                style={styles.labPanelHeader}
+              >
+                <div>
+                  <h3 style={styles.labPanelTitle}>Essential Panel</h3>
+                  <p style={styles.labPanelPrice}>$350</p>
+                </div>
+                <div style={styles.labPanelTagline}>The smart starting point</div>
+                <span style={styles.accordionIcon}>{openPanel === 'essential' ? '−' : '+'}</span>
+              </button>
+              {openPanel === 'essential' && (
+                <div style={styles.labPanelContent}>
+                  <p style={styles.labPanelDesc}>A solid baseline of key markers for hormones, thyroid, metabolism, and general health.</p>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>Hormones</h4>
+                    <p style={styles.markerList}>Total Testosterone, Free Testosterone, Estradiol (E2), SHBG</p>
+                  </div>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>Thyroid</h4>
+                    <p style={styles.markerList}>TSH, Free T4</p>
+                  </div>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>Metabolic</h4>
+                    <p style={styles.markerList}>Comprehensive Metabolic Panel, Lipid Panel, HbA1c</p>
+                  </div>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>General Health</h4>
+                    <p style={styles.markerList}>CBC with Differential, Vitamin D, PSA (men)</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Elite Panel */}
+            <div style={{...styles.labPanel, ...styles.labPanelFeatured}}>
+              <button 
+                onClick={() => setOpenPanel(openPanel === 'elite' ? null : 'elite')}
+                style={styles.labPanelHeader}
+              >
+                <div>
+                  <h3 style={styles.labPanelTitle}>Elite Panel</h3>
+                  <p style={styles.labPanelPrice}>$750</p>
+                </div>
+                <div style={styles.labPanelTagline}>The complete picture</div>
+                <span style={styles.accordionIcon}>{openPanel === 'elite' ? '−' : '+'}</span>
+              </button>
+              {openPanel === 'elite' && (
+                <div style={styles.labPanelContent}>
+                  <p style={styles.labPanelDesc}>Everything in Essential plus advanced markers for a comprehensive view of your health.</p>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>Hormones (Expanded)</h4>
+                    <p style={styles.markerList}>Total & Free Testosterone, Estradiol (E2), SHBG, DHEA-S, DHT, LH & FSH, Prolactin, Cortisol</p>
+                  </div>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>Thyroid (Complete)</h4>
+                    <p style={styles.markerList}>TSH, Free T4, Free T3, Reverse T3, Thyroid Antibodies</p>
+                  </div>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>Metabolic (Deep Dive)</h4>
+                    <p style={styles.markerList}>Comprehensive Metabolic Panel, Advanced Lipid Panel, HbA1c, Fasting Insulin, HOMA-IR</p>
+                  </div>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>Inflammation & Cardiovascular</h4>
+                    <p style={styles.markerList}>hs-CRP, Homocysteine, Lp(a), ApoB</p>
+                  </div>
+                  
+                  <div style={styles.markerGroup}>
+                    <h4 style={styles.markerGroupTitle}>General Health</h4>
+                    <p style={styles.markerList}>CBC with Differential, Vitamin D, B12, Ferritin, Iron Panel</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p style={styles.labsNote}><strong>Not sure which panel?</strong> Start with Essential. If we find something that needs a closer look, we can always add specific tests.</p>
         </section>
 
         {/* Form Section */}
@@ -335,7 +433,7 @@ const styles = {
     minHeight: '100vh'
   },
   header: {
-    padding: '20px 24px',
+    padding: '24px',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -346,7 +444,7 @@ const styles = {
     zIndex: 100
   },
   logo: {
-    height: 40
+    height: 60
   },
   hero: {
     padding: '80px 24px 60px',
@@ -427,11 +525,102 @@ const styles = {
     padding: '60px 24px',
     background: '#fafafa'
   },
+  labsSection: {
+    padding: '60px 24px',
+    background: '#fff'
+  },
+  labsContainer: {
+    maxWidth: 700,
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16
+  },
+  labPanel: {
+    background: '#fff',
+    borderRadius: 16,
+    border: '1px solid #e0e0e0',
+    overflow: 'hidden'
+  },
+  labPanelFeatured: {
+    border: '2px solid #111'
+  },
+  labPanelHeader: {
+    width: '100%',
+    padding: '24px 28px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    textAlign: 'left',
+    fontFamily: 'inherit'
+  },
+  labPanelTitle: {
+    fontSize: 20,
+    fontWeight: 700,
+    margin: 0,
+    color: '#111'
+  },
+  labPanelPrice: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#111',
+    margin: '4px 0 0 0'
+  },
+  labPanelTagline: {
+    fontSize: 14,
+    color: '#666',
+    flex: 1,
+    textAlign: 'center'
+  },
+  accordionIcon: {
+    fontSize: 24,
+    fontWeight: 300,
+    color: '#111',
+    marginLeft: 16
+  },
+  labPanelContent: {
+    padding: '0 28px 28px',
+    borderTop: '1px solid #eee'
+  },
+  labPanelDesc: {
+    fontSize: 15,
+    color: '#555',
+    marginTop: 20,
+    marginBottom: 24
+  },
+  markerGroup: {
+    marginBottom: 16
+  },
+  markerGroupTitle: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#111',
+    marginBottom: 4
+  },
+  markerList: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 1.5,
+    margin: 0
+  },
+  labsNote: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: '#666',
+    marginTop: 32,
+    maxWidth: 500,
+    marginLeft: 'auto',
+    marginRight: 'auto'
+  },
   sectionTitle: {
     textAlign: 'center',
     fontSize: 28,
     fontWeight: 700,
-    marginBottom: 12
+    marginBottom: 12,
+    color: '#111'
   },
   sectionSubtitle: {
     textAlign: 'center',
@@ -459,7 +648,8 @@ const styles = {
   serviceTitle: {
     fontSize: 18,
     fontWeight: 600,
-    marginBottom: 8
+    marginBottom: 8,
+    color: '#111'
   },
   serviceDesc: {
     fontSize: 14,
@@ -635,7 +825,7 @@ const styles = {
     borderTop: '1px solid #eee'
   },
   footerLogo: {
-    height: 32,
+    height: 48,
     marginBottom: 16,
     opacity: 0.8
   },

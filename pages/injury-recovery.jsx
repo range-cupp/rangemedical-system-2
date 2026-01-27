@@ -9,7 +9,7 @@ export default function InjuryRecovery() {
       description="One visit to review your injury, your rehab plan, and design the right recovery protocol. $199, credited toward your protocol."
     >
       <Head>
-        <meta name="keywords" content="injury recovery Newport Beach, recovery assessment, HBOT injury, red light therapy recovery, sports injury treatment" />
+        <meta name="keywords" content="injury recovery Newport Beach, recovery assessment, HBOT injury, red light therapy recovery, sports injury treatment, peptide therapy recovery, BPC-157" />
         <link rel="canonical" href="https://www.range-medical.com/injury-recovery" />
         <meta property="og:title" content="Injury Recovery Assessment | Range Medical" />
         <meta property="og:description" content="One visit to review your injury and design the right recovery protocol. $199." />
@@ -86,8 +86,8 @@ export default function InjuryRecovery() {
               <p>We discuss what you've already tried and what's helped or not.</p>
             </div>
             <div className="benefit-card">
-              <h4><span>📝</span> Outline Your Protocol</h4>
-              <p>We recommend whether a 10-day or 30-day recovery protocol makes the most sense for you.</p>
+              <h4><span>📝</span> Recommend a Protocol</h4>
+              <p>We recommend the right peptide therapy protocol based on your injury and timeline.</p>
             </div>
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function InjuryRecovery() {
               Your Injury Recovery Assessment is $199.
             </p>
             <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
-              If you decide to start a 10-day or 30-day recovery protocol within 7 days of your visit, 
+              If you decide to start a peptide therapy protocol within 7 days of your visit, 
               we apply the full $199 toward the cost of your protocol.
             </p>
             <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '0'}}>
@@ -124,30 +124,30 @@ export default function InjuryRecovery() {
       <section className="section">
         <div className="container">
           <p className="section-kicker">After Your Assessment</p>
-          <h2 className="section-title">What Might Come After Your Assessment</h2>
+          <h2 className="section-title">Peptide Therapy for Recovery</h2>
           <p className="section-subtitle">
-            Based on your injury, your provider will recommend one of these protocols.
+            Based on your injury, your provider will recommend one of these peptide protocols.
           </p>
 
           <div className="doors-grid" style={{maxWidth: '700px', margin: '0 auto'}}>
             <div className="door-card">
               <div className="door-icon">⚡</div>
-              <h3>10-Day Recovery Protocol</h3>
+              <h3>10-Day Peptide Protocol</h3>
               <p>For smaller flares or when you need a focused boost in recovery over the next 10 days.</p>
               <ul>
-                <li>Targeted recovery sessions</li>
-                <li>Tools like HBOT, red light, injections</li>
-                <li>Quick check-in at day 10</li>
+                <li>Recovery peptides like BPC-157</li>
+                <li>Daily injections you do at home</li>
+                <li>Check-in at day 10</li>
               </ul>
             </div>
 
             <div className="door-card">
               <div className="door-icon">🔄</div>
-              <h3>30-Day Recovery Protocol</h3>
+              <h3>30-Day Peptide Protocol</h3>
               <p>For bigger injuries or slower-healing issues that need more support across a full month.</p>
               <ul>
-                <li>Extended recovery support</li>
-                <li>More sessions, more time to heal</li>
+                <li>Extended peptide therapy</li>
+                <li>More time for tissue healing</li>
                 <li>Progress check-ins throughout</li>
               </ul>
             </div>
@@ -155,7 +155,7 @@ export default function InjuryRecovery() {
 
           <div style={{textAlign: 'center', marginTop: '2rem'}}>
             <p style={{fontSize: '0.9375rem', color: '#737373', maxWidth: '500px', margin: '0 auto'}}>
-              Your provider will recommend the option that fits your injury best. 
+              Your provider will recommend the protocol that fits your injury best. 
               You're never locked into anything you don't want.
             </p>
           </div>
@@ -176,17 +176,22 @@ export default function InjuryRecovery() {
 
             <div className="faq-item">
               <h4>Does this replace my rehab?</h4>
-              <p>No. Our protocols are designed to support and speed up the recovery work you're already doing with your PT, chiro, or trainer.</p>
+              <p>No. Peptide therapy supports and speeds up the recovery work you're already doing with your PT, chiro, or trainer.</p>
             </div>
 
             <div className="faq-item">
               <h4>Will I need labs or blood work?</h4>
-              <p>No. Recovery protocols use treatments we can safely do without lab work.</p>
+              <p>No. Recovery peptide protocols don't require lab work to get started.</p>
             </div>
 
             <div className="faq-item">
               <h4>What kinds of injuries does this help with?</h4>
-              <p>Most orthopedic injuries — sprains, strains, post-surgical recovery, chronic pain that's slow to heal. We'll confirm it's a good fit at your Assessment.</p>
+              <p>Most orthopedic injuries — sprains, strains, tendon issues, post-surgical recovery, chronic pain that's slow to heal. We'll confirm it's a good fit at your Assessment.</p>
+            </div>
+
+            <div className="faq-item">
+              <h4>What are recovery peptides?</h4>
+              <p>Peptides like BPC-157 are small proteins that support tissue repair and reduce inflammation. They're injected daily at home during your protocol.</p>
             </div>
 
             <div className="faq-item">
@@ -202,7 +207,7 @@ export default function InjuryRecovery() {
         <div className="container">
           <span className="cta-step">Start With One Visit</span>
           <h2>Ready to Speed Up Your Recovery?</h2>
-          <p>Book your Injury Recovery Assessment. If you move forward, the $199 is credited toward your protocol.</p>
+          <p>Book your Injury Recovery Assessment. If you move forward with a peptide protocol, the $199 is credited toward it.</p>
           <div className="cta-buttons">
             <Link href="/book-recovery" className="btn-white">
               Book Injury Recovery Assessment — $199

@@ -6,13 +6,13 @@ export default function Home() {
   return (
     <Layout
       title="Range Medical | Newport Beach Wellness & Recovery"
-      description="Two ways to feel like yourself again. Start with an Assessment for injury recovery or low energy. $199 to start."
+      description="Two ways to feel like yourself again. Start with a Range Assessment for injury recovery or energy optimization. $199 to start."
     >
       <Head>
-        <meta name="keywords" content="wellness clinic Newport Beach, injury recovery, low energy treatment, brain fog help, hormone optimization, medical weight loss" />
+        <meta name="keywords" content="wellness clinic Newport Beach, injury recovery, low energy treatment, brain fog help, hormone optimization, medical weight loss, peptide therapy" />
         <link rel="canonical" href="https://www.range-medical.com/" />
         <meta property="og:title" content="Range Medical | Newport Beach Wellness & Recovery" />
-        <meta property="og:description" content="Two ways to feel like yourself again. Start with an Assessment." />
+        <meta property="og:description" content="Two ways to feel like yourself again. Start with a Range Assessment." />
         <meta property="og:url" content="https://www.range-medical.com/" />
       </Head>
 
@@ -27,22 +27,22 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Hero - Two Doors */}
+      {/* Hero */}
       <section className="hero">
         <h1>Two Ways We Help You Feel Like Yourself Again</h1>
         <p className="hero-sub">
-          Start with an Assessment for your biggest problem: injury recovery or low energy.
+          Start with a Range Assessment for your biggest problem: injury recovery or low energy.
         </p>
         <div className="assessment-options">
           <Link href="/injury-recovery" className="assessment-button">
             <span className="button-icon">✎</span>
-            <span>Injury Recovery Assessment</span>
+            <span>Injury & Recovery</span>
             <span className="button-divider"></span>
             <span className="button-price">$199</span>
           </Link>
           <Link href="/range-assessment" className="assessment-button">
             <span className="button-icon">⚡</span>
-            <span>Range Assessment</span>
+            <span>Energy & Optimization</span>
             <span className="button-divider"></span>
             <span className="button-price">$199</span>
           </Link>
@@ -55,19 +55,19 @@ export default function Home() {
           <p className="section-kicker">How It Works</p>
           <h2 className="section-title">Two Doors, One Goal: Help You Feel Better</h2>
           <p className="section-subtitle">
-            Pick the door that matches your main concern. Both start with a $199 Assessment.
+            Pick the door that matches your main concern. Both start with a $199 Range Assessment.
           </p>
 
           <div className="doors-grid">
             <div className="door-card">
-              <div className="door-icon">🩹</div>
-              <h3>Injury Recovery</h3>
+              <div className="door-icon">✎</div>
+              <h3>Injury & Recovery</h3>
               <p>You're rehabbing an injury and healing feels slow. You want to speed things up.</p>
               <ul>
-                <li>$199 Injury Recovery Assessment</li>
+                <li>$199 Range Assessment</li>
                 <li>Review your injury and rehab plan</li>
                 <li>Get a clear recovery protocol</li>
-                <li>$199 credited toward your protocol</li>
+                <li>$199 credited toward your program</li>
               </ul>
               <Link href="/injury-recovery" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
                 Learn More
@@ -176,13 +176,13 @@ export default function Home() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to Feel Like Yourself Again?</h2>
-          <p>Pick the Assessment that fits your situation. Both are $199.</p>
+          <p>Pick the door that fits your situation. Both start with a $199 Range Assessment.</p>
           <div className="cta-buttons">
             <Link href="/injury-recovery" className="btn-white">
-              Injury Recovery Assessment
+              Injury & Recovery
             </Link>
             <Link href="/range-assessment" className="btn-outline-white">
-              Range Assessment
+              Energy & Optimization
             </Link>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>

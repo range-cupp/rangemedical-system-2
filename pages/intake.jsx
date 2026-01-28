@@ -6,7 +6,6 @@ export default function IntakeForm() {
   const [scriptsLoaded, setScriptsLoaded] = useState(0);
   const formInitialized = useRef(false);
 
-  // Initialize form logic after all scripts load
   useEffect(() => {
     if (scriptsLoaded >= 4 && !formInitialized.current) {
       formInitialized.current = true;
@@ -22,603 +21,534 @@ export default function IntakeForm() {
     <>
       <Head>
         <title>New Patient Medical Intake | Range Medical</title>
-        <meta name="description" content="Complete your new patient medical intake form for Range Medical. Secure, confidential patient information." />
+        <meta name="description" content="Complete your new patient medical intake form for Range Medical." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex, nofollow" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
-      {/* External Scripts */}
-      <Script 
-        src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" 
+      <Script
+        src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
         onLoad={handleScriptLoad}
       />
-      <Script 
-        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"
+      <Script
+        src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
         onLoad={handleScriptLoad}
       />
-      <Script 
-        src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"
+      <Script
+        src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"
         onLoad={handleScriptLoad}
       />
-      <Script 
-        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+      <Script
+        src="https://unpkg.com/imask"
         onLoad={handleScriptLoad}
       />
 
       <style jsx global>{`
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
         :root {
-            --black: #000000;
-            --white: #ffffff;
-            --gray-50: #fafafa;
-            --gray-100: #f5f5f5;
-            --gray-200: #e5e5e5;
-            --gray-300: #d4d4d4;
-            --gray-400: #a3a3a3;
-            --gray-500: #737373;
-            --gray-600: #525252;
-            --gray-700: #404040;
-            --gray-800: #262626;
-            --gray-900: #171717;
-            --error: #dc2626;
-            --success: #16a34a;
+          --black: #000000;
+          --white: #ffffff;
+          --gray-50: #fafafa;
+          --gray-100: #f5f5f5;
+          --gray-200: #e5e5e5;
+          --gray-300: #d4d4d4;
+          --gray-400: #a3a3a3;
+          --gray-500: #737373;
+          --gray-600: #525252;
+          --gray-700: #404040;
+          --gray-800: #262626;
+          --error: #dc2626;
+          --success: #16a34a;
         }
-        
-        html {
-            font-size: 16px;
+
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--gray-100);
-            color: var(--gray-900);
-            line-height: 1.6;
-            min-height: 100vh;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background-color: var(--gray-100);
+          color: var(--gray-800);
+          line-height: 1.5;
         }
-        
+
         .intake-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 2rem;
         }
-        
+
         .intake-header {
-            text-align: center;
-            margin-bottom: 2.5rem;
-            padding-bottom: 2rem;
-            border-bottom: 2px solid var(--black);
+          text-align: center;
+          margin-bottom: 2rem;
         }
-        
+
         .clinic-name {
-            font-size: 2.5rem;
-            font-weight: 700;
-            letter-spacing: 0.15em;
-            margin-bottom: 0.5rem;
-            color: var(--black);
+          font-size: 1.5rem;
+          font-weight: 700;
+          letter-spacing: 0.2em;
+          margin-bottom: 0.5rem;
         }
-        
+
         .form-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            margin-top: 0.5rem;
-            color: var(--gray-700);
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--gray-700);
+          margin-bottom: 0.5rem;
         }
-        
-        .intake-header p {
-            color: var(--gray-600);
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-        }
-        
+
         .form-container {
-            background: var(--white);
-            border: 2px solid var(--black);
-            padding: 2rem;
+          background: var(--white);
+          border-radius: 8px;
+          padding: 2rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-        
+
         .section {
-            margin-bottom: 2.5rem;
-            padding-bottom: 2rem;
-            border-bottom: 1px solid var(--gray-200);
+          margin-bottom: 2rem;
+          padding-bottom: 2rem;
+          border-bottom: 1px solid var(--gray-200);
         }
-        
-        .section:last-of-type {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
+
+        .section:last-child {
+          border-bottom: none;
+          margin-bottom: 0;
+          padding-bottom: 0;
         }
-        
+
         .section-title {
-            font-size: 1.125rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid var(--black);
-            display: inline-block;
+          font-size: 1.125rem;
+          font-weight: 700;
+          margin-bottom: 1.5rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 2px solid var(--black);
         }
-        
+
         .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 1.25rem;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-bottom: 1rem;
         }
-        
-        .form-row:last-child {
-            margin-bottom: 0;
-        }
-        
+
         .form-group {
-            display: flex;
-            flex-direction: column;
+          display: flex;
+          flex-direction: column;
         }
-        
+
         .form-group.full-width {
-            grid-column: 1 / -1;
+          grid-column: 1 / -1;
         }
-        
-        .intake-container label {
-            font-size: 0.8125rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-            color: var(--gray-700);
+
+        .form-group label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: var(--gray-700);
         }
-        
-        .intake-container label .required {
-            color: var(--error);
-            margin-left: 2px;
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+          padding: 0.75rem;
+          border: 1px solid var(--gray-300);
+          border-radius: 4px;
+          font-size: 1rem;
+          transition: border-color 0.2s, box-shadow 0.2s;
         }
-        
-        .intake-container input[type="text"],
-        .intake-container input[type="email"],
-        .intake-container input[type="tel"],
-        .intake-container input[type="date"],
-        .intake-container select,
-        .intake-container textarea {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            font-family: inherit;
-            border: 1.5px solid var(--gray-300);
-            background: var(--white);
-            color: var(--gray-900);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            border-radius: 0;
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+          outline: none;
+          border-color: var(--black);
+          box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
         }
-        
-        .intake-container input:focus,
-        .intake-container select:focus,
-        .intake-container textarea:focus {
-            outline: none;
-            border-color: var(--black);
-            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+
+        .form-group input.error,
+        .form-group select.error,
+        .form-group textarea.error {
+          border-color: var(--error);
         }
-        
-        .intake-container input.error,
-        .intake-container select.error,
-        .intake-container textarea.error {
-            border-color: var(--error);
+
+        .required {
+          color: var(--error);
         }
-        
-        .intake-container textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-        
-        .intake-container select {
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23525252' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            padding-right: 2.5rem;
-        }
-        
-        .checkbox-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 0.75rem;
-        }
-        
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
-        
-        .checkbox-item input[type="checkbox"] {
-            width: 1.25rem;
-            height: 1.25rem;
-            cursor: pointer;
-            accent-color: var(--black);
-        }
-        
-        .checkbox-item label {
-            font-size: 0.9375rem;
-            font-weight: 500;
-            text-transform: none;
-            letter-spacing: normal;
-            margin-bottom: 0;
-            cursor: pointer;
-            color: var(--gray-800);
-        }
-        
-        .radio-group {
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .radio-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
-        
-        .radio-item input[type="radio"] {
-            width: 1.25rem;
-            height: 1.25rem;
-            cursor: pointer;
-            accent-color: var(--black);
-        }
-        
-        .radio-item label {
-            font-size: 0.9375rem;
-            font-weight: 500;
-            text-transform: none;
-            letter-spacing: normal;
-            margin-bottom: 0;
-            cursor: pointer;
-            color: var(--gray-800);
-        }
-        
-        .conditional-field {
-            display: none;
-            margin-top: 1rem;
-            padding-left: 1.75rem;
-            border-left: 3px solid var(--gray-300);
-        }
-        
-        .conditional-field.visible {
-            display: block;
-        }
-        
-        .condition-item {
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--gray-100);
-        }
-        
-        .condition-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-        
-        .condition-details {
-            display: none;
-            margin-top: 0.75rem;
-            margin-left: 1.75rem;
-            padding: 1rem;
-            background: var(--gray-50);
-            border-left: 3px solid var(--gray-300);
-        }
-        
-        .condition-details.visible {
-            display: block;
-        }
-        
-        .condition-details .form-group {
-            margin-bottom: 0;
-        }
-        
-        .condition-details .form-row {
-            gap: 1rem;
-        }
-        
-        .file-upload {
-            position: relative;
-        }
-        
-        .file-upload-input {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-        
-        .file-upload-label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            border: 2px dashed var(--gray-300);
-            background: var(--gray-50);
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
-        }
-        
-        .file-upload-label:hover {
-            border-color: var(--black);
-            background: var(--gray-100);
-        }
-        
-        .file-upload-icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .file-upload-text {
-            font-size: 0.875rem;
-            color: var(--gray-600);
-        }
-        
-        .file-preview {
-            margin-top: 1rem;
-            display: none;
-        }
-        
-        .file-preview.visible {
-            display: block;
-        }
-        
-        .file-preview img {
-            max-width: 200px;
-            max-height: 150px;
-            border: 1px solid var(--gray-300);
-        }
-        
-        .signature-container {
-            border: 1.5px solid var(--gray-300);
-            background: var(--white);
-        }
-        
-        .signature-pad {
-            width: 100%;
-            height: 150px;
-            display: block;
-        }
-        
-        .signature-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 0.75rem;
-        }
-        
-        .btn-clear {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-            background: var(--white);
-            border: 1.5px solid var(--gray-400);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-clear:hover {
-            border-color: var(--black);
-            background: var(--gray-100);
-        }
-        
-        .consent-box {
-            background: var(--gray-50);
-            border: 1px solid var(--gray-200);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .consent-text {
-            font-size: 0.9375rem;
-            line-height: 1.7;
-            color: var(--gray-700);
-            margin-bottom: 1rem;
-        }
-        
-        .submit-section {
-            margin-top: 2.5rem;
-            padding-top: 2rem;
-            border-top: 2px solid var(--black);
-        }
-        
-        .btn-submit {
-            width: 100%;
-            padding: 1.25rem 2rem;
-            font-size: 1.125rem;
-            font-weight: 700;
-            font-family: inherit;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            background: var(--black);
-            color: var(--white);
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-submit:hover {
-            background: var(--gray-800);
-            transform: translateY(-1px);
-        }
-        
-        .btn-submit:active {
-            transform: translateY(0);
-        }
-        
-        .btn-submit:disabled {
-            background: var(--gray-400);
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .status-message {
-            padding: 1rem;
-            margin-top: 1rem;
-            text-align: center;
-            font-weight: 600;
-            display: none;
-        }
-        
-        .status-message.visible {
-            display: block;
-        }
-        
-        .status-message.success {
-            background: #dcfce7;
-            color: var(--success);
-            border: 1px solid var(--success);
-        }
-        
-        .status-message.error {
-            background: #fee2e2;
-            color: var(--error);
-            border: 1px solid var(--error);
-        }
-        
-        .status-message.loading {
-            background: var(--gray-100);
-            color: var(--gray-700);
-            border: 1px solid var(--gray-300);
-        }
-        
+
         .field-error {
-            font-size: 0.8125rem;
-            color: var(--error);
-            margin-top: 0.375rem;
-            display: none;
+          font-size: 0.75rem;
+          color: var(--error);
+          margin-top: 0.25rem;
+          display: none;
         }
-        
+
         .field-error.visible {
-            display: block;
+          display: block;
         }
-        
-        .intake-footer {
-            text-align: center;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            font-size: 0.8125rem;
-            color: var(--gray-500);
+
+        .radio-group {
+          display: flex;
+          gap: 1.5rem;
+          margin-top: 0.5rem;
         }
-        
-        .thank-you-page {
-            background: var(--white);
-            border: 2px solid var(--black);
-            padding: 3rem 2rem;
-            text-align: center;
-            max-width: 600px;
-            margin: 2rem auto;
+
+        .radio-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
-        
+
+        .radio-item input[type="radio"] {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+        }
+
+        .radio-item label {
+          margin-bottom: 0;
+          cursor: pointer;
+        }
+
+        .conditional-field {
+          display: none;
+          margin-top: 1rem;
+          padding: 1rem;
+          background: var(--gray-50);
+          border-radius: 4px;
+          border-left: 3px solid var(--black);
+        }
+
+        .conditional-field.visible {
+          display: block;
+        }
+
+        /* Symptom Checklist Styles */
+        .symptom-section {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          border-left: 4px solid #0284c7;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          border-radius: 0 8px 8px 0;
+        }
+
+        .symptom-section-title {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #0369a1;
+          margin-bottom: 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .symptom-section-subtitle {
+          font-size: 0.875rem;
+          color: var(--gray-600);
+          margin-bottom: 1rem;
+        }
+
+        .symptom-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+        }
+
+        .symptom-item {
+          background: var(--white);
+          border: 1px solid var(--gray-200);
+          border-radius: 6px;
+          padding: 0.75rem 1rem;
+          transition: all 0.2s;
+        }
+
+        .symptom-item:hover {
+          border-color: var(--gray-400);
+        }
+
+        .symptom-item.selected {
+          border-color: #0284c7;
+          background: #f0f9ff;
+        }
+
+        .symptom-checkbox-row {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .symptom-checkbox-row input[type="checkbox"] {
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+          accent-color: #0284c7;
+        }
+
+        .symptom-checkbox-row label {
+          font-size: 0.9375rem;
+          font-weight: 500;
+          color: var(--gray-800);
+          cursor: pointer;
+          flex: 1;
+          margin-bottom: 0;
+        }
+
+        .symptom-followup {
+          display: none;
+          margin-top: 0.75rem;
+          padding-top: 0.75rem;
+          border-top: 1px solid var(--gray-200);
+        }
+
+        .symptom-followup.visible {
+          display: block;
+        }
+
+        .symptom-followup label {
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: var(--gray-600);
+          margin-bottom: 0.5rem;
+          display: block;
+        }
+
+        .symptom-followup select,
+        .symptom-followup input {
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          font-size: 0.875rem;
+          border: 1px solid var(--gray-300);
+          border-radius: 4px;
+        }
+
+        .symptom-duration {
+          display: none;
+          margin-top: 1rem;
+          padding: 1rem;
+          background: var(--white);
+          border-radius: 6px;
+          border: 1px solid var(--gray-200);
+        }
+
+        .symptom-duration.visible {
+          display: block;
+        }
+
+        .symptom-duration label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: var(--gray-700);
+          margin-bottom: 0.5rem;
+          display: block;
+        }
+
+        .duration-options {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .duration-option {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 0.75rem;
+          background: var(--gray-50);
+          border: 1px solid var(--gray-200);
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .duration-option:hover {
+          border-color: var(--gray-400);
+        }
+
+        .duration-option input[type="radio"] {
+          width: 16px;
+          height: 16px;
+          accent-color: #0284c7;
+        }
+
+        .duration-option label {
+          font-size: 0.8125rem;
+          margin-bottom: 0;
+          cursor: pointer;
+        }
+
+        /* Medical History Condition Styles */
+        .condition-category {
+          margin-bottom: 1.5rem;
+          padding: 1rem;
+          border-radius: 4px;
+        }
+
+        .condition-category h3 {
+          font-size: 0.875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          margin-bottom: 1rem;
+        }
+
+        .condition-item {
+          margin-bottom: 1rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .condition-item:last-child {
+          margin-bottom: 0;
+          padding-bottom: 0;
+          border-bottom: none;
+        }
+
+        .condition-details {
+          display: none;
+          margin-top: 0.75rem;
+          padding: 0.75rem;
+          background: rgba(255,255,255,0.5);
+          border-radius: 4px;
+        }
+
+        .condition-details.visible {
+          display: block;
+        }
+
+        /* Signature */
+        .signature-container {
+          border: 2px solid var(--gray-300);
+          border-radius: 4px;
+          background: var(--white);
+          margin-bottom: 0.5rem;
+        }
+
+        .signature-canvas {
+          width: 100%;
+          height: 150px;
+          display: block;
+        }
+
+        .signature-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+        }
+
+        .btn-clear {
+          padding: 0.5rem 1rem;
+          background: var(--gray-100);
+          border: 1px solid var(--gray-300);
+          border-radius: 4px;
+          font-size: 0.875rem;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .btn-clear:hover {
+          background: var(--gray-200);
+        }
+
+        /* Submit Button */
+        .btn-submit {
+          width: 100%;
+          padding: 1rem;
+          background: var(--black);
+          color: var(--white);
+          border: none;
+          border-radius: 4px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .btn-submit:hover {
+          background: var(--gray-800);
+        }
+
+        .btn-submit:disabled {
+          background: var(--gray-400);
+          cursor: not-allowed;
+        }
+
+        /* Thank You Screen */
+        .thank-you-container {
+          display: none;
+          text-align: center;
+          padding: 3rem 2rem;
+        }
+
+        .thank-you-container.visible {
+          display: block;
+        }
+
         .thank-you-icon {
-            width: 80px;
-            height: 80px;
-            background: var(--black);
-            color: var(--white);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            margin: 0 auto 1.5rem auto;
+          font-size: 4rem;
+          margin-bottom: 1rem;
         }
-        
-        .thank-you-page h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--black);
+
+        .thank-you-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          margin-bottom: 1rem;
         }
-        
-        .thank-you-subtitle {
-            font-size: 1.125rem;
-            color: var(--gray-600);
-            margin-bottom: 2rem;
+
+        .thank-you-message {
+          color: var(--gray-600);
+          margin-bottom: 2rem;
         }
-        
+
         .thank-you-details {
-            background: var(--gray-50);
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            border-left: 4px solid var(--black);
-            text-align: left;
+          background: var(--gray-50);
+          padding: 1.5rem;
+          border-radius: 8px;
+          margin-bottom: 2rem;
+          border-left: 4px solid var(--black);
+          text-align: left;
         }
-        
+
         .thank-you-details p {
-            margin-bottom: 0.75rem;
-            color: var(--gray-700);
+          margin-bottom: 0.75rem;
+          color: var(--gray-700);
         }
-        
+
         .thank-you-details p:last-child {
-            margin-bottom: 0;
+          margin-bottom: 0;
         }
-        
-        .thank-you-contact {
-            margin-bottom: 2rem;
-        }
-        
-        .thank-you-contact h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--gray-800);
-        }
-        
-        .thank-you-contact a {
-            color: var(--black);
-            text-decoration: underline;
-        }
-        
+
         .thank-you-footer {
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--gray-200);
+          padding-top: 1.5rem;
+          border-top: 1px solid var(--gray-200);
         }
-        
+
         .thank-you-footer p {
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            color: var(--black);
+          font-size: 1.25rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          color: var(--black);
         }
-        
+
         @media (max-width: 600px) {
-            .intake-container {
-                padding: 1rem;
-            }
-            
-            .form-container {
-                padding: 1.5rem;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .checkbox-group {
-                grid-template-columns: 1fr;
-            }
-            
-            .radio-group {
-                flex-direction: column;
-                gap: 0.75rem;
-            }
+          .intake-container {
+            padding: 1rem;
+          }
+
+          .form-container {
+            padding: 1.5rem;
+          }
+
+          .form-row {
+            grid-template-columns: 1fr;
+          }
+
+          .radio-group {
+            flex-direction: column;
+            gap: 0.75rem;
+          }
+
+          .duration-options {
+            flex-direction: column;
+          }
         }
       `}</style>
 
@@ -628,91 +558,64 @@ export default function IntakeForm() {
           <h2 className="form-title">New Patient Medical Intake Form</h2>
           <p>Please complete all required fields marked with *</p>
         </header>
-        
+
         <div className="form-container">
           <form id="intakeForm" noValidate>
-            
+
             {/* Personal Information */}
             <div className="section">
               <h2 className="section-title">Personal Information</h2>
-              
+
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="firstName">First Name <span className="required">*</span></label>
-                  <input type="text" id="firstName" name="firstName" required />
+                  <label htmlFor="firstName">Legal First Name <span className="required">*</span></label>
+                  <input type="text" id="firstName" name="firstName" placeholder="As shown on government ID" required />
                   <span className="field-error" id="firstNameError">First name is required</span>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="lastName">Last Name <span className="required">*</span></label>
-                  <input type="text" id="lastName" name="lastName" required />
+                  <label htmlFor="lastName">Legal Last Name <span className="required">*</span></label>
+                  <input type="text" id="lastName" name="lastName" placeholder="As shown on government ID" required />
                   <span className="field-error" id="lastNameError">Last name is required</span>
                 </div>
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="gender">Gender <span className="required">*</span></label>
-                  <select id="gender" name="gender" required>
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Non-binary">Non-binary</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <span className="field-error" id="genderError">Gender is required</span>
+                  <label htmlFor="preferredName">Preferred Name</label>
+                  <input type="text" id="preferredName" name="preferredName" placeholder="What should we call you?" />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="dob">Date of Birth <span className="required">*</span></label>
-                  <input type="text" id="dob" name="dob" placeholder="MM/DD/YYYY" maxLength="10" required />
-                  <span className="field-error" id="dobError">Please enter a valid date (MM/DD/YYYY)</span>
+                  <label htmlFor="dateOfBirth">Date of Birth <span className="required">*</span></label>
+                  <input type="text" id="dateOfBirth" name="dateOfBirth" placeholder="MM/DD/YYYY" required />
+                  <span className="field-error" id="dateOfBirthError">Date of birth is required</span>
                 </div>
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="email">Email <span className="required">*</span></label>
-                  <input type="email" id="email" name="email" required />
-                  <span className="field-error" id="emailError">Valid email is required</span>
+                  <label htmlFor="sex">Biological Sex <span className="required">*</span></label>
+                  <select id="sex" name="sex" required>
+                    <option value="">Select...</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                  <span className="field-error" id="sexError">Please select an option</span>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="phone">Phone <span className="required">*</span></label>
+                  <label htmlFor="phone">Phone Number <span className="required">*</span></label>
                   <input type="tel" id="phone" name="phone" placeholder="(555) 555-5555" required />
                   <span className="field-error" id="phoneError">Phone number is required</span>
                 </div>
               </div>
-              
-              {/* NEW FIELD: How did you hear about us? */}
+
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label htmlFor="howHeardAboutUs">How Did You Hear About Us? <span className="required">*</span></label>
-                  <select id="howHeardAboutUs" name="howHeardAboutUs" required>
-                    <option value="">Select an option</option>
-                    <option value="Dr. G">Dr. G</option>
-                    <option value="Aaron Berger">Aaron Berger</option>
-                    <option value="Instagram">Instagram</option>
-                    <option value="Social Media">Social Media</option>
-                    <option value="Walk-in">Walk-in</option>
-                    <option value="Friend or Family Member">Friend or Family Member</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <span className="field-error" id="howHeardAboutUsError">Please let us know how you heard about us</span>
-                  
-                  <div className="conditional-field" id="howHeardOtherFields">
-                    <div className="form-group">
-                      <label htmlFor="howHeardOther">Please specify <span className="required">*</span></label>
-                      <input type="text" id="howHeardOther" name="howHeardOther" placeholder="Tell us how you heard about us..." />
-                      <span className="field-error" id="howHeardOtherError">Please specify how you heard about us</span>
-                    </div>
-                  </div>
+                  <label htmlFor="email">Email Address <span className="required">*</span></label>
+                  <input type="email" id="email" name="email" placeholder="your@email.com" required />
+                  <span className="field-error" id="emailError">Valid email is required</span>
                 </div>
               </div>
-            </div>
-            
-            {/* Address */}
-            <div className="section">
-              <h2 className="section-title">Address</h2>
-              
+
               <div className="form-row">
                 <div className="form-group full-width">
                   <label htmlFor="streetAddress">Street Address <span className="required">*</span></label>
@@ -720,7 +623,7 @@ export default function IntakeForm() {
                   <span className="field-error" id="streetAddressError">Street address is required</span>
                 </div>
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="city">City <span className="required">*</span></label>
@@ -733,25 +636,51 @@ export default function IntakeForm() {
                   <span className="field-error" id="stateError">State is required</span>
                 </div>
               </div>
-              
+
               <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="country">Country <span className="required">*</span></label>
-                  <input type="text" id="country" name="country" defaultValue="United States" required />
-                  <span className="field-error" id="countryError">Country is required</span>
-                </div>
                 <div className="form-group">
                   <label htmlFor="postalCode">Postal Code <span className="required">*</span></label>
                   <input type="text" id="postalCode" name="postalCode" required />
                   <span className="field-error" id="postalCodeError">Postal code is required</span>
                 </div>
+                <div className="form-group">
+                  <label htmlFor="country">Country <span className="required">*</span></label>
+                  <input type="text" id="country" name="country" value="United States" required />
+                  <span className="field-error" id="countryError">Country is required</span>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group full-width">
+                  <label htmlFor="howHeardAboutUs">How did you hear about us? <span className="required">*</span></label>
+                  <select id="howHeardAboutUs" name="howHeardAboutUs" required>
+                    <option value="">Select...</option>
+                    <option value="Dr. G">Dr. G</option>
+                    <option value="Aaron Berger">Aaron Berger</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Walk-in">Walk-in</option>
+                    <option value="Friend or Family Member">Friend or Family Member</option>
+                    <option value="Range Sports Therapy">Range Sports Therapy</option>
+                    <option value="Society OC">Society OC</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <span className="field-error" id="howHeardAboutUsError">Please select an option</span>
+                </div>
+              </div>
+
+              <div className="conditional-field" id="howHeardOtherField">
+                <div className="form-group">
+                  <label htmlFor="howHeardOther">Please specify <span className="required">*</span></label>
+                  <input type="text" id="howHeardOther" name="howHeardOther" placeholder="How did you hear about us?" />
+                </div>
               </div>
             </div>
-            
-            {/* Health Concerns & Symptoms */}
+
+            {/* Health Concerns Section */}
             <div className="section">
-              <h2 className="section-title">Health Concerns & Symptoms</h2>
-              
+              <h2 className="section-title">Health Concerns</h2>
+
               <div className="form-row">
                 <div className="form-group full-width">
                   <label htmlFor="whatBringsYou">What Brings You In Today? <span className="required">*</span></label>
@@ -759,10 +688,11 @@ export default function IntakeForm() {
                   <span className="field-error" id="whatBringsYouError">This field is required</span>
                 </div>
               </div>
-              
+
+              {/* Injury Assessment */}
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label>Are you injured? <span className="required">*</span></label>
+                  <label>Are you currently dealing with an injury? <span className="required">*</span></label>
                   <div className="radio-group">
                     <div className="radio-item">
                       <input type="radio" id="injuredYes" name="injured" value="Yes" required />
@@ -774,7 +704,7 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <span className="field-error" id="injuredError">Please select an option</span>
-                  
+
                   <div className="conditional-field" id="injuryFields">
                     <div className="form-row">
                       <div className="form-group full-width">
@@ -794,80 +724,297 @@ export default function IntakeForm() {
                         <input type="text" id="injuryDate" name="injuryDate" placeholder="e.g., 2 weeks ago, January 2024" />
                       </div>
                     </div>
+                    <div className="form-row">
+                      <div className="form-group full-width">
+                        <label htmlFor="currentTreatment">Are you currently receiving treatment?</label>
+                        <select id="currentTreatment" name="currentTreatment">
+                          <option value="">Select...</option>
+                          <option value="Yes - Physical Therapy">Yes - Physical Therapy</option>
+                          <option value="Yes - Chiropractic">Yes - Chiropractic</option>
+                          <option value="Yes - Range Sports Therapy">Yes - Range Sports Therapy</option>
+                          <option value="Yes - Other">Yes - Other</option>
+                          <option value="No">No</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Symptom Checklist - Energy & Optimization */}
+              <div className="symptom-section">
+                <h3 className="symptom-section-title">⚡ Energy & Optimization Symptoms</h3>
+                <p className="symptom-section-subtitle">Check any symptoms you're currently experiencing. This helps us understand if you might benefit from hormone optimization or metabolic support.</p>
+
+                <div className="symptom-grid">
+                  {/* Brain Fog */}
+                  <div className="symptom-item" id="symptomBrainFog">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_brainFog" name="symptom_brainFog" value="Brain fog / difficulty concentrating" />
+                      <label htmlFor="symptom_brainFog">Brain fog / difficulty concentrating</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_brainFog">
+                      <label htmlFor="brainFog_impact">Does this affect your work or daily tasks?</label>
+                      <select id="brainFog_impact" name="brainFog_impact">
+                        <option value="">Select...</option>
+                        <option value="Yes, significantly">Yes, significantly</option>
+                        <option value="Somewhat">Somewhat</option>
+                        <option value="Not really">Not really</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Fatigue */}
+                  <div className="symptom-item" id="symptomFatigue">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_fatigue" name="symptom_fatigue" value="Fatigue / low energy" />
+                      <label htmlFor="symptom_fatigue">Fatigue / low energy</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_fatigue">
+                      <label htmlFor="fatigue_timing">When is your energy lowest?</label>
+                      <select id="fatigue_timing" name="fatigue_timing">
+                        <option value="">Select...</option>
+                        <option value="Morning - hard to get going">Morning - hard to get going</option>
+                        <option value="Afternoon crash">Afternoon crash</option>
+                        <option value="Evening - exhausted by end of day">Evening - exhausted by end of day</option>
+                        <option value="All day - constantly tired">All day - constantly tired</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Poor Sleep */}
+                  <div className="symptom-item" id="symptomSleep">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_sleep" name="symptom_sleep" value="Poor sleep / insomnia" />
+                      <label htmlFor="symptom_sleep">Poor sleep / insomnia</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_sleep">
+                      <label htmlFor="sleep_issue">What's your main sleep issue?</label>
+                      <select id="sleep_issue" name="sleep_issue">
+                        <option value="">Select...</option>
+                        <option value="Trouble falling asleep">Trouble falling asleep</option>
+                        <option value="Waking up during the night">Waking up during the night</option>
+                        <option value="Waking up too early">Waking up too early</option>
+                        <option value="Not feeling rested">Not feeling rested even after sleeping</option>
+                        <option value="All of the above">All of the above</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Weight Gain */}
+                  <div className="symptom-item" id="symptomWeight">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_weight" name="symptom_weight" value="Weight gain / difficulty losing weight" />
+                      <label htmlFor="symptom_weight">Weight gain / difficulty losing weight</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_weight">
+                      <label htmlFor="weight_efforts">Have diet and exercise changes helped?</label>
+                      <select id="weight_efforts" name="weight_efforts">
+                        <option value="">Select...</option>
+                        <option value="Yes, somewhat">Yes, somewhat</option>
+                        <option value="No, nothing seems to work">No, nothing seems to work</option>
+                        <option value="Haven't tried yet">Haven't tried yet</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Low Libido */}
+                  <div className="symptom-item" id="symptomLibido">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_libido" name="symptom_libido" value="Low libido / sexual dysfunction" />
+                      <label htmlFor="symptom_libido">Low libido / sexual dysfunction</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_libido">
+                      <label htmlFor="libido_hormones">Have you had hormone levels checked before?</label>
+                      <select id="libido_hormones" name="libido_hormones">
+                        <option value="">Select...</option>
+                        <option value="Yes, recently">Yes, recently (within past year)</option>
+                        <option value="Yes, but not recently">Yes, but not recently</option>
+                        <option value="No">No</option>
+                        <option value="Not sure">Not sure</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Mood Changes */}
+                  <div className="symptom-item" id="symptomMood">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_mood" name="symptom_mood" value="Mood changes / irritability / anxiety" />
+                      <label htmlFor="symptom_mood">Mood changes / irritability / anxiety</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_mood">
+                      <label htmlFor="mood_duration">Is this new or has it been ongoing?</label>
+                      <select id="mood_duration" name="mood_duration">
+                        <option value="">Select...</option>
+                        <option value="New - started in past few months">New - started in past few months</option>
+                        <option value="Been this way for a while">Been this way for a while</option>
+                        <option value="Comes and goes">Comes and goes</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Slow Recovery */}
+                  <div className="symptom-item" id="symptomRecovery">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_recovery" name="symptom_recovery" value="Slow recovery from workouts" />
+                      <label htmlFor="symptom_recovery">Slow recovery from workouts</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_recovery">
+                      <label htmlFor="recovery_soreness">How long does soreness typically last?</label>
+                      <select id="recovery_soreness" name="recovery_soreness">
+                        <option value="">Select...</option>
+                        <option value="2-3 days">2-3 days</option>
+                        <option value="4-5 days">4-5 days</option>
+                        <option value="A week or more">A week or more</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Muscle Loss */}
+                  <div className="symptom-item" id="symptomMuscle">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_muscle" name="symptom_muscle" value="Muscle loss / weakness" />
+                      <label htmlFor="symptom_muscle">Muscle loss / weakness</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_muscle">
+                      <label htmlFor="muscle_exercise">Is this happening even with regular exercise?</label>
+                      <select id="muscle_exercise" name="muscle_exercise">
+                        <option value="">Select...</option>
+                        <option value="Yes, even with exercise">Yes, even with exercise</option>
+                        <option value="Not exercising regularly">Not exercising regularly</option>
+                        <option value="Just started noticing">Just started noticing</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Hair Thinning */}
+                  <div className="symptom-item" id="symptomHair">
+                    <div className="symptom-checkbox-row">
+                      <input type="checkbox" id="symptom_hair" name="symptom_hair" value="Hair thinning or loss" />
+                      <label htmlFor="symptom_hair">Hair thinning or loss</label>
+                    </div>
+                    <div className="symptom-followup" id="followup_hair">
+                      <label htmlFor="hair_location">Where are you noticing it most?</label>
+                      <select id="hair_location" name="hair_location">
+                        <option value="">Select...</option>
+                        <option value="Hairline / temples">Hairline / temples</option>
+                        <option value="Crown / top of head">Crown / top of head</option>
+                        <option value="All over / general thinning">All over / general thinning</option>
+                        <option value="Other areas">Other areas</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Duration Question - Shows when any symptom is checked */}
+                <div className="symptom-duration" id="symptomDuration">
+                  <label>How long have you been experiencing these symptoms?</label>
+                  <div className="duration-options">
+                    <div className="duration-option">
+                      <input type="radio" id="duration_1month" name="symptomDuration" value="Less than 1 month" />
+                      <label htmlFor="duration_1month">Less than 1 month</label>
+                    </div>
+                    <div className="duration-option">
+                      <input type="radio" id="duration_1to3" name="symptomDuration" value="1-3 months" />
+                      <label htmlFor="duration_1to3">1-3 months</label>
+                    </div>
+                    <div className="duration-option">
+                      <input type="radio" id="duration_3to6" name="symptomDuration" value="3-6 months" />
+                      <label htmlFor="duration_3to6">3-6 months</label>
+                    </div>
+                    <div className="duration-option">
+                      <input type="radio" id="duration_6to12" name="symptomDuration" value="6-12 months" />
+                      <label htmlFor="duration_6to12">6-12 months</label>
+                    </div>
+                    <div className="duration-option">
+                      <input type="radio" id="duration_over1year" name="symptomDuration" value="More than a year" />
+                      <label htmlFor="duration_over1year">More than a year</label>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Medical History */}
+
+            {/* Primary Care Physician */}
             <div className="section">
-              <h2 className="section-title">Medical History</h2>
-              <p style={{ marginBottom: '1.5rem', color: 'var(--gray-700)', fontSize: '0.9375rem' }}>Please answer YES or NO for each condition. If YES, provide details to help us serve you better.</p>
-              
-              {/* NEW FIELD: Primary Care Physician */}
-              <div style={{ backgroundColor: '#ecfdf5', borderLeft: '4px solid #10b981', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#047857', letterSpacing: '0.5px' }}>👨‍⚕️ Primary Care Physician</h3>
-                
-                <div className="condition-item">
-                  <label className="condition-label"><strong>Do you have a Primary Care Physician?</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+              <h2 className="section-title">Healthcare Providers</h2>
+
+              <div className="form-row">
+                <div className="form-group full-width">
+                  <label>Do you have a Primary Care Physician? <span className="required">*</span></label>
+                  <div className="radio-group">
                     <div className="radio-item">
-                      <input type="radio" id="hasPCP_yes" name="hasPCP" value="Yes" required />
-                      <label htmlFor="hasPCP_yes">Yes</label>
+                      <input type="radio" id="pcpYes" name="hasPCP" value="Yes" required />
+                      <label htmlFor="pcpYes">Yes</label>
                     </div>
                     <div className="radio-item">
-                      <input type="radio" id="hasPCP_no" name="hasPCP" value="No" />
-                      <label htmlFor="hasPCP_no">No</label>
+                      <input type="radio" id="pcpNo" name="hasPCP" value="No" />
+                      <label htmlFor="pcpNo">No</label>
                     </div>
                   </div>
                   <span className="field-error" id="hasPCPError">Please select an option</span>
-                  
+
                   <div className="conditional-field" id="pcpFields">
-                    <div className="form-group">
-                      <label htmlFor="pcpName">Physician Name <span className="required">*</span></label>
-                      <input type="text" id="pcpName" name="pcpName" placeholder="Dr. First Last" />
-                      <span className="field-error" id="pcpNameError">Please enter your physician's name</span>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="pcpName">Physician Name <span className="required">*</span></label>
+                        <input type="text" id="pcpName" name="pcpName" placeholder="Dr. Smith" />
+                        <span className="field-error" id="pcpNameError">Physician name is required</span>
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="pcpPractice">Practice/Clinic Name</label>
+                        <input type="text" id="pcpPractice" name="pcpPractice" placeholder="Newport Medical Group" />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="pcpPhone">Physician Phone</label>
+                        <input type="tel" id="pcpPhone" name="pcpPhone" placeholder="(555) 555-5555" />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {/* NEW FIELD: Recent Hospitalizations */}
-              <div style={{ backgroundColor: '#fef2f2', borderLeft: '4px solid #ef4444', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#b91c1c', letterSpacing: '0.5px' }}>🏥 Recent Hospitalizations</h3>
-                
-                <div className="condition-item">
-                  <label className="condition-label"><strong>Have you been hospitalized in the past year?</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+
+              {/* Recent Hospitalizations */}
+              <div className="form-row">
+                <div className="form-group full-width">
+                  <label>Have you been hospitalized in the past year? <span className="required">*</span></label>
+                  <div className="radio-group">
                     <div className="radio-item">
-                      <input type="radio" id="recentHospitalization_yes" name="recentHospitalization" value="Yes" required />
-                      <label htmlFor="recentHospitalization_yes">Yes</label>
+                      <input type="radio" id="hospitalYes" name="recentHospitalization" value="Yes" required />
+                      <label htmlFor="hospitalYes">Yes</label>
                     </div>
                     <div className="radio-item">
-                      <input type="radio" id="recentHospitalization_no" name="recentHospitalization" value="No" />
-                      <label htmlFor="recentHospitalization_no">No</label>
+                      <input type="radio" id="hospitalNo" name="recentHospitalization" value="No" />
+                      <label htmlFor="hospitalNo">No</label>
                     </div>
                   </div>
                   <span className="field-error" id="recentHospitalizationError">Please select an option</span>
-                  
+
                   <div className="conditional-field" id="hospitalizationFields">
                     <div className="form-group">
-                      <label htmlFor="hospitalizationReason">What was the reason for your hospitalization? <span className="required">*</span></label>
-                      <textarea id="hospitalizationReason" name="hospitalizationReason" rows="3" placeholder="Please describe the reason(s) for your hospitalization, including approximate dates if possible..."></textarea>
-                      <span className="field-error" id="hospitalizationReasonError">Please describe the reason for your hospitalization</span>
+                      <label htmlFor="hospitalizationReason">What was the reason? <span className="required">*</span></label>
+                      <textarea id="hospitalizationReason" name="hospitalizationReason" rows="2" placeholder="Please describe..."></textarea>
+                      <span className="field-error" id="hospitalizationReasonError">Please provide the reason</span>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Cardiovascular Conditions */}
-              <div style={{ backgroundColor: '#fef2f2', borderLeft: '4px solid #dc2626', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#991b1b', letterSpacing: '0.5px' }}>❤️ Cardiovascular Conditions</h3>
-                
-                {/* Hypertension */}
+            </div>
+
+            {/* Medical History */}
+            <div className="section">
+              <h2 className="section-title">Medical History</h2>
+              <p style={{marginBottom: '1.5rem', color: 'var(--gray-700)', fontSize: '0.9375rem'}}>Please answer YES or NO for each condition.</p>
+
+              {/* Cardiovascular */}
+              <div className="condition-category" style={{backgroundColor: '#fef2f2', borderLeft: '4px solid #dc2626'}}>
+                <h3 style={{color: '#991b1b'}}>❤️ Cardiovascular</h3>
+
                 <div className="condition-item">
-                  <label className="condition-label"><strong>High Blood Pressure (Hypertension)</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+                  <label><strong>High Blood Pressure</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
                       <input type="radio" id="hypertension_yes" name="hypertension" value="Yes" required className="condition-radio" />
                       <label htmlFor="hypertension_yes">Yes</label>
@@ -884,11 +1031,10 @@ export default function IntakeForm() {
                     </div>
                   </div>
                 </div>
-                
-                {/* High Cholesterol */}
+
                 <div className="condition-item">
-                  <label className="condition-label"><strong>High Cholesterol</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+                  <label><strong>High Cholesterol</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
                       <input type="radio" id="highCholesterol_yes" name="highCholesterol" value="Yes" required className="condition-radio" />
                       <label htmlFor="highCholesterol_yes">Yes</label>
@@ -905,11 +1051,10 @@ export default function IntakeForm() {
                     </div>
                   </div>
                 </div>
-                
-                {/* Heart Disease */}
+
                 <div className="condition-item">
-                  <label className="condition-label"><strong>Heart Disease</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+                  <label><strong>Heart Disease</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
                       <input type="radio" id="heartDisease_yes" name="heartDisease" value="Yes" required className="condition-radio" />
                       <label htmlFor="heartDisease_yes">Yes</label>
@@ -920,28 +1065,61 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="heartDisease-details">
-                    <div className="form-row" style={{ marginBottom: 0 }}>
-                      <div className="form-group">
-                        <label htmlFor="heartDisease-type">Type of Heart Disease</label>
-                        <input type="text" id="heartDisease-type" name="heartDiseaseType" placeholder="e.g., CHF, CAD, Valve Disease, Arrhythmia" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="heartDisease-year">Year Diagnosed</label>
-                        <input type="text" id="heartDisease-year" name="heartDiseaseYear" placeholder="e.g., 2020" />
-                      </div>
+                    <div className="form-group">
+                      <label htmlFor="heartDisease-year">Year Diagnosed</label>
+                      <input type="text" id="heartDisease-year" name="heartDiseaseYear" placeholder="e.g., 2020" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="condition-item">
+                  <label><strong>Blood Clots / DVT</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
+                    <div className="radio-item">
+                      <input type="radio" id="bloodClots_yes" name="bloodClots" value="Yes" required className="condition-radio" />
+                      <label htmlFor="bloodClots_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="bloodClots_no" name="bloodClots" value="No" className="condition-radio" />
+                      <label htmlFor="bloodClots_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="bloodClots-details">
+                    <div className="form-group">
+                      <label htmlFor="bloodClots-year">Year Diagnosed</label>
+                      <input type="text" id="bloodClots-year" name="bloodClotsYear" placeholder="e.g., 2020" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="condition-item">
+                  <label><strong>Stroke</strong> <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="stroke_yes" name="stroke" value="Yes" required className="condition-radio" />
+                      <label htmlFor="stroke_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="stroke_no" name="stroke" value="No" className="condition-radio" />
+                      <label htmlFor="stroke_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="stroke-details">
+                    <div className="form-group">
+                      <label htmlFor="stroke-year">Year Diagnosed</label>
+                      <input type="text" id="stroke-year" name="strokeYear" placeholder="e.g., 2020" />
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Metabolic & Endocrine Conditions */}
-              <div style={{ backgroundColor: '#fef3c7', borderLeft: '4px solid #f59e0b', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#92400e', letterSpacing: '0.5px' }}>⚡ Metabolic & Endocrine Conditions</h3>
-                
-                {/* Diabetes */}
+
+              {/* Metabolic */}
+              <div className="condition-category" style={{backgroundColor: '#fef3c7', borderLeft: '4px solid #d97706'}}>
+                <h3 style={{color: '#92400e'}}>🔥 Metabolic</h3>
+
                 <div className="condition-item">
-                  <label className="condition-label"><strong>Diabetes</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+                  <label><strong>Diabetes (Type 1 or 2)</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
                       <input type="radio" id="diabetes_yes" name="diabetes" value="Yes" required className="condition-radio" />
                       <label htmlFor="diabetes_yes">Yes</label>
@@ -952,23 +1130,21 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="diabetes-details">
-                    <div className="form-row" style={{ marginBottom: 0 }}>
-                      <div className="form-group">
-                        <label htmlFor="diabetes-type">Type of Diabetes</label>
-                        <input type="text" id="diabetes-type" name="diabetesType" placeholder="Type 1, Type 2, or Gestational" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="diabetes-year">Year Diagnosed</label>
-                        <input type="text" id="diabetes-year" name="diabetesYear" placeholder="e.g., 2020" />
-                      </div>
+                    <div className="form-group">
+                      <label htmlFor="diabetes-type">Type</label>
+                      <select id="diabetes-type" name="diabetesType">
+                        <option value="">Select...</option>
+                        <option value="Type 1">Type 1</option>
+                        <option value="Type 2">Type 2</option>
+                        <option value="Pre-diabetes">Pre-diabetes</option>
+                      </select>
                     </div>
                   </div>
                 </div>
-                
-                {/* Thyroid */}
+
                 <div className="condition-item">
-                  <label className="condition-label"><strong>Thyroid Disorder</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+                  <label><strong>Thyroid Disorder</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
                       <input type="radio" id="thyroid_yes" name="thyroid" value="Yes" required className="condition-radio" />
                       <label htmlFor="thyroid_yes">Yes</label>
@@ -979,139 +1155,68 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="thyroid-details">
-                    <div className="form-row" style={{ marginBottom: 0 }}>
-                      <div className="form-group">
-                        <label htmlFor="thyroid-type">Type of Thyroid Disorder</label>
-                        <input type="text" id="thyroid-type" name="thyroidType" placeholder="e.g., Hypothyroid, Hyperthyroid, Hashimoto's, Graves'" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="thyroid-year">Year Diagnosed</label>
-                        <input type="text" id="thyroid-year" name="thyroidYear" placeholder="e.g., 2020" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Mental Health Conditions */}
-              <div style={{ backgroundColor: '#ede9fe', borderLeft: '4px solid #8b5cf6', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#5b21b6', letterSpacing: '0.5px' }}>🧠 Mental Health Conditions</h3>
-                
-                <div className="condition-item">
-                  <label className="condition-label"><strong>Depression, Anxiety, or Other Mental Health Conditions</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
-                    <div className="radio-item">
-                      <input type="radio" id="depression_yes" name="depression" value="Yes" required className="condition-radio" />
-                      <label htmlFor="depression_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="depression_no" name="depression" value="No" className="condition-radio" />
-                      <label htmlFor="depression_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="depression-details">
                     <div className="form-group">
-                      <label htmlFor="depression-year">Year Diagnosed</label>
-                      <input type="text" id="depression-year" name="depressionYear" placeholder="e.g., 2020" />
+                      <label htmlFor="thyroid-type">Type</label>
+                      <select id="thyroid-type" name="thyroidType">
+                        <option value="">Select...</option>
+                        <option value="Hypothyroid">Hypothyroid (underactive)</option>
+                        <option value="Hyperthyroid">Hyperthyroid (overactive)</option>
+                        <option value="Hashimoto's">Hashimoto's</option>
+                        <option value="Graves' Disease">Graves' Disease</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="condition-item">
+                  <label><strong>Liver Disease</strong> <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="liverDisease_yes" name="liverDisease" value="Yes" required className="condition-radio" />
+                      <label htmlFor="liverDisease_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="liverDisease_no" name="liverDisease" value="No" className="condition-radio" />
+                      <label htmlFor="liverDisease_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="liverDisease-details">
+                    <div className="form-group">
+                      <label htmlFor="liverDisease-year">Year Diagnosed</label>
+                      <input type="text" id="liverDisease-year" name="liverDiseaseYear" placeholder="e.g., 2020" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="condition-item">
+                  <label><strong>Kidney Disease</strong> <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="kidneyDisease_yes" name="kidneyDisease" value="Yes" required className="condition-radio" />
+                      <label htmlFor="kidneyDisease_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="kidneyDisease_no" name="kidneyDisease" value="No" className="condition-radio" />
+                      <label htmlFor="kidneyDisease_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="kidneyDisease-details">
+                    <div className="form-group">
+                      <label htmlFor="kidneyDisease-year">Year Diagnosed</label>
+                      <input type="text" id="kidneyDisease-year" name="kidneyDiseaseYear" placeholder="e.g., 2020" />
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Organ Health Conditions */}
-              <div style={{ backgroundColor: '#dbeafe', borderLeft: '4px solid #3b82f6', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#1e40af', letterSpacing: '0.5px' }}>🫁 Organ Health Conditions</h3>
-                
-                {/* Kidney */}
+
+              {/* Cancer */}
+              <div className="condition-category" style={{backgroundColor: '#fce7f3', borderLeft: '4px solid #db2777'}}>
+                <h3 style={{color: '#9d174d'}}>🎗️ Cancer History</h3>
+
                 <div className="condition-item">
-                  <label className="condition-label"><strong>Kidney Disease</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
-                    <div className="radio-item">
-                      <input type="radio" id="kidney_yes" name="kidney" value="Yes" required className="condition-radio" />
-                      <label htmlFor="kidney_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="kidney_no" name="kidney" value="No" className="condition-radio" />
-                      <label htmlFor="kidney_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="kidney-details">
-                    <div className="form-row" style={{ marginBottom: 0 }}>
-                      <div className="form-group">
-                        <label htmlFor="kidney-type">Type of Kidney Disease</label>
-                        <input type="text" id="kidney-type" name="kidneyType" placeholder="e.g., CKD, Kidney Stones, Polycystic Kidney Disease" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="kidney-year">Year Diagnosed</label>
-                        <input type="text" id="kidney-year" name="kidneyYear" placeholder="e.g., 2020" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Liver */}
-                <div className="condition-item">
-                  <label className="condition-label"><strong>Liver Disease</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
-                    <div className="radio-item">
-                      <input type="radio" id="liver_yes" name="liver" value="Yes" required className="condition-radio" />
-                      <label htmlFor="liver_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="liver_no" name="liver" value="No" className="condition-radio" />
-                      <label htmlFor="liver_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="liver-details">
-                    <div className="form-row" style={{ marginBottom: 0 }}>
-                      <div className="form-group">
-                        <label htmlFor="liver-type">Type of Liver Disease</label>
-                        <input type="text" id="liver-type" name="liverType" placeholder="e.g., Fatty Liver, Hepatitis, Cirrhosis" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="liver-year">Year Diagnosed</label>
-                        <input type="text" id="liver-year" name="liverYear" placeholder="e.g., 2020" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Immune System & Cancer */}
-              <div style={{ backgroundColor: '#f3e8ff', borderLeft: '4px solid #a855f7', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', color: '#6b21a8', letterSpacing: '0.5px' }}>🛡️ Immune System & Cancer</h3>
-                
-                {/* Autoimmune */}
-                <div className="condition-item">
-                  <label className="condition-label"><strong>Autoimmune Disorder</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
-                    <div className="radio-item">
-                      <input type="radio" id="autoimmune_yes" name="autoimmune" value="Yes" required className="condition-radio" />
-                      <label htmlFor="autoimmune_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="autoimmune_no" name="autoimmune" value="No" className="condition-radio" />
-                      <label htmlFor="autoimmune_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="autoimmune-details">
-                    <div className="form-row" style={{ marginBottom: 0 }}>
-                      <div className="form-group">
-                        <label htmlFor="autoimmune-type">Type of Autoimmune Disorder</label>
-                        <input type="text" id="autoimmune-type" name="autoimmuneType" placeholder="e.g., Lupus, Rheumatoid Arthritis, MS, Crohn's" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="autoimmune-year">Year Diagnosed</label>
-                        <input type="text" id="autoimmune-year" name="autoimmuneYear" placeholder="e.g., 2020" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Cancer */}
-                <div className="condition-item">
-                  <label className="condition-label"><strong>Cancer (Current or Past)</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{ marginBottom: '0.5rem' }}>
+                  <label><strong>Have you ever been diagnosed with cancer?</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
                       <input type="radio" id="cancer_yes" name="cancer" value="Yes" required className="condition-radio" />
                       <label htmlFor="cancer_yes">Yes</label>
@@ -1122,88 +1227,114 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="cancer-details">
-                    <div className="form-row" style={{ marginBottom: 0 }}>
+                    <div className="form-row">
                       <div className="form-group">
                         <label htmlFor="cancer-type">Type of Cancer</label>
-                        <input type="text" id="cancer-type" name="cancerType" placeholder="e.g., Breast, Prostate, Lung, Skin" />
+                        <input type="text" id="cancer-type" name="cancerType" placeholder="e.g., Breast, Prostate" />
                       </div>
                       <div className="form-group">
                         <label htmlFor="cancer-year">Year Diagnosed</label>
                         <input type="text" id="cancer-year" name="cancerYear" placeholder="e.g., 2020" />
                       </div>
                     </div>
+                    <div className="form-group">
+                      <label htmlFor="cancer-status">Current Status</label>
+                      <select id="cancer-status" name="cancerStatus">
+                        <option value="">Select...</option>
+                        <option value="In remission">In remission</option>
+                        <option value="Currently in treatment">Currently in treatment</option>
+                        <option value="Monitoring">Monitoring</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Quick No Conditions Option */}
-              <div style={{ backgroundColor: '#f0fdf4', border: '2px solid #22c55e', padding: '1rem', borderRadius: '4px', marginTop: '1.5rem' }}>
-                <p style={{ margin: 0, color: '#15803d', fontSize: '0.9375rem' }}>
-                  ✅ <strong>No Medical Conditions?</strong> If you answered NO to all conditions above, you're all set with this section!
-                </p>
+
+              {/* Other Conditions */}
+              <div className="condition-category" style={{backgroundColor: '#f0fdf4', borderLeft: '4px solid #16a34a'}}>
+                <h3 style={{color: '#166534'}}>📋 Other Conditions</h3>
+
+                <div className="condition-item">
+                  <label><strong>Autoimmune Disorder</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
+                    <div className="radio-item">
+                      <input type="radio" id="autoimmune_yes" name="autoimmune" value="Yes" required className="condition-radio" />
+                      <label htmlFor="autoimmune_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="autoimmune_no" name="autoimmune" value="No" className="condition-radio" />
+                      <label htmlFor="autoimmune_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="autoimmune-details">
+                    <div className="form-group">
+                      <label htmlFor="autoimmune-type">Which condition?</label>
+                      <input type="text" id="autoimmune-type" name="autoimmuneType" placeholder="e.g., Rheumatoid Arthritis, Lupus" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="condition-item">
+                  <label><strong>Mental Health Conditions</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
+                    <div className="radio-item">
+                      <input type="radio" id="mentalHealth_yes" name="mentalHealth" value="Yes" required className="condition-radio" />
+                      <label htmlFor="mentalHealth_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="mentalHealth_no" name="mentalHealth" value="No" className="condition-radio" />
+                      <label htmlFor="mentalHealth_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="mentalHealth-details">
+                    <div className="form-group">
+                      <label htmlFor="mentalHealth-type">Which condition(s)?</label>
+                      <input type="text" id="mentalHealth-type" name="mentalHealthType" placeholder="e.g., Anxiety, Depression, ADHD" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="condition-item">
+                  <label><strong>Sleep Apnea</strong> <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="sleepApnea_yes" name="sleepApnea" value="Yes" required className="condition-radio" />
+                      <label htmlFor="sleepApnea_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="sleepApnea_no" name="sleepApnea" value="No" className="condition-radio" />
+                      <label htmlFor="sleepApnea_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="sleepApnea-details">
+                    <div className="form-group">
+                      <label htmlFor="sleepApnea-cpap">Do you use a CPAP?</label>
+                      <select id="sleepApnea-cpap" name="sleepApneaCPAP">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Sometimes">Sometimes</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            
+
             {/* Medications & Allergies */}
             <div className="section">
               <h2 className="section-title">Medications & Allergies</h2>
-              
-              {/* HRT Question */}
-              <div className="form-row">
-                <div className="form-group full-width" style={{ backgroundColor: '#dbeafe', border: '2px solid #3b82f6', padding: '1.5rem', borderRadius: '4px', marginBottom: '2rem' }}>
-                  <label style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1e40af', marginBottom: '1rem', display: 'block' }}>Are you currently on Hormone Replacement Therapy (HRT)? <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="hrtYes" name="onHRT" value="Yes" required />
-                      <label htmlFor="hrtYes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="hrtNo" name="onHRT" value="No" />
-                      <label htmlFor="hrtNo">No</label>
-                    </div>
-                  </div>
-                  <span className="field-error" id="onHRTError">Please select an option</span>
-                  
-                  <div className="conditional-field" id="hrtFields" style={{ marginTop: '1rem' }}>
-                    <div className="form-group">
-                      <label htmlFor="hrtDetails">HRT Details <span className="required">*</span></label>
-                      <textarea id="hrtDetails" name="hrtDetails" rows="2" placeholder="Please specify: type of HRT, dosage, frequency (e.g., Testosterone Cypionate 200mg weekly)"></textarea>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
+
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label>Are you on any other Medications? <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="medicationsYes" name="onMedications" value="Yes" required />
-                      <label htmlFor="medicationsYes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="medicationsNo" name="onMedications" value="No" />
-                      <label htmlFor="medicationsNo">No</label>
-                    </div>
-                  </div>
-                  <span className="field-error" id="onMedicationsError">Please select an option</span>
-                  
-                  <div className="conditional-field" id="medicationsFields">
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
-                      <label htmlFor="currentMedications">Current Medications <span className="required">*</span></label>
-                      <textarea id="currentMedications" name="currentMedications" rows="3" placeholder="List all current medications"></textarea>
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="medicationNotes">Medication Notes</label>
-                      <textarea id="medicationNotes" name="medicationNotes" rows="2" placeholder="Any additional notes about your medications..."></textarea>
-                    </div>
-                  </div>
+                  <label htmlFor="currentMedications">Current Medications</label>
+                  <textarea id="currentMedications" name="currentMedications" rows="3" placeholder="List all medications including supplements, vitamins, and over-the-counter medications..."></textarea>
                 </div>
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label>Do you have any allergies? <span className="required">*</span></label>
+                  <label>Do you have any known allergies? <span className="required">*</span></label>
                   <div className="radio-group">
                     <div className="radio-item">
                       <input type="radio" id="allergiesYes" name="hasAllergies" value="Yes" required />
@@ -1215,1155 +1346,539 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <span className="field-error" id="hasAllergiesError">Please select an option</span>
-                  
+
                   <div className="conditional-field" id="allergiesFields">
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
-                      <label htmlFor="allergies">Allergies <span className="required">*</span></label>
-                      <textarea id="allergies" name="allergies" rows="3" placeholder="List all allergies (type 'No' if none)"></textarea>
-                    </div>
                     <div className="form-group">
-                      <label htmlFor="allergyReactions">Allergy Reactions</label>
-                      <textarea id="allergyReactions" name="allergyReactions" rows="2" placeholder="Describe reactions to allergens..."></textarea>
+                      <label htmlFor="allergiesList">Please list your allergies and reactions <span className="required">*</span></label>
+                      <textarea id="allergiesList" name="allergiesList" rows="2" placeholder="e.g., Penicillin - rash, Shellfish - anaphylaxis"></textarea>
+                      <span className="field-error" id="allergiesListError">Please list your allergies</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Identification */}
+
+            {/* Lifestyle */}
             <div className="section">
-              <h2 className="section-title">Identification</h2>
-              
+              <h2 className="section-title">Lifestyle</h2>
+
               <div className="form-row">
-                <div className="form-group full-width">
-                  <label>Driver's License / Photo ID <span className="required">*</span></label>
-                  <div className="file-upload">
-                    <input type="file" id="photoId" name="photoId" className="file-upload-input" accept="image/*,.pdf" required />
-                    <div className="file-upload-label">
-                      <span className="file-upload-icon">📄</span>
-                      <span className="file-upload-text">Click or drag to upload your ID</span>
-                      <span className="file-upload-text" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>Accepted: JPG, PNG, PDF</span>
+                <div className="form-group">
+                  <label>Do you smoke or use tobacco? <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="smokerYes" name="smoker" value="Yes" required />
+                      <label htmlFor="smokerYes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="smokerNo" name="smoker" value="No" />
+                      <label htmlFor="smokerNo">No</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="smokerFormer" name="smoker" value="Former" />
+                      <label htmlFor="smokerFormer">Former</label>
                     </div>
                   </div>
-                  <div className="file-preview" id="idPreview">
-                    <img id="idPreviewImg" alt="ID Preview" />
-                    <p id="idFileName" style={{ fontSize: '0.875rem', color: 'var(--gray-600)', marginTop: '0.5rem' }}></p>
+                  <span className="field-error" id="smokerError">Please select an option</span>
+                </div>
+
+                <div className="form-group">
+                  <label>Do you drink alcohol? <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="alcoholYes" name="alcohol" value="Yes" required />
+                      <label htmlFor="alcoholYes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="alcoholNo" name="alcohol" value="No" />
+                      <label htmlFor="alcoholNo">No</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="alcoholOccasional" name="alcohol" value="Occasionally" />
+                      <label htmlFor="alcoholOccasional">Occasionally</label>
+                    </div>
                   </div>
-                  <span className="field-error" id="photoIdError">Photo ID is required</span>
+                  <span className="field-error" id="alcoholError">Please select an option</span>
                 </div>
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label htmlFor="guardianName">Parent/Guardian Name (if client is under 18)</label>
-                  <input type="text" id="guardianName" name="guardianName" placeholder="Leave blank if not applicable" />
+                  <label htmlFor="exerciseFrequency">How often do you exercise?</label>
+                  <select id="exerciseFrequency" name="exerciseFrequency">
+                    <option value="">Select...</option>
+                    <option value="Daily">Daily</option>
+                    <option value="4-6 times per week">4-6 times per week</option>
+                    <option value="2-3 times per week">2-3 times per week</option>
+                    <option value="Once a week">Once a week</option>
+                    <option value="Rarely">Rarely</option>
+                    <option value="Never">Never</option>
+                  </select>
                 </div>
               </div>
             </div>
-            
-            {/* Consent */}
+
+            {/* Signature & Consent */}
             <div className="section">
-              <h2 className="section-title">Consent & Acknowledgment</h2>
-              
-              <div className="consent-box">
-                <p className="consent-text">
-                  I consent to evaluation and wellness services provided by Range Medical staff under the supervision of the medical director. I understand some therapies may be used off-label and that individual results can vary. I authorize Range Medical to contact me via the methods provided above. I acknowledge responsibility for payment for services rendered and have reviewed any posted cancellation/no-show policies.
-                </p>
-                
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="consentYes" name="consent" value="Yes" required />
-                    <label htmlFor="consentYes">Yes, I agree</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="consentNo" name="consent" value="No" />
-                    <label htmlFor="consentNo">No, I do not agree</label>
-                  </div>
-                </div>
-                <span className="field-error" id="consentError">Consent is required to proceed</span>
+              <h2 className="section-title">Signature & Consent</h2>
+
+              <div style={{backgroundColor: 'var(--gray-50)', padding: '1rem', borderRadius: '4px', marginBottom: '1.5rem', fontSize: '0.875rem', color: 'var(--gray-700)'}}>
+                <p style={{marginBottom: '0.5rem'}}><strong>By signing below, I certify that:</strong></p>
+                <ul style={{marginLeft: '1.5rem', marginBottom: '0'}}>
+                  <li>The information I have provided is true and complete to the best of my knowledge.</li>
+                  <li>I will inform Range Medical of any changes to my health status.</li>
+                  <li>I authorize Range Medical to use this information to provide my care.</li>
+                </ul>
               </div>
-              
+
+              <div className="form-group">
+                <label>Patient Signature <span className="required">*</span></label>
+                <div className="signature-container">
+                  <canvas id="signatureCanvas" className="signature-canvas"></canvas>
+                </div>
+                <div className="signature-actions">
+                  <button type="button" className="btn-clear" id="clearSignature">Clear Signature</button>
+                </div>
+                <span className="field-error" id="signatureError">Signature is required</span>
+              </div>
+
               <div className="form-row">
-                <div className="form-group full-width">
-                  <label>Patient or Guardian Signature <span className="required">*</span></label>
-                  <div className="signature-container">
-                    <canvas id="signaturePad" className="signature-pad"></canvas>
-                  </div>
-                  <div className="signature-actions">
-                    <button type="button" className="btn-clear" id="clearSignature">Clear Signature</button>
-                  </div>
-                  <span className="field-error" id="signatureError">Signature is required</span>
+                <div className="form-group">
+                  <label htmlFor="signatureDate">Date <span className="required">*</span></label>
+                  <input type="text" id="signatureDate" name="signatureDate" readOnly />
                 </div>
               </div>
             </div>
-            
-            {/* Submit */}
-            <div className="submit-section">
-              <button type="submit" className="btn-submit" id="submitBtn">
-                Submit Intake Form
-              </button>
-              
-              <div className="status-message" id="statusMessage"></div>
-            </div>
+
+            <button type="submit" className="btn-submit" id="submitBtn">Submit Medical Intake Form</button>
           </form>
         </div>
-        
-        <footer className="intake-footer">
-          <p>© 2025 Range Medical. All rights reserved.</p>
-          <p style={{ marginTop: '0.5rem' }}>Your information is protected and kept confidential.</p>
-        </footer>
+
+        {/* Thank You Screen */}
+        <div className="thank-you-container" id="thankYouContainer">
+          <div className="thank-you-icon">✓</div>
+          <h2 className="thank-you-title">Thank You!</h2>
+          <p className="thank-you-message">Your medical intake form has been submitted successfully.</p>
+
+          <div className="thank-you-details">
+            <p><strong>What happens next:</strong></p>
+            <p>Our team will review your information before your appointment. If we have any questions, we'll reach out to you directly.</p>
+            <p>If you have any questions, please call us at <a href="tel:9499973988">(949) 997-3988</a>.</p>
+          </div>
+
+          <div className="thank-you-footer">
+            <p>RANGE MEDICAL</p>
+          </div>
+        </div>
       </div>
     </>
   );
 }
 
-// Initialize form function - called after all scripts load
 function initializeForm() {
-  if (typeof window === 'undefined') return;
-  
-  // ============================================
-  // SUPABASE CONFIGURATION
-  // ============================================
-  
-  const SUPABASE_CONFIG = {
-    url: 'https://teivfptpozltpqwahgdl.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
-  };
-  
-  // Initialize Supabase client
-  const { createClient } = window.supabase;
-  const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-  
-  // ============================================
-  // CONFIGURATION
-  // ============================================
-  
-  const CONFIG = {
-    apiEndpoint: '/api/intakes',
-    ghlEndpoint: '/api/intake-to-ghl',
-    emailjs: {
-      publicKey: 'ZeNFfwJ37Uhd6E1vp',
-      serviceId: 'service_pyl6wra',
-      templateId: 'template_3pfsl9b'
-    },
-    ghl: {
-      customFieldKey: 'intake_complete',
-      tags: ['intake-submitted', 'new-patient']
-    },
-    recipientEmail: 'cupp@range-medical.com, intake@range-medical.com',
-    clinicName: 'Range Medical',
-    clinicAddress: '1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660',
-    clinicPhone: '(949) 997-3988'
-  };
-  
-  // ============================================
-  // SIGNATURE PAD INITIALIZATION
-  // ============================================
-  
-  const canvas = document.getElementById('signaturePad');
-  if (!canvas) return;
-  
-  const signaturePad = new window.SignaturePad(canvas, {
+  // Set today's date
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+  document.getElementById('signatureDate').value = dateStr;
+
+  // Initialize signature pad
+  const canvas = document.getElementById('signatureCanvas');
+  const signaturePad = new SignaturePad(canvas, {
     backgroundColor: 'rgb(255, 255, 255)',
     penColor: 'rgb(0, 0, 0)'
   });
-  
+
+  // Resize canvas
   function resizeCanvas() {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    const container = canvas.parentElement;
-    canvas.width = container.offsetWidth * ratio;
-    canvas.height = 150 * ratio;
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
     canvas.getContext('2d').scale(ratio, ratio);
-    canvas.style.width = '100%';
-    canvas.style.height = '150px';
     signaturePad.clear();
   }
-  
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
-  
-  document.getElementById('clearSignature')?.addEventListener('click', function() {
+
+  // Clear signature button
+  document.getElementById('clearSignature').addEventListener('click', () => {
     signaturePad.clear();
   });
-  
-  // ============================================
-  // CONDITIONAL FIELDS
-  // ============================================
-  
-  // Medical condition radio buttons
-  document.querySelectorAll('.condition-radio').forEach(radio => {
-    radio.addEventListener('change', function() {
-      const conditionName = this.name;
-      const detailsEl = document.getElementById(conditionName + '-details');
-      
-      if (detailsEl) {
-        if (this.value === 'Yes') {
-          detailsEl.style.display = 'block';
-        } else {
-          detailsEl.style.display = 'none';
-          detailsEl.querySelectorAll('input, textarea').forEach(input => {
-            input.value = '';
-          });
-        }
-      }
-    });
-  });
-  
-  // Injury conditional fields
-  document.querySelectorAll('input[name="injured"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      const field = document.getElementById('injuryFields');
-      if (this.value === 'Yes') {
-        field.classList.add('visible');
-      } else {
-        field.classList.remove('visible');
-        document.getElementById('injuryDescription').value = '';
-        document.getElementById('injuryLocation').value = '';
-        document.getElementById('injuryDate').value = '';
-      }
-    });
-  });
-  
-  // HRT conditional field
-  document.querySelectorAll('input[name="onHRT"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      const field = document.getElementById('hrtFields');
-      if (this.value === 'Yes') {
-        field.classList.add('visible');
-      } else {
-        field.classList.remove('visible');
-        document.getElementById('hrtDetails').value = '';
-      }
-    });
-  });
-  
-  // Medications conditional field
-  document.querySelectorAll('input[name="onMedications"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      const field = document.getElementById('medicationsFields');
-      if (this.value === 'Yes') {
-        field.classList.add('visible');
-      } else {
-        field.classList.remove('visible');
-      }
-    });
-  });
-  
-  // Allergies conditional field
-  document.querySelectorAll('input[name="hasAllergies"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      const field = document.getElementById('allergiesFields');
-      if (this.value === 'Yes') {
-        field.classList.add('visible');
-      } else {
-        field.classList.remove('visible');
-      }
-    });
-  });
-  
-  // NEW: How Heard About Us - Other conditional field
-  document.getElementById('howHeardAboutUs')?.addEventListener('change', function() {
-    const field = document.getElementById('howHeardOtherFields');
-    if (this.value === 'Other') {
-      field.classList.add('visible');
+
+  // Initialize input masks
+  if (typeof IMask !== 'undefined') {
+    IMask(document.getElementById('phone'), { mask: '(000) 000-0000' });
+    IMask(document.getElementById('dateOfBirth'), { mask: '00/00/0000' });
+    const pcpPhone = document.getElementById('pcpPhone');
+    if (pcpPhone) IMask(pcpPhone, { mask: '(000) 000-0000' });
+  }
+
+  // How heard about us - Other field
+  const howHeardSelect = document.getElementById('howHeardAboutUs');
+  const howHeardOtherField = document.getElementById('howHeardOtherField');
+  howHeardSelect.addEventListener('change', () => {
+    if (howHeardSelect.value === 'Other') {
+      howHeardOtherField.classList.add('visible');
     } else {
-      field.classList.remove('visible');
-      document.getElementById('howHeardOther').value = '';
+      howHeardOtherField.classList.remove('visible');
     }
-  });
-  
-  // NEW: Primary Care Physician conditional field
-  document.querySelectorAll('input[name="hasPCP"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      const field = document.getElementById('pcpFields');
-      if (this.value === 'Yes') {
-        field.classList.add('visible');
-      } else {
-        field.classList.remove('visible');
-        document.getElementById('pcpName').value = '';
-      }
-    });
-  });
-  
-  // NEW: Recent Hospitalization conditional field
-  document.querySelectorAll('input[name="recentHospitalization"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      const field = document.getElementById('hospitalizationFields');
-      if (this.value === 'Yes') {
-        field.classList.add('visible');
-      } else {
-        field.classList.remove('visible');
-        document.getElementById('hospitalizationReason').value = '';
-      }
-    });
-  });
-  
-  // ============================================
-  // FILE UPLOAD PREVIEW & STORAGE
-  // ============================================
-  
-  let uploadedPhotoIdUrl = null;
-  let uploadedSignatureUrl = null;
-  
-  async function uploadFileToStorage(file, folder, filePrefix) {
-    try {
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(7);
-      const extension = file.name.split('.').pop();
-      const fileName = `${folder}/${filePrefix}-${timestamp}-${randomStr}.${extension}`;
-      
-      const { data, error } = await supabaseClient.storage
-        .from('intake-files')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabaseClient.storage
-        .from('intake-files')
-        .getPublicUrl(fileName);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
-    }
-  }
-  
-  document.getElementById('photoId')?.addEventListener('change', async function(e) {
-    const file = e.target.files[0];
-    const preview = document.getElementById('idPreview');
-    const previewImg = document.getElementById('idPreviewImg');
-    const fileName = document.getElementById('idFileName');
-    
-    if (file) {
-      preview.classList.add('visible');
-      fileName.textContent = file.name + ' (Uploading...)';
-      
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          previewImg.src = e.target.result;
-          previewImg.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-      } else {
-        previewImg.style.display = 'none';
-      }
-      
-      try {
-        uploadedPhotoIdUrl = await uploadFileToStorage(file, 'photo-ids', 'id');
-        fileName.textContent = file.name + ' ✓ Uploaded';
-        fileName.style.color = '#16a34a';
-      } catch (error) {
-        fileName.textContent = file.name + ' ✗ Upload failed';
-        fileName.style.color = '#dc2626';
-        uploadedPhotoIdUrl = null;
-      }
-    } else {
-      preview.classList.remove('visible');
-      uploadedPhotoIdUrl = null;
-    }
-  });
-  
-  async function uploadSignature() {
-    if (signaturePad.isEmpty()) return null;
-    
-    try {
-      const dataUrl = signaturePad.toDataURL('image/png');
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(7);
-      const file = new File([blob], `signature-${timestamp}-${randomStr}.png`, { type: 'image/png' });
-      
-      return await uploadFileToStorage(file, 'signatures', 'sig');
-    } catch (error) {
-      console.error('Error uploading signature:', error);
-      return null;
-    }
-  }
-  
-  // ============================================
-  // UPLOAD PDF TO SUPABASE
-  // ============================================
-  
-  async function uploadPDFToSupabase(pdfBlob, formData) {
-    try {
-      const timestamp = Date.now();
-      const safeName = `${formData.firstName}-${formData.lastName}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const fileName = `medical-intake/${safeName}-${timestamp}.pdf`;
-      
-      const { data, error } = await supabaseClient.storage
-        .from('medical-documents')
-        .upload(fileName, pdfBlob, {
-          contentType: 'application/pdf',
-          upsert: false
-        });
-      
-      if (error) {
-        console.error('PDF upload error:', error);
-        return null;
-      }
-      
-      const { data: urlData } = supabaseClient.storage
-        .from('medical-documents')
-        .getPublicUrl(fileName);
-      
-      console.log('✅ PDF uploaded:', urlData.publicUrl);
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error uploading PDF:', error);
-      return null;
-    }
-  }
-  
-  // ============================================
-  // PHONE NUMBER FORMATTING
-  // ============================================
-  
-  document.getElementById('phone')?.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length > 0) {
-      if (value.length <= 3) {
-        value = '(' + value;
-      } else if (value.length <= 6) {
-        value = '(' + value.slice(0, 3) + ') ' + value.slice(3);
-      } else {
-        value = '(' + value.slice(0, 3) + ') ' + value.slice(3, 6) + '-' + value.slice(6, 10);
-      }
-    }
-    e.target.value = value;
-  });
-  
-  // ============================================
-  // DATE OF BIRTH AUTO-FORMATTING
-  // ============================================
-  
-  document.getElementById('dob')?.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-    
-    if (value.length >= 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2);
-    }
-    if (value.length >= 5) {
-      value = value.slice(0, 5) + '/' + value.slice(5);
-    }
-    if (value.length > 10) {
-      value = value.slice(0, 10);
-    }
-    
-    e.target.value = value;
   });
 
-  // Validate DOB format
-  function isValidDOB(dateStr) {
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return false;
-    
-    const [month, day, year] = dateStr.split('/').map(Number);
-    const date = new Date(year, month - 1, day);
-    
-    return date.getFullYear() === year && 
-           date.getMonth() === month - 1 && 
-           date.getDate() === day &&
-           year >= 1900 && year <= new Date().getFullYear();
-  }
-  
-  // ============================================
-  // FORM VALIDATION
-  // ============================================
-  
-  function validateForm() {
-    let isValid = true;
-    
-    const requiredFields = [
-      { id: 'firstName', error: 'firstNameError' },
-      { id: 'lastName', error: 'lastNameError' },
-      { id: 'gender', error: 'genderError' },
-      { id: 'email', error: 'emailError' },
-      { id: 'phone', error: 'phoneError' },
-      { id: 'streetAddress', error: 'streetAddressError' },
-      { id: 'city', error: 'cityError' },
-      { id: 'state', error: 'stateError' },
-      { id: 'country', error: 'countryError' },
-      { id: 'postalCode', error: 'postalCodeError' },
-      { id: 'whatBringsYou', error: 'whatBringsYouError' },
-      { id: 'howHeardAboutUs', error: 'howHeardAboutUsError' }  // NEW FIELD
-    ];
-    
-    requiredFields.forEach(field => {
-      const input = document.getElementById(field.id);
-      const error = document.getElementById(field.error);
-      
-      if (!input.value.trim()) {
-        input.classList.add('error');
-        error.classList.add('visible');
-        isValid = false;
-      } else {
-        input.classList.remove('error');
-        error.classList.remove('visible');
+  // Injury conditional fields
+  const injuredRadios = document.querySelectorAll('input[name="injured"]');
+  const injuryFields = document.getElementById('injuryFields');
+  injuredRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'Yes' && radio.checked) {
+        injuryFields.classList.add('visible');
+      } else if (radio.value === 'No' && radio.checked) {
+        injuryFields.classList.remove('visible');
       }
     });
-    
-    const email = document.getElementById('email');
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email.value && !emailPattern.test(email.value)) {
-      email.classList.add('error');
-      document.getElementById('emailError').classList.add('visible');
-      isValid = false;
-    }
-    
-    // Validate DOB separately
-    const dob = document.getElementById('dob');
-    const dobError = document.getElementById('dobError');
-    if (!dob.value.trim() || !isValidDOB(dob.value)) {
-      dob.classList.add('error');
-      if (dobError) dobError.classList.add('visible');
-      isValid = false;
-    } else {
-      dob.classList.remove('error');
-      if (dobError) dobError.classList.remove('visible');
-    }
-    
-    const radioGroups = [
-      { name: 'injured', error: 'injuredError' },
-      { name: 'onMedications', error: 'onMedicationsError' },
-      { name: 'hasAllergies', error: 'hasAllergiesError' },
-      { name: 'consent', error: 'consentError' },
-      { name: 'hasPCP', error: 'hasPCPError' },  // NEW FIELD
-      { name: 'recentHospitalization', error: 'recentHospitalizationError' }  // NEW FIELD
-    ];
-    
-    radioGroups.forEach(group => {
-      const checked = document.querySelector(`input[name="${group.name}"]:checked`);
-      const error = document.getElementById(group.error);
-      
+  });
+
+  // Symptom checkboxes - show follow-up questions
+  const symptomCheckboxes = document.querySelectorAll('input[id^="symptom_"]');
+  const symptomDuration = document.getElementById('symptomDuration');
+
+  symptomCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+      // Get the symptom name from the checkbox ID
+      const symptomName = checkbox.id.replace('symptom_', '');
+      const symptomItem = document.getElementById('symptom' + symptomName.charAt(0).toUpperCase() + symptomName.slice(1));
+      const followup = document.getElementById('followup_' + symptomName);
+
+      if (checkbox.checked) {
+        if (symptomItem) symptomItem.classList.add('selected');
+        if (followup) followup.classList.add('visible');
+      } else {
+        if (symptomItem) symptomItem.classList.remove('selected');
+        if (followup) followup.classList.remove('visible');
+      }
+
+      // Show/hide duration question based on any checkbox being checked
+      const anyChecked = Array.from(symptomCheckboxes).some(cb => cb.checked);
+      if (anyChecked) {
+        symptomDuration.classList.add('visible');
+      } else {
+        symptomDuration.classList.remove('visible');
+      }
+    });
+  });
+
+  // PCP conditional fields
+  const pcpRadios = document.querySelectorAll('input[name="hasPCP"]');
+  const pcpFields = document.getElementById('pcpFields');
+  pcpRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'Yes' && radio.checked) {
+        pcpFields.classList.add('visible');
+      } else if (radio.value === 'No' && radio.checked) {
+        pcpFields.classList.remove('visible');
+      }
+    });
+  });
+
+  // Hospitalization conditional fields
+  const hospitalRadios = document.querySelectorAll('input[name="recentHospitalization"]');
+  const hospitalizationFields = document.getElementById('hospitalizationFields');
+  hospitalRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'Yes' && radio.checked) {
+        hospitalizationFields.classList.add('visible');
+      } else if (radio.value === 'No' && radio.checked) {
+        hospitalizationFields.classList.remove('visible');
+      }
+    });
+  });
+
+  // Allergies conditional fields
+  const allergiesRadios = document.querySelectorAll('input[name="hasAllergies"]');
+  const allergiesFields = document.getElementById('allergiesFields');
+  allergiesRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'Yes' && radio.checked) {
+        allergiesFields.classList.add('visible');
+      } else if (radio.value === 'No' && radio.checked) {
+        allergiesFields.classList.remove('visible');
+      }
+    });
+  });
+
+  // Medical condition radios - show details on Yes
+  const conditionRadios = document.querySelectorAll('.condition-radio');
+  conditionRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      const conditionName = radio.name;
+      const detailsEl = document.getElementById(conditionName + '-details');
+      if (detailsEl) {
+        if (radio.value === 'Yes' && radio.checked) {
+          detailsEl.classList.add('visible');
+        } else if (radio.value === 'No' && radio.checked) {
+          detailsEl.classList.remove('visible');
+        }
+      }
+    });
+  });
+
+  // Form submission
+  const form = document.getElementById('intakeForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Clear previous errors
+    document.querySelectorAll('.field-error').forEach(el => el.classList.remove('visible'));
+    document.querySelectorAll('input.error, select.error, textarea.error').forEach(el => el.classList.remove('error'));
+
+    let hasErrors = false;
+
+    // Validation helper
+    const validateField = (id, errorId) => {
+      const field = document.getElementById(id);
+      const error = document.getElementById(errorId);
+      if (!field.value.trim()) {
+        field.classList.add('error');
+        if (error) error.classList.add('visible');
+        hasErrors = true;
+      }
+    };
+
+    const validateRadio = (name, errorId) => {
+      const radios = document.querySelectorAll(`input[name="${name}"]`);
+      const checked = Array.from(radios).some(r => r.checked);
       if (!checked) {
-        error.classList.add('visible');
-        isValid = false;
-      } else {
-        error.classList.remove('visible');
+        const error = document.getElementById(errorId);
+        if (error) error.classList.add('visible');
+        hasErrors = true;
       }
-    });
-    
-    const consent = document.querySelector('input[name="consent"]:checked');
-    if (consent && consent.value === 'No') {
-      document.getElementById('consentError').classList.add('visible');
-      document.getElementById('consentError').textContent = 'You must consent to proceed';
-      isValid = false;
-    }
-    
+    };
+
+    // Required field validations
+    validateField('firstName', 'firstNameError');
+    validateField('lastName', 'lastNameError');
+    validateField('dateOfBirth', 'dateOfBirthError');
+    validateField('sex', 'sexError');
+    validateField('phone', 'phoneError');
+    validateField('email', 'emailError');
+    validateField('streetAddress', 'streetAddressError');
+    validateField('city', 'cityError');
+    validateField('state', 'stateError');
+    validateField('postalCode', 'postalCodeError');
+    validateField('country', 'countryError');
+    validateField('howHeardAboutUs', 'howHeardAboutUsError');
+    validateField('whatBringsYou', 'whatBringsYouError');
+
+    validateRadio('injured', 'injuredError');
+    validateRadio('hasPCP', 'hasPCPError');
+    validateRadio('recentHospitalization', 'recentHospitalizationError');
+    validateRadio('hasAllergies', 'hasAllergiesError');
+    validateRadio('smoker', 'smokerError');
+    validateRadio('alcohol', 'alcoholError');
+
+    // Medical history validations
+    validateRadio('hypertension', null);
+    validateRadio('highCholesterol', null);
+    validateRadio('heartDisease', null);
+    validateRadio('bloodClots', null);
+    validateRadio('stroke', null);
+    validateRadio('diabetes', null);
+    validateRadio('thyroid', null);
+    validateRadio('liverDisease', null);
+    validateRadio('kidneyDisease', null);
+    validateRadio('cancer', null);
+    validateRadio('autoimmune', null);
+    validateRadio('mentalHealth', null);
+    validateRadio('sleepApnea', null);
+
+    // Conditional validations
     const injured = document.querySelector('input[name="injured"]:checked');
     if (injured && injured.value === 'Yes') {
-      const injuryDescription = document.getElementById('injuryDescription');
-      const injuryLocation = document.getElementById('injuryLocation');
-      
-      if (!injuryDescription.value.trim()) {
-        injuryDescription.classList.add('error');
-        document.getElementById('injuryDescriptionError').classList.add('visible');
-        isValid = false;
-      } else {
-        injuryDescription.classList.remove('error');
-        document.getElementById('injuryDescriptionError').classList.remove('visible');
-      }
-      
-      if (!injuryLocation.value.trim()) {
-        injuryLocation.classList.add('error');
-        document.getElementById('injuryLocationError').classList.add('visible');
-        isValid = false;
-      } else {
-        injuryLocation.classList.remove('error');
-        document.getElementById('injuryLocationError').classList.remove('visible');
-      }
+      validateField('injuryDescription', 'injuryDescriptionError');
+      validateField('injuryLocation', 'injuryLocationError');
     }
-    
-    // NEW: Validate howHeardOther if Other is selected
-    const howHeard = document.getElementById('howHeardAboutUs');
-    if (howHeard.value === 'Other') {
-      const howHeardOther = document.getElementById('howHeardOther');
-      if (!howHeardOther.value.trim()) {
-        howHeardOther.classList.add('error');
-        document.getElementById('howHeardOtherError').classList.add('visible');
-        isValid = false;
-      } else {
-        howHeardOther.classList.remove('error');
-        document.getElementById('howHeardOtherError').classList.remove('visible');
-      }
-    }
-    
-    // NEW: Validate PCP name if hasPCP is Yes
+
     const hasPCP = document.querySelector('input[name="hasPCP"]:checked');
     if (hasPCP && hasPCP.value === 'Yes') {
-      const pcpName = document.getElementById('pcpName');
-      if (!pcpName.value.trim()) {
-        pcpName.classList.add('error');
-        document.getElementById('pcpNameError').classList.add('visible');
-        isValid = false;
-      } else {
-        pcpName.classList.remove('error');
-        document.getElementById('pcpNameError').classList.remove('visible');
-      }
+      validateField('pcpName', 'pcpNameError');
     }
-    
-    // NEW: Validate hospitalization reason if recentHospitalization is Yes
-    const recentHosp = document.querySelector('input[name="recentHospitalization"]:checked');
-    if (recentHosp && recentHosp.value === 'Yes') {
-      const hospReason = document.getElementById('hospitalizationReason');
-      if (!hospReason.value.trim()) {
-        hospReason.classList.add('error');
-        document.getElementById('hospitalizationReasonError').classList.add('visible');
-        isValid = false;
-      } else {
-        hospReason.classList.remove('error');
-        document.getElementById('hospitalizationReasonError').classList.remove('visible');
-      }
+
+    const recentHospital = document.querySelector('input[name="recentHospitalization"]:checked');
+    if (recentHospital && recentHospital.value === 'Yes') {
+      validateField('hospitalizationReason', 'hospitalizationReasonError');
     }
-    
-    const photoId = document.getElementById('photoId');
-    if (!photoId.files || !photoId.files[0]) {
-      document.getElementById('photoIdError').classList.add('visible');
-      isValid = false;
-    } else {
-      document.getElementById('photoIdError').classList.remove('visible');
-    }
-    
-    if (signaturePad.isEmpty()) {
-      document.getElementById('signatureError').classList.add('visible');
-      isValid = false;
-    } else {
-      document.getElementById('signatureError').classList.remove('visible');
-    }
-    
-    const onMeds = document.querySelector('input[name="onMedications"]:checked');
-    if (onMeds && onMeds.value === 'Yes') {
-      const currentMeds = document.getElementById('currentMedications');
-      if (!currentMeds.value.trim()) {
-        currentMeds.classList.add('error');
-        isValid = false;
-      }
-    }
-    
+
     const hasAllergies = document.querySelector('input[name="hasAllergies"]:checked');
     if (hasAllergies && hasAllergies.value === 'Yes') {
-      const allergies = document.getElementById('allergies');
-      if (!allergies.value.trim()) {
-        allergies.classList.add('error');
-        isValid = false;
-      }
+      validateField('allergiesList', 'allergiesListError');
     }
-    
-    return isValid;
-  }
-  
-  // ============================================
-  // COLLECT FORM DATA
-  // ============================================
-  
-  async function collectFormData() {
-    const getValue = (id) => document.getElementById(id)?.value || '';
-    const getRadio = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
-    
-    const conditionsList = [];
-    const conditionNames = ['hypertension', 'highCholesterol', 'heartDisease', 
-                           'diabetes', 'thyroid', 'depression', 
-                           'kidney', 'liver', 'autoimmune', 'cancer'];
-    
-    const conditionLabels = {
-      'hypertension': 'High Blood Pressure (Hypertension)',
-      'highCholesterol': 'High Cholesterol',
-      'heartDisease': 'Heart Disease',
-      'diabetes': 'Diabetes',
-      'thyroid': 'Thyroid Disorder',
-      'depression': 'Depression / Anxiety',
-      'kidney': 'Kidney Disease',
-      'liver': 'Liver Disease',
-      'autoimmune': 'Autoimmune Disorder',
-      'cancer': 'Cancer'
-    };
-    
-    const medicalHistory = {};
-    conditionNames.forEach(conditionName => {
-      const response = getRadio(conditionName);
-      medicalHistory[conditionName] = {
-        response: response,
-        label: conditionLabels[conditionName]
-      };
-      
-      if (response === 'Yes') {
-        const yearEl = document.getElementById(conditionName + '-year');
-        const typeEl = document.getElementById(conditionName + '-type');
-        
-        if (typeEl && typeEl.value) {
-          medicalHistory[conditionName].type = typeEl.value;
-        }
-        if (yearEl && yearEl.value) {
-          medicalHistory[conditionName].year = yearEl.value;
-        }
-        
-        let conditionInfo = conditionLabels[conditionName];
-        if (typeEl && typeEl.value) {
-          conditionInfo += ` (Type: ${typeEl.value}`;
-          if (yearEl && yearEl.value) {
-            conditionInfo += `, Diagnosed: ${yearEl.value})`;
-          } else {
-            conditionInfo += ')';
-          }
-        } else if (yearEl && yearEl.value) {
-          conditionInfo += ` (Diagnosed: ${yearEl.value})`;
-        }
-        conditionsList.push(conditionInfo);
-      }
-    });
-    
-    const conditions = conditionsList.length > 0 ? conditionsList.join('; ') : 'None';
-    
-    let photoIdBase64 = null;
-    const photoIdInput = document.getElementById('photoId');
-    if (photoIdInput.files && photoIdInput.files[0]) {
-      const file = photoIdInput.files[0];
-      photoIdBase64 = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(file);
-      });
+
+    // Signature validation
+    if (signaturePad.isEmpty()) {
+      document.getElementById('signatureError').classList.add('visible');
+      hasErrors = true;
     }
-    
-    return {
-      firstName: getValue('firstName'),
-      lastName: getValue('lastName'),
-      gender: getValue('gender'),
-      dateOfBirth: getValue('dob'),
-      email: getValue('email'),
-      phone: getValue('phone'),
-      streetAddress: getValue('streetAddress'),
-      city: getValue('city'),
-      state: getValue('state'),
-      country: getValue('country'),
-      postalCode: getValue('postalCode'),
-      // NEW FIELD - How Heard About Us (with Other handling)
-      howHeardAboutUs: getValue('howHeardAboutUs') === 'Other' 
-        ? `Other: ${getValue('howHeardOther')}` 
-        : getValue('howHeardAboutUs'),
-      whatBringsYou: getValue('whatBringsYou'),
-      injured: getRadio('injured'),
-      injuryDescription: getValue('injuryDescription'),
-      injuryLocation: getValue('injuryLocation'),
-      injuryDate: getValue('injuryDate'),
-      // NEW FIELDS - Primary Care Physician
-      hasPCP: getRadio('hasPCP'),
-      pcpName: getValue('pcpName'),
-      // NEW FIELDS - Recent Hospitalization
-      recentHospitalization: getRadio('recentHospitalization'),
-      hospitalizationReason: getValue('hospitalizationReason'),
-      conditions: conditions,
-      medicalHistory: medicalHistory,
-      onHRT: getRadio('onHRT'),
-      hrtDetails: getValue('hrtDetails'),
-      onMedications: getRadio('onMedications'),
-      currentMedications: getValue('currentMedications'),
-      medicationNotes: getValue('medicationNotes'),
-      hasAllergies: getRadio('hasAllergies'),
-      allergies: getValue('allergies'),
-      allergyReactions: getValue('allergyReactions'),
-      guardianName: getValue('guardianName'),
-      photoId: photoIdBase64,
-      photoIdUrl: uploadedPhotoIdUrl,
-      consent: getRadio('consent'),
-      submissionDate: new Date().toLocaleString(),
-      signature: signaturePad.toDataURL(),
-      signatureUrl: uploadedSignatureUrl
-    };
-  }
-  
-  // ============================================
-  // GENERATE PDF (abbreviated for file size)
-  // ============================================
-  
-  async function generatePDF(formData) {
-    let jsPDF;
-    if (window.jspdf && window.jspdf.jsPDF) {
-      jsPDF = window.jspdf.jsPDF;
-    } else if (window.jsPDF) {
-      jsPDF = window.jsPDF;
-    } else {
-      throw new Error('jsPDF library not loaded');
-    }
-    
-    const doc = new jsPDF({ compress: true });
-    let yPos = 20;
-    const leftMargin = 20;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const contentWidth = pageWidth - 40;
-    
-    function addText(text, fontSize = 11, isBold = false) {
-      doc.setFontSize(fontSize);
-      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-      const safeText = String(text || '');
-      const lines = doc.splitTextToSize(safeText, contentWidth);
-      doc.text(lines, leftMargin, yPos);
-      yPos += (lines.length * fontSize * 0.4) + 2;
-      if (yPos > 270) { doc.addPage(); yPos = 20; }
-    }
-    
-    function addLabelValue(label, value) {
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(label, leftMargin, yPos);
-      doc.setFont('helvetica', 'normal');
-      const labelWidth = doc.getTextWidth(label) + 2;
-      const safeValue = String(value || 'N/A');
-      const valueLines = doc.splitTextToSize(safeValue, contentWidth - labelWidth - 10);
-      doc.text(valueLines, leftMargin + labelWidth, yPos);
-      yPos += (valueLines.length * 5) + 3;
-      if (yPos > 270) { doc.addPage(); yPos = 20; }
-    }
-    
-    function addSectionHeader(text) {
-      yPos += 5;
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(text, leftMargin, yPos);
-      yPos += 2;
-      doc.setLineWidth(0.5);
-      doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
-      yPos += 8;
-    }
-    
-    // Header
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text('RANGE MEDICAL', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 8;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'normal');
-    doc.text('New Patient Medical Intake Form', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 6;
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text('Submitted: ' + formData.submissionDate, pageWidth / 2, yPos, { align: 'center' });
-    doc.setTextColor(0);
-    yPos += 5;
-    doc.setLineWidth(1);
-    doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
-    yPos += 10;
-    
-    // Personal Information
-    addSectionHeader('PERSONAL INFORMATION');
-    addLabelValue('Name: ', formData.firstName + ' ' + formData.lastName);
-    addLabelValue('Gender: ', formData.gender);
-    addLabelValue('Date of Birth: ', formData.dateOfBirth);
-    addLabelValue('Email: ', formData.email);
-    addLabelValue('Phone: ', formData.phone);
-    // NEW FIELD
-    addLabelValue('How Heard About Us: ', formData.howHeardAboutUs);
-    
-    // Address
-    addSectionHeader('ADDRESS');
-    addText(formData.streetAddress);
-    addText(formData.city + ', ' + formData.state + ' ' + formData.postalCode);
-    addText(formData.country);
-    
-    // Health Concerns
-    addSectionHeader('HEALTH CONCERNS & SYMPTOMS');
-    addLabelValue('What Brings You In: ', formData.whatBringsYou);
-    addLabelValue('Currently Injured: ', formData.injured);
-    if (formData.injured === 'Yes') {
-      addLabelValue('Injury Description: ', formData.injuryDescription);
-      addLabelValue('Injury Location: ', formData.injuryLocation);
-      if (formData.injuryDate) addLabelValue('When It Occurred: ', formData.injuryDate);
-    }
-    
-    // Medical History
-    addSectionHeader('MEDICAL HISTORY');
-    
-    // NEW FIELDS - Primary Care Physician
-    addLabelValue('Has Primary Care Physician: ', formData.hasPCP);
-    if (formData.hasPCP === 'Yes') {
-      addLabelValue('PCP Name: ', formData.pcpName);
-    }
-    
-    // NEW FIELDS - Recent Hospitalization
-    addLabelValue('Hospitalized in Past Year: ', formData.recentHospitalization);
-    if (formData.recentHospitalization === 'Yes') {
-      addLabelValue('Hospitalization Reason: ', formData.hospitalizationReason);
-    }
-    
-    if (formData.medicalHistory) {
-      const conditionOrder = ['hypertension', 'highCholesterol', 'heartDisease', 
-                              'diabetes', 'thyroid', 'depression', 
-                              'kidney', 'liver', 'autoimmune', 'cancer'];
-      conditionOrder.forEach(key => {
-        const condition = formData.medicalHistory[key];
-        if (condition) {
-          let conditionText = condition.response || 'Not answered';
-          if (condition.response === 'Yes') {
-            if (condition.type) conditionText += ` (Type: ${condition.type})`;
-            if (condition.year) conditionText += ` (Diagnosed: ${condition.year})`;
-          }
-          addLabelValue(condition.label + ': ', conditionText);
-        }
-      });
-    } else {
-      addLabelValue('Conditions: ', formData.conditions || 'None');
-    }
-    
-    // Medications
-    addSectionHeader('MEDICATIONS & ALLERGIES');
-    addLabelValue('On HRT: ', formData.onHRT || 'Not specified');
-    if (formData.onHRT === 'Yes' && formData.hrtDetails) {
-      addLabelValue('HRT Details: ', formData.hrtDetails);
-    }
-    addLabelValue('On Other Medications: ', formData.onMedications);
-    if (formData.onMedications === 'Yes') {
-      addLabelValue('Current Medications: ', formData.currentMedications);
-    }
-    addLabelValue('Has Allergies: ', formData.hasAllergies);
-    if (formData.hasAllergies === 'Yes') {
-      addLabelValue('Allergies: ', formData.allergies);
-    }
-    
-    // Consent
-    addSectionHeader('CONSENT & SIGNATURE');
-    addLabelValue('Consent Given: ', formData.consent);
-    
-    return doc.output('blob');
-  }
-  
-  // ============================================
-  // SUBMIT TO DATABASE
-  // ============================================
-  
-  async function submitToDatabase(formData) {
-    try {
-      const response = await fetch(CONFIG.apiEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Database submission failed');
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Database submission error:', error);
-      return null;
-    }
-  }
-  
-  // ============================================
-  // SEND TO GOHIGHLEVEL
-  // ============================================
-  
-  async function sendToGHL(formData, signatureUrl, pdfUrl) {
-    console.log('📤 Sending to GoHighLevel...');
-    console.log('Payload:', JSON.stringify({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone
-    }));
-    
-    const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      dateOfBirth: formData.dateOfBirth,
-      address: formData.streetAddress,
-      city: formData.city,
-      state: formData.state,
-      zip: formData.postalCode,
-      customFieldKey: CONFIG.ghl.customFieldKey,
-      customFieldValue: 'Complete',
-      tags: CONFIG.ghl.tags,
-      signatureUrl: signatureUrl,
-      pdfUrl: pdfUrl,
-      photoIdUrl: formData.photoIdUrl,
-      // Intake data for notes - using actual form fields
-      intakeData: {
-        // NEW FIELD
-        howHeardAboutUs: formData.howHeardAboutUs || '',
-        whatBringsYou: formData.whatBringsYou || '',
-        injured: formData.injured || '',
-        injuryDescription: formData.injuryDescription || '',
-        conditions: formData.conditions || '',
-        medicalHistory: formData.medicalHistory || null,
-        // NEW FIELDS - Primary Care Physician
-        hasPCP: formData.hasPCP || '',
-        pcpName: formData.pcpName || '',
-        // NEW FIELDS - Recent Hospitalization
-        recentHospitalization: formData.recentHospitalization || '',
-        hospitalizationReason: formData.hospitalizationReason || '',
-        onHRT: formData.onHRT || '',
-        hrtDetails: formData.hrtDetails || '',
-        onMedications: formData.onMedications || '',
-        currentMedications: formData.currentMedications || '',
-        hasAllergies: formData.hasAllergies || '',
-        allergies: formData.allergies || ''
-      }
-    };
-    
-    try {
-      const response = await fetch(CONFIG.ghlEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const result = await response.json();
-      console.log('GHL Response status:', response.status);
-      console.log('GHL Response:', result);
-      
-      if (!response.ok) {
-        console.error('❌ GHL error:', result);
-        return false;
-      } else {
-        console.log('✅ GHL sync successful');
-        return true;
-      }
-    } catch (error) {
-      console.error('GHL sync error:', error);
-      return false;
-    }
-  }
-  
-  // ============================================
-  // SEND EMAIL
-  // ============================================
-  
-  async function sendEmail(formData, pdfBlob) {
-    window.emailjs.init(CONFIG.emailjs.publicKey);
-    
-    const base64PDF = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(pdfBlob);
-    });
-    
-    const messageBody = `
-NEW PATIENT INTAKE FORM SUBMISSION
-==================================
-Name: ${formData.firstName} ${formData.lastName}
-Email: ${formData.email}
-Phone: ${formData.phone}
-How They Heard About Us: ${formData.howHeardAboutUs}
-Submitted: ${formData.submissionDate}
-==================================
-PDF intake form is attached to this email.
-`;
-    
-    const templateParams = {
-      to_email: CONFIG.recipientEmail,
-      from_name: `${formData.firstName} ${formData.lastName}`,
-      patient_name: `${formData.firstName} ${formData.lastName}`,
-      patient_email: formData.email,
-      patient_phone: formData.phone,
-      submission_date: formData.submissionDate,
-      message: messageBody,
-      content: base64PDF,
-      filename: `RangeMedical_Intake_${formData.lastName}_${formData.firstName}.pdf`
-    };
-    
-    return await window.emailjs.send(
-      CONFIG.emailjs.serviceId,
-      CONFIG.emailjs.templateId,
-      templateParams
-    );
-  }
-  
-  // ============================================
-  // FORM SUBMISSION
-  // ============================================
-  
-  function showStatus(message, type) {
-    const statusEl = document.getElementById('statusMessage');
-    statusEl.textContent = message;
-    statusEl.className = 'status-message visible ' + type;
-  }
-  
-  function showThankYouPage(formData) {
-    const container = document.getElementById('intakeContainer');
-    container.innerHTML = `
-      <div class="thank-you-page">
-        <div class="thank-you-icon">✓</div>
-        <h1>Thank You, ${formData.firstName}!</h1>
-        <p class="thank-you-subtitle">Your intake form has been successfully submitted.</p>
-        <div class="thank-you-details">
-          <p>We've received your information and our team will review it before your appointment.</p>
-          <p>A confirmation has been sent to our office.</p>
-        </div>
-        <div class="thank-you-contact">
-          <h3>Questions?</h3>
-          <p>Contact us at <a href="mailto:info@range-medical.com">info@range-medical.com</a></p>
-        </div>
-        <div class="thank-you-footer">
-          <p>RANGE MEDICAL</p>
-        </div>
-      </div>
-    `;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-  
-  document.getElementById('intakeForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      showStatus('Please fill in all required fields correctly.', 'error');
+
+    if (hasErrors) {
+      // Scroll to first error
       const firstError = document.querySelector('.field-error.visible');
       if (firstError) {
         firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       return;
     }
-    
-    const submitBtn = document.getElementById('submitBtn');
+
+    // Disable submit button
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Processing...';
-    showStatus('Submitting your form...', 'loading');
-    
-    try {
-      showStatus('Uploading signature...', 'loading');
-      uploadedSignatureUrl = await uploadSignature();
-      
-      showStatus('Collecting form data...', 'loading');
-      const formData = await collectFormData();
-      
-      showStatus('Generating PDF...', 'loading');
-      const pdfBlob = await generatePDF(formData);
-      
-      showStatus('Uploading PDF...', 'loading');
-      const pdfUrl = await uploadPDFToSupabase(pdfBlob, formData);
-      
-      showStatus('Saving to Range Medical system...', 'loading');
-      const dbData = {...formData};
-      delete dbData.photoId;
-      delete dbData.signature;
-      dbData.signatureUrl = uploadedSignatureUrl;
-      dbData.pdfUrl = pdfUrl;
-      await submitToDatabase(dbData);
-      
-      showStatus('Updating patient record...', 'loading');
-      const ghlResult = await sendToGHL(formData, uploadedSignatureUrl, pdfUrl);
-      if (!ghlResult) {
-        console.warn('⚠️ GHL sync may have failed - check logs');
+    submitBtn.textContent = 'Submitting...';
+
+    // Collect form data
+    const getValue = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    };
+
+    const getRadioValue = (name) => {
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      return checked ? checked.value : '';
+    };
+
+    // Collect symptoms
+    const symptoms = [];
+    const symptomFollowups = {};
+    symptomCheckboxes.forEach(cb => {
+      if (cb.checked) {
+        symptoms.push(cb.value);
+        const symptomName = cb.id.replace('symptom_', '');
+        // Get the follow-up value if it exists
+        const followupSelects = document.querySelectorAll(`#followup_${symptomName} select, #followup_${symptomName} input`);
+        followupSelects.forEach(sel => {
+          if (sel.value) {
+            symptomFollowups[symptomName] = sel.value;
+          }
+        });
       }
-      
-      showStatus('Sending email notification...', 'loading');
-      await sendEmail(formData, pdfBlob);
-      
-      showThankYouPage(formData);
-      
+    });
+
+    const formData = {
+      // Personal Info
+      firstName: getValue('firstName'),
+      lastName: getValue('lastName'),
+      preferredName: getValue('preferredName'),
+      dateOfBirth: getValue('dateOfBirth'),
+      sex: getValue('sex'),
+      phone: getValue('phone'),
+      email: getValue('email'),
+      streetAddress: getValue('streetAddress'),
+      city: getValue('city'),
+      state: getValue('state'),
+      postalCode: getValue('postalCode'),
+      country: getValue('country'),
+      howHeardAboutUs: getValue('howHeardAboutUs') === 'Other' 
+        ? `Other: ${getValue('howHeardOther')}` 
+        : getValue('howHeardAboutUs'),
+
+      // Health Concerns
+      whatBringsYou: getValue('whatBringsYou'),
+      injured: getRadioValue('injured'),
+      injuryDescription: getValue('injuryDescription'),
+      injuryLocation: getValue('injuryLocation'),
+      injuryDate: getValue('injuryDate'),
+      currentTreatment: getValue('currentTreatment'),
+
+      // Symptoms (Energy & Optimization)
+      symptoms: symptoms,
+      symptomFollowups: symptomFollowups,
+      symptomDuration: getRadioValue('symptomDuration'),
+
+      // Healthcare Providers
+      hasPCP: getRadioValue('hasPCP'),
+      pcpName: getValue('pcpName'),
+      pcpPractice: getValue('pcpPractice'),
+      pcpPhone: getValue('pcpPhone'),
+      recentHospitalization: getRadioValue('recentHospitalization'),
+      hospitalizationReason: getValue('hospitalizationReason'),
+
+      // Medical History
+      hypertension: getRadioValue('hypertension'),
+      hypertensionYear: getValue('hypertension-year'),
+      highCholesterol: getRadioValue('highCholesterol'),
+      highCholesterolYear: getValue('highCholesterol-year'),
+      heartDisease: getRadioValue('heartDisease'),
+      heartDiseaseYear: getValue('heartDisease-year'),
+      bloodClots: getRadioValue('bloodClots'),
+      bloodClotsYear: getValue('bloodClots-year'),
+      stroke: getRadioValue('stroke'),
+      strokeYear: getValue('stroke-year'),
+      diabetes: getRadioValue('diabetes'),
+      diabetesType: getValue('diabetes-type'),
+      thyroid: getRadioValue('thyroid'),
+      thyroidType: getValue('thyroid-type'),
+      liverDisease: getRadioValue('liverDisease'),
+      liverDiseaseYear: getValue('liverDisease-year'),
+      kidneyDisease: getRadioValue('kidneyDisease'),
+      kidneyDiseaseYear: getValue('kidneyDisease-year'),
+      cancer: getRadioValue('cancer'),
+      cancerType: getValue('cancer-type'),
+      cancerYear: getValue('cancer-year'),
+      cancerStatus: getValue('cancer-status'),
+      autoimmune: getRadioValue('autoimmune'),
+      autoimmuneType: getValue('autoimmune-type'),
+      mentalHealth: getRadioValue('mentalHealth'),
+      mentalHealthType: getValue('mentalHealth-type'),
+      sleepApnea: getRadioValue('sleepApnea'),
+      sleepApneaCPAP: getValue('sleepApnea-cpap'),
+
+      // Medications & Allergies
+      currentMedications: getValue('currentMedications'),
+      hasAllergies: getRadioValue('hasAllergies'),
+      allergiesList: getValue('allergiesList'),
+
+      // Lifestyle
+      smoker: getRadioValue('smoker'),
+      alcohol: getRadioValue('alcohol'),
+      exerciseFrequency: getValue('exerciseFrequency'),
+
+      // Signature
+      signatureDate: getValue('signatureDate'),
+      signatureData: signaturePad.toDataURL(),
+
+      // Metadata
+      submittedAt: new Date().toISOString()
+    };
+
+    try {
+      // Submit to API
+      const response = await fetch('/api/intakes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit form');
+      }
+
+      // Also sync to GHL
+      await fetch('/api/intake-to-ghl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      // Show thank you screen
+      document.getElementById('intakeContainer').querySelector('.form-container').style.display = 'none';
+      document.getElementById('intakeContainer').querySelector('.intake-header').style.display = 'none';
+      document.getElementById('thankYouContainer').classList.add('visible');
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
     } catch (error) {
       console.error('Submission error:', error);
-      showStatus('Error: ' + (error.message || 'Unknown error occurred'), 'error');
+      alert('There was an error submitting your form. Please try again or call us at (949) 997-3988.');
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Intake Form';
+      submitBtn.textContent = 'Submit Medical Intake Form';
     }
   });
 }

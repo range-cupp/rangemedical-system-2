@@ -1,6 +1,7 @@
 // /pages/api/admin/pipeline.js
-// Pipeline API - Returns purchases needing protocols, active protocols, and completed protocols
-// Range Medical - FIXED patient_name issue 2026-01-28
+// Pipeline API - Returns protocols with patient names AND tracking status
+// Range Medical - FIXED 2026-01-28
+// Issue: Previous fix got names right but lost tracking calculations
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -9,36 +10,293 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// ================================================================
+// PROTOCOL TRACKING CALCULATOR
+// Returns days_remaining, status_text, urgency, category, delivery
+// ================================================================
+function getProtocolTracking(protocol) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const programType = (protocol.program_type || '').toLowerCase();
+  const programName = (protocol.program_name || '').toLowerCase();
+  const medication = (protocol.medication || '').toLowerCase();
+  const deliveryMethod = (protocol.delivery_method || '').toLowerCase();
+  const supplyType = (protocol.supply_type || '').toLowerCase();
+  const lastRefill = protocol.last_refill_date;
+  const selectedDose = (protocol.selected_dose || '').toLowerCase();
+  
+  const isTakeHome = deliveryMethod === 'take_home' || deliveryMethod.includes('take');
+  const isWeightLoss = programType === 'weight_loss' || programName.includes('weight') || 
+    medication.includes('semaglutide') || medication.includes('tirzepatide') || medication.includes('retatrutide');
+  const isHRT = programType === 'hrt' || programName.includes('hrt') || 
+    medication.includes('testosterone') || medication.includes('nandrolone');
+  const isPeptide = programType === 'peptide' || programName.includes('peptide');
+  const isSessionBased = ['iv', 'hbot', 'rlt', 'injection'].includes(programType);
+
+  // ===== WEIGHT LOSS =====
+  if (isWeightLoss) {
+    if (isTakeHome && protocol.total_sessions > 0) {
+      const totalInjections = protocol.total_sessions;
+      const sessionsUsed = protocol.sessions_used || 0;
+      const refillDate = lastRefill ? new Date(lastRefill + 'T00:00:00') : 
+                         protocol.start_date ? new Date(protocol.start_date + 'T00:00:00') : null;
+      
+      if (refillDate) {
+        const totalDays = totalInjections * 7;
+        const endDate = new Date(refillDate);
+        endDate.setDate(endDate.getDate() + totalDays);
+        const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+        
+        return {
+          days_remaining: daysRemaining,
+          total_days: totalDays,
+          sessions_used: sessionsUsed,
+          total_sessions: totalInjections,
+          status_text: daysRemaining <= 0 ? 'Refill needed' : `${daysRemaining} days left`,
+          tracking_type: 'time_based',
+          urgency: daysRemaining <= 0 ? 'overdue' : daysRemaining <= 3 ? 'ending_soon' : daysRemaining <= 14 ? 'active' : 'just_started',
+          category: 'weight_loss',
+          delivery: 'take_home'
+        };
+      }
+    }
+    
+    if (!isTakeHome && protocol.total_sessions > 0) {
+      const sessionsUsed = protocol.sessions_used || 0;
+      const totalSessions = protocol.total_sessions;
+      const sessionsRemaining = totalSessions - sessionsUsed;
+      
+      return {
+        sessions_used: sessionsUsed,
+        total_sessions: totalSessions,
+        sessions_remaining: sessionsRemaining,
+        status_text: `${sessionsUsed}/${totalSessions} injections`,
+        tracking_type: 'session_based',
+        urgency: sessionsRemaining <= 0 ? 'completed' : sessionsRemaining <= 1 ? 'ending_soon' : 'active',
+        category: 'weight_loss',
+        delivery: 'in_clinic'
+      };
+    }
+    
+    return {
+      status_text: 'No tracking data',
+      tracking_type: 'unknown',
+      urgency: 'active',
+      category: 'weight_loss',
+      delivery: isTakeHome ? 'take_home' : 'in_clinic'
+    };
+  }
+
+  // ===== HRT =====
+  if (isHRT) {
+    if (supplyType.includes('vial') || selectedDose.includes('vial')) {
+      const is10ml = supplyType.includes('10') || selectedDose.includes('10');
+      const vialMl = is10ml ? 10 : 5;
+      
+      let dosePerInjection = 0.4;
+      const doseMatch = selectedDose.match(/(\d+\.?\d*)\s*ml/i);
+      if (doseMatch) dosePerInjection = parseFloat(doseMatch[1]);
+      
+      const injectionsPerWeek = 2;
+      const weeksSupply = Math.floor(vialMl / (dosePerInjection * injectionsPerWeek));
+      
+      if (lastRefill) {
+        const refillDate = new Date(lastRefill + 'T00:00:00');
+        const endDate = new Date(refillDate);
+        endDate.setDate(endDate.getDate() + (weeksSupply * 7));
+        const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+        const weeksRemaining = Math.ceil(daysRemaining / 7);
+        
+        return {
+          days_remaining: daysRemaining,
+          weeks_remaining: weeksRemaining,
+          total_weeks: weeksSupply,
+          status_text: daysRemaining <= 0 ? 'Refill needed' : `~${weeksRemaining} weeks left`,
+          tracking_type: 'vial_based',
+          urgency: daysRemaining <= 0 ? 'overdue' : daysRemaining <= 14 ? 'ending_soon' : daysRemaining <= 28 ? 'active' : 'just_started',
+          category: 'hrt',
+          delivery: 'take_home'
+        };
+      }
+    } else if (supplyType.includes('prefill') || selectedDose.includes('prefill')) {
+      let numPrefilled = 4;
+      const prefilledMatch = selectedDose.match(/(\d+)\s*prefill/i);
+      if (prefilledMatch) numPrefilled = parseInt(prefilledMatch[1]);
+      
+      const supplyDays = Math.ceil(numPrefilled / 2) * 7;
+      
+      if (lastRefill) {
+        const refillDate = new Date(lastRefill + 'T00:00:00');
+        const endDate = new Date(refillDate);
+        endDate.setDate(endDate.getDate() + supplyDays);
+        const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+        
+        return {
+          days_remaining: daysRemaining,
+          total_days: supplyDays,
+          status_text: daysRemaining <= 0 ? 'Refill needed' : `${daysRemaining} days left`,
+          tracking_type: 'prefilled',
+          urgency: daysRemaining <= 0 ? 'overdue' : daysRemaining <= 3 ? 'ending_soon' : daysRemaining <= 7 ? 'active' : 'just_started',
+          category: 'hrt',
+          delivery: 'take_home'
+        };
+      }
+    }
+    
+    if (protocol.total_sessions > 0) {
+      const sessionsUsed = protocol.sessions_used || 0;
+      const totalSessions = protocol.total_sessions;
+      
+      return {
+        sessions_used: sessionsUsed,
+        total_sessions: totalSessions,
+        status_text: `${sessionsUsed}/${totalSessions} sessions`,
+        tracking_type: 'session_based',
+        urgency: sessionsUsed >= totalSessions ? 'completed' : 'active',
+        category: 'hrt',
+        delivery: 'in_clinic'
+      };
+    }
+    
+    return {
+      status_text: 'No tracking data',
+      tracking_type: 'unknown',
+      urgency: 'active',
+      category: 'hrt',
+      delivery: isTakeHome ? 'take_home' : 'in_clinic'
+    };
+  }
+
+  // ===== PEPTIDE =====
+  if (isPeptide) {
+    if (protocol.end_date) {
+      const endDate = new Date(protocol.end_date + 'T00:00:00');
+      const startDate = protocol.start_date ? new Date(protocol.start_date + 'T00:00:00') : null;
+      const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+      const totalDays = startDate ? Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) : null;
+      
+      let duration = totalDays;
+      const durationMatch = programName.match(/(\d+)\s*day/i);
+      if (durationMatch) duration = parseInt(durationMatch[1]);
+      
+      return {
+        days_remaining: daysRemaining,
+        total_days: duration || totalDays,
+        status_text: daysRemaining <= 0 ? 'Completed' : `${daysRemaining} days left`,
+        tracking_type: 'time_based',
+        urgency: daysRemaining <= 0 ? 'completed' : daysRemaining <= 3 ? 'ending_soon' : daysRemaining <= 14 ? 'active' : 'just_started',
+        category: 'peptide',
+        delivery: isTakeHome ? 'take_home' : 'in_clinic'
+      };
+    }
+    
+    if (protocol.total_sessions > 0) {
+      const sessionsUsed = protocol.sessions_used || 0;
+      const totalSessions = protocol.total_sessions;
+      
+      return {
+        sessions_used: sessionsUsed,
+        total_sessions: totalSessions,
+        status_text: `${sessionsUsed}/${totalSessions} sessions`,
+        tracking_type: 'session_based',
+        urgency: sessionsUsed >= totalSessions ? 'completed' : 'active',
+        category: 'peptide',
+        delivery: isTakeHome ? 'take_home' : 'in_clinic'
+      };
+    }
+  }
+
+  // ===== SESSION-BASED (IV, HBOT, RLT, Injection) =====
+  if (isSessionBased || protocol.total_sessions > 0) {
+    const sessionsUsed = protocol.sessions_used || 0;
+    const totalSessions = protocol.total_sessions || 0;
+    const sessionsRemaining = totalSessions - sessionsUsed;
+    
+    return {
+      sessions_used: sessionsUsed,
+      total_sessions: totalSessions,
+      sessions_remaining: sessionsRemaining,
+      status_text: totalSessions > 0 ? `${sessionsUsed}/${totalSessions} sessions` : 'No sessions',
+      tracking_type: 'session_based',
+      urgency: sessionsRemaining <= 0 ? 'completed' : sessionsRemaining <= 1 ? 'ending_soon' : 'active',
+      category: programType.includes('iv') ? 'iv' : programType.includes('hbot') ? 'hbot' : programType.includes('rlt') ? 'rlt' : 'injection',
+      delivery: isTakeHome ? 'take_home' : 'in_clinic'
+    };
+  }
+
+  // ===== FALLBACK =====
+  if (protocol.end_date) {
+    const endDate = new Date(protocol.end_date + 'T00:00:00');
+    const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+    
+    return {
+      days_remaining: daysRemaining,
+      status_text: daysRemaining <= 0 ? 'Completed' : `${daysRemaining} days left`,
+      tracking_type: 'time_based',
+      urgency: daysRemaining <= 0 ? 'completed' : daysRemaining <= 3 ? 'ending_soon' : 'active',
+      category: 'other',
+      delivery: isTakeHome ? 'take_home' : 'in_clinic'
+    };
+  }
+  
+  return {
+    status_text: 'No tracking',
+    tracking_type: 'unknown',
+    urgency: 'active',
+    category: programType || 'other',
+    delivery: isTakeHome ? 'take_home' : 'in_clinic'
+  };
+}
+
+// ================================================================
+// MAIN API HANDLER
+// ================================================================
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // Get current date for calculations
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    // ============================================
+    // FETCH ALL PATIENTS FOR GHL LOOKUP
+    // ============================================
+    const { data: allPatients } = await supabase
+      .from('patients')
+      .select('id, name, ghl_contact_id')
+      .not('ghl_contact_id', 'is', null);
+    
+    const patientsByGhl = {};
+    (allPatients || []).forEach(p => {
+      if (p.ghl_contact_id) {
+        patientsByGhl[p.ghl_contact_id] = p;
+      }
+    });
 
     // ============================================
-    // FETCH PROTOCOLS WITH PROPER PATIENT NAMES
+    // FETCH PROTOCOLS WITH PATIENT JOIN
     // ============================================
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select(`
         id,
         patient_id,
-        program_name,
+        ghl_contact_id,
         program_type,
+        program_name,
         medication,
         selected_dose,
         frequency,
         delivery_method,
+        supply_type,
         start_date,
         end_date,
+        last_refill_date,
         status,
         notes,
         total_sessions,
         sessions_used,
+        starting_weight,
         created_at,
         updated_at,
         patients (
@@ -56,135 +314,158 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: protocolsError.message });
     }
 
-    // Process protocols and get proper patient names
-    const processedProtocols = protocols.map(p => {
-      // Get patient name from the joined patients table
-      const patientName = p.patients?.name || 'Unknown';
-      const patientEmail = p.patients?.email || null;
-      const patientPhone = p.patients?.phone || null;
-      const ghlContactId = p.patients?.ghl_contact_id || null;
+    // ============================================
+    // FETCH LATEST WEIGHT FOR EACH PATIENT
+    // ============================================
+    const { data: latestWeights } = await supabase
+      .from('injection_logs')
+      .select('patient_id, weight, entry_date')
+      .not('weight', 'is', null)
+      .order('entry_date', { ascending: false });
 
-      // Calculate days remaining
-      let daysRemaining = null;
-      if (p.end_date) {
-        const endDate = new Date(p.end_date);
-        const diffTime = endDate - today;
-        daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const weightByPatient = {};
+    (latestWeights || []).forEach(w => {
+      if (w.patient_id && !weightByPatient[w.patient_id]) {
+        weightByPatient[w.patient_id] = w.weight;
+      }
+    });
+
+    // ============================================
+    // PROCESS PROTOCOLS
+    // ============================================
+    const endingSoon = [];
+    const active = [];
+    const justStarted = [];
+    const needsFollowUp = [];
+    const completedProtocols = [];
+
+    (protocols || []).forEach(p => {
+      // Get patient name - try JOIN first, then GHL lookup
+      let patientName = p.patients?.name;
+      let patientId = p.patient_id;
+      let ghlContactId = p.patients?.ghl_contact_id || p.ghl_contact_id;
+      
+      if (!patientName && p.ghl_contact_id && patientsByGhl[p.ghl_contact_id]) {
+        patientName = patientsByGhl[p.ghl_contact_id].name;
+        patientId = patientsByGhl[p.ghl_contact_id].id;
       }
 
-      // Calculate days since start
-      let daysSinceStart = null;
-      if (p.start_date) {
-        const startDate = new Date(p.start_date);
-        const diffTime = today - startDate;
-        daysSinceStart = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      }
+      // Get tracking info
+      const tracking = getProtocolTracking(p);
 
-      return {
+      // Build formatted protocol
+      const formatted = {
         id: p.id,
-        patient_id: p.patient_id,
-        patient_name: patientName,
-        patient_email: patientEmail,
-        patient_phone: patientPhone,
+        patient_id: patientId,
+        patient_name: patientName || 'Unknown Patient',
         ghl_contact_id: ghlContactId,
-        program_name: p.program_name,
         program_type: p.program_type,
-        category: p.program_type, // Alias for compatibility
+        program_name: p.program_name,
         medication: p.medication,
+        dose: p.selected_dose,
         selected_dose: p.selected_dose,
         frequency: p.frequency,
         delivery_method: p.delivery_method,
+        supply_type: p.supply_type,
         start_date: p.start_date,
         end_date: p.end_date,
+        last_refill_date: p.last_refill_date,
         status: p.status,
         notes: p.notes,
         total_sessions: p.total_sessions,
         sessions_used: p.sessions_used,
-        days_remaining: daysRemaining,
-        days_since_start: daysSinceStart,
-        created_at: p.created_at,
-        updated_at: p.updated_at
+        starting_weight: p.starting_weight,
+        current_weight: weightByPatient[patientId] || null,
+        weight_lost: p.starting_weight && weightByPatient[patientId] 
+          ? Math.round((p.starting_weight - weightByPatient[patientId]) * 10) / 10 
+          : null,
+        // TRACKING FIELDS - These were missing!
+        ...tracking,
+        delivery: tracking.delivery,
+        category: tracking.category
       };
+
+      // Sort into buckets
+      if (p.status === 'completed' || tracking.urgency === 'completed') {
+        completedProtocols.push(formatted);
+      } else if (tracking.urgency === 'overdue' || tracking.urgency === 'ending_soon') {
+        endingSoon.push(formatted);
+      } else if (tracking.urgency === 'just_started') {
+        justStarted.push(formatted);
+      } else {
+        active.push(formatted);
+      }
     });
-
-    // Separate into active and completed
-    const activeProtocols = processedProtocols.filter(p => p.status === 'active');
-    const completedProtocols = processedProtocols.filter(p => p.status === 'completed');
-
-    // Group active protocols by urgency
-    const endingSoon = activeProtocols.filter(p => 
-      p.days_remaining !== null && p.days_remaining <= 3 && p.days_remaining >= 0
-    ).sort((a, b) => a.days_remaining - b.days_remaining);
-
-    const active = activeProtocols.filter(p => 
-      p.days_remaining === null || (p.days_remaining > 3 && p.days_remaining <= 14)
-    ).sort((a, b) => (a.days_remaining || 999) - (b.days_remaining || 999));
-
-    const justStarted = activeProtocols.filter(p => 
-      p.days_remaining !== null && p.days_remaining > 14
-    ).sort((a, b) => (b.days_remaining || 0) - (a.days_remaining || 0));
-
-    const needsFollowUp = activeProtocols.filter(p => 
-      p.days_remaining !== null && p.days_remaining < 0
-    ).sort((a, b) => a.days_remaining - b.days_remaining);
 
     // ============================================
     // FETCH PURCHASES NEEDING PROTOCOLS
     // ============================================
-    const twoWeeksAgo = new Date(today);
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-    const twoWeeksAgoStr = twoWeeksAgo.toISOString().split('T')[0];
-
-    const { data: purchases, error: purchasesError } = await supabase
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const { data: purchases } = await supabase
       .from('purchases')
-      .select('*')
-      .or('protocol_created.is.null,protocol_created.eq.false')
-      .or('dismissed.is.null,dismissed.eq.false')
-      .gte('purchase_date', twoWeeksAgoStr)
+      .select(`
+        id,
+        item_name,
+        amount,
+        purchase_date,
+        patient_id,
+        ghl_contact_id,
+        protocol_created,
+        dismissed,
+        category
+      `)
+      .gte('purchase_date', thirtyDaysAgo.toISOString().split('T')[0])
       .order('purchase_date', { ascending: false });
 
-    if (purchasesError) {
-      console.error('Error fetching purchases:', purchasesError);
-    }
-
-    // Filter to protocol-eligible categories
-    const protocolCategories = ['peptide', 'weight_loss', 'hrt', 'iv_therapy', 'hbot', 'rlt', 'injection'];
-    const needsProtocol = (purchases || []).filter(p => {
-      const category = (p.category || '').toLowerCase();
-      const productName = (p.product_name || p.item_name || '').toLowerCase();
-      
-      return protocolCategories.some(cat => category.includes(cat)) ||
-             productName.includes('peptide') ||
-             productName.includes('protocol') ||
-             productName.includes('weight loss') ||
-             productName.includes('hrt') ||
-             productName.includes('membership');
-    });
+    const needsProtocol = (purchases || [])
+      .filter(p => !p.protocol_created && !p.dismissed)
+      .filter(p => {
+        const productName = (p.item_name || '').toLowerCase();
+        const cat = (p.category || '').toLowerCase();
+        return ['peptide', 'hrt', 'weight_loss', 'weight loss', 'iv', 'hbot', 'rlt'].some(c => cat.includes(c)) ||
+               productName.includes('peptide') ||
+               productName.includes('protocol') ||
+               productName.includes('weight loss') ||
+               productName.includes('hrt') ||
+               productName.includes('membership');
+      })
+      .map(p => ({
+        id: p.id,
+        item_name: p.item_name,
+        amount: p.amount,
+        purchase_date: p.purchase_date,
+        patient_id: p.patient_id,
+        ghl_contact_id: p.ghl_contact_id,
+        category: p.category,
+        patient_name: patientsByGhl[p.ghl_contact_id]?.name || 'Unknown'
+      }));
 
     // ============================================
-    // CALCULATE COUNTS
+    // RETURN RESPONSE
     // ============================================
-    const counts = {
-      endingSoon: endingSoon.length,
-      active: active.length,
-      justStarted: justStarted.length,
-      needsFollowUp: needsFollowUp.length,
-      completed: completedProtocols.length,
-      needsProtocol: needsProtocol.length,
-      totalActive: activeProtocols.length
-    };
-
     return res.status(200).json({
       success: true,
-      counts,
+      counts: {
+        ending_soon: endingSoon.length,
+        active: active.length,
+        just_started: justStarted.length,
+        needs_followup: needsFollowUp.length,
+        completed: completedProtocols.length,
+        needs_protocol: needsProtocol.length
+      },
       protocols: {
         ending_soon: endingSoon,
         active: active,
         just_started: justStarted,
         needs_follow_up: needsFollowUp,
-        completed: completedProtocols.slice(0, 100) // Limit completed
+        completed: completedProtocols.slice(0, 100)
       },
-      purchases: needsProtocol
+      purchases: {
+        needs_protocol: needsProtocol,
+        since_date: thirtyDaysAgo.toISOString().split('T')[0]
+      }
     });
 
   } catch (error) {

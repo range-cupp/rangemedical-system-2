@@ -627,16 +627,27 @@ export default async function handler(req, res) {
           html: emailHtml
         };
         
-        // Add PDF attachment if provided
-        const pdfBase64 = data.pdfBase64;
-        if (pdfBase64) {
-          emailPayload.attachments = [
-            {
-              filename: `intake-${lastName}-${firstName}.pdf`,
-              content: pdfBase64
+        // Fetch PDF from Supabase URL and attach to email
+        if (pdfUrl) {
+          try {
+            console.log('📥 Fetching PDF from:', pdfUrl);
+            const pdfResponse = await fetch(pdfUrl);
+            if (pdfResponse.ok) {
+              const pdfBuffer = await pdfResponse.arrayBuffer();
+              const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
+              emailPayload.attachments = [
+                {
+                  filename: `intake-${lastName}-${firstName}.pdf`,
+                  content: pdfBase64
+                }
+              ];
+              console.log('📎 PDF attachment added to email');
+            } else {
+              console.log('⚠️ Could not fetch PDF:', pdfResponse.status);
             }
-          ];
-          console.log('📎 PDF attachment added to email');
+          } catch (pdfError) {
+            console.log('⚠️ Error fetching PDF for attachment:', pdfError.message);
+          }
         }
         
         const emailResponse = await fetch('https://api.resend.com/emails', {

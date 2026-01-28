@@ -155,13 +155,18 @@ export default async function handler(req, res) {
       allergy_reactions: formData.allergyReactions || null,
       
       // How heard about us
-      how_heard: formData.howHeard || null,
+      how_heard: formData.howHeardAboutUs || null,
       how_heard_other: formData.howHeardOther || null,
       
       // Primary care physician
+      has_pcp: toBool(formData.hasPCP),
       pcp_name: formData.pcpName || null,
       
-      // Files
+      // Recent hospitalization
+      recent_hospitalization: toBool(formData.recentHospitalization),
+      hospitalization_reason: formData.hospitalizationReason || null,
+      
+      // Files - URLs from Supabase Storage
       photo_id_url: formData.photoIdUrl || null,
       signature_url: formData.signatureUrl || null,
       pdf_url: formData.pdfUrl || null,

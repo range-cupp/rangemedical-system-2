@@ -135,7 +135,7 @@ export default function Layout({ children, title, description }) {
               <Link href="/cellular-energy-reset">Cellular Reset</Link>
             </div>
             <div className="rm-footer-col">
-              <h4>More Treatments</h4>
+              <h4>More</h4>
               <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
               <Link href="/red-light-therapy">Red Light Therapy</Link>
               <Link href="/prp-therapy">PRP Therapy</Link>
@@ -144,7 +144,9 @@ export default function Layout({ children, title, description }) {
               <Link href="/gift-cards">Gift Cards</Link>
             </div>
           </div>
-          <div className="rm-footer-bottom">
+        </div>
+        <div className="rm-footer-bottom">
+          <div className="rm-footer-bottom-inner">
             <p>© {new Date().getFullYear()} Range Medical. All rights reserved.</p>
             <div className="rm-footer-legal">
               <Link href="/terms-of-use">Terms</Link>
@@ -351,20 +353,20 @@ export default function Layout({ children, title, description }) {
         .rm-footer {
           background: #ffffff;
           color: #171717;
-          padding: 4rem 1.5rem 2rem;
+          padding-top: 4rem;
           border-top: 1px solid #e5e5e5;
         }
 
         .rm-footer-inner {
           max-width: 1200px;
           margin: 0 auto;
+          padding: 0 1.5rem 3rem;
         }
 
         .rm-footer-grid {
           display: grid;
           grid-template-columns: 1.5fr 1fr 1fr 1fr;
           gap: 3rem;
-          margin-bottom: 3rem;
         }
 
         .rm-footer-logo {
@@ -421,11 +423,17 @@ export default function Layout({ children, title, description }) {
         }
 
         .rm-footer-bottom {
+          border-top: 1px solid #e5e5e5;
+          padding: 1.5rem 0;
+        }
+
+        .rm-footer-bottom-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 1.5rem;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding-top: 2rem;
-          border-top: 1px solid #e5e5e5;
         }
 
         .rm-footer-bottom p {
@@ -464,7 +472,7 @@ export default function Layout({ children, title, description }) {
             gap: 2rem;
           }
 
-          .rm-footer-bottom {
+          .rm-footer-bottom-inner {
             flex-direction: column;
             gap: 1rem;
             text-align: center;

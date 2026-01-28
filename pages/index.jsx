@@ -190,6 +190,11 @@ export default function Home() {
       </section>
 
       <style jsx>{`
+        .hero {
+          padding-top: 4rem;
+          padding-bottom: 3rem;
+        }
+
         .assessment-options {
           display: flex;
           justify-content: center;

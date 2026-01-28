@@ -1,5 +1,6 @@
 // pages/api/intakes.js
 // Saves medical intake form data to Supabase database
+// Updated: Added decision tree fields (minor, optimization, symptoms)
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -63,17 +64,39 @@ export default async function handler(req, res) {
       country: formData.country || null,
       postal_code: formData.postalCode || null,
       
-      // What brings you in
-      what_brings_you: formData.whatBringsYou || null,
-      what_brings_you_in: formData.whatBringsYou || null,
+      // ============================================
+      // MINOR / GUARDIAN FIELDS (NEW)
+      // ============================================
+      is_minor: toBool(formData.isMinor),
+      guardian_name: formData.guardianName || null,
+      guardian_relationship: formData.guardianRelationship || null,
       
-      // Injury - boolean columns
+      // ============================================
+      // DECISION TREE - INJURY (Door 1)
+      // ============================================
       injured: toBool(formData.injured),
       currently_injured: toBool(formData.injured),
       injury_description: formData.injuryDescription || null,
       injury_location: formData.injuryLocation || null,
       injury_date: formatDate(formData.injuryDate),
       injury_when_occurred: formData.injuryDate || null,
+      
+      // ============================================
+      // DECISION TREE - OPTIMIZATION (Door 2) (NEW)
+      // ============================================
+      interested_in_optimization: toBool(formData.interestedInOptimization),
+      symptoms: formData.symptoms || null,  // JSONB array of checked symptoms
+      symptom_followups: formData.symptomFollowups || null,  // JSONB object with follow-up answers
+      symptom_duration: formData.symptomDuration || null,
+      
+      // ============================================
+      // ADDITIONAL NOTES (NEW)
+      // ============================================
+      additional_notes: formData.additionalNotes || null,
+      
+      // What brings you in (legacy - keeping for backwards compatibility)
+      what_brings_you: formData.whatBringsYou || null,
+      what_brings_you_in: formData.whatBringsYou || null,
       
       // Medical conditions - boolean columns
       high_blood_pressure: mh.hypertension?.response === 'Yes',
@@ -131,8 +154,14 @@ export default async function handler(req, res) {
       allergies: formData.allergies || null,
       allergy_reactions: formData.allergyReactions || null,
       
-      // Files - THESE ARE THE IMPORTANT ONES
-      guardian_name: formData.guardianName || null,
+      // How heard about us
+      how_heard: formData.howHeard || null,
+      how_heard_other: formData.howHeardOther || null,
+      
+      // Primary care physician
+      pcp_name: formData.pcpName || null,
+      
+      // Files
       photo_id_url: formData.photoIdUrl || null,
       signature_url: formData.signatureUrl || null,
       pdf_url: formData.pdfUrl || null,
@@ -146,6 +175,9 @@ export default async function handler(req, res) {
 
     console.log('Photo ID URL:', intakeRecord.photo_id_url);
     console.log('Signature URL:', intakeRecord.signature_url);
+    console.log('Is Minor:', intakeRecord.is_minor);
+    console.log('Interested in Optimization:', intakeRecord.interested_in_optimization);
+    console.log('Symptoms:', intakeRecord.symptoms);
 
     // Insert into intakes table
     const { data, error } = await supabase

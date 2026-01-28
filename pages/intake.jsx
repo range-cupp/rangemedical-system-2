@@ -2315,23 +2315,15 @@ function initializeForm() {
       // 3. Generate PDF
       showStatus('Generating PDF...', 'loading');
       const pdfBlob = await generatePDF(formData);
-      
-      // Convert PDF to base64 for email attachment
-      const pdfBase64 = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.readAsDataURL(pdfBlob);
-      });
 
       // 4. Upload PDF to Supabase
       showStatus('Uploading PDF...', 'loading');
       uploadedPdfUrl = await uploadPdfToStorage(pdfBlob, patientName);
 
-      // Add URLs to form data
+      // Add URLs to form data (API will fetch PDF from URL for email attachment)
       formData.photoIdUrl = uploadedPhotoIdUrl;
       formData.signatureUrl = uploadedSignatureUrl;
       formData.pdfUrl = uploadedPdfUrl;
-      formData.pdfBase64 = pdfBase64;  // For email attachment
 
       // 5. Save to database
       showStatus('Saving to Range Medical system...', 'loading');

@@ -5,14 +5,14 @@ import Head from 'next/head';
 export default function InjuryRecovery() {
   return (
     <Layout
-      title="Injury Recovery Assessment | Range Medical | Newport Beach"
-      description="One visit to review your injury, your rehab plan, and design the right recovery protocol. $199, credited toward your protocol."
+      title="Range Assessment for Injury & Recovery | Range Medical | Newport Beach"
+      description="If you're rehabbing and it's taking too long, this is where we start. $199 Range Assessment, credited toward your recovery program."
     >
       <Head>
-        <meta name="keywords" content="injury recovery Newport Beach, recovery assessment, HBOT injury, red light therapy recovery, sports injury treatment, peptide therapy recovery, BPC-157" />
+        <meta name="keywords" content="injury recovery Newport Beach, recovery assessment, peptide therapy injury, sports injury treatment, slow healing, rehab support" />
         <link rel="canonical" href="https://www.range-medical.com/injury-recovery" />
-        <meta property="og:title" content="Injury Recovery Assessment | Range Medical" />
-        <meta property="og:description" content="One visit to review your injury and design the right recovery protocol. $199." />
+        <meta property="og:title" content="Range Assessment for Injury & Recovery | Range Medical" />
+        <meta property="og:description" content="If you're rehabbing and it's taking too long, this is where we start. $199 Range Assessment." />
         <meta property="og:url" content="https://www.range-medical.com/injury-recovery" />
       </Head>
 
@@ -23,21 +23,21 @@ export default function InjuryRecovery() {
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
           <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">🩹 Recovery Door</span>
+          <span className="trust-item">✎ Injury & Recovery</span>
         </div>
       </div>
 
       {/* Hero */}
       <section className="hero">
         <span className="hero-badge">Start Here</span>
-        <h1>Injury Recovery Assessment — $199</h1>
+        <h1>Range Assessment for Injury & Recovery</h1>
         <p className="hero-sub">
-          One visit to review your injury, your rehab plan, and design the right recovery protocol for you.
+          If you're rehabbing and it's taking too long, this is where we start.
         </p>
         <div className="hero-cta">
           <div className="hero-buttons">
-            <Link href="/book-recovery" className="btn-primary">
-              Book Injury Recovery Assessment — $199
+            <Link href="/book?reason=injury" className="btn-primary">
+              Book Your Range Assessment — $199
             </Link>
           </div>
           <p className="hero-secondary">
@@ -50,7 +50,7 @@ export default function InjuryRecovery() {
       <section className="section section-gray">
         <div className="container">
           <p className="section-kicker">Is This You?</p>
-          <h2 className="section-title">Who the Injury Recovery Assessment Is For</h2>
+          <h2 className="section-title">Who This Is For</h2>
 
           <div className="pain-points">
             <ul>
@@ -86,8 +86,8 @@ export default function InjuryRecovery() {
               <p>We discuss what you've already tried and what's helped or not.</p>
             </div>
             <div className="benefit-card">
-              <h4><span>📝</span> Recommend a Protocol</h4>
-              <p>We recommend the right peptide therapy protocol based on your injury and timeline.</p>
+              <h4><span>📝</span> Recommend a Program</h4>
+              <p>Your provider recommends the right recovery program based on your injury and timeline.</p>
             </div>
           </div>
         </div>
@@ -102,15 +102,14 @@ export default function InjuryRecovery() {
           <div style={{maxWidth: '700px', margin: '0 auto'}}>
             <div style={{background: '#ffffff', border: '2px solid #000000', borderRadius: '16px', padding: '2rem', textAlign: 'center', marginBottom: '1.5rem'}}>
               <div style={{fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem'}}>$199</div>
-              <p style={{fontSize: '1rem', color: '#525252', marginBottom: '0'}}>Injury Recovery Assessment</p>
+              <p style={{fontSize: '1rem', color: '#525252', marginBottom: '0'}}>Range Assessment</p>
             </div>
             
             <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
-              Your Injury Recovery Assessment is $199.
+              Your Range Assessment is $199.
             </p>
             <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '1.25rem'}}>
-              If you decide to start a peptide therapy protocol within 7 days of your visit, 
-              we apply the full $199 toward the cost of your protocol.
+              If you decide to start a recovery program, we apply the full $199 toward the cost of your program.
             </p>
             <p style={{fontSize: '1rem', lineHeight: '1.8', color: '#525252', marginBottom: '0'}}>
               If you choose not to move forward, you still leave with a clear understanding of your injury 
@@ -124,29 +123,29 @@ export default function InjuryRecovery() {
       <section className="section">
         <div className="container">
           <p className="section-kicker">After Your Assessment</p>
-          <h2 className="section-title">Peptide Therapy for Recovery</h2>
+          <h2 className="section-title">Recovery Programs</h2>
           <p className="section-subtitle">
-            Based on your injury, your provider will recommend one of these peptide protocols.
+            Based on your injury, your provider will recommend one of these programs.
           </p>
 
           <div className="doors-grid" style={{maxWidth: '700px', margin: '0 auto'}}>
             <div className="door-card">
               <div className="door-icon">⚡</div>
-              <h3>10-Day Peptide Protocol</h3>
+              <h3>10-Day Protocol</h3>
               <p>For smaller flares or when you need a focused boost in recovery over the next 10 days.</p>
               <ul>
-                <li>Recovery peptides like BPC-157</li>
-                <li>Daily injections you do at home</li>
+                <li>Targeted recovery support</li>
+                <li>Daily protocol you do at home</li>
                 <li>Check-in at day 10</li>
               </ul>
             </div>
 
             <div className="door-card">
               <div className="door-icon">🔄</div>
-              <h3>30-Day Peptide Protocol</h3>
+              <h3>30-Day Protocol</h3>
               <p>For bigger injuries or slower-healing issues that need more support across a full month.</p>
               <ul>
-                <li>Extended peptide therapy</li>
+                <li>Extended recovery support</li>
                 <li>More time for tissue healing</li>
                 <li>Progress check-ins throughout</li>
               </ul>
@@ -155,7 +154,7 @@ export default function InjuryRecovery() {
 
           <div style={{textAlign: 'center', marginTop: '2rem'}}>
             <p style={{fontSize: '0.9375rem', color: '#737373', maxWidth: '500px', margin: '0 auto'}}>
-              Your provider will recommend the protocol that fits your injury best. 
+              Your provider will recommend the program that fits your injury best. 
               You're never locked into anything you don't want.
             </p>
           </div>
@@ -176,12 +175,12 @@ export default function InjuryRecovery() {
 
             <div className="faq-item">
               <h4>Does this replace my rehab?</h4>
-              <p>No. Peptide therapy supports and speeds up the recovery work you're already doing with your PT, chiro, or trainer.</p>
+              <p>No. Our programs support and speed up the recovery work you're already doing with your PT, chiro, or trainer.</p>
             </div>
 
             <div className="faq-item">
               <h4>Will I need labs or blood work?</h4>
-              <p>No. Recovery peptide protocols don't require lab work to get started.</p>
+              <p>Usually not. Most recovery programs don't require lab work to get started.</p>
             </div>
 
             <div className="faq-item">
@@ -190,13 +189,8 @@ export default function InjuryRecovery() {
             </div>
 
             <div className="faq-item">
-              <h4>What are recovery peptides?</h4>
-              <p>Peptides like BPC-157 are small proteins that support tissue repair and reduce inflammation. They're injected daily at home during your protocol.</p>
-            </div>
-
-            <div className="faq-item">
               <h4>What if I also want help with energy or hormones?</h4>
-              <p>That's a different door. If you're dealing with fatigue, brain fog, or feeling "off," start with a <Link href="/range-assessment"><strong>Range Assessment</strong></Link> instead.</p>
+              <p>We can talk about that at your Assessment. If energy optimization is your main concern, you might want to start with the <Link href="/range-assessment"><strong>Energy & Optimization</strong></Link> door instead.</p>
             </div>
           </div>
         </div>
@@ -207,10 +201,10 @@ export default function InjuryRecovery() {
         <div className="container">
           <span className="cta-step">Start With One Visit</span>
           <h2>Ready to Speed Up Your Recovery?</h2>
-          <p>Book your Injury Recovery Assessment. If you move forward with a peptide protocol, the $199 is credited toward it.</p>
+          <p>Book your Range Assessment. If you move forward with a program, the $199 is credited toward it.</p>
           <div className="cta-buttons">
-            <Link href="/book-recovery" className="btn-white">
-              Book Injury Recovery Assessment — $199
+            <Link href="/book?reason=injury" className="btn-white">
+              Book Your Range Assessment — $199
             </Link>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>

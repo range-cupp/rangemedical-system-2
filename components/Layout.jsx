@@ -347,11 +347,12 @@ export default function Layout({ children, title, description }) {
           text-decoration: none;
         }
 
-        /* Footer */
+        /* Footer - White Background */
         .rm-footer {
-          background: #000000;
-          color: #ffffff;
+          background: #ffffff;
+          color: #171717;
           padding: 4rem 1.5rem 2rem;
+          border-top: 1px solid #e5e5e5;
         }
 
         .rm-footer-inner {
@@ -369,27 +370,30 @@ export default function Layout({ children, title, description }) {
         .rm-footer-logo {
           height: 48px;
           width: auto;
-          filter: brightness(0) invert(1);
           margin-bottom: 1rem;
         }
 
         .rm-footer-tagline {
-          color: rgba(255,255,255,0.7);
+          color: #525252;
           font-size: 0.9375rem;
           margin-bottom: 1.5rem;
         }
 
         .rm-footer-phone {
           display: block;
-          color: #ffffff;
+          color: #000000;
           text-decoration: none;
           font-size: 1.125rem;
           font-weight: 600;
           margin-bottom: 0.75rem;
         }
 
+        .rm-footer-phone:hover {
+          color: #333333;
+        }
+
         .rm-footer-address {
-          color: rgba(255,255,255,0.6);
+          color: #737373;
           font-size: 0.875rem;
           line-height: 1.6;
         }
@@ -400,12 +404,12 @@ export default function Layout({ children, title, description }) {
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-bottom: 1rem;
-          color: rgba(255,255,255,0.5);
+          color: #737373;
         }
 
         .rm-footer-col :global(a) {
           display: block;
-          color: rgba(255,255,255,0.8);
+          color: #525252;
           text-decoration: none;
           font-size: 0.9375rem;
           padding: 0.375rem 0;
@@ -413,7 +417,7 @@ export default function Layout({ children, title, description }) {
         }
 
         .rm-footer-col :global(a:hover) {
-          color: #ffffff;
+          color: #000000;
         }
 
         .rm-footer-bottom {
@@ -421,11 +425,11 @@ export default function Layout({ children, title, description }) {
           justify-content: space-between;
           align-items: center;
           padding-top: 2rem;
-          border-top: 1px solid rgba(255,255,255,0.1);
+          border-top: 1px solid #e5e5e5;
         }
 
         .rm-footer-bottom p {
-          color: rgba(255,255,255,0.5);
+          color: #737373;
           font-size: 0.875rem;
           margin: 0;
         }
@@ -436,13 +440,13 @@ export default function Layout({ children, title, description }) {
         }
 
         .rm-footer-legal :global(a) {
-          color: rgba(255,255,255,0.5);
+          color: #737373;
           text-decoration: none;
           font-size: 0.875rem;
         }
 
         .rm-footer-legal :global(a:hover) {
-          color: #ffffff;
+          color: #000000;
         }
 
         /* Responsive */

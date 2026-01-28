@@ -51,8 +51,11 @@ export default function Layout({ children, title, description }) {
                   <Link href="/weight-loss">Weight Loss</Link>
                   <Link href="/peptide-therapy">Peptide Therapy</Link>
                   <Link href="/iv-therapy">IV Therapy</Link>
+                  <Link href="/cellular-energy-reset">Cellular Reset</Link>
                   <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
                   <Link href="/red-light-therapy">Red Light Therapy</Link>
+                  <Link href="/prp-therapy">PRP Therapy</Link>
+                  <Link href="/exosome-therapy">Exosome Therapy</Link>
                 </div>
               </div>
 
@@ -86,8 +89,11 @@ export default function Layout({ children, title, description }) {
           <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
           <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
           <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
+          <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
           <Link href="/hyperbaric-oxygen-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hyperbaric Oxygen</Link>
           <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
+          <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
+          <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
           <div className="rm-mobile-divider"></div>
           <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
           <Link href="/book" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</Link>
@@ -126,11 +132,14 @@ export default function Layout({ children, title, description }) {
               <Link href="/weight-loss">Weight Loss</Link>
               <Link href="/peptide-therapy">Peptide Therapy</Link>
               <Link href="/iv-therapy">IV Therapy</Link>
+              <Link href="/cellular-energy-reset">Cellular Reset</Link>
             </div>
             <div className="rm-footer-col">
-              <h4>More</h4>
+              <h4>More Treatments</h4>
               <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
               <Link href="/red-light-therapy">Red Light Therapy</Link>
+              <Link href="/prp-therapy">PRP Therapy</Link>
+              <Link href="/exosome-therapy">Exosome Therapy</Link>
               <Link href="/reviews">Reviews</Link>
               <Link href="/gift-cards">Gift Cards</Link>
             </div>

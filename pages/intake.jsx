@@ -669,6 +669,58 @@ export default function IntakeForm() {
                 </div>
               </div>
 
+              {/* Minor Section - MOVED TO TOP */}
+              <div className="minor-section" style={{marginTop: '1rem', marginBottom: '1rem'}}>
+                <h3 className="minor-section-title">👶 Is this patient under 18 years old?</h3>
+                <p className="minor-section-subtitle">If yes, a parent or legal guardian must complete this form.</p>
+                
+                <div className="form-row" style={{marginBottom: 0}}>
+                  <div className="form-group full-width">
+                    <div className="radio-group">
+                      <div className="radio-item">
+                        <input type="radio" id="isMinorYes" name="isMinor" value="Yes" />
+                        <label htmlFor="isMinorYes">Yes, patient is under 18</label>
+                      </div>
+                      <div className="radio-item">
+                        <input type="radio" id="isMinorNo" name="isMinor" value="No" defaultChecked />
+                        <label htmlFor="isMinorNo">No, patient is 18 or older</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="conditional-field" id="guardianFieldsTop">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="guardianName">Parent/Guardian Name <span className="required">*</span></label>
+                      <input type="text" id="guardianName" name="guardianName" placeholder="Full legal name" />
+                      <span className="field-error" id="guardianNameError">Parent/guardian name is required</span>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="guardianRelationship">Relationship to Patient <span className="required">*</span></label>
+                      <select id="guardianRelationship" name="guardianRelationship">
+                        <option value="">Select...</option>
+                        <option value="Parent">Parent</option>
+                        <option value="Legal Guardian">Legal Guardian</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      <span className="field-error" id="guardianRelationshipError">Please select relationship</span>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="guardianPhone">Parent/Guardian Phone <span className="required">*</span></label>
+                      <input type="tel" id="guardianPhone" name="guardianPhone" placeholder="(555) 555-5555" />
+                      <span className="field-error" id="guardianPhoneError">Phone number is required</span>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="guardianEmail">Parent/Guardian Email</label>
+                      <input type="email" id="guardianEmail" name="guardianEmail" placeholder="parent@email.com" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="form-row">
                 <div className="form-group full-width">
                   <label htmlFor="email">Email Address <span className="required">*</span></label>
@@ -1453,50 +1505,9 @@ export default function IntakeForm() {
               </div>
             </div>
 
-            {/* Signature & Consent - WITH MINOR SECTION */}
+            {/* Signature & Consent */}
             <div className="section">
               <h2 className="section-title">Signature & Consent</h2>
-
-              {/* Minor Section */}
-              <div className="minor-section">
-                <h3 className="minor-section-title">👶 Is this form being completed for a minor (under 18)?</h3>
-                <p className="minor-section-subtitle">If this patient is under 18 years old, a parent or legal guardian must complete and sign this form.</p>
-                
-                <div className="form-row" style={{marginBottom: 0}}>
-                  <div className="form-group full-width">
-                    <div className="radio-group">
-                      <div className="radio-item">
-                        <input type="radio" id="isMinorYes" name="isMinor" value="Yes" />
-                        <label htmlFor="isMinorYes">Yes, patient is a minor</label>
-                      </div>
-                      <div className="radio-item">
-                        <input type="radio" id="isMinorNo" name="isMinor" value="No" defaultChecked />
-                        <label htmlFor="isMinorNo">No, patient is 18 or older</label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="conditional-field" id="guardianFields">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="guardianName">Parent/Guardian Name <span className="required">*</span></label>
-                      <input type="text" id="guardianName" name="guardianName" placeholder="Full legal name" />
-                      <span className="field-error" id="guardianNameError">Parent/guardian name is required</span>
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="guardianRelationship">Relationship to Patient <span className="required">*</span></label>
-                      <select id="guardianRelationship" name="guardianRelationship">
-                        <option value="">Select...</option>
-                        <option value="Parent">Parent</option>
-                        <option value="Legal Guardian">Legal Guardian</option>
-                        <option value="Other">Other</option>
-                      </select>
-                      <span className="field-error" id="guardianRelationshipError">Please select relationship</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               <div style={{backgroundColor: 'var(--gray-50)', padding: '1rem', borderRadius: '4px', marginBottom: '1.5rem', fontSize: '0.875rem', color: 'var(--gray-700)'}}>
                 <p style={{marginBottom: '0.5rem'}}><strong>By signing below, I certify that:</strong></p>
@@ -1657,17 +1668,45 @@ function initializeForm() {
     });
   });
 
-  // Minor / Guardian fields
+  // Minor / Guardian fields - NOW AT TOP OF FORM
   document.querySelectorAll('input[name="isMinor"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const isMinor = radio.value === 'Yes' && radio.checked;
-      document.getElementById('guardianFields').classList.toggle('visible', isMinor);
+      
+      // Show/hide guardian fields at top
+      document.getElementById('guardianFieldsTop').classList.toggle('visible', isMinor);
+      
+      // Show/hide guardian consent text
       document.getElementById('guardianConsentText').style.display = isMinor ? 'list-item' : 'none';
+      
+      // Update signature label
       document.getElementById('signatureLabel').textContent = isMinor 
         ? 'Parent/Guardian Signature *' 
         : 'Patient Signature *';
+      
+      // Hide inappropriate symptoms for minors (libido/sexual dysfunction)
+      const libidoSymptom = document.getElementById('symptomLibido');
+      if (libidoSymptom) {
+        libidoSymptom.style.display = isMinor ? 'none' : 'block';
+        // Uncheck if hidden
+        if (isMinor) {
+          const libidoCheckbox = document.getElementById('symptom_libido');
+          if (libidoCheckbox) {
+            libidoCheckbox.checked = false;
+            libidoCheckbox.dispatchEvent(new Event('change'));
+          }
+        }
+      }
     });
   });
+
+  // Initialize guardian phone mask
+  if (typeof IMask !== 'undefined') {
+    const guardianPhoneEl = document.getElementById('guardianPhone');
+    if (guardianPhoneEl) {
+      IMask(guardianPhoneEl, { mask: '(000) 000-0000' });
+    }
+  }
 
   // Medical condition radios
   document.querySelectorAll('.condition-radio').forEach(radio => {
@@ -1780,6 +1819,7 @@ function initializeForm() {
     if (isMinor && isMinor.value === 'Yes') {
       validateField('guardianName', 'guardianNameError');
       validateField('guardianRelationship', 'guardianRelationshipError');
+      validateField('guardianPhone', 'guardianPhoneError');
     }
 
     // Photo ID validation
@@ -1917,6 +1957,8 @@ function initializeForm() {
         isMinor: getRadio('isMinor'),
         guardianName: getValue('guardianName'),
         guardianRelationship: getValue('guardianRelationship'),
+        guardianPhone: getValue('guardianPhone'),
+        guardianEmail: getValue('guardianEmail'),
 
         // Signature
         signatureDate: getValue('signatureDate'),

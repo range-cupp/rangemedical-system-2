@@ -1,5 +1,6 @@
 // pages/api/intake-to-ghl.js
 // Syncs intake form data to GoHighLevel - creates/updates contact
+// Updated: Added decision tree fields (minor, optimization, symptoms)
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -112,33 +113,92 @@ export default async function handler(req, res) {
     let notes = `══════════════════════════════════════\n`;
     notes += `   MEDICAL INTAKE FORM SUBMITTED\n`;
     notes += `══════════════════════════════════════\n\n`;
-    notes += `Date: ${new Date().toLocaleDateString()}\n`;
+    notes += `Date: ${new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' })}\n`;
     notes += `Patient: ${firstName} ${lastName}\n`;
     notes += `Email: ${email || 'N/A'}\n`;
     notes += `Phone: ${phone || 'N/A'}\n`;
     notes += `DOB: ${dateOfBirth || 'N/A'}\n`;
-    notes += `\n`;
     
     if (intakeData) {
-      if (intakeData.whatBringsYou) {
-        notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-        notes += `CHIEF COMPLAINT:\n`;
-        notes += `${intakeData.whatBringsYou}\n\n`;
+      // ============================================
+      // MINOR / GUARDIAN INFO
+      // ============================================
+      if (intakeData.isMinor === 'Yes') {
+        notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `👶 MINOR PATIENT\n`;
+        if (intakeData.guardianName) notes += `Guardian: ${intakeData.guardianName}\n`;
+        if (intakeData.guardianRelationship) notes += `Relationship: ${intakeData.guardianRelationship}\n`;
       }
       
+      // ============================================
+      // DECISION TREE - INJURY (Door 1)
+      // ============================================
       if (intakeData.injured === 'Yes') {
-        notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-        notes += `INJURY:\n`;
-        notes += `Currently Injured: Yes\n`;
-        if (intakeData.injuryDescription) notes += `Description: ${intakeData.injuryDescription}\n`;
-        if (intakeData.injuryLocation) notes += `Location: ${intakeData.injuryLocation}\n`;
+        notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `🩹 INJURY:\n`;
+        if (intakeData.injuryDescription) notes += `What: ${intakeData.injuryDescription}\n`;
+        if (intakeData.injuryLocation) notes += `Where: ${intakeData.injuryLocation}\n`;
         if (intakeData.injuryDate) notes += `When: ${intakeData.injuryDate}\n`;
-        notes += `\n`;
       }
       
-      // Show all medical history responses
+      // ============================================
+      // DECISION TREE - OPTIMIZATION (Door 2)
+      // ============================================
+      if (intakeData.interestedInOptimization === 'Yes') {
+        notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `⚡ ENERGY & OPTIMIZATION:\n`;
+        
+        // List symptoms
+        if (intakeData.symptoms && intakeData.symptoms.length > 0) {
+          notes += `\nSymptoms reported:\n`;
+          intakeData.symptoms.forEach(symptom => {
+            notes += `• ${symptom}\n`;
+          });
+        }
+        
+        // Symptom follow-ups with details
+        if (intakeData.symptomFollowups) {
+          const followups = intakeData.symptomFollowups;
+          notes += `\nFollow-up details:\n`;
+          
+          if (followups.brainFog) notes += `• Brain fog affects work/daily tasks: ${followups.brainFog}\n`;
+          if (followups.fatigue) notes += `• Energy lowest: ${followups.fatigue}\n`;
+          if (followups.sleep) notes += `• Main sleep issue: ${followups.sleep}\n`;
+          if (followups.weight) notes += `• Diet/exercise helped: ${followups.weight}\n`;
+          if (followups.libido) notes += `• Hormone levels checked: ${followups.libido}\n`;
+          if (followups.mood) notes += `• Mood changes: ${followups.mood}\n`;
+          if (followups.recovery) notes += `• Soreness duration: ${followups.recovery}\n`;
+          if (followups.muscle) notes += `• Muscle loss with exercise: ${followups.muscle}\n`;
+          if (followups.hair) notes += `• Hair thinning location: ${followups.hair}\n`;
+        }
+        
+        // Duration
+        if (intakeData.symptomDuration) {
+          notes += `\nSymptom duration: ${intakeData.symptomDuration}\n`;
+        }
+      }
+      
+      // Legacy field (if not using new decision tree)
+      if (intakeData.whatBringsYou && intakeData.injured !== 'Yes' && intakeData.interestedInOptimization !== 'Yes') {
+        notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `CHIEF COMPLAINT:\n`;
+        notes += `${intakeData.whatBringsYou}\n`;
+      }
+      
+      // ============================================
+      // ADDITIONAL NOTES
+      // ============================================
+      if (intakeData.additionalNotes) {
+        notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `📝 ADDITIONAL NOTES:\n`;
+        notes += `${intakeData.additionalNotes}\n`;
+      }
+      
+      // ============================================
+      // MEDICAL HISTORY
+      // ============================================
       if (intakeData.medicalHistory) {
-        notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
         notes += `MEDICAL HISTORY:\n`;
         const conditionOrder = [
           'hypertension', 'highCholesterol', 'heartDisease', 
@@ -156,11 +216,12 @@ export default async function handler(req, res) {
             notes += line + '\n';
           }
         });
-        notes += `\n`;
       }
       
-      // HRT
-      notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      // ============================================
+      // MEDICATIONS & ALLERGIES
+      // ============================================
+      notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
       notes += `MEDICATIONS & ALLERGIES:\n`;
       notes += `On HRT: ${intakeData.onHRT || 'N/A'}\n`;
       if (intakeData.onHRT === 'Yes' && intakeData.hrtDetails) {
@@ -176,10 +237,12 @@ export default async function handler(req, res) {
       if (intakeData.hasAllergies === 'Yes' && intakeData.allergies) {
         notes += `Allergies: ${intakeData.allergies}\n`;
       }
-      notes += `\n`;
     }
     
-    notes += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    // ============================================
+    // DOCUMENTS
+    // ============================================
+    notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     notes += `DOCUMENTS:\n`;
     if (pdfUrl) notes += `PDF: ${pdfUrl}\n`;
     if (photoIdUrl) notes += `Photo ID: ${photoIdUrl}\n`;
@@ -310,7 +373,22 @@ export default async function handler(req, res) {
       }
     }
 
-    // Add tag for intake submitted
+    // Build tags based on intake data
+    const tags = ['intake-submitted'];
+    
+    if (intakeData) {
+      if (intakeData.injured === 'Yes') {
+        tags.push('injury-recovery');
+      }
+      if (intakeData.interestedInOptimization === 'Yes') {
+        tags.push('optimization-interest');
+      }
+      if (intakeData.isMinor === 'Yes') {
+        tags.push('minor-patient');
+      }
+    }
+
+    // Add tags
     if (finalContactId) {
       try {
         await fetch(
@@ -322,10 +400,10 @@ export default async function handler(req, res) {
               'Version': '2021-07-28',
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ tags: ['intake-submitted'] })
+            body: JSON.stringify({ tags })
           }
         );
-        console.log('✅ Tag added');
+        console.log('✅ Tags added:', tags);
       } catch (tagError) {
         console.error('Tag error:', tagError);
       }
@@ -336,7 +414,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       success: true, 
       contactId: finalContactId,
-      action: contactId ? 'updated' : 'created'
+      action: contactId ? 'updated' : 'created',
+      tags
     });
 
   } catch (error) {

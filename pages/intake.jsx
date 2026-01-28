@@ -690,7 +690,8 @@ export default function IntakeForm() {
                 </div>
 
                 <div className="conditional-field" id="guardianFieldsTop">
-                  <div className="form-row">
+                  <p style={{fontSize: '0.875rem', color: 'var(--gray-600)', marginBottom: '1rem'}}>The phone and email above will be used as the primary contact for the parent/guardian.</p>
+                  <div className="form-row" style={{marginBottom: 0}}>
                     <div className="form-group">
                       <label htmlFor="guardianName">Parent/Guardian Name <span className="required">*</span></label>
                       <input type="text" id="guardianName" name="guardianName" placeholder="Full legal name" />
@@ -705,17 +706,6 @@ export default function IntakeForm() {
                         <option value="Other">Other</option>
                       </select>
                       <span className="field-error" id="guardianRelationshipError">Please select relationship</span>
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="guardianPhone">Parent/Guardian Phone <span className="required">*</span></label>
-                      <input type="tel" id="guardianPhone" name="guardianPhone" placeholder="(555) 555-5555" />
-                      <span className="field-error" id="guardianPhoneError">Phone number is required</span>
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="guardianEmail">Parent/Guardian Email</label>
-                      <input type="email" id="guardianEmail" name="guardianEmail" placeholder="parent@email.com" />
                     </div>
                   </div>
                 </div>
@@ -802,49 +792,73 @@ export default function IntakeForm() {
                 </div>
               </div>
 
-              {/* Injury Assessment */}
-              <div className="form-row">
-                <div className="form-group full-width">
-                  <label>Are you injured? <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="injuredYes" name="injured" value="Yes" required />
-                      <label htmlFor="injuredYes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="injuredNo" name="injured" value="No" />
-                      <label htmlFor="injuredNo">No</label>
-                    </div>
-                  </div>
-                  <span className="field-error" id="injuredError">Please select an option</span>
+              {/* Decision Tree - Two Doors */}
+              <div style={{background: 'var(--gray-50)', padding: '1.5rem', borderRadius: '8px', marginTop: '1rem'}}>
+                <p style={{fontWeight: 600, marginBottom: '1rem', color: 'var(--gray-800)'}}>Help us understand your goals:</p>
 
-                  <div className="conditional-field" id="injuryFields">
-                    <div className="form-row">
-                      <div className="form-group full-width">
-                        <label htmlFor="injuryDescription">What is your injury? <span className="required">*</span></label>
-                        <textarea id="injuryDescription" name="injuryDescription" rows="2" placeholder="Describe your injury..."></textarea>
-                        <span className="field-error" id="injuryDescriptionError">Please describe your injury</span>
+                {/* Door 1: Injury */}
+                <div style={{marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--gray-200)'}}>
+                  <div className="form-group full-width">
+                    <label style={{fontSize: '1rem', fontWeight: 600, color: '#b91c1c'}}>🩹 Are you dealing with an injury? <span className="required">*</span></label>
+                    <div className="radio-group">
+                      <div className="radio-item">
+                        <input type="radio" id="injuredYes" name="injured" value="Yes" required />
+                        <label htmlFor="injuredYes">Yes</label>
+                      </div>
+                      <div className="radio-item">
+                        <input type="radio" id="injuredNo" name="injured" value="No" />
+                        <label htmlFor="injuredNo">No</label>
                       </div>
                     </div>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label htmlFor="injuryLocation">Where is it located? <span className="required">*</span></label>
-                        <input type="text" id="injuryLocation" name="injuryLocation" placeholder="e.g., Lower back, Right knee" />
-                        <span className="field-error" id="injuryLocationError">Please specify the location</span>
+                    <span className="field-error" id="injuredError">Please select an option</span>
+
+                    <div className="conditional-field" id="injuryFields">
+                      <div className="form-row">
+                        <div className="form-group full-width">
+                          <label htmlFor="injuryDescription">What is your injury? <span className="required">*</span></label>
+                          <textarea id="injuryDescription" name="injuryDescription" rows="2" placeholder="Describe your injury..."></textarea>
+                          <span className="field-error" id="injuryDescriptionError">Please describe your injury</span>
+                        </div>
                       </div>
-                      <div className="form-group">
-                        <label htmlFor="injuryDate">When did it occur?</label>
-                        <input type="text" id="injuryDate" name="injuryDate" placeholder="e.g., 2 weeks ago" />
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="injuryLocation">Where is it located? <span className="required">*</span></label>
+                          <input type="text" id="injuryLocation" name="injuryLocation" placeholder="e.g., Lower back, Right knee" />
+                          <span className="field-error" id="injuryLocationError">Please specify the location</span>
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="injuryDate">When did it occur?</label>
+                          <input type="text" id="injuryDate" name="injuryDate" placeholder="e.g., 2 weeks ago" />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Door 2: Optimization */}
+                <div>
+                  <div className="form-group full-width">
+                    <label style={{fontSize: '1rem', fontWeight: 600, color: '#0369a1'}}>⚡ Are you interested in energy & optimization? <span className="required">*</span></label>
+                    <p style={{fontSize: '0.875rem', color: 'var(--gray-600)', marginBottom: '0.75rem'}}>This includes: low energy, brain fog, weight management, hormone balance, sleep issues, or general wellness optimization.</p>
+                    <div className="radio-group">
+                      <div className="radio-item">
+                        <input type="radio" id="optimizationYes" name="interestedInOptimization" value="Yes" required />
+                        <label htmlFor="optimizationYes">Yes, tell me more</label>
+                      </div>
+                      <div className="radio-item">
+                        <input type="radio" id="optimizationNo" name="interestedInOptimization" value="No" />
+                        <label htmlFor="optimizationNo">No, not at this time</label>
+                      </div>
+                    </div>
+                    <span className="field-error" id="interestedInOptimizationError">Please select an option</span>
+                  </div>
+                </div>
               </div>
 
-              {/* NEW: Symptom Checklist - Energy & Optimization */}
-              <div className="symptom-section">
-                <h3 className="symptom-section-title">⚡ Energy & Optimization Symptoms</h3>
-                <p className="symptom-section-subtitle">Check any symptoms you're currently experiencing. This helps us understand if you might benefit from hormone optimization or metabolic support.</p>
+              {/* Symptom Checklist - Only shows if interested in optimization */}
+              <div className="symptom-section" id="symptomSection" style={{display: 'none'}}>
+                <h3 className="symptom-section-title">⚡ Which symptoms are you experiencing?</h3>
+                <p className="symptom-section-subtitle">Check all that apply. This helps us understand how we can help.</p>
 
                 <div className="symptom-grid">
                   {/* Brain Fog */}
@@ -918,7 +932,7 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Low Libido */}
+                  {/* Low Libido - Hidden for minors */}
                   <div className="symptom-item" id="symptomLibido">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_libido" name="symptom_libido" value="Low libido / sexual dysfunction" />
@@ -1700,13 +1714,26 @@ function initializeForm() {
     });
   });
 
-  // Initialize guardian phone mask
-  if (typeof IMask !== 'undefined') {
-    const guardianPhoneEl = document.getElementById('guardianPhone');
-    if (guardianPhoneEl) {
-      IMask(guardianPhoneEl, { mask: '(000) 000-0000' });
-    }
-  }
+  // Optimization interest toggle - shows/hides symptom checklist
+  document.querySelectorAll('input[name="interestedInOptimization"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const showSymptoms = radio.value === 'Yes' && radio.checked;
+      const symptomSection = document.getElementById('symptomSection');
+      if (symptomSection) {
+        symptomSection.style.display = showSymptoms ? 'block' : 'none';
+        
+        // If hiding, clear all symptom checkboxes
+        if (!showSymptoms) {
+          symptomCheckboxes.forEach(cb => {
+            if (cb.checked) {
+              cb.checked = false;
+              cb.dispatchEvent(new Event('change'));
+            }
+          });
+        }
+      }
+    });
+  });
 
   // Medical condition radios
   document.querySelectorAll('.condition-radio').forEach(radio => {
@@ -1819,8 +1846,10 @@ function initializeForm() {
     if (isMinor && isMinor.value === 'Yes') {
       validateField('guardianName', 'guardianNameError');
       validateField('guardianRelationship', 'guardianRelationshipError');
-      validateField('guardianPhone', 'guardianPhoneError');
     }
+
+    // Optimization interest validation
+    validateRadio('interestedInOptimization', 'interestedInOptimizationError');
 
     // Photo ID validation
     const photoIdInput = document.getElementById('photoId');
@@ -1931,7 +1960,10 @@ function initializeForm() {
         injuryLocation: getValue('injuryLocation'),
         injuryDate: getValue('injuryDate'),
 
-        // NEW: Symptoms
+        // Optimization Interest
+        interestedInOptimization: getRadio('interestedInOptimization'),
+
+        // NEW: Symptoms (only if interested in optimization)
         symptoms: symptoms,
         symptomFollowups: symptomFollowups,
         symptomDuration: getRadio('symptomDuration'),
@@ -1957,8 +1989,6 @@ function initializeForm() {
         isMinor: getRadio('isMinor'),
         guardianName: getValue('guardianName'),
         guardianRelationship: getValue('guardianRelationship'),
-        guardianPhone: getValue('guardianPhone'),
-        guardianEmail: getValue('guardianEmail'),
 
         // Signature
         signatureDate: getValue('signatureDate'),

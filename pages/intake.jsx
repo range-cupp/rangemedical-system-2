@@ -1,6 +1,11 @@
 import Head from 'next/head';
 import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default function IntakeForm() {
   const [scriptsLoaded, setScriptsLoaded] = useState(0);
@@ -230,6 +235,36 @@ export default function IntakeForm() {
 
         .conditional-field.visible {
           display: block;
+        }
+
+        /* File upload styles */
+        .file-upload-container {
+          margin-top: 0.5rem;
+        }
+
+        .file-preview {
+          display: none;
+          margin-top: 0.75rem;
+          padding: 0.75rem;
+          background: var(--gray-50);
+          border-radius: 4px;
+          border: 1px solid var(--gray-200);
+        }
+
+        .file-preview.visible {
+          display: block;
+        }
+
+        .file-preview img {
+          max-width: 200px;
+          max-height: 150px;
+          border-radius: 4px;
+          margin-bottom: 0.5rem;
+        }
+
+        .file-name {
+          font-size: 0.875rem;
+          color: var(--gray-600);
         }
 
         /* Symptom Checklist Styles */
@@ -669,7 +704,7 @@ export default function IntakeForm() {
                 </div>
               </div>
 
-              {/* Minor Section - MOVED TO TOP */}
+              {/* Minor Section */}
               <div className="minor-section" style={{marginTop: '1rem', marginBottom: '1rem'}}>
                 <h3 className="minor-section-title">👶 Is this patient under 18 years old?</h3>
                 <p className="minor-section-subtitle">If yes, a parent or legal guardian must complete this form.</p>
@@ -847,13 +882,12 @@ export default function IntakeForm() {
                 </div>
               </div>
 
-              {/* Symptom Checklist - Only shows if interested in optimization */}
+              {/* Symptom Checklist */}
               <div className="symptom-section" id="symptomSection" style={{display: 'none'}}>
                 <h3 className="symptom-section-title">⚡ Which symptoms are you experiencing?</h3>
                 <p className="symptom-section-subtitle">Check all that apply. This helps us understand how we can help.</p>
 
                 <div className="symptom-grid">
-                  {/* Brain Fog */}
                   <div className="symptom-item" id="symptomBrainFog">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_brainFog" name="symptom_brainFog" value="Brain fog / difficulty concentrating" />
@@ -870,7 +904,6 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Fatigue */}
                   <div className="symptom-item" id="symptomFatigue">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_fatigue" name="symptom_fatigue" value="Fatigue / low energy" />
@@ -888,7 +921,6 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Poor Sleep */}
                   <div className="symptom-item" id="symptomSleep">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_sleep" name="symptom_sleep" value="Poor sleep / insomnia" />
@@ -907,7 +939,6 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Weight Gain */}
                   <div className="symptom-item" id="symptomWeight">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_weight" name="symptom_weight" value="Weight gain / difficulty losing weight" />
@@ -924,7 +955,6 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Low Libido - Hidden for minors */}
                   <div className="symptom-item" id="symptomLibido">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_libido" name="symptom_libido" value="Low libido / sexual dysfunction" />
@@ -942,7 +972,6 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Mood Changes */}
                   <div className="symptom-item" id="symptomMood">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_mood" name="symptom_mood" value="Mood changes / irritability / anxiety" />
@@ -959,7 +988,6 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Slow Recovery */}
                   <div className="symptom-item" id="symptomRecovery">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_recovery" name="symptom_recovery" value="Slow recovery from workouts" />
@@ -976,7 +1004,6 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Muscle Loss */}
                   <div className="symptom-item" id="symptomMuscle">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_muscle" name="symptom_muscle" value="Muscle loss / weakness" />
@@ -993,7 +1020,6 @@ export default function IntakeForm() {
                     </div>
                   </div>
 
-                  {/* Hair Thinning */}
                   <div className="symptom-item" id="symptomHair">
                     <div className="symptom-checkbox-row">
                       <input type="checkbox" id="symptom_hair" name="symptom_hair" value="Hair thinning or loss" />
@@ -1012,7 +1038,6 @@ export default function IntakeForm() {
                   </div>
                 </div>
 
-                {/* Duration Question */}
                 <div className="symptom-duration" id="symptomDuration">
                   <label>How long have you been experiencing these symptoms?</label>
                   <div className="duration-options">
@@ -1039,7 +1064,7 @@ export default function IntakeForm() {
                   </div>
                 </div>
               </div>
-              {/* Optional Additional Notes */}
+
               <div className="form-row" style={{marginTop: '1.5rem'}}>
                 <div className="form-group full-width">
                   <label htmlFor="additionalNotes">Anything else we should know?</label>
@@ -1048,7 +1073,7 @@ export default function IntakeForm() {
               </div>
             </div>
 
-            {/* Healthcare Providers - SIMPLIFIED */}
+            {/* Healthcare Providers */}
             <div className="section">
               <h2 className="section-title">Healthcare Providers</h2>
 
@@ -1077,7 +1102,6 @@ export default function IntakeForm() {
                 </div>
               </div>
 
-              {/* Recent Hospitalizations */}
               <div className="form-row">
                 <div className="form-group full-width">
                   <label>Have you been hospitalized in the past year? <span className="required">*</span></label>
@@ -1104,7 +1128,7 @@ export default function IntakeForm() {
               </div>
             </div>
 
-            {/* Medical History - ORIGINAL CONDITIONS */}
+            {/* Medical History */}
             <div className="section">
               <h2 className="section-title">Medical History</h2>
               <p style={{marginBottom: '1.5rem', color: 'var(--gray-700)', fontSize: '0.9375rem'}}>Please answer YES or NO for each condition.</p>
@@ -1180,7 +1204,7 @@ export default function IntakeForm() {
                 </div>
               </div>
 
-              {/* Metabolic & Endocrine */}
+              {/* Metabolic */}
               <div className="condition-category" style={{backgroundColor: '#fef3c7', borderLeft: '4px solid #f59e0b'}}>
                 <h3 style={{color: '#92400e'}}>⚡ Metabolic & Endocrine</h3>
 
@@ -1233,8 +1257,8 @@ export default function IntakeForm() {
                         <label htmlFor="thyroid-type">Type</label>
                         <select id="thyroid-type" name="thyroidType">
                           <option value="">Select...</option>
-                          <option value="Hypothyroid">Hypothyroid (underactive)</option>
-                          <option value="Hyperthyroid">Hyperthyroid (overactive)</option>
+                          <option value="Hypothyroid">Hypothyroid</option>
+                          <option value="Hyperthyroid">Hyperthyroid</option>
                           <option value="Hashimoto's">Hashimoto's</option>
                           <option value="Graves' Disease">Graves' Disease</option>
                           <option value="Other">Other</option>
@@ -1266,15 +1290,9 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="depression-details">
-                    <div className="form-row" style={{marginBottom: 0}}>
-                      <div className="form-group">
-                        <label htmlFor="depression-type">Type</label>
-                        <input type="text" id="depression-type" name="depressionType" placeholder="e.g., Anxiety, Depression, Both" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="depression-year">Year</label>
-                        <input type="text" id="depression-year" name="depressionYear" placeholder="e.g., 2020" />
-                      </div>
+                    <div className="form-group">
+                      <label htmlFor="depression-year">Year Diagnosed</label>
+                      <input type="text" id="depression-year" name="depressionYear" placeholder="e.g., 2020" />
                     </div>
                   </div>
                 </div>
@@ -1292,15 +1310,9 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="eatingDisorder-details">
-                    <div className="form-row" style={{marginBottom: 0}}>
-                      <div className="form-group">
-                        <label htmlFor="eatingDisorder-type">Type</label>
-                        <input type="text" id="eatingDisorder-type" name="eatingDisorderType" placeholder="e.g., Anorexia, Bulimia" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="eatingDisorder-year">Year</label>
-                        <input type="text" id="eatingDisorder-year" name="eatingDisorderYear" placeholder="e.g., 2020" />
-                      </div>
+                    <div className="form-group">
+                      <label htmlFor="eatingDisorder-year">Year Diagnosed</label>
+                      <input type="text" id="eatingDisorder-year" name="eatingDisorderYear" placeholder="e.g., 2020" />
                     </div>
                   </div>
                 </div>
@@ -1323,15 +1335,9 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="kidney-details">
-                    <div className="form-row" style={{marginBottom: 0}}>
-                      <div className="form-group">
-                        <label htmlFor="kidney-type">Type</label>
-                        <input type="text" id="kidney-type" name="kidneyType" placeholder="e.g., CKD" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="kidney-year">Year</label>
-                        <input type="text" id="kidney-year" name="kidneyYear" placeholder="e.g., 2020" />
-                      </div>
+                    <div className="form-group">
+                      <label htmlFor="kidney-year">Year Diagnosed</label>
+                      <input type="text" id="kidney-year" name="kidneyYear" placeholder="e.g., 2020" />
                     </div>
                   </div>
                 </div>
@@ -1349,15 +1355,9 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="liver-details">
-                    <div className="form-row" style={{marginBottom: 0}}>
-                      <div className="form-group">
-                        <label htmlFor="liver-type">Type</label>
-                        <input type="text" id="liver-type" name="liverType" placeholder="e.g., Fatty Liver" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="liver-year">Year</label>
-                        <input type="text" id="liver-year" name="liverYear" placeholder="e.g., 2020" />
-                      </div>
+                    <div className="form-group">
+                      <label htmlFor="liver-year">Year Diagnosed</label>
+                      <input type="text" id="liver-year" name="liverYear" placeholder="e.g., 2020" />
                     </div>
                   </div>
                 </div>
@@ -1419,17 +1419,12 @@ export default function IntakeForm() {
                   </div>
                 </div>
               </div>
-
-              <div style={{backgroundColor: '#f0fdf4', border: '2px solid #22c55e', padding: '1rem', borderRadius: '4px'}}>
-                <p style={{margin: 0, color: '#15803d', fontSize: '0.9375rem'}}>✅ <strong>No conditions?</strong> If you answered NO to all, you're all set!</p>
-              </div>
             </div>
 
             {/* Medications & Allergies */}
             <div className="section">
               <h2 className="section-title">Medications & Allergies</h2>
 
-              {/* HRT Question - ORIGINAL */}
               <div className="form-row">
                 <div className="form-group full-width" style={{backgroundColor: '#dbeafe', border: '2px solid #3b82f6', padding: '1.5rem', borderRadius: '4px', marginBottom: '1.5rem'}}>
                   <label style={{fontSize: '1.125rem', fontWeight: 600, color: '#1e40af', marginBottom: '1rem', display: 'block'}}>Are you currently on Hormone Replacement Therapy (HRT)? <span className="required">*</span></label>
@@ -1505,15 +1500,21 @@ export default function IntakeForm() {
               </div>
             </div>
 
-            {/* Photo ID Upload - ORIGINAL */}
+            {/* Photo ID Upload */}
             <div className="section">
               <h2 className="section-title">Photo ID</h2>
               <div className="form-row">
                 <div className="form-group full-width">
                   <label htmlFor="photoId">Upload a photo of your government-issued ID <span className="required">*</span></label>
-                  <input type="file" id="photoId" name="photoId" accept="image/*,.pdf" required style={{padding: '0.5rem 0'}} />
-                  <span className="field-hint">Driver's license, state ID, or passport. File size limit: 10MB</span>
-                  <span className="field-error" id="photoIdError">Photo ID is required</span>
+                  <div className="file-upload-container">
+                    <input type="file" id="photoId" name="photoId" accept="image/*,.pdf" required style={{padding: '0.5rem 0'}} />
+                    <span className="field-hint">Driver's license, state ID, or passport. File size limit: 10MB</span>
+                    <span className="field-error" id="photoIdError">Photo ID is required</span>
+                    <div className="file-preview" id="photoIdPreview">
+                      <img id="photoIdPreviewImg" style={{display: 'none'}} alt="ID Preview" />
+                      <div className="file-name" id="photoIdFileName"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1577,6 +1578,17 @@ export default function IntakeForm() {
 }
 
 function initializeForm() {
+  // Initialize Supabase client for file uploads
+  const supabaseClient = createClient(
+    'https://teivfptpozltpqwahgdl.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  );
+
+  // Track uploaded file URLs
+  let uploadedPhotoIdUrl = null;
+  let uploadedSignatureUrl = null;
+  let uploadedPdfUrl = null;
+
   // Set today's date
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -1589,7 +1601,6 @@ function initializeForm() {
     penColor: 'rgb(0, 0, 0)'
   });
 
-  // Resize canvas
   function resizeCanvas() {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     canvas.width = canvas.offsetWidth * ratio;
@@ -1600,12 +1611,10 @@ function initializeForm() {
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
-  // Clear signature button
   document.getElementById('clearSignature').addEventListener('click', () => {
     signaturePad.clear();
   });
 
-  // Store signaturePad on window for form submission
   window.signaturePad = signaturePad;
 
   // Initialize input masks
@@ -1614,21 +1623,354 @@ function initializeForm() {
     IMask(document.getElementById('dob'), { mask: '00/00/0000' });
   }
 
-  // How heard about us - Other field
+  // ============================================
+  // FILE UPLOAD FUNCTIONS
+  // ============================================
+  
+  async function uploadFileToStorage(file, folder, prefix) {
+    try {
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(7);
+      const extension = file.name.split('.').pop();
+      const fileName = `${folder}/${prefix}-${timestamp}-${randomStr}.${extension}`;
+      
+      console.log('📤 Uploading to:', fileName);
+      
+      const { data, error } = await supabaseClient.storage
+        .from('medical-documents')
+        .upload(fileName, file, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabaseClient.storage
+        .from('medical-documents')
+        .getPublicUrl(fileName);
+      
+      console.log('✅ Uploaded:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+  }
+
+  async function uploadBase64ToStorage(base64Data, folder, prefix, extension = 'png') {
+    try {
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(7);
+      const fileName = `${folder}/${prefix}-${timestamp}-${randomStr}.${extension}`;
+      
+      // Convert base64 to blob
+      const base64Content = base64Data.split(',')[1];
+      const mimeType = base64Data.split(';')[0].split(':')[1] || 'image/png';
+      const byteCharacters = atob(base64Content);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType });
+      
+      console.log('📤 Uploading base64 to:', fileName);
+      
+      const { data, error } = await supabaseClient.storage
+        .from('medical-documents')
+        .upload(fileName, blob, {
+          contentType: mimeType,
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabaseClient.storage
+        .from('medical-documents')
+        .getPublicUrl(fileName);
+      
+      console.log('✅ Uploaded:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Base64 upload error:', error);
+      throw error;
+    }
+  }
+
+  async function uploadPdfToStorage(pdfBlob, patientName) {
+    try {
+      const timestamp = Date.now();
+      const safeName = patientName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const fileName = `medical-intake/${safeName}-${timestamp}.pdf`;
+      
+      console.log('📤 Uploading PDF to:', fileName);
+      
+      const { data, error } = await supabaseClient.storage
+        .from('medical-documents')
+        .upload(fileName, pdfBlob, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabaseClient.storage
+        .from('medical-documents')
+        .getPublicUrl(fileName);
+      
+      console.log('✅ PDF uploaded:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // GENERATE PDF
+  // ============================================
+  
+  async function generatePDF(formData) {
+    let jsPDF;
+    if (window.jspdf && window.jspdf.jsPDF) {
+      jsPDF = window.jspdf.jsPDF;
+    } else if (window.jsPDF) {
+      jsPDF = window.jsPDF;
+    } else {
+      throw new Error('jsPDF library not loaded');
+    }
+    
+    const doc = new jsPDF({ compress: true });
+    let yPos = 20;
+    const leftMargin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const contentWidth = pageWidth - 40;
+    
+    function checkPageBreak(neededSpace = 20) {
+      if (yPos + neededSpace > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+    }
+    
+    function addText(text, fontSize = 11, isBold = false) {
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+      const lines = doc.splitTextToSize(String(text || ''), contentWidth);
+      checkPageBreak(lines.length * fontSize * 0.4 + 5);
+      doc.text(lines, leftMargin, yPos);
+      yPos += (lines.length * fontSize * 0.4) + 2;
+    }
+    
+    function addLabelValue(label, value) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, leftMargin, yPos);
+      doc.setFont('helvetica', 'normal');
+      const labelWidth = doc.getTextWidth(label) + 2;
+      const valueLines = doc.splitTextToSize(String(value || 'N/A'), contentWidth - labelWidth - 10);
+      doc.text(valueLines, leftMargin + labelWidth, yPos);
+      yPos += (valueLines.length * 5) + 3;
+      checkPageBreak();
+    }
+    
+    function addSection(text) {
+      checkPageBreak(15);
+      yPos += 5;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(text, leftMargin, yPos);
+      yPos += 2;
+      doc.setLineWidth(0.5);
+      doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
+      yPos += 8;
+    }
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RANGE MEDICAL', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 8;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text('New Patient Medical Intake Form', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 6;
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('Submitted: ' + formData.signatureDate, pageWidth / 2, yPos, { align: 'center' });
+    doc.setTextColor(0);
+    yPos += 5;
+    doc.setLineWidth(1);
+    doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
+    yPos += 10;
+    
+    // Personal Info
+    addSection('PERSONAL INFORMATION');
+    addLabelValue('Legal Name: ', formData.firstName + ' ' + formData.lastName);
+    if (formData.preferredName) addLabelValue('Preferred Name: ', formData.preferredName);
+    addLabelValue('Gender: ', formData.gender);
+    addLabelValue('Date of Birth: ', formData.dateOfBirth);
+    addLabelValue('Phone: ', formData.phone);
+    addLabelValue('Email: ', formData.email);
+    addLabelValue('Address: ', `${formData.streetAddress}, ${formData.city}, ${formData.state} ${formData.postalCode}`);
+    addLabelValue('How Heard About Us: ', formData.howHeardAboutUs);
+    
+    // Minor/Guardian
+    if (formData.isMinor === 'Yes') {
+      addSection('GUARDIAN INFORMATION');
+      addLabelValue('Minor Patient: ', 'Yes');
+      addLabelValue('Guardian Name: ', formData.guardianName);
+      addLabelValue('Relationship: ', formData.guardianRelationship);
+    }
+    
+    // Health Concerns
+    addSection('HEALTH CONCERNS');
+    addLabelValue('Currently Injured: ', formData.injured);
+    if (formData.injured === 'Yes') {
+      addLabelValue('Injury Description: ', formData.injuryDescription);
+      addLabelValue('Injury Location: ', formData.injuryLocation);
+      if (formData.injuryDate) addLabelValue('Injury Date: ', formData.injuryDate);
+    }
+    
+    addLabelValue('Interested in Optimization: ', formData.interestedInOptimization);
+    if (formData.interestedInOptimization === 'Yes' && formData.symptoms && formData.symptoms.length > 0) {
+      addLabelValue('Symptoms: ', formData.symptoms.join(', '));
+      if (formData.symptomDuration) addLabelValue('Symptom Duration: ', formData.symptomDuration);
+    }
+    
+    if (formData.additionalNotes) {
+      addLabelValue('Additional Notes: ', formData.additionalNotes);
+    }
+    
+    // Healthcare Providers
+    addSection('HEALTHCARE PROVIDERS');
+    addLabelValue('Has PCP: ', formData.hasPCP);
+    if (formData.hasPCP === 'Yes') {
+      addLabelValue('PCP Name: ', formData.pcpName);
+    }
+    addLabelValue('Recent Hospitalization: ', formData.recentHospitalization);
+    if (formData.recentHospitalization === 'Yes') {
+      addLabelValue('Reason: ', formData.hospitalizationReason);
+    }
+    
+    // Medical History
+    addSection('MEDICAL HISTORY');
+    const conditions = [
+      { key: 'hypertension', label: 'High Blood Pressure' },
+      { key: 'highCholesterol', label: 'High Cholesterol' },
+      { key: 'heartDisease', label: 'Heart Disease' },
+      { key: 'diabetes', label: 'Diabetes' },
+      { key: 'thyroid', label: 'Thyroid Disorder' },
+      { key: 'depression', label: 'Depression/Anxiety' },
+      { key: 'eatingDisorder', label: 'Eating Disorder' },
+      { key: 'kidney', label: 'Kidney Disease' },
+      { key: 'liver', label: 'Liver Disease' },
+      { key: 'autoimmune', label: 'Autoimmune Disorder' },
+      { key: 'cancer', label: 'Cancer' }
+    ];
+    
+    conditions.forEach(({ key, label }) => {
+      const condition = formData.medicalHistory[key];
+      if (condition) {
+        let value = condition.response;
+        if (condition.response === 'Yes') {
+          if (condition.type) value += ` (Type: ${condition.type})`;
+          if (condition.year) value += ` (Year: ${condition.year})`;
+        }
+        addLabelValue(label + ': ', value);
+      }
+    });
+    
+    // Medications
+    addSection('MEDICATIONS & ALLERGIES');
+    addLabelValue('On HRT: ', formData.onHRT);
+    if (formData.onHRT === 'Yes' && formData.hrtDetails) {
+      addLabelValue('HRT Details: ', formData.hrtDetails);
+    }
+    addLabelValue('On Other Medications: ', formData.onMedications);
+    if (formData.onMedications === 'Yes' && formData.currentMedications) {
+      addLabelValue('Medications: ', formData.currentMedications);
+    }
+    addLabelValue('Has Allergies: ', formData.hasAllergies);
+    if (formData.hasAllergies === 'Yes' && formData.allergies) {
+      addLabelValue('Allergies: ', formData.allergies);
+    }
+    
+    // Signature
+    addSection('CONSENT & SIGNATURE');
+    addText('I certify that the information provided is true and complete to the best of my knowledge.');
+    addText('I authorize Range Medical to use this information to provide care.');
+    yPos += 5;
+    addLabelValue('Date: ', formData.signatureDate);
+    
+    // Add signature image if available
+    if (formData.signatureData && formData.signatureData.startsWith('data:')) {
+      checkPageBreak(40);
+      try {
+        doc.addImage(formData.signatureData, 'PNG', leftMargin, yPos, 60, 25);
+        yPos += 30;
+      } catch (e) {
+        console.error('Error adding signature to PDF:', e);
+      }
+    }
+    
+    // Footer
+    yPos += 10;
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text('© 2026 Range Medical | Confidential Patient Information', pageWidth / 2, 285, { align: 'center' });
+    
+    return doc.output('blob');
+  }
+
+  // ============================================
+  // PHOTO ID PREVIEW
+  // ============================================
+  
+  document.getElementById('photoId').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('photoIdPreview');
+    const previewImg = document.getElementById('photoIdPreviewImg');
+    const fileName = document.getElementById('photoIdFileName');
+    
+    if (file) {
+      preview.classList.add('visible');
+      fileName.textContent = file.name + ' (Ready to upload)';
+      
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewImg.style.display = 'none';
+      }
+    } else {
+      preview.classList.remove('visible');
+    }
+  });
+
+  // ============================================
+  // CONDITIONAL FIELD TOGGLES
+  // ============================================
+  
   const howHeardSelect = document.getElementById('howHeardAboutUs');
   const howHeardOtherField = document.getElementById('howHeardOtherField');
   howHeardSelect.addEventListener('change', () => {
     howHeardOtherField.classList.toggle('visible', howHeardSelect.value === 'Other');
   });
 
-  // Injury conditional fields
   document.querySelectorAll('input[name="injured"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.getElementById('injuryFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
-  // Symptom checkboxes
   const symptomCheckboxes = document.querySelectorAll('input[id^="symptom_"]');
   const symptomDuration = document.getElementById('symptomDuration');
 
@@ -1646,62 +1988,46 @@ function initializeForm() {
     });
   });
 
-  // PCP conditional fields
   document.querySelectorAll('input[name="hasPCP"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.getElementById('pcpFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
-  // Hospitalization conditional fields
   document.querySelectorAll('input[name="recentHospitalization"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.getElementById('hospitalizationFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
-  // HRT conditional fields
   document.querySelectorAll('input[name="onHRT"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.getElementById('hrtFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
-  // Medications conditional fields
   document.querySelectorAll('input[name="onMedications"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.getElementById('medicationsFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
-  // Allergies conditional fields
   document.querySelectorAll('input[name="hasAllergies"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.getElementById('allergiesFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
-  // Minor / Guardian fields - NOW AT TOP OF FORM
   document.querySelectorAll('input[name="isMinor"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const isMinor = radio.value === 'Yes' && radio.checked;
-      
-      // Show/hide guardian fields at top
       document.getElementById('guardianFieldsTop').classList.toggle('visible', isMinor);
-      
-      // Show/hide guardian consent text
       document.getElementById('guardianConsentText').style.display = isMinor ? 'list-item' : 'none';
+      document.getElementById('signatureLabel').textContent = isMinor ? 'Parent/Guardian Signature *' : 'Patient Signature *';
       
-      // Update signature label
-      document.getElementById('signatureLabel').textContent = isMinor 
-        ? 'Parent/Guardian Signature *' 
-        : 'Patient Signature *';
-      
-      // Hide inappropriate symptoms for minors (libido/sexual dysfunction)
       const libidoSymptom = document.getElementById('symptomLibido');
       if (libidoSymptom) {
         libidoSymptom.style.display = isMinor ? 'none' : 'block';
-        // Uncheck if hidden
         if (isMinor) {
           const libidoCheckbox = document.getElementById('symptom_libido');
           if (libidoCheckbox) {
@@ -1713,15 +2039,12 @@ function initializeForm() {
     });
   });
 
-  // Optimization interest toggle - shows/hides symptom checklist
   document.querySelectorAll('input[name="interestedInOptimization"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const showSymptoms = radio.value === 'Yes' && radio.checked;
       const symptomSection = document.getElementById('symptomSection');
       if (symptomSection) {
         symptomSection.style.display = showSymptoms ? 'block' : 'none';
-        
-        // If hiding, clear all symptom checkboxes
         if (!showSymptoms) {
           symptomCheckboxes.forEach(cb => {
             if (cb.checked) {
@@ -1734,7 +2057,6 @@ function initializeForm() {
     });
   });
 
-  // Medical condition radios
   document.querySelectorAll('.condition-radio').forEach(radio => {
     radio.addEventListener('change', () => {
       const conditionName = radio.name;
@@ -1752,7 +2074,10 @@ function initializeForm() {
     statusEl.className = 'status-message visible ' + type;
   }
 
-  // Form submission
+  // ============================================
+  // FORM SUBMISSION
+  // ============================================
+  
   const form = document.getElementById('intakeForm');
   const submitBtn = document.getElementById('submitBtn');
 
@@ -1765,7 +2090,6 @@ function initializeForm() {
 
     let hasErrors = false;
 
-    // Validation helpers
     const validateField = (id, errorId) => {
       const field = document.getElementById(id);
       const error = document.getElementById(errorId);
@@ -1786,7 +2110,7 @@ function initializeForm() {
       }
     };
 
-    // Required validations
+    // Validations
     validateField('firstName', 'firstNameError');
     validateField('lastName', 'lastNameError');
     validateField('gender', 'genderError');
@@ -1801,13 +2125,13 @@ function initializeForm() {
     validateField('howHeardAboutUs', 'howHeardAboutUsError');
 
     validateRadio('injured', 'injuredError');
+    validateRadio('interestedInOptimization', 'interestedInOptimizationError');
     validateRadio('hasPCP', 'hasPCPError');
     validateRadio('recentHospitalization', 'recentHospitalizationError');
     validateRadio('onHRT', 'onHRTError');
     validateRadio('onMedications', 'onMedicationsError');
     validateRadio('hasAllergies', 'hasAllergiesError');
 
-    // Medical history validations
     ['hypertension', 'highCholesterol', 'heartDisease', 'diabetes', 'thyroid', 
      'depression', 'eatingDisorder', 'kidney', 'liver', 'autoimmune', 'cancer'].forEach(condition => {
       validateRadio(condition, null);
@@ -1846,9 +2170,6 @@ function initializeForm() {
       validateField('guardianRelationship', 'guardianRelationshipError');
     }
 
-    // Optimization interest validation
-    validateRadio('interestedInOptimization', 'interestedInOptimizationError');
-
     // Photo ID validation
     const photoIdInput = document.getElementById('photoId');
     if (!photoIdInput.files || !photoIdInput.files[0]) {
@@ -1870,13 +2191,11 @@ function initializeForm() {
       return;
     }
 
-    // Disable submit button
     submitBtn.disabled = true;
     submitBtn.textContent = 'Processing...';
     showStatus('Submitting your form...', 'loading');
 
     try {
-      // Collect form data
       const getValue = (id) => {
         const el = document.getElementById(id);
         return el ? el.value : '';
@@ -1906,7 +2225,7 @@ function initializeForm() {
                              'depression', 'eatingDisorder', 'kidney', 'liver', 'autoimmune', 'cancer'];
       
       const conditionLabels = {
-        'hypertension': 'High Blood Pressure (Hypertension)',
+        'hypertension': 'High Blood Pressure',
         'highCholesterol': 'High Cholesterol',
         'heartDisease': 'Heart Disease',
         'diabetes': 'Diabetes',
@@ -1935,6 +2254,19 @@ function initializeForm() {
         }
       });
 
+      const patientName = `${getValue('firstName')}-${getValue('lastName')}`;
+
+      // 1. Upload Photo ID
+      showStatus('Uploading photo ID...', 'loading');
+      const photoIdFile = photoIdInput.files[0];
+      uploadedPhotoIdUrl = await uploadFileToStorage(photoIdFile, 'photo-ids', patientName);
+
+      // 2. Upload Signature
+      showStatus('Uploading signature...', 'loading');
+      const signatureData = window.signaturePad.toDataURL();
+      uploadedSignatureUrl = await uploadBase64ToStorage(signatureData, 'signatures', patientName, 'png');
+
+      // Build form data object
       const formData = {
         firstName: getValue('firstName'),
         lastName: getValue('lastName'),
@@ -1951,66 +2283,71 @@ function initializeForm() {
         howHeardAboutUs: getValue('howHeardAboutUs') === 'Other' 
           ? `Other: ${getValue('howHeardOther')}` 
           : getValue('howHeardAboutUs'),
-
-        // Health Concerns
         injured: getRadio('injured'),
         injuryDescription: getValue('injuryDescription'),
         injuryLocation: getValue('injuryLocation'),
         injuryDate: getValue('injuryDate'),
-
-        // Optimization Interest
         interestedInOptimization: getRadio('interestedInOptimization'),
-
-        // NEW: Symptoms (only if interested in optimization)
         symptoms: symptoms,
         symptomFollowups: symptomFollowups,
         symptomDuration: getRadio('symptomDuration'),
-
-        // Additional Notes
         additionalNotes: getValue('additionalNotes'),
-
-        // Healthcare Providers
         hasPCP: getRadio('hasPCP'),
         pcpName: getValue('pcpName'),
         recentHospitalization: getRadio('recentHospitalization'),
         hospitalizationReason: getValue('hospitalizationReason'),
-
-        // Medical History
         medicalHistory: medicalHistory,
-
-        // Medications
         onHRT: getRadio('onHRT'),
         hrtDetails: getValue('hrtDetails'),
         onMedications: getRadio('onMedications'),
         currentMedications: getValue('currentMedications'),
         hasAllergies: getRadio('hasAllergies'),
         allergies: getValue('allergiesList'),
-
-        // Minor/Guardian
         isMinor: getRadio('isMinor'),
         guardianName: getValue('guardianName'),
         guardianRelationship: getValue('guardianRelationship'),
-
-        // Signature
         signatureDate: getValue('signatureDate'),
-        signatureData: window.signaturePad.toDataURL(),
+        signatureData: signatureData,
         consent: true,
-
         submittedAt: new Date().toISOString()
       };
 
-      // Submit to API
-      const response = await fetch('/api/intakes', {
+      // 3. Generate PDF
+      showStatus('Generating PDF...', 'loading');
+      const pdfBlob = await generatePDF(formData);
+      
+      // Convert PDF to base64 for email attachment
+      const pdfBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(pdfBlob);
+      });
+
+      // 4. Upload PDF to Supabase
+      showStatus('Uploading PDF...', 'loading');
+      uploadedPdfUrl = await uploadPdfToStorage(pdfBlob, patientName);
+
+      // Add URLs to form data
+      formData.photoIdUrl = uploadedPhotoIdUrl;
+      formData.signatureUrl = uploadedSignatureUrl;
+      formData.pdfUrl = uploadedPdfUrl;
+      formData.pdfBase64 = pdfBase64;  // For email attachment
+
+      // 5. Save to database
+      showStatus('Saving to Range Medical system...', 'loading');
+      const dbResponse = await fetch('/api/intakes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to submit form');
+      if (!dbResponse.ok) {
+        const errorData = await dbResponse.json();
+        throw new Error(errorData.details || 'Failed to save form');
       }
 
-      // Sync to GHL
+      // 6. Sync to GHL + Send email
+      showStatus('Syncing to system...', 'loading');
       await fetch('/api/intake-to-ghl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

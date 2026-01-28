@@ -70,6 +70,11 @@ export default async function handler(req, res) {
     const isMinor = data.isMinor;
     const guardianName = data.guardianName;
     const guardianRelationship = data.guardianRelationship;
+    
+    // File URLs
+    const photoIdUrl = data.photoIdUrl;
+    const signatureUrl = data.signatureUrl;
+    const pdfUrl = data.pdfUrl;
 
     console.log('Parsed data - injured:', injured);
     console.log('Parsed data - interestedInOptimization:', interestedInOptimization);
@@ -311,6 +316,17 @@ export default async function handler(req, res) {
     notes += `   Has Allergies: ${hasAllergies || 'N/A'}\n`;
     if (hasAllergies === 'Yes' && allergies) {
       notes += `   Allergies: ${allergies}\n`;
+    }
+    
+    // ============================================
+    // DOCUMENTS
+    // ============================================
+    if (pdfUrl || photoIdUrl || signatureUrl) {
+      notes += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      notes += `📎 DOCUMENTS:\n`;
+      if (pdfUrl) notes += `   📄 Intake PDF: ${pdfUrl}\n`;
+      if (photoIdUrl) notes += `   🪪 Photo ID: ${photoIdUrl}\n`;
+      if (signatureUrl) notes += `   ✍️ Signature: ${signatureUrl}\n`;
     }
 
     console.log('Built notes length:', notes.length);
@@ -583,6 +599,14 @@ export default async function handler(req, res) {
       ${hasAllergies === 'Yes' && allergies ? `<div class="field"><span class="label">List:</span> <span class="value">${allergies}</span></div>` : ''}
     </div>
     
+    ${(pdfUrl || photoIdUrl) ? `
+    <div class="section">
+      <div class="section-title">📎 Documents</div>
+      ${pdfUrl ? `<div class="field"><a href="${pdfUrl}" style="color: #0066cc;">📄 View Intake PDF</a></div>` : ''}
+      ${photoIdUrl ? `<div class="field"><a href="${photoIdUrl}" style="color: #0066cc;">🪪 View Photo ID</a></div>` : ''}
+    </div>
+    ` : ''}
+    
     <div style="text-align: center; margin-top: 20px;">
       <a href="tel:${phone?.replace(/\D/g, '')}" class="btn">📞 Call Patient</a>
       ${finalContactId ? `<a href="https://app.gohighlevel.com/contacts/detail/${finalContactId}" class="btn">View in GHL</a>` : ''}
@@ -595,18 +619,33 @@ export default async function handler(req, res) {
 </body>
 </html>`;
 
+        // Build email payload
+        const emailPayload = {
+          from: 'Range Medical <notifications@range-medical.com>',
+          to: 'intake@range-medical.com',
+          subject: `📋 New Medical Intake: ${firstName} ${lastName}`,
+          html: emailHtml
+        };
+        
+        // Add PDF attachment if provided
+        const pdfBase64 = data.pdfBase64;
+        if (pdfBase64) {
+          emailPayload.attachments = [
+            {
+              filename: `intake-${lastName}-${firstName}.pdf`,
+              content: pdfBase64
+            }
+          ];
+          console.log('📎 PDF attachment added to email');
+        }
+        
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${RESEND_API_KEY}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            from: 'Range Medical <notifications@range-medical.com>',
-            to: 'intake@range-medical.com',
-            subject: `📋 New Medical Intake: ${firstName} ${lastName}`,
-            html: emailHtml
-          })
+          body: JSON.stringify(emailPayload)
         });
 
         const emailResult = await emailResponse.json();

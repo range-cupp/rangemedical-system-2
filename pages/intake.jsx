@@ -784,16 +784,8 @@ export default function IntakeForm() {
             <div className="section">
               <h2 className="section-title">Health Concerns</h2>
 
-              <div className="form-row">
-                <div className="form-group full-width">
-                  <label htmlFor="whatBringsYou">What Brings You In Today? <span className="required">*</span></label>
-                  <textarea id="whatBringsYou" name="whatBringsYou" rows="4" placeholder="Please describe your health concerns, symptoms, or wellness goals..." required></textarea>
-                  <span className="field-error" id="whatBringsYouError">This field is required</span>
-                </div>
-              </div>
-
               {/* Decision Tree - Two Doors */}
-              <div style={{background: 'var(--gray-50)', padding: '1.5rem', borderRadius: '8px', marginTop: '1rem'}}>
+              <div style={{background: 'var(--gray-50)', padding: '1.5rem', borderRadius: '8px'}}>
                 <p style={{fontWeight: 600, marginBottom: '1rem', color: 'var(--gray-800)'}}>Help us understand your goals:</p>
 
                 {/* Door 1: Injury */}
@@ -1045,6 +1037,13 @@ export default function IntakeForm() {
                       <label htmlFor="duration_over1year">More than a year</label>
                     </div>
                   </div>
+                </div>
+              </div>
+              {/* Optional Additional Notes */}
+              <div className="form-row" style={{marginTop: '1.5rem'}}>
+                <div className="form-group full-width">
+                  <label htmlFor="additionalNotes">Anything else we should know?</label>
+                  <textarea id="additionalNotes" name="additionalNotes" rows="3" placeholder="Optional - share any other health concerns, goals, or information that might be helpful..."></textarea>
                 </div>
               </div>
             </div>
@@ -1800,7 +1799,6 @@ function initializeForm() {
     validateField('postalCode', 'postalCodeError');
     validateField('country', 'countryError');
     validateField('howHeardAboutUs', 'howHeardAboutUsError');
-    validateField('whatBringsYou', 'whatBringsYouError');
 
     validateRadio('injured', 'injuredError');
     validateRadio('hasPCP', 'hasPCPError');
@@ -1954,7 +1952,7 @@ function initializeForm() {
           ? `Other: ${getValue('howHeardOther')}` 
           : getValue('howHeardAboutUs'),
 
-        whatBringsYou: getValue('whatBringsYou'),
+        // Health Concerns
         injured: getRadio('injured'),
         injuryDescription: getValue('injuryDescription'),
         injuryLocation: getValue('injuryLocation'),
@@ -1967,6 +1965,9 @@ function initializeForm() {
         symptoms: symptoms,
         symptomFollowups: symptomFollowups,
         symptomDuration: getRadio('symptomDuration'),
+
+        // Additional Notes
+        additionalNotes: getValue('additionalNotes'),
 
         // Healthcare Providers
         hasPCP: getRadio('hasPCP'),

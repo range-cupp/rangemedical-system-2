@@ -119,10 +119,15 @@ function getProtocolTracking(protocol) {
           delivery: 'take_home'
         };
       }
-    } else if (supplyType.includes('prefill') || selectedDose.includes('prefill')) {
+    } else if (supplyType.includes('prefill') || supplyType.includes('1week') || supplyType.includes('2week') || supplyType.includes('4week') || selectedDose.includes('prefill')) {
       let numPrefilled = 4;
       const prefilledMatch = selectedDose.match(/(\d+)\s*prefill/i);
       if (prefilledMatch) numPrefilled = parseInt(prefilledMatch[1]);
+      
+      // Check for specific week supply types
+      if (supplyType.includes('1week') || supplyType.includes('1_week')) numPrefilled = 2;
+      else if (supplyType.includes('2week') || supplyType.includes('2_week')) numPrefilled = 4;
+      else if (supplyType.includes('4week') || supplyType.includes('4_week')) numPrefilled = 8;
       
       const supplyDays = Math.ceil(numPrefilled / 2) * 7;
       

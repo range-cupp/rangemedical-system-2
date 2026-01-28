@@ -321,10 +321,11 @@ export default async function handler(req, res) {
     const contactPayload = {
       locationId: GHL_LOCATION_ID,
       // Set the Medical Intake Form custom field to checked
+      // GHL checkbox fields need the key without 'contact.' prefix and use 'id'/'value' format
       customFields: [
         {
-          key: 'contact.medical_intake_form',
-          field_value: true
+          id: 'contact.medical_intake_form',
+          value: true
         }
       ]
     };
@@ -601,7 +602,7 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: 'Range Medical <onboarding@resend.dev>',
+            from: 'Range Medical <notifications@range-medical.com>',
             to: 'intake@range-medical.com',
             subject: `📋 New Medical Intake: ${firstName} ${lastName}`,
             html: emailHtml

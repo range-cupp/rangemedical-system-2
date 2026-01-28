@@ -187,6 +187,15 @@ export default function IntakeForm() {
           display: block;
         }
 
+        .field-hint {
+          font-size: 0.75rem;
+          font-weight: 400;
+          color: var(--gray-500);
+          text-transform: none;
+          letter-spacing: normal;
+          margin-top: 0.25rem;
+        }
+
         .radio-group {
           display: flex;
           gap: 1.5rem;
@@ -414,6 +423,28 @@ export default function IntakeForm() {
           display: block;
         }
 
+        /* Minor Section */
+        .minor-section {
+          background: #fef3c7;
+          border: 2px solid #f59e0b;
+          padding: 1.5rem;
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+        }
+
+        .minor-section-title {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #92400e;
+          margin-bottom: 0.5rem;
+        }
+
+        .minor-section-subtitle {
+          font-size: 0.875rem;
+          color: #78350f;
+          margin-bottom: 1rem;
+        }
+
         /* Signature */
         .signature-container {
           border: 2px solid var(--gray-300);
@@ -469,6 +500,33 @@ export default function IntakeForm() {
         .btn-submit:disabled {
           background: var(--gray-400);
           cursor: not-allowed;
+        }
+
+        /* Status Message */
+        .status-message {
+          padding: 1rem;
+          border-radius: 4px;
+          margin-bottom: 1rem;
+          display: none;
+        }
+
+        .status-message.visible {
+          display: block;
+        }
+
+        .status-message.loading {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+
+        .status-message.success {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        .status-message.error {
+          background: #fef2f2;
+          color: #991b1b;
         }
 
         /* Thank You Screen */
@@ -560,6 +618,8 @@ export default function IntakeForm() {
         </header>
 
         <div className="form-container">
+          <div className="status-message" id="statusMessage"></div>
+          
           <form id="intakeForm" noValidate>
 
             {/* Personal Information */}
@@ -570,36 +630,37 @@ export default function IntakeForm() {
                 <div className="form-group">
                   <label htmlFor="firstName">Legal First Name <span className="required">*</span></label>
                   <input type="text" id="firstName" name="firstName" placeholder="As shown on government ID" required />
-                  <span className="field-error" id="firstNameError">First name is required</span>
+                  <span className="field-error" id="firstNameError">Legal first name is required</span>
                 </div>
                 <div className="form-group">
                   <label htmlFor="lastName">Legal Last Name <span className="required">*</span></label>
                   <input type="text" id="lastName" name="lastName" placeholder="As shown on government ID" required />
-                  <span className="field-error" id="lastNameError">Last name is required</span>
+                  <span className="field-error" id="lastNameError">Legal last name is required</span>
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="preferredName">Preferred Name</label>
-                  <input type="text" id="preferredName" name="preferredName" placeholder="What should we call you?" />
+                  <input type="text" id="preferredName" name="preferredName" placeholder="What would you like us to call you?" />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="dateOfBirth">Date of Birth <span className="required">*</span></label>
-                  <input type="text" id="dateOfBirth" name="dateOfBirth" placeholder="MM/DD/YYYY" required />
-                  <span className="field-error" id="dateOfBirthError">Date of birth is required</span>
+                  <label htmlFor="gender">Gender <span className="required">*</span></label>
+                  <select id="gender" name="gender" required>
+                    <option value="">Select...</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <span className="field-error" id="genderError">Please select an option</span>
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="sex">Biological Sex <span className="required">*</span></label>
-                  <select id="sex" name="sex" required>
-                    <option value="">Select...</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                  <span className="field-error" id="sexError">Please select an option</span>
+                  <label htmlFor="dob">Date of Birth <span className="required">*</span></label>
+                  <input type="text" id="dob" name="dob" placeholder="MM/DD/YYYY" required />
+                  <span className="field-error" id="dobError">Date of birth is required</span>
                 </div>
                 <div className="form-group">
                   <label htmlFor="phone">Phone Number <span className="required">*</span></label>
@@ -645,7 +706,7 @@ export default function IntakeForm() {
                 </div>
                 <div className="form-group">
                   <label htmlFor="country">Country <span className="required">*</span></label>
-                  <input type="text" id="country" name="country" value="United States" required />
+                  <input type="text" id="country" name="country" defaultValue="United States" required />
                   <span className="field-error" id="countryError">Country is required</span>
                 </div>
               </div>
@@ -692,7 +753,7 @@ export default function IntakeForm() {
               {/* Injury Assessment */}
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label>Are you currently dealing with an injury? <span className="required">*</span></label>
+                  <label>Are you injured? <span className="required">*</span></label>
                   <div className="radio-group">
                     <div className="radio-item">
                       <input type="radio" id="injuredYes" name="injured" value="Yes" required />
@@ -721,27 +782,14 @@ export default function IntakeForm() {
                       </div>
                       <div className="form-group">
                         <label htmlFor="injuryDate">When did it occur?</label>
-                        <input type="text" id="injuryDate" name="injuryDate" placeholder="e.g., 2 weeks ago, January 2024" />
-                      </div>
-                    </div>
-                    <div className="form-row">
-                      <div className="form-group full-width">
-                        <label htmlFor="currentTreatment">Are you currently receiving treatment?</label>
-                        <select id="currentTreatment" name="currentTreatment">
-                          <option value="">Select...</option>
-                          <option value="Yes - Physical Therapy">Yes - Physical Therapy</option>
-                          <option value="Yes - Chiropractic">Yes - Chiropractic</option>
-                          <option value="Yes - Range Sports Therapy">Yes - Range Sports Therapy</option>
-                          <option value="Yes - Other">Yes - Other</option>
-                          <option value="No">No</option>
-                        </select>
+                        <input type="text" id="injuryDate" name="injuryDate" placeholder="e.g., 2 weeks ago" />
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Symptom Checklist - Energy & Optimization */}
+              {/* NEW: Symptom Checklist - Energy & Optimization */}
               <div className="symptom-section">
                 <h3 className="symptom-section-title">⚡ Energy & Optimization Symptoms</h3>
                 <p className="symptom-section-subtitle">Check any symptoms you're currently experiencing. This helps us understand if you might benefit from hormone optimization or metabolic support.</p>
@@ -906,7 +954,7 @@ export default function IntakeForm() {
                   </div>
                 </div>
 
-                {/* Duration Question - Shows when any symptom is checked */}
+                {/* Duration Question */}
                 <div className="symptom-duration" id="symptomDuration">
                   <label>How long have you been experiencing these symptoms?</label>
                   <div className="duration-options">
@@ -935,7 +983,7 @@ export default function IntakeForm() {
               </div>
             </div>
 
-            {/* Primary Care Physician */}
+            {/* Healthcare Providers - SIMPLIFIED */}
             <div className="section">
               <h2 className="section-title">Healthcare Providers</h2>
 
@@ -955,22 +1003,10 @@ export default function IntakeForm() {
                   <span className="field-error" id="hasPCPError">Please select an option</span>
 
                   <div className="conditional-field" id="pcpFields">
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label htmlFor="pcpName">Physician Name <span className="required">*</span></label>
-                        <input type="text" id="pcpName" name="pcpName" placeholder="Dr. Smith" />
-                        <span className="field-error" id="pcpNameError">Physician name is required</span>
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="pcpPractice">Practice/Clinic Name</label>
-                        <input type="text" id="pcpPractice" name="pcpPractice" placeholder="Newport Medical Group" />
-                      </div>
-                    </div>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label htmlFor="pcpPhone">Physician Phone</label>
-                        <input type="tel" id="pcpPhone" name="pcpPhone" placeholder="(555) 555-5555" />
-                      </div>
+                    <div className="form-group">
+                      <label htmlFor="pcpName">Physician Name <span className="required">*</span></label>
+                      <input type="text" id="pcpName" name="pcpName" placeholder="e.g., Dr. Smith" />
+                      <span className="field-error" id="pcpNameError">Physician name is required</span>
                     </div>
                   </div>
                 </div>
@@ -1003,7 +1039,7 @@ export default function IntakeForm() {
               </div>
             </div>
 
-            {/* Medical History */}
+            {/* Medical History - ORIGINAL CONDITIONS */}
             <div className="section">
               <h2 className="section-title">Medical History</h2>
               <p style={{marginBottom: '1.5rem', color: 'var(--gray-700)', fontSize: '0.9375rem'}}>Please answer YES or NO for each condition.</p>
@@ -1065,60 +1101,26 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="heartDisease-details">
-                    <div className="form-group">
-                      <label htmlFor="heartDisease-year">Year Diagnosed</label>
-                      <input type="text" id="heartDisease-year" name="heartDiseaseYear" placeholder="e.g., 2020" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="condition-item">
-                  <label><strong>Blood Clots / DVT</strong> <span className="required">*</span></label>
-                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
-                    <div className="radio-item">
-                      <input type="radio" id="bloodClots_yes" name="bloodClots" value="Yes" required className="condition-radio" />
-                      <label htmlFor="bloodClots_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="bloodClots_no" name="bloodClots" value="No" className="condition-radio" />
-                      <label htmlFor="bloodClots_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="bloodClots-details">
-                    <div className="form-group">
-                      <label htmlFor="bloodClots-year">Year Diagnosed</label>
-                      <input type="text" id="bloodClots-year" name="bloodClotsYear" placeholder="e.g., 2020" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="condition-item">
-                  <label><strong>Stroke</strong> <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="stroke_yes" name="stroke" value="Yes" required className="condition-radio" />
-                      <label htmlFor="stroke_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="stroke_no" name="stroke" value="No" className="condition-radio" />
-                      <label htmlFor="stroke_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="stroke-details">
-                    <div className="form-group">
-                      <label htmlFor="stroke-year">Year Diagnosed</label>
-                      <input type="text" id="stroke-year" name="strokeYear" placeholder="e.g., 2020" />
+                    <div className="form-row" style={{marginBottom: 0}}>
+                      <div className="form-group">
+                        <label htmlFor="heartDisease-type">Type</label>
+                        <input type="text" id="heartDisease-type" name="heartDiseaseType" placeholder="e.g., CHF, CAD" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="heartDisease-year">Year</label>
+                        <input type="text" id="heartDisease-year" name="heartDiseaseYear" placeholder="e.g., 2020" />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Metabolic */}
-              <div className="condition-category" style={{backgroundColor: '#fef3c7', borderLeft: '4px solid #d97706'}}>
-                <h3 style={{color: '#92400e'}}>🔥 Metabolic</h3>
+              {/* Metabolic & Endocrine */}
+              <div className="condition-category" style={{backgroundColor: '#fef3c7', borderLeft: '4px solid #f59e0b'}}>
+                <h3 style={{color: '#92400e'}}>⚡ Metabolic & Endocrine</h3>
 
                 <div className="condition-item">
-                  <label><strong>Diabetes (Type 1 or 2)</strong> <span className="required">*</span></label>
+                  <label><strong>Diabetes</strong> <span className="required">*</span></label>
                   <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
                       <input type="radio" id="diabetes_yes" name="diabetes" value="Yes" required className="condition-radio" />
@@ -1130,14 +1132,20 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="diabetes-details">
-                    <div className="form-group">
-                      <label htmlFor="diabetes-type">Type</label>
-                      <select id="diabetes-type" name="diabetesType">
-                        <option value="">Select...</option>
-                        <option value="Type 1">Type 1</option>
-                        <option value="Type 2">Type 2</option>
-                        <option value="Pre-diabetes">Pre-diabetes</option>
-                      </select>
+                    <div className="form-row" style={{marginBottom: 0}}>
+                      <div className="form-group">
+                        <label htmlFor="diabetes-type">Type</label>
+                        <select id="diabetes-type" name="diabetesType">
+                          <option value="">Select...</option>
+                          <option value="Type 1">Type 1</option>
+                          <option value="Type 2">Type 2</option>
+                          <option value="Pre-diabetes">Pre-diabetes</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="diabetes-year">Year</label>
+                        <input type="text" id="diabetes-year" name="diabetesYear" placeholder="e.g., 2020" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1155,104 +1163,144 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="thyroid-details">
-                    <div className="form-group">
-                      <label htmlFor="thyroid-type">Type</label>
-                      <select id="thyroid-type" name="thyroidType">
-                        <option value="">Select...</option>
-                        <option value="Hypothyroid">Hypothyroid (underactive)</option>
-                        <option value="Hyperthyroid">Hyperthyroid (overactive)</option>
-                        <option value="Hashimoto's">Hashimoto's</option>
-                        <option value="Graves' Disease">Graves' Disease</option>
-                        <option value="Other">Other</option>
-                      </select>
+                    <div className="form-row" style={{marginBottom: 0}}>
+                      <div className="form-group">
+                        <label htmlFor="thyroid-type">Type</label>
+                        <select id="thyroid-type" name="thyroidType">
+                          <option value="">Select...</option>
+                          <option value="Hypothyroid">Hypothyroid (underactive)</option>
+                          <option value="Hyperthyroid">Hyperthyroid (overactive)</option>
+                          <option value="Hashimoto's">Hashimoto's</option>
+                          <option value="Graves' Disease">Graves' Disease</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="thyroid-year">Year</label>
+                        <input type="text" id="thyroid-year" name="thyroidYear" placeholder="e.g., 2020" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mental Health */}
+              <div className="condition-category" style={{backgroundColor: '#ede9fe', borderLeft: '4px solid #8b5cf6'}}>
+                <h3 style={{color: '#5b21b6'}}>🧠 Mental Health</h3>
+
+                <div className="condition-item">
+                  <label><strong>Depression / Anxiety</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
+                    <div className="radio-item">
+                      <input type="radio" id="depression_yes" name="depression" value="Yes" required className="condition-radio" />
+                      <label htmlFor="depression_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="depression_no" name="depression" value="No" className="condition-radio" />
+                      <label htmlFor="depression_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="depression-details">
+                    <div className="form-row" style={{marginBottom: 0}}>
+                      <div className="form-group">
+                        <label htmlFor="depression-type">Type</label>
+                        <input type="text" id="depression-type" name="depressionType" placeholder="e.g., Anxiety, Depression, Both" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="depression-year">Year</label>
+                        <input type="text" id="depression-year" name="depressionYear" placeholder="e.g., 2020" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="condition-item">
+                  <label><strong>Eating Disorder</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
+                    <div className="radio-item">
+                      <input type="radio" id="eatingDisorder_yes" name="eatingDisorder" value="Yes" required className="condition-radio" />
+                      <label htmlFor="eatingDisorder_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="eatingDisorder_no" name="eatingDisorder" value="No" className="condition-radio" />
+                      <label htmlFor="eatingDisorder_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="eatingDisorder-details">
+                    <div className="form-row" style={{marginBottom: 0}}>
+                      <div className="form-group">
+                        <label htmlFor="eatingDisorder-type">Type</label>
+                        <input type="text" id="eatingDisorder-type" name="eatingDisorderType" placeholder="e.g., Anorexia, Bulimia" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="eatingDisorder-year">Year</label>
+                        <input type="text" id="eatingDisorder-year" name="eatingDisorderYear" placeholder="e.g., 2020" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Organ Health */}
+              <div className="condition-category" style={{backgroundColor: '#ecfdf5', borderLeft: '4px solid #10b981'}}>
+                <h3 style={{color: '#047857'}}>🫀 Organ Health</h3>
+
+                <div className="condition-item">
+                  <label><strong>Kidney Disease</strong> <span className="required">*</span></label>
+                  <div className="radio-group" style={{marginBottom: '0.5rem'}}>
+                    <div className="radio-item">
+                      <input type="radio" id="kidney_yes" name="kidney" value="Yes" required className="condition-radio" />
+                      <label htmlFor="kidney_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="kidney_no" name="kidney" value="No" className="condition-radio" />
+                      <label htmlFor="kidney_no">No</label>
+                    </div>
+                  </div>
+                  <div className="condition-details" id="kidney-details">
+                    <div className="form-row" style={{marginBottom: 0}}>
+                      <div className="form-group">
+                        <label htmlFor="kidney-type">Type</label>
+                        <input type="text" id="kidney-type" name="kidneyType" placeholder="e.g., CKD" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="kidney-year">Year</label>
+                        <input type="text" id="kidney-year" name="kidneyYear" placeholder="e.g., 2020" />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="condition-item">
                   <label><strong>Liver Disease</strong> <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="liverDisease_yes" name="liverDisease" value="Yes" required className="condition-radio" />
-                      <label htmlFor="liverDisease_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="liverDisease_no" name="liverDisease" value="No" className="condition-radio" />
-                      <label htmlFor="liverDisease_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="liverDisease-details">
-                    <div className="form-group">
-                      <label htmlFor="liverDisease-year">Year Diagnosed</label>
-                      <input type="text" id="liverDisease-year" name="liverDiseaseYear" placeholder="e.g., 2020" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="condition-item">
-                  <label><strong>Kidney Disease</strong> <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="kidneyDisease_yes" name="kidneyDisease" value="Yes" required className="condition-radio" />
-                      <label htmlFor="kidneyDisease_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="kidneyDisease_no" name="kidneyDisease" value="No" className="condition-radio" />
-                      <label htmlFor="kidneyDisease_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="kidneyDisease-details">
-                    <div className="form-group">
-                      <label htmlFor="kidneyDisease-year">Year Diagnosed</label>
-                      <input type="text" id="kidneyDisease-year" name="kidneyDiseaseYear" placeholder="e.g., 2020" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cancer */}
-              <div className="condition-category" style={{backgroundColor: '#fce7f3', borderLeft: '4px solid #db2777'}}>
-                <h3 style={{color: '#9d174d'}}>🎗️ Cancer History</h3>
-
-                <div className="condition-item">
-                  <label><strong>Have you ever been diagnosed with cancer?</strong> <span className="required">*</span></label>
                   <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
-                      <input type="radio" id="cancer_yes" name="cancer" value="Yes" required className="condition-radio" />
-                      <label htmlFor="cancer_yes">Yes</label>
+                      <input type="radio" id="liver_yes" name="liver" value="Yes" required className="condition-radio" />
+                      <label htmlFor="liver_yes">Yes</label>
                     </div>
                     <div className="radio-item">
-                      <input type="radio" id="cancer_no" name="cancer" value="No" className="condition-radio" />
-                      <label htmlFor="cancer_no">No</label>
+                      <input type="radio" id="liver_no" name="liver" value="No" className="condition-radio" />
+                      <label htmlFor="liver_no">No</label>
                     </div>
                   </div>
-                  <div className="condition-details" id="cancer-details">
-                    <div className="form-row">
+                  <div className="condition-details" id="liver-details">
+                    <div className="form-row" style={{marginBottom: 0}}>
                       <div className="form-group">
-                        <label htmlFor="cancer-type">Type of Cancer</label>
-                        <input type="text" id="cancer-type" name="cancerType" placeholder="e.g., Breast, Prostate" />
+                        <label htmlFor="liver-type">Type</label>
+                        <input type="text" id="liver-type" name="liverType" placeholder="e.g., Fatty Liver" />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="cancer-year">Year Diagnosed</label>
-                        <input type="text" id="cancer-year" name="cancerYear" placeholder="e.g., 2020" />
+                        <label htmlFor="liver-year">Year</label>
+                        <input type="text" id="liver-year" name="liverYear" placeholder="e.g., 2020" />
                       </div>
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="cancer-status">Current Status</label>
-                      <select id="cancer-status" name="cancerStatus">
-                        <option value="">Select...</option>
-                        <option value="In remission">In remission</option>
-                        <option value="Currently in treatment">Currently in treatment</option>
-                        <option value="Monitoring">Monitoring</option>
-                      </select>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Other Conditions */}
-              <div className="condition-category" style={{backgroundColor: '#f0fdf4', borderLeft: '4px solid #16a34a'}}>
-                <h3 style={{color: '#166534'}}>📋 Other Conditions</h3>
+              {/* Immune & Cancer */}
+              <div className="condition-category" style={{backgroundColor: '#f3e8ff', borderLeft: '4px solid #a855f7'}}>
+                <h3 style={{color: '#6b21a8'}}>🛡️ Immune & Cancer</h3>
 
                 <div className="condition-item">
                   <label><strong>Autoimmune Disorder</strong> <span className="required">*</span></label>
@@ -1267,57 +1315,48 @@ export default function IntakeForm() {
                     </div>
                   </div>
                   <div className="condition-details" id="autoimmune-details">
-                    <div className="form-group">
-                      <label htmlFor="autoimmune-type">Which condition?</label>
-                      <input type="text" id="autoimmune-type" name="autoimmuneType" placeholder="e.g., Rheumatoid Arthritis, Lupus" />
+                    <div className="form-row" style={{marginBottom: 0}}>
+                      <div className="form-group">
+                        <label htmlFor="autoimmune-type">Type</label>
+                        <input type="text" id="autoimmune-type" name="autoimmuneType" placeholder="e.g., Lupus, RA" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="autoimmune-year">Year</label>
+                        <input type="text" id="autoimmune-year" name="autoimmuneYear" placeholder="e.g., 2020" />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="condition-item">
-                  <label><strong>Mental Health Conditions</strong> <span className="required">*</span></label>
+                  <label><strong>Cancer</strong> <span className="required">*</span></label>
                   <div className="radio-group" style={{marginBottom: '0.5rem'}}>
                     <div className="radio-item">
-                      <input type="radio" id="mentalHealth_yes" name="mentalHealth" value="Yes" required className="condition-radio" />
-                      <label htmlFor="mentalHealth_yes">Yes</label>
+                      <input type="radio" id="cancer_yes" name="cancer" value="Yes" required className="condition-radio" />
+                      <label htmlFor="cancer_yes">Yes</label>
                     </div>
                     <div className="radio-item">
-                      <input type="radio" id="mentalHealth_no" name="mentalHealth" value="No" className="condition-radio" />
-                      <label htmlFor="mentalHealth_no">No</label>
+                      <input type="radio" id="cancer_no" name="cancer" value="No" className="condition-radio" />
+                      <label htmlFor="cancer_no">No</label>
                     </div>
                   </div>
-                  <div className="condition-details" id="mentalHealth-details">
-                    <div className="form-group">
-                      <label htmlFor="mentalHealth-type">Which condition(s)?</label>
-                      <input type="text" id="mentalHealth-type" name="mentalHealthType" placeholder="e.g., Anxiety, Depression, ADHD" />
+                  <div className="condition-details" id="cancer-details">
+                    <div className="form-row" style={{marginBottom: 0}}>
+                      <div className="form-group">
+                        <label htmlFor="cancer-type">Type</label>
+                        <input type="text" id="cancer-type" name="cancerType" placeholder="e.g., Breast, Prostate" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="cancer-year">Year</label>
+                        <input type="text" id="cancer-year" name="cancerYear" placeholder="e.g., 2020" />
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="condition-item">
-                  <label><strong>Sleep Apnea</strong> <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="sleepApnea_yes" name="sleepApnea" value="Yes" required className="condition-radio" />
-                      <label htmlFor="sleepApnea_yes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="sleepApnea_no" name="sleepApnea" value="No" className="condition-radio" />
-                      <label htmlFor="sleepApnea_no">No</label>
-                    </div>
-                  </div>
-                  <div className="condition-details" id="sleepApnea-details">
-                    <div className="form-group">
-                      <label htmlFor="sleepApnea-cpap">Do you use a CPAP?</label>
-                      <select id="sleepApnea-cpap" name="sleepApneaCPAP">
-                        <option value="">Select...</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                        <option value="Sometimes">Sometimes</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+              <div style={{backgroundColor: '#f0fdf4', border: '2px solid #22c55e', padding: '1rem', borderRadius: '4px'}}>
+                <p style={{margin: 0, color: '#15803d', fontSize: '0.9375rem'}}>✅ <strong>No conditions?</strong> If you answered NO to all, you're all set!</p>
               </div>
             </div>
 
@@ -1325,10 +1364,53 @@ export default function IntakeForm() {
             <div className="section">
               <h2 className="section-title">Medications & Allergies</h2>
 
+              {/* HRT Question - ORIGINAL */}
+              <div className="form-row">
+                <div className="form-group full-width" style={{backgroundColor: '#dbeafe', border: '2px solid #3b82f6', padding: '1.5rem', borderRadius: '4px', marginBottom: '1.5rem'}}>
+                  <label style={{fontSize: '1.125rem', fontWeight: 600, color: '#1e40af', marginBottom: '1rem', display: 'block'}}>Are you currently on Hormone Replacement Therapy (HRT)? <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="onHRT_yes" name="onHRT" value="Yes" required />
+                      <label htmlFor="onHRT_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="onHRT_no" name="onHRT" value="No" />
+                      <label htmlFor="onHRT_no">No</label>
+                    </div>
+                  </div>
+                  <span className="field-error" id="onHRTError">Please select an option</span>
+
+                  <div className="conditional-field" id="hrtFields">
+                    <div className="form-group">
+                      <label htmlFor="hrtDetails">Please describe your HRT regimen</label>
+                      <textarea id="hrtDetails" name="hrtDetails" rows="2" placeholder="What are you taking? Dosage? How long?"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label htmlFor="currentMedications">Current Medications</label>
-                  <textarea id="currentMedications" name="currentMedications" rows="3" placeholder="List all medications including supplements, vitamins, and over-the-counter medications..."></textarea>
+                  <label>Are you currently taking any other medications? <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="onMedications_yes" name="onMedications" value="Yes" required />
+                      <label htmlFor="onMedications_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="onMedications_no" name="onMedications" value="No" />
+                      <label htmlFor="onMedications_no">No</label>
+                    </div>
+                  </div>
+                  <span className="field-error" id="onMedicationsError">Please select an option</span>
+
+                  <div className="conditional-field" id="medicationsFields">
+                    <div className="form-group">
+                      <label htmlFor="currentMedications">Please list all medications <span className="required">*</span></label>
+                      <textarea id="currentMedications" name="currentMedications" rows="3" placeholder="Include prescription medications, over-the-counter drugs, and supplements..."></textarea>
+                      <span className="field-error" id="currentMedicationsError">Please list your medications</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1358,81 +1440,76 @@ export default function IntakeForm() {
               </div>
             </div>
 
-            {/* Lifestyle */}
+            {/* Photo ID Upload - ORIGINAL */}
             <div className="section">
-              <h2 className="section-title">Lifestyle</h2>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Do you smoke or use tobacco? <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="smokerYes" name="smoker" value="Yes" required />
-                      <label htmlFor="smokerYes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="smokerNo" name="smoker" value="No" />
-                      <label htmlFor="smokerNo">No</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="smokerFormer" name="smoker" value="Former" />
-                      <label htmlFor="smokerFormer">Former</label>
-                    </div>
-                  </div>
-                  <span className="field-error" id="smokerError">Please select an option</span>
-                </div>
-
-                <div className="form-group">
-                  <label>Do you drink alcohol? <span className="required">*</span></label>
-                  <div className="radio-group">
-                    <div className="radio-item">
-                      <input type="radio" id="alcoholYes" name="alcohol" value="Yes" required />
-                      <label htmlFor="alcoholYes">Yes</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="alcoholNo" name="alcohol" value="No" />
-                      <label htmlFor="alcoholNo">No</label>
-                    </div>
-                    <div className="radio-item">
-                      <input type="radio" id="alcoholOccasional" name="alcohol" value="Occasionally" />
-                      <label htmlFor="alcoholOccasional">Occasionally</label>
-                    </div>
-                  </div>
-                  <span className="field-error" id="alcoholError">Please select an option</span>
-                </div>
-              </div>
-
+              <h2 className="section-title">Photo ID</h2>
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label htmlFor="exerciseFrequency">How often do you exercise?</label>
-                  <select id="exerciseFrequency" name="exerciseFrequency">
-                    <option value="">Select...</option>
-                    <option value="Daily">Daily</option>
-                    <option value="4-6 times per week">4-6 times per week</option>
-                    <option value="2-3 times per week">2-3 times per week</option>
-                    <option value="Once a week">Once a week</option>
-                    <option value="Rarely">Rarely</option>
-                    <option value="Never">Never</option>
-                  </select>
+                  <label htmlFor="photoId">Upload a photo of your government-issued ID <span className="required">*</span></label>
+                  <input type="file" id="photoId" name="photoId" accept="image/*,.pdf" required style={{padding: '0.5rem 0'}} />
+                  <span className="field-hint">Driver's license, state ID, or passport. File size limit: 10MB</span>
+                  <span className="field-error" id="photoIdError">Photo ID is required</span>
                 </div>
               </div>
             </div>
 
-            {/* Signature & Consent */}
+            {/* Signature & Consent - WITH MINOR SECTION */}
             <div className="section">
               <h2 className="section-title">Signature & Consent</h2>
 
+              {/* Minor Section */}
+              <div className="minor-section">
+                <h3 className="minor-section-title">👶 Is this form being completed for a minor (under 18)?</h3>
+                <p className="minor-section-subtitle">If this patient is under 18 years old, a parent or legal guardian must complete and sign this form.</p>
+                
+                <div className="form-row" style={{marginBottom: 0}}>
+                  <div className="form-group full-width">
+                    <div className="radio-group">
+                      <div className="radio-item">
+                        <input type="radio" id="isMinorYes" name="isMinor" value="Yes" />
+                        <label htmlFor="isMinorYes">Yes, patient is a minor</label>
+                      </div>
+                      <div className="radio-item">
+                        <input type="radio" id="isMinorNo" name="isMinor" value="No" defaultChecked />
+                        <label htmlFor="isMinorNo">No, patient is 18 or older</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="conditional-field" id="guardianFields">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="guardianName">Parent/Guardian Name <span className="required">*</span></label>
+                      <input type="text" id="guardianName" name="guardianName" placeholder="Full legal name" />
+                      <span className="field-error" id="guardianNameError">Parent/guardian name is required</span>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="guardianRelationship">Relationship to Patient <span className="required">*</span></label>
+                      <select id="guardianRelationship" name="guardianRelationship">
+                        <option value="">Select...</option>
+                        <option value="Parent">Parent</option>
+                        <option value="Legal Guardian">Legal Guardian</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      <span className="field-error" id="guardianRelationshipError">Please select relationship</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div style={{backgroundColor: 'var(--gray-50)', padding: '1rem', borderRadius: '4px', marginBottom: '1.5rem', fontSize: '0.875rem', color: 'var(--gray-700)'}}>
                 <p style={{marginBottom: '0.5rem'}}><strong>By signing below, I certify that:</strong></p>
-                <ul style={{marginLeft: '1.5rem', marginBottom: '0'}}>
+                <ul style={{marginLeft: '1.5rem', marginBottom: 0}}>
                   <li>The information I have provided is true and complete to the best of my knowledge.</li>
                   <li>I will inform Range Medical of any changes to my health status.</li>
-                  <li>I authorize Range Medical to use this information to provide my care.</li>
+                  <li>I authorize Range Medical to use this information to provide care.</li>
+                  <li id="guardianConsentText" style={{display: 'none'}}>As the parent/legal guardian, I authorize Range Medical to provide care to the minor patient named above.</li>
                 </ul>
               </div>
 
               <div className="form-group">
-                <label>Patient Signature <span className="required">*</span></label>
+                <label id="signatureLabel">Patient Signature <span className="required">*</span></label>
                 <div className="signature-container">
                   <canvas id="signatureCanvas" className="signature-canvas"></canvas>
                 </div>
@@ -1504,121 +1581,111 @@ function initializeForm() {
     signaturePad.clear();
   });
 
+  // Store signaturePad on window for form submission
+  window.signaturePad = signaturePad;
+
   // Initialize input masks
   if (typeof IMask !== 'undefined') {
     IMask(document.getElementById('phone'), { mask: '(000) 000-0000' });
-    IMask(document.getElementById('dateOfBirth'), { mask: '00/00/0000' });
-    const pcpPhone = document.getElementById('pcpPhone');
-    if (pcpPhone) IMask(pcpPhone, { mask: '(000) 000-0000' });
+    IMask(document.getElementById('dob'), { mask: '00/00/0000' });
   }
 
   // How heard about us - Other field
   const howHeardSelect = document.getElementById('howHeardAboutUs');
   const howHeardOtherField = document.getElementById('howHeardOtherField');
   howHeardSelect.addEventListener('change', () => {
-    if (howHeardSelect.value === 'Other') {
-      howHeardOtherField.classList.add('visible');
-    } else {
-      howHeardOtherField.classList.remove('visible');
-    }
+    howHeardOtherField.classList.toggle('visible', howHeardSelect.value === 'Other');
   });
 
   // Injury conditional fields
-  const injuredRadios = document.querySelectorAll('input[name="injured"]');
-  const injuryFields = document.getElementById('injuryFields');
-  injuredRadios.forEach(radio => {
+  document.querySelectorAll('input[name="injured"]').forEach(radio => {
     radio.addEventListener('change', () => {
-      if (radio.value === 'Yes' && radio.checked) {
-        injuryFields.classList.add('visible');
-      } else if (radio.value === 'No' && radio.checked) {
-        injuryFields.classList.remove('visible');
-      }
+      document.getElementById('injuryFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
-  // Symptom checkboxes - show follow-up questions
+  // Symptom checkboxes
   const symptomCheckboxes = document.querySelectorAll('input[id^="symptom_"]');
   const symptomDuration = document.getElementById('symptomDuration');
 
   symptomCheckboxes.forEach(checkbox => {
     checkbox.addEventListener('change', () => {
-      // Get the symptom name from the checkbox ID
       const symptomName = checkbox.id.replace('symptom_', '');
-      const symptomItem = document.getElementById('symptom' + symptomName.charAt(0).toUpperCase() + symptomName.slice(1));
+      const symptomItem = checkbox.closest('.symptom-item');
       const followup = document.getElementById('followup_' + symptomName);
 
-      if (checkbox.checked) {
-        if (symptomItem) symptomItem.classList.add('selected');
-        if (followup) followup.classList.add('visible');
-      } else {
-        if (symptomItem) symptomItem.classList.remove('selected');
-        if (followup) followup.classList.remove('visible');
-      }
+      if (symptomItem) symptomItem.classList.toggle('selected', checkbox.checked);
+      if (followup) followup.classList.toggle('visible', checkbox.checked);
 
-      // Show/hide duration question based on any checkbox being checked
       const anyChecked = Array.from(symptomCheckboxes).some(cb => cb.checked);
-      if (anyChecked) {
-        symptomDuration.classList.add('visible');
-      } else {
-        symptomDuration.classList.remove('visible');
-      }
+      symptomDuration.classList.toggle('visible', anyChecked);
     });
   });
 
   // PCP conditional fields
-  const pcpRadios = document.querySelectorAll('input[name="hasPCP"]');
-  const pcpFields = document.getElementById('pcpFields');
-  pcpRadios.forEach(radio => {
+  document.querySelectorAll('input[name="hasPCP"]').forEach(radio => {
     radio.addEventListener('change', () => {
-      if (radio.value === 'Yes' && radio.checked) {
-        pcpFields.classList.add('visible');
-      } else if (radio.value === 'No' && radio.checked) {
-        pcpFields.classList.remove('visible');
-      }
+      document.getElementById('pcpFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
   // Hospitalization conditional fields
-  const hospitalRadios = document.querySelectorAll('input[name="recentHospitalization"]');
-  const hospitalizationFields = document.getElementById('hospitalizationFields');
-  hospitalRadios.forEach(radio => {
+  document.querySelectorAll('input[name="recentHospitalization"]').forEach(radio => {
     radio.addEventListener('change', () => {
-      if (radio.value === 'Yes' && radio.checked) {
-        hospitalizationFields.classList.add('visible');
-      } else if (radio.value === 'No' && radio.checked) {
-        hospitalizationFields.classList.remove('visible');
-      }
+      document.getElementById('hospitalizationFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
+    });
+  });
+
+  // HRT conditional fields
+  document.querySelectorAll('input[name="onHRT"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.getElementById('hrtFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
+    });
+  });
+
+  // Medications conditional fields
+  document.querySelectorAll('input[name="onMedications"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.getElementById('medicationsFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
   // Allergies conditional fields
-  const allergiesRadios = document.querySelectorAll('input[name="hasAllergies"]');
-  const allergiesFields = document.getElementById('allergiesFields');
-  allergiesRadios.forEach(radio => {
+  document.querySelectorAll('input[name="hasAllergies"]').forEach(radio => {
     radio.addEventListener('change', () => {
-      if (radio.value === 'Yes' && radio.checked) {
-        allergiesFields.classList.add('visible');
-      } else if (radio.value === 'No' && radio.checked) {
-        allergiesFields.classList.remove('visible');
-      }
+      document.getElementById('allergiesFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
     });
   });
 
-  // Medical condition radios - show details on Yes
-  const conditionRadios = document.querySelectorAll('.condition-radio');
-  conditionRadios.forEach(radio => {
+  // Minor / Guardian fields
+  document.querySelectorAll('input[name="isMinor"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const isMinor = radio.value === 'Yes' && radio.checked;
+      document.getElementById('guardianFields').classList.toggle('visible', isMinor);
+      document.getElementById('guardianConsentText').style.display = isMinor ? 'list-item' : 'none';
+      document.getElementById('signatureLabel').textContent = isMinor 
+        ? 'Parent/Guardian Signature *' 
+        : 'Patient Signature *';
+    });
+  });
+
+  // Medical condition radios
+  document.querySelectorAll('.condition-radio').forEach(radio => {
     radio.addEventListener('change', () => {
       const conditionName = radio.name;
       const detailsEl = document.getElementById(conditionName + '-details');
       if (detailsEl) {
-        if (radio.value === 'Yes' && radio.checked) {
-          detailsEl.classList.add('visible');
-        } else if (radio.value === 'No' && radio.checked) {
-          detailsEl.classList.remove('visible');
-        }
+        detailsEl.classList.toggle('visible', radio.value === 'Yes' && radio.checked);
       }
     });
   });
+
+  // Status message helper
+  function showStatus(message, type) {
+    const statusEl = document.getElementById('statusMessage');
+    statusEl.textContent = message;
+    statusEl.className = 'status-message visible ' + type;
+  }
 
   // Form submission
   const form = document.getElementById('intakeForm');
@@ -1633,11 +1700,11 @@ function initializeForm() {
 
     let hasErrors = false;
 
-    // Validation helper
+    // Validation helpers
     const validateField = (id, errorId) => {
       const field = document.getElementById(id);
       const error = document.getElementById(errorId);
-      if (!field.value.trim()) {
+      if (field && !field.value.trim()) {
         field.classList.add('error');
         if (error) error.classList.add('visible');
         hasErrors = true;
@@ -1654,11 +1721,11 @@ function initializeForm() {
       }
     };
 
-    // Required field validations
+    // Required validations
     validateField('firstName', 'firstNameError');
     validateField('lastName', 'lastNameError');
-    validateField('dateOfBirth', 'dateOfBirthError');
-    validateField('sex', 'sexError');
+    validateField('gender', 'genderError');
+    validateField('dob', 'dobError');
     validateField('phone', 'phoneError');
     validateField('email', 'emailError');
     validateField('streetAddress', 'streetAddressError');
@@ -1672,24 +1739,15 @@ function initializeForm() {
     validateRadio('injured', 'injuredError');
     validateRadio('hasPCP', 'hasPCPError');
     validateRadio('recentHospitalization', 'recentHospitalizationError');
+    validateRadio('onHRT', 'onHRTError');
+    validateRadio('onMedications', 'onMedicationsError');
     validateRadio('hasAllergies', 'hasAllergiesError');
-    validateRadio('smoker', 'smokerError');
-    validateRadio('alcohol', 'alcoholError');
 
     // Medical history validations
-    validateRadio('hypertension', null);
-    validateRadio('highCholesterol', null);
-    validateRadio('heartDisease', null);
-    validateRadio('bloodClots', null);
-    validateRadio('stroke', null);
-    validateRadio('diabetes', null);
-    validateRadio('thyroid', null);
-    validateRadio('liverDisease', null);
-    validateRadio('kidneyDisease', null);
-    validateRadio('cancer', null);
-    validateRadio('autoimmune', null);
-    validateRadio('mentalHealth', null);
-    validateRadio('sleepApnea', null);
+    ['hypertension', 'highCholesterol', 'heartDisease', 'diabetes', 'thyroid', 
+     'depression', 'eatingDisorder', 'kidney', 'liver', 'autoimmune', 'cancer'].forEach(condition => {
+      validateRadio(condition, null);
+    });
 
     // Conditional validations
     const injured = document.querySelector('input[name="injured"]:checked');
@@ -1708,19 +1766,36 @@ function initializeForm() {
       validateField('hospitalizationReason', 'hospitalizationReasonError');
     }
 
+    const onMedications = document.querySelector('input[name="onMedications"]:checked');
+    if (onMedications && onMedications.value === 'Yes') {
+      validateField('currentMedications', 'currentMedicationsError');
+    }
+
     const hasAllergies = document.querySelector('input[name="hasAllergies"]:checked');
     if (hasAllergies && hasAllergies.value === 'Yes') {
       validateField('allergiesList', 'allergiesListError');
     }
 
+    const isMinor = document.querySelector('input[name="isMinor"]:checked');
+    if (isMinor && isMinor.value === 'Yes') {
+      validateField('guardianName', 'guardianNameError');
+      validateField('guardianRelationship', 'guardianRelationshipError');
+    }
+
+    // Photo ID validation
+    const photoIdInput = document.getElementById('photoId');
+    if (!photoIdInput.files || !photoIdInput.files[0]) {
+      document.getElementById('photoIdError').classList.add('visible');
+      hasErrors = true;
+    }
+
     // Signature validation
-    if (signaturePad.isEmpty()) {
+    if (window.signaturePad.isEmpty()) {
       document.getElementById('signatureError').classList.add('visible');
       hasErrors = true;
     }
 
     if (hasErrors) {
-      // Scroll to first error
       const firstError = document.querySelector('.field-error.visible');
       if (firstError) {
         firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1730,124 +1805,127 @@ function initializeForm() {
 
     // Disable submit button
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
-
-    // Collect form data
-    const getValue = (id) => {
-      const el = document.getElementById(id);
-      return el ? el.value : '';
-    };
-
-    const getRadioValue = (name) => {
-      const checked = document.querySelector(`input[name="${name}"]:checked`);
-      return checked ? checked.value : '';
-    };
-
-    // Collect symptoms
-    const symptoms = [];
-    const symptomFollowups = {};
-    symptomCheckboxes.forEach(cb => {
-      if (cb.checked) {
-        symptoms.push(cb.value);
-        const symptomName = cb.id.replace('symptom_', '');
-        // Get the follow-up value if it exists
-        const followupSelects = document.querySelectorAll(`#followup_${symptomName} select, #followup_${symptomName} input`);
-        followupSelects.forEach(sel => {
-          if (sel.value) {
-            symptomFollowups[symptomName] = sel.value;
-          }
-        });
-      }
-    });
-
-    const formData = {
-      // Personal Info
-      firstName: getValue('firstName'),
-      lastName: getValue('lastName'),
-      preferredName: getValue('preferredName'),
-      dateOfBirth: getValue('dateOfBirth'),
-      sex: getValue('sex'),
-      phone: getValue('phone'),
-      email: getValue('email'),
-      streetAddress: getValue('streetAddress'),
-      city: getValue('city'),
-      state: getValue('state'),
-      postalCode: getValue('postalCode'),
-      country: getValue('country'),
-      howHeardAboutUs: getValue('howHeardAboutUs') === 'Other' 
-        ? `Other: ${getValue('howHeardOther')}` 
-        : getValue('howHeardAboutUs'),
-
-      // Health Concerns
-      whatBringsYou: getValue('whatBringsYou'),
-      injured: getRadioValue('injured'),
-      injuryDescription: getValue('injuryDescription'),
-      injuryLocation: getValue('injuryLocation'),
-      injuryDate: getValue('injuryDate'),
-      currentTreatment: getValue('currentTreatment'),
-
-      // Symptoms (Energy & Optimization)
-      symptoms: symptoms,
-      symptomFollowups: symptomFollowups,
-      symptomDuration: getRadioValue('symptomDuration'),
-
-      // Healthcare Providers
-      hasPCP: getRadioValue('hasPCP'),
-      pcpName: getValue('pcpName'),
-      pcpPractice: getValue('pcpPractice'),
-      pcpPhone: getValue('pcpPhone'),
-      recentHospitalization: getRadioValue('recentHospitalization'),
-      hospitalizationReason: getValue('hospitalizationReason'),
-
-      // Medical History
-      hypertension: getRadioValue('hypertension'),
-      hypertensionYear: getValue('hypertension-year'),
-      highCholesterol: getRadioValue('highCholesterol'),
-      highCholesterolYear: getValue('highCholesterol-year'),
-      heartDisease: getRadioValue('heartDisease'),
-      heartDiseaseYear: getValue('heartDisease-year'),
-      bloodClots: getRadioValue('bloodClots'),
-      bloodClotsYear: getValue('bloodClots-year'),
-      stroke: getRadioValue('stroke'),
-      strokeYear: getValue('stroke-year'),
-      diabetes: getRadioValue('diabetes'),
-      diabetesType: getValue('diabetes-type'),
-      thyroid: getRadioValue('thyroid'),
-      thyroidType: getValue('thyroid-type'),
-      liverDisease: getRadioValue('liverDisease'),
-      liverDiseaseYear: getValue('liverDisease-year'),
-      kidneyDisease: getRadioValue('kidneyDisease'),
-      kidneyDiseaseYear: getValue('kidneyDisease-year'),
-      cancer: getRadioValue('cancer'),
-      cancerType: getValue('cancer-type'),
-      cancerYear: getValue('cancer-year'),
-      cancerStatus: getValue('cancer-status'),
-      autoimmune: getRadioValue('autoimmune'),
-      autoimmuneType: getValue('autoimmune-type'),
-      mentalHealth: getRadioValue('mentalHealth'),
-      mentalHealthType: getValue('mentalHealth-type'),
-      sleepApnea: getRadioValue('sleepApnea'),
-      sleepApneaCPAP: getValue('sleepApnea-cpap'),
-
-      // Medications & Allergies
-      currentMedications: getValue('currentMedications'),
-      hasAllergies: getRadioValue('hasAllergies'),
-      allergiesList: getValue('allergiesList'),
-
-      // Lifestyle
-      smoker: getRadioValue('smoker'),
-      alcohol: getRadioValue('alcohol'),
-      exerciseFrequency: getValue('exerciseFrequency'),
-
-      // Signature
-      signatureDate: getValue('signatureDate'),
-      signatureData: signaturePad.toDataURL(),
-
-      // Metadata
-      submittedAt: new Date().toISOString()
-    };
+    submitBtn.textContent = 'Processing...';
+    showStatus('Submitting your form...', 'loading');
 
     try {
+      // Collect form data
+      const getValue = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+      };
+
+      const getRadio = (name) => {
+        const checked = document.querySelector(`input[name="${name}"]:checked`);
+        return checked ? checked.value : '';
+      };
+
+      // Collect symptoms
+      const symptoms = [];
+      const symptomFollowups = {};
+      symptomCheckboxes.forEach(cb => {
+        if (cb.checked) {
+          symptoms.push(cb.value);
+          const symptomName = cb.id.replace('symptom_', '');
+          const followupEl = document.querySelector(`#followup_${symptomName} select, #followup_${symptomName} input`);
+          if (followupEl && followupEl.value) {
+            symptomFollowups[symptomName] = followupEl.value;
+          }
+        }
+      });
+
+      // Collect medical history
+      const conditionNames = ['hypertension', 'highCholesterol', 'heartDisease', 'diabetes', 'thyroid', 
+                             'depression', 'eatingDisorder', 'kidney', 'liver', 'autoimmune', 'cancer'];
+      
+      const conditionLabels = {
+        'hypertension': 'High Blood Pressure (Hypertension)',
+        'highCholesterol': 'High Cholesterol',
+        'heartDisease': 'Heart Disease',
+        'diabetes': 'Diabetes',
+        'thyroid': 'Thyroid Disorder',
+        'depression': 'Depression / Anxiety',
+        'eatingDisorder': 'Eating Disorder',
+        'kidney': 'Kidney Disease',
+        'liver': 'Liver Disease',
+        'autoimmune': 'Autoimmune Disorder',
+        'cancer': 'Cancer'
+      };
+
+      const medicalHistory = {};
+      conditionNames.forEach(conditionName => {
+        const response = getRadio(conditionName);
+        medicalHistory[conditionName] = {
+          response: response,
+          label: conditionLabels[conditionName]
+        };
+        
+        if (response === 'Yes') {
+          const yearEl = document.getElementById(conditionName + '-year');
+          const typeEl = document.getElementById(conditionName + '-type');
+          if (typeEl && typeEl.value) medicalHistory[conditionName].type = typeEl.value;
+          if (yearEl && yearEl.value) medicalHistory[conditionName].year = yearEl.value;
+        }
+      });
+
+      const formData = {
+        firstName: getValue('firstName'),
+        lastName: getValue('lastName'),
+        preferredName: getValue('preferredName'),
+        gender: getValue('gender'),
+        dateOfBirth: getValue('dob'),
+        email: getValue('email'),
+        phone: getValue('phone'),
+        streetAddress: getValue('streetAddress'),
+        city: getValue('city'),
+        state: getValue('state'),
+        postalCode: getValue('postalCode'),
+        country: getValue('country'),
+        howHeardAboutUs: getValue('howHeardAboutUs') === 'Other' 
+          ? `Other: ${getValue('howHeardOther')}` 
+          : getValue('howHeardAboutUs'),
+
+        whatBringsYou: getValue('whatBringsYou'),
+        injured: getRadio('injured'),
+        injuryDescription: getValue('injuryDescription'),
+        injuryLocation: getValue('injuryLocation'),
+        injuryDate: getValue('injuryDate'),
+
+        // NEW: Symptoms
+        symptoms: symptoms,
+        symptomFollowups: symptomFollowups,
+        symptomDuration: getRadio('symptomDuration'),
+
+        // Healthcare Providers
+        hasPCP: getRadio('hasPCP'),
+        pcpName: getValue('pcpName'),
+        recentHospitalization: getRadio('recentHospitalization'),
+        hospitalizationReason: getValue('hospitalizationReason'),
+
+        // Medical History
+        medicalHistory: medicalHistory,
+
+        // Medications
+        onHRT: getRadio('onHRT'),
+        hrtDetails: getValue('hrtDetails'),
+        onMedications: getRadio('onMedications'),
+        currentMedications: getValue('currentMedications'),
+        hasAllergies: getRadio('hasAllergies'),
+        allergies: getValue('allergiesList'),
+
+        // Minor/Guardian
+        isMinor: getRadio('isMinor'),
+        guardianName: getValue('guardianName'),
+        guardianRelationship: getValue('guardianRelationship'),
+
+        // Signature
+        signatureDate: getValue('signatureDate'),
+        signatureData: window.signaturePad.toDataURL(),
+        consent: true,
+
+        submittedAt: new Date().toISOString()
+      };
+
       // Submit to API
       const response = await fetch('/api/intakes', {
         method: 'POST',
@@ -1859,7 +1937,7 @@ function initializeForm() {
         throw new Error('Failed to submit form');
       }
 
-      // Also sync to GHL
+      // Sync to GHL
       await fetch('/api/intake-to-ghl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1870,13 +1948,11 @@ function initializeForm() {
       document.getElementById('intakeContainer').querySelector('.form-container').style.display = 'none';
       document.getElementById('intakeContainer').querySelector('.intake-header').style.display = 'none';
       document.getElementById('thankYouContainer').classList.add('visible');
-
-      // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
     } catch (error) {
       console.error('Submission error:', error);
-      alert('There was an error submitting your form. Please try again or call us at (949) 997-3988.');
+      showStatus('Error: ' + (error.message || 'Unknown error occurred'), 'error');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Medical Intake Form';
     }

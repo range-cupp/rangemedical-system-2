@@ -281,7 +281,6 @@ export default async function handler(req, res) {
       .select(`
         id,
         patient_id,
-        ghl_contact_id,
         program_type,
         program_name,
         medication,
@@ -343,11 +342,11 @@ export default async function handler(req, res) {
       // Get patient name - try JOIN first, then GHL lookup
       let patientName = p.patients?.name;
       let patientId = p.patient_id;
-      let ghlContactId = p.patients?.ghl_contact_id || p.ghl_contact_id;
+      let ghlContactId = p.patients?.ghl_contact_id;
       
-      if (!patientName && p.ghl_contact_id && patientsByGhl[p.ghl_contact_id]) {
-        patientName = patientsByGhl[p.ghl_contact_id].name;
-        patientId = patientsByGhl[p.ghl_contact_id].id;
+      if (!patientName && ghlContactId && patientsByGhl[ghlContactId]) {
+        patientName = patientsByGhl[ghlContactId].name;
+        patientId = patientsByGhl[ghlContactId].id;
       }
 
       // Get tracking info

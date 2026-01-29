@@ -244,6 +244,88 @@ export default function Home() {
           font-weight: 600;
         }
 
+        /* Testimonials Grid */
+        .testimonials-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
+          max-width: 1000px;
+          margin: 0 auto 2.5rem;
+        }
+
+        .testimonial-card {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.75rem;
+          transition: all 0.2s;
+        }
+
+        .testimonial-card:hover {
+          border-color: #000000;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+
+        .testimonial-stars {
+          color: #000000;
+          font-size: 1rem;
+          letter-spacing: 2px;
+          margin-bottom: 1rem;
+        }
+
+        .testimonial-card blockquote {
+          font-size: 0.9375rem;
+          color: #404040;
+          line-height: 1.7;
+          margin: 0 0 1.25rem 0;
+          font-style: normal;
+        }
+
+        .testimonial-card cite {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #171717;
+          font-style: normal;
+        }
+
+        .testimonials-cta {
+          text-align: center;
+        }
+
+        /* CTA Buttons */
+        .cta-buttons {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .btn-outline-white {
+          display: inline-block;
+          background: transparent;
+          color: #ffffff;
+          padding: 0.875rem 2rem;
+          border-radius: 8px;
+          border: 2px solid rgba(255,255,255,0.4);
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 0.9375rem;
+          transition: all 0.2s;
+        }
+
+        .btn-outline-white:hover {
+          background: #ffffff;
+          color: #000000;
+          border-color: #ffffff;
+        }
+
+        @media (max-width: 900px) {
+          .testimonials-grid {
+            grid-template-columns: 1fr;
+            max-width: 500px;
+          }
+        }
+
         @media (max-width: 640px) {
           .assessment-options {
             flex-direction: column;
@@ -254,6 +336,11 @@ export default function Home() {
             width: 100%;
             max-width: 300px;
             justify-content: center;
+          }
+
+          .cta-buttons {
+            flex-direction: column;
+            align-items: center;
           }
         }
       `}</style>

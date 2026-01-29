@@ -55,7 +55,7 @@ export default function WeightLoss() {
           <h2 className="section-title">Why Normal Diets Stop Working</h2>
           <p className="section-subtitle">It's not about willpower. Your body is fighting you—and there's a reason.</p>
           
-          <div className="doors-grid">
+          <div className="doors-grid-3">
             <div className="door-card">
               <div className="door-icon">🔥</div>
               <h4>Metabolism Slows Down</h4>
@@ -73,8 +73,8 @@ export default function WeightLoss() {
             </div>
           </div>
           
-          <div className="comparison">
-            <div className="comparison-col">
+          <div className="compare-grid">
+            <div className="compare-card">
               <h4>Generic Weight Loss Clinics</h4>
               <ul>
                 <li>Quick scripts with no lab work</li>
@@ -84,7 +84,7 @@ export default function WeightLoss() {
                 <li>No idea if hormones are part of the problem</li>
               </ul>
             </div>
-            <div className="comparison-col range">
+            <div className="compare-card highlight">
               <h4>Range Medical</h4>
               <ul>
                 <li>Labs first to see the full picture</li>

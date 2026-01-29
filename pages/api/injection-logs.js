@@ -1,6 +1,6 @@
 // /pages/api/injection-logs.js
 // Injection Logs API - CRUD operations
-// Range Medical - 2026-01-29 - Fixed to match frontend expectations
+// Range Medical - 2026-01-29 - Fixed column names
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -34,9 +34,7 @@ async function handleGet(req, res) {
   const { category, patient_id, limit = 100 } = req.query;
   
   try {
-    // Build query - select all columns plus join patient name
-    // Note: The join might fail if patient_id doesn't exist in patients table
-    // So we'll do a simple query first, then try to get patient names
+    // Simple query - only select columns that exist
     let query = supabase
       .from('injection_logs')
       .select('*')
@@ -61,7 +59,7 @@ async function handleGet(req, res) {
       return res.status(500).json({ success: false, error: error.message });
     }
     
-    // If we have logs, try to get patient names
+    // If we have logs, try to get patient names for any that don't have them
     const formattedLogs = [];
     
     for (const log of (logs || [])) {
@@ -125,7 +123,7 @@ async function handlePost(req, res) {
   const logDate = entry_date || new Date().toISOString().split('T')[0];
   
   try {
-    // 1. Create the log entry
+    // 1. Create the log entry - only use columns that exist
     const logData = {
       patient_id,
       category,
@@ -135,7 +133,6 @@ async function handlePost(req, res) {
       dosage: dosage || null,
       weight: weight ? parseFloat(weight) : null,
       quantity: quantity ? parseInt(quantity) : null,
-      supply_type: supply_type || null,
       notes: notes || null
     };
     
@@ -181,7 +178,6 @@ async function handlePut(req, res) {
     dosage,
     weight,
     quantity,
-    supply_type,
     notes
   } = req.body;
   
@@ -193,7 +189,6 @@ async function handlePut(req, res) {
       dosage: dosage || null,
       weight: weight ? parseFloat(weight) : null,
       quantity: quantity ? parseInt(quantity) : null,
-      supply_type: supply_type || null,
       notes: notes || null
     };
     

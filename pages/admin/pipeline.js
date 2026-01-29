@@ -609,7 +609,7 @@ export default function UnifiedPipeline() {
               <label style={styles.formLabel}>Starting Dose</label>
               <select value={protocolForm.wl_starting_dose || ''} onChange={(e) => setProtocolForm({ ...protocolForm, wl_starting_dose: e.target.value })} style={styles.formSelect}>
                 <option value="">Select dose...</option>
-                {protocolForm.wl_medication === 'Semaglutide' ? ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => <option key={d} value={d}>{d}</option>) : ['1mg', '2mg', '3mg', '4mg', '5mg', '6mg', '7mg', '8mg', '9mg', '10mg', '11mg', '12mg', '13mg', '14mg', '15mg'].map(d => <option key={d} value={d}>{d}</option>)}
+                {protocolForm.wl_medication === 'Semaglutide' ? ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => <option key={d} value={d}>{d}</option>) : ['1mg', '1.5mg', '2mg', '2.5mg', '3mg', '3.5mg', '4mg', '4.5mg', '5mg', '5.5mg', '6mg', '6.5mg', '7mg', '7.5mg', '8mg', '8.5mg', '9mg', '9.5mg', '10mg', '10.5mg', '11mg', '11.5mg', '12mg', '12.5mg', '13mg', '13.5mg', '14mg', '14.5mg', '15mg'].map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <div style={styles.formGroup}>
@@ -859,7 +859,7 @@ export default function UnifiedPipeline() {
             <label style={styles.formLabel}>Dose</label>
             <select value={logForm.dosage || logModal.dose || ''} onChange={(e) => setLogForm({ ...logForm, dosage: e.target.value })} style={styles.formSelect}>
               <option value="">Same as protocol ({logModal.dose})</option>
-              {(logModal.medication || '').toLowerCase().includes('semaglutide') ? ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => <option key={d} value={d}>{d}</option>) : ['1mg', '2mg', '3mg', '4mg', '5mg', '6mg', '7mg', '8mg', '9mg', '10mg', '11mg', '12mg', '13mg', '14mg', '15mg'].map(d => <option key={d} value={d}>{d}</option>)}
+              {(logModal.medication || '').toLowerCase().includes('semaglutide') ? ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => <option key={d} value={d}>{d}</option>) : ['1mg', '1.5mg', '2mg', '2.5mg', '3mg', '3.5mg', '4mg', '4.5mg', '5mg', '5.5mg', '6mg', '6.5mg', '7mg', '7.5mg', '8mg', '8.5mg', '9mg', '9.5mg', '10mg', '10.5mg', '11mg', '11.5mg', '12mg', '12.5mg', '13mg', '13.5mg', '14mg', '14.5mg', '15mg'].map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
         </>
@@ -1142,7 +1142,7 @@ export default function UnifiedPipeline() {
                     <select value={editForm.dose || ''} onChange={(e) => setEditForm({ ...editForm, dose: e.target.value })} style={styles.formSelect}>
                       <option value="">Select dose...</option>
                       <option value="TBD">TBD</option>
-                      {editForm.medication === 'Semaglutide' ? ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => <option key={d} value={d}>{d}</option>) : ['1mg', '2mg', '3mg', '4mg', '5mg', '6mg', '7mg', '8mg', '9mg', '10mg', '11mg', '12mg', '13mg', '14mg', '15mg'].map(d => <option key={d} value={d}>{d}</option>)}
+                      {editForm.medication === 'Semaglutide' ? ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'].map(d => <option key={d} value={d}>{d}</option>) : ['1mg', '1.5mg', '2mg', '2.5mg', '3mg', '3.5mg', '4mg', '4.5mg', '5mg', '5.5mg', '6mg', '6.5mg', '7mg', '7.5mg', '8mg', '8.5mg', '9mg', '9.5mg', '10mg', '10.5mg', '11mg', '11.5mg', '12mg', '12.5mg', '13mg', '13.5mg', '14mg', '14.5mg', '15mg'].map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   ) : <input type="text" value={editForm.dose || ''} onChange={(e) => setEditForm({ ...editForm, dose: e.target.value })} style={styles.formInput} placeholder="e.g. 500mcg, 100mg" />}
                 </div>

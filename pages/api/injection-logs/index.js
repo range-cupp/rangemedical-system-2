@@ -1,6 +1,6 @@
 // /pages/api/injection-logs/index.js
 // Fetch all injection logs with patient names, create new logs
-// Range Medical - 2026-01-28
+// Range Medical - 2026-01-28 - Fixed version
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -31,7 +31,6 @@ export default async function handler(req, res) {
           weight,
           notes,
           site,
-          supply_type,
           created_at,
           patients (
             id,
@@ -73,13 +72,14 @@ export default async function handler(req, res) {
         notes,
         site,
         supply_type,
-        ghl_contact_id
+        quantity
       } = req.body;
 
       if (!patient_id) {
         return res.status(400).json({ success: false, error: 'Patient ID required' });
       }
 
+      // Build log data - only include fields that exist in the table
       const logData = {
         patient_id,
         protocol_id: protocol_id || null,
@@ -90,35 +90,62 @@ export default async function handler(req, res) {
         dosage: dosage || null,
         weight: weight ? parseFloat(weight) : null,
         notes: notes || null,
-        site: site || null,
-        supply_type: supply_type || null
+        site: site || null
       };
 
-      const { data, error } = await supabase
+      // Create the log entry
+      const { data: logEntry, error: logError } = await supabase
         .from('injection_logs')
         .insert([logData])
         .select()
         .single();
 
-      if (error) throw error;
-
-      // If this is a weight loss injection, update the protocol sessions_used
-      if (protocol_id && (category === 'weight_loss' || entry_type === 'injection')) {
-        await supabase.rpc('increment_sessions_used', { protocol_uuid: protocol_id });
+      if (logError) {
+        console.error('Log insert error:', logError);
+        throw logError;
       }
 
-      // If this is an HRT pickup, update last_refill_date
+      // If this is an HRT pickup, update the protocol
       if (protocol_id && entry_type === 'pickup') {
-        await supabase
+        const protocolUpdate = {
+          last_refill_date: entry_date || new Date().toISOString().split('T')[0]
+        };
+        
+        // Only add supply_type if provided
+        if (supply_type) {
+          protocolUpdate.supply_type = supply_type;
+        }
+
+        const { error: protocolError } = await supabase
           .from('protocols')
-          .update({ 
-            last_refill_date: entry_date,
-            supply_type: supply_type || undefined
-          })
+          .update(protocolUpdate)
           .eq('id', protocol_id);
+
+        if (protocolError) {
+          console.error('Protocol update error (non-fatal):', protocolError);
+          // Don't throw - log was created successfully
+        }
       }
 
-      return res.status(200).json({ success: true, log: data });
+      // If this is a weight loss or in-clinic injection, increment sessions_used
+      if (protocol_id && entry_type === 'injection' && (category === 'weight_loss' || category === 'hrt')) {
+        // Direct increment instead of RPC
+        const { data: protocol } = await supabase
+          .from('protocols')
+          .select('sessions_used')
+          .eq('id', protocol_id)
+          .single();
+
+        if (protocol) {
+          const newSessionsUsed = (protocol.sessions_used || 0) + 1;
+          await supabase
+            .from('protocols')
+            .update({ sessions_used: newSessionsUsed })
+            .eq('id', protocol_id);
+        }
+      }
+
+      return res.status(200).json({ success: true, log: logEntry });
     } catch (err) {
       console.error('Error creating log:', err);
       return res.status(500).json({ success: false, error: err.message });

@@ -29,13 +29,14 @@ export default function GHKCuCream() {
 
       {/* Hero */}
       <section className="hero">
-        <p className="hero-kicker">Anti-Aging Peptide Therapy</p>
+        <p className="hero-kicker">Prescription Peptide Therapy</p>
         <h1>GHK-Cu Cream: Your Skin's Natural Repair Signal</h1>
         <p className="hero-sub">
           A copper peptide that tells your skin to rebuild collagen, smooth fine lines, and restore that healthy glow you thought was gone forever.
         </p>
+        <p className="hero-price">$299/month • Prescription Required</p>
         <div className="hero-buttons">
-          <a href="sms:+19499973988" className="btn-primary">Get Started</a>
+          <a href="/range-assessment" className="btn-primary">Book Assessment</a>
           <a href="#how-it-works" className="btn-outline">Learn More</a>
         </div>
       </section>
@@ -290,8 +291,12 @@ export default function GHKCuCream() {
               <p>With twice-daily use on face and neck, most patients get 4-6 weeks from each bottle. Usage varies based on how much area you're covering.</p>
             </div>
             <div className="faq-item">
+              <h3>How much does it cost?</h3>
+              <p>GHK-Cu cream is $299/month, which includes the prescription medication from our pharmacy. You'll start with a $199 Range Assessment to determine if it's right for your skin goals.</p>
+            </div>
+            <div className="faq-item">
               <h3>Do I need a prescription?</h3>
-              <p>Yes, GHK-Cu cream is prescription-only. During your consultation, we'll determine if it's right for your skin goals and write your prescription if appropriate.</p>
+              <p>Yes, GHK-Cu cream is a prescription medication dispensed from our pharmacy. Start with a $199 Range Assessment where we'll review your skin goals and determine if GHK-Cu is right for you.</p>
             </div>
             <div className="faq-item">
               <h3>What if I have sensitive skin?</h3>
@@ -305,10 +310,9 @@ export default function GHKCuCream() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to Start?</h2>
-          <p>Schedule a consultation to see if GHK-Cu is right for your skin goals. We'll build a plan that actually works for you.</p>
+          <p>GHK-Cu cream is $299/month, prescribed through our pharmacy after your Range Assessment ($199).</p>
           <div className="cta-buttons">
-            <a href="tel:9499973988" className="btn-white">Call (949) 997-3988</a>
-            <a href="/book" className="btn-outline-white">Book Online</a>
+            <a href="/range-assessment" className="btn-white">Book Assessment — $199</a>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
         </div>
@@ -370,8 +374,14 @@ export default function GHKCuCream() {
           font-size: 1.125rem;
           color: #525252;
           max-width: 600px;
-          margin: 0 auto 2rem;
+          margin: 0 auto 1rem;
           line-height: 1.7;
+        }
+        .hero-price {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #171717;
+          margin-bottom: 2rem;
         }
         .hero-buttons {
           display: flex;

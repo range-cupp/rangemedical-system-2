@@ -1,5 +1,5 @@
 // /pages/book.js
-// Range Assessment Booking Page - Redesigned
+// Range Assessment Booking Page - Fixed Version
 // Range Medical - 2026-01-28
 
 import Layout from '../components/Layout';
@@ -10,16 +10,17 @@ import { useRouter } from 'next/router';
 export default function Book() {
   const router = useRouter();
   const [selectedReason, setSelectedReason] = useState('');
-  const [allChecked, setAllChecked] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [checkboxes, setCheckboxes] = useState({
     check1: false,
     check2: false,
     check3: false,
     check4: false,
-    check5: false,
-    check6: false,
   });
+
+  // Check if all boxes are checked
+  const allChecked = Object.values(checkboxes).every(Boolean);
+  const canProceed = allChecked && selectedReason;
 
   useEffect(() => {
     if (router.query.reason === 'injury') {
@@ -30,18 +31,16 @@ export default function Book() {
   }, [router.query.reason]);
 
   const handleCheckboxChange = (id) => {
-    const newCheckboxes = { ...checkboxes, [id]: !checkboxes[id] };
-    setCheckboxes(newCheckboxes);
-    setAllChecked(Object.values(newCheckboxes).every(Boolean));
+    setCheckboxes(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleShowCalendar = () => {
     if (!selectedReason) {
-      alert('Please select what brings you in today.');
+      // Scroll to reason selection
+      document.getElementById('reasonSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (!allChecked) {
-      alert('Please confirm all items before booking.');
       return;
     }
     setShowCalendar(true);
@@ -50,45 +49,24 @@ export default function Book() {
     }, 100);
   };
 
-  const reasonContent = {
-    injury: {
-      focus: "We'll focus your Range Assessment on your injury and recovery goals.",
-      checkLabel: "This is a consultation to build your recovery plan.",
-    },
-    energy: {
-      focus: "We'll focus your Range Assessment on your energy, health, and optimization goals.",
-      checkLabel: "This is a consultation to build your plan.",
-    }
-  };
-
   const checklistItems = [
     {
       id: 'check1',
-      bold: 'This is a 20–30 minute visit.',
-      text: 'Plan your schedule accordingly and arrive ready to discuss your goals.'
-    },
-    {
-      id: 'check2',
-      bold: "You'll receive a symptoms form to complete before your visit.",
-      text: 'This helps us make the most of your time together.'
-    },
-    {
-      id: 'check3',
       bold: 'Bring any labs or records from the past year if you have them.',
       text: "We'll review them together. If you don't have any, that's okay."
     },
     {
-      id: 'check4',
-      bold: selectedReason ? reasonContent[selectedReason].checkLabel : 'This is a consultation to build your plan.',
+      id: 'check2',
+      bold: 'This is a consultation to build your plan.',
       text: 'You\'ll leave with clear next steps, not a "wait and see" answer.'
     },
     {
-      id: 'check5',
+      id: 'check3',
       bold: 'Arrive 5–10 minutes early',
       text: 'with a valid ID so we can start on time.'
     },
     {
-      id: 'check6',
+      id: 'check4',
       bold: 'The assessment fee is $199,',
       text: 'payable at the clinic. This is credited toward any program, including labs.'
     }
@@ -122,10 +100,12 @@ export default function Book() {
         </section>
 
         {/* Step 1: Reason */}
-        <section className="book-section">
+        <section className="book-section" id="reasonSection">
           <div className="book-container">
             <div className="step-header">
-              <span className="step-number">1</span>
+              <span className={`step-number ${selectedReason ? 'complete' : ''}`}>
+                {selectedReason ? '✓' : '1'}
+              </span>
               <div>
                 <h2>What Brings You In?</h2>
                 <p>This helps us focus your visit on what matters most.</p>
@@ -142,7 +122,7 @@ export default function Book() {
                   <h3>Injury & Recovery</h3>
                   <p>I'm rehabbing an injury and healing feels slow. I want to speed things up.</p>
                 </div>
-                <div className="reason-indicator">
+                <div className={`reason-indicator ${selectedReason === 'injury' ? 'checked' : ''}`}>
                   {selectedReason === 'injury' && <span className="check">✓</span>}
                 </div>
               </button>
@@ -156,7 +136,7 @@ export default function Book() {
                   <h3>Energy & Optimization</h3>
                   <p>I'm tired, foggy, or just don't feel like myself. I want answers and a plan.</p>
                 </div>
-                <div className="reason-indicator">
+                <div className={`reason-indicator ${selectedReason === 'energy' ? 'checked' : ''}`}>
                   {selectedReason === 'energy' && <span className="check">✓</span>}
                 </div>
               </button>
@@ -164,7 +144,9 @@ export default function Book() {
 
             {selectedReason && (
               <div className="reason-confirmed">
-                ✓ {reasonContent[selectedReason].focus}
+                ✓ {selectedReason === 'injury' 
+                  ? "We'll focus your Range Assessment on your injury and recovery goals."
+                  : "We'll focus your Range Assessment on your energy, health, and optimization goals."}
               </div>
             )}
           </div>
@@ -198,7 +180,9 @@ export default function Book() {
         <section className="book-section">
           <div className="book-container">
             <div className="step-header">
-              <span className="step-number">2</span>
+              <span className={`step-number ${allChecked ? 'complete' : ''}`}>
+                {allChecked ? '✓' : '2'}
+              </span>
               <div>
                 <h2>Before Your Visit</h2>
                 <p>Please confirm you understand the following:</p>
@@ -223,25 +207,33 @@ export default function Book() {
               ))}
             </div>
 
+            {/* Status Message */}
+            {!canProceed && (
+              <div className="status-message">
+                {!selectedReason && <span>↑ Please select what brings you in (Step 1)</span>}
+                {selectedReason && !allChecked && <span>Please check all boxes above to continue</span>}
+              </div>
+            )}
+
             <div className="book-cta">
               <button 
-                className={`book-button ${allChecked && selectedReason ? 'ready' : ''}`}
+                className={`book-button ${canProceed ? 'ready' : ''}`}
                 onClick={handleShowCalendar}
-                disabled={!allChecked || !selectedReason}
+                disabled={!canProceed}
               >
-                Continue to Select a Time
+                {canProceed ? 'Continue to Select a Time' : 'Complete the steps above to continue'}
               </button>
               <p className="cta-note">You'll pay $199 at the clinic when you arrive.</p>
             </div>
           </div>
         </section>
 
-        {/* Calendar Section - Only render iframe when showCalendar is true */}
+        {/* Calendar Section */}
         {showCalendar && (
           <section className="book-section calendar-section" id="calendarSection">
             <div className="book-container">
               <div className="step-header">
-                <span className="step-number">3</span>
+                <span className="step-number complete">3</span>
                 <div>
                   <h2>Select a Time</h2>
                   <p>Choose a time that works best for you.</p>
@@ -372,6 +364,11 @@ export default function Book() {
           font-size: 18px;
           font-weight: 700;
           flex-shrink: 0;
+          transition: all 0.3s;
+        }
+
+        .step-number.complete {
+          background: #22c55e;
         }
 
         .step-header h2 {
@@ -460,11 +457,12 @@ export default function Book() {
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
+          transition: all 0.2s;
         }
 
-        .reason-card.selected .reason-indicator {
-          background: #000;
-          border-color: #000;
+        .reason-indicator.checked {
+          background: #22c55e;
+          border-color: #22c55e;
         }
 
         .reason-indicator .check {
@@ -626,9 +624,22 @@ export default function Book() {
           color: #111;
         }
 
+        /* Status Message */
+        .status-message {
+          margin-top: 24px;
+          padding: 16px 20px;
+          background: #fef3c7;
+          border: 1px solid #fcd34d;
+          border-radius: 12px;
+          color: #92400e;
+          font-weight: 500;
+          font-size: 15px;
+          text-align: center;
+        }
+
         /* Book CTA */
         .book-cta {
-          margin-top: 40px;
+          margin-top: 32px;
           text-align: center;
         }
 

@@ -126,6 +126,126 @@ export default function HRTMembership() {
         </div>
       </section>
 
+      {/* What Testosterone Actually Does */}
+      <section className="section">
+        <div className="container">
+          <p className="section-kicker">The Science</p>
+          <h2 className="section-title">What Optimized Testosterone Does For Men</h2>
+          <p className="section-subtitle">
+            This isn't about getting jacked. It's about restoring what your body used to do naturally—backed by decades of clinical research.
+          </p>
+          <div className="benefits-deep">
+            <div className="benefit-block">
+              <div className="benefit-icon">💪</div>
+              <div className="benefit-content">
+                <h3>Builds Lean Muscle Mass</h3>
+                <p>Testosterone directly stimulates protein synthesis and activates satellite cells that repair and grow muscle tissue. Clinical studies show men on TRT gain an average of <strong>3-6 lbs of lean muscle</strong> in the first 3-6 months—with some studies showing gains up to 8 lbs in men starting with very low levels. Intramuscular testosterone shows a <strong>5.7% increase in fat-free mass</strong> on average.</p>
+              </div>
+            </div>
+            <div className="benefit-block">
+              <div className="benefit-icon">🔥</div>
+              <div className="benefit-content">
+                <h3>Reduces Body Fat</h3>
+                <p>Optimized testosterone shifts your body composition—less fat, more muscle. Research shows an average <strong>reduction of 3-6 lbs of fat mass</strong> over 6-12 months, with the biggest losses in stubborn areas like the midsection and love handles. One 56-week study showed men lost <strong>6.4 lbs more fat</strong> than placebo while gaining muscle.</p>
+              </div>
+            </div>
+            <div className="benefit-block">
+              <div className="benefit-icon">⚡</div>
+              <div className="benefit-content">
+                <h3>Restores Energy & Motivation</h3>
+                <p>That afternoon crash and constant fatigue? Often tied to low T. Studies show improvements in energy and reduced fatigue within <strong>3-4 weeks</strong> of starting treatment. By week 6, most men report feeling noticeably more energized throughout the day.</p>
+              </div>
+            </div>
+            <div className="benefit-block">
+              <div className="benefit-icon">🧠</div>
+              <div className="benefit-content">
+                <h3>Clears Brain Fog</h3>
+                <p>Testosterone affects neurotransmitters like serotonin and dopamine. Clinical research shows cognitive benefits—better focus, clearer thinking, improved memory—begin appearing around <strong>week 3</strong> and continue improving for several months.</p>
+              </div>
+            </div>
+            <div className="benefit-block">
+              <div className="benefit-icon">😊</div>
+              <div className="benefit-content">
+                <h3>Improves Mood & Reduces Depression</h3>
+                <p>Low testosterone is linked to irritability, anxiety, and depression. Studies using depression rating scales show measurable improvement in depressive symptoms within <strong>3-6 weeks</strong>, with maximum benefits reached around 18-30 weeks. Many men describe feeling "like themselves again."</p>
+              </div>
+            </div>
+            <div className="benefit-block">
+              <div className="benefit-icon">❤️</div>
+              <div className="benefit-content">
+                <h3>Restores Libido & Sexual Function</h3>
+                <p>Sexual interest typically improves within <strong>3 weeks</strong>, plateauing around week 6. Improvements in erections and sexual performance may take longer—up to 6 months for full effect. Many men report morning erections returning within the first 2 weeks.</p>
+              </div>
+            </div>
+            <div className="benefit-block">
+              <div className="benefit-icon">🌙</div>
+              <div className="benefit-content">
+                <h3>Better Sleep Quality</h3>
+                <p>Testosterone helps regulate sleep architecture. Many men notice improved sleep quality within the <strong>first 1-2 weeks</strong>—falling asleep easier, staying asleep longer, and waking up feeling more rested.</p>
+              </div>
+            </div>
+            <div className="benefit-block">
+              <div className="benefit-icon">🦴</div>
+              <div className="benefit-content">
+                <h3>Strengthens Bones</h3>
+                <p>Testosterone is critical for bone mineral density. Research shows <strong>5% increase in spinal bone density</strong> and up to <strong>14% increase in trabecular bone density</strong> over 18 months—reducing fracture risk as you age.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Timeline */}
+      <section className="section section-gray">
+        <div className="container">
+          <p className="section-kicker">Results Timeline</p>
+          <h2 className="section-title">When You'll Feel The Difference</h2>
+          <p className="section-subtitle">
+            Everyone responds differently, but here's what clinical research shows most men experience.
+          </p>
+          <div className="timeline">
+            <div className="timeline-item">
+              <div className="timeline-period">Week 1-2</div>
+              <div className="timeline-content">
+                <h3>Early Signs</h3>
+                <p>Better sleep quality. Subtle energy improvements, especially in the afternoon. Some men notice morning erections returning. You're laying the foundation.</p>
+              </div>
+            </div>
+            <div className="timeline-item">
+              <div className="timeline-period">Week 3-4</div>
+              <div className="timeline-content">
+                <h3>Mood & Energy Shift</h3>
+                <p>Noticeable improvement in energy levels and mood. Brain fog starts to lift. Libido begins to increase. Quality of life improvements become apparent. This is when most men think "okay, something's happening."</p>
+              </div>
+            </div>
+            <div className="timeline-item">
+              <div className="timeline-period">Week 6-8</div>
+              <div className="timeline-content">
+                <h3>Feeling Like Yourself</h3>
+                <p>Sexual function improvements plateau. Depression and anxiety continue to improve. You have more drive and motivation. This is when we do your first follow-up labs to see how your body is responding.</p>
+              </div>
+            </div>
+            <div className="timeline-item">
+              <div className="timeline-period">Month 3-4</div>
+              <div className="timeline-content">
+                <h3>Body Composition Changes</h3>
+                <p>Visible changes in muscle tone and fat distribution begin. Clothes fit differently. If you're lifting, you notice strength gains. Metabolic improvements in cholesterol and triglycerides measurable on labs.</p>
+              </div>
+            </div>
+            <div className="timeline-item">
+              <div className="timeline-period">Month 6-12</div>
+              <div className="timeline-content">
+                <h3>Full Optimization</h3>
+                <p>Maximum benefits for muscle mass, fat loss, and bone density. Body composition changes are clearly visible. Energy, mood, and cognitive benefits have stabilized. This is your new normal.</p>
+              </div>
+            </div>
+          </div>
+          <p className="timeline-note">
+            <strong>Important:</strong> Results vary based on your starting testosterone levels, age, lifestyle, and how consistently you follow your protocol. Men who combine TRT with resistance training and good nutrition see the best results.
+          </p>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section className="section">
         <div className="container">
@@ -556,6 +676,91 @@ export default function HRTMembership() {
           color: #dc2626;
         }
 
+        /* Benefits Deep Section */
+        .benefits-deep {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1.5rem;
+        }
+        .benefit-block {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.5rem;
+          display: flex;
+          gap: 1rem;
+          transition: all 0.2s;
+        }
+        .benefit-block:hover {
+          border-color: #000000;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        .benefit-icon {
+          font-size: 2rem;
+          flex-shrink: 0;
+        }
+        .benefit-content h3 {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.5rem;
+        }
+        .benefit-content p {
+          font-size: 0.875rem;
+          color: #525252;
+          line-height: 1.6;
+        }
+        .benefit-content strong {
+          color: #171717;
+        }
+
+        /* Timeline */
+        .timeline {
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .timeline-item {
+          display: grid;
+          grid-template-columns: 120px 1fr;
+          gap: 2rem;
+          padding: 2rem 0;
+          border-bottom: 1px solid #e5e5e5;
+        }
+        .timeline-item:last-child {
+          border-bottom: none;
+        }
+        .timeline-period {
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: #000000;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .timeline-content h3 {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.5rem;
+        }
+        .timeline-content p {
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.6;
+        }
+        .timeline-note {
+          text-align: center;
+          margin-top: 2rem;
+          padding: 1.5rem;
+          background: #ffffff;
+          border-radius: 12px;
+          font-size: 0.875rem;
+          color: #525252;
+          line-height: 1.6;
+        }
+        .timeline-note strong {
+          color: #171717;
+        }
+
         /* Steps Grid */
         .steps-grid {
           display: grid;
@@ -750,6 +955,13 @@ export default function HRTMembership() {
           }
           .comparison-grid {
             grid-template-columns: 1fr;
+          }
+          .benefits-deep {
+            grid-template-columns: 1fr;
+          }
+          .timeline-item {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
           }
           .steps-grid {
             grid-template-columns: 1fr 1fr;

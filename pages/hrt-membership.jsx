@@ -61,15 +61,15 @@ export default function HRTMembership() {
               <p>A custom IV with 5 vitamins and minerals tailored to support your hormone optimization. A $225 value, included every month.</p>
               <span className="value-tag">$225 Value</span>
             </div>
+            <div className="included-card main">
+              <div className="included-icon">🔬</div>
+              <h3>Follow-Up Labs Included</h3>
+              <p>Your first follow-up blood draw at 6-8 weeks to check how you're responding, then every 3 months to keep your levels dialed in. No extra charge.</p>
+            </div>
             <div className="included-card">
               <div className="included-icon">🎁</div>
               <h3>Member Giveaways</h3>
               <p>Exclusive access to member-only giveaways, samples, and perks throughout the year.</p>
-            </div>
-            <div className="included-card">
-              <div className="included-icon">📊</div>
-              <h3>Ongoing Monitoring</h3>
-              <p>Regular check-ins and lab reviews to keep your protocol dialed in as your body responds.</p>
             </div>
             <div className="included-card">
               <div className="included-icon">📱</div>
@@ -99,12 +99,12 @@ export default function HRTMembership() {
               <ul>
                 <li><span>Hormone medications</span><span>$150-300/mo</span></li>
                 <li><span>Monthly IV therapy</span><span>$200-300/mo</span></li>
+                <li><span>Follow-up labs</span><span>$150-300/ea</span></li>
                 <li><span>Follow-up visits</span><span>$100-200/ea</span></li>
-                <li><span>Protocol adjustments</span><span>Extra fees</span></li>
               </ul>
               <div className="comparison-total">
                 <span>Typical Monthly Cost</span>
-                <span>$400-600+</span>
+                <span>$500-800+</span>
               </div>
             </div>
             <div className="comparison-card membership">
@@ -112,7 +112,7 @@ export default function HRTMembership() {
               <ul>
                 <li><span>All hormone medications</span><span>✓</span></li>
                 <li><span>Monthly Range IV ($225 value)</span><span>✓</span></li>
-                <li><span>Ongoing monitoring</span><span>✓</span></li>
+                <li><span>Follow-up labs (6-8 wks + quarterly)</span><span>✓</span></li>
                 <li><span>Protocol adjustments</span><span>✓</span></li>
                 <li><span>Member giveaways</span><span>✓</span></li>
                 <li><span>Direct provider access</span><span>✓</span></li>
@@ -257,8 +257,8 @@ export default function HRTMembership() {
               <p>No long-term contracts. Your membership continues month-to-month. If you need to pause or stop, just let us know.</p>
             </div>
             <div className="faq-item">
-              <h3>What if I need labs during my membership?</h3>
-              <p>Follow-up labs to monitor your progress are billed separately, but we keep them affordable and only order what's clinically necessary.</p>
+              <h3>What about follow-up labs?</h3>
+              <p>Included. You'll get a follow-up blood draw at 6-8 weeks after starting to see how you're responding, then every 3 months to keep your levels optimized. It's all part of your membership.</p>
             </div>
             <div className="faq-item">
               <h3>Can I add other services?</h3>

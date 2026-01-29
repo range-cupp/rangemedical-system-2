@@ -106,53 +106,54 @@ export default function Layout({ children, title, description }) {
       {/* Footer */}
       <footer className="rm-footer">
         <div className="rm-footer-inner">
-          <div className="rm-footer-grid">
-            <div className="rm-footer-brand">
-              <img 
-                src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
-                alt="Range Medical" 
-                className="rm-footer-logo"
-              />
-              <p className="rm-footer-tagline">Feel like yourself again.</p>
-              <a href="tel:9499973988" className="rm-footer-phone">(949) 997-3988</a>
-              <p className="rm-footer-address">
-                1901 Westcliff Dr. Suite 10<br />
-                Newport Beach, CA 92660
-              </p>
-            </div>
-            <div className="rm-footer-col">
-              <h4>Start Here</h4>
-              <Link href="/injury-recovery">Injury Recovery</Link>
-              <Link href="/range-assessment">Range Assessment</Link>
-              <Link href="/lab-panels">Labs & Testing</Link>
-            </div>
-            <div className="rm-footer-col">
-              <h4>How We Treat</h4>
-              <Link href="/hormone-optimization">Hormone Optimization</Link>
-              <Link href="/weight-loss">Weight Loss</Link>
-              <Link href="/peptide-therapy">Peptide Therapy</Link>
-              <Link href="/iv-therapy">IV Therapy</Link>
-              <Link href="/cellular-energy-reset">Cellular Reset</Link>
-            </div>
-            <div className="rm-footer-col">
-              <h4>More</h4>
-              <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
-              <Link href="/red-light-therapy">Red Light Therapy</Link>
-              <Link href="/prp-therapy">PRP Therapy</Link>
-              <Link href="/exosome-therapy">Exosome Therapy</Link>
-              <Link href="/reviews">Reviews</Link>
-              <Link href="/gift-cards">Gift Cards</Link>
-            </div>
+          <div className="rm-footer-brand">
+            <img 
+              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
+              alt="Range Medical" 
+            />
+            <p>Feel like yourself again.</p>
+            <a href="tel:9499973988" className="rm-footer-contact">(949) 997-3988</a>
+            <p>
+              1901 Westcliff Dr. Suite 10<br />
+              Newport Beach, CA 92660
+            </p>
+          </div>
+          <div className="rm-footer-col">
+            <h4>Start Here</h4>
+            <ul>
+              <li><Link href="/injury-recovery">Injury Recovery</Link></li>
+              <li><Link href="/range-assessment">Range Assessment</Link></li>
+              <li><Link href="/lab-panels">Labs & Testing</Link></li>
+            </ul>
+          </div>
+          <div className="rm-footer-col">
+            <h4>How We Treat</h4>
+            <ul>
+              <li><Link href="/hormone-optimization">Hormone Optimization</Link></li>
+              <li><Link href="/weight-loss">Weight Loss</Link></li>
+              <li><Link href="/peptide-therapy">Peptide Therapy</Link></li>
+              <li><Link href="/iv-therapy">IV Therapy</Link></li>
+              <li><Link href="/cellular-energy-reset">Cellular Reset</Link></li>
+            </ul>
+          </div>
+          <div className="rm-footer-col">
+            <h4>More</h4>
+            <ul>
+              <li><Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link></li>
+              <li><Link href="/red-light-therapy">Red Light Therapy</Link></li>
+              <li><Link href="/prp-therapy">PRP Therapy</Link></li>
+              <li><Link href="/exosome-therapy">Exosome Therapy</Link></li>
+              <li><Link href="/reviews">Reviews</Link></li>
+              <li><Link href="/gift-cards">Gift Cards</Link></li>
+            </ul>
           </div>
         </div>
         <div className="rm-footer-bottom">
-          <div className="rm-footer-bottom-inner">
-            <p>© {new Date().getFullYear()} Range Medical. All rights reserved.</p>
-            <div className="rm-footer-legal">
-              <Link href="/terms-of-use">Terms</Link>
-              <Link href="/privacy-policy">Privacy</Link>
-              <Link href="/refund-policy">Refunds</Link>
-            </div>
+          <p>© {new Date().getFullYear()} Range Medical. All rights reserved.</p>
+          <div className="rm-footer-legal">
+            <Link href="/terms-of-use">Terms</Link>
+            <Link href="/privacy-policy">Privacy</Link>
+            <Link href="/refund-policy">Refunds</Link>
           </div>
         </div>
       </footer>
@@ -349,120 +350,6 @@ export default function Layout({ children, title, description }) {
           text-decoration: none;
         }
 
-        /* Footer - White Background */
-        .rm-footer {
-          background: #ffffff;
-          color: #171717;
-          padding-top: 4rem;
-          border-top: 1px solid #e5e5e5;
-        }
-
-        .rm-footer-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 1.5rem 3rem;
-        }
-
-        .rm-footer-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          gap: 3rem;
-        }
-
-        .rm-footer-brand {
-          padding-right: 1rem;
-        }
-
-        .rm-footer-logo {
-          height: 48px;
-          width: auto;
-          margin-bottom: 1rem;
-        }
-
-        .rm-footer-tagline {
-          color: #525252;
-          font-size: 0.9375rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .rm-footer-phone {
-          display: block;
-          color: #000000;
-          text-decoration: none;
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin-bottom: 0.75rem;
-        }
-
-        .rm-footer-phone:hover {
-          color: #333333;
-        }
-
-        .rm-footer-address {
-          color: #737373;
-          font-size: 0.875rem;
-          line-height: 1.6;
-        }
-
-        .rm-footer-col h4 {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 1rem;
-          color: #737373;
-        }
-
-        .rm-footer-col :global(a) {
-          display: block;
-          color: #525252;
-          text-decoration: none;
-          font-size: 0.9375rem;
-          padding: 0.375rem 0;
-          transition: color 0.2s;
-        }
-
-        .rm-footer-col :global(a:hover) {
-          color: #000000;
-        }
-
-        .rm-footer-bottom {
-          background: #fafafa;
-          border-top: 1px solid #e5e5e5;
-          padding: 1.5rem 0;
-        }
-
-        .rm-footer-bottom-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 1.5rem;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 2rem;
-        }
-
-        .rm-footer-bottom p {
-          color: #737373;
-          font-size: 0.875rem;
-          margin: 0;
-        }
-
-        .rm-footer-legal {
-          display: flex;
-          gap: 1.5rem;
-        }
-
-        .rm-footer-legal :global(a) {
-          color: #737373;
-          text-decoration: none;
-          font-size: 0.875rem;
-        }
-
-        .rm-footer-legal :global(a:hover) {
-          color: #000000;
-        }
-
         /* Responsive */
         @media (max-width: 768px) {
           .rm-nav {
@@ -471,23 +358,6 @@ export default function Layout({ children, title, description }) {
 
           .rm-mobile-toggle {
             display: flex;
-          }
-
-          .rm-footer-grid {
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-          }
-
-          .rm-footer-bottom-inner {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .rm-footer-grid {
-            grid-template-columns: 1fr;
           }
         }
       `}</style>

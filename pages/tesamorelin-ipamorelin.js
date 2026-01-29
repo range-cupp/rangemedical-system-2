@@ -621,7 +621,7 @@ export default function TesamorelinIpamorelin() {
           </a>
           <div className="header-cta">
             <a href="tel:949-997-3988" className="header-phone">949-997-3988</a>
-            <a href="sms:949-997-3988" className="cta-link">Text to Book</a>
+            <a href="/range-assessment" className="cta-link">Book Assessment</a>
           </div>
         </div>
       </header>
@@ -633,9 +633,7 @@ export default function TesamorelinIpamorelin() {
           <h1>Tesamorelin + Ipamorelin</h1>
           <p className="hero-subtitle">Two peptides that work together to optimize your growth hormone levels—helping you burn fat, build lean muscle, sleep better, and feel more like yourself again.</p>
           <div className="cta-group">
-            <a href="sms:949-997-3988" className="cta-link">Text us to see if you're a candidate</a>
-            <span className="cta-separator">or</span>
-            <a href="tel:949-997-3988" className="cta-link">Call 949-997-3988</a>
+            <a href="/range-assessment" className="cta-link">Book a Range Assessment</a>
           </div>
         </div>
       </section>
@@ -951,11 +949,9 @@ export default function TesamorelinIpamorelin() {
       <section className="final-cta" id="book">
         <div className="container">
           <h2>Ready to learn more?</h2>
-          <p>Text us to see if Tesamorelin + Ipamorelin is right for you. We'll review your health history, answer your questions, and create a plan tailored to your goals.</p>
+          <p>Book a Range Assessment to see if Tesamorelin + Ipamorelin is right for you. We'll review your health history, answer your questions, and create a plan tailored to your goals.</p>
           <div className="cta-group">
-            <a href="sms:949-997-3988" className="cta-link">Text Us to Get Started</a>
-            <span className="cta-separator">or</span>
-            <a href="tel:949-997-3988" className="cta-link">Call 949-997-3988</a>
+            <a href="/range-assessment" className="cta-link">Book a Range Assessment</a>
           </div>
           <div className="location-info">
             <strong>Range Medical</strong><br />

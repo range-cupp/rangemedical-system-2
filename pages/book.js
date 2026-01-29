@@ -242,8 +242,8 @@ export default function Book() {
 
               <div className="calendar-wrapper">
                 <iframe 
-                  src="https://link.range-medical.com/widget/booking/Jf6RZP7TYJhF69Fz5TaD"
-                  style={{ width: '100%', height: '800px', border: 'none' }}
+                  src="https://link.range-medical.com/booking/range-medical/sv/69769eed725303dcad0eb2da?heightMode=fixed&showHeader=true"
+                  style={{ width: '100%', height: '800px', border: 'none', overflow: 'hidden' }}
                   scrolling="no"
                   title="Book your Range Assessment"
                 />

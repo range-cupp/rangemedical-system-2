@@ -108,9 +108,9 @@ export default function ServicePageTemplate({
 
             <div className="steps-list">
               {howItWorks.steps.map((step, i) => (
-                <div key={i} className="step-item">
-                  <div className="step-number">{i + 1}</div>
-                  <div className="step-content">
+                <div key={i} className="step-row">
+                  <div className="step-num">{i + 1}</div>
+                  <div className="step-text">
                     <h4>{step.title}</h4>
                     <p>{step.description}</p>
                   </div>
@@ -248,20 +248,22 @@ export default function ServicePageTemplate({
           margin: 0 auto;
         }
 
-        .step-item {
+        .step-row {
           display: flex;
           gap: 1.5rem;
           padding: 1.5rem 0;
           border-bottom: 1px solid #e5e5e5;
+          align-items: flex-start;
         }
 
-        .step-item:last-child {
+        .step-row:last-child {
           border-bottom: none;
         }
 
-        .step-number {
+        .step-num {
           width: 48px;
           height: 48px;
+          min-width: 48px;
           background: #000000;
           color: #ffffff;
           border-radius: 50%;
@@ -273,14 +275,14 @@ export default function ServicePageTemplate({
           flex-shrink: 0;
         }
 
-        .step-content h4 {
+        .step-text h4 {
           font-size: 1.0625rem;
           font-weight: 700;
           color: #171717;
           margin-bottom: 0.375rem;
         }
 
-        .step-content p {
+        .step-text p {
           font-size: 0.9375rem;
           color: #525252;
           margin: 0;
@@ -418,12 +420,12 @@ export default function ServicePageTemplate({
         }
 
         @media (max-width: 640px) {
-          .step-item {
+          .step-row {
             flex-direction: column;
             text-align: center;
           }
 
-          .step-number {
+          .step-num {
             margin: 0 auto 1rem;
           }
 

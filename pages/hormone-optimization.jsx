@@ -75,19 +75,19 @@ export default function HormoneOptimization() {
           <h2 className="section-title">Why You Still Feel Off</h2>
           <p className="section-subtitle">Most doctors check basic labs, say "you're fine," and send you home. That's not good enough.</p>
           
-          <div className="problem-cards">
-            <div className="problem-card">
-              <div className="problem-icon">📉</div>
+          <div className="doors-grid">
+            <div className="door-card">
+              <div className="door-icon">📉</div>
               <h4>Hormones Shift Early</h4>
               <p>Testosterone and other hormones start declining in your 30s—not your 60s. By the time symptoms show up, you've been suboptimal for years.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">🩺</div>
+            <div className="door-card">
+              <div className="door-icon">🩺</div>
               <h4>Doctors Miss It</h4>
               <p>"Normal" lab ranges are based on the average population—including unhealthy people. Being in range doesn't mean you're optimized.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">🔬</div>
+            <div className="door-card">
+              <div className="door-icon">🔬</div>
               <h4>We Look Deeper</h4>
               <p>We check free testosterone (not just total), thyroid antibodies, estrogen metabolites, and more—markers most doctors skip.</p>
             </div>
@@ -123,20 +123,20 @@ export default function HormoneOptimization() {
           <h2 className="section-title">How We Optimize</h2>
           <p className="section-subtitle">We don't guess. We test, then use the right tools for your situation.</p>
           
-          <div className="benefits-grid">
-            <div className="benefit-card">
+          <div className="tools-grid">
+            <div className="tool-card">
               <h4>Hormone Replacement</h4>
               <p>Testosterone, estrogen, progesterone, thyroid—dosed precisely based on your labs and monitored over time.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4>Peptide Therapy</h4>
               <p>Growth hormone peptides, BPC-157 for healing, and others that support hormone function naturally.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4>IV & NAD+</h4>
               <p>Direct nutrient delivery to support cellular energy and hormone production.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4>Lifestyle Guidance</h4>
               <p>Sleep, nutrition, and exercise recommendations that actually move the needle on your labs.</p>
             </div>

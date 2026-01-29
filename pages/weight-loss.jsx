@@ -55,19 +55,19 @@ export default function WeightLoss() {
           <h2 className="section-title">Why Normal Diets Stop Working</h2>
           <p className="section-subtitle">It's not about willpower. Your body is fighting you—and there's a reason.</p>
           
-          <div className="problem-cards">
-            <div className="problem-card">
-              <div className="problem-icon">🔥</div>
+          <div className="doors-grid">
+            <div className="door-card">
+              <div className="door-icon">🔥</div>
               <h4>Metabolism Slows Down</h4>
               <p>Years of dieting tell your body to hold onto fat. It thinks you're starving—so it burns less and stores more.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">⚖️</div>
+            <div className="door-card">
+              <div className="door-icon">⚖️</div>
               <h4>Hormones Get in the Way</h4>
               <p>Insulin, cortisol, thyroid, and hunger hormones can all block weight loss—even when you're doing everything "right."</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">🧠</div>
+            <div className="door-card">
+              <div className="door-icon">🧠</div>
               <h4>Cravings Aren't Your Fault</h4>
               <p>Your brain sends hunger signals that feel impossible to ignore. It's biology, not a lack of discipline.</p>
             </div>
@@ -105,20 +105,20 @@ export default function WeightLoss() {
           <h2 className="section-title">Why GLP-1s Work Better with Labs</h2>
           <p className="section-subtitle">The medication helps. But knowing what's going on inside makes it safer and more effective.</p>
           
-          <div className="benefits-grid">
-            <div className="benefit-card">
+          <div className="tools-grid">
+            <div className="tool-card">
               <h4><span>🎯</span> Right Dose for Your Body</h4>
               <p>Your metabolism isn't the same as everyone else's. We adjust dosing based on your labs, not a one-size-fits-all protocol.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>🔬</span> Catch What Else Is Off</h4>
               <p>Thyroid issues? Insulin resistance? Hormone imbalance? We check for factors that could slow your progress—or explain why past attempts failed.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>🛡️</span> Safer with Monitoring</h4>
               <p>GLP-1s are powerful. We track your labs over time to make sure everything stays in a healthy range as your body changes.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>📈</span> Better Long-Term Results</h4>
               <p>When we address the root causes—not just suppress appetite—you're more likely to keep the weight off after you stop.</p>
             </div>
@@ -192,28 +192,28 @@ export default function WeightLoss() {
           <div className="section-kicker">Questions</div>
           <h2 className="section-title">Frequently Asked Questions</h2>
           
-          <div className="faq-container">
-            <div className="faq-item">
+          <div className="doors-grid">
+            <div className="door-card">
               <h4>Is GLP-1 medication right for me?</h4>
               <p>GLP-1s like tirzepatide and retatrutide work best for people with stubborn weight who haven't had success with diet and exercise alone. Your provider will review your labs and health history to make sure it's safe and appropriate for you. If it's not the right fit, we'll tell you—and explore other options.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>How fast will I lose weight?</h4>
               <p>Most patients start noticing changes in 4–8 weeks once their dose is dialed in. Typical results range from 1–2 lbs per week, though some lose more. We don't promise overnight miracles—but the results are real and sustainable when done right.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Do I have to stay on the medication forever?</h4>
               <p>No. Many patients use GLP-1s for 6–12 months to reach their goal, then taper off while maintaining with healthy habits. Your provider will help you plan for the long term—including what happens after you stop.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Can this work if I've failed other programs?</h4>
               <p>Yes—and that's actually who we help most. If you've tried diets, challenges, other clinics, or even GLP-1s without success, there's usually a reason. Our labs often uncover thyroid issues, hormone imbalances, or metabolic problems that were never addressed.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>What are the side effects?</h4>
               <p>The most common side effects are mild nausea, especially in the first few weeks. This usually improves as your body adjusts. We start with low doses and increase gradually. Your provider monitors you throughout and can adjust if needed.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Do you accept insurance?</h4>
               <p>We're a cash-pay clinic and don't bill insurance directly. Many patients use HSA or FSA funds. We can provide documentation if you want to submit for potential reimbursement.</p>
             </div>

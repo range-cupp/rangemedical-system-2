@@ -29,21 +29,19 @@ export default function ExosomesTherapy() {
 
       {/* Hero */}
       <section className="hero">
-        <span className="hero-badge">Regenerative</span>
-        <h1>Exosome IV Therapy</h1>
-        <p className="hero-sub">
-          Exosomes are tiny messengers that tell your cells to repair, regenerate, and reduce inflammation. 
-          Delivered by IV, they work throughout your entire body.
-        </p>
-        <div className="hero-cta">
-          <div className="hero-buttons">
-            <Link href="/range-assessment" className="btn-primary">
-              Book Assessment
-            </Link>
-          </div>
-          <p className="hero-secondary">
-            Your provider will determine if exosome therapy fits your goals.
+        <div className="container">
+          <span className="hero-badge">Regenerative</span>
+          <h1>Exosome IV Therapy</h1>
+          <p className="hero-sub">
+            Exosomes are tiny messengers that tell your cells to repair, regenerate, and reduce inflammation.
+            Delivered by IV, they work throughout your entire body.
           </p>
+          <div className="hero-cta">
+            <Link href="/range-assessment" className="btn-primary">Book Assessment</Link>
+            <p className="hero-secondary">
+              Your provider will determine if exosome therapy fits your goals.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -81,20 +79,20 @@ export default function ExosomesTherapy() {
           <p className="section-kicker">Is This You?</p>
           <h2 className="section-title">Who Exosome Therapy Helps</h2>
 
-          <div className="benefits-grid">
-            <div className="benefit-card">
+          <div className="tools-grid">
+            <div className="tool-card">
               <h4><span>🔄</span> Systemic Inflammation</h4>
               <p>Chronic inflammation that affects your whole body, energy, and how you feel day to day.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>⏳</span> Anti-Aging & Longevity</h4>
               <p>Support cellular health and slow the effects of aging at the deepest level.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>🧠</span> Brain Health</h4>
               <p>Cognitive support, brain fog, and neurological recovery after injury or illness.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>💪</span> Recovery & Performance</h4>
               <p>Athletes and active people looking for faster recovery and better tissue repair.</p>
             </div>
@@ -108,28 +106,28 @@ export default function ExosomesTherapy() {
           <p className="section-kicker">What It Does</p>
           <h2 className="section-title">How Exosomes Support Your Body</h2>
 
-          <div className="markers-grid">
-            <div className="marker-card">
+          <div className="tools-grid">
+            <div className="tool-card">
               <h4>Tissue Repair</h4>
               <p>Signals cells to regenerate and repair damaged tissue throughout the body.</p>
             </div>
-            <div className="marker-card">
+            <div className="tool-card">
               <h4>Reduce Inflammation</h4>
               <p>Calms overactive immune responses and systemic inflammation.</p>
             </div>
-            <div className="marker-card">
+            <div className="tool-card">
               <h4>Cellular Communication</h4>
               <p>Improves how your cells talk to each other, optimizing function.</p>
             </div>
-            <div className="marker-card">
+            <div className="tool-card">
               <h4>Immune Modulation</h4>
               <p>Helps balance immune function — not too high, not too low.</p>
             </div>
-            <div className="marker-card">
+            <div className="tool-card">
               <h4>Collagen Production</h4>
               <p>Supports skin, joint, and connective tissue health.</p>
             </div>
-            <div className="marker-card">
+            <div className="tool-card">
               <h4>Neuroprotection</h4>
               <p>Supports brain health and may help with cognitive function.</p>
             </div>
@@ -143,16 +141,16 @@ export default function ExosomesTherapy() {
           <p className="section-kicker">The Process</p>
           <h2 className="section-title">What to Expect</h2>
 
-          <div style={{maxWidth: '700px', margin: '0 auto'}}>
-            <div className="faq-item" style={{marginBottom: '1rem'}}>
+          <div className="doors-grid">
+            <div className="door-card">
               <h4>The Treatment</h4>
               <p>Exosomes are delivered through a standard IV infusion. The session takes about 30-60 minutes. Most people feel fine during and after — some report a boost in energy within days.</p>
             </div>
-            <div className="faq-item" style={{marginBottom: '1rem'}}>
+            <div className="door-card">
               <h4>How Many Treatments?</h4>
               <p>Some patients see benefits from a single infusion. Others benefit from a series of 2-3 treatments spaced weeks apart, depending on their goals.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Results Timeline</h4>
               <p>Effects can begin within days, but the full regenerative benefits often develop over 2-3 months as your cells respond to the signaling.</p>
             </div>
@@ -192,23 +190,20 @@ export default function ExosomesTherapy() {
           <p className="section-kicker">Questions</p>
           <h2 className="section-title">Common Questions</h2>
 
-          <div className="faq-container">
-            <div className="faq-item">
+          <div className="doors-grid">
+            <div className="door-card">
               <h4>Where do the exosomes come from?</h4>
               <p>The exosomes we use are derived from carefully screened, ethically sourced donor tissue. They go through rigorous testing for safety and potency.</p>
             </div>
-
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Is exosome therapy safe?</h4>
               <p>Exosomes have a strong safety profile. Because they're cell-free (no actual cells), there's minimal risk of rejection. Side effects are rare and typically mild.</p>
             </div>
-
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Is this the same as stem cell therapy?</h4>
               <p>No. Exosomes are not cells — they're the signaling molecules that cells release. They provide many benefits of regenerative medicine without the complexity of stem cells.</p>
             </div>
-
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Is exosome therapy covered by insurance?</h4>
               <p>No. This is considered an elective regenerative treatment. We can provide documentation for HSA/FSA if applicable.</p>
             </div>

@@ -29,21 +29,19 @@ export default function PRPInjections() {
 
       {/* Hero */}
       <section className="hero">
-        <span className="hero-badge">Regenerative</span>
-        <h1>PRP Injections</h1>
-        <p className="hero-sub">
-          Platelet-Rich Plasma uses your body's own healing factors to support tissue repair, 
-          reduce pain, and speed up recovery — without surgery or synthetic drugs.
-        </p>
-        <div className="hero-cta">
-          <div className="hero-buttons">
-            <Link href="/range-assessment" className="btn-primary">
-              Book Assessment
-            </Link>
-          </div>
-          <p className="hero-secondary">
-            Your provider will determine if PRP is right for your situation.
+        <div className="container">
+          <span className="hero-badge">Regenerative</span>
+          <h1>PRP Injections</h1>
+          <p className="hero-sub">
+            Platelet-Rich Plasma uses your body's own healing factors to support tissue repair,
+            reduce pain, and speed up recovery — without surgery or synthetic drugs.
           </p>
+          <div className="hero-cta">
+            <Link href="/range-assessment" className="btn-primary">Book Assessment</Link>
+            <p className="hero-secondary">
+              Your provider will determine if PRP is right for your situation.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -76,20 +74,20 @@ export default function PRPInjections() {
           <p className="section-kicker">Is This You?</p>
           <h2 className="section-title">Who PRP Injections Help</h2>
 
-          <div className="benefits-grid">
-            <div className="benefit-card">
+          <div className="tools-grid">
+            <div className="tool-card">
               <h4><span>🦵</span> Joint Pain</h4>
               <p>Knees, shoulders, hips, and other joints that hurt and haven't responded to rest or PT alone.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>💪</span> Tendon Issues</h4>
               <p>Tennis elbow, Achilles tendinitis, rotator cuff problems, and other tendon injuries.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>🏃</span> Sports Injuries</h4>
               <p>Strains, sprains, and overuse injuries that are slow to heal on their own.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>⏰</span> Chronic Pain</h4>
               <p>Ongoing pain that hasn't improved with standard treatments and you want to avoid surgery.</p>
             </div>
@@ -103,25 +101,21 @@ export default function PRPInjections() {
           <p className="section-kicker">The Process</p>
           <h2 className="section-title">How PRP Treatment Works</h2>
 
-          <div className="process-steps">
-            <div className="process-step">
-              <div className="step-number">1</div>
-              <h4>Blood Draw</h4>
+          <div className="doors-grid">
+            <div className="door-card">
+              <h4>1. Blood Draw</h4>
               <p>We draw a small amount of blood from your arm, just like a regular lab draw.</p>
             </div>
-            <div className="process-step">
-              <div className="step-number">2</div>
-              <h4>Processing</h4>
+            <div className="door-card">
+              <h4>2. Processing</h4>
               <p>Your blood is spun in a centrifuge to separate and concentrate the platelets.</p>
             </div>
-            <div className="process-step">
-              <div className="step-number">3</div>
-              <h4>Injection</h4>
+            <div className="door-card">
+              <h4>3. Injection</h4>
               <p>The concentrated PRP is injected directly into the treatment area.</p>
             </div>
-            <div className="process-step">
-              <div className="step-number">4</div>
-              <h4>Healing</h4>
+            <div className="door-card">
+              <h4>4. Healing</h4>
               <p>Over the next weeks, the growth factors support your body's natural repair process.</p>
             </div>
           </div>
@@ -134,20 +128,20 @@ export default function PRPInjections() {
           <p className="section-kicker">Recovery</p>
           <h2 className="section-title">What to Expect After PRP</h2>
 
-          <div style={{maxWidth: '700px', margin: '0 auto'}}>
-            <div className="faq-item" style={{marginBottom: '1rem'}}>
+          <div className="doors-grid">
+            <div className="door-card">
               <h4>Day of Treatment</h4>
               <p>The procedure takes about 30-45 minutes. You may have some soreness at the injection site. Most people drive themselves home.</p>
             </div>
-            <div className="faq-item" style={{marginBottom: '1rem'}}>
+            <div className="door-card">
               <h4>First Week</h4>
               <p>Mild swelling or discomfort is normal — it means the healing response is working. Avoid anti-inflammatory medications (they can interfere with the process).</p>
             </div>
-            <div className="faq-item" style={{marginBottom: '1rem'}}>
+            <div className="door-card">
               <h4>Weeks 2-6</h4>
               <p>Gradual improvement as new tissue forms. Some people feel better quickly; others take longer.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Full Results</h4>
               <p>Most patients see maximum benefit at 3-6 months. Some conditions benefit from a series of injections.</p>
             </div>
@@ -161,23 +155,20 @@ export default function PRPInjections() {
           <p className="section-kicker">Questions</p>
           <h2 className="section-title">Common Questions About PRP</h2>
 
-          <div className="faq-container">
-            <div className="faq-item">
+          <div className="doors-grid">
+            <div className="door-card">
               <h4>Is PRP painful?</h4>
               <p>There's some discomfort during the injection, but we use local anesthesia to minimize it. Most patients tolerate it well.</p>
             </div>
-
-            <div className="faq-item">
+            <div className="door-card">
               <h4>How many treatments do I need?</h4>
               <p>It depends on your condition. Some people improve with one treatment; others benefit from 2-3 sessions spaced a few weeks apart.</p>
             </div>
-
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Is PRP covered by insurance?</h4>
               <p>Most insurance plans don't cover PRP. We can provide documentation for HSA/FSA reimbursement.</p>
             </div>
-
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Can PRP be combined with other treatments?</h4>
               <p>Yes. PRP often works well alongside physical therapy, HBOT, and other recovery treatments. Your provider will recommend the best combination.</p>
             </div>

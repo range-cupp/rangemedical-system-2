@@ -39,19 +39,19 @@ export default function RedLightTherapy() {
           <h2 className="section-title">What Is Red Light Therapy?</h2>
           <p className="section-subtitle">Also called photobiomodulation (PBM), red light therapy uses specific wavelengths of light to stimulate your mitochondria—the powerhouses inside every cell.</p>
           
-          <div className="problem-cards">
-            <div className="problem-card">
-              <div className="problem-icon">⚡</div>
+          <div className="doors-grid">
+            <div className="door-card">
+              <div className="door-icon">⚡</div>
               <h4>Cellular Energy Boost</h4>
               <p>Red and near-infrared light (630-850nm) penetrate skin and tissue, stimulating mitochondria to produce more ATP—the energy currency your cells need to repair and function.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">🔥</div>
+            <div className="door-card">
+              <div className="door-icon">🔥</div>
               <h4>Reduced Inflammation</h4>
               <p>Light therapy calms inflammatory pathways, helping with joint pain, muscle soreness, and chronic inflammatory conditions.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">🧬</div>
+            <div className="door-card">
+              <div className="door-icon">🧬</div>
               <h4>Enhanced Recovery</h4>
               <p>Increased blood flow and cellular energy accelerate tissue repair—whether you're recovering from a workout, injury, or surgery.</p>
             </div>
@@ -66,28 +66,28 @@ export default function RedLightTherapy() {
           <h2 className="section-title">What Red Light Therapy Does</h2>
           <p className="section-subtitle">Thousands of studies support red light therapy for a wide range of applications.</p>
           
-          <div className="benefits-grid">
-            <div className="benefit-card">
+          <div className="tools-grid">
+            <div className="tool-card">
               <h4><span>💪</span> Muscle Recovery</h4>
               <p>Reduce delayed onset muscle soreness (DOMS), speed recovery between training sessions, and support muscle repair after injury.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>🦴</span> Joint & Pain Relief</h4>
               <p>Decrease inflammation in joints, tendons, and connective tissue. Helpful for arthritis, tendinitis, and chronic pain conditions.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>✨</span> Skin Health</h4>
               <p>Stimulate collagen production, reduce fine lines, improve skin tone, and accelerate wound healing.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>🧠</span> Brain & Mood</h4>
               <p>Near-infrared light penetrates the skull, potentially supporting cognitive function, mood, and recovery from brain injuries.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>😴</span> Sleep & Circadian Rhythm</h4>
               <p>Red light exposure (especially in evening) can support healthy melatonin production and improve sleep quality.</p>
             </div>
-            <div className="benefit-card">
+            <div className="tool-card">
               <h4><span>🔋</span> Energy & Vitality</h4>
               <p>By boosting mitochondrial function throughout your body, many patients report improved overall energy and reduced fatigue.</p>
             </div>
@@ -102,42 +102,30 @@ export default function RedLightTherapy() {
           <h2 className="section-title">Who Benefits from Red Light Therapy?</h2>
           <p className="section-subtitle">Red light therapy supports a wide range of health and performance goals.</p>
           
-          <div className="conditions-grid">
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🏃</span>Athletes</h4>
-                <p>Faster recovery, reduced soreness, improved performance, and injury prevention.</p>
-              </div>
+          <div className="tools-grid">
+            <div className="tool-card">
+              <h4><span>🏃</span> Athletes</h4>
+              <p>Faster recovery, reduced soreness, improved performance, and injury prevention.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🩹</span>Post-Surgery Patients</h4>
-                <p>Accelerate healing, reduce scarring, and support tissue repair after procedures.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>🩹</span> Post-Surgery Patients</h4>
+              <p>Accelerate healing, reduce scarring, and support tissue repair after procedures.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">😓</span>Chronic Pain Sufferers</h4>
-                <p>Natural inflammation reduction for arthritis, fibromyalgia, and persistent pain conditions.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>😓</span> Chronic Pain Sufferers</h4>
+              <p>Natural inflammation reduction for arthritis, fibromyalgia, and persistent pain conditions.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">✨</span>Skin & Anti-Aging</h4>
-                <p>Boost collagen, improve skin texture, reduce wrinkles, and heal acne or scars.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>✨</span> Skin & Anti-Aging</h4>
+              <p>Boost collagen, improve skin texture, reduce wrinkles, and heal acne or scars.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🧠</span>Brain Health</h4>
-                <p>Support cognitive function, mood regulation, and recovery from concussion or TBI.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>🧠</span> Brain Health</h4>
+              <p>Support cognitive function, mood regulation, and recovery from concussion or TBI.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">⚡</span>Optimization Seekers</h4>
-                <p>General wellness, energy enhancement, and longevity-focused protocols.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>⚡</span> Optimization Seekers</h4>
+              <p>General wellness, energy enhancement, and longevity-focused protocols.</p>
             </div>
           </div>
         </div>
@@ -150,35 +138,22 @@ export default function RedLightTherapy() {
           <h2 className="section-title">What to Expect</h2>
           <p className="section-subtitle">Red light therapy sessions are simple, relaxing, and fit easily into your routine.</p>
           
-          <div className="experience-grid">
-            <div className="experience-step">
-              <div className="experience-number">1</div>
-              <div className="experience-content">
-                <h4>Prepare</h4>
-                <p>Remove clothing from the areas you want to treat. For full-body benefits, most patients wear minimal clothing. Eye protection is provided.</p>
-              </div>
+          <div className="doors-grid">
+            <div className="door-card">
+              <h4>1. Prepare</h4>
+              <p>Remove clothing from the areas you want to treat. For full-body benefits, most patients wear minimal clothing. Eye protection is provided.</p>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">2</div>
-              <div className="experience-content">
-                <h4>Position</h4>
-                <p>Stand or sit in front of our medical-grade panel array. The lights should be 6-12 inches from your skin for optimal penetration.</p>
-              </div>
+            <div className="door-card">
+              <h4>2. Position</h4>
+              <p>Stand or sit in front of our medical-grade panel array. The lights should be 6-12 inches from your skin for optimal penetration.</p>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">3</div>
-              <div className="experience-content">
-                <span className="duration">10-20 minutes</span>
-                <h4>Relax & Absorb</h4>
-                <p>The session is completely painless—you'll feel gentle warmth. Many patients find it meditative. Treat front and back for full coverage.</p>
-              </div>
+            <div className="door-card">
+              <h4>3. Relax & Absorb (10-20 min)</h4>
+              <p>The session is completely painless—you'll feel gentle warmth. Many patients find it meditative. Treat front and back for full coverage.</p>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">4</div>
-              <div className="experience-content">
-                <h4>Resume Your Day</h4>
-                <p>No downtime required. You can work out, shower, or continue your normal activities immediately after.</p>
-              </div>
+            <div className="door-card">
+              <h4>4. Resume Your Day</h4>
+              <p>No downtime required. You can work out, shower, or continue your normal activities immediately after.</p>
             </div>
           </div>
         </div>
@@ -191,21 +166,18 @@ export default function RedLightTherapy() {
           <h2 className="section-title">How Often Should I Do Red Light?</h2>
           <p className="section-subtitle">Consistency matters more than duration. Your provider will recommend a protocol based on your goals.</p>
           
-          <div className="protocol-grid">
-            <div className="protocol-card">
+          <div className="tools-grid">
+            <div className="tool-card">
               <h4>Recovery & Healing</h4>
-              <p>Daily or every other day</p>
-              <span className="protocol-note">3-5x per week during acute injury or post-surgery</span>
+              <p>Daily or every other day. 3-5x per week during acute injury or post-surgery.</p>
             </div>
-            <div className="protocol-card">
+            <div className="tool-card">
               <h4>Skin & Anti-Aging</h4>
-              <p>3-5 sessions per week</p>
-              <span className="protocol-note">Consistent exposure for collagen stimulation</span>
+              <p>3-5 sessions per week. Consistent exposure for collagen stimulation.</p>
             </div>
-            <div className="protocol-card">
+            <div className="tool-card">
               <h4>Maintenance / Wellness</h4>
-              <p>2-3 sessions per week</p>
-              <span className="protocol-note">Ongoing support for energy and general health</span>
+              <p>2-3 sessions per week. Ongoing support for energy and general health.</p>
             </div>
           </div>
           
@@ -219,28 +191,28 @@ export default function RedLightTherapy() {
           <div className="section-kicker">Questions</div>
           <h2 className="section-title">Frequently Asked Questions</h2>
           
-          <div className="faq-container">
-            <div className="faq-item">
+          <div className="doors-grid">
+            <div className="door-card">
               <h4>Is red light therapy safe?</h4>
               <p>Yes. Red light therapy is non-invasive, painless, and has no known serious side effects when used as directed. It doesn't damage skin or cause burns like UV light. Eye protection is provided during sessions.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>How is this different from a tanning bed?</h4>
               <p>Completely different. Tanning beds use UV light, which damages skin and increases cancer risk. Red light therapy uses visible red and near-infrared wavelengths that heal and energize cells without UV exposure.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>How soon will I see results?</h4>
               <p>Some benefits (like reduced soreness) can be felt after one session. Skin improvements typically emerge after 4-8 weeks of consistent use. Chronic conditions may take longer.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Can I do red light therapy at home?</h4>
               <p>Consumer devices exist, but most lack the power density (irradiance) of medical-grade panels. Our equipment delivers therapeutic doses in less time with better coverage.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Can I combine it with other treatments?</h4>
               <p>Absolutely. Red light therapy enhances the effects of HBOT, peptide therapy, and other recovery tools. Many patients stack treatments in a single visit.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>How much does it cost?</h4>
               <p>Pricing depends on your protocol and whether you're combining with other therapies. We discuss options after your Range Assessment. HSA and FSA funds are accepted.</p>
             </div>

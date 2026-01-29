@@ -39,19 +39,19 @@ export default function IVTherapy() {
           <h2 className="section-title">Why Direct Delivery?</h2>
           <p className="section-subtitle">Oral supplements have limits. IV and injection therapy bypasses those limits entirely.</p>
           
-          <div className="problem-cards">
-            <div className="problem-card">
-              <div className="problem-icon">💯</div>
+          <div className="doors-grid">
+            <div className="door-card">
+              <div className="door-icon">💯</div>
               <h4>100% Absorption</h4>
               <p>Oral vitamins lose 20-80% to digestion. IV delivery puts nutrients directly into your bloodstream—nothing lost.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">⚡</div>
+            <div className="door-card">
+              <div className="door-icon">⚡</div>
               <h4>Higher Therapeutic Doses</h4>
               <p>Some nutrients can only reach therapeutic levels through IV. You'd need handfuls of pills to match what one infusion delivers.</p>
             </div>
-            <div className="problem-card">
-              <div className="problem-icon">🚀</div>
+            <div className="door-card">
+              <div className="door-icon">🚀</div>
               <h4>Faster Results</h4>
               <p>Feel the effects within hours, not weeks. Ideal for acute needs like recovery, immune support, or energy crashes.</p>
             </div>
@@ -274,42 +274,30 @@ export default function IVTherapy() {
           <h2 className="section-title">Who Benefits from IV & Injection Therapy?</h2>
           <p className="section-subtitle">Direct nutrient delivery supports a wide range of health and performance goals.</p>
           
-          <div className="conditions-grid">
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🏃</span>Athletes & Active People</h4>
-                <p>Faster recovery, better hydration, enhanced performance, and reduced muscle fatigue.</p>
-              </div>
+          <div className="tools-grid">
+            <div className="tool-card">
+              <h4><span>🏃</span> Athletes & Active People</h4>
+              <p>Faster recovery, better hydration, enhanced performance, and reduced muscle fatigue.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">😴</span>Low Energy & Fatigue</h4>
-                <p>Direct B vitamins and NAD+ can restore energy when oral supplements aren't cutting it.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>😴</span> Low Energy & Fatigue</h4>
+              <p>Direct B vitamins and NAD+ can restore energy when oral supplements aren't cutting it.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🤒</span>Immune Support</h4>
-                <p>High-dose vitamin C, zinc, and glutathione to support your immune system when you need it most.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>🤒</span> Immune Support</h4>
+              <p>High-dose vitamin C, zinc, and glutathione to support your immune system when you need it most.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🧠</span>Brain Fog & Focus</h4>
-                <p>NAD+ and methylene blue support mental clarity, focus, and cognitive performance.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>🧠</span> Brain Fog & Focus</h4>
+              <p>NAD+ and methylene blue support mental clarity, focus, and cognitive performance.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">✨</span>Skin & Anti-Aging</h4>
-                <p>Glutathione for skin brightening, NAD+ for cellular health, biotin for hair and nails.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>✨</span> Skin & Anti-Aging</h4>
+              <p>Glutathione for skin brightening, NAD+ for cellular health, biotin for hair and nails.</p>
             </div>
-            <div className="condition-card">
-              <div>
-                <h4><span className="condition-icon">🍹</span>Recovery & Rehydration</h4>
-                <p>Bounce back faster from travel, illness, late nights, or dehydration.</p>
-              </div>
+            <div className="tool-card">
+              <h4><span>🍹</span> Recovery & Rehydration</h4>
+              <p>Bounce back faster from travel, illness, late nights, or dehydration.</p>
             </div>
           </div>
         </div>
@@ -322,35 +310,22 @@ export default function IVTherapy() {
           <h2 className="section-title">What to Expect</h2>
           <p className="section-subtitle">Whether you're here for an IV or a quick shot, we make the process simple and comfortable.</p>
           
-          <div className="experience-grid">
-            <div className="experience-step">
-              <div className="experience-number">1</div>
-              <div className="experience-content">
-                <h4>Check In</h4>
-                <p>Our team reviews your symptoms and goals. For first-time IV patients, we'll do a quick health screening.</p>
-              </div>
+          <div className="doors-grid">
+            <div className="door-card">
+              <h4>1. Check In</h4>
+              <p>Our team reviews your symptoms and goals. For first-time IV patients, we'll do a quick health screening.</p>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">2</div>
-              <div className="experience-content">
-                <h4>Customize Your Treatment</h4>
-                <p>Based on your needs, we'll recommend the right IV formulation or injection. Your nurse explains everything before we start.</p>
-              </div>
+            <div className="door-card">
+              <h4>2. Customize Your Treatment</h4>
+              <p>Based on your needs, we'll recommend the right IV formulation or injection. Your nurse explains everything before we start.</p>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">3</div>
-              <div className="experience-content">
-                <span className="duration">5 min (shot) or 45-90 min (IV)</span>
-                <h4>Relax & Receive</h4>
-                <p>Injections take just a few minutes. IVs are done in our comfortable lounge—bring a book, work on your laptop, or just relax.</p>
-              </div>
+            <div className="door-card">
+              <h4>3. Relax & Receive</h4>
+              <p>Injections take just a few minutes. IVs are done in our comfortable lounge—bring a book, work on your laptop, or just relax. 5 min (shot) or 45-90 min (IV).</p>
             </div>
-            <div className="experience-step">
-              <div className="experience-number">4</div>
-              <div className="experience-content">
-                <h4>Resume Your Day</h4>
-                <p>No downtime. Most patients feel energized and ready to go. We'll recommend a follow-up schedule based on your goals.</p>
-              </div>
+            <div className="door-card">
+              <h4>4. Resume Your Day</h4>
+              <p>No downtime. Most patients feel energized and ready to go. We'll recommend a follow-up schedule based on your goals.</p>
             </div>
           </div>
         </div>
@@ -362,28 +337,28 @@ export default function IVTherapy() {
           <div className="section-kicker">Questions</div>
           <h2 className="section-title">Frequently Asked Questions</h2>
           
-          <div className="faq-container">
-            <div className="faq-item">
+          <div className="doors-grid">
+            <div className="door-card">
               <h4>Is IV therapy safe?</h4>
               <p>Yes. IV therapy has been used safely in medical settings for decades. Our IVs are administered by licensed nurses using medical-grade ingredients. We screen all patients before treatment.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>How often should I get an IV?</h4>
               <p>It depends on your goals. Some patients come weekly during periods of high stress or training. Others come monthly for maintenance. Your provider will recommend a schedule based on your situation.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Does it hurt?</h4>
               <p>The IV insertion feels like a small pinch—similar to a blood draw. Once it's in, most patients don't feel anything. Injections are quick and use a small needle.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Can I just walk in for a shot?</h4>
               <p>For established patients, we can often accommodate same-day injection appointments. Call or text us to check availability.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>Why not just take oral supplements?</h4>
               <p>Oral supplements are limited by digestion—you only absorb a fraction of what you take. IV delivers 100% directly to your cells, allowing for therapeutic doses that aren't possible orally.</p>
             </div>
-            <div className="faq-item">
+            <div className="door-card">
               <h4>How much does it cost?</h4>
               <p>Pricing varies based on the treatment. We discuss options during your visit or Range Assessment. HSA and FSA funds are accepted.</p>
             </div>

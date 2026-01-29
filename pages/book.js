@@ -64,7 +64,7 @@ export default function Book() {
   const checklistItems = [
     {
       id: 'check1',
-      bold: 'This is a 30–45 minute visit.',
+      bold: 'This is a 20–30 minute visit.',
       text: 'Plan your schedule accordingly and arrive ready to discuss your goals.'
     },
     {
@@ -176,7 +176,7 @@ export default function Book() {
             <div className="included-grid">
               <div className="included-price-box">
                 <div className="price-amount">$199</div>
-                <div className="price-duration">30–45 minute visit</div>
+                <div className="price-duration">20–30 minute visit</div>
                 <div className="price-credit">✓ Credited toward any program</div>
               </div>
               <div className="included-features">
@@ -680,6 +680,7 @@ export default function Book() {
           font-size: 32px;
           font-weight: 700;
           margin: 0 0 12px;
+          color: #fff;
         }
 
         .section-cta > .book-container > p {

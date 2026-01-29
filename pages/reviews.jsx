@@ -70,44 +70,6 @@ const reviews = [
   }
 ];
 
-function StarRating({ rating }) {
-  return (
-    <div className="star-rating">
-      {[...Array(5)].map((_, i) => (
-        <span key={i} className={i < rating ? 'star filled' : 'star'}>★</span>
-      ))}
-    </div>
-  );
-}
-
-function ReviewCard({ review }) {
-  return (
-    <div className="review-card">
-      <div className="review-header">
-        <div className="reviewer-info">
-          <div className="reviewer-avatar">
-            {review.name.charAt(0)}
-          </div>
-          <div>
-            <h3 className="reviewer-name">
-              {review.name}
-              {review.badge && <span className="badge">{review.badge}</span>}
-            </h3>
-            <p className="review-date">{review.date}</p>
-          </div>
-        </div>
-        <StarRating rating={review.rating} />
-      </div>
-      {review.highlight && (
-        <blockquote className="review-highlight">
-          "{review.highlight}"
-        </blockquote>
-      )}
-      <p className="review-text">{review.text}</p>
-    </div>
-  );
-}
-
 export default function ReviewsPage() {
   const averageRating = 5.0;
   const totalReviews = reviews.length;
@@ -118,6 +80,11 @@ export default function ReviewsPage() {
       description="Read what our patients say about Range Medical. 5-star rated health optimization clinic in Newport Beach. Real reviews from real patients."
     >
       <Head>
+        <meta name="keywords" content="Range Medical reviews, Newport Beach doctor reviews, hormone therapy reviews, peptide therapy reviews, patient testimonials" />
+        <link rel="canonical" href="https://www.range-medical.com/reviews" />
+        <meta property="og:title" content="Patient Reviews | Range Medical" />
+        <meta property="og:description" content="Read what our patients say about Range Medical. 5-star rated health optimization clinic in Newport Beach." />
+        <meta property="og:url" content="https://www.range-medical.com/reviews" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -136,255 +103,398 @@ export default function ReviewsPage() {
         />
       </Head>
 
-      <section className="reviews-hero">
+      {/* Hero Section */}
+      <section className="hero">
         <div className="container">
+          <div className="section-kicker">Patient Reviews</div>
           <h1>What Our Patients Say</h1>
-          <div className="rating-summary">
-            <div className="rating-number">{averageRating}</div>
-            <div className="rating-details">
-              <StarRating rating={5} />
+          <p className="hero-sub">
+            Real experiences from real patients. See why Newport Beach trusts Range Medical 
+            for health optimization, hormone therapy, and recovery.
+          </p>
+          
+          <div className="rating-box">
+            <div className="rating-score">{averageRating}</div>
+            <div className="rating-info">
+              <div className="stars">★★★★★</div>
               <p>Based on {totalReviews} Google Reviews</p>
             </div>
           </div>
+
           <a 
-            href="https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review" 
+            href="https://www.google.com/maps/place/Range+Medical/@33.6234,-117.9298,17z" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="btn btn-primary"
+            className="btn-primary"
           >
-            Leave a Review
+            Leave Us a Review
           </a>
         </div>
       </section>
 
-      <section className="reviews-grid">
+      {/* Reviews Grid */}
+      <section className="section">
         <div className="container">
-          {reviews.map((review, index) => (
-            <ReviewCard key={index} review={review} />
-          ))}
-        </div>
-      </section>
+          <div className="reviews-list">
+            {reviews.map((review, index) => (
+              <div key={index} className="review-card">
+                <div className="review-header">
+                  <div className="review-avatar">
+                    {review.name.charAt(0)}
+                  </div>
+                  <div className="review-meta">
+                    <h3 className="review-name">
+                      {review.name}
+                      {review.badge && <span className="review-badge">{review.badge}</span>}
+                    </h3>
+                    <div className="review-date-stars">
+                      <span className="review-date">{review.date}</span>
+                      <span className="review-stars">★★★★★</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {review.highlight && (
+                  <blockquote className="review-highlight">
+                    "{review.highlight}"
+                  </blockquote>
+                )}
+                
+                <p className="review-text">{review.text}</p>
+              </div>
+            ))}
+          </div>
 
-      <section className="reviews-cta">
-        <div className="container">
-          <h2>Ready to Feel Like Yourself Again?</h2>
-          <p>Join our patients who have transformed their health with Range Medical.</p>
-          <div className="cta-buttons">
-            <Link href="/quiz" className="btn btn-primary">Take the Quiz</Link>
-            <Link href="/contact" className="btn btn-secondary">Book Consultation</Link>
+          <div className="google-cta">
+            <p>Want to share your experience?</p>
+            <a 
+              href="https://www.google.com/maps/place/Range+Medical/@33.6234,-117.9298,17z" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn-outline"
+            >
+              Write a Google Review
+            </a>
           </div>
         </div>
       </section>
 
+      {/* Stats Section */}
+      <section className="section section-gray">
+        <div className="container">
+          <div className="stats-grid">
+            <div className="stat-item">
+              <div className="stat-number">5.0</div>
+              <div className="stat-label">Average Rating</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">100%</div>
+              <div className="stat-label">5-Star Reviews</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">500+</div>
+              <div className="stat-label">Patients Treated</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="final-cta">
+        <div className="container">
+          <span className="cta-step">Next Step</span>
+          <h2>Ready to Feel Like Yourself Again?</h2>
+          <p>Join our patients who have transformed their health with Range Medical.</p>
+          <Link href="/range-assessment" className="btn-white">
+            Book Your Assessment
+          </Link>
+          <p className="cta-location">
+            1901 Westcliff Dr. Suite 10, Newport Beach
+          </p>
+        </div>
+      </section>
+
       <style jsx>{`
-        .reviews-hero {
-          background: #000;
-          color: #fff;
-          padding: 80px 20px;
+        .hero {
+          padding: 4rem 1.5rem 3rem;
           text-align: center;
+          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
         }
 
-        .reviews-hero h1 {
-          font-size: 2.5rem;
-          margin-bottom: 30px;
+        .hero h1 {
+          color: #171717;
+          margin-bottom: 1rem;
+          max-width: 700px;
+          margin-left: auto;
+          margin-right: auto;
         }
 
-        .rating-summary {
-          display: flex;
+        .hero-sub {
+          font-size: 1.125rem;
+          color: #525252;
+          max-width: 600px;
+          margin: 0 auto 2rem;
+          line-height: 1.7;
+        }
+
+        .rating-box {
+          display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 20px;
-          margin-bottom: 30px;
+          gap: 1.25rem;
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.25rem 2rem;
+          margin-bottom: 2rem;
         }
 
-        .rating-number {
-          font-size: 4rem;
+        .rating-score {
+          font-size: 3rem;
           font-weight: 700;
+          color: #171717;
+          line-height: 1;
         }
 
-        .rating-details {
+        .rating-info {
           text-align: left;
         }
 
-        .rating-details p {
-          margin-top: 5px;
-          opacity: 0.8;
+        .stars {
+          color: #000000;
+          font-size: 1.25rem;
+          letter-spacing: 2px;
+          margin-bottom: 0.25rem;
         }
 
-        .reviews-grid {
-          padding: 60px 20px;
-          background: #f9f9f9;
+        .rating-info p {
+          font-size: 0.875rem;
+          color: #737373;
+          margin: 0;
         }
 
-        .reviews-grid .container {
-          max-width: 900px;
-          margin: 0 auto;
+        /* Reviews List */
+        .reviews-list {
           display: flex;
           flex-direction: column;
-          gap: 30px;
+          gap: 1.5rem;
+          max-width: 800px;
+          margin: 0 auto;
         }
 
         .review-card {
-          background: #fff;
-          border: 1px solid #e0e0e0;
-          border-radius: 8px;
-          padding: 30px;
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.75rem;
+          transition: all 0.2s;
+        }
+
+        .review-card:hover {
+          border-color: #000000;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
         }
 
         .review-header {
           display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 20px;
-        }
-
-        .reviewer-info {
-          display: flex;
           align-items: center;
-          gap: 15px;
+          gap: 1rem;
+          margin-bottom: 1rem;
         }
 
-        .reviewer-avatar {
-          width: 50px;
-          height: 50px;
-          background: #000;
-          color: #fff;
+        .review-avatar {
+          width: 48px;
+          height: 48px;
+          background: #000000;
+          color: #ffffff;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 600;
-          font-size: 1.2rem;
+          font-weight: 700;
+          font-size: 1.125rem;
+          flex-shrink: 0;
         }
 
-        .reviewer-name {
-          font-size: 1.1rem;
-          margin: 0;
+        .review-meta {
+          flex: 1;
+        }
+
+        .review-name {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #171717;
+          margin: 0 0 0.25rem 0;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 0.5rem;
+          flex-wrap: wrap;
         }
 
-        .badge {
-          font-size: 0.7rem;
-          background: #e8f0fe;
-          color: #1a73e8;
-          padding: 2px 8px;
+        .review-badge {
+          font-size: 0.6875rem;
+          background: #f5f5f5;
+          color: #525252;
+          padding: 0.125rem 0.5rem;
           border-radius: 4px;
           font-weight: 500;
         }
 
+        .review-date-stars {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
         .review-date {
-          margin: 5px 0 0;
-          color: #666;
-          font-size: 0.9rem;
+          font-size: 0.8125rem;
+          color: #737373;
+        }
+
+        .review-stars {
+          color: #000000;
+          font-size: 0.875rem;
+          letter-spacing: 1px;
         }
 
         .review-highlight {
-          background: #f5f5f5;
-          border-left: 3px solid #000;
-          padding: 15px 20px;
-          margin: 0 0 20px;
+          background: #fafafa;
+          border-left: 3px solid #000000;
+          padding: 1rem 1.25rem;
+          margin: 0 0 1rem 0;
+          font-size: 1rem;
           font-style: italic;
-          font-size: 1.1rem;
+          color: #171717;
+          line-height: 1.6;
         }
 
         .review-text {
+          font-size: 0.9375rem;
+          color: #525252;
           line-height: 1.7;
-          color: #333;
           margin: 0;
         }
 
-        .reviews-cta {
-          background: #000;
-          color: #fff;
-          padding: 80px 20px;
+        .google-cta {
+          text-align: center;
+          margin-top: 3rem;
+          padding-top: 2rem;
+          border-top: 1px solid #e5e5e5;
+        }
+
+        .google-cta p {
+          font-size: 0.9375rem;
+          color: #525252;
+          margin-bottom: 1rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 2rem;
+          max-width: 700px;
+          margin: 0 auto;
           text-align: center;
         }
 
-        .reviews-cta h2 {
-          font-size: 2rem;
-          margin-bottom: 15px;
+        .stat-item {
+          padding: 1.5rem;
         }
 
-        .reviews-cta p {
-          opacity: 0.8;
-          margin-bottom: 30px;
+        .stat-number {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: #171717;
+          line-height: 1;
+          margin-bottom: 0.5rem;
         }
 
-        .cta-buttons {
-          display: flex;
-          gap: 15px;
-          justify-content: center;
-          flex-wrap: wrap;
+        .stat-label {
+          font-size: 0.9375rem;
+          color: #737373;
+          font-weight: 500;
         }
 
-        .btn {
-          padding: 15px 30px;
-          font-size: 1rem;
+        /* Final CTA - Override global colors */
+        .final-cta {
+          background: #000000;
+          padding: 4rem 1.5rem;
+          text-align: center;
+        }
+
+        .final-cta h2 {
+          color: #ffffff;
+          margin-bottom: 0.75rem;
+        }
+
+        .final-cta .container > p {
+          color: rgba(255,255,255,0.8);
+          margin-bottom: 2rem;
+          max-width: 500px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .cta-step {
+          display: inline-block;
+          background: rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.8);
+          padding: 0.375rem 1rem;
+          border-radius: 100px;
+          font-size: 0.8125rem;
           font-weight: 600;
-          text-decoration: none;
-          border-radius: 4px;
-          transition: all 0.2s;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 1rem;
         }
 
-        .btn-primary {
-          background: #fff;
-          color: #000;
+        .cta-location {
+          margin-top: 1.5rem;
+          color: rgba(255,255,255,0.6) !important;
+          font-size: 0.9375rem;
         }
 
-        .btn-primary:hover {
-          background: #f0f0f0;
-        }
-
-        .btn-secondary {
-          background: transparent;
-          color: #fff;
-          border: 1px solid #fff;
-        }
-
-        .btn-secondary:hover {
-          background: #fff;
-          color: #000;
-        }
-
-        @media (max-width: 600px) {
-          .reviews-hero h1 {
-            font-size: 2rem;
-          }
-
-          .rating-summary {
+        /* Responsive */
+        @media (max-width: 640px) {
+          .rating-box {
             flex-direction: column;
+            text-align: center;
+            padding: 1.5rem;
           }
 
-          .rating-details {
+          .rating-info {
             text-align: center;
+          }
+
+          .review-card {
+            padding: 1.25rem;
           }
 
           .review-header {
             flex-direction: column;
-            gap: 15px;
+            text-align: center;
           }
 
-          .review-card {
-            padding: 20px;
+          .review-meta {
+            text-align: center;
           }
-        }
-      `}</style>
 
-      <style jsx global>{`
-        .star-rating {
-          display: flex;
-          gap: 2px;
-        }
+          .review-name {
+            justify-content: center;
+          }
 
-        .star {
-          color: #ddd;
-          font-size: 1.2rem;
-        }
+          .review-date-stars {
+            justify-content: center;
+          }
 
-        .star.filled {
-          color: #fbbc04;
+          .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+
+          .stat-number {
+            font-size: 2rem;
+          }
         }
       `}</style>
     </Layout>

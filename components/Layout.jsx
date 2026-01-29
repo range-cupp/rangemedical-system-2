@@ -365,12 +365,12 @@ export default function Layout({ children, title, description }) {
 
         .rm-footer-grid {
           display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1fr;
-          gap: 2rem;
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          gap: 3rem;
         }
 
         .rm-footer-brand {
-          padding-right: 2rem;
+          padding-right: 1rem;
         }
 
         .rm-footer-logo {
@@ -437,8 +437,9 @@ export default function Layout({ children, title, description }) {
           margin: 0 auto;
           padding: 0 1.5rem;
           display: flex;
-          justify-content: space-between;
+          justify-content: center;
           align-items: center;
+          gap: 2rem;
         }
 
         .rm-footer-bottom p {

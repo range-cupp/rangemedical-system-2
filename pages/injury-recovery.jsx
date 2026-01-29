@@ -22,50 +22,49 @@ export default function InjuryRecovery() {
           <span className="trust-item">
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
-          <span className="trust-item">Newport Beach, CA</span>
-          <span className="trust-item">Recovery Door</span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">🩹 Recovery Door</span>
         </div>
       </div>
 
       {/* Hero */}
       <section className="hero">
-        <span className="hero-badge">Start Here</span>
+        <p className="hero-kicker">Start Here</p>
         <h1>Injury Recovery Assessment — $199</h1>
         <p className="hero-sub">
           One visit to review your injury, your rehab plan, and design the right recovery protocol for you.
         </p>
         <div className="hero-cta">
-          <div className="hero-buttons">
-            <Link href="/book?reason=injury" className="btn-primary">
-              Book Injury Recovery Assessment — $199
-            </Link>
-          </div>
-          <p className="hero-secondary">
-            Located in the same building as Range Sports Therapy. If you move forward with a program, the $199 is credited toward it.
-          </p>
+          <Link href="/book?reason=injury" className="btn-primary">
+            Book Injury Recovery Assessment — $199
+          </Link>
         </div>
+        <p className="hero-note">
+          Located in the same building as Range Sports Therapy. If you move forward with a program, the $199 is credited toward it.
+        </p>
       </section>
 
       {/* Is This For You */}
-      <section className="content-section light-bg">
+      <section className="section section-gray">
         <div className="container">
-          <span className="section-label">IS THIS FOR YOU?</span>
-          <h2>This Assessment Is Right For You If...</h2>
+          <p className="section-kicker">Is This For You?</p>
+          <h2 className="section-title">This Assessment Is Right For You If...</h2>
+          
           <div className="checklist-grid">
-            <div className="checklist-item">
-              <span className="check-icon">✓</span>
+            <div className="checklist-card">
+              <span className="checklist-icon">✓</span>
               <p>You're rehabbing an injury and progress feels slow.</p>
             </div>
-            <div className="checklist-item">
-              <span className="check-icon">✓</span>
+            <div className="checklist-card">
+              <span className="checklist-icon">✓</span>
               <p>Pain, swelling, or tightness keep coming back between visits.</p>
             </div>
-            <div className="checklist-item">
-              <span className="check-icon">✓</span>
+            <div className="checklist-card">
+              <span className="checklist-icon">✓</span>
               <p>You want to get back to work, life, or sport faster.</p>
             </div>
-            <div className="checklist-item">
-              <span className="check-icon">✓</span>
+            <div className="checklist-card">
+              <span className="checklist-icon">✓</span>
               <p>Your therapist or chiropractor thinks extra recovery support could help.</p>
             </div>
           </div>
@@ -73,119 +72,106 @@ export default function InjuryRecovery() {
       </section>
 
       {/* What Happens */}
-      <section className="content-section">
+      <section className="section">
         <div className="container">
-          <span className="section-label">YOUR VISIT</span>
-          <h2>What Happens During Your Assessment</h2>
-          <p className="section-intro">A focused visit to understand your injury and build the right plan.</p>
+          <p className="section-kicker">Your Visit</p>
+          <h2 className="section-title">What Happens During Your Assessment</h2>
+          <p className="section-subtitle">A focused visit to understand your injury and build the right plan.</p>
           
-          <div className="steps-list">
-            <div className="step-item">
+          <div className="steps-grid">
+            <div className="step-card">
               <div className="step-number">1</div>
-              <div className="step-content">
-                <h4>Review Your Injury</h4>
-                <p>We go over your injury, your current rehab, and your goals for getting back to normal.</p>
-              </div>
+              <h4>Review Your Injury</h4>
+              <p>We go over your injury, your current rehab, and your goals for getting back to normal.</p>
             </div>
-            <div className="step-item">
+            <div className="step-card">
               <div className="step-number">2</div>
-              <div className="step-content">
-                <h4>Check Key Movements</h4>
-                <p>We look at how the area responds and what might be slowing your recovery.</p>
-              </div>
+              <h4>Check Key Movements</h4>
+              <p>We look at how the area responds and what might be slowing your recovery.</p>
             </div>
-            <div className="step-item">
+            <div className="step-card">
               <div className="step-number">3</div>
-              <div className="step-content">
-                <h4>Talk Through History</h4>
-                <p>We discuss what you've already tried and what's helped or not.</p>
-              </div>
+              <h4>Talk Through History</h4>
+              <p>We discuss what you've already tried and what's helped or not.</p>
             </div>
-            <div className="step-item">
+            <div className="step-card">
               <div className="step-number">4</div>
-              <div className="step-content">
-                <h4>Recommend a Program</h4>
-                <p>Your provider recommends the right recovery program based on your injury and timeline.</p>
-              </div>
+              <h4>Recommend a Program</h4>
+              <p>Your provider recommends the right recovery program based on your injury and timeline.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Recovery Programs */}
-      <section className="content-section light-bg">
+      <section className="section section-gray">
         <div className="container">
-          <span className="section-label">WHAT COMES NEXT</span>
-          <h2>Recovery Peptide Programs</h2>
-          <p className="section-intro">
+          <p className="section-kicker">What Comes Next</p>
+          <h2 className="section-title">Recovery Peptide Programs</h2>
+          <p className="section-subtitle">
             Based on your Assessment, your provider may recommend one of our peptide therapy programs designed to support injury recovery.
           </p>
           
-          <div className="program-cards">
-            <div className="program-card">
-              <div className="program-header">
-                <h3>10-Day Recovery Jumpstart</h3>
-                <span className="program-tag">Quick Start</span>
-              </div>
+          <div className="doors-grid">
+            <div className="door-card">
+              <h3>10-Day Recovery Jumpstart</h3>
               <p>A focused 10-day plan to help your body start calming things down and see how you respond while you're in therapy.</p>
-              <ul className="program-features">
+              <ul>
                 <li>Recovery peptide protocol</li>
                 <li>Provider-designed plan</li>
                 <li>Works alongside your rehab</li>
               </ul>
             </div>
-            
-            <div className="program-card featured">
-              <div className="program-header">
-                <h3>30-Day Recovery Program</h3>
-                <span className="program-tag">Most Popular</span>
-              </div>
+
+            <div className="door-card featured">
+              <span className="door-badge">Most Popular</span>
+              <h3>30-Day Recovery Program</h3>
               <p>A full 30-day recovery protocol to calm inflammation, support tissue repair, and help you get back to normal faster.</p>
-              <ul className="program-features">
+              <ul>
                 <li>Week 1: Calm the fire</li>
-                <li>Weeks 2-3: Build back capacity</li>
+                <li>Weeks 2–3: Build back capacity</li>
                 <li>Week 4: Lock in the gains</li>
               </ul>
             </div>
           </div>
           
-          <p className="program-note">
+          <p className="section-note">
             Your provider will recommend the right program based on your injury, timeline, and goals. Not everyone needs peptides — your Assessment will determine the best approach for you.
           </p>
         </div>
       </section>
 
       {/* Other Tools */}
-      <section className="content-section">
+      <section className="section">
         <div className="container">
-          <span className="section-label">ADDITIONAL SUPPORT</span>
-          <h2>Other Recovery Tools We Offer</h2>
-          <p className="section-intro">
+          <p className="section-kicker">Additional Support</p>
+          <h2 className="section-title">Other Recovery Tools We Offer</h2>
+          <p className="section-subtitle">
             Depending on your injury, your provider may also recommend:
           </p>
           
           <div className="tools-grid">
-            <div className="tool-item">
-              <h4>Hyperbaric Oxygen Therapy</h4>
+            <Link href="/hyperbaric-oxygen-therapy" className="tool-card">
+              <h4>Hyperbaric Oxygen</h4>
               <p>Pressurized oxygen to support tissue healing and reduce inflammation.</p>
-            </div>
-            <div className="tool-item">
+            </Link>
+            <Link href="/red-light-therapy" className="tool-card">
               <h4>Red Light Therapy</h4>
               <p>Light-based therapy to support cellular recovery and reduce pain.</p>
-            </div>
-            <div className="tool-item">
+            </Link>
+            <Link href="/iv-therapy" className="tool-card">
               <h4>IV Therapy</h4>
               <p>Direct nutrient delivery to support healing from the inside.</p>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="content-section light-bg">
+      <section className="section section-gray">
         <div className="container">
-          <span className="section-label">QUESTIONS</span>
-          <h2>Frequently Asked Questions</h2>
+          <p className="section-kicker">Questions</p>
+          <h2 className="section-title">Frequently Asked Questions</h2>
           
           <div className="faq-list">
             <div className="faq-item">
@@ -219,7 +205,6 @@ export default function InjuryRecovery() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <span className="cta-step">Start With One Visit</span>
           <h2>Ready to Speed Up Your Recovery?</h2>
           <p>Book your Range Assessment. If you move forward with a program, the $199 is credited toward it.</p>
           <div className="cta-buttons">
@@ -227,398 +212,190 @@ export default function InjuryRecovery() {
               Book Your Range Assessment — $199
             </Link>
           </div>
-          <p className="cta-location">Range Medical • 1901 Westcliff Dr, Newport Beach</p>
+          <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
         </div>
       </section>
 
       <style jsx>{`
-        /* Trust Bar */
-        .trust-bar {
-          background: #f8f8f8;
-          padding: 12px 0;
-          border-bottom: 1px solid #eee;
-        }
-        .trust-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 24px;
-          display: flex;
-          justify-content: center;
-          gap: 32px;
-          flex-wrap: wrap;
-        }
-        .trust-item {
-          font-size: 14px;
-          color: #666;
-        }
-        .trust-rating {
-          color: #000;
-          letter-spacing: 1px;
-        }
-
-        /* Hero */
         .hero {
-          padding: 80px 24px;
-          text-align: center;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        .hero-badge {
-          display: inline-block;
-          background: #000;
-          color: #fff;
-          padding: 6px 16px;
-          font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-          margin-bottom: 24px;
-        }
-        .hero h1 {
-          font-size: 42px;
-          font-weight: 700;
-          margin: 0 0 20px 0;
-          line-height: 1.2;
-        }
-        .hero-sub {
-          font-size: 20px;
-          color: #444;
-          margin: 0 0 32px 0;
-          line-height: 1.6;
-        }
-        .hero-buttons {
-          margin-bottom: 16px;
-        }
-        .btn-primary {
-          display: inline-block;
-          background: #000;
-          color: #fff;
-          padding: 16px 32px;
-          font-size: 16px;
-          font-weight: 600;
-          text-decoration: none;
-          transition: all 0.2s;
-        }
-        .btn-primary:hover {
-          background: #333;
-        }
-        .hero-secondary {
-          font-size: 14px;
-          color: #666;
-          margin: 0;
+          padding-top: 4rem;
+          padding-bottom: 3rem;
         }
 
-        /* Content Sections */
-        .content-section {
-          padding: 80px 24px;
-        }
-        .light-bg {
-          background: #f8f8f8;
-        }
-        .container {
-          max-width: 900px;
-          margin: 0 auto;
-        }
-        .section-label {
-          display: block;
-          font-size: 12px;
+        .hero-kicker {
+          font-size: 0.75rem;
           font-weight: 600;
-          letter-spacing: 2px;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #888;
-          margin-bottom: 12px;
-          text-align: center;
+          color: #666;
+          margin-bottom: 0.75rem;
         }
-        .content-section h2 {
-          font-size: 32px;
-          font-weight: 700;
-          margin: 0 0 16px 0;
-          text-align: center;
+
+        .hero-cta {
+          margin-top: 2rem;
         }
-        .section-intro {
-          font-size: 18px;
-          color: #555;
-          text-align: center;
-          margin: 0 0 48px 0;
-          max-width: 600px;
-          margin-left: auto;
-          margin-right: auto;
+
+        .hero-note {
+          margin-top: 1rem;
+          font-size: 0.875rem;
+          color: #666;
         }
 
         /* Checklist Grid */
         .checklist-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 24px;
-          margin-top: 40px;
+          gap: 1rem;
+          max-width: 800px;
+          margin: 0 auto;
         }
-        .checklist-item {
+
+        .checklist-card {
           display: flex;
           align-items: flex-start;
-          gap: 16px;
-          padding: 24px;
-          background: #fff;
+          gap: 1rem;
+          background: #ffffff;
           border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.5rem;
         }
-        .check-icon {
+
+        .checklist-icon {
           flex-shrink: 0;
           width: 28px;
           height: 28px;
-          background: #000;
+          background: #171717;
           color: #fff;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
+          font-size: 0.875rem;
           font-weight: 600;
         }
-        .checklist-item p {
+
+        .checklist-card p {
           margin: 0;
-          font-size: 16px;
-          line-height: 1.5;
-          color: #333;
+          font-size: 0.9375rem;
+          color: #404040;
+          line-height: 1.6;
         }
 
-        /* Steps List */
-        .steps-list {
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-          max-width: 700px;
+        /* Steps Grid */
+        .steps-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1.5rem;
+          max-width: 1000px;
           margin: 0 auto;
         }
-        .step-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 24px;
-          padding: 32px;
-          background: #f8f8f8;
-          border-left: 4px solid #000;
+
+        .step-card {
+          text-align: center;
+          padding: 1.5rem;
         }
+
         .step-number {
-          flex-shrink: 0;
-          width: 40px;
-          height: 40px;
-          background: #000;
+          width: 48px;
+          height: 48px;
+          background: #171717;
           color: #fff;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
+          font-size: 1.25rem;
           font-weight: 700;
-        }
-        .step-content h4 {
-          margin: 0 0 8px 0;
-          font-size: 18px;
-          font-weight: 600;
-        }
-        .step-content p {
-          margin: 0;
-          font-size: 16px;
-          color: #555;
-          line-height: 1.5;
+          margin: 0 auto 1rem;
         }
 
-        /* Program Cards */
-        .program-cards {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 24px;
-          margin-bottom: 32px;
-        }
-        .program-card {
-          padding: 32px;
-          background: #fff;
-          border: 1px solid #e5e5e5;
-        }
-        .program-card.featured {
-          border: 2px solid #000;
-        }
-        .program-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 16px;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .program-header h3 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 700;
-        }
-        .program-tag {
-          font-size: 11px;
+        .step-card h4 {
+          font-size: 1rem;
           font-weight: 600;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-          padding: 4px 10px;
-          background: #f0f0f0;
+          color: #171717;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .step-card p {
+          font-size: 0.875rem;
           color: #666;
-        }
-        .program-card.featured .program-tag {
-          background: #000;
-          color: #fff;
-        }
-        .program-card > p {
-          font-size: 15px;
-          color: #555;
           line-height: 1.6;
-          margin: 0 0 20px 0;
-        }
-        .program-features {
-          list-style: none;
-          padding: 0;
           margin: 0;
         }
-        .program-features li {
-          font-size: 14px;
-          color: #333;
-          padding: 8px 0;
-          border-top: 1px solid #eee;
-        }
-        .program-features li:last-child {
-          padding-bottom: 0;
-        }
-        .program-note {
-          font-size: 14px;
-          color: #666;
+
+        /* Section Note */
+        .section-note {
           text-align: center;
+          font-size: 0.875rem;
+          color: #666;
           font-style: italic;
+          margin-top: 2rem;
+          max-width: 600px;
+          margin-left: auto;
+          margin-right: auto;
         }
 
-        /* Tools Grid */
-        .tools-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 24px;
-        }
-        .tool-item {
-          text-align: center;
-          padding: 32px 24px;
-          background: #f8f8f8;
-        }
-        .tool-item h4 {
-          margin: 0 0 12px 0;
-          font-size: 16px;
-          font-weight: 600;
-        }
-        .tool-item p {
-          margin: 0;
-          font-size: 14px;
-          color: #666;
-          line-height: 1.5;
-        }
-
-        /* FAQ */
+        /* FAQ List */
         .faq-list {
           max-width: 700px;
           margin: 0 auto;
         }
+
         .faq-item {
-          padding: 24px 0;
-          border-bottom: 1px solid #ddd;
+          padding: 1.5rem 0;
+          border-bottom: 1px solid #e5e5e5;
         }
+
         .faq-item:first-child {
           padding-top: 0;
         }
+
         .faq-item:last-child {
           border-bottom: none;
           padding-bottom: 0;
         }
+
         .faq-item h4 {
-          margin: 0 0 12px 0;
-          font-size: 17px;
+          font-size: 1rem;
           font-weight: 600;
+          color: #171717;
+          margin: 0 0 0.75rem 0;
         }
+
         .faq-item p {
+          font-size: 0.9375rem;
+          color: #404040;
+          line-height: 1.7;
           margin: 0;
-          font-size: 15px;
-          color: #555;
-          line-height: 1.6;
         }
 
-        /* Final CTA */
-        .final-cta {
-          background: #000;
-          color: #fff;
-          padding: 80px 24px;
-          text-align: center;
-        }
-        .cta-step {
-          display: inline-block;
-          font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.6);
-          margin-bottom: 16px;
-        }
-        .final-cta h2 {
-          font-size: 36px;
-          font-weight: 700;
-          margin: 0 0 16px 0;
-        }
-        .final-cta > .container > p {
-          font-size: 18px;
-          color: rgba(255,255,255,0.8);
-          margin: 0 0 32px 0;
-        }
+        /* CTA Buttons */
         .cta-buttons {
-          margin-bottom: 24px;
-        }
-        .btn-white {
-          display: inline-block;
-          background: #fff;
-          color: #000;
-          padding: 16px 32px;
-          font-size: 16px;
-          font-weight: 600;
-          text-decoration: none;
-          transition: all 0.2s;
-        }
-        .btn-white:hover {
-          background: #f0f0f0;
-        }
-        .cta-location {
-          font-size: 14px;
-          color: rgba(255,255,255,0.5);
-          margin: 0;
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          flex-wrap: wrap;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-          .hero {
-            padding: 60px 20px;
+        @media (max-width: 900px) {
+          .steps-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
-          .hero h1 {
-            font-size: 32px;
-          }
-          .hero-sub {
-            font-size: 18px;
-          }
-          .content-section {
-            padding: 60px 20px;
-          }
-          .content-section h2 {
-            font-size: 26px;
-          }
+        }
+
+        @media (max-width: 640px) {
           .checklist-grid {
             grid-template-columns: 1fr;
           }
-          .program-cards {
+
+          .steps-grid {
             grid-template-columns: 1fr;
+            max-width: 400px;
           }
-          .tools-grid {
-            grid-template-columns: 1fr;
-          }
-          .step-item {
-            padding: 24px;
-          }
-          .trust-inner {
-            gap: 16px;
+
+          .cta-buttons {
+            flex-direction: column;
+            align-items: center;
           }
         }
       `}</style>

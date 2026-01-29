@@ -271,19 +271,21 @@ export default function ToradolPostInjection() {
           text-align: center;
           padding: 3rem 1.5rem;
           background: var(--color-primary);
-          color: var(--color-bg);
+          color: #ffffff;
         }
 
         .toradol-contact-section h2 {
           font-size: 1.5rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
+          color: #ffffff;
         }
 
         .toradol-contact-section p {
           font-size: 1rem;
-          opacity: 0.8;
+          opacity: 0.9;
           margin-bottom: 1.5rem;
+          color: #ffffff;
         }
 
         .toradol-contact-info {
@@ -291,13 +293,18 @@ export default function ToradolPostInjection() {
           justify-content: center;
           gap: 2rem;
           flex-wrap: wrap;
+          color: #ffffff;
         }
 
         .toradol-contact-info a {
-          color: var(--color-bg);
+          color: #ffffff;
           text-decoration: underline;
           text-underline-offset: 3px;
           font-weight: 600;
+        }
+
+        .toradol-contact-info span {
+          color: #ffffff;
         }
 
         /* Footer */

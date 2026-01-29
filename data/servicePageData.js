@@ -16,14 +16,14 @@ export const servicePages = {
         { emoji: '😴', title: 'Always Tired', description: 'Exhausted even after a full night of sleep.' },
         { emoji: '🧠', title: 'Brain Fog', description: 'Difficulty focusing or thinking clearly.' },
         { emoji: '💪', title: 'Lost Your Edge', description: 'Strength, motivation, or drive feels lower than it used to.' },
-        { emoji: '📉', title: '"Normal" Labs', description: 'Your doctor says you're fine, but you don't feel fine.' }
+        { emoji: '📉', title: '"Normal" Labs', description: 'Your doctor says you\'re fine, but you don\'t feel fine.' }
       ]
     },
     howItWorks: {
       title: 'How It Works',
       steps: [
         { title: 'Book Assessment', description: 'Start with a $199 Range Assessment to discuss your symptoms and goals.' },
-        { title: 'Run Labs', description: 'Comprehensive hormone panel to see what's actually going on.' },
+        { title: 'Run Labs', description: 'Comprehensive hormone panel to see what\'s actually going on.' },
         { title: 'Review Results', description: 'Your provider explains your labs and recommends a plan.' },
         { title: 'Start Treatment', description: 'Personalized protocol with ongoing monitoring and adjustments.' }
       ]
@@ -57,9 +57,9 @@ export const servicePages = {
     isThisForYou: {
       title: 'Who This Is For',
       items: [
-        { emoji: '🔄', title: 'Tried Everything', description: 'Diets and exercise haven't worked long-term.' },
+        { emoji: '🔄', title: 'Tried Everything', description: 'Diets and exercise haven\'t worked long-term.' },
         { emoji: '🍽️', title: 'Always Hungry', description: 'Cravings and hunger make it impossible to stick to a plan.' },
-        { emoji: '📊', title: 'Want Data', description: 'You want to know what's happening metabolically, not just guess.' },
+        { emoji: '📊', title: 'Want Data', description: 'You want to know what\'s happening metabolically, not just guess.' },
         { emoji: '🩺', title: 'Real Supervision', description: 'You want a provider who monitors your progress and adjusts.' }
       ]
     },
@@ -93,8 +93,8 @@ export const servicePages = {
     isThisForYou: {
       title: 'Who This Is For',
       items: [
-        { emoji: '🩹', title: 'Healing Slowly', description: 'An injury that's taking longer to heal than expected.' },
-        { emoji: '💪', title: 'Recovery Issues', description: 'You don't bounce back from workouts like you used to.' },
+        { emoji: '🩹', title: 'Healing Slowly', description: 'An injury that\'s taking longer to heal than expected.' },
+        { emoji: '💪', title: 'Recovery Issues', description: 'You don\'t bounce back from workouts like you used to.' },
         { emoji: '😴', title: 'Poor Sleep', description: 'Sleep quality affects your energy and recovery.' },
         { emoji: '⚡', title: 'Want an Edge', description: 'Looking to optimize performance and longevity.' }
       ]
@@ -110,7 +110,7 @@ export const servicePages = {
     },
     faqs: [
       { question: 'Are peptides safe?', answer: 'When prescribed by a provider and sourced from licensed pharmacies, peptides have a strong safety profile.' },
-      { question: 'Do I have to inject myself?', answer: 'Most peptides are subcutaneous (tiny needle). We teach you — it's easier than you think.' },
+      { question: 'Do I have to inject myself?', answer: 'Most peptides are subcutaneous (tiny needle). We teach you — it\'s easier than you think.' },
       { question: 'How long until I see results?', answer: 'Depends on the peptide. BPC-157 often shows improvement in 2-4 weeks.' }
     ]
   },
@@ -128,7 +128,7 @@ export const servicePages = {
     isThisForYou: {
       title: 'Who This Is For',
       items: [
-        { emoji: '🔋', title: 'Need Energy', description: 'Fatigue that supplements and sleep don't fix.' },
+        { emoji: '🔋', title: 'Need Energy', description: 'Fatigue that supplements and sleep don\'t fix.' },
         { emoji: '🤒', title: 'Immune Support', description: 'Getting sick often or want to boost immunity.' },
         { emoji: '🏃', title: 'Recovery', description: 'Faster recovery from training, travel, or illness.' },
         { emoji: '✨', title: 'Wellness', description: 'General optimization and feeling your best.' }
@@ -173,7 +173,7 @@ export const servicePages = {
       title: 'How It Works',
       steps: [
         { title: 'Book Session', description: 'Schedule your HBOT session online or by phone.' },
-        { title: 'Get Comfortable', description: 'You'll relax in our pressurized chamber.' },
+        { title: 'Get Comfortable', description: 'You\'ll relax in our pressurized chamber.' },
         { title: 'Breathe', description: '60-90 minute session breathing pure oxygen under pressure.' },
         { title: 'Resume Your Day', description: 'No downtime — return to normal activities immediately.' }
       ]
@@ -233,7 +233,7 @@ export const servicePages = {
     isThisForYou: {
       title: 'Who This Is For',
       items: [
-        { emoji: '🦵', title: 'Joint Pain', description: 'Knees, shoulders, hips that haven't responded to other treatments.' },
+        { emoji: '🦵', title: 'Joint Pain', description: 'Knees, shoulders, hips that haven\'t responded to other treatments.' },
         { emoji: '💪', title: 'Tendon Issues', description: 'Tennis elbow, Achilles, rotator cuff problems.' },
         { emoji: '🏃', title: 'Sports Injuries', description: 'Strains and sprains that are slow to heal.' },
         { emoji: '⏰', title: 'Chronic Pain', description: 'Ongoing pain where you want to avoid surgery.' }
@@ -245,11 +245,11 @@ export const servicePages = {
         { title: 'Blood Draw', description: 'We draw a small amount of blood from your arm.' },
         { title: 'Processing', description: 'Your blood is spun to concentrate the platelets.' },
         { title: 'Injection', description: 'Concentrated PRP is injected into the treatment area.' },
-        { title: 'Healing', description: 'Growth factors support your body's natural repair over weeks.' }
+        { title: 'Healing', description: 'Growth factors support your body\'s natural repair over weeks.' }
       ]
     },
     faqs: [
-      { question: 'Is PRP painful?', answer: 'There's some discomfort during injection, but we use local anesthesia to minimize it.' },
+      { question: 'Is PRP painful?', answer: 'There\'s some discomfort during injection, but we use local anesthesia to minimize it.' },
       { question: 'How many treatments do I need?', answer: 'Many improve with one. Some conditions benefit from 2-3 sessions.' },
       { question: 'Is PRP covered by insurance?', answer: 'Usually not. We can provide documentation for HSA/FSA.' }
     ]
@@ -303,8 +303,8 @@ export const servicePages = {
     isThisForYou: {
       title: 'Who This Is For',
       items: [
-        { emoji: '❓', title: 'Want Answers', description: 'Your regular labs say "normal" but you don't feel normal.' },
-        { emoji: '📊', title: 'Data-Driven', description: 'You want to see what's actually happening inside your body.' },
+        { emoji: '❓', title: 'Want Answers', description: 'Your regular labs say "normal" but you don\'t feel normal.' },
+        { emoji: '📊', title: 'Data-Driven', description: 'You want to see what\'s actually happening inside your body.' },
         { emoji: '🎯', title: 'Optimize', description: 'Looking to fine-tune your health with real numbers.' },
         { emoji: '🔍', title: 'Go Deeper', description: 'Want more than the basic panel your doctor runs.' }
       ]
@@ -320,7 +320,7 @@ export const servicePages = {
     },
     faqs: [
       { question: "What's the difference between Essential and Elite?", answer: 'Essential covers hormones, thyroid, and metabolic basics. Elite goes deeper with inflammation, advanced thyroid, and longevity markers.' },
-      { question: 'Do I need to fast?', answer: 'For most panels, no. We'll let you know if fasting is needed.' },
+      { question: 'Do I need to fast?', answer: 'For most panels, no. We\'ll let you know if fasting is needed.' },
       { question: 'Can I just get labs without treatment?', answer: 'Yes — many patients come just for comprehensive labs and review.' }
     ]
   }
@@ -328,7 +328,7 @@ export const servicePages = {
 
 // Default testimonials to use across service pages
 export const defaultTestimonials = [
-  { quote: "I was skeptical, but after the Assessment I finally understood why I'd been so tired. Six weeks later I feel like myself again.", name: "Sarah M.", detail: "Newport Beach" },
+  { quote: "I was skeptical, but after the Assessment I finally understood why I\'d been so tired. Six weeks later I feel like myself again.", name: "Sarah M.", detail: "Newport Beach" },
   { quote: "No pushy sales, just real conversation. They helped me connect the dots between my symptoms and gave me a clear plan.", name: "Michael R.", detail: "Costa Mesa" },
   { quote: "The team takes time to actually listen. This is what healthcare should feel like.", name: "Jennifer K.", detail: "Irvine" }
 ];

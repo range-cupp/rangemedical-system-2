@@ -309,6 +309,7 @@ export default function Book() {
           font-weight: 700;
           margin: 0 0 16px;
           letter-spacing: -1px;
+          color: #fff;
         }
 
         .book-hero p {

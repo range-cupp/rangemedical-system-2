@@ -868,6 +868,122 @@ p {
 }
 
 /* ========================================
+   SERVICE PAGE GRID VARIATIONS
+   ======================================== */
+
+/* 3-column grid for sections with 3 cards */
+.doors-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Symptom columns - 2 side-by-side cards */
+.symptoms-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.symptom-card {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.symptom-card h4 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #171717;
+}
+
+.symptom-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.symptom-card ul li {
+  font-size: 0.9375rem;
+  color: #525252;
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.symptom-card ul li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #171717;
+}
+
+/* Comparison grid - 2 cards side by side */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.compare-card {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.compare-card.highlight {
+  border: 2px solid #000;
+  background: #fafafa;
+}
+
+.compare-card h4 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #171717;
+}
+
+.compare-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.compare-card ul li {
+  font-size: 0.9375rem;
+  color: #525252;
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.compare-card ul li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #000;
+  font-weight: 600;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .doors-grid-3,
+  .symptoms-grid,
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
    RESPONSIVE
    ======================================== */
 

@@ -40,7 +40,7 @@ export default function HormoneOptimization() {
           <p className="section-subtitle">These symptoms are common—but they're not "normal." And they're often connected to hormone imbalances.</p>
           
           <div className="symptoms-grid">
-            <div className="symptom-col">
+            <div className="symptom-card">
               <h4>Men</h4>
               <ul>
                 <li>Low energy or constant fatigue</li>
@@ -52,7 +52,7 @@ export default function HormoneOptimization() {
                 <li>Poor sleep quality</li>
               </ul>
             </div>
-            <div className="symptom-col">
+            <div className="symptom-card">
               <h4>Women</h4>
               <ul>
                 <li>Exhaustion that sleep doesn't fix</li>
@@ -75,7 +75,7 @@ export default function HormoneOptimization() {
           <h2 className="section-title">Why You Still Feel Off</h2>
           <p className="section-subtitle">Most doctors check basic labs, say "you're fine," and send you home. That's not good enough.</p>
           
-          <div className="doors-grid">
+          <div className="doors-grid-3">
             <div className="door-card">
               <div className="door-icon">📉</div>
               <h4>Hormones Shift Early</h4>
@@ -93,8 +93,8 @@ export default function HormoneOptimization() {
             </div>
           </div>
           
-          <div className="comparison">
-            <div className="comparison-col">
+          <div className="compare-grid">
+            <div className="compare-card">
               <h4>Typical Doctor</h4>
               <ul>
                 <li>Checks total testosterone only</li>
@@ -103,7 +103,7 @@ export default function HormoneOptimization() {
                 <li>No follow-up or monitoring</li>
               </ul>
             </div>
-            <div className="comparison-col range">
+            <div className="compare-card highlight">
               <h4>Range Medical</h4>
               <ul>
                 <li>Full hormone panel including free T</li>

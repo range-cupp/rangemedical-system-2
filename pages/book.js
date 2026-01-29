@@ -1,5 +1,8 @@
+// /pages/book.js
+// Range Assessment Booking Page - Redesigned
+// Range Medical - 2026-01-28
+
 import Layout from '../components/Layout';
-import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -18,7 +21,6 @@ export default function Book() {
     check6: false,
   });
 
-  // Pre-select reason based on URL parameter
   useEffect(() => {
     if (router.query.reason === 'injury') {
       setSelectedReason('injury');
@@ -44,7 +46,7 @@ export default function Book() {
     }
     setShowCalendar(true);
     setTimeout(() => {
-      document.getElementById('calendarContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('calendarSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
   };
 
@@ -59,6 +61,39 @@ export default function Book() {
     }
   };
 
+  const checklistItems = [
+    {
+      id: 'check1',
+      bold: 'This is a 30–45 minute visit.',
+      text: 'Plan your schedule accordingly and arrive ready to discuss your goals.'
+    },
+    {
+      id: 'check2',
+      bold: "You'll receive a symptoms form to complete before your visit.",
+      text: 'This helps us make the most of your time together.'
+    },
+    {
+      id: 'check3',
+      bold: 'Bring any labs or records from the past year if you have them.',
+      text: "We'll review them together. If you don't have any, that's okay."
+    },
+    {
+      id: 'check4',
+      bold: selectedReason ? reasonContent[selectedReason].checkLabel : 'This is a consultation to build your plan.',
+      text: 'You\'ll leave with clear next steps, not a "wait and see" answer.'
+    },
+    {
+      id: 'check5',
+      bold: 'Arrive 5–10 minutes early',
+      text: 'with a valid ID so we can start on time.'
+    },
+    {
+      id: 'check6',
+      bold: 'The assessment fee is $199,',
+      text: 'payable at the clinic. This is credited toward any program, including labs.'
+    }
+  ];
+
   return (
     <Layout 
       title="Book Your Range Assessment | Range Medical | Newport Beach"
@@ -72,375 +107,657 @@ export default function Book() {
         <meta property="og:url" content="https://www.range-medical.com/book" />
       </Head>
 
-      {/* Trust Bar */}
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
-          </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ 30-45 Minute Visit</span>
-        </div>
-      </div>
+      <div className="book-page">
+        {/* Hero */}
+        <section className="book-hero">
+          <div className="book-container">
+            <div className="hero-badge">One Product, One Price</div>
+            <h1>Book Your Range Assessment</h1>
+            <p>One visit to understand your situation and build a clear plan.</p>
+            <div className="hero-price">
+              <span className="price">$199</span>
+              <span className="price-note">Credited toward any program</span>
+            </div>
+          </div>
+        </section>
 
-      {/* Hero */}
-      <section className="hero">
-        <div className="container">
-          <span className="hero-badge">One Product, One Price</span>
-          <h1>Book Your Range Assessment</h1>
-          <p className="hero-sub">One visit to understand your situation and build a clear plan. $199, credited toward any program.</p>
-        </div>
-      </section>
-
-      {/* What Brings You In */}
-      <section className="section">
-        <div className="container">
-          <div className="section-kicker">Step 1</div>
-          <h2 className="section-title">What Brings You In?</h2>
-          <p className="section-subtitle">This helps us focus your visit on what matters most to you.</p>
-
-          <div className="reason-selector">
-            <button 
-              className={`reason-option ${selectedReason === 'injury' ? 'selected' : ''}`}
-              onClick={() => setSelectedReason('injury')}
-            >
-              <span className="reason-icon">✎</span>
-              <div className="reason-content">
-                <h4>Injury & Recovery</h4>
-                <p>I'm rehabbing an injury and healing feels slow. I want to speed things up.</p>
+        {/* Step 1: Reason */}
+        <section className="book-section">
+          <div className="book-container">
+            <div className="step-header">
+              <span className="step-number">1</span>
+              <div>
+                <h2>What Brings You In?</h2>
+                <p>This helps us focus your visit on what matters most.</p>
               </div>
-              <span className="reason-check">{selectedReason === 'injury' ? '✓' : ''}</span>
-            </button>
+            </div>
 
-            <button 
-              className={`reason-option ${selectedReason === 'energy' ? 'selected' : ''}`}
-              onClick={() => setSelectedReason('energy')}
-            >
-              <span className="reason-icon">⚡</span>
-              <div className="reason-content">
-                <h4>Energy & Optimization</h4>
-                <p>I'm tired, foggy, or just don't feel like myself. I want answers and a plan.</p>
+            <div className="reason-cards">
+              <button 
+                className={`reason-card ${selectedReason === 'injury' ? 'selected' : ''}`}
+                onClick={() => setSelectedReason('injury')}
+              >
+                <div className="reason-icon">🩹</div>
+                <div className="reason-text">
+                  <h3>Injury & Recovery</h3>
+                  <p>I'm rehabbing an injury and healing feels slow. I want to speed things up.</p>
+                </div>
+                <div className="reason-indicator">
+                  {selectedReason === 'injury' && <span className="check">✓</span>}
+                </div>
+              </button>
+
+              <button 
+                className={`reason-card ${selectedReason === 'energy' ? 'selected' : ''}`}
+                onClick={() => setSelectedReason('energy')}
+              >
+                <div className="reason-icon">⚡</div>
+                <div className="reason-text">
+                  <h3>Energy & Optimization</h3>
+                  <p>I'm tired, foggy, or just don't feel like myself. I want answers and a plan.</p>
+                </div>
+                <div className="reason-indicator">
+                  {selectedReason === 'energy' && <span className="check">✓</span>}
+                </div>
+              </button>
+            </div>
+
+            {selectedReason && (
+              <div className="reason-confirmed">
+                ✓ {reasonContent[selectedReason].focus}
               </div>
-              <span className="reason-check">{selectedReason === 'energy' ? '✓' : ''}</span>
-            </button>
+            )}
           </div>
+        </section>
 
-          {selectedReason && (
-            <div className="reason-confirmation">
-              <p>✓ {reasonContent[selectedReason].focus}</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* What's Included */}
-      <section className="section section-gray">
-        <div className="container">
-          <div className="section-kicker">What You Get</div>
-          <h2 className="section-title">Your Range Assessment Includes</h2>
-
-          <div className="included-box">
-            <div className="included-left">
-              <div className="included-price">$199</div>
-              <div className="included-duration">30–45 minute visit</div>
-              <span className="included-credit">✓ Credited toward any program</span>
-            </div>
-            <div className="included-right">
-              <ul className="included-list">
-                <li>Review of your symptoms and history</li>
-                <li>Discussion of your goals</li>
-                <li>Explanation of any labs you bring</li>
-                <li>Clear program recommendation</li>
-                <li>Written plan and next steps</li>
-                <li>No pressure to buy anything</li>
-              </ul>
+        {/* What's Included */}
+        <section className="book-section section-dark">
+          <div className="book-container">
+            <div className="included-grid">
+              <div className="included-price-box">
+                <div className="price-amount">$199</div>
+                <div className="price-duration">30–45 minute visit</div>
+                <div className="price-credit">✓ Credited toward any program</div>
+              </div>
+              <div className="included-features">
+                <h3>Your Assessment Includes</h3>
+                <ul>
+                  <li>Review of your symptoms and history</li>
+                  <li>Discussion of your goals</li>
+                  <li>Explanation of any labs you bring</li>
+                  <li>Clear program recommendation</li>
+                  <li>Written plan and next steps</li>
+                  <li>No pressure to buy anything</li>
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Booking Section */}
-      <section className="section" id="book">
-        <div className="container">
-          <div className="section-kicker">Step 2</div>
-          <h2 className="section-title">Confirm & Select a Time</h2>
-          <p className="section-subtitle">Review the information below, then select a time that works for you.</p>
+        {/* Step 2: Confirm */}
+        <section className="book-section">
+          <div className="book-container">
+            <div className="step-header">
+              <span className="step-number">2</span>
+              <div>
+                <h2>Before Your Visit</h2>
+                <p>Please confirm you understand the following:</p>
+              </div>
+            </div>
 
-          {/* Prep Instructions */}
-          <div className="booking-checkbox-area">
-            <h3>Before Your Visit</h3>
-            <p className="checkbox-intro">Please confirm you understand the following:</p>
-            
-            <div className="checkbox-item">
-              <input 
-                type="checkbox" 
-                id="check1" 
-                checked={checkboxes.check1}
-                onChange={() => handleCheckboxChange('check1')}
-              />
-              <label htmlFor="check1"><strong>This is a 30–45 minute visit.</strong> Plan your schedule accordingly and arrive ready to discuss your goals.</label>
+            <div className="checklist">
+              {checklistItems.map((item) => (
+                <label key={item.id} className={`checklist-item ${checkboxes[item.id] ? 'checked' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={checkboxes[item.id]}
+                    onChange={() => handleCheckboxChange(item.id)}
+                  />
+                  <span className="checkbox-visual">
+                    {checkboxes[item.id] && <span>✓</span>}
+                  </span>
+                  <span className="checkbox-text">
+                    <strong>{item.bold}</strong> {item.text}
+                  </span>
+                </label>
+              ))}
             </div>
-            <div className="checkbox-item">
-              <input 
-                type="checkbox" 
-                id="check2"
-                checked={checkboxes.check2}
-                onChange={() => handleCheckboxChange('check2')}
-              />
-              <label htmlFor="check2"><strong>You'll receive a symptoms form to complete before your visit.</strong> This helps us make the most of your time together.</label>
-            </div>
-            <div className="checkbox-item">
-              <input 
-                type="checkbox" 
-                id="check3"
-                checked={checkboxes.check3}
-                onChange={() => handleCheckboxChange('check3')}
-              />
-              <label htmlFor="check3"><strong>Bring any labs or records from the past year if you have them.</strong> We'll review them together. If you don't have any, that's okay.</label>
-            </div>
-            <div className="checkbox-item">
-              <input 
-                type="checkbox" 
-                id="check4"
-                checked={checkboxes.check4}
-                onChange={() => handleCheckboxChange('check4')}
-              />
-              <label htmlFor="check4"><strong>{selectedReason ? reasonContent[selectedReason].checkLabel : "This is a consultation to build your plan."}</strong> You'll leave with clear next steps, not a "wait and see" answer.</label>
-            </div>
-            <div className="checkbox-item">
-              <input 
-                type="checkbox" 
-                id="check5"
-                checked={checkboxes.check5}
-                onChange={() => handleCheckboxChange('check5')}
-              />
-              <label htmlFor="check5"><strong>Arrive 5–10 minutes early</strong> with a valid ID so we can start on time.</label>
-            </div>
-            <div className="checkbox-item">
-              <input 
-                type="checkbox" 
-                id="check6"
-                checked={checkboxes.check6}
-                onChange={() => handleCheckboxChange('check6')}
-              />
-              <label htmlFor="check6">I understand the <strong>assessment fee is $199</strong>, payable at the clinic. This is credited toward any program, including labs.</label>
+
+            <div className="book-cta">
+              <button 
+                className={`book-button ${allChecked && selectedReason ? 'ready' : ''}`}
+                onClick={handleShowCalendar}
+                disabled={!allChecked || !selectedReason}
+              >
+                Continue to Select a Time
+              </button>
+              <p className="cta-note">You'll pay $199 at the clinic when you arrive.</p>
             </div>
           </div>
+        </section>
 
-          <div className="booking-cta-area">
-            <button 
-              className={`btn-primary booking-btn ${(allChecked && selectedReason) ? 'active' : ''}`}
-              onClick={handleShowCalendar}
-              disabled={!allChecked || !selectedReason}
-            >
-              Continue to Select a Time
-            </button>
-            <p className="booking-price-note">You'll pay $199 at the clinic when you arrive.</p>
-          </div>
+        {/* Calendar Section - Only render iframe when showCalendar is true */}
+        {showCalendar && (
+          <section className="book-section calendar-section" id="calendarSection">
+            <div className="book-container">
+              <div className="step-header">
+                <span className="step-number">3</span>
+                <div>
+                  <h2>Select a Time</h2>
+                  <p>Choose a time that works best for you.</p>
+                </div>
+              </div>
 
-          {/* Calendar Container */}
-          <div 
-            className={`calendar-container ${showCalendar ? 'visible' : ''}`}
-            id="calendarContainer"
-          >
-            <div className="calendar-embed">
-              <iframe 
-                src="https://link.range-medical.com/booking/range-medical/sv/69769eed725303dcad0eb2da?heightMode=fixed&showHeader=true" 
-                style={{ width: '100%', height: '700px', border: 'none', overflow: 'hidden' }}
-                scrolling="no" 
-                id="69769eed725303dcad0eb2da_booking"
-              />
+              <div className="calendar-wrapper">
+                <iframe 
+                  src="https://link.range-medical.com/widget/booking/Jf6RZP7TYJhF69Fz5TaD"
+                  style={{ width: '100%', height: '800px', border: 'none' }}
+                  scrolling="no"
+                  title="Book your Range Assessment"
+                />
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        )}
 
-      {/* Final CTA */}
-      <section className="final-cta">
-        <div className="container">
-          <h2>Questions?</h2>
-          <p>Call or text us anytime. We're happy to help.</p>
-          <div className="cta-buttons">
-            <a href="tel:+19499973988" className="btn-white">
+        {/* Questions */}
+        <section className="book-section section-cta">
+          <div className="book-container">
+            <h2>Questions?</h2>
+            <p>Call or text us anytime. We're happy to help.</p>
+            <a href="tel:+19499973988" className="phone-button">
               (949) 997-3988
             </a>
+            <p className="location">📍 1901 Westcliff Dr, Newport Beach</p>
           </div>
-          <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
-        </div>
-      </section>
-
-      {/* GHL Form Script */}
-      <script src="https://link.range-medical.com/js/form_embed.js" type="text/javascript" async />
+        </section>
+      </div>
 
       <style jsx>{`
-        .reason-selector {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          max-width: 600px;
-          margin: 2rem auto 0;
+        .book-page {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        .reason-option {
+        .book-container {
+          max-width: 720px;
+          margin: 0 auto;
+          padding: 0 24px;
+        }
+
+        /* Hero */
+        .book-hero {
+          background: #000;
+          color: #fff;
+          padding: 80px 24px;
+          text-align: center;
+        }
+
+        .hero-badge {
+          display: inline-block;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);
+          padding: 8px 16px;
+          border-radius: 100px;
+          font-size: 13px;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+          margin-bottom: 24px;
+        }
+
+        .book-hero h1 {
+          font-size: 42px;
+          font-weight: 700;
+          margin: 0 0 16px;
+          letter-spacing: -1px;
+        }
+
+        .book-hero p {
+          font-size: 18px;
+          color: rgba(255,255,255,0.7);
+          margin: 0 0 32px;
+        }
+
+        .hero-price {
+          display: inline-flex;
+          align-items: center;
+          gap: 16px;
+          background: rgba(255,255,255,0.1);
+          padding: 16px 32px;
+          border-radius: 12px;
+        }
+
+        .hero-price .price {
+          font-size: 32px;
+          font-weight: 700;
+        }
+
+        .hero-price .price-note {
+          font-size: 14px;
+          color: rgba(255,255,255,0.6);
+        }
+
+        /* Sections */
+        .book-section {
+          padding: 64px 24px;
+        }
+
+        .section-dark {
+          background: #f8f9fa;
+        }
+
+        .section-cta {
+          background: #000;
+          color: #fff;
+          text-align: center;
+        }
+
+        /* Step Header */
+        .step-header {
           display: flex;
           align-items: flex-start;
-          gap: 1rem;
-          padding: 1.5rem;
-          background: #ffffff;
+          gap: 20px;
+          margin-bottom: 32px;
+        }
+
+        .step-number {
+          width: 40px;
+          height: 40px;
+          background: #000;
+          color: #fff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+
+        .step-header h2 {
+          font-size: 28px;
+          font-weight: 700;
+          margin: 0 0 4px;
+          color: #111;
+        }
+
+        .step-header p {
+          font-size: 16px;
+          color: #666;
+          margin: 0;
+        }
+
+        /* Reason Cards */
+        .reason-cards {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .reason-card {
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+          padding: 24px;
+          background: #fff;
           border: 2px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 16px;
           cursor: pointer;
           text-align: left;
-          transition: all 0.2s ease;
+          transition: all 0.2s;
+          width: 100%;
         }
 
-        .reason-option:hover {
-          border-color: #a3a3a3;
+        .reason-card:hover {
+          border-color: #999;
         }
 
-        .reason-option.selected {
-          border-color: #000000;
+        .reason-card.selected {
+          border-color: #000;
           background: #fafafa;
         }
 
         .reason-icon {
-          font-size: 1.5rem;
-          flex-shrink: 0;
-          width: 40px;
-          height: 40px;
+          width: 48px;
+          height: 48px;
+          background: #f5f5f5;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f5f5f5;
-          border-radius: 8px;
+          font-size: 24px;
+          flex-shrink: 0;
         }
 
-        .reason-option.selected .reason-icon {
-          background: #000000;
-          color: #ffffff;
+        .reason-card.selected .reason-icon {
+          background: #000;
         }
 
-        .reason-content {
+        .reason-text {
           flex: 1;
         }
 
-        .reason-content h4 {
-          font-size: 1.125rem;
+        .reason-text h3 {
+          font-size: 18px;
           font-weight: 600;
-          margin: 0 0 0.25rem 0;
-          color: #171717;
+          margin: 0 0 4px;
+          color: #111;
         }
 
-        .reason-content p {
-          font-size: 0.9375rem;
-          color: #525252;
+        .reason-text p {
+          font-size: 15px;
+          color: #666;
           margin: 0;
           line-height: 1.5;
         }
 
-        .reason-check {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #000000;
-          width: 24px;
-          text-align: center;
+        .reason-indicator {
+          width: 28px;
+          height: 28px;
+          border: 2px solid #e5e5e5;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
         }
 
-        .reason-confirmation {
-          max-width: 600px;
-          margin: 1.5rem auto 0;
-          padding: 1rem 1.5rem;
+        .reason-card.selected .reason-indicator {
+          background: #000;
+          border-color: #000;
+        }
+
+        .reason-indicator .check {
+          color: #fff;
+          font-weight: 700;
+          font-size: 14px;
+        }
+
+        .reason-confirmed {
+          margin-top: 24px;
+          padding: 16px 20px;
           background: #f0fdf4;
           border: 1px solid #bbf7d0;
-          border-radius: 8px;
-          text-align: center;
-        }
-
-        .reason-confirmation p {
-          margin: 0;
+          border-radius: 12px;
           color: #166534;
           font-weight: 500;
-          font-size: 0.9375rem;
+          font-size: 15px;
         }
 
-        .included-box {
+        /* Included Grid */
+        .included-grid {
           display: grid;
           grid-template-columns: 1fr 1.5fr;
-          gap: 2rem;
-          background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 16px;
-          padding: 2rem;
-          max-width: 800px;
-          margin: 2rem auto 0;
+          gap: 32px;
+          background: #fff;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
-        .included-left {
+        .included-price-box {
+          background: #000;
+          color: #fff;
+          padding: 40px 32px;
           text-align: center;
-          padding: 1rem;
-          border-right: 1px solid #e5e5e5;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
 
-        .included-price {
-          font-size: 3rem;
+        .price-amount {
+          font-size: 48px;
           font-weight: 700;
-          color: #171717;
           line-height: 1;
         }
 
-        .included-duration {
-          font-size: 1rem;
-          color: #525252;
-          margin: 0.5rem 0 1rem;
+        .price-duration {
+          font-size: 16px;
+          color: rgba(255,255,255,0.6);
+          margin: 8px 0 20px;
         }
 
-        .included-credit {
+        .price-credit {
           display: inline-block;
-          background: #f5f5f5;
-          padding: 0.5rem 1rem;
+          background: rgba(255,255,255,0.15);
+          padding: 8px 16px;
           border-radius: 100px;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          color: #404040;
+          font-size: 13px;
+          font-weight: 500;
         }
 
-        .included-right h3 {
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin: 0 0 1rem 0;
+        .included-features {
+          padding: 40px 32px;
         }
 
-        .included-list {
+        .included-features h3 {
+          font-size: 20px;
+          font-weight: 600;
+          margin: 0 0 20px;
+          color: #111;
+        }
+
+        .included-features ul {
           list-style: none;
           padding: 0;
           margin: 0;
         }
 
-        .included-list li {
-          padding: 0.5rem 0;
-          padding-left: 1.5rem;
+        .included-features li {
+          padding: 10px 0;
+          padding-left: 28px;
           position: relative;
-          font-size: 0.9375rem;
-          color: #404040;
+          font-size: 15px;
+          color: #444;
+          border-bottom: 1px solid #f0f0f0;
         }
 
-        .included-list li::before {
+        .included-features li:last-child {
+          border-bottom: none;
+        }
+
+        .included-features li::before {
           content: "✓";
           position: absolute;
           left: 0;
-          color: #000000;
-          font-weight: 600;
+          color: #000;
+          font-weight: 700;
         }
 
+        /* Checklist */
+        .checklist {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .checklist-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+          padding: 20px;
+          background: #fff;
+          border: 2px solid #e5e5e5;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .checklist-item:hover {
+          border-color: #ccc;
+        }
+
+        .checklist-item.checked {
+          border-color: #22c55e;
+          background: #f0fdf4;
+        }
+
+        .checklist-item input {
+          display: none;
+        }
+
+        .checkbox-visual {
+          width: 24px;
+          height: 24px;
+          border: 2px solid #d1d5db;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: all 0.2s;
+          font-size: 14px;
+          font-weight: 700;
+          color: #fff;
+        }
+
+        .checklist-item.checked .checkbox-visual {
+          background: #22c55e;
+          border-color: #22c55e;
+        }
+
+        .checkbox-text {
+          font-size: 15px;
+          color: #333;
+          line-height: 1.5;
+        }
+
+        .checkbox-text strong {
+          color: #111;
+        }
+
+        /* Book CTA */
+        .book-cta {
+          margin-top: 40px;
+          text-align: center;
+        }
+
+        .book-button {
+          width: 100%;
+          max-width: 400px;
+          padding: 18px 32px;
+          font-size: 17px;
+          font-weight: 600;
+          background: #d1d5db;
+          color: #6b7280;
+          border: none;
+          border-radius: 12px;
+          cursor: not-allowed;
+          transition: all 0.2s;
+        }
+
+        .book-button.ready {
+          background: #000;
+          color: #fff;
+          cursor: pointer;
+        }
+
+        .book-button.ready:hover {
+          background: #222;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .cta-note {
+          margin-top: 16px;
+          font-size: 14px;
+          color: #666;
+        }
+
+        /* Calendar Section */
+        .calendar-section {
+          background: #f8f9fa;
+        }
+
+        .calendar-wrapper {
+          background: #fff;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        /* Final CTA */
+        .section-cta h2 {
+          font-size: 32px;
+          font-weight: 700;
+          margin: 0 0 12px;
+        }
+
+        .section-cta > .book-container > p {
+          font-size: 18px;
+          color: rgba(255,255,255,0.7);
+          margin: 0 0 24px;
+        }
+
+        .phone-button {
+          display: inline-block;
+          padding: 16px 40px;
+          background: #fff;
+          color: #000;
+          font-size: 18px;
+          font-weight: 600;
+          border-radius: 12px;
+          text-decoration: none;
+          transition: all 0.2s;
+        }
+
+        .phone-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(255,255,255,0.2);
+        }
+
+        .location {
+          margin-top: 24px;
+          font-size: 14px;
+          color: rgba(255,255,255,0.5);
+        }
+
+        /* Mobile */
         @media (max-width: 640px) {
-          .included-box {
+          .book-hero {
+            padding: 60px 24px;
+          }
+
+          .book-hero h1 {
+            font-size: 32px;
+          }
+
+          .hero-price {
+            flex-direction: column;
+            gap: 8px;
+            padding: 20px 32px;
+          }
+
+          .step-header {
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .step-header h2 {
+            font-size: 24px;
+          }
+
+          .included-grid {
             grid-template-columns: 1fr;
           }
 
-          .included-left {
-            border-right: none;
-            border-bottom: 1px solid #e5e5e5;
-            padding-bottom: 1.5rem;
+          .included-price-box {
+            padding: 32px 24px;
+          }
+
+          .included-features {
+            padding: 32px 24px;
+          }
+
+          .price-amount {
+            font-size: 40px;
+          }
+
+          .checklist-item {
+            padding: 16px;
+          }
+
+          .checkbox-text {
+            font-size: 14px;
           }
         }
       `}</style>

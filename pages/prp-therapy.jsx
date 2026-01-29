@@ -1,9 +1,9 @@
 import ServicePageTemplate from '../components/ServicePageTemplate';
 import { servicePages, defaultTestimonials } from '../data/servicePageData';
 
-const data = servicePages['weight-loss'];
+const data = servicePages['prp-therapy'];
 
-export default function WeightLoss() {
+export default function PRPTherapy() {
   return (
     <ServicePageTemplate
       seo={data.seo}
@@ -18,8 +18,8 @@ export default function WeightLoss() {
       testimonials={defaultTestimonials}
       faqs={data.faqs}
       finalCta={{
-        title: "Ready to Lose Weight for Good?",
-        subtitle: "Book your Range Assessment. We'll review your labs, discuss your goals, and see if GLP-1s are right for you."
+        title: "Ready to Explore PRP Therapy?",
+        subtitle: "Book your Range Assessment. Your provider will determine if PRP is right for your situation."
       }}
     />
   );

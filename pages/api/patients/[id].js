@@ -329,6 +329,45 @@ export default async function handler(req, res) {
         .order('symptom_date', { ascending: false })
         .limit(10);
 
+      // ===== NEW: Get consent forms =====
+      let consents = [];
+
+      // Try by patient_id first
+      const { data: consentsByPatientId } = await supabase
+        .from('consents')
+        .select('id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id')
+        .eq('patient_id', id)
+        .order('submitted_at', { ascending: false });
+
+      if (consentsByPatientId && consentsByPatientId.length > 0) {
+        consents = consentsByPatientId;
+      } else if (patient.ghl_contact_id) {
+        // Fallback to ghl_contact_id
+        const { data: consentsByGhl } = await supabase
+          .from('consents')
+          .select('id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id')
+          .eq('ghl_contact_id', patient.ghl_contact_id)
+          .order('submitted_at', { ascending: false });
+
+        consents = consentsByGhl || [];
+      } else if (patient.email) {
+        // Fallback to email
+        const { data: consentsByEmail } = await supabase
+          .from('consents')
+          .select('id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id')
+          .eq('email', patient.email)
+          .order('submitted_at', { ascending: false });
+
+        consents = consentsByEmail || [];
+      }
+
+      // ===== NEW: Get medical documents =====
+      const { data: medicalDocuments } = await supabase
+        .from('medical_documents')
+        .select('*')
+        .eq('patient_id', id)
+        .order('uploaded_at', { ascending: false });
+
       // Calculate stats
       const stats = {
         activeCount: activeProtocols.length,
@@ -336,10 +375,12 @@ export default async function handler(req, res) {
         pendingLabsCount: pendingLabOrders?.length || 0,
         totalProtocols: allProtocols?.length || 0,
         intakeCount: intakes?.length || 0,
+        consentCount: consents?.length || 0,
+        documentCount: medicalDocuments?.length || 0,
         sessionCount: sessions?.length || 0
       };
 
-      console.log(`Patient ${patient.name}: ${activeProtocols.length} active, ${completedProtocols.length} completed, ${intakes?.length || 0} intakes`);
+      console.log(`Patient ${patient.name}: ${activeProtocols.length} active, ${completedProtocols.length} completed, ${intakes?.length || 0} intakes, ${consents?.length || 0} consents`);
 
       return res.status(200).json({
         patient,
@@ -349,6 +390,8 @@ export default async function handler(req, res) {
         pendingLabOrders: pendingLabOrders || [],
         labs: labs || [],
         intakes: intakes || [],
+        consents: consents || [],
+        medicalDocuments: medicalDocuments || [],
         sessions: sessions || [],
         symptomResponses: symptomResponses || [],
         stats

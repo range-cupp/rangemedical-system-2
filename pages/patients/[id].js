@@ -36,6 +36,8 @@ export default function PatientProfile() {
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [labs, setLabs] = useState([]);
   const [intakes, setIntakes] = useState([]);
+  const [consents, setConsents] = useState([]);
+  const [medicalDocuments, setMedicalDocuments] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
@@ -117,6 +119,8 @@ export default function PatientProfile() {
         setPendingNotifications(data.pendingNotifications || []);
         setLabs(data.labs || []);
         setIntakes(data.intakes || []);
+        setConsents(data.consents || []);
+        setMedicalDocuments(data.medicalDocuments || []);
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
         setStats(data.stats || {});
@@ -559,7 +563,7 @@ export default function PatientProfile() {
           <button className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>Overview</button>
           <button className={activeTab === 'protocols' ? 'active' : ''} onClick={() => setActiveTab('protocols')}>Protocols ({stats.activeCount})</button>
           <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
-          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Intakes ({intakes.length})</button>
+          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length})</button>
           <button className={activeTab === 'sessions' ? 'active' : ''} onClick={() => setActiveTab('sessions')}>Sessions ({sessions.length})</button>
         </nav>
 
@@ -637,18 +641,33 @@ export default function PatientProfile() {
                 )}
               </section>
 
-              {/* Recent Intakes */}
-              {intakes.length > 0 && (
+              {/* Recent Documents (Intakes + Consents) */}
+              {(intakes.length > 0 || consents.length > 0) && (
                 <section className="card">
                   <div className="card-header">
-                    <h3>Recent Intake Forms</h3>
+                    <h3>Recent Documents</h3>
+                    <button onClick={() => setActiveTab('intakes')} className="btn-text">View All →</button>
                   </div>
                   <div className="intake-list">
-                    {intakes.slice(0, 3).map(intake => (
+                    {consents.slice(0, 2).map(consent => (
+                      <div key={consent.id} className="intake-row">
+                        <span className="intake-icon">
+                          {consent.consent_type === 'hipaa' ? '🔒' :
+                           consent.consent_type === 'hrt' ? '💉' :
+                           consent.consent_type === 'peptide' ? '🧬' : '📝'}
+                        </span>
+                        <div className="intake-info">
+                          <strong>{consent.consent_type ? consent.consent_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Consent'}</strong>
+                          <span>{formatDate(consent.submitted_at)} {consent.consent_given ? '• Signed' : '• Pending'}</span>
+                        </div>
+                        {consent.pdf_url && <a href={consent.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-text" onClick={e => e.stopPropagation()}>View</a>}
+                      </div>
+                    ))}
+                    {intakes.slice(0, 2).map(intake => (
                       <div key={intake.id} className="intake-row" onClick={() => { setSelectedIntake(intake); setShowIntakeModal(true); }}>
                         <span className="intake-icon">📋</span>
                         <div className="intake-info">
-                          <strong>Intake Form</strong>
+                          <strong>Medical Intake</strong>
                           <span>{formatDate(intake.submitted_at)}</span>
                         </div>
                         <span className="intake-arrow">→</span>
@@ -780,39 +799,113 @@ export default function PatientProfile() {
             </>
           )}
 
-          {/* Intakes Tab */}
+          {/* Documents Tab (Intakes + Consents) */}
           {activeTab === 'intakes' && (
-            <section className="card">
-              <div className="card-header">
-                <h3>Intake Forms ({intakes.length})</h3>
-              </div>
-              {intakes.length === 0 ? (
-                <div className="empty">No intake forms found</div>
-              ) : (
-                <div className="intake-list full">
-                  {intakes.map(intake => (
-                    <div key={intake.id} className="intake-card" onClick={() => { setSelectedIntake(intake); setShowIntakeModal(true); }}>
-                      <div className="intake-header">
-                        <span className="intake-icon">📋</span>
-                        <div>
-                          <strong>{intake.first_name} {intake.last_name}</strong>
-                          <span>{formatDate(intake.submitted_at)}</span>
+            <>
+              {/* Consent Forms Section */}
+              <section className="card">
+                <div className="card-header">
+                  <h3>Consent Forms ({consents.length})</h3>
+                </div>
+                {consents.length === 0 ? (
+                  <div className="empty">No consent forms found</div>
+                ) : (
+                  <div className="consent-list">
+                    {consents.map(consent => (
+                      <div key={consent.id} className="consent-card">
+                        <div className="consent-header">
+                          <span className="consent-icon">
+                            {consent.consent_type === 'hipaa' ? '🔒' :
+                             consent.consent_type === 'hrt' ? '💉' :
+                             consent.consent_type === 'peptide' ? '🧬' :
+                             consent.consent_type === 'weight-loss' ? '⚖️' :
+                             consent.consent_type === 'iv' ? '💧' :
+                             consent.consent_type === 'hbot' ? '🫁' :
+                             consent.consent_type === 'blood-draw' ? '🩸' : '📝'}
+                          </span>
+                          <div>
+                            <strong>{consent.consent_type ? consent.consent_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Consent'} Consent</strong>
+                            <span className={`consent-status ${consent.consent_given ? 'signed' : 'pending'}`}>
+                              {consent.consent_given ? '✓ Signed' : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="consent-details">
+                          <span>{consent.first_name} {consent.last_name}</span>
+                          <span>{formatDate(consent.consent_date || consent.submitted_at)}</span>
+                        </div>
+                        <div className="consent-actions">
+                          {consent.pdf_url && <a href={consent.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm">View PDF</a>}
+                          {consent.signature_url && <a href={consent.signature_url} target="_blank" rel="noopener noreferrer" className="btn-text">Signature</a>}
                         </div>
                       </div>
-                      <div className="intake-details">
-                        <span>{intake.email}</span>
-                        <span>{intake.phone}</span>
-                        {intake.date_of_birth && <span>DOB: {formatDate(intake.date_of_birth)}</span>}
-                      </div>
-                      <div className="intake-actions">
-                        {intake.pdf_url && <a href={intake.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm" onClick={e => e.stopPropagation()}>View PDF</a>}
-                        {intake.photo_id_url && <a href={intake.photo_id_url} target="_blank" rel="noopener noreferrer" className="btn-text" onClick={e => e.stopPropagation()}>Photo ID</a>}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Intake Forms Section */}
+              <section className="card">
+                <div className="card-header">
+                  <h3>Intake Forms ({intakes.length})</h3>
                 </div>
+                {intakes.length === 0 ? (
+                  <div className="empty">No intake forms found</div>
+                ) : (
+                  <div className="intake-list full">
+                    {intakes.map(intake => (
+                      <div key={intake.id} className="intake-card" onClick={() => { setSelectedIntake(intake); setShowIntakeModal(true); }}>
+                        <div className="intake-header">
+                          <span className="intake-icon">📋</span>
+                          <div>
+                            <strong>{intake.first_name} {intake.last_name}</strong>
+                            <span>{formatDate(intake.submitted_at)}</span>
+                          </div>
+                        </div>
+                        <div className="intake-details">
+                          <span>{intake.email}</span>
+                          <span>{intake.phone}</span>
+                          {intake.date_of_birth && <span>DOB: {formatDate(intake.date_of_birth)}</span>}
+                        </div>
+                        <div className="intake-actions">
+                          {intake.pdf_url && <a href={intake.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm" onClick={e => e.stopPropagation()}>View PDF</a>}
+                          {intake.photo_id_url && <a href={intake.photo_id_url} target="_blank" rel="noopener noreferrer" className="btn-text" onClick={e => e.stopPropagation()}>Photo ID</a>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Medical Documents Section */}
+              {medicalDocuments.length > 0 && (
+                <section className="card">
+                  <div className="card-header">
+                    <h3>Medical Documents ({medicalDocuments.length})</h3>
+                  </div>
+                  <div className="document-list">
+                    {medicalDocuments.map(doc => (
+                      <div key={doc.id} className="document-card">
+                        <div className="document-header">
+                          <span className="document-icon">📄</span>
+                          <div>
+                            <strong>{doc.document_name || 'Document'}</strong>
+                            <span className="document-type">{doc.document_type || 'General'}</span>
+                          </div>
+                        </div>
+                        <div className="document-details">
+                          <span>{formatDate(doc.uploaded_at)}</span>
+                          {doc.uploaded_by && <span>by {doc.uploaded_by}</span>}
+                        </div>
+                        <div className="document-actions">
+                          {doc.document_url && <a href={doc.document_url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm">View</a>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               )}
-            </section>
+            </>
           )}
 
           {/* Sessions Tab */}
@@ -1506,6 +1599,86 @@ export default function PatientProfile() {
         }
         .intake-details span { margin-right: 16px; }
         .intake-actions { display: flex; gap: 8px; }
+
+        /* Consent Cards */
+        .consent-list { padding: 16px; }
+        .consent-card {
+          padding: 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          background: #fafafa;
+        }
+        .consent-header {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 8px;
+          align-items: flex-start;
+        }
+        .consent-icon { font-size: 20px; }
+        .consent-header > div {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .consent-header strong { font-size: 15px; }
+        .consent-status {
+          font-size: 12px;
+          padding: 2px 8px;
+          border-radius: 4px;
+          display: inline-block;
+          width: fit-content;
+        }
+        .consent-status.signed {
+          background: #dcfce7;
+          color: #166534;
+        }
+        .consent-status.pending {
+          background: #fef3c7;
+          color: #92400e;
+        }
+        .consent-details {
+          font-size: 13px;
+          color: #666;
+          margin-bottom: 12px;
+        }
+        .consent-details span { margin-right: 16px; }
+        .consent-actions { display: flex; gap: 8px; }
+
+        /* Document Cards */
+        .document-list { padding: 16px; }
+        .document-card {
+          padding: 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          margin-bottom: 12px;
+        }
+        .document-header {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+        .document-icon { font-size: 20px; }
+        .document-header > div {
+          display: flex;
+          flex-direction: column;
+        }
+        .document-header strong { font-size: 15px; }
+        .document-type {
+          font-size: 12px;
+          color: #666;
+          background: #f3f4f6;
+          padding: 2px 8px;
+          border-radius: 4px;
+          width: fit-content;
+        }
+        .document-details {
+          font-size: 13px;
+          color: #666;
+          margin-bottom: 12px;
+        }
+        .document-details span { margin-right: 16px; }
+        .document-actions { display: flex; gap: 8px; }
 
         /* Labs & Docs */
         .doc-list { padding: 16px; }

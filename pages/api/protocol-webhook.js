@@ -272,7 +272,7 @@ export default async function handler(req, res) {
         .select('*')
         .eq('email', contactEmail)
         .single();
-      
+
       if (emailPatient) {
         patient = emailPatient;
         // Update ghl_contact_id if missing
@@ -285,15 +285,56 @@ export default async function handler(req, res) {
       }
     }
 
+    // Try phone if no patient found (normalize to last 10 digits)
+    if (!patient && contactPhone) {
+      const normalizedPhone = (contactPhone || '').replace(/\D/g, '').slice(-10);
+      if (normalizedPhone.length === 10) {
+        // Search for patients with matching phone (last 10 digits)
+        const { data: allPatients } = await supabase
+          .from('patients')
+          .select('*')
+          .not('phone', 'is', null);
+
+        const phonePatient = (allPatients || []).find(p => {
+          const patientPhone = (p.phone || '').replace(/\D/g, '').slice(-10);
+          return patientPhone === normalizedPhone;
+        });
+
+        if (phonePatient) {
+          patient = phonePatient;
+          console.log('Found patient by phone match:', phonePatient.name);
+          // Update ghl_contact_id if missing
+          if (contactId && !phonePatient.ghl_contact_id) {
+            await supabase
+              .from('patients')
+              .update({ ghl_contact_id: contactId })
+              .eq('id', phonePatient.id);
+          }
+        }
+      }
+    }
+
     // Create patient if not found
+    // Use a descriptive placeholder if name is "Unknown" but we have other info
+    let patientName = contactName;
+    if (contactName === 'Unknown') {
+      if (contactEmail) {
+        patientName = `Unknown (${contactEmail})`;
+      } else if (contactPhone) {
+        patientName = `Unknown (${contactPhone})`;
+      } else if (contactId) {
+        patientName = `Unknown (GHL: ${contactId.slice(0, 8)}...)`;
+      }
+    }
+
     if (!patient) {
-      console.log('Creating new patient:', contactName);
+      console.log('Creating new patient:', patientName);
       
       const { data: newPatient, error: createError } = await supabase
         .from('patients')
         .insert({
           ghl_contact_id: contactId,
-          name: contactName,
+          name: patientName,
           email: contactEmail,
           phone: contactPhone,
           created_at: new Date().toISOString()
@@ -310,7 +351,9 @@ export default async function handler(req, res) {
     }
 
     const patientId = patient?.id || null;
-    console.log('Patient ID:', patientId, '| GHL Contact ID:', contactId);
+    // Use the patient's actual name if found, otherwise use patientName (which may be a placeholder)
+    const finalPatientName = patient?.name || patientName;
+    console.log('Patient ID:', patientId, '| Patient Name:', finalPatientName, '| GHL Contact ID:', contactId);
 
     // STEP 2: Create purchase records
     const purchaseDate = new Date().toISOString().split('T')[0];
@@ -345,7 +388,7 @@ export default async function handler(req, res) {
         const purchase = {
           patient_id: patientId,
           ghl_contact_id: contactId,
-          patient_name: contactName,
+          patient_name: finalPatientName,
           product_name: itemName,
           item_name: itemName,
           variant: itemVariant,
@@ -384,7 +427,7 @@ export default async function handler(req, res) {
         const purchase = {
           patient_id: patientId,
           ghl_contact_id: contactId,
-          patient_name: contactName,
+          patient_name: finalPatientName,
           product_name: productName,
           item_name: productName,
           variant: variant,
@@ -433,7 +476,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ 
         status: 'success', 
         patient_id: patientId,
-        patient_name: contactName,
+        patient_name: finalPatientName,
         purchases_created: inserted?.length || 0,
         purchase_ids: inserted?.map(p => p.id) || [],
         notes_added: contactId ? inserted?.length : 0

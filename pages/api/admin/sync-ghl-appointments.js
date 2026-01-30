@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     let startAfterId = null;
     const limit = 100;
     let pageCount = 0;
-    const maxPages = 5; // Limit to 500 contacts to stay within timeout
+    const maxPages = 12; // Up to 1200 contacts
 
     while (hasMore && pageCount < maxPages) {
       try {
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
 
     // Step 2: Fetch appointments for all contacts in parallel batches
     const allAppointments = [];
-    const batchSize = 20; // Process 20 contacts at a time
+    const batchSize = 30; // Process 30 contacts at a time for speed
 
     for (let i = 0; i < allContacts.length; i += batchSize) {
       const batch = allContacts.slice(i, i + batchSize);

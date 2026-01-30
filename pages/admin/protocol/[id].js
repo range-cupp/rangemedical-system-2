@@ -346,10 +346,12 @@ export default function ProtocolDetail() {
               <div style={styles.subtitle}>
                 {protocol.patient_id ? (
                   <Link href={`/patients/${protocol.patient_id}`} style={styles.patientLink}>
-                    {protocol.patient_name || 'Unknown Patient'}
+                    {protocol.patients
+                      ? `${protocol.patients.first_name || ''} ${protocol.patients.last_name || ''}`.trim() || 'Unknown Patient'
+                      : 'Unknown Patient'}
                   </Link>
                 ) : (
-                  protocol.patient_name || 'Unknown Patient'
+                  'Unknown Patient'
                 )}
                 {protocol.delivery_method && ` • ${formatDelivery(protocol.delivery_method)}`}
               </div>

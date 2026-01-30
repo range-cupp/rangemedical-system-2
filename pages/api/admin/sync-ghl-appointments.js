@@ -39,16 +39,20 @@ export default async function handler(req, res) {
       }
     };
 
-    // Step 1: Get ALL contacts from GHL (paginated)
+    // Step 1: Get ALL contacts from GHL (paginated using startAfterId)
     let allContacts = [];
     let hasMore = true;
-    let skip = 0;
+    let startAfterId = null;
     const limit = 100;
+    let pageCount = 0;
 
-    while (hasMore && skip < 1000) { // Cap at 1000 contacts to avoid timeout
+    while (hasMore && pageCount < 20) { // Cap at 20 pages (2000 contacts) to avoid timeout
       try {
-        const contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}&skip=${skip}`;
-        console.log(`Fetching contacts: skip=${skip}`);
+        let contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}`;
+        if (startAfterId) {
+          contactsUrl += `&startAfterId=${startAfterId}`;
+        }
+        console.log(`Fetching contacts: page=${pageCount}`);
 
         const contactsResponse = await fetch(contactsUrl, {
           headers: {
@@ -72,7 +76,7 @@ export default async function handler(req, res) {
           break;
         }
 
-        if (skip === 0) {
+        if (pageCount === 0) {
           results.debug.firstResponse = {
             contactCount: contactsData.contacts?.length || 0,
             keys: Object.keys(contactsData),
@@ -86,7 +90,9 @@ export default async function handler(req, res) {
           hasMore = false;
         } else {
           allContacts.push(...contacts);
-          skip += limit;
+          pageCount++;
+          // Use the last contact's ID for next page
+          startAfterId = contacts[contacts.length - 1].id;
           if (contacts.length < limit) {
             hasMore = false;
           }

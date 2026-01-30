@@ -93,12 +93,38 @@ function getProtocolTracking(protocol) {
     if (supplyType.includes('vial') || selectedDose.includes('vial')) {
       const is10ml = supplyType.includes('10') || selectedDose.includes('10');
       const vialMl = is10ml ? 10 : 5;
-      
-      let dosePerInjection = 0.4;
-      const doseMatch = selectedDose.match(/(\d+\.?\d*)\s*ml/i);
-      if (doseMatch) dosePerInjection = parseFloat(doseMatch[1]);
-      
-      const injectionsPerWeek = 2;
+
+      // Parse dose per injection - but NOT from vial descriptions
+      // Look for pattern like "0.4ml" at start of string, or in a separate dose_per_injection field
+      let dosePerInjection = 0.4; // default for male HRT
+      const doseField = protocol.dose_per_injection || protocol.frequency || '';
+
+      // Try to find dose from dose_per_injection or frequency field first
+      let doseMatch = doseField.toString().match(/^(\d+\.?\d*)\s*ml/i) ||
+                      doseField.toString().match(/(\d+\.?\d*)\s*ml/i);
+
+      // If not found there, try selected_dose but ONLY if it doesn't describe a vial
+      if (!doseMatch && !selectedDose.includes('vial')) {
+        doseMatch = selectedDose.match(/^(\d+\.?\d*)\s*ml/i);
+      }
+
+      // Also try to parse mg and convert (at 200mg/ml concentration)
+      if (!doseMatch) {
+        const mgMatch = (doseField || selectedDose).match(/(\d+)\s*mg/i);
+        if (mgMatch && !selectedDose.includes('@')) {
+          // Convert mg to ml assuming 200mg/ml concentration
+          dosePerInjection = parseInt(mgMatch[1]) / 200;
+        }
+      } else {
+        dosePerInjection = parseFloat(doseMatch[1]);
+      }
+
+      // Sanity check - dose should be between 0.1ml and 1ml for HRT
+      if (dosePerInjection < 0.1 || dosePerInjection > 1) {
+        dosePerInjection = 0.4; // fall back to default
+      }
+
+      const injectionsPerWeek = protocol.injections_per_week || 2;
       const weeksSupply = Math.floor(vialMl / (dosePerInjection * injectionsPerWeek));
       
       if (lastRefill) {

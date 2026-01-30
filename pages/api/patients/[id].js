@@ -55,35 +55,50 @@ function calculateRemaining(protocol) {
   // ===== HRT =====
   if (isHRT) {
     const supplyType = (protocol.supply_type || '').toLowerCase();
-    const dose = protocol.selected_dose || protocol.current_dose || '';
+    const selectedDose = (protocol.selected_dose || protocol.current_dose || '').toLowerCase();
     const lastRefillDate = protocol.last_refill_date || protocol.start_date;
 
     if (lastRefillDate) {
       const refillDate = new Date(lastRefillDate + 'T00:00:00');
       const daysSinceRefill = Math.ceil((today - refillDate) / (1000 * 60 * 60 * 24));
 
-      if (supplyType.includes('vial')) {
-        const isFemale = dose.includes('10mg') || dose.includes('15mg') || dose.includes('20mg') ||
-                         dose.includes('25mg') || dose.includes('30mg') || dose.includes('40mg') ||
-                         dose.includes('50mg') || programType.includes('female');
+      if (supplyType.includes('vial') || selectedDose.includes('vial')) {
+        // Determine vial size
+        const is10ml = supplyType.includes('10') || selectedDose.includes('10ml');
+        const vialMl = is10ml ? 10 : 5;
 
-        let weeklyMg = 120;
-        let totalMg = isFemale ? 1000 : 2000;
+        // Parse dose per injection - but NOT from vial descriptions
+        let dosePerInjection = 0.4; // default for male HRT
+        const doseField = protocol.dose_per_injection || protocol.frequency || '';
 
-        if (isFemale) {
-          if (dose.includes('50mg')) weeklyMg = 100;
-          else if (dose.includes('40mg')) weeklyMg = 80;
-          else if (dose.includes('30mg')) weeklyMg = 60;
-          else weeklyMg = 40;
-        } else {
-          if (dose.includes('100mg') || dose.includes('0.5ml')) weeklyMg = 200;
-          else if (dose.includes('80mg') || dose.includes('0.4ml')) weeklyMg = 160;
-          else if (dose.includes('70mg') || dose.includes('0.35ml')) weeklyMg = 140;
-          else weeklyMg = 120;
+        // Try to find dose from dose_per_injection or frequency field first
+        let doseMatch = (doseField || '').toString().match(/^(\d+\.?\d*)\s*ml/i) ||
+                        (doseField || '').toString().match(/(\d+\.?\d*)\s*ml/i);
+
+        // If not found there, try selected_dose but ONLY if it doesn't describe a vial
+        if (!doseMatch && !selectedDose.includes('vial')) {
+          doseMatch = selectedDose.match(/^(\d+\.?\d*)\s*ml/i);
         }
 
-        const vialWeeks = Math.floor(totalMg / weeklyMg);
-        const vialDays = vialWeeks * 7;
+        // Also try to parse mg and convert (at 200mg/ml concentration)
+        if (!doseMatch) {
+          const mgMatch = (doseField || selectedDose).match(/(\d+)\s*mg/i);
+          if (mgMatch && !selectedDose.includes('@')) {
+            // Convert mg to ml assuming 200mg/ml concentration
+            dosePerInjection = parseInt(mgMatch[1]) / 200;
+          }
+        } else {
+          dosePerInjection = parseFloat(doseMatch[1]);
+        }
+
+        // Sanity check - dose should be between 0.1ml and 1ml for HRT
+        if (dosePerInjection < 0.1 || dosePerInjection > 1) {
+          dosePerInjection = 0.4; // fall back to default
+        }
+
+        const injectionsPerWeek = protocol.injections_per_week || 2;
+        const weeksSupply = Math.floor(vialMl / (dosePerInjection * injectionsPerWeek));
+        const vialDays = weeksSupply * 7;
         const daysRemaining = vialDays - daysSinceRefill;
 
         const statusText = daysRemaining <= 0 ? 'Refill overdue' :

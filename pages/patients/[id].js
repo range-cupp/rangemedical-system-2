@@ -42,6 +42,7 @@ export default function PatientProfile() {
   const [sessions, setSessions] = useState([]);
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [stats, setStats] = useState({});
 
   // UI state
@@ -141,6 +142,7 @@ export default function PatientProfile() {
         setMedicalDocuments(data.medicalDocuments || []);
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
+        setAppointments(data.appointments || []);
         setStats(data.stats || {});
       }
     } catch (error) {
@@ -619,6 +621,7 @@ export default function PatientProfile() {
           <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
           <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length})</button>
           <button className={activeTab === 'sessions' ? 'active' : ''} onClick={() => setActiveTab('sessions')}>Sessions ({sessions.length})</button>
+          <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Appointments ({appointments.length})</button>
         </nav>
 
         {/* Tab Content */}
@@ -991,6 +994,54 @@ export default function PatientProfile() {
                       {session.notes && <div className="session-notes">{session.notes}</div>}
                     </div>
                   ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Appointments Tab */}
+          {activeTab === 'appointments' && (
+            <section className="card">
+              <div className="card-header">
+                <h3>Clinic Appointments ({appointments.length})</h3>
+              </div>
+              {appointments.length === 0 ? (
+                <div className="empty">No appointments found</div>
+              ) : (
+                <div className="appointments-list">
+                  {appointments.map(apt => {
+                    const aptDate = new Date(apt.start_time);
+                    const isPast = aptDate < new Date();
+                    const isUpcoming = !isPast;
+                    const status = (apt.status || 'scheduled').toLowerCase();
+                    const statusColors = {
+                      scheduled: { bg: '#fef3c7', text: '#92400e' },
+                      confirmed: { bg: '#dbeafe', text: '#1e40af' },
+                      showed: { bg: '#dcfce7', text: '#166534' },
+                      completed: { bg: '#dcfce7', text: '#166534' },
+                      no_show: { bg: '#fee2e2', text: '#dc2626' },
+                      cancelled: { bg: '#f3f4f6', text: '#6b7280' }
+                    };
+                    const statusStyle = statusColors[status] || statusColors.scheduled;
+
+                    return (
+                      <div key={apt.id} className={`appointment-row ${isUpcoming ? 'upcoming' : 'past'}`}>
+                        <div className="apt-date">
+                          <div className="apt-day">{aptDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}</div>
+                          <div className="apt-time">{aptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}</div>
+                        </div>
+                        <div className="apt-details">
+                          <strong>{apt.calendar_name || 'Appointment'}</strong>
+                          {apt.appointment_title && apt.appointment_title !== apt.calendar_name && (
+                            <span className="apt-title">{apt.appointment_title}</span>
+                          )}
+                        </div>
+                        <span className="apt-status" style={{ background: statusStyle.bg, color: statusStyle.text }}>
+                          {status.replace('_', ' ')}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -1893,6 +1944,57 @@ export default function PatientProfile() {
           font-size: 13px;
           color: #666;
           font-style: italic;
+        }
+
+        /* Appointments */
+        .appointments-list { padding: 16px; }
+        .appointment-row {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 12px;
+          border-bottom: 1px solid #f3f4f6;
+          border-radius: 6px;
+          margin-bottom: 8px;
+        }
+        .appointment-row.upcoming {
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+        }
+        .appointment-row.past {
+          background: #f9fafb;
+        }
+        .apt-date {
+          min-width: 100px;
+          text-align: center;
+        }
+        .apt-day {
+          font-size: 13px;
+          font-weight: 600;
+          color: #374151;
+        }
+        .apt-time {
+          font-size: 14px;
+          font-weight: 500;
+          color: #000;
+        }
+        .apt-details {
+          flex: 1;
+        }
+        .apt-details strong {
+          display: block;
+          margin-bottom: 2px;
+        }
+        .apt-title {
+          font-size: 13px;
+          color: #666;
+        }
+        .apt-status {
+          font-size: 12px;
+          font-weight: 500;
+          padding: 4px 10px;
+          border-radius: 4px;
+          text-transform: capitalize;
         }
 
         /* Buttons */

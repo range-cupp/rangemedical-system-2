@@ -386,6 +386,35 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('uploaded_at', { ascending: false });
 
+      // ===== NEW: Get clinic appointments =====
+      let appointments = [];
+
+      // Try by patient_id first
+      const { data: appointmentsByPatientId } = await supabase
+        .from('clinic_appointments')
+        .select('*')
+        .eq('patient_id', id)
+        .order('start_time', { ascending: false })
+        .limit(50);
+
+      if (appointmentsByPatientId && appointmentsByPatientId.length > 0) {
+        appointments = appointmentsByPatientId;
+      }
+
+      // Also try ghl_contact_id if we haven't found any yet
+      if (appointments.length === 0 && patient.ghl_contact_id) {
+        const { data: appointmentsByGhl } = await supabase
+          .from('clinic_appointments')
+          .select('*')
+          .eq('ghl_contact_id', patient.ghl_contact_id)
+          .order('start_time', { ascending: false })
+          .limit(50);
+
+        if (appointmentsByGhl && appointmentsByGhl.length > 0) {
+          appointments = appointmentsByGhl;
+        }
+      }
+
       // Extract demographics from intake if patient record is missing them
       let intakeDemographics = null;
       const firstIntake = intakes?.[0];
@@ -404,6 +433,7 @@ export default async function handler(req, res) {
       }
 
       // Calculate stats
+      const upcomingAppointments = appointments.filter(apt => new Date(apt.start_time) >= new Date());
       const stats = {
         activeCount: activeProtocols.length,
         completedCount: completedProtocols.length,
@@ -412,7 +442,9 @@ export default async function handler(req, res) {
         intakeCount: intakes?.length || 0,
         consentCount: consents?.length || 0,
         documentCount: medicalDocuments?.length || 0,
-        sessionCount: sessions?.length || 0
+        sessionCount: sessions?.length || 0,
+        appointmentCount: appointments?.length || 0,
+        upcomingAppointments: upcomingAppointments?.length || 0
       };
 
       console.log(`Patient ${patient.name}: ${activeProtocols.length} active, ${completedProtocols.length} completed, ${intakes?.length || 0} intakes, ${consents?.length || 0} consents`);
@@ -430,6 +462,7 @@ export default async function handler(req, res) {
         medicalDocuments: medicalDocuments || [],
         sessions: sessions || [],
         symptomResponses: symptomResponses || [],
+        appointments: appointments || [],
         stats
       });
 

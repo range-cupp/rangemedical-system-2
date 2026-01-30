@@ -149,6 +149,37 @@ const findPeptideInfo = (peptideName) => {
   return null;
 };
 
+// Normalize peptide name for fuzzy matching (handles variations like "BPC / TB500" vs "BPC-157/TB-500")
+const normalizePeptideName = (name) => {
+  if (!name) return '';
+  return name.toLowerCase()
+    .replace(/[\s\-\/]+/g, '') // Remove spaces, hyphens, slashes
+    .replace(/157/g, '')       // Remove "157" from BPC-157
+    .replace(/500/g, '')       // Normalize TB500/TB-500
+    .replace(/[()]/g, '');     // Remove parentheses
+};
+
+// Find matching peptide option by fuzzy matching
+const findMatchingPeptide = (savedMedication) => {
+  if (!savedMedication) return null;
+  const normalizedSaved = normalizePeptideName(savedMedication);
+
+  for (const group of PEPTIDE_OPTIONS) {
+    for (const opt of group.options) {
+      const normalizedOpt = normalizePeptideName(opt.value);
+      // Check if the normalized names match or one contains the other
+      if (normalizedSaved === normalizedOpt ||
+          normalizedSaved.includes(normalizedOpt) ||
+          normalizedOpt.includes(normalizedSaved)) {
+        return opt.value;
+      }
+    }
+  }
+
+  // If no fuzzy match, return the original value
+  return savedMedication;
+};
+
 const TESTOSTERONE_DOSES = {
   male: [
     { value: '0.2ml/40mg', label: '0.2ml / 40mg' },
@@ -476,8 +507,15 @@ export default function UnifiedPipeline() {
 
   const openEditModal = (protocol) => {
     setEditModal(protocol);
+
+    // For peptide protocols, use fuzzy matching to find the correct dropdown value
+    let medicationValue = protocol.medication || protocol.program_name || '';
+    if (protocol.category === 'peptide') {
+      medicationValue = findMatchingPeptide(medicationValue) || medicationValue;
+    }
+
     setEditForm({
-      medication: protocol.medication || protocol.program_name || '',
+      medication: medicationValue,
       dose: protocol.dose || protocol.selected_dose || '',
       frequency: protocol.frequency || '',
       program_name: protocol.program_name || '',

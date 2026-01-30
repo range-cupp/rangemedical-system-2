@@ -49,7 +49,41 @@ export default function ActivityLog() {
     return d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' });
   };
 
+  // Normalize raw category values to standard filter categories
+  const normalizeCategory = (rawCategory) => {
+    if (!rawCategory) return 'other';
+    const cat = rawCategory.toLowerCase();
+
+    // HRT: testosterone, Male HRT, Female HRT, hormone, etc.
+    if (cat.includes('testosterone') || cat.includes('hrt') || cat.includes('hormone') || cat.includes('trt')) {
+      return 'hrt';
+    }
+    // Weight Loss: tirzepatide, semaglutide, weight_loss, GLP, etc.
+    if (cat.includes('weight') || cat.includes('tirzepatide') || cat.includes('semaglutide') || cat.includes('glp') || cat.includes('mounjaro') || cat.includes('ozempic') || cat.includes('wegovy')) {
+      return 'weight_loss';
+    }
+    // Peptide: BPC, TB-500, peptide, etc.
+    if (cat.includes('peptide') || cat.includes('bpc') || cat.includes('tb-500') || cat.includes('tb500')) {
+      return 'peptide';
+    }
+    // IV: NAD, infusion, iv, etc.
+    if (cat.includes('iv') || cat.includes('nad') || cat.includes('infusion') || cat.includes('drip')) {
+      return 'iv';
+    }
+    // HBOT
+    if (cat.includes('hbot') || cat.includes('hyperbaric')) {
+      return 'hbot';
+    }
+    // RLT
+    if (cat.includes('rlt') || cat.includes('red light')) {
+      return 'rlt';
+    }
+
+    return 'other';
+  };
+
   const getCategoryBadge = (category) => {
+    const normalized = normalizeCategory(category);
     const badges = {
       weight_loss: { emoji: '💉', color: '#bbf7d0', text: 'Weight Loss' },
       hrt: { emoji: '💊', color: '#fed7aa', text: 'HRT' },
@@ -58,7 +92,7 @@ export default function ActivityLog() {
       hbot: { emoji: '🫁', color: '#fecaca', text: 'HBOT' },
       rlt: { emoji: '🔴', color: '#fecdd3', text: 'RLT' },
     };
-    return badges[category] || { emoji: '📋', color: '#e5e7eb', text: category || 'Other' };
+    return badges[normalized] || { emoji: '📋', color: '#e5e7eb', text: category || 'Other' };
   };
 
   const openEditModal = (log) => {
@@ -129,7 +163,8 @@ export default function ActivityLog() {
   };
 
   const filteredLogs = logs.filter(log => {
-    if (filter !== 'all' && log.category !== filter) return false;
+    // Use normalized category for filtering
+    if (filter !== 'all' && normalizeCategory(log.category) !== filter) return false;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       return (log.patient_name || '').toLowerCase().includes(term) ||
@@ -194,7 +229,7 @@ export default function ActivityLog() {
             <div style={styles.statLabel}>Total Logs</div>
           </div>
           <div style={styles.statCard}>
-            <div style={styles.statValue}>{filteredLogs.filter(l => l.category === 'weight_loss').length}</div>
+            <div style={styles.statValue}>{filteredLogs.filter(l => normalizeCategory(l.category) === 'weight_loss').length}</div>
             <div style={styles.statLabel}>Weight Loss</div>
           </div>
           <div style={styles.statCard}>
@@ -202,7 +237,7 @@ export default function ActivityLog() {
             <div style={styles.statLabel}>With Weight</div>
           </div>
           <div style={styles.statCard}>
-            <div style={styles.statValue}>{filteredLogs.filter(l => l.category === 'weight_loss' && !l.weight).length}</div>
+            <div style={styles.statValue}>{filteredLogs.filter(l => normalizeCategory(l.category) === 'weight_loss' && !l.weight).length}</div>
             <div style={styles.statLabel}>Missing Weight</div>
           </div>
         </div>
@@ -227,12 +262,13 @@ export default function ActivityLog() {
               ) : (
                 filteredLogs.map(log => {
                   const badge = getCategoryBadge(log.category);
-                  const needsWeight = log.category === 'weight_loss' && !log.weight;
+                  const normalized = normalizeCategory(log.category);
+                  const needsWeight = normalized === 'weight_loss' && !log.weight;
                   return (
                     <tr key={log.id} style={{ ...styles.row, ...(needsWeight ? { background: '#fffbeb' } : {}) }}>
                       <td style={styles.cell}>{formatDate(log.entry_date)}</td>
                       <td style={styles.cell}>
-                        <a href={`/admin/patient/${log.patient_id}`} style={styles.patientLink}>
+                        <a href={`/patients/${log.patient_id}`} style={styles.patientLink}>
                           {log.patient_name || 'Unknown'}
                         </a>
                       </td>
@@ -246,7 +282,7 @@ export default function ActivityLog() {
                       <td style={styles.cell}>
                         {log.weight ? (
                           <span style={styles.weightValue}>{log.weight} lbs</span>
-                        ) : log.category === 'weight_loss' ? (
+                        ) : normalized === 'weight_loss' ? (
                           <span style={styles.missingWeight}>⚠️ Missing</span>
                         ) : (
                           <span style={{ color: '#9ca3af' }}>-</span>
@@ -288,9 +324,9 @@ export default function ActivityLog() {
                 />
               </div>
 
-              {(editModal.category === 'weight_loss' || editModal.weight) && (
+              {(normalizeCategory(editModal.category) === 'weight_loss' || editModal.weight) && (
                 <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Weight (lbs) {editModal.category === 'weight_loss' && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                  <label style={styles.formLabel}>Weight (lbs) {normalizeCategory(editModal.category) === 'weight_loss' && <span style={{ color: '#dc2626' }}>*</span>}</label>
                   <input
                     type="number"
                     step="0.1"
@@ -313,7 +349,7 @@ export default function ActivityLog() {
                 />
               </div>
 
-              {editModal.category === 'hrt' && (
+              {normalizeCategory(editModal.category) === 'hrt' && (
                 <div style={styles.formGroup}>
                   <label style={styles.formLabel}>Injection Site</label>
                   <select

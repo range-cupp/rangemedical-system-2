@@ -350,30 +350,33 @@ export default function PatientProfile() {
 
   const handleEditProtocol = async () => {
     try {
+      // Helper to convert empty strings to null for dates
+      const dateOrNull = (val) => val && val.trim() !== '' ? val : null;
+
       const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          medication: editForm.medication,
-          selected_dose: editForm.selectedDose,
-          frequency: editForm.frequency,
-          start_date: editForm.startDate,
-          end_date: editForm.endDate,
+          medication: editForm.medication || null,
+          selected_dose: editForm.selectedDose || null,
+          frequency: editForm.frequency || null,
+          start_date: dateOrNull(editForm.startDate),
+          end_date: dateOrNull(editForm.endDate),
           status: editForm.status,
-          notes: editForm.notes,
+          notes: editForm.notes || null,
           sessions_used: editForm.sessionsUsed,
           // HRT vial-specific fields
           dose_per_injection: editForm.dosePerInjection ? parseFloat(editForm.dosePerInjection) : null,
           injections_per_week: editForm.injectionsPerWeek ? parseInt(editForm.injectionsPerWeek) : null,
           vial_size: editForm.vialSize ? parseFloat(editForm.vialSize) : null,
-          supply_type: editForm.supplyType,
-          last_refill_date: editForm.lastRefillDate,
+          supply_type: editForm.supplyType || null,
+          last_refill_date: dateOrNull(editForm.lastRefillDate),
           // In-clinic scheduling fields
-          delivery_method: editForm.deliveryMethod,
+          delivery_method: editForm.deliveryMethod || null,
           visit_frequency: editForm.visitFrequency || null,
           scheduled_days: editForm.scheduledDays.length > 0 ? editForm.scheduledDays : null,
-          last_visit_date: editForm.lastVisitDate || null,
-          next_expected_date: editForm.nextExpectedDate || null
+          last_visit_date: dateOrNull(editForm.lastVisitDate),
+          next_expected_date: dateOrNull(editForm.nextExpectedDate)
         })
       });
 

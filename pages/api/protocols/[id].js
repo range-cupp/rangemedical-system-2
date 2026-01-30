@@ -86,15 +86,40 @@ async function updateProtocol(id, updates, res) {
     'last_visit_date',
     'next_expected_date'
   ];
-  
+
+  // Date fields that need special handling (convert empty string to null)
+  const dateFields = [
+    'start_date',
+    'end_date',
+    'last_refill_date',
+    'last_visit_date',
+    'next_expected_date'
+  ];
+
   // Filter to only allowed fields
   const updateData = {};
   for (const [key, value] of Object.entries(updates)) {
     if (allowedFields.includes(key)) {
-      updateData[key] = value;
+      // Handle date fields - convert empty strings to null
+      if (dateFields.includes(key)) {
+        updateData[key] = value && value.trim() !== '' ? value : null;
+      } else {
+        updateData[key] = value;
+      }
     }
   }
-  
+
+  // Sync dose and selected_dose (use selected_dose as source of truth)
+  if (updateData.selected_dose !== undefined) {
+    // Normalize dose format: ensure it has "mg" suffix if it's a number
+    let dose = updateData.selected_dose;
+    if (dose && !isNaN(parseFloat(dose)) && !dose.toString().toLowerCase().includes('mg') && !dose.toString().toLowerCase().includes('ml')) {
+      dose = dose + 'mg';
+    }
+    updateData.selected_dose = dose;
+    updateData.dose = dose; // Keep in sync
+  }
+
   // Always update the updated_at timestamp
   updateData.updated_at = new Date().toISOString();
   

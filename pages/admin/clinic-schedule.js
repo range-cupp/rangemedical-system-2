@@ -1,177 +1,89 @@
 // /pages/admin/clinic-schedule.js
-// In-Clinic Visit Tracker - Range Medical
-// Shows expected visits, allows logging, tracks schedule compliance
+// In-Clinic Schedule - Pulls appointments directly from GoHighLevel
+// Range Medical
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
-const DAYS_OF_WEEK = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const DAY_LABELS = { sunday: 'Sun', monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat' };
-
-const CATEGORY_COLORS = {
-  weight_loss: { bg: '#dbeafe', text: '#1e40af', label: 'Weight Loss' },
-  hrt: { bg: '#f3e8ff', text: '#7c3aed', label: 'HRT' },
-  peptide: { bg: '#dcfce7', text: '#166534', label: 'Peptide' },
-  iv: { bg: '#ffedd5', text: '#c2410c', label: 'IV' },
-  hbot: { bg: '#e0e7ff', text: '#3730a3', label: 'HBOT' },
-  rlt: { bg: '#fee2e2', text: '#dc2626', label: 'RLT' },
-  red_light: { bg: '#fee2e2', text: '#dc2626', label: 'RLT' },
-  injection: { bg: '#fef3c7', text: '#92400e', label: 'Injection' },
-  other: { bg: '#f3f4f6', text: '#374151', label: 'Other' }
+const STATUS_COLORS = {
+  scheduled: { bg: '#fef3c7', text: '#92400e', label: 'Scheduled' },
+  confirmed: { bg: '#dbeafe', text: '#1e40af', label: 'Confirmed' },
+  showed: { bg: '#dcfce7', text: '#166534', label: 'Showed' },
+  completed: { bg: '#dcfce7', text: '#166534', label: 'Completed' },
+  no_show: { bg: '#fee2e2', text: '#dc2626', label: 'No Show' },
+  cancelled: { bg: '#f3f4f6', text: '#6b7280', label: 'Cancelled' }
 };
 
 export default function ClinicSchedule() {
   const [loading, setLoading] = useState(true);
-  const [protocols, setProtocols] = useState([]);
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [showAllDays, setShowAllDays] = useState(false);
-  const [loggingId, setLoggingId] = useState(null);
-
-  const today = new Date();
-  const todayDayName = DAYS_OF_WEEK[today.getDay()];
+  const [appointments, setAppointments] = useState([]);
+  const [stats, setStats] = useState({ scheduled: 0, showed: 0, noShow: 0 });
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchClinicProtocols();
-  }, []);
+    fetchAppointments();
+  }, [selectedDate]);
 
-  const fetchClinicProtocols = async () => {
+  const fetchAppointments = async () => {
     try {
-      const res = await fetch('/api/admin/clinic-visits');
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`/api/admin/ghl-appointments?date=${selectedDate}`);
       const data = await res.json();
-      if (data.protocols) {
-        setProtocols(data.protocols);
+
+      if (data.success) {
+        setAppointments(data.appointments || []);
+        setStats(data.byStatus || { scheduled: 0, showed: 0, noShow: 0 });
+      } else {
+        setError(data.error || 'Failed to fetch appointments');
       }
-    } catch (error) {
-      console.error('Error fetching protocols:', error);
+    } catch (err) {
+      console.error('Error fetching appointments:', err);
+      setError('Failed to load appointments');
     } finally {
       setLoading(false);
     }
   };
 
-  const logVisit = async (protocolId) => {
-    setLoggingId(protocolId);
-    try {
-      const res = await fetch(`/api/protocols/${protocolId}/log-visit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visitDate: today.toISOString().split('T')[0] })
-      });
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
 
-      if (res.ok) {
-        fetchClinicProtocols(); // Refresh data
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to log visit');
-      }
-    } catch (error) {
-      console.error('Error logging visit:', error);
-    } finally {
-      setLoggingId(null);
+  const formatDateHeader = (dateStr) => {
+    const date = new Date(dateStr + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  const getStatusStyle = (status) => {
+    const normalized = (status || '').toLowerCase().replace('-', '_');
+    return STATUS_COLORS[normalized] || STATUS_COLORS.scheduled;
+  };
+
+  const goToDate = (offset) => {
+    const current = new Date(selectedDate + 'T12:00:00');
+    current.setDate(current.getDate() + offset);
+    setSelectedDate(current.toISOString().split('T')[0]);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+
+  // Group appointments by calendar type
+  const groupedByCalendar = {};
+  appointments.forEach(apt => {
+    const key = apt.calendarName || 'Other';
+    if (!groupedByCalendar[key]) {
+      groupedByCalendar[key] = { color: apt.calendarColor || '#6b7280', appointments: [] };
     }
-  };
-
-  const getPatientName = (protocol) => {
-    const p = protocol.patients;
-    if (p?.first_name && p?.last_name) return `${p.first_name} ${p.last_name}`;
-    return p?.name || 'Unknown';
-  };
-
-  const getCategoryStyle = (type) => CATEGORY_COLORS[type] || CATEGORY_COLORS.other;
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const getVisitStatus = (protocol) => {
-    const lastVisit = protocol.last_visit_date;
-    const nextExpected = protocol.next_expected_date;
-    const scheduledDays = protocol.scheduled_days || [];
-    const frequency = protocol.visit_frequency || protocol.frequency;
-
-    // Check if visited today
-    const todayStr = today.toISOString().split('T')[0];
-    if (lastVisit === todayStr) {
-      return { status: 'completed', label: '✅ Checked In', color: '#059669' };
-    }
-
-    // Check if expected today
-    const isScheduledToday = scheduledDays.map(d => d.toLowerCase()).includes(todayDayName);
-
-    // Check if overdue
-    if (nextExpected && new Date(nextExpected) < today) {
-      const daysOverdue = Math.floor((today - new Date(nextExpected)) / (1000 * 60 * 60 * 24));
-      return { status: 'overdue', label: `❌ ${daysOverdue}d overdue`, color: '#dc2626' };
-    }
-
-    if (isScheduledToday) {
-      return { status: 'expected', label: '⏳ Expected Today', color: '#f59e0b' };
-    }
-
-    return { status: 'upcoming', label: nextExpected ? `Next: ${formatDate(nextExpected)}` : 'Not scheduled', color: '#6b7280' };
-  };
-
-  const getWeeklyProgress = (protocol) => {
-    if (protocol.visit_frequency !== '2x_week') return null;
-
-    const weekStart = new Date(today);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
-    const weekStartStr = weekStart.toISOString().split('T')[0];
-
-    // Count visits this week (would need visits data from API)
-    const visitsThisWeek = protocol.visits_this_week || 0;
-    const scheduledDays = protocol.scheduled_days || [];
-
-    return {
-      completed: visitsThisWeek,
-      total: 2,
-      days: scheduledDays.map(d => DAY_LABELS[d] || d).join('/')
-    };
-  };
-
-  // Filter protocols based on selected day
-  const filterDay = selectedDay || (showAllDays ? null : todayDayName);
-
-  const filteredProtocols = protocols.filter(p => {
-    if (!filterDay) return true;
-    const scheduledDays = (p.scheduled_days || []).map(d => d.toLowerCase());
-    return scheduledDays.includes(filterDay.toLowerCase()) || scheduledDays.length === 0;
+    groupedByCalendar[key].appointments.push(apt);
   });
-
-  // Group by category
-  const groupedProtocols = {};
-  filteredProtocols.forEach(p => {
-    const cat = p.program_type || 'other';
-    if (!groupedProtocols[cat]) groupedProtocols[cat] = [];
-    groupedProtocols[cat].push(p);
-  });
-
-  // Sort categories
-  const categoryOrder = ['weight_loss', 'hrt', 'peptide', 'iv', 'hbot', 'rlt', 'red_light', 'injection', 'other'];
-  const sortedCategories = Object.keys(groupedProtocols).sort((a, b) =>
-    categoryOrder.indexOf(a) - categoryOrder.indexOf(b)
-  );
-
-  // Stats
-  const todayExpected = protocols.filter(p => {
-    const scheduledDays = (p.scheduled_days || []).map(d => d.toLowerCase());
-    return scheduledDays.includes(todayDayName);
-  }).length;
-
-  const todayCompleted = protocols.filter(p =>
-    p.last_visit_date === today.toISOString().split('T')[0]
-  ).length;
-
-  const overdueCount = protocols.filter(p => {
-    if (!p.next_expected_date) return false;
-    return new Date(p.next_expected_date) < today && p.last_visit_date !== today.toISOString().split('T')[0];
-  }).length;
-
-  if (loading) {
-    return <div style={styles.loading}>Loading clinic schedule...</div>;
-  }
 
   return (
     <>
@@ -182,124 +94,134 @@ export default function ClinicSchedule() {
       <div style={styles.container}>
         <div style={styles.header}>
           <div>
-            <h1 style={styles.title}>In-Clinic Schedule</h1>
-            <div style={styles.subtitle}>
-              {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </div>
+            <h1 style={styles.title}>Clinic Schedule</h1>
+            <div style={styles.subtitle}>Appointments from GoHighLevel</div>
           </div>
           <Link href="/admin/pipeline" style={styles.backLink}>← Pipeline</Link>
         </div>
 
+        {/* Date Navigation */}
+        <div style={styles.dateNav}>
+          <button onClick={() => goToDate(-1)} style={styles.navBtn}>← Prev</button>
+          <div style={styles.dateDisplay}>
+            <span style={styles.dateText}>{formatDateHeader(selectedDate)}</span>
+            {!isToday && (
+              <button onClick={goToToday} style={styles.todayBtn}>Today</button>
+            )}
+          </div>
+          <button onClick={() => goToDate(1)} style={styles.navBtn}>Next →</button>
+        </div>
+
         {/* Stats Cards */}
         <div style={styles.statsRow}>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{todayExpected}</div>
-            <div style={styles.statLabel}>Expected Today</div>
+          <div style={{ ...styles.statCard, borderColor: '#f59e0b' }}>
+            <div style={{ ...styles.statNumber, color: '#f59e0b' }}>{stats.scheduled}</div>
+            <div style={styles.statLabel}>Scheduled</div>
           </div>
           <div style={{ ...styles.statCard, borderColor: '#059669' }}>
-            <div style={{ ...styles.statNumber, color: '#059669' }}>{todayCompleted}</div>
-            <div style={styles.statLabel}>Checked In</div>
+            <div style={{ ...styles.statNumber, color: '#059669' }}>{stats.showed}</div>
+            <div style={styles.statLabel}>Showed</div>
           </div>
-          <div style={{ ...styles.statCard, borderColor: overdueCount > 0 ? '#dc2626' : '#e5e7eb' }}>
-            <div style={{ ...styles.statNumber, color: overdueCount > 0 ? '#dc2626' : '#6b7280' }}>{overdueCount}</div>
-            <div style={styles.statLabel}>Overdue</div>
+          <div style={{ ...styles.statCard, borderColor: '#dc2626' }}>
+            <div style={{ ...styles.statNumber, color: '#dc2626' }}>{stats.noShow}</div>
+            <div style={styles.statLabel}>No Show</div>
           </div>
           <div style={styles.statCard}>
-            <div style={styles.statNumber}>{protocols.length}</div>
-            <div style={styles.statLabel}>Total In-Clinic</div>
+            <div style={styles.statNumber}>{appointments.length}</div>
+            <div style={styles.statLabel}>Total</div>
           </div>
         </div>
 
-        {/* Day Filter */}
-        <div style={styles.dayFilter}>
-          <button
-            style={{ ...styles.dayBtn, ...(showAllDays && !selectedDay ? styles.dayBtnActive : {}) }}
-            onClick={() => { setShowAllDays(true); setSelectedDay(null); }}
-          >
-            All
-          </button>
-          {DAYS_OF_WEEK.slice(1, 6).map(day => (
-            <button
-              key={day}
-              style={{
-                ...styles.dayBtn,
-                ...(selectedDay === day || (!selectedDay && !showAllDays && day === todayDayName) ? styles.dayBtnActive : {}),
-                ...(day === todayDayName ? { fontWeight: '600' } : {})
-              }}
-              onClick={() => { setSelectedDay(day); setShowAllDays(false); }}
-            >
-              {DAY_LABELS[day]}
-              {day === todayDayName && ' •'}
-            </button>
-          ))}
-        </div>
-
-        {/* Protocol List by Category */}
-        {sortedCategories.length === 0 ? (
-          <div style={styles.empty}>No in-clinic protocols {filterDay ? `scheduled for ${DAY_LABELS[filterDay] || filterDay}` : ''}</div>
+        {/* Loading / Error / Content */}
+        {loading ? (
+          <div style={styles.loading}>Loading appointments...</div>
+        ) : error ? (
+          <div style={styles.error}>{error}</div>
+        ) : appointments.length === 0 ? (
+          <div style={styles.empty}>No appointments scheduled for this day</div>
         ) : (
-          sortedCategories.map(category => {
-            const catStyle = getCategoryStyle(category);
-            const catProtocols = groupedProtocols[category];
-
-            return (
-              <div key={category} style={styles.categorySection}>
-                <div style={styles.categoryHeader}>
-                  <span style={{ ...styles.categoryBadge, background: catStyle.bg, color: catStyle.text }}>
-                    {catStyle.label}
-                  </span>
-                  <span style={styles.categoryCount}>{catProtocols.length} patients</span>
-                </div>
-
-                <div style={styles.protocolList}>
-                  {catProtocols.map(protocol => {
-                    const visitStatus = getVisitStatus(protocol);
-                    const weeklyProgress = getWeeklyProgress(protocol);
-
-                    return (
-                      <div key={protocol.id} style={styles.protocolCard}>
-                        <div style={styles.protocolMain}>
-                          <Link href={`/patients/${protocol.patient_id}`} style={styles.patientLink}>
-                            {getPatientName(protocol)}
-                          </Link>
-                          <div style={styles.protocolMeta}>
-                            {protocol.medication && <span>{protocol.medication}</span>}
-                            {protocol.selected_dose && <span> • {protocol.selected_dose}</span>}
-                            {protocol.frequency && <span> • {protocol.frequency}</span>}
-                          </div>
-                          {protocol.scheduled_days?.length > 0 && (
-                            <div style={styles.scheduledDays}>
-                              Schedule: {protocol.scheduled_days.map(d => DAY_LABELS[d] || d).join(', ')}
-                            </div>
+          <>
+            {/* Timeline View */}
+            <div style={styles.timeline}>
+              {appointments.map(apt => {
+                const statusStyle = getStatusStyle(apt.status);
+                return (
+                  <div key={apt.id} style={styles.appointmentCard}>
+                    <div style={styles.timeColumn}>
+                      <div style={styles.time}>{formatTime(apt.startTime)}</div>
+                      {apt.endTime && (
+                        <div style={styles.timeDuration}>to {formatTime(apt.endTime)}</div>
+                      )}
+                    </div>
+                    <div style={{ ...styles.calendarIndicator, backgroundColor: apt.calendarColor || '#6b7280' }} />
+                    <div style={styles.appointmentContent}>
+                      <div style={styles.appointmentHeader}>
+                        <span style={styles.patientName}>
+                          {apt.patient ? (
+                            <Link href={`/patients/${apt.patient.id}`} style={styles.patientLink}>
+                              {apt.patientName}
+                            </Link>
+                          ) : (
+                            apt.patientName
                           )}
-                          {weeklyProgress && (
-                            <div style={styles.weeklyProgress}>
-                              {weeklyProgress.completed} of {weeklyProgress.total} visits this week ({weeklyProgress.days})
-                            </div>
-                          )}
-                        </div>
-                        <div style={styles.protocolActions}>
-                          <span style={{ ...styles.statusBadge, color: visitStatus.color }}>
-                            {visitStatus.label}
-                          </span>
-                          {visitStatus.status !== 'completed' && (
-                            <button
-                              onClick={() => logVisit(protocol.id)}
-                              disabled={loggingId === protocol.id}
-                              style={styles.checkInBtn}
-                            >
-                              {loggingId === protocol.id ? '...' : 'Check In'}
-                            </button>
-                          )}
-                        </div>
+                        </span>
+                        <span style={{ ...styles.statusBadge, background: statusStyle.bg, color: statusStyle.text }}>
+                          {statusStyle.label}
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div style={styles.appointmentDetails}>
+                        <span style={styles.calendarName}>{apt.calendarName}</span>
+                        {apt.title !== apt.calendarName && <span> • {apt.title}</span>}
+                      </div>
+                      {apt.patient?.phone && (
+                        <div style={styles.contactInfo}>{apt.patient.phone}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Grouped by Service */}
+            <div style={styles.groupedSection}>
+              <h3 style={styles.sectionTitle}>By Service</h3>
+              {Object.entries(groupedByCalendar).map(([calendarName, data]) => (
+                <div key={calendarName} style={styles.calendarGroup}>
+                  <div style={styles.calendarHeader}>
+                    <span style={{ ...styles.calendarBadge, backgroundColor: data.color }}>
+                      {calendarName}
+                    </span>
+                    <span style={styles.calendarCount}>{data.appointments.length} appointments</span>
+                  </div>
+                  <div style={styles.calendarAppointments}>
+                    {data.appointments.map(apt => (
+                      <div key={apt.id} style={styles.miniCard}>
+                        <span style={styles.miniTime}>{formatTime(apt.startTime)}</span>
+                        <span style={styles.miniName}>
+                          {apt.patient ? (
+                            <Link href={`/patients/${apt.patient.id}`} style={styles.patientLink}>
+                              {apt.patientName}
+                            </Link>
+                          ) : (
+                            apt.patientName
+                          )}
+                        </span>
+                        <span style={{ ...styles.miniStatus, color: getStatusStyle(apt.status).text }}>
+                          {getStatusStyle(apt.status).label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              ))}
+            </div>
+          </>
         )}
+
+        {/* Refresh Button */}
+        <button onClick={fetchAppointments} style={styles.refreshBtn}>
+          ↻ Refresh from GHL
+        </button>
       </div>
     </>
   );
@@ -307,15 +229,10 @@ export default function ClinicSchedule() {
 
 const styles = {
   container: {
-    maxWidth: '1000px',
+    maxWidth: '900px',
     margin: '0 auto',
     padding: '24px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '48px',
-    color: '#666'
   },
   header: {
     display: 'flex',
@@ -340,6 +257,41 @@ const styles = {
     border: '1px solid #e5e7eb',
     borderRadius: '6px'
   },
+  dateNav: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '24px',
+    padding: '12px 16px',
+    background: '#f9fafb',
+    borderRadius: '8px'
+  },
+  navBtn: {
+    padding: '8px 16px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  dateDisplay: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  dateText: {
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  todayBtn: {
+    padding: '4px 12px',
+    border: '1px solid #2563eb',
+    borderRadius: '4px',
+    background: '#fff',
+    color: '#2563eb',
+    cursor: 'pointer',
+    fontSize: '13px'
+  },
   statsRow: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
@@ -348,13 +300,13 @@ const styles = {
   },
   statCard: {
     background: '#fff',
-    border: '1px solid #e5e7eb',
+    border: '2px solid #e5e7eb',
     borderRadius: '8px',
     padding: '16px',
     textAlign: 'center'
   },
   statNumber: {
-    fontSize: '32px',
+    fontSize: '28px',
     fontWeight: '600',
     color: '#000'
   },
@@ -363,24 +315,17 @@ const styles = {
     color: '#666',
     marginTop: '4px'
   },
-  dayFilter: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '24px',
-    flexWrap: 'wrap'
+  loading: {
+    textAlign: 'center',
+    padding: '48px',
+    color: '#666'
   },
-  dayBtn: {
-    padding: '8px 16px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: '14px'
-  },
-  dayBtnActive: {
-    background: '#000',
-    color: '#fff',
-    borderColor: '#000'
+  error: {
+    textAlign: 'center',
+    padding: '48px',
+    color: '#dc2626',
+    background: '#fef2f2',
+    borderRadius: '8px'
   },
   empty: {
     textAlign: 'center',
@@ -390,80 +335,143 @@ const styles = {
     borderRadius: '8px',
     border: '1px solid #e5e7eb'
   },
-  categorySection: {
-    marginBottom: '24px'
-  },
-  categoryHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '12px'
-  },
-  categoryBadge: {
-    fontSize: '12px',
-    fontWeight: '600',
-    padding: '4px 12px',
-    borderRadius: '4px'
-  },
-  categoryCount: {
-    fontSize: '13px',
-    color: '#666'
-  },
-  protocolList: {
+  timeline: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px'
+    gap: '12px',
+    marginBottom: '32px'
   },
-  protocolCard: {
+  appointmentCard: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: '16px',
     padding: '16px',
     background: '#fff',
     border: '1px solid #e5e7eb',
     borderRadius: '8px'
   },
-  protocolMain: {
+  timeColumn: {
+    width: '80px',
+    flexShrink: 0
+  },
+  time: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#000'
+  },
+  timeDuration: {
+    fontSize: '12px',
+    color: '#9ca3af'
+  },
+  calendarIndicator: {
+    width: '4px',
+    alignSelf: 'stretch',
+    borderRadius: '2px',
+    minHeight: '40px'
+  },
+  appointmentContent: {
     flex: 1
   },
-  patientLink: {
+  appointmentHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '4px'
+  },
+  patientName: {
     fontSize: '16px',
-    fontWeight: '600',
+    fontWeight: '600'
+  },
+  patientLink: {
     color: '#000',
     textDecoration: 'none'
   },
-  protocolMeta: {
+  statusBadge: {
+    fontSize: '12px',
+    fontWeight: '500',
+    padding: '4px 10px',
+    borderRadius: '4px'
+  },
+  appointmentDetails: {
     fontSize: '14px',
-    color: '#666',
-    marginTop: '4px'
+    color: '#666'
   },
-  scheduledDays: {
-    fontSize: '13px',
-    color: '#2563eb',
-    marginTop: '4px'
-  },
-  weeklyProgress: {
-    fontSize: '13px',
-    color: '#7c3aed',
-    marginTop: '4px',
+  calendarName: {
     fontWeight: '500'
   },
-  protocolActions: {
+  contactInfo: {
+    fontSize: '13px',
+    color: '#9ca3af',
+    marginTop: '4px'
+  },
+  groupedSection: {
+    marginTop: '32px',
+    paddingTop: '24px',
+    borderTop: '1px solid #e5e7eb'
+  },
+  sectionTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    marginBottom: '16px'
+  },
+  calendarGroup: {
+    marginBottom: '20px'
+  },
+  calendarHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px'
+    gap: '12px',
+    marginBottom: '8px'
   },
-  statusBadge: {
+  calendarBadge: {
+    color: '#fff',
     fontSize: '13px',
+    fontWeight: '600',
+    padding: '4px 12px',
+    borderRadius: '4px'
+  },
+  calendarCount: {
+    fontSize: '13px',
+    color: '#666'
+  },
+  calendarAppointments: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    paddingLeft: '8px'
+  },
+  miniCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '8px 12px',
+    background: '#f9fafb',
+    borderRadius: '6px'
+  },
+  miniTime: {
+    fontSize: '13px',
+    fontWeight: '500',
+    width: '70px',
+    color: '#374151'
+  },
+  miniName: {
+    flex: 1,
+    fontSize: '14px'
+  },
+  miniStatus: {
+    fontSize: '12px',
     fontWeight: '500'
   },
-  checkInBtn: {
-    padding: '8px 16px',
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    cursor: 'pointer'
+  refreshBtn: {
+    display: 'block',
+    width: '100%',
+    padding: '12px',
+    marginTop: '24px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#374151'
   }
 };

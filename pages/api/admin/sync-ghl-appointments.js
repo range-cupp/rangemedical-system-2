@@ -116,8 +116,13 @@ export default async function handler(req, res) {
     for (let i = 0; i < allContacts.length; i += batchSize) {
       const batch = allContacts.slice(i, i + batchSize);
 
+      // Debug: Track specific contacts
+      const debugContactIds = ['wvWLq6kjnyvzhw9Q3mZ7']; // Kelly Ripley
+
       const batchResults = await Promise.all(
         batch.map(async (contact) => {
+          const isDebugContact = debugContactIds.includes(contact.id);
+
           try {
             const appointmentsUrl = `https://services.leadconnectorhq.com/contacts/${contact.id}/appointments`;
             const aptsResponse = await fetch(appointmentsUrl, {
@@ -130,6 +135,14 @@ export default async function handler(req, res) {
             if (aptsResponse.ok) {
               const aptsData = await aptsResponse.json();
               const appointments = aptsData.events || aptsData.appointments || [];
+
+              if (isDebugContact) {
+                results.debug.kellyCheck = {
+                  contactId: contact.id,
+                  totalAppointments: appointments.length,
+                  appointmentDates: appointments.map(a => (a.startTime || '').split(/[T ]/)[0])
+                };
+              }
 
               // Filter appointments to target date
               return appointments
@@ -148,6 +161,9 @@ export default async function handler(req, res) {
             }
             return [];
           } catch (e) {
+            if (isDebugContact) {
+              results.debug.kellyError = e.message;
+            }
             return [];
           }
         })

@@ -1,7 +1,6 @@
 // pages/api/patients/[id].js
 // Patient Profile API - Range Medical
-// Fetches patient details, protocols, labs, and purchases
-// With correct tracking logic per protocol type
+// Unified patient data endpoint: demographics, protocols, labs, intakes, sessions, purchases
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -25,26 +24,24 @@ function calculateRemaining(protocol) {
   // ===== WEIGHT LOSS =====
   if (isWeightLoss) {
     if (isTakeHome) {
-      // Take-home: track by time (total_sessions × 7 days from last_refill_date or start_date)
       const totalInjections = protocol.total_sessions || 4;
       const supplyDays = totalInjections * 7;
       const trackingDate = protocol.last_refill_date || protocol.start_date;
-      
+
       if (trackingDate) {
         const startDate = new Date(trackingDate + 'T00:00:00');
         const endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + supplyDays);
         const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-        
+
         let statusText = daysRemaining <= 0 ? 'Supply exhausted' :
                          daysRemaining <= 3 ? `${daysRemaining}d - Refill soon` :
                          daysRemaining <= 14 ? `${daysRemaining} days left` :
                          `~${Math.floor(daysRemaining / 7)} weeks left`;
-        
+
         return { days_remaining: daysRemaining, total_days: supplyDays, status_text: statusText };
       }
     } else {
-      // In-clinic: track by sessions
       if (protocol.total_sessions && protocol.total_sessions > 0) {
         const sessionsUsed = protocol.sessions_used || 0;
         const sessionsRemaining = protocol.total_sessions - sessionsUsed;
@@ -60,19 +57,19 @@ function calculateRemaining(protocol) {
     const supplyType = (protocol.supply_type || '').toLowerCase();
     const dose = protocol.selected_dose || protocol.current_dose || '';
     const lastRefillDate = protocol.last_refill_date || protocol.start_date;
-    
+
     if (lastRefillDate) {
       const refillDate = new Date(lastRefillDate + 'T00:00:00');
       const daysSinceRefill = Math.ceil((today - refillDate) / (1000 * 60 * 60 * 24));
 
       if (supplyType.includes('vial')) {
-        const isFemale = dose.includes('10mg') || dose.includes('15mg') || dose.includes('20mg') || 
-                         dose.includes('25mg') || dose.includes('30mg') || dose.includes('40mg') || 
+        const isFemale = dose.includes('10mg') || dose.includes('15mg') || dose.includes('20mg') ||
+                         dose.includes('25mg') || dose.includes('30mg') || dose.includes('40mg') ||
                          dose.includes('50mg') || programType.includes('female');
-        
+
         let weeklyMg = 120;
         let totalMg = isFemale ? 1000 : 2000;
-        
+
         if (isFemale) {
           if (dose.includes('50mg')) weeklyMg = 100;
           else if (dose.includes('40mg')) weeklyMg = 80;
@@ -84,36 +81,35 @@ function calculateRemaining(protocol) {
           else if (dose.includes('70mg') || dose.includes('0.35ml')) weeklyMg = 140;
           else weeklyMg = 120;
         }
-        
+
         const vialWeeks = Math.floor(totalMg / weeklyMg);
         const vialDays = vialWeeks * 7;
         const daysRemaining = vialDays - daysSinceRefill;
-        
+
         const statusText = daysRemaining <= 0 ? 'Refill overdue' :
                            daysRemaining <= 14 ? `${daysRemaining}d - Refill soon` :
                            `~${Math.floor(daysRemaining / 7)} weeks left`;
-        
+
         return { days_remaining: daysRemaining, total_days: vialDays, status_text: statusText };
       } else {
-        // Prefilled
         const is4Week = supplyType.includes('4') || supplyType.includes('four') || supplyType.includes('month');
         const supplyDays = is4Week ? 28 : 14;
         const daysRemaining = supplyDays - daysSinceRefill;
-        
+
         const statusText = daysRemaining <= 0 ? 'Refill overdue' :
                            daysRemaining <= 3 ? `${daysRemaining}d - Refill soon` :
                            `${daysRemaining} days left`;
-        
+
         return { days_remaining: daysRemaining, total_days: supplyDays, status_text: statusText };
       }
     }
   }
 
-  // ===== PEPTIDE =====
+  // ===== PEPTIDE / DATE-BASED =====
   if (protocol.end_date) {
     const endDate = new Date(protocol.end_date + 'T23:59:59');
     const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-    
+
     let totalDays = 30;
     const programName = (protocol.program_name || '').toLowerCase();
     if (programName.includes('7')) totalDays = 7;
@@ -121,11 +117,11 @@ function calculateRemaining(protocol) {
     else if (programName.includes('14')) totalDays = 14;
     else if (programName.includes('20')) totalDays = 20;
     else if (programName.includes('30')) totalDays = 30;
-    
+
     const statusText = daysRemaining <= 0 ? 'Protocol ended' :
                        daysRemaining <= 3 ? `${daysRemaining}d left!` :
                        `${daysRemaining} days left`;
-    
+
     return { days_remaining: daysRemaining, total_days: totalDays, status_text: statusText };
   }
 
@@ -139,6 +135,34 @@ function calculateRemaining(protocol) {
   }
 
   return { days_remaining: null, status_text: 'Active' };
+}
+
+// Get category for protocol (for color coding)
+function getProtocolCategory(protocol) {
+  const programType = (protocol.program_type || protocol.program_name || '').toLowerCase();
+
+  if (programType.includes('hrt') || programType.includes('testosterone') || programType.includes('hormone')) {
+    return 'hrt';
+  }
+  if (programType.includes('weight') || programType.includes('glp') || programType.includes('tirzepatide') || programType.includes('semaglutide')) {
+    return 'weight_loss';
+  }
+  if (programType.includes('peptide') || programType.includes('bpc') || programType.includes('tb-500')) {
+    return 'peptide';
+  }
+  if (programType.includes('iv') || programType.includes('infusion') || programType.includes('nad')) {
+    return 'iv';
+  }
+  if (programType.includes('hbot') || programType.includes('hyperbaric')) {
+    return 'hbot';
+  }
+  if (programType.includes('rlt') || programType.includes('red light')) {
+    return 'rlt';
+  }
+  if (programType.includes('injection')) {
+    return 'injection';
+  }
+  return 'other';
 }
 
 export default async function handler(req, res) {
@@ -176,21 +200,21 @@ export default async function handler(req, res) {
       // Split and format protocols
       const activeProtocols = [];
       const completedProtocols = [];
-      const today = new Date().toISOString().split('T')[0];
 
       (allProtocols || []).forEach(protocol => {
         const tracking = calculateRemaining(protocol);
-        
+        const category = getProtocolCategory(protocol);
+
         const formatted = {
           ...protocol,
           days_remaining: tracking.days_remaining,
           total_days: tracking.total_days,
           sessions_remaining: tracking.sessions_remaining,
-          status_text: tracking.status_text
+          status_text: tracking.status_text,
+          category
         };
 
-        // Determine if completed
-        const isCompleted = 
+        const isCompleted =
           protocol.status === 'completed' ||
           (tracking.days_remaining !== null && tracking.days_remaining <= -7) ||
           (tracking.sessions_remaining !== undefined && tracking.sessions_remaining <= 0 && protocol.total_sessions > 0);
@@ -219,7 +243,7 @@ export default async function handler(req, res) {
 
       // Get pending purchases
       let pendingNotifications = [];
-      
+
       const { data: purchasesByPatientId } = await supabase
         .from('purchases')
         .select('*')
@@ -238,19 +262,69 @@ export default async function handler(req, res) {
           .eq('protocol_created', false)
           .eq('dismissed', false)
           .order('purchase_date', { ascending: false });
-        
+
         pendingNotifications = purchasesByGhl || [];
       }
+
+      // ===== NEW: Get intake forms =====
+      let intakes = [];
+
+      // Try by patient_id first
+      const { data: intakesByPatientId } = await supabase
+        .from('intakes')
+        .select('id, first_name, last_name, email, phone, date_of_birth, gender, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id')
+        .eq('patient_id', id)
+        .order('submitted_at', { ascending: false });
+
+      if (intakesByPatientId && intakesByPatientId.length > 0) {
+        intakes = intakesByPatientId;
+      } else if (patient.ghl_contact_id) {
+        // Fallback to ghl_contact_id
+        const { data: intakesByGhl } = await supabase
+          .from('intakes')
+          .select('id, first_name, last_name, email, phone, date_of_birth, gender, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id')
+          .eq('ghl_contact_id', patient.ghl_contact_id)
+          .order('submitted_at', { ascending: false });
+
+        intakes = intakesByGhl || [];
+      } else if (patient.email) {
+        // Fallback to email
+        const { data: intakesByEmail } = await supabase
+          .from('intakes')
+          .select('id, first_name, last_name, email, phone, date_of_birth, gender, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id')
+          .eq('email', patient.email)
+          .order('submitted_at', { ascending: false });
+
+        intakes = intakesByEmail || [];
+      }
+
+      // ===== NEW: Get sessions/visits =====
+      const { data: sessions } = await supabase
+        .from('sessions')
+        .select('*, protocols(program_name, program_type)')
+        .eq('patient_id', id)
+        .order('session_date', { ascending: false })
+        .limit(50);
+
+      // ===== NEW: Get symptoms questionnaires =====
+      const { data: symptomResponses } = await supabase
+        .from('symptoms')
+        .select('*')
+        .eq('patient_id', id)
+        .order('symptom_date', { ascending: false })
+        .limit(10);
 
       // Calculate stats
       const stats = {
         activeCount: activeProtocols.length,
         completedCount: completedProtocols.length,
         pendingLabsCount: pendingLabOrders?.length || 0,
-        totalProtocols: allProtocols?.length || 0
+        totalProtocols: allProtocols?.length || 0,
+        intakeCount: intakes?.length || 0,
+        sessionCount: sessions?.length || 0
       };
 
-      console.log(`Patient ${patient.name}: ${activeProtocols.length} active, ${completedProtocols.length} completed`);
+      console.log(`Patient ${patient.name}: ${activeProtocols.length} active, ${completedProtocols.length} completed, ${intakes?.length || 0} intakes`);
 
       return res.status(200).json({
         patient,
@@ -259,6 +333,9 @@ export default async function handler(req, res) {
         pendingNotifications: pendingNotifications || [],
         pendingLabOrders: pendingLabOrders || [],
         labs: labs || [],
+        intakes: intakes || [],
+        sessions: sessions || [],
+        symptomResponses: symptomResponses || [],
         stats
       });
 
@@ -271,7 +348,7 @@ export default async function handler(req, res) {
   if (req.method === 'PATCH') {
     try {
       const updates = req.body;
-      
+
       const { data, error } = await supabase
         .from('patients')
         .update(updates)

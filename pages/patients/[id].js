@@ -1,103 +1,98 @@
 // /pages/patients/[id].js
-// Patient Profile Page - Range Assessment System
-// WITH Lab Documents PDF Upload Feature
+// Unified Patient Profile Page - Range Medical
+// Single source of truth for all patient data
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
+
+// Category colors for protocols
+const CATEGORY_COLORS = {
+  hrt: { bg: '#f3e8ff', text: '#7c3aed', label: 'HRT' },
+  weight_loss: { bg: '#dbeafe', text: '#1e40af', label: 'Weight Loss' },
+  peptide: { bg: '#dcfce7', text: '#166534', label: 'Peptide' },
+  iv: { bg: '#ffedd5', text: '#c2410c', label: 'IV' },
+  hbot: { bg: '#e0e7ff', text: '#3730a3', label: 'HBOT' },
+  rlt: { bg: '#fee2e2', text: '#dc2626', label: 'RLT' },
+  injection: { bg: '#fef3c7', text: '#92400e', label: 'Injection' },
+  other: { bg: '#f3f4f6', text: '#374151', label: 'Other' }
+};
+
+const INJECTION_MEDICATIONS = [
+  'Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3',
+  'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'
+];
 
 export default function PatientProfile() {
   const router = useRouter();
   const { id } = router.query || {};
-  
+
+  // Core data state
   const [loading, setLoading] = useState(true);
   const [patient, setPatient] = useState(null);
   const [activeProtocols, setActiveProtocols] = useState([]);
   const [completedProtocols, setCompletedProtocols] = useState([]);
   const [pendingNotifications, setPendingNotifications] = useState([]);
-  const [baselineSymptoms, setBaselineSymptoms] = useState(null);
-  const [latestLabs, setLatestLabs] = useState(null);
-  const [labResults, setLabResults] = useState([]);
-  const [stats, setStats] = useState({});
-  
-  // Lab documents state
+  const [labs, setLabs] = useState([]);
+  const [intakes, setIntakes] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [symptomResponses, setSymptomResponses] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
+  const [stats, setStats] = useState({});
+
+  // UI state
+  const [activeTab, setActiveTab] = useState('overview');
   const [loadingDocs, setLoadingDocs] = useState(false);
-  
+
+  // Template/peptide data for protocol assignment
   const [templates, setTemplates] = useState({ grouped: {} });
   const [peptides, setPeptides] = useState([]);
+
+  // Modal states
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showLabsModal, setShowLabsModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showSymptomsModal, setShowSymptomsModal] = useState(false);
+  const [showIntakeModal, setShowIntakeModal] = useState(false);
+
+  // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
-  const [assignForm, setAssignForm] = useState({
-    templateId: '',
-    peptideId: '',
-    selectedDose: '',
-    frequency: '',
-    startDate: new Date().toISOString().split('T')[0],
-    notes: '',
-    injectionMedication: '',
-    injectionDose: ''
-  });
-  
-  // Pack tracking state
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [selectedIntake, setSelectedIntake] = useState(null);
   const [existingPacks, setExistingPacks] = useState([]);
   const [addToPackMode, setAddToPackMode] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState('');
 
-  const INJECTION_MEDICATIONS = [
-    'Amino Blend',
-    'B12',
-    'B-Complex',
-    'Biotin',
-    'Vitamin D3',
-    'NAC',
-    'BCAA',
-    'L-Carnitine',
-    'Glutathione',
-    'NAD+'
-  ];
-  
-  const [showLabsModal, setShowLabsModal] = useState(false);
-  const [labForm, setLabForm] = useState({
-    labType: 'Baseline',
-    labPanel: 'Elite',
-    completedDate: new Date().toISOString().split('T')[0],
-    notes: ''
+  const [assignForm, setAssignForm] = useState({
+    templateId: '', peptideId: '', selectedDose: '', frequency: '',
+    startDate: new Date().toISOString().split('T')[0], notes: '',
+    injectionMedication: '', injectionDose: ''
   });
-  
-  const [showViewLabsModal, setShowViewLabsModal] = useState(false);
-  const [showSymptomsModal, setShowSymptomsModal] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    medication: '', selectedDose: '', frequency: '', startDate: '',
+    endDate: '', status: '', notes: '', sessionsUsed: 0, totalSessions: null
+  });
+
+  const [labForm, setLabForm] = useState({
+    labType: 'Baseline', labPanel: 'Elite',
+    completedDate: new Date().toISOString().split('T')[0], notes: ''
+  });
+
+  const [uploadForm, setUploadForm] = useState({
+    file: null, panelType: 'Elite',
+    collectionDate: new Date().toISOString().split('T')[0], notes: ''
+  });
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
   const [sendingSymptoms, setSendingSymptoms] = useState(false);
   const [symptomsSent, setSymptomsSent] = useState(false);
-  
-  // Edit protocol state
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedProtocol, setSelectedProtocol] = useState(null);
-  const [editForm, setEditForm] = useState({
-    medication: '',
-    selectedDose: '',
-    frequency: '',
-    startDate: '',
-    endDate: '',
-    status: '',
-    notes: '',
-    sessionsUsed: 0,
-    totalSessions: null
-  });
-  
-  // Lab upload state
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadForm, setUploadForm] = useState({
-    file: null,
-    panelType: 'Elite',
-    collectionDate: new Date().toISOString().split('T')[0],
-    notes: ''
-  });
-  const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Load patient data
+  // Load data
   useEffect(() => {
     if (id) {
       fetchPatient();
@@ -112,15 +107,16 @@ export default function PatientProfile() {
       setLoading(true);
       const res = await fetch(`/api/patients/${id}`);
       const data = await res.json();
-      
+
       if (data.patient) {
         setPatient(data.patient);
         setActiveProtocols(data.activeProtocols || []);
         setCompletedProtocols(data.completedProtocols || []);
         setPendingNotifications(data.pendingNotifications || []);
-        setBaselineSymptoms(data.baselineSymptoms);
-        setLatestLabs(data.latestLabs);
-        setLabResults(data.labResults || []);
+        setLabs(data.labs || []);
+        setIntakes(data.intakes || []);
+        setSessions(data.sessions || []);
+        setSymptomResponses(data.symptomResponses || []);
         setStats(data.stats || {});
       }
     } catch (error) {
@@ -134,9 +130,7 @@ export default function PatientProfile() {
     try {
       const res = await fetch('/api/protocols/templates');
       const data = await res.json();
-      if (data.grouped) {
-        setTemplates(data);
-      }
+      if (data.grouped) setTemplates(data);
     } catch (error) {
       console.error('Error fetching templates:', error);
     }
@@ -146,9 +140,7 @@ export default function PatientProfile() {
     try {
       const res = await fetch('/api/peptides');
       const data = await res.json();
-      if (data.peptides) {
-        setPeptides(data.peptides);
-      }
+      if (data.peptides) setPeptides(data.peptides);
     } catch (error) {
       console.error('Error fetching peptides:', error);
     }
@@ -160,9 +152,7 @@ export default function PatientProfile() {
       setLoadingDocs(true);
       const res = await fetch(`/api/patients/${id}/lab-documents`);
       const data = await res.json();
-      if (data.documents) {
-        setLabDocuments(data.documents);
-      }
+      if (data.documents) setLabDocuments(data.documents);
     } catch (error) {
       console.error('Error fetching lab documents:', error);
     } finally {
@@ -170,17 +160,19 @@ export default function PatientProfile() {
     }
   };
 
+  // Helpers
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
-    // Parse as local date to avoid timezone shift
     const [year, month, day] = dateStr.split('T')[0].split('-');
     const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: 'America/Los_Angeles'
-    });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatShortDate = (dateStr) => {
+    if (!dateStr) return '—';
+    const [year, month, day] = dateStr.split('T')[0].split('-');
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const formatFileSize = (bytes) => {
@@ -190,127 +182,44 @@ export default function PatientProfile() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  // Lab document handlers
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      setUploadForm({ ...uploadForm, file });
-      setUploadError(null);
-    } else {
-      setUploadError('Please select a PDF file');
-    }
+  const getGhlLink = () => {
+    if (!patient?.ghl_contact_id) return null;
+    return `https://app.gohighlevel.com/v2/location/your-location-id/contacts/detail/${patient.ghl_contact_id}`;
   };
 
-  const handleUploadDocument = async () => {
-    if (!uploadForm.file) {
-      setUploadError('Please select a file');
-      return;
+  const getPatientDisplayName = () => {
+    if (patient?.first_name && patient?.last_name) {
+      return `${patient.first_name} ${patient.last_name}`;
     }
-
-    setUploading(true);
-    setUploadError(null);
-
-    try {
-      // Convert file to base64
-      const reader = new FileReader();
-      const fileData = await new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(uploadForm.file);
-      });
-
-      const res = await fetch(`/api/patients/${id}/upload-lab`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileData,
-          fileName: uploadForm.file.name,
-          panelType: uploadForm.panelType,
-          collectionDate: uploadForm.collectionDate,
-          notes: uploadForm.notes
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
-      // Refresh documents list
-      await fetchLabDocuments();
-      
-      // Reset form and close modal
-      setUploadForm({
-        file: null,
-        panelType: 'Elite',
-        collectionDate: new Date().toISOString().split('T')[0],
-        notes: ''
-      });
-      setShowUploadModal(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-
-    } catch (err) {
-      setUploadError(err.message);
-    } finally {
-      setUploading(false);
-    }
+    return patient?.name || 'Unknown Patient';
   };
 
-  const handleDeleteDocument = async (documentId) => {
-    if (!confirm('Are you sure you want to delete this document?')) {
-      return;
-    }
+  const getCategoryStyle = (category) => CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
 
-    try {
-      const res = await fetch(`/api/patients/${id}/lab-documents`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ documentId }),
-      });
-
-      if (res.ok) {
-        setLabDocuments(labDocuments.filter(d => d.id !== documentId));
-      }
-    } catch (err) {
-      console.error('Delete error:', err);
-    }
-  };
-
-  // Protocol assignment handlers
+  // Protocol handlers
   const openAssignModal = async (notification = null) => {
     setSelectedNotification(notification);
     setAssignForm({
-      templateId: '',
-      peptideId: '',
-      selectedDose: '',
-      frequency: '',
-      startDate: new Date().toISOString().split('T')[0],
-      notes: '',
-      injectionMedication: '',
-      injectionDose: ''
+      templateId: '', peptideId: '', selectedDose: '', frequency: '',
+      startDate: new Date().toISOString().split('T')[0], notes: '',
+      injectionMedication: '', injectionDose: ''
     });
     setAddToPackMode(false);
     setSelectedPackId('');
     setExistingPacks([]);
 
-    // Check if patient has existing packs for injection purchases
-    const isInjection = notification?.category === 'Injection' || 
+    const isInjection = notification?.category === 'Injection' ||
                         notification?.product_name?.toLowerCase().includes('injection');
-    
+
     if (isInjection && (id || patient?.ghl_contact_id)) {
       try {
         const params = new URLSearchParams();
         if (id) params.set('patient_id', id);
         if (patient?.ghl_contact_id) params.set('ghl_contact_id', patient.ghl_contact_id);
-        
+
         const res = await fetch(`/api/protocols/active-packs?${params}`);
         const data = await res.json();
-        if (data.packs?.length > 0) {
-          setExistingPacks(data.packs);
-        }
+        if (data.packs?.length > 0) setExistingPacks(data.packs);
       } catch (err) {
         console.error('Error fetching packs:', err);
       }
@@ -321,10 +230,9 @@ export default function PatientProfile() {
 
   const handleAssignProtocol = async () => {
     try {
-      // Determine if injection template
       const template = getSelectedTemplate();
       const isInjection = template?.name?.toLowerCase().includes('injection');
-      
+
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -354,23 +262,17 @@ export default function PatientProfile() {
   };
 
   const handleAddToPack = async () => {
-    if (!selectedPackId) {
-      alert('Please select a pack');
-      return;
-    }
+    if (!selectedPackId) return alert('Please select a pack');
 
     try {
       const res = await fetch(`/api/protocols/${selectedPackId}/add-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          purchaseId: selectedNotification?.id,
-          sessionCount: 1
-        })
+        body: JSON.stringify({ purchaseId: selectedNotification?.id, sessionCount: 1 })
       });
 
       const data = await res.json();
-      
+
       if (res.ok) {
         setShowAssignModal(false);
         fetchPatient();
@@ -390,56 +292,6 @@ export default function PatientProfile() {
     } catch (error) {
       console.error('Error dismissing notification:', error);
     }
-  };
-
-  const handleAddLabs = async () => {
-    try {
-      const res = await fetch(`/api/patients/${id}/labs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(labForm)
-      });
-      
-      if (res.ok) {
-        setShowLabsModal(false);
-        fetchPatient();
-      }
-    } catch (error) {
-      console.error('Error adding labs:', error);
-    }
-  };
-
-  const handleSendSymptoms = async () => {
-    setSendingSymptoms(true);
-    try {
-      const res = await fetch('/api/symptoms/send-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientId: id,
-          phone: patient?.phone,
-          name: patient?.name
-        })
-      });
-      
-      if (res.ok) {
-        setSymptomsSent(true);
-        setTimeout(() => {
-          setShowSymptomsModal(false);
-          setSymptomsSent(false);
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('Error sending symptoms:', error);
-    } finally {
-      setSendingSymptoms(false);
-    }
-  };
-
-  const copySymptomLink = () => {
-    const link = `https://app.range-medical.com/symptom-questionnaire?patient=${id}&name=${encodeURIComponent(patient?.name || '')}`;
-    navigator.clipboard.writeText(link);
-    alert('Link copied!');
   };
 
   const openEditModal = (protocol) => {
@@ -487,6 +339,117 @@ export default function PatientProfile() {
     }
   };
 
+  // Lab handlers
+  const handleAddLabs = async () => {
+    try {
+      const res = await fetch(`/api/patients/${id}/labs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(labForm)
+      });
+
+      if (res.ok) {
+        setShowLabsModal(false);
+        fetchPatient();
+      }
+    } catch (error) {
+      console.error('Error adding labs:', error);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setUploadForm({ ...uploadForm, file });
+      setUploadError(null);
+    } else {
+      setUploadError('Please select a PDF file');
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    if (!uploadForm.file) return setUploadError('Please select a file');
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      const reader = new FileReader();
+      const fileData = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(uploadForm.file);
+      });
+
+      const res = await fetch(`/api/patients/${id}/upload-lab`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData,
+          fileName: uploadForm.file.name,
+          panelType: uploadForm.panelType,
+          collectionDate: uploadForm.collectionDate,
+          notes: uploadForm.notes
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+      await fetchLabDocuments();
+      setUploadForm({ file: null, panelType: 'Elite', collectionDate: new Date().toISOString().split('T')[0], notes: '' });
+      setShowUploadModal(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (documentId) => {
+    if (!confirm('Delete this document?')) return;
+
+    try {
+      const res = await fetch(`/api/patients/${id}/lab-documents`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId }),
+      });
+      if (res.ok) setLabDocuments(labDocuments.filter(d => d.id !== documentId));
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  // Symptoms handlers
+  const handleSendSymptoms = async () => {
+    setSendingSymptoms(true);
+    try {
+      const res = await fetch('/api/symptoms/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: id, phone: patient?.phone, name: getPatientDisplayName() })
+      });
+
+      if (res.ok) {
+        setSymptomsSent(true);
+        setTimeout(() => { setShowSymptomsModal(false); setSymptomsSent(false); }, 2000);
+      }
+    } catch (error) {
+      console.error('Error sending symptoms:', error);
+    } finally {
+      setSendingSymptoms(false);
+    }
+  };
+
+  const copySymptomLink = () => {
+    const link = `https://app.range-medical.com/symptom-questionnaire?patient=${id}&name=${encodeURIComponent(getPatientDisplayName())}`;
+    navigator.clipboard.writeText(link);
+    alert('Link copied!');
+  };
+
+  // Template helpers
   const getSelectedTemplate = () => {
     if (!assignForm.templateId) return null;
     for (const category of Object.values(templates.grouped || {})) {
@@ -496,745 +459,415 @@ export default function PatientProfile() {
     return null;
   };
 
-  const getSelectedPeptide = () => {
-    if (!assignForm.peptideId) return null;
-    return peptides.find(p => p.id === assignForm.peptideId);
-  };
+  const getSelectedPeptide = () => peptides.find(p => p.id === assignForm.peptideId) || null;
+  const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
+  const isInjectionTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('injection');
 
-  const isPeptideTemplate = () => {
-    const template = getSelectedTemplate();
-    return template?.name?.toLowerCase().includes('peptide');
-  };
+  // Loading states
+  if (!router.isReady) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="loading">Loading patient...</div>;
+  if (!patient) return <div className="error">Patient not found</div>;
 
-  const isInjectionTemplate = () => {
-    const template = getSelectedTemplate();
-    return template?.name?.toLowerCase().includes('injection');
-  };
-
-  // Lab results display helpers
-  const getLabCategories = () => {
-    if (!labResults || labResults.length === 0) return [];
-    
-    const categories = {
-      'Hormones': ['testosterone_total', 'testosterone_free', 'estradiol', 'dhea_s', 'fsh', 'lh', 'igf_1', 'cortisol'],
-      'Thyroid': ['tsh', 'free_t3', 'free_t4', 'tpo_antibodies', 'thyroglobulin_ab'],
-      'Metabolic': ['glucose', 'hba1c', 'fasting_insulin', 'uric_acid'],
-      'Lipids': ['total_cholesterol', 'ldl', 'hdl', 'triglycerides', 'apo_b', 'lp_a'],
-      'Inflammation': ['crp_hs', 'homocysteine', 'esr'],
-      'Vitamins': ['vitamin_d', 'b12', 'folate', 'magnesium'],
-      'Iron Panel': ['iron', 'ferritin', 'tibc', 'iron_saturation'],
-      'Liver': ['ast', 'alt', 'alk_phos', 'ggt', 'bilirubin', 'albumin'],
-      'Kidney': ['bun', 'creatinine', 'egfr'],
-      'CBC': ['wbc', 'rbc', 'hemoglobin', 'hematocrit', 'platelets'],
-      'Prostate': ['psa_total', 'psa_free']
-    };
-
-    const result = [];
-    for (const [category, keys] of Object.entries(categories)) {
-      const values = [];
-      for (const key of keys) {
-        const lab = labResults.find(l => l.test_name?.toLowerCase().replace(/[^a-z0-9]/g, '_') === key || l.test_code === key);
-        if (lab && lab.result_value) {
-          values.push(lab);
-        }
-      }
-      if (values.length > 0) {
-        result.push({ category, values });
-      }
-    }
-    return result;
-  };
-
-  // Wait for router to be ready
-  if (!router.isReady) {
-    return <div style={styles.loading}>Loading...</div>;
-  }
-
-  if (loading) {
-    return <div style={styles.loading}>Loading...</div>;
-  }
-
-  if (!patient) {
-    return <div style={styles.error}>Patient not found</div>;
-  }
+  const ghlLink = getGhlLink();
+  const latestLabs = labs?.[0];
+  const baselineSymptoms = symptomResponses?.[0];
 
   return (
     <>
       <Head>
-        <title>{patient.name} | Range Medical</title>
+        <title>{getPatientDisplayName()} | Range Medical</title>
       </Head>
-      
-      <div style={styles.container}>
+
+      <div className="patient-profile">
         {/* Header */}
-        <div style={styles.header}>
-          <div style={styles.headerLeft}>
-            <button onClick={() => router.back()} style={styles.backButton}>
-              ← Back
-            </button>
-            <h1 style={styles.patientName}>{patient.name}</h1>
+        <header className="profile-header">
+          <div className="header-top">
+            <button onClick={() => router.back()} className="back-btn">← Back</button>
+            {ghlLink && (
+              <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="ghl-link">
+                Open in GHL ↗
+              </a>
+            )}
           </div>
-          <div style={styles.headerRight}>
-            <div style={styles.contactInfo}>
+
+          <div className="header-main">
+            <h1>{getPatientDisplayName()}</h1>
+            <div className="contact-row">
               {patient.email && <span>{patient.email}</span>}
               {patient.phone && <span>{patient.phone}</span>}
             </div>
           </div>
-        </div>
 
-        {/* Pending Notifications */}
+          {/* Demographics */}
+          <div className="demographics-grid">
+            <div className="demo-item">
+              <label>Date of Birth</label>
+              <span>{patient.date_of_birth ? formatDate(patient.date_of_birth) : '—'}</span>
+            </div>
+            <div className="demo-item">
+              <label>Gender</label>
+              <span>{patient.gender || '—'}</span>
+            </div>
+            <div className="demo-item">
+              <label>Location</label>
+              <span>{patient.city && patient.state ? `${patient.city}, ${patient.state}` : '—'}</span>
+            </div>
+            <div className="demo-item">
+              <label>Patient Since</label>
+              <span>{patient.created_at ? formatDate(patient.created_at) : '—'}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Pending Purchases Alert */}
         {pendingNotifications.length > 0 && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>
-                Pending Purchases ({pendingNotifications.length})
-              </h2>
-            </div>
-            <div style={styles.notificationsList}>
+          <section className="pending-section">
+            <h2>Pending Purchases ({pendingNotifications.length})</h2>
+            <div className="pending-list">
               {pendingNotifications.map(notif => (
-                <div key={notif.id} style={styles.notificationCard}>
-                  <div style={styles.notificationInfo}>
-                    <div style={styles.notificationProduct}>{notif.product_name}</div>
-                    <div style={styles.notificationMeta}>
-                      ${notif.amount_paid?.toFixed(2)} • {formatDate(notif.purchase_date)}
-                    </div>
+                <div key={notif.id} className="pending-card">
+                  <div className="pending-info">
+                    <strong>{notif.product_name}</strong>
+                    <span>${notif.amount_paid?.toFixed(2)} • {formatShortDate(notif.purchase_date)}</span>
                   </div>
-                  <div style={styles.notificationActions}>
-                    <button 
-                      onClick={() => openAssignModal(notif)}
-                      style={styles.assignButton}
-                    >
-                      Assign Protocol
-                    </button>
-                    <button 
-                      onClick={() => handleDismissNotification(notif.id)}
-                      style={styles.dismissButton}
-                    >
-                      Dismiss
-                    </button>
+                  <div className="pending-actions">
+                    <button onClick={() => openAssignModal(notif)} className="btn-primary-sm">Assign Protocol</button>
+                    <button onClick={() => handleDismissNotification(notif.id)} className="btn-secondary-sm">Dismiss</button>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Range Assessment */}
-        <div style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Range Assessment</h2>
-          </div>
-          <div style={styles.assessmentGrid}>
-            {/* Baseline Labs Card */}
-            <div style={styles.assessmentCard}>
-              <div style={styles.assessmentHeader}>
-                <div style={styles.assessmentLabel}>Baseline Labs</div>
-                <div style={styles.buttonGroup}>
-                  {latestLabs && (
-                    <button 
-                      onClick={() => setShowViewLabsModal(true)} 
-                      style={styles.smallButton}
-                    >
-                      View
-                    </button>
-                  )}
-                  <button onClick={() => setShowLabsModal(true)} style={styles.smallButton}>
-                    + Add
-                  </button>
-                </div>
-              </div>
-              <div style={styles.assessmentValue}>
-                {latestLabs ? (
-                  <span style={styles.completedBadge}>
-                    ✓ {latestLabs.lab_panel || 'Complete'} ({formatDate(latestLabs.completed_date || latestLabs.test_date)})
-                  </span>
-                ) : (
-                  <span style={styles.pendingBadge}>Not completed</span>
-                )}
-              </div>
-            </div>
+        {/* Tab Navigation */}
+        <nav className="tabs">
+          <button className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>Overview</button>
+          <button className={activeTab === 'protocols' ? 'active' : ''} onClick={() => setActiveTab('protocols')}>Protocols ({stats.activeCount})</button>
+          <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
+          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Intakes ({intakes.length})</button>
+          <button className={activeTab === 'sessions' ? 'active' : ''} onClick={() => setActiveTab('sessions')}>Sessions ({sessions.length})</button>
+        </nav>
 
-            {/* Symptoms Card */}
-            <div style={styles.assessmentCard}>
-              <div style={styles.assessmentHeader}>
-                <div style={styles.assessmentLabel}>Symptoms Questionnaire</div>
-                <div style={styles.buttonGroup}>
-                  <button onClick={() => setShowSymptomsModal(true)} style={styles.smallButton}>
-                    Send SMS
-                  </button>
-                  <button onClick={copySymptomLink} style={styles.smallButton}>
-                    Copy Link
-                  </button>
+        {/* Tab Content */}
+        <div className="tab-content">
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <>
+              {/* Range Assessment Card */}
+              <section className="card">
+                <div className="card-header">
+                  <h3>Range Assessment</h3>
                 </div>
-              </div>
-              <div style={styles.assessmentValue}>
-                {baselineSymptoms ? (
-                  <span style={styles.completedBadge}>
-                    ✓ Complete ({formatDate(baselineSymptoms.submitted_at)})
-                  </span>
-                ) : (
-                  <span style={styles.pendingBadge}>Not completed</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Lab Documents Section */}
-        <div style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Lab Documents</h2>
-            <button 
-              style={styles.addButton}
-              onClick={() => setShowUploadModal(true)}
-            >
-              + Upload PDF
-            </button>
-          </div>
-          
-          {loadingDocs ? (
-            <div style={styles.emptyState}>Loading documents...</div>
-          ) : labDocuments.length === 0 ? (
-            <div style={styles.emptyState}>
-              No lab documents uploaded yet. Click "Upload PDF" to add lab results.
-            </div>
-          ) : (
-            <div style={styles.documentList}>
-              {labDocuments.map((doc) => (
-                <div key={doc.id} style={styles.documentCard}>
-                  <div style={styles.documentIcon}>📄</div>
-                  <div style={styles.documentInfo}>
-                    <div style={styles.documentName}>{doc.file_name}</div>
-                    <div style={styles.documentMeta}>
-                      {doc.panel_type && <span style={styles.docBadge}>{doc.panel_type}</span>}
-                      <span>{formatDate(doc.collection_date)}</span>
-                      <span style={styles.fileSize}>{formatFileSize(doc.file_size)}</span>
+                <div className="assessment-grid">
+                  <div className="assessment-item">
+                    <div className="assessment-label">
+                      <span>Baseline Labs</span>
+                      <div className="btn-group">
+                        <button onClick={() => setShowLabsModal(true)} className="btn-text">+ Add</button>
+                      </div>
                     </div>
-                    {doc.notes && <div style={styles.documentNotes}>{doc.notes}</div>}
-                  </div>
-                  <div style={styles.documentActions}>
-                    {doc.url && (
-                      <a 
-                        href={doc.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={styles.viewDocButton}
-                      >
-                        View
-                      </a>
-                    )}
-                    <button 
-                      onClick={() => handleDeleteDocument(doc.id)}
-                      style={styles.deleteDocButton}
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Active Protocols */}
-        <div style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Active Protocols</h2>
-            <button onClick={() => openAssignModal()} style={styles.addButton}>
-              + Add Protocol
-            </button>
-          </div>
-          {activeProtocols.length === 0 ? (
-            <div style={styles.emptyState}>No active protocols</div>
-          ) : (
-            <div style={styles.protocolsList}>
-              {activeProtocols.map(protocol => (
-                <div key={protocol.id} style={styles.protocolCard}>
-                  <div style={styles.protocolInfo}>
-                    <div style={styles.protocolName}>{protocol.program_name || protocol.medication}</div>
-                    <div style={styles.protocolMeta}>
-                      {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
-                      {protocol.frequency && <span> • {protocol.frequency}</span>}
-                    </div>
-                    <div style={styles.protocolDates}>
-                      Started {formatDate(protocol.start_date)}
-                      {protocol.end_date && ` • Ends ${formatDate(protocol.end_date)}`}
-                    </div>
-                  </div>
-                  <div style={styles.protocolActions}>
-                    {protocol.days_remaining > 0 ? (
-                      <span style={styles.daysRemaining}>{protocol.days_remaining} days left</span>
+                    {latestLabs ? (
+                      <span className="status-complete">✓ {latestLabs.lab_panel || 'Complete'} ({formatShortDate(latestLabs.completed_date || latestLabs.collection_date)})</span>
                     ) : (
-                      <span style={styles.protocolComplete}>Complete</span>
+                      <span className="status-pending">Not completed</span>
                     )}
-                    <button onClick={() => openEditModal(protocol)} style={styles.editProtocolButton}>Edit</button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Completed Protocols */}
-        <div style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Completed Protocols</h2>
-          </div>
-          {completedProtocols.length === 0 ? (
-            <div style={styles.emptyState}>No completed protocols</div>
-          ) : (
-            <div style={styles.protocolsList}>
-              {completedProtocols.map(protocol => (
-                <div key={protocol.id} style={{...styles.protocolCard, background: '#f9fafb'}}>
-                  <div style={styles.protocolInfo}>
-                    <div style={styles.protocolName}>{protocol.program_name || protocol.medication}</div>
-                    <div style={styles.protocolMeta}>
-                      {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
-                      {protocol.frequency && <span> • {protocol.frequency}</span>}
+                  <div className="assessment-item">
+                    <div className="assessment-label">
+                      <span>Symptoms Questionnaire</span>
+                      <div className="btn-group">
+                        <button onClick={() => setShowSymptomsModal(true)} className="btn-text">Send</button>
+                        <button onClick={copySymptomLink} className="btn-text">Copy Link</button>
+                      </div>
                     </div>
-                    <div style={styles.protocolDates}>
-                      {formatDate(protocol.start_date)} → {formatDate(protocol.end_date)}
-                    </div>
-                  </div>
-                  <div style={styles.protocolActions}>
-                    <span style={styles.protocolComplete}>✓ Complete</span>
-                    <button onClick={() => openEditModal(protocol)} style={styles.editProtocolButton}>Edit</button>
+                    {baselineSymptoms ? (
+                      <span className="status-complete">✓ Complete ({formatShortDate(baselineSymptoms.symptom_date)})</span>
+                    ) : (
+                      <span className="status-pending">Not completed</span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              </section>
+
+              {/* Active Protocols Summary */}
+              <section className="card">
+                <div className="card-header">
+                  <h3>Active Protocols</h3>
+                  <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add</button>
+                </div>
+                {activeProtocols.length === 0 ? (
+                  <div className="empty">No active protocols</div>
+                ) : (
+                  <div className="protocol-list">
+                    {activeProtocols.slice(0, 5).map(protocol => {
+                      const cat = getCategoryStyle(protocol.category);
+                      return (
+                        <div key={protocol.id} className="protocol-row">
+                          <div className="protocol-main">
+                            <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
+                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                            {protocol.selected_dose && <span className="protocol-dose">{protocol.selected_dose}</span>}
+                          </div>
+                          <div className="protocol-status">
+                            <span className="status-text">{protocol.status_text}</span>
+                            <button onClick={() => openEditModal(protocol)} className="btn-text">Edit</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {activeProtocols.length > 5 && (
+                      <button onClick={() => setActiveTab('protocols')} className="view-all">View all {activeProtocols.length} protocols →</button>
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {/* Recent Intakes */}
+              {intakes.length > 0 && (
+                <section className="card">
+                  <div className="card-header">
+                    <h3>Recent Intake Forms</h3>
+                  </div>
+                  <div className="intake-list">
+                    {intakes.slice(0, 3).map(intake => (
+                      <div key={intake.id} className="intake-row" onClick={() => { setSelectedIntake(intake); setShowIntakeModal(true); }}>
+                        <span className="intake-icon">📋</span>
+                        <div className="intake-info">
+                          <strong>Intake Form</strong>
+                          <span>{formatDate(intake.submitted_at)}</span>
+                        </div>
+                        <span className="intake-arrow">→</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
-        </div>
 
-        {/* Add Labs Modal */}
-        {showLabsModal && (
-          <div style={styles.modalOverlay} onClick={() => setShowLabsModal(false)}>
-            <div style={styles.modal} onClick={e => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Add Lab Results</h3>
-                <button onClick={() => setShowLabsModal(false)} style={styles.closeButton}>×</button>
-              </div>
-              <div style={styles.modalBody}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Lab Type</label>
-                  <select 
-                    value={labForm.labType} 
-                    onChange={e => setLabForm({...labForm, labType: e.target.value})}
-                    style={styles.select}
-                  >
-                    <option value="Baseline">Baseline</option>
-                    <option value="Follow-up">Follow-up</option>
-                    <option value="Quarterly">Quarterly</option>
-                    <option value="Annual">Annual</option>
-                  </select>
+          {/* Protocols Tab */}
+          {activeTab === 'protocols' && (
+            <>
+              <section className="card">
+                <div className="card-header">
+                  <h3>Active Protocols ({activeProtocols.length})</h3>
+                  <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add Protocol</button>
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Lab Panel</label>
-                  <select 
-                    value={labForm.labPanel} 
-                    onChange={e => setLabForm({...labForm, labPanel: e.target.value})}
-                    style={styles.select}
-                  >
-                    <option value="Elite">Elite</option>
-                    <option value="Essential">Essential</option>
-                    <option value="Metabolic">Metabolic</option>
-                    <option value="Hormone">Hormone</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Completed Date</label>
-                  <input 
-                    type="date" 
-                    value={labForm.completedDate}
-                    onChange={e => setLabForm({...labForm, completedDate: e.target.value})}
-                    style={styles.input}
-                  />
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes</label>
-                  <textarea 
-                    value={labForm.notes}
-                    onChange={e => setLabForm({...labForm, notes: e.target.value})}
-                    placeholder="Any notes..."
-                    style={styles.textarea}
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <div style={styles.modalFooter}>
-                <button onClick={() => setShowLabsModal(false)} style={styles.cancelButton}>Cancel</button>
-                <button onClick={handleAddLabs} style={styles.submitButton}>Save Labs</button>
-              </div>
-            </div>
-          </div>
-        )}
+                {activeProtocols.length === 0 ? (
+                  <div className="empty">No active protocols</div>
+                ) : (
+                  <div className="protocol-list">
+                    {activeProtocols.map(protocol => {
+                      const cat = getCategoryStyle(protocol.category);
+                      return (
+                        <div key={protocol.id} className="protocol-card">
+                          <div className="protocol-card-header">
+                            <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
+                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                          </div>
+                          <div className="protocol-details">
+                            {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
+                            {protocol.frequency && <span>{protocol.frequency}</span>}
+                          </div>
+                          <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
+                          <div className="protocol-footer">
+                            <span className="status-badge">{protocol.status_text}</span>
+                            <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
 
-        {/* View Labs Modal */}
-        {showViewLabsModal && (
-          <div style={styles.modalOverlay} onClick={() => setShowViewLabsModal(false)}>
-            <div style={{...styles.modal, maxWidth: '800px'}} onClick={e => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>
-                  Lab Results — {latestLabs?.lab_panel || 'Panel'} {formatDate(latestLabs?.completed_date || latestLabs?.test_date)}
-                </h3>
-                <button onClick={() => setShowViewLabsModal(false)} style={styles.closeButton}>×</button>
-              </div>
-              <div style={styles.modalBody}>
-                {getLabCategories().length > 0 ? (
-                  <div style={styles.labCategoriesGrid}>
-                    {getLabCategories().map(cat => (
-                      <div key={cat.category} style={styles.labCategory}>
-                        <h4 style={styles.labCategoryTitle}>{cat.category}</h4>
-                        <div style={styles.labValues}>
-                          {cat.values.map(lab => (
-                            <div key={lab.id} style={styles.labRow}>
-                              <span style={styles.labName}>{lab.test_name}</span>
-                              <span style={{
-                                ...styles.labValue,
-                                color: lab.flag === 'H' || lab.flag === 'L' ? '#dc2626' : '#059669'
-                              }}>
-                                {lab.result_value} {lab.unit}
-                              </span>
-                            </div>
-                          ))}
+              <section className="card">
+                <div className="card-header">
+                  <h3>Completed Protocols ({completedProtocols.length})</h3>
+                </div>
+                {completedProtocols.length === 0 ? (
+                  <div className="empty">No completed protocols</div>
+                ) : (
+                  <div className="protocol-list">
+                    {completedProtocols.map(protocol => {
+                      const cat = getCategoryStyle(protocol.category);
+                      return (
+                        <div key={protocol.id} className="protocol-card completed">
+                          <div className="protocol-card-header">
+                            <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
+                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                          </div>
+                          <div className="protocol-dates">{formatShortDate(protocol.start_date)} → {formatShortDate(protocol.end_date)}</div>
+                          <div className="protocol-footer">
+                            <span className="status-complete">✓ Complete</span>
+                            <button onClick={() => openEditModal(protocol)} className="btn-text">View</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+
+          {/* Labs Tab */}
+          {activeTab === 'labs' && (
+            <>
+              <section className="card">
+                <div className="card-header">
+                  <h3>Lab Documents</h3>
+                  <button onClick={() => setShowUploadModal(true)} className="btn-primary-sm">+ Upload PDF</button>
+                </div>
+                {loadingDocs ? (
+                  <div className="empty">Loading documents...</div>
+                ) : labDocuments.length === 0 ? (
+                  <div className="empty">No lab documents uploaded yet</div>
+                ) : (
+                  <div className="doc-list">
+                    {labDocuments.map(doc => (
+                      <div key={doc.id} className="doc-row">
+                        <span className="doc-icon">📄</span>
+                        <div className="doc-info">
+                          <strong>{doc.file_name}</strong>
+                          <span>{doc.panel_type} • {formatShortDate(doc.collection_date)} • {formatFileSize(doc.file_size)}</span>
+                        </div>
+                        <div className="doc-actions">
+                          {doc.url && <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm">View</a>}
+                          <button onClick={() => handleDeleteDocument(doc.id)} className="btn-text danger">×</button>
                         </div>
                       </div>
                     ))}
                   </div>
+                )}
+              </section>
+
+              <section className="card">
+                <div className="card-header">
+                  <h3>Lab Results</h3>
+                  <button onClick={() => setShowLabsModal(true)} className="btn-primary-sm">+ Add Labs</button>
+                </div>
+                {labs.length === 0 ? (
+                  <div className="empty">No lab results recorded</div>
                 ) : (
-                  <div style={styles.emptyState}>
-                    No detailed lab values available for this panel.
+                  <div className="lab-list">
+                    {labs.map(lab => (
+                      <div key={lab.id} className="lab-row">
+                        <div className="lab-info">
+                          <strong>{lab.lab_panel || 'Lab Panel'}</strong>
+                          <span>{lab.lab_type} • {formatDate(lab.completed_date || lab.collection_date)}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-        )}
+              </section>
+            </>
+          )}
 
-        {/* Upload Lab Document Modal */}
-        {showUploadModal && (
-          <div style={styles.modalOverlay} onClick={() => setShowUploadModal(false)}>
-            <div style={styles.modal} onClick={e => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Upload Lab PDF</h3>
-                <button onClick={() => setShowUploadModal(false)} style={styles.closeButton}>×</button>
+          {/* Intakes Tab */}
+          {activeTab === 'intakes' && (
+            <section className="card">
+              <div className="card-header">
+                <h3>Intake Forms ({intakes.length})</h3>
               </div>
-              <div style={styles.modalBody}>
-                {uploadError && <div style={styles.errorBox}>{uploadError}</div>}
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>PDF File *</label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleFileSelect}
-                    style={styles.fileInput}
-                  />
-                  {uploadForm.file && (
-                    <div style={styles.selectedFile}>
-                      Selected: {uploadForm.file.name}
+              {intakes.length === 0 ? (
+                <div className="empty">No intake forms found</div>
+              ) : (
+                <div className="intake-list full">
+                  {intakes.map(intake => (
+                    <div key={intake.id} className="intake-card" onClick={() => { setSelectedIntake(intake); setShowIntakeModal(true); }}>
+                      <div className="intake-header">
+                        <span className="intake-icon">📋</span>
+                        <div>
+                          <strong>{intake.first_name} {intake.last_name}</strong>
+                          <span>{formatDate(intake.submitted_at)}</span>
+                        </div>
+                      </div>
+                      <div className="intake-details">
+                        <span>{intake.email}</span>
+                        <span>{intake.phone}</span>
+                        {intake.date_of_birth && <span>DOB: {formatDate(intake.date_of_birth)}</span>}
+                      </div>
+                      <div className="intake-actions">
+                        {intake.pdf_url && <a href={intake.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm" onClick={e => e.stopPropagation()}>View PDF</a>}
+                        {intake.photo_id_url && <a href={intake.photo_id_url} target="_blank" rel="noopener noreferrer" className="btn-text" onClick={e => e.stopPropagation()}>Photo ID</a>}
+                      </div>
                     </div>
-                  )}
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Panel Type</label>
-                  <select
-                    value={uploadForm.panelType}
-                    onChange={(e) => setUploadForm({ ...uploadForm, panelType: e.target.value })}
-                    style={styles.select}
-                  >
-                    <option value="Elite">Elite</option>
-                    <option value="Essential">Essential</option>
-                    <option value="Metabolic">Metabolic</option>
-                    <option value="Hormone">Hormone</option>
-                    <option value="Thyroid">Thyroid</option>
-                    <option value="Follow-up">Follow-up</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Collection Date</label>
-                  <input
-                    type="date"
-                    value={uploadForm.collectionDate}
-                    onChange={(e) => setUploadForm({ ...uploadForm, collectionDate: e.target.value })}
-                    style={styles.input}
-                  />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes (optional)</label>
-                  <textarea
-                    value={uploadForm.notes}
-                    onChange={(e) => setUploadForm({ ...uploadForm, notes: e.target.value })}
-                    placeholder="Any notes about these lab results..."
-                    style={styles.textarea}
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <div style={styles.modalFooter}>
-                <button onClick={() => setShowUploadModal(false)} style={styles.cancelButton}>Cancel</button>
-                <button 
-                  onClick={handleUploadDocument}
-                  disabled={uploading || !uploadForm.file}
-                  style={styles.submitButton}
-                >
-                  {uploading ? 'Uploading...' : 'Upload'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Symptoms Modal */}
-        {showSymptomsModal && (
-          <div style={styles.modalOverlay} onClick={() => setShowSymptomsModal(false)}>
-            <div style={styles.modal} onClick={e => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Send Symptoms Questionnaire</h3>
-                <button onClick={() => setShowSymptomsModal(false)} style={styles.closeButton}>×</button>
-              </div>
-              <div style={styles.modalBody}>
-                {symptomsSent ? (
-                  <div style={styles.successMessage}>
-                    ✓ SMS sent successfully!
-                  </div>
-                ) : (
-                  <>
-                    <p>Send symptoms questionnaire link to:</p>
-                    <p style={{fontWeight: '600'}}>{patient.phone || 'No phone number'}</p>
-                  </>
-                )}
-              </div>
-              {!symptomsSent && (
-                <div style={styles.modalFooter}>
-                  <button onClick={() => setShowSymptomsModal(false)} style={styles.cancelButton}>Cancel</button>
-                  <button 
-                    onClick={handleSendSymptoms}
-                    disabled={sendingSymptoms || !patient.phone}
-                    style={styles.submitButton}
-                  >
-                    {sendingSymptoms ? 'Sending...' : 'Send SMS'}
-                  </button>
+                  ))}
                 </div>
               )}
-            </div>
-          </div>
-        )}
+            </section>
+          )}
 
-        {/* Edit Protocol Modal */}
-        {showEditModal && selectedProtocol && (
-          <div style={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
-            <div style={styles.modal} onClick={e => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Edit Protocol</h3>
-                <button onClick={() => setShowEditModal(false)} style={styles.closeButton}>×</button>
+          {/* Sessions Tab */}
+          {activeTab === 'sessions' && (
+            <section className="card">
+              <div className="card-header">
+                <h3>Sessions & Visits ({sessions.length})</h3>
               </div>
-              
-              <div style={styles.modalBody}>
-                <div style={styles.editPreview}>
-                  <strong>{selectedProtocol.program_name}</strong>
-                  {selectedProtocol.medication && <div>{selectedProtocol.medication}</div>}
-                </div>
-
-                {/* Medication picker for injections */}
-                {selectedProtocol.program_name?.toLowerCase().includes('injection') && (
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Medication</label>
-                    <select 
-                      value={editForm.medication}
-                      onChange={e => setEditForm({...editForm, medication: e.target.value})}
-                      style={styles.select}
-                    >
-                      <option value="">Select medication...</option>
-                      {INJECTION_MEDICATIONS.map(med => (
-                        <option key={med} value={med}>{med}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Dose</label>
-                  <input 
-                    type="text"
-                    value={editForm.selectedDose}
-                    onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
-                    placeholder="e.g. 500mcg, 100mg"
-                    style={styles.input}
-                  />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Frequency</label>
-                  <select 
-                    value={editForm.frequency}
-                    onChange={e => setEditForm({...editForm, frequency: e.target.value})}
-                    style={styles.select}
-                  >
-                    <option value="">Select frequency...</option>
-                    <option value="2x daily">2x daily</option>
-                    <option value="Daily">Daily</option>
-                    <option value="Every other day">Every other day</option>
-                    <option value="2x weekly">2x weekly</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Every 5 days">Every 5 days</option>
-                            <option value="5 days on, 2 off">5 days on, 2 off</option>
-                    <option value="As needed">As needed</option>
-                  </select>
-                </div>
-
-                {/* Sessions tracking for packs */}
-                {editForm.totalSessions && (
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Sessions Used (of {editForm.totalSessions})</label>
-                    <input 
-                      type="number"
-                      min="0"
-                      max={editForm.totalSessions}
-                      value={editForm.sessionsUsed}
-                      onChange={e => setEditForm({...editForm, sessionsUsed: parseInt(e.target.value) || 0})}
-                      style={styles.input}
-                    />
-                  </div>
-                )}
-
-                {/* Date fields only for non-session protocols */}
-                {!editForm.totalSessions && (
-                  <div style={styles.formRow}>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Start Date</label>
-                      <input 
-                        type="date"
-                        value={editForm.startDate}
-                        onChange={e => setEditForm({...editForm, startDate: e.target.value})}
-                        style={styles.input}
-                      />
+              {sessions.length === 0 ? (
+                <div className="empty">No sessions recorded</div>
+              ) : (
+                <div className="session-list">
+                  {sessions.map(session => (
+                    <div key={session.id} className="session-row">
+                      <div className="session-date">{formatShortDate(session.session_date)}</div>
+                      <div className="session-info">
+                        <strong>{session.protocols?.program_name || 'Session'}</strong>
+                        {session.session_number && <span>Session #{session.session_number}</span>}
+                      </div>
+                      {session.notes && <div className="session-notes">{session.notes}</div>}
                     </div>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>End Date</label>
-                      <input 
-                        type="date"
-                        value={editForm.endDate}
-                        onChange={e => setEditForm({...editForm, endDate: e.target.value})}
-                        style={styles.input}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Status</label>
-                  <select 
-                    value={editForm.status}
-                    onChange={e => setEditForm({...editForm, status: e.target.value})}
-                    style={styles.select}
-                  >
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="paused">Paused</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                  ))}
                 </div>
+              )}
+            </section>
+          )}
+        </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Notes</label>
-                  <textarea 
-                    value={editForm.notes}
-                    onChange={e => setEditForm({...editForm, notes: e.target.value})}
-                    placeholder="Any notes..."
-                    style={styles.textarea}
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              <div style={styles.modalFooter}>
-                <button onClick={() => setShowEditModal(false)} style={styles.cancelButton}>Cancel</button>
-                <button 
-                  onClick={handleEditProtocol}
-                  style={styles.submitButton}
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* ========== MODALS ========== */}
 
         {/* Assign Protocol Modal */}
         {showAssignModal && (
-          <div style={styles.modalOverlay} onClick={() => setShowAssignModal(false)}>
-            <div style={styles.modal} onClick={e => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Assign Protocol</h3>
-                <button onClick={() => setShowAssignModal(false)} style={styles.closeButton}>×</button>
+          <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Assign Protocol</h3>
+                <button onClick={() => setShowAssignModal(false)} className="close-btn">×</button>
               </div>
-              <div style={styles.modalBody}>
+              <div className="modal-body">
                 {selectedNotification && (
-                  <div style={styles.notificationPreview}>
-                    <strong>{selectedNotification.product_name}</strong>
-                    <span> • ${selectedNotification.amount_paid?.toFixed(2)}</span>
-                  </div>
+                  <div className="modal-preview">{selectedNotification.product_name} • ${selectedNotification.amount_paid?.toFixed(2)}</div>
                 )}
 
-                {/* Show Add to Pack option if packs exist */}
                 {existingPacks.length > 0 && (
-                  <div style={styles.packOption}>
-                    <div style={styles.packToggle}>
-                      <button 
-                        onClick={() => setAddToPackMode(false)}
-                        style={addToPackMode ? styles.toggleInactive : styles.toggleActive}
-                      >
-                        New Protocol
-                      </button>
-                      <button 
-                        onClick={() => setAddToPackMode(true)}
-                        style={addToPackMode ? styles.toggleActive : styles.toggleInactive}
-                      >
-                        Add to Existing Pack
-                      </button>
-                    </div>
-
-                    {addToPackMode && (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Select Pack</label>
-                        <select 
-                          value={selectedPackId}
-                          onChange={e => setSelectedPackId(e.target.value)}
-                          style={styles.select}
-                        >
-                          <option value="">Choose pack...</option>
-                          {existingPacks.map(pack => (
-                            <option key={pack.id} value={pack.id}>
-                              {pack.program_name} - {pack.sessions_used || 0} of {pack.total_sessions} used
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                  <div className="pack-toggle">
+                    <button className={!addToPackMode ? 'active' : ''} onClick={() => setAddToPackMode(false)}>New Protocol</button>
+                    <button className={addToPackMode ? 'active' : ''} onClick={() => setAddToPackMode(true)}>Add to Pack</button>
                   </div>
                 )}
 
-                {!addToPackMode && (
+                {addToPackMode ? (
+                  <div className="form-group">
+                    <label>Select Pack</label>
+                    <select value={selectedPackId} onChange={e => setSelectedPackId(e.target.value)}>
+                      <option value="">Choose pack...</option>
+                      {existingPacks.map(pack => (
+                        <option key={pack.id} value={pack.id}>{pack.program_name} - {pack.sessions_used || 0}/{pack.total_sessions}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
                   <>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Protocol Template *</label>
-                      <select 
-                        value={assignForm.templateId}
-                        onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', injectionMedication: '', injectionDose: ''})}
-                        style={styles.select}
-                      >
+                    <div className="form-group">
+                      <label>Protocol Template *</label>
+                      <select value={assignForm.templateId} onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}>
                         <option value="">Select template...</option>
                         {Object.entries(templates.grouped || {}).map(([category, temps]) => (
                           <optgroup key={category} label={category}>
-                            {temps.map(t => (
-                              <option key={t.id} value={t.id}>{t.name}</option>
-                            ))}
+                            {temps.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                           </optgroup>
                         ))}
                       </select>
@@ -1242,656 +875,854 @@ export default function PatientProfile() {
 
                     {isPeptideTemplate() && (
                       <>
-                        <div style={styles.formGroup}>
-                          <label style={styles.label}>Select Peptide *</label>
-                          <select 
-                            value={assignForm.peptideId}
-                            onChange={e => setAssignForm({...assignForm, peptideId: e.target.value, selectedDose: ''})}
-                            style={styles.select}
-                          >
+                        <div className="form-group">
+                          <label>Select Peptide</label>
+                          <select value={assignForm.peptideId} onChange={e => setAssignForm({...assignForm, peptideId: e.target.value})}>
                             <option value="">Select peptide...</option>
-                            {peptides.map(p => (
-                              <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
+                            {peptides.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </div>
-
                         {getSelectedPeptide()?.dose_options?.length > 0 && (
-                          <div style={styles.formGroup}>
-                            <label style={styles.label}>Select Dose *</label>
-                            <select 
-                              value={assignForm.selectedDose}
-                              onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
-                              style={styles.select}
-                            >
-                              <option value="">Select a dose...</option>
-                              {getSelectedPeptide().dose_options.map(dose => (
-                                <option key={dose} value={dose}>{dose}</option>
-                              ))}
+                          <div className="form-group">
+                            <label>Dose</label>
+                            <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
+                              <option value="">Select dose...</option>
+                              {getSelectedPeptide().dose_options.map(dose => <option key={dose} value={dose}>{dose}</option>)}
                             </select>
                           </div>
                         )}
-
-                        <div style={styles.formGroup}>
-                          <label style={styles.label}>Frequency</label>
-                          <select 
-                            value={assignForm.frequency}
-                            onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
-                            style={styles.select}
-                          >
-                            <option value="">Select frequency...</option>
-                            <option value="2x daily">2x daily</option>
-                            <option value="Daily">Daily</option>
-                            <option value="Every other day">Every other day</option>
-                            <option value="2x weekly">2x weekly</option>
-                            <option value="Weekly">Weekly</option>
-                            <option value="Every 5 days">Every 5 days</option>
-                            <option value="5 days on, 2 off">5 days on, 2 off</option>
-                            <option value="As needed">As needed</option>
-                          </select>
-                        </div>
                       </>
                     )}
 
                     {isInjectionTemplate() && (
                       <>
-                        <div style={styles.formGroup}>
-                          <label style={styles.label}>Medication *</label>
-                          <select 
-                            value={assignForm.injectionMedication}
-                            onChange={e => setAssignForm({...assignForm, injectionMedication: e.target.value})}
-                            style={styles.select}
-                          >
+                        <div className="form-group">
+                          <label>Medication</label>
+                          <select value={assignForm.injectionMedication} onChange={e => setAssignForm({...assignForm, injectionMedication: e.target.value})}>
                             <option value="">Select medication...</option>
-                            {INJECTION_MEDICATIONS.map(med => (
-                              <option key={med} value={med}>{med}</option>
-                            ))}
+                            {INJECTION_MEDICATIONS.map(med => <option key={med} value={med}>{med}</option>)}
                           </select>
                         </div>
-
-                        <div style={styles.formGroup}>
-                          <label style={styles.label}>Dose</label>
-                          <input 
-                            type="text"
-                            value={assignForm.injectionDose}
-                            onChange={e => setAssignForm({...assignForm, injectionDose: e.target.value})}
-                            placeholder="e.g. 100mg, 200mg"
-                            style={styles.input}
-                          />
+                        <div className="form-group">
+                          <label>Dose</label>
+                          <input type="text" value={assignForm.injectionDose} onChange={e => setAssignForm({...assignForm, injectionDose: e.target.value})} placeholder="e.g. 100mg" />
                         </div>
                       </>
                     )}
 
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Start Date</label>
-                      <input 
-                        type="date"
-                        value={assignForm.startDate}
-                        onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
-                        style={styles.input}
-                      />
+                    <div className="form-group">
+                      <label>Frequency</label>
+                      <select value={assignForm.frequency} onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}>
+                        <option value="">Select frequency...</option>
+                        <option value="Daily">Daily</option>
+                        <option value="Every other day">Every other day</option>
+                        <option value="2x weekly">2x weekly</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="As needed">As needed</option>
+                      </select>
                     </div>
 
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Notes</label>
-                      <textarea 
-                        value={assignForm.notes}
-                        onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
-                        placeholder="Any special instructions..."
-                        style={styles.textarea}
-                        rows={3}
-                      />
+                    <div className="form-group">
+                      <label>Start Date</label>
+                      <input type="date" value={assignForm.startDate} onChange={e => setAssignForm({...assignForm, startDate: e.target.value})} />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Notes</label>
+                      <textarea value={assignForm.notes} onChange={e => setAssignForm({...assignForm, notes: e.target.value})} rows={2} />
                     </div>
                   </>
                 )}
               </div>
-              <div style={styles.modalFooter}>
-                <button onClick={() => setShowAssignModal(false)} style={styles.cancelButton}>Cancel</button>
+              <div className="modal-footer">
+                <button onClick={() => setShowAssignModal(false)} className="btn-secondary">Cancel</button>
                 {addToPackMode ? (
-                  <button 
-                    onClick={handleAddToPack}
-                    disabled={!selectedPackId}
-                    style={styles.submitButton}
-                  >
-                    Add to Pack
-                  </button>
+                  <button onClick={handleAddToPack} disabled={!selectedPackId} className="btn-primary">Add to Pack</button>
                 ) : (
-                  <button 
-                    onClick={handleAssignProtocol}
-                    disabled={!assignForm.templateId}
-                    style={styles.submitButton}
-                  >
-                    Assign Protocol
-                  </button>
+                  <button onClick={handleAssignProtocol} disabled={!assignForm.templateId} className="btn-primary">Assign</button>
                 )}
               </div>
             </div>
           </div>
         )}
+
+        {/* Edit Protocol Modal */}
+        {showEditModal && selectedProtocol && (
+          <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Edit Protocol</h3>
+                <button onClick={() => setShowEditModal(false)} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                <div className="modal-preview">{selectedProtocol.program_name}</div>
+
+                <div className="form-group">
+                  <label>Dose</label>
+                  <input type="text" value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})} />
+                </div>
+
+                <div className="form-group">
+                  <label>Frequency</label>
+                  <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
+                    <option value="">Select...</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Every other day">Every other day</option>
+                    <option value="2x weekly">2x weekly</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="As needed">As needed</option>
+                  </select>
+                </div>
+
+                {editForm.totalSessions ? (
+                  <div className="form-group">
+                    <label>Sessions Used (of {editForm.totalSessions})</label>
+                    <input type="number" min="0" max={editForm.totalSessions} value={editForm.sessionsUsed} onChange={e => setEditForm({...editForm, sessionsUsed: parseInt(e.target.value) || 0})} />
+                  </div>
+                ) : (
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Start Date</label>
+                      <input type="date" value={editForm.startDate} onChange={e => setEditForm({...editForm, startDate: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>End Date</label>
+                      <input type="date" value={editForm.endDate} onChange={e => setEditForm({...editForm, endDate: e.target.value})} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label>Status</label>
+                  <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="paused">Paused</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={2} />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setShowEditModal(false)} className="btn-secondary">Cancel</button>
+                <button onClick={handleEditProtocol} className="btn-primary">Save Changes</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Labs Modal */}
+        {showLabsModal && (
+          <div className="modal-overlay" onClick={() => setShowLabsModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Add Lab Results</h3>
+                <button onClick={() => setShowLabsModal(false)} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Lab Type</label>
+                  <select value={labForm.labType} onChange={e => setLabForm({...labForm, labType: e.target.value})}>
+                    <option value="Baseline">Baseline</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Quarterly">Quarterly</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Panel</label>
+                  <select value={labForm.labPanel} onChange={e => setLabForm({...labForm, labPanel: e.target.value})}>
+                    <option value="Elite">Elite</option>
+                    <option value="Essential">Essential</option>
+                    <option value="Metabolic">Metabolic</option>
+                    <option value="Hormone">Hormone</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Date</label>
+                  <input type="date" value={labForm.completedDate} onChange={e => setLabForm({...labForm, completedDate: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea value={labForm.notes} onChange={e => setLabForm({...labForm, notes: e.target.value})} rows={2} />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setShowLabsModal(false)} className="btn-secondary">Cancel</button>
+                <button onClick={handleAddLabs} className="btn-primary">Save Labs</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Lab PDF Modal */}
+        {showUploadModal && (
+          <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Upload Lab PDF</h3>
+                <button onClick={() => setShowUploadModal(false)} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                {uploadError && <div className="error-box">{uploadError}</div>}
+                <div className="form-group">
+                  <label>PDF File *</label>
+                  <input ref={fileInputRef} type="file" accept="application/pdf" onChange={handleFileSelect} />
+                  {uploadForm.file && <div className="file-selected">Selected: {uploadForm.file.name}</div>}
+                </div>
+                <div className="form-group">
+                  <label>Panel Type</label>
+                  <select value={uploadForm.panelType} onChange={e => setUploadForm({...uploadForm, panelType: e.target.value})}>
+                    <option value="Elite">Elite</option>
+                    <option value="Essential">Essential</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Collection Date</label>
+                  <input type="date" value={uploadForm.collectionDate} onChange={e => setUploadForm({...uploadForm, collectionDate: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea value={uploadForm.notes} onChange={e => setUploadForm({...uploadForm, notes: e.target.value})} rows={2} />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setShowUploadModal(false)} className="btn-secondary">Cancel</button>
+                <button onClick={handleUploadDocument} disabled={uploading || !uploadForm.file} className="btn-primary">{uploading ? 'Uploading...' : 'Upload'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Send Symptoms Modal */}
+        {showSymptomsModal && (
+          <div className="modal-overlay" onClick={() => setShowSymptomsModal(false)}>
+            <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Send Symptoms Questionnaire</h3>
+                <button onClick={() => setShowSymptomsModal(false)} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                {symptomsSent ? (
+                  <div className="success-msg">✓ SMS sent successfully!</div>
+                ) : (
+                  <>
+                    <p>Send symptoms questionnaire link to:</p>
+                    <p><strong>{patient.phone || 'No phone number'}</strong></p>
+                  </>
+                )}
+              </div>
+              {!symptomsSent && (
+                <div className="modal-footer">
+                  <button onClick={() => setShowSymptomsModal(false)} className="btn-secondary">Cancel</button>
+                  <button onClick={handleSendSymptoms} disabled={sendingSymptoms || !patient.phone} className="btn-primary">{sendingSymptoms ? 'Sending...' : 'Send SMS'}</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* View Intake Modal */}
+        {showIntakeModal && selectedIntake && (
+          <div className="modal-overlay" onClick={() => setShowIntakeModal(false)}>
+            <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Intake Form Details</h3>
+                <button onClick={() => setShowIntakeModal(false)} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                <div className="intake-detail-grid">
+                  <div className="detail-row"><label>Name</label><span>{selectedIntake.first_name} {selectedIntake.last_name}</span></div>
+                  <div className="detail-row"><label>Email</label><span>{selectedIntake.email}</span></div>
+                  <div className="detail-row"><label>Phone</label><span>{selectedIntake.phone}</span></div>
+                  <div className="detail-row"><label>DOB</label><span>{formatDate(selectedIntake.date_of_birth)}</span></div>
+                  <div className="detail-row"><label>Gender</label><span>{selectedIntake.gender}</span></div>
+                  <div className="detail-row"><label>Submitted</label><span>{formatDate(selectedIntake.submitted_at)}</span></div>
+                </div>
+                {selectedIntake.symptoms && (
+                  <div className="intake-symptoms">
+                    <h4>Symptoms</h4>
+                    <pre>{JSON.stringify(selectedIntake.symptoms, null, 2)}</pre>
+                  </div>
+                )}
+                <div className="intake-links">
+                  {selectedIntake.pdf_url && <a href={selectedIntake.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-secondary">View Full PDF</a>}
+                  {selectedIntake.photo_id_url && <a href={selectedIntake.photo_id_url} target="_blank" rel="noopener noreferrer" className="btn-secondary">View Photo ID</a>}
+                  {selectedIntake.signature_url && <a href={selectedIntake.signature_url} target="_blank" rel="noopener noreferrer" className="btn-secondary">View Signature</a>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        .patient-profile {
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 24px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .loading, .error {
+          text-align: center;
+          padding: 60px 20px;
+          color: #666;
+        }
+        .error { color: #dc2626; }
+
+        /* Header */
+        .profile-header {
+          margin-bottom: 24px;
+          padding-bottom: 24px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .header-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+        .back-btn {
+          background: none;
+          border: none;
+          font-size: 14px;
+          color: #666;
+          cursor: pointer;
+        }
+        .back-btn:hover { color: #000; }
+        .ghl-link {
+          font-size: 13px;
+          color: #2563eb;
+          text-decoration: none;
+          padding: 6px 12px;
+          border: 1px solid #2563eb;
+          border-radius: 6px;
+        }
+        .ghl-link:hover { background: #eff6ff; }
+        .header-main h1 {
+          font-size: 28px;
+          font-weight: 600;
+          margin: 0 0 8px;
+        }
+        .contact-row {
+          display: flex;
+          gap: 16px;
+          color: #666;
+          font-size: 14px;
+        }
+        .demographics-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          margin-top: 20px;
+          padding: 16px;
+          background: #f9fafb;
+          border-radius: 8px;
+        }
+        .demo-item label {
+          display: block;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: #6b7280;
+          margin-bottom: 4px;
+        }
+        .demo-item span {
+          font-size: 14px;
+          color: #111;
+        }
+
+        /* Pending Section */
+        .pending-section {
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 24px;
+        }
+        .pending-section h2 {
+          font-size: 16px;
+          font-weight: 600;
+          margin: 0 0 12px;
+        }
+        .pending-list { display: flex; flex-direction: column; gap: 8px; }
+        .pending-card {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: #fff;
+          padding: 12px 16px;
+          border-radius: 6px;
+        }
+        .pending-info strong { display: block; margin-bottom: 2px; }
+        .pending-info span { font-size: 13px; color: #666; }
+        .pending-actions { display: flex; gap: 8px; }
+
+        /* Tabs */
+        .tabs {
+          display: flex;
+          gap: 4px;
+          margin-bottom: 24px;
+          border-bottom: 1px solid #e5e7eb;
+          padding-bottom: 0;
+        }
+        .tabs button {
+          padding: 12px 20px;
+          border: none;
+          background: none;
+          font-size: 14px;
+          font-weight: 500;
+          color: #6b7280;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          margin-bottom: -1px;
+        }
+        .tabs button:hover { color: #111; }
+        .tabs button.active {
+          color: #000;
+          border-bottom-color: #000;
+        }
+
+        /* Cards */
+        .card {
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          margin-bottom: 16px;
+        }
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .card-header h3 {
+          font-size: 16px;
+          font-weight: 600;
+          margin: 0;
+        }
+        .empty {
+          padding: 32px;
+          text-align: center;
+          color: #9ca3af;
+        }
+
+        /* Assessment */
+        .assessment-grid { padding: 16px; }
+        .assessment-item {
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .assessment-item:last-child { border-bottom: none; }
+        .assessment-label {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+          font-weight: 500;
+        }
+        .status-complete { color: #059669; }
+        .status-pending { color: #f59e0b; }
+
+        /* Protocols */
+        .protocol-list { padding: 0 16px 16px; }
+        .protocol-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .protocol-row:last-child { border-bottom: none; }
+        .protocol-main {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .protocol-badge {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 4px;
+        }
+        .protocol-name { font-weight: 500; }
+        .protocol-dose { color: #666; font-size: 14px; }
+        .protocol-status {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .status-text { font-size: 13px; color: #666; }
+        .status-badge {
+          font-size: 12px;
+          padding: 4px 10px;
+          background: #dbeafe;
+          color: #1e40af;
+          border-radius: 4px;
+        }
+        .protocol-card {
+          padding: 16px;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .protocol-card.completed { background: #f9fafb; }
+        .protocol-card-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+        .protocol-details {
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 4px;
+        }
+        .protocol-details span { margin-right: 12px; }
+        .protocol-dates { font-size: 13px; color: #9ca3af; }
+        .protocol-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 12px;
+        }
+        .view-all {
+          display: block;
+          text-align: center;
+          padding: 12px;
+          color: #2563eb;
+          font-size: 14px;
+          background: none;
+          border: none;
+          cursor: pointer;
+        }
+
+        /* Intakes */
+        .intake-list { padding: 0 16px 16px; }
+        .intake-list.full { padding: 16px; }
+        .intake-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f4f6;
+          cursor: pointer;
+        }
+        .intake-row:hover { background: #f9fafb; }
+        .intake-icon { font-size: 24px; }
+        .intake-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        .intake-info strong { font-size: 14px; }
+        .intake-info span { font-size: 13px; color: #666; }
+        .intake-arrow { color: #9ca3af; }
+        .intake-card {
+          padding: 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          cursor: pointer;
+        }
+        .intake-card:hover { border-color: #000; }
+        .intake-header {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+        .intake-header > div {
+          display: flex;
+          flex-direction: column;
+        }
+        .intake-header strong { font-size: 15px; }
+        .intake-header span { font-size: 13px; color: #666; }
+        .intake-details {
+          font-size: 13px;
+          color: #666;
+          margin-bottom: 12px;
+        }
+        .intake-details span { margin-right: 16px; }
+        .intake-actions { display: flex; gap: 8px; }
+
+        /* Labs & Docs */
+        .doc-list { padding: 16px; }
+        .doc-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .doc-icon { font-size: 24px; }
+        .doc-info { flex: 1; }
+        .doc-info strong { display: block; margin-bottom: 2px; }
+        .doc-info span { font-size: 13px; color: #666; }
+        .doc-actions { display: flex; gap: 8px; align-items: center; }
+        .lab-list { padding: 16px; }
+        .lab-row {
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .lab-info strong { display: block; margin-bottom: 2px; }
+        .lab-info span { font-size: 13px; color: #666; }
+
+        /* Sessions */
+        .session-list { padding: 16px; }
+        .session-row {
+          display: flex;
+          gap: 16px;
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .session-date {
+          font-size: 13px;
+          font-weight: 600;
+          color: #666;
+          min-width: 80px;
+        }
+        .session-info strong { display: block; }
+        .session-info span { font-size: 13px; color: #666; }
+        .session-notes {
+          font-size: 13px;
+          color: #666;
+          font-style: italic;
+        }
+
+        /* Buttons */
+        .btn-primary {
+          background: #000;
+          color: #fff;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+        }
+        .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+        .btn-primary-sm {
+          background: #000;
+          color: #fff;
+          border: none;
+          padding: 6px 14px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+        }
+        .btn-secondary {
+          background: #fff;
+          color: #000;
+          border: 1px solid #d1d5db;
+          padding: 10px 20px;
+          border-radius: 6px;
+          font-size: 14px;
+          cursor: pointer;
+          text-decoration: none;
+        }
+        .btn-secondary-sm {
+          background: #fff;
+          color: #000;
+          border: 1px solid #d1d5db;
+          padding: 6px 14px;
+          border-radius: 6px;
+          font-size: 13px;
+          cursor: pointer;
+          text-decoration: none;
+        }
+        .btn-text {
+          background: none;
+          border: none;
+          color: #2563eb;
+          font-size: 13px;
+          cursor: pointer;
+          padding: 4px 8px;
+        }
+        .btn-text.danger { color: #dc2626; font-size: 18px; }
+        .btn-group { display: flex; gap: 8px; }
+
+        /* Modals */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        .modal {
+          background: #fff;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow: auto;
+        }
+        .modal-sm { max-width: 380px; }
+        .modal-lg { max-width: 700px; }
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 20px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .modal-header h3 {
+          font-size: 18px;
+          font-weight: 600;
+          margin: 0;
+        }
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 24px;
+          color: #666;
+          cursor: pointer;
+        }
+        .modal-body { padding: 20px; }
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 16px 20px;
+          border-top: 1px solid #e5e7eb;
+        }
+        .modal-preview {
+          background: #f3f4f6;
+          padding: 12px;
+          border-radius: 6px;
+          margin-bottom: 16px;
+          font-weight: 500;
+        }
+
+        /* Forms */
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+          display: block;
+          font-size: 14px;
+          font-weight: 500;
+          margin-bottom: 6px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 14px;
+          box-sizing: border-box;
+        }
+        .form-group textarea { resize: vertical; }
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .error-box {
+          background: #fef2f2;
+          color: #dc2626;
+          padding: 12px;
+          border-radius: 6px;
+          margin-bottom: 16px;
+          font-size: 14px;
+        }
+        .success-msg {
+          text-align: center;
+          color: #059669;
+          font-size: 16px;
+          font-weight: 500;
+          padding: 20px;
+        }
+        .file-selected {
+          margin-top: 8px;
+          font-size: 13px;
+          color: #059669;
+        }
+        .pack-toggle {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+        .pack-toggle button {
+          flex: 1;
+          padding: 10px;
+          border: 2px solid #d1d5db;
+          background: #fff;
+          border-radius: 6px;
+          font-size: 13px;
+          cursor: pointer;
+        }
+        .pack-toggle button.active {
+          border-color: #000;
+          background: #000;
+          color: #fff;
+        }
+
+        /* Intake Detail Modal */
+        .intake-detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+        .detail-row {
+          padding: 8px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .detail-row label {
+          display: block;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: #6b7280;
+          margin-bottom: 4px;
+        }
+        .detail-row span { font-size: 14px; }
+        .intake-symptoms {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #e5e7eb;
+        }
+        .intake-symptoms h4 {
+          font-size: 14px;
+          font-weight: 600;
+          margin: 0 0 8px;
+        }
+        .intake-symptoms pre {
+          background: #f9fafb;
+          padding: 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          overflow: auto;
+          max-height: 200px;
+        }
+        .intake-links {
+          display: flex;
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .demographics-grid { grid-template-columns: repeat(2, 1fr); }
+          .tabs { overflow-x: auto; }
+          .tabs button { padding: 12px 16px; white-space: nowrap; }
+          .pending-card { flex-direction: column; gap: 12px; align-items: flex-start; }
+          .protocol-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .intake-detail-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </>
   );
 }
-
-// ============================================
-// STYLES
-// ============================================
-const styles = {
-  container: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '24px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '48px',
-    color: '#666'
-  },
-  error: {
-    textAlign: 'center',
-    padding: '48px',
-    color: '#ef4444'
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '32px',
-    paddingBottom: '16px',
-    borderBottom: '1px solid #e5e7eb'
-  },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px'
-  },
-  backButton: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '14px',
-    color: '#666'
-  },
-  patientName: {
-    fontSize: '28px',
-    fontWeight: '600',
-    margin: 0
-  },
-  headerRight: {
-    textAlign: 'right'
-  },
-  contactInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    color: '#666',
-    fontSize: '14px'
-  },
-  section: {
-    marginBottom: '32px'
-  },
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px'
-  },
-  sectionTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    margin: 0
-  },
-  addButton: {
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '32px',
-    color: '#999',
-    background: '#f9fafb',
-    borderRadius: '8px'
-  },
-  // Assessment styles
-  assessmentGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '16px'
-  },
-  assessmentCard: {
-    padding: '16px',
-    background: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb'
-  },
-  assessmentHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px'
-  },
-  assessmentLabel: {
-    fontWeight: '600',
-    fontSize: '14px'
-  },
-  assessmentValue: {
-    fontSize: '14px'
-  },
-  buttonGroup: {
-    display: 'flex',
-    gap: '8px'
-  },
-  smallButton: {
-    background: '#fff',
-    border: '1px solid #d1d5db',
-    padding: '4px 12px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '13px'
-  },
-  completedBadge: {
-    color: '#059669',
-    fontWeight: '500'
-  },
-  pendingBadge: {
-    color: '#f59e0b'
-  },
-  // Document styles
-  documentList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
-  },
-  documentCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '12px 16px',
-    background: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb'
-  },
-  documentIcon: {
-    fontSize: '24px'
-  },
-  documentInfo: {
-    flex: 1
-  },
-  documentName: {
-    fontWeight: '500',
-    marginBottom: '4px'
-  },
-  documentMeta: {
-    display: 'flex',
-    gap: '12px',
-    fontSize: '13px',
-    color: '#666'
-  },
-  docBadge: {
-    background: '#e5e7eb',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontWeight: '500'
-  },
-  fileSize: {
-    color: '#999'
-  },
-  documentNotes: {
-    marginTop: '4px',
-    fontSize: '13px',
-    color: '#666',
-    fontStyle: 'italic'
-  },
-  documentActions: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center'
-  },
-  viewDocButton: {
-    background: '#fff',
-    color: '#000',
-    border: '1px solid #000',
-    padding: '6px 12px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    textDecoration: 'none'
-  },
-  deleteDocButton: {
-    background: 'none',
-    border: 'none',
-    color: '#999',
-    fontSize: '20px',
-    cursor: 'pointer',
-    padding: '4px 8px'
-  },
-  // Notification styles
-  notificationsList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
-  },
-  notificationCard: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px',
-    background: '#fef3c7',
-    borderRadius: '8px',
-    border: '1px solid #f59e0b'
-  },
-  notificationInfo: {
-    flex: 1
-  },
-  notificationProduct: {
-    fontWeight: '600',
-    marginBottom: '4px'
-  },
-  notificationMeta: {
-    fontSize: '14px',
-    color: '#666'
-  },
-  notificationActions: {
-    display: 'flex',
-    gap: '8px'
-  },
-  assignButton: {
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px'
-  },
-  dismissButton: {
-    background: '#fff',
-    color: '#666',
-    border: '1px solid #d1d5db',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px'
-  },
-  // Protocol styles
-  protocolsList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
-  },
-  protocolCard: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px',
-    background: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb'
-  },
-  protocolInfo: {
-    flex: 1
-  },
-  protocolName: {
-    fontWeight: '600',
-    marginBottom: '4px'
-  },
-  protocolMeta: {
-    fontSize: '14px',
-    color: '#666',
-    marginBottom: '4px'
-  },
-  protocolDates: {
-    fontSize: '13px',
-    color: '#999'
-  },
-  protocolStatus: {},
-  protocolActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  editProtocolButton: {
-    background: 'none',
-    border: '1px solid #d1d5db',
-    padding: '4px 12px',
-    borderRadius: '4px',
-    fontSize: '13px',
-    cursor: 'pointer',
-    color: '#666'
-  },
-  editPreview: {
-    background: '#f9fafb',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    marginBottom: '16px'
-  },
-  formRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px'
-  },
-  daysRemaining: {
-    background: '#dbeafe',
-    color: '#1d4ed8',
-    padding: '4px 12px',
-    borderRadius: '4px',
-    fontSize: '13px',
-    fontWeight: '500'
-  },
-  protocolComplete: {
-    color: '#059669',
-    fontWeight: '500'
-  },
-  // Modal styles
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000
-  },
-  modal: {
-    background: '#fff',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '480px',
-    maxHeight: '90vh',
-    overflow: 'auto'
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px 20px',
-    borderBottom: '1px solid #e5e7eb'
-  },
-  modalTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    margin: 0
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    fontSize: '24px',
-    color: '#666',
-    cursor: 'pointer'
-  },
-  modalBody: {
-    padding: '20px'
-  },
-  modalFooter: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '12px',
-    padding: '16px 20px',
-    borderTop: '1px solid #e5e7eb'
-  },
-  formGroup: {
-    marginBottom: '16px'
-  },
-  label: {
-    display: 'block',
-    marginBottom: '6px',
-    fontWeight: '500',
-    fontSize: '14px'
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '14px',
-    boxSizing: 'border-box'
-  },
-  select: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '14px',
-    boxSizing: 'border-box',
-    background: '#fff'
-  },
-  textarea: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '14px',
-    boxSizing: 'border-box',
-    resize: 'vertical'
-  },
-  fileInput: {
-    width: '100%',
-    padding: '10px',
-    border: '2px dashed #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    boxSizing: 'border-box'
-  },
-  selectedFile: {
-    marginTop: '8px',
-    fontSize: '13px',
-    color: '#059669'
-  },
-  errorBox: {
-    background: '#fef2f2',
-    color: '#dc2626',
-    padding: '12px',
-    borderRadius: '6px',
-    marginBottom: '16px',
-    fontSize: '14px'
-  },
-  cancelButton: {
-    background: '#fff',
-    color: '#000',
-    border: '1px solid #d1d5db',
-    padding: '10px 20px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px'
-  },
-  submitButton: {
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  successMessage: {
-    textAlign: 'center',
-    padding: '20px',
-    color: '#059669',
-    fontSize: '16px',
-    fontWeight: '500'
-  },
-  notificationPreview: {
-    background: '#f3f4f6',
-    padding: '12px',
-    borderRadius: '6px',
-    marginBottom: '16px'
-  },
-  packOption: {
-    marginBottom: '16px',
-    padding: '12px',
-    background: '#f9fafb',
-    borderRadius: '8px'
-  },
-  packToggle: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '12px'
-  },
-  toggleActive: {
-    flex: 1,
-    padding: '8px 12px',
-    border: '2px solid #000',
-    background: '#000',
-    color: '#fff',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '500'
-  },
-  toggleInactive: {
-    flex: 1,
-    padding: '8px 12px',
-    border: '2px solid #d1d5db',
-    background: '#fff',
-    color: '#666',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px'
-  },
-  // Lab results modal styles
-  labCategoriesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '20px'
-  },
-  labCategory: {
-    background: '#f9fafb',
-    padding: '16px',
-    borderRadius: '8px'
-  },
-  labCategoryTitle: {
-    fontSize: '14px',
-    fontWeight: '600',
-    marginBottom: '12px',
-    paddingBottom: '8px',
-    borderBottom: '1px solid #e5e7eb'
-  },
-  labValues: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  },
-  labRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontSize: '13px'
-  },
-  labName: {
-    color: '#666'
-  },
-  labValue: {
-    fontWeight: '600'
-  }
-};

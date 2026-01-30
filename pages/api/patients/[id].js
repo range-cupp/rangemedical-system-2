@@ -283,34 +283,43 @@ export default async function handler(req, res) {
 
       // ===== NEW: Get intake forms =====
       let intakes = [];
+      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id';
 
       // Try by patient_id first
       const { data: intakesByPatientId } = await supabase
         .from('intakes')
-        .select('id, first_name, last_name, email, phone, date_of_birth, gender, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id')
+        .select(intakeFields)
         .eq('patient_id', id)
         .order('submitted_at', { ascending: false });
 
       if (intakesByPatientId && intakesByPatientId.length > 0) {
         intakes = intakesByPatientId;
-      } else if (patient.ghl_contact_id) {
-        // Fallback to ghl_contact_id
+      }
+
+      // Also try ghl_contact_id if we haven't found any yet
+      if (intakes.length === 0 && patient.ghl_contact_id) {
         const { data: intakesByGhl } = await supabase
           .from('intakes')
-          .select('id, first_name, last_name, email, phone, date_of_birth, gender, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id')
+          .select(intakeFields)
           .eq('ghl_contact_id', patient.ghl_contact_id)
           .order('submitted_at', { ascending: false });
 
-        intakes = intakesByGhl || [];
-      } else if (patient.email) {
-        // Fallback to email
+        if (intakesByGhl && intakesByGhl.length > 0) {
+          intakes = intakesByGhl;
+        }
+      }
+
+      // Also try email if we still haven't found any
+      if (intakes.length === 0 && patient.email) {
         const { data: intakesByEmail } = await supabase
           .from('intakes')
-          .select('id, first_name, last_name, email, phone, date_of_birth, gender, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id')
-          .eq('email', patient.email)
+          .select(intakeFields)
+          .ilike('email', patient.email)  // Case-insensitive match
           .order('submitted_at', { ascending: false });
 
-        intakes = intakesByEmail || [];
+        if (intakesByEmail && intakesByEmail.length > 0) {
+          intakes = intakesByEmail;
+        }
       }
 
       // ===== NEW: Get sessions/visits =====
@@ -331,34 +340,43 @@ export default async function handler(req, res) {
 
       // ===== NEW: Get consent forms =====
       let consents = [];
+      const consentFields = 'id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id';
 
       // Try by patient_id first
       const { data: consentsByPatientId } = await supabase
         .from('consents')
-        .select('id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id')
+        .select(consentFields)
         .eq('patient_id', id)
         .order('submitted_at', { ascending: false });
 
       if (consentsByPatientId && consentsByPatientId.length > 0) {
         consents = consentsByPatientId;
-      } else if (patient.ghl_contact_id) {
-        // Fallback to ghl_contact_id
+      }
+
+      // Also try ghl_contact_id if we haven't found any yet
+      if (consents.length === 0 && patient.ghl_contact_id) {
         const { data: consentsByGhl } = await supabase
           .from('consents')
-          .select('id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id')
+          .select(consentFields)
           .eq('ghl_contact_id', patient.ghl_contact_id)
           .order('submitted_at', { ascending: false });
 
-        consents = consentsByGhl || [];
-      } else if (patient.email) {
-        // Fallback to email
+        if (consentsByGhl && consentsByGhl.length > 0) {
+          consents = consentsByGhl;
+        }
+      }
+
+      // Also try email if we still haven't found any
+      if (consents.length === 0 && patient.email) {
         const { data: consentsByEmail } = await supabase
           .from('consents')
-          .select('id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id')
-          .eq('email', patient.email)
+          .select(consentFields)
+          .ilike('email', patient.email)  // Case-insensitive match
           .order('submitted_at', { ascending: false });
 
-        consents = consentsByEmail || [];
+        if (consentsByEmail && consentsByEmail.length > 0) {
+          consents = consentsByEmail;
+        }
       }
 
       // ===== NEW: Get medical documents =====

@@ -55,20 +55,34 @@ export default function ClinicSchedule() {
       setSyncMessage(null);
       setError(null);
 
-      const res = await fetch('/api/admin/sync-ghl-appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: selectedDate })
-      });
-      const data = await res.json();
+      let totalSynced = 0;
+      let page = 1;
+      let hasMore = true;
 
-      if (data.success) {
-        setSyncMessage(`Synced ${data.synced} appointments from GHL`);
-        // Now fetch the updated appointments from database
-        await fetchAppointments();
-      } else {
-        setError(data.error || 'Sync failed');
+      // Sync all pages
+      while (hasMore && page <= 10) { // Max 10 pages as safety
+        setSyncMessage(`Syncing page ${page}...`);
+
+        const res = await fetch('/api/admin/sync-ghl-appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: selectedDate, page })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          totalSynced += data.synced;
+          hasMore = data.hasMorePages;
+          page++;
+        } else {
+          setError(data.error || 'Sync failed');
+          break;
+        }
       }
+
+      setSyncMessage(`Synced ${totalSynced} appointments from GHL`);
+      // Now fetch the updated appointments from database
+      await fetchAppointments();
     } catch (err) {
       console.error('Sync error:', err);
       setError('Failed to sync from GHL');

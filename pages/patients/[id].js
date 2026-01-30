@@ -90,7 +90,7 @@ export default function PatientProfile() {
   });
 
   const [uploadForm, setUploadForm] = useState({
-    file: null, panelType: 'Elite',
+    file: null, labType: 'Baseline', panelType: 'Elite',
     collectionDate: new Date().toISOString().split('T')[0], notes: ''
   });
 
@@ -421,6 +421,7 @@ export default function PatientProfile() {
         body: JSON.stringify({
           fileData,
           fileName: uploadForm.file.name,
+          labType: uploadForm.labType,
           panelType: uploadForm.panelType,
           collectionDate: uploadForm.collectionDate,
           notes: uploadForm.notes
@@ -431,7 +432,7 @@ export default function PatientProfile() {
       if (!res.ok) throw new Error(data.error || 'Upload failed');
 
       await fetchLabDocuments();
-      setUploadForm({ file: null, panelType: 'Elite', collectionDate: new Date().toISOString().split('T')[0], notes: '' });
+      setUploadForm({ file: null, labType: 'Baseline', panelType: 'Elite', collectionDate: new Date().toISOString().split('T')[0], notes: '' });
       setShowUploadModal(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
@@ -805,7 +806,7 @@ export default function PatientProfile() {
                         <span className="doc-icon">📄</span>
                         <div className="doc-info">
                           <strong>{doc.file_name}</strong>
-                          <span>{doc.panel_type} • {formatShortDate(doc.collection_date)} • {formatFileSize(doc.file_size)}</span>
+                          <span>{doc.lab_type || 'Lab'} • {doc.panel_type} • {formatShortDate(doc.collection_date)}</span>
                         </div>
                         <div className="doc-actions">
                           {doc.url && <button onClick={() => openPdfViewer(doc.url, doc.file_name || 'Lab Document')} className="btn-secondary-sm">View</button>}
@@ -1264,14 +1265,24 @@ export default function PatientProfile() {
                   <input ref={fileInputRef} type="file" accept="application/pdf" onChange={handleFileSelect} />
                   {uploadForm.file && <div className="file-selected">Selected: {uploadForm.file.name}</div>}
                 </div>
-                <div className="form-group">
-                  <label>Panel Type</label>
-                  <select value={uploadForm.panelType} onChange={e => setUploadForm({...uploadForm, panelType: e.target.value})}>
-                    <option value="Elite">Elite</option>
-                    <option value="Essential">Essential</option>
-                    <option value="Follow-up">Follow-up</option>
-                    <option value="Other">Other</option>
-                  </select>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Lab Type</label>
+                    <select value={uploadForm.labType} onChange={e => setUploadForm({...uploadForm, labType: e.target.value})}>
+                      <option value="Baseline">Baseline</option>
+                      <option value="Follow-up">Follow-up</option>
+                      <option value="Quarterly">Quarterly</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Panel Type</label>
+                    <select value={uploadForm.panelType} onChange={e => setUploadForm({...uploadForm, panelType: e.target.value})}>
+                      <option value="Elite">Elite</option>
+                      <option value="Essential">Essential</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label>Collection Date</label>

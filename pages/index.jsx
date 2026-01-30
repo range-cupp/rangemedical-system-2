@@ -306,7 +306,7 @@ export default function Home() {
           color: #ffffff;
           padding: 0.875rem 2rem;
           border-radius: 8px;
-          border: 2px solid rgba(255,255,255,0.4);
+          border: 2px solid #ffffff;
           text-decoration: none;
           font-weight: 600;
           font-size: 0.9375rem;

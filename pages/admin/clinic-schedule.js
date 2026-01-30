@@ -94,7 +94,13 @@ export default function ClinicSchedule() {
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    // Display in Pacific Time (clinic timezone)
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Los_Angeles'
+    });
   };
 
   const formatDateHeader = (dateStr) => {

@@ -45,9 +45,20 @@ export default async function handler(req, res) {
     // Format appointments for the frontend
     const formattedAppointments = (appointments || []).map(apt => {
       const patient = apt.patients;
-      const patientName = patient?.name ||
-        (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : null) ||
-        'Unknown';
+
+      // Get patient name: try linked patient, then parse from title "Name - Service"
+      let patientName = patient?.name ||
+        (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : null);
+
+      // If no linked patient, parse name from appointment title
+      if (!patientName && apt.appointment_title) {
+        const titleParts = apt.appointment_title.split(' - ');
+        if (titleParts.length >= 2) {
+          patientName = titleParts[0].trim();
+        }
+      }
+
+      patientName = patientName || 'Unknown';
 
       return {
         id: apt.id,

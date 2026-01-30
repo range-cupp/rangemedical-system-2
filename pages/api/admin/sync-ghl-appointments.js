@@ -230,16 +230,30 @@ export default async function handler(req, res) {
         const calendarName = titleParts.length > 1 ? titleParts.slice(1).join(' - ') : (apt.calendar?.name || apt.calendarName || apt.title || 'Appointment');
         const title = apt.title || apt.name || calendarName;
         const status = (apt.status || apt.appointmentStatus || 'scheduled').toLowerCase();
-        // Convert "2026-01-30 08:30:00" to ISO format if needed
+        // Convert "2026-01-30 08:30:00" to ISO format with Pacific timezone
+        // GHL times are in the clinic's local timezone (Pacific Time)
         let startTimeVal = apt.startTime || apt.start_time || apt.selectedTimeslot?.startTime || '';
         let endTimeVal = apt.endTime || apt.end_time || apt.selectedTimeslot?.endTime || '';
-        // Handle space-separated date format
-        if (startTimeVal && !startTimeVal.includes('T')) {
-          startTimeVal = startTimeVal.replace(' ', 'T');
-        }
-        if (endTimeVal && !endTimeVal.includes('T')) {
-          endTimeVal = endTimeVal.replace(' ', 'T');
-        }
+
+        // Helper to add Pacific timezone offset
+        const addPacificTimezone = (timeStr) => {
+          if (!timeStr) return timeStr;
+          // Replace space with T if needed
+          let isoTime = timeStr.includes('T') ? timeStr : timeStr.replace(' ', 'T');
+          // If no timezone specified, add Pacific Time offset
+          // Check if already has timezone (ends with Z or +/-HH:MM)
+          if (!isoTime.match(/[Z]$/) && !isoTime.match(/[+-]\d{2}:\d{2}$/)) {
+            // Determine PST (-08:00) vs PDT (-07:00) based on date
+            // For simplicity, use PST for Nov-Mar, PDT for Mar-Nov
+            const month = parseInt(isoTime.substring(5, 7));
+            const offset = (month >= 3 && month <= 10) ? '-07:00' : '-08:00';
+            isoTime += offset;
+          }
+          return isoTime;
+        };
+
+        startTimeVal = addPacificTimezone(startTimeVal);
+        endTimeVal = addPacificTimezone(endTimeVal);
         const notes = apt.notes || '';
 
         // Find patient by GHL contact ID

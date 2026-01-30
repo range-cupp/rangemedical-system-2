@@ -106,14 +106,28 @@ export default async function handler(req, res) {
       }
     }
 
+    // Deduplicate contacts
+    const uniqueContacts = [];
+    const seenIds = new Set();
+    for (const contact of allContacts) {
+      if (!seenIds.has(contact.id)) {
+        seenIds.add(contact.id);
+        uniqueContacts.push(contact);
+      }
+    }
+
     results.contactsFetched = allContacts.length;
-    console.log(`Total contacts fetched: ${allContacts.length}`);
+    results.debug.uniqueContacts = uniqueContacts.length;
+    results.debug.duplicatesRemoved = allContacts.length - uniqueContacts.length;
+    console.log(`Contacts fetched: ${allContacts.length}, unique: ${uniqueContacts.length}`);
 
     // Check if Kelly's contact ID is in the list
     const kellyId = 'wvWLq6kjnyvzhw9Q3mZ7';
-    const kellyContact = allContacts.find(c => c.id === kellyId);
+    const kellyContact = uniqueContacts.find(c => c.id === kellyId);
     results.debug.kellyInList = !!kellyContact;
-    results.debug.sampleContactIds = allContacts.slice(0, 5).map(c => c.id);
+
+    // Use unique contacts for appointment fetching
+    allContacts = uniqueContacts;
 
     // Step 2: Fetch appointments for all contacts in parallel batches
     const allAppointments = [];

@@ -40,48 +40,63 @@ export default async function handler(req, res) {
 
     console.log('Fetching GHL appointments for:', targetDate);
 
-    // Fetch appointments from GHL
+    // Fetch appointments from GHL - use the events endpoint
     const allAppointments = [];
+    const calendarIds = Object.values(CLINIC_CALENDARS).map(c => c.id);
+    const calendarLookup = {};
+    Object.entries(CLINIC_CALENDARS).forEach(([type, cal]) => {
+      calendarLookup[cal.id] = { type, ...cal };
+    });
 
+    // Try fetching from each calendar
     for (const [type, calendar] of Object.entries(CLINIC_CALENDARS)) {
       try {
-        const response = await fetch(
-          `https://services.leadconnectorhq.com/calendars/${calendar.id}/appointments?` +
+        // GHL API v2 endpoint for calendar appointments
+        const url = `https://services.leadconnectorhq.com/calendars/events?` +
           new URLSearchParams({
+            locationId: GHL_LOCATION_ID,
+            calendarId: calendar.id,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString()
-          }),
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-07-28',
-              'Accept': 'application/json'
-            }
+          });
+
+        console.log(`Fetching ${type}:`, url);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Accept': 'application/json'
           }
-        );
+        });
+
+        const responseText = await response.text();
+        console.log(`${type} response (${response.status}):`, responseText.substring(0, 500));
 
         if (response.ok) {
-          const data = await response.json();
-          const appointments = data.appointments || data.events || [];
+          try {
+            const data = JSON.parse(responseText);
+            const appointments = data.events || data.appointments || [];
 
-          appointments.forEach(apt => {
-            allAppointments.push({
-              id: apt.id,
-              contactId: apt.contactId || apt.contact_id,
-              calendarId: calendar.id,
-              calendarType: type,
-              calendarName: calendar.name,
-              calendarColor: calendar.color,
-              title: apt.title || calendar.name,
-              startTime: apt.startTime || apt.start_time,
-              endTime: apt.endTime || apt.end_time,
-              status: apt.status || apt.appointmentStatus || 'scheduled',
-              contactName: apt.contact?.name || apt.contactName || 'Unknown'
+            appointments.forEach(apt => {
+              allAppointments.push({
+                id: apt.id,
+                contactId: apt.contactId || apt.contact_id,
+                calendarId: calendar.id,
+                calendarType: type,
+                calendarName: calendar.name,
+                calendarColor: calendar.color,
+                title: apt.title || apt.name || calendar.name,
+                startTime: apt.startTime || apt.start_time || apt.selectedTimezone?.startTime,
+                endTime: apt.endTime || apt.end_time || apt.selectedTimezone?.endTime,
+                status: apt.status || apt.appointmentStatus || 'scheduled',
+                contactName: apt.contact?.name || apt.contactName || apt.title || 'Unknown'
+              });
             });
-          });
-        } else {
-          console.log(`Failed to fetch ${type} appointments:`, response.status);
+          } catch (parseErr) {
+            console.log(`Parse error for ${type}:`, parseErr.message);
+          }
         }
       } catch (calError) {
         console.error(`Error fetching ${type} calendar:`, calError);

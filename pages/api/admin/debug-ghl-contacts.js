@@ -6,12 +6,16 @@ const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
 export default async function handler(req, res) {
+  const { name } = req.query;
+  const searchName = name || 'Amir';
+
   const results = {
     env: {
       hasApiKey: !!GHL_API_KEY,
       apiKeyPrefix: GHL_API_KEY ? GHL_API_KEY.substring(0, 10) + '...' : 'missing',
       locationId: GHL_LOCATION_ID
     },
+    searchingFor: searchName,
     tests: []
   };
 
@@ -87,9 +91,9 @@ export default async function handler(req, res) {
     });
   }
 
-  // Test 3: Search for a specific contact by name
+  // Test 3: Search for a specific contact by name (configurable via query param)
   try {
-    const searchUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=Kristen`;
+    const searchUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(searchName)}`;
     const searchResponse = await fetch(searchUrl, {
       headers: {
         'Authorization': `Bearer ${GHL_API_KEY}`,
@@ -100,7 +104,7 @@ export default async function handler(req, res) {
     const searchData = await searchResponse.json();
 
     results.tests.push({
-      test: 'Search Contact by Name',
+      test: `Search Contact: ${searchName}`,
       url: searchUrl,
       status: searchResponse.status,
       contactCount: searchData.contacts?.length || 0,
@@ -110,7 +114,7 @@ export default async function handler(req, res) {
       }))
     });
 
-    // If found, get their appointments
+    // If found, get their appointments with FULL data
     if (searchData.contacts?.[0]?.id) {
       const contactId = searchData.contacts[0].id;
       const aptsUrl = `https://services.leadconnectorhq.com/contacts/${contactId}/appointments`;
@@ -124,16 +128,12 @@ export default async function handler(req, res) {
       const aptsData = await aptsResponse.json();
 
       results.tests.push({
-        test: 'Get Kristen Appointments',
+        test: `Get ${searchName} Appointments`,
         contactId,
         status: aptsResponse.status,
         appointmentCount: aptsData.events?.length || 0,
-        appointments: (aptsData.events || []).slice(0, 5).map(a => ({
-          id: a.id,
-          title: a.title,
-          startTime: a.startTime,
-          status: a.status
-        }))
+        // Show full appointment data for debugging
+        fullAppointments: (aptsData.events || []).slice(0, 3)
       });
     }
 

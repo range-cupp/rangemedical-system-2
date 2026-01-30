@@ -39,14 +39,16 @@ export default async function handler(req, res) {
       }
     };
 
-    // Step 1: Get ALL contacts from GHL (paginated using startAfterId)
+    // Step 1: Get contacts from GHL (limited to avoid timeout)
+    // Vercel has a 10s timeout on hobby, so we need to be fast
     let allContacts = [];
     let hasMore = true;
     let startAfterId = null;
     const limit = 100;
     let pageCount = 0;
+    const maxPages = 5; // Limit to 500 contacts to stay within timeout
 
-    while (hasMore && pageCount < 20) { // Cap at 20 pages (2000 contacts) to avoid timeout
+    while (hasMore && pageCount < maxPages) {
       try {
         let contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}`;
         if (startAfterId) {
@@ -107,52 +109,56 @@ export default async function handler(req, res) {
     results.contactsFetched = allContacts.length;
     console.log(`Total contacts fetched: ${allContacts.length}`);
 
-    // Step 2: For each contact, fetch their appointments and filter by date
+    // Step 2: Fetch appointments for all contacts in parallel batches
     const allAppointments = [];
+    const batchSize = 20; // Process 20 contacts at a time
 
-    for (const contact of allContacts) {
-      try {
-        const appointmentsUrl = `https://services.leadconnectorhq.com/contacts/${contact.id}/appointments`;
+    for (let i = 0; i < allContacts.length; i += batchSize) {
+      const batch = allContacts.slice(i, i + batchSize);
 
-        const aptsResponse = await fetch(appointmentsUrl, {
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-07-28'
-          }
-        });
+      const batchResults = await Promise.all(
+        batch.map(async (contact) => {
+          try {
+            const appointmentsUrl = `https://services.leadconnectorhq.com/contacts/${contact.id}/appointments`;
+            const aptsResponse = await fetch(appointmentsUrl, {
+              headers: {
+                'Authorization': `Bearer ${GHL_API_KEY}`,
+                'Version': '2021-07-28'
+              }
+            });
 
-        results.contactsChecked++;
+            if (aptsResponse.ok) {
+              const aptsData = await aptsResponse.json();
+              const appointments = aptsData.events || aptsData.appointments || [];
 
-        if (aptsResponse.ok) {
-          const aptsData = await aptsResponse.json();
-          const appointments = aptsData.events || aptsData.appointments || [];
-
-          // Filter appointments to target date
-          for (const apt of appointments) {
-            const aptStartTime = apt.startTime || apt.start_time || apt.selectedTimeslot?.startTime || '';
-            // Handle both "2026-01-30T08:30:00" and "2026-01-30 08:30:00" formats
-            const aptDate = aptStartTime.split(/[T ]/)[0];
-
-            if (aptDate === targetDate) {
-              allAppointments.push({
-                ...apt,
-                contactId: contact.id,
-                contactName: contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
-                contactEmail: contact.email,
-                contactPhone: contact.phone
-              });
+              // Filter appointments to target date
+              return appointments
+                .filter(apt => {
+                  const aptStartTime = apt.startTime || apt.start_time || apt.selectedTimeslot?.startTime || '';
+                  const aptDate = aptStartTime.split(/[T ]/)[0];
+                  return aptDate === targetDate;
+                })
+                .map(apt => ({
+                  ...apt,
+                  contactId: contact.id,
+                  contactName: contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
+                  contactEmail: contact.email,
+                  contactPhone: contact.phone
+                }));
             }
+            return [];
+          } catch (e) {
+            return [];
           }
-        }
+        })
+      );
 
-        // Small delay to avoid rate limiting (every 10 contacts)
-        if (results.contactsChecked % 10 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-      } catch (e) {
-        // Skip individual contact errors silently
+      // Flatten batch results
+      for (const appointments of batchResults) {
+        allAppointments.push(...appointments);
       }
+
+      results.contactsChecked += batch.length;
     }
 
     results.appointmentsFound = allAppointments.length;

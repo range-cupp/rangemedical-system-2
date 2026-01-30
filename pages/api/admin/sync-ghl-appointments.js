@@ -43,16 +43,18 @@ export default async function handler(req, res) {
     // Vercel has a 10s timeout on hobby, so we need to be fast
     let allContacts = [];
     let hasMore = true;
+    let startAfter = null;
     let startAfterId = null;
     const limit = 100;
     let pageCount = 0;
-    const maxPages = 12; // Up to 1200 contacts
+    const maxPages = 15; // Up to 1500 contacts
 
     while (hasMore && pageCount < maxPages) {
       try {
         let contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}`;
-        if (startAfterId) {
-          contactsUrl += `&startAfterId=${startAfterId}`;
+        // GHL requires both startAfter AND startAfterId for pagination
+        if (startAfter && startAfterId) {
+          contactsUrl += `&startAfter=${startAfter}&startAfterId=${startAfterId}`;
         }
         console.log(`Fetching contacts: page=${pageCount}`);
 
@@ -93,9 +95,10 @@ export default async function handler(req, res) {
         } else {
           allContacts.push(...contacts);
           pageCount++;
-          // Use the last contact's ID for next page
-          startAfterId = contacts[contacts.length - 1].id;
-          if (contacts.length < limit) {
+          // Use pagination values from meta response
+          startAfter = contactsData.meta?.startAfter;
+          startAfterId = contactsData.meta?.startAfterId;
+          if (contacts.length < limit || !contactsData.meta?.nextPage) {
             hasMore = false;
           }
         }

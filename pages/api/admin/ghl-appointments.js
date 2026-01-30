@@ -17,7 +17,10 @@ const CLINIC_CALENDARS = {
   'hbot': { id: '68fbb36bde21d1840e5f412e', name: 'HBOT', color: '#3730a3' },
   'rlt': { id: '68fbb3888eb4bc0d9dc758cb', name: 'Red Light Therapy', color: '#dc2626' },
   'iv': { id: '68efcd8ae4e0ed94b9390a06', name: 'IV Therapy', color: '#c2410c' },
-  // Add more calendars as needed
+  'range_injections': { id: '68f01d9a238b376bfa9a758c', name: 'Range Injections', color: '#7c3aed' },
+  'injection_medical': { id: '6946d1509a25681dba593fcd', name: 'Injection - Medical', color: '#0891b2' },
+  'injection_testosterone': { id: '68fbe09a4866ec6b798932b6', name: 'Injection - Testosterone', color: '#059669' },
+  'injection_peptide': { id: '6900eedaf5009e264f9ded8e', name: 'Injection - Peptide', color: '#166534' },
 };
 
 export default async function handler(req, res) {

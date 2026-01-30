@@ -38,33 +38,83 @@ export default async function handler(req, res) {
       }
     };
 
-    // Search for contacts who have appointments by using targeted name searches
-    // This approach is more reliable than pagination for finding all active patients
+    // Search for contacts who have appointments using multiple strategies
     let allAppointments = [];
-
-    // First, get a list of patient names we expect to have appointments from our database
-    // and also run a broad search for recent contacts
-    const { data: recentPatients } = await supabase
-      .from('patients')
-      .select('name, first_name, last_name, ghl_contact_id')
-      .not('ghl_contact_id', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(500);
 
     // Build a set of contact IDs to check
     const contactIdsToCheck = new Set();
     const contactNameMap = new Map(); // contactId -> name
 
-    // Add contacts from our patient database
-    if (recentPatients) {
-      for (const patient of recentPatients) {
+    // Strategy 1: Get patients from our database who have ghl_contact_id
+    const { data: linkedPatients } = await supabase
+      .from('patients')
+      .select('id, name, first_name, last_name, ghl_contact_id')
+      .not('ghl_contact_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (linkedPatients) {
+      for (const patient of linkedPatients) {
         if (patient.ghl_contact_id) {
           contactIdsToCheck.add(patient.ghl_contact_id);
           contactNameMap.set(patient.ghl_contact_id, patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim());
         }
       }
     }
-    results.debug.patientsFromDb = contactIdsToCheck.size;
+    results.debug.linkedPatients = contactIdsToCheck.size;
+
+    // Strategy 2: Search GHL for unlinked patients to find their contact IDs
+    const { data: unlinkedPatients } = await supabase
+      .from('patients')
+      .select('id, name, first_name, last_name')
+      .is('ghl_contact_id', null)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    let patientsLinked = 0;
+    if (unlinkedPatients) {
+      // Search for each unlinked patient in GHL by name
+      const searchBatch = unlinkedPatients.slice(0, 50); // Limit searches to avoid rate limits
+      for (const patient of searchBatch) {
+        const searchName = patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+        if (!searchName || searchName.length < 3) continue;
+
+        try {
+          const searchUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(searchName)}&limit=5`;
+          const searchResponse = await fetch(searchUrl, {
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28'
+            }
+          });
+
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            const contacts = searchData.contacts || [];
+            // Find exact name match
+            const match = contacts.find(c => {
+              const ghlName = (c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim()).toLowerCase();
+              return ghlName === searchName.toLowerCase();
+            });
+
+            if (match) {
+              contactIdsToCheck.add(match.id);
+              contactNameMap.set(match.id, searchName);
+              patientsLinked++;
+
+              // Update patient record with ghl_contact_id
+              await supabase
+                .from('patients')
+                .update({ ghl_contact_id: match.id })
+                .eq('id', patient.id);
+            }
+          }
+        } catch {
+          // Continue on search errors
+        }
+      }
+    }
+    results.debug.newlyLinkedPatients = patientsLinked;
 
     // Also get contacts from GHL pagination (as backup)
     let contacts = [];

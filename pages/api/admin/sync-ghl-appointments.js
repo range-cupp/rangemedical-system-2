@@ -284,6 +284,14 @@ export default async function handler(req, res) {
           updated_at: new Date().toISOString()
         };
 
+        // Debug: Log first appointment's stored time
+        if (results.synced === 0 && !results.debug.firstStoredTime) {
+          results.debug.firstStoredTime = {
+            raw: apt.startTime,
+            processed: startTimeVal
+          };
+        }
+
         // Upsert appointment
         const { error } = await supabase
           .from('clinic_appointments')
@@ -302,10 +310,10 @@ export default async function handler(req, res) {
     console.log('Sync complete:', results.synced, 'appointments synced');
 
     // Include appointment summaries in response for debugging
-    results.appointmentSummaries = allAppointments.map(apt => ({
+    results.appointmentSummaries = allAppointments.slice(0, 3).map(apt => ({
       id: apt.id,
       title: apt.title,
-      startTime: apt.startTime,
+      rawStartTime: apt.startTime,
       contactName: apt.contactName
     }));
 

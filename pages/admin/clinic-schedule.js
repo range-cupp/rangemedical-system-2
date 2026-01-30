@@ -17,10 +17,12 @@ const STATUS_COLORS = {
 
 export default function ClinicSchedule() {
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [appointments, setAppointments] = useState([]);
   const [stats, setStats] = useState({ scheduled: 0, showed: 0, noShow: 0 });
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [error, setError] = useState(null);
+  const [syncMessage, setSyncMessage] = useState(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -44,6 +46,34 @@ export default function ClinicSchedule() {
       setError('Failed to load appointments');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncFromGHL = async () => {
+    try {
+      setSyncing(true);
+      setSyncMessage(null);
+      setError(null);
+
+      const res = await fetch('/api/admin/sync-ghl-appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: selectedDate })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setSyncMessage(`Synced ${data.synced} appointments from GHL`);
+        // Now fetch the updated appointments from database
+        await fetchAppointments();
+      } else {
+        setError(data.error || 'Sync failed');
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+      setError('Failed to sync from GHL');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -218,9 +248,14 @@ export default function ClinicSchedule() {
           </>
         )}
 
+        {/* Sync Message */}
+        {syncMessage && (
+          <div style={styles.syncMessage}>{syncMessage}</div>
+        )}
+
         {/* Refresh Button */}
-        <button onClick={fetchAppointments} style={styles.refreshBtn}>
-          ↻ Refresh from GHL
+        <button onClick={syncFromGHL} disabled={syncing} style={styles.refreshBtn}>
+          {syncing ? 'Syncing...' : '↻ Sync from GHL'}
         </button>
       </div>
     </>
@@ -473,5 +508,14 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     color: '#374151'
+  },
+  syncMessage: {
+    textAlign: 'center',
+    padding: '12px',
+    marginTop: '16px',
+    background: '#dcfce7',
+    color: '#166534',
+    borderRadius: '8px',
+    fontSize: '14px'
   }
 };

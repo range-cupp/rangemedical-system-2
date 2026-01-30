@@ -31,6 +31,7 @@ export default function PatientProfile() {
   // Core data state
   const [loading, setLoading] = useState(true);
   const [patient, setPatient] = useState(null);
+  const [intakeDemographics, setIntakeDemographics] = useState(null);
   const [activeProtocols, setActiveProtocols] = useState([]);
   const [completedProtocols, setCompletedProtocols] = useState([]);
   const [pendingNotifications, setPendingNotifications] = useState([]);
@@ -128,6 +129,7 @@ export default function PatientProfile() {
 
       if (data.patient) {
         setPatient(data.patient);
+        setIntakeDemographics(data.intakeDemographics || null);
         setActiveProtocols(data.activeProtocols || []);
         setCompletedProtocols(data.completedProtocols || []);
         setPendingNotifications(data.pendingNotifications || []);
@@ -545,11 +547,23 @@ export default function PatientProfile() {
           <div className="demographics-grid">
             <div className="demo-item">
               <label>Date of Birth</label>
-              <span>{patient.date_of_birth ? formatDate(patient.date_of_birth) : '—'}</span>
+              {patient.date_of_birth ? (
+                <span>{formatDate(patient.date_of_birth)}</span>
+              ) : intakeDemographics?.date_of_birth ? (
+                <span>{formatDate(intakeDemographics.date_of_birth)} <span className="from-intake">(from intake)</span></span>
+              ) : (
+                <span>—</span>
+              )}
             </div>
             <div className="demo-item">
               <label>Gender</label>
-              <span>{patient.gender || '—'}</span>
+              {patient.gender ? (
+                <span>{patient.gender}</span>
+              ) : intakeDemographics?.gender ? (
+                <span>{intakeDemographics.gender} <span className="from-intake">(from intake)</span></span>
+              ) : (
+                <span>—</span>
+              )}
             </div>
             <div className="demo-item">
               <label>Location</label>
@@ -1433,6 +1447,11 @@ export default function PatientProfile() {
         .demo-item span {
           font-size: 14px;
           color: #111;
+        }
+        .from-intake {
+          font-size: 11px;
+          color: #6b7280;
+          font-style: italic;
         }
 
         /* Pending Section */

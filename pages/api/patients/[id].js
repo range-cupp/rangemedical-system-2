@@ -386,6 +386,23 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('uploaded_at', { ascending: false });
 
+      // Extract demographics from intake if patient record is missing them
+      let intakeDemographics = null;
+      const firstIntake = intakes?.[0];
+      if (firstIntake) {
+        const hasMissingDemographics = !patient.date_of_birth || !patient.gender || !patient.first_name || !patient.last_name;
+        if (hasMissingDemographics) {
+          intakeDemographics = {
+            date_of_birth: firstIntake.date_of_birth,
+            gender: firstIntake.gender,
+            first_name: firstIntake.first_name,
+            last_name: firstIntake.last_name,
+            phone: firstIntake.phone,
+            email: firstIntake.email
+          };
+        }
+      }
+
       // Calculate stats
       const stats = {
         activeCount: activeProtocols.length,
@@ -402,6 +419,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         patient,
+        intakeDemographics,
         activeProtocols,
         completedProtocols,
         pendingNotifications: pendingNotifications || [],

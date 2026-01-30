@@ -140,7 +140,75 @@ export default async function handler(req, res) {
     results.tests.push({ test: 'Calendar Appointments', error: e.message });
   }
 
-  // Test 6: Try fetching events from first calendar found
+  // Test 6: Try calendar groups
+  try {
+    const response = await fetch(
+      `https://services.leadconnectorhq.com/calendars/groups?locationId=${GHL_LOCATION_ID}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28'
+        }
+      }
+    );
+    const text = await response.text();
+    results.tests.push({
+      test: 'Get Calendar Groups',
+      status: response.status,
+      ok: response.ok,
+      response: text.substring(0, 1500)
+    });
+  } catch (e) {
+    results.tests.push({ test: 'Calendar Groups', error: e.message });
+  }
+
+  // Test 7: Try service calendars endpoint
+  try {
+    const response = await fetch(
+      `https://services.leadconnectorhq.com/calendars/services?locationId=${GHL_LOCATION_ID}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28'
+        }
+      }
+    );
+    const text = await response.text();
+    results.tests.push({
+      test: 'Get Service Calendars',
+      status: response.status,
+      ok: response.ok,
+      response: text.substring(0, 1500)
+    });
+  } catch (e) {
+    results.tests.push({ test: 'Service Calendars', error: e.message });
+  }
+
+  // Test 9: Try fetching events using groupId (the IDs the user provided might be groups)
+  const testGroupId = '68f01d9a238b376bfa9a758c'; // Range Injections ID
+  try {
+    const response = await fetch(
+      `https://services.leadconnectorhq.com/calendars/events?locationId=${GHL_LOCATION_ID}&groupId=${testGroupId}&startTime=${startTime}&endTime=${endTime}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28'
+        }
+      }
+    );
+    const text = await response.text();
+    results.tests.push({
+      test: 'Get Events by groupId',
+      groupId: testGroupId,
+      status: response.status,
+      ok: response.ok,
+      response: text.substring(0, 1000)
+    });
+  } catch (e) {
+    results.tests.push({ test: 'Events by groupId', error: e.message });
+  }
+
+  // Test 10: Try fetching events from first personal calendar found
   if (results.calendars && results.calendars.length > 0) {
     const firstCalendar = results.calendars[0];
     try {

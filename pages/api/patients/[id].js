@@ -340,7 +340,7 @@ export default async function handler(req, res) {
 
       // ===== NEW: Get consent forms =====
       let consents = [];
-      const consentFields = 'id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id';
+      const consentFields = 'id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id';
 
       // Try by patient_id first
       const { data: consentsByPatientId } = await supabase
@@ -353,20 +353,7 @@ export default async function handler(req, res) {
         consents = consentsByPatientId;
       }
 
-      // Also try ghl_contact_id if we haven't found any yet
-      if (consents.length === 0 && patient.ghl_contact_id) {
-        const { data: consentsByGhl } = await supabase
-          .from('consents')
-          .select(consentFields)
-          .eq('ghl_contact_id', patient.ghl_contact_id)
-          .order('submitted_at', { ascending: false });
-
-        if (consentsByGhl && consentsByGhl.length > 0) {
-          consents = consentsByGhl;
-        }
-      }
-
-      // Also try email if we still haven't found any
+      // Try email if we haven't found any consents yet
       if (consents.length === 0 && patient.email) {
         const { data: consentsByEmail } = await supabase
           .from('consents')

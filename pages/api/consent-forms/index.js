@@ -69,9 +69,11 @@ export default async function handler(req, res) {
       console.log('Found existing patient:', patientId);
     } else {
       // Create new patient record
+      const fullName = `${firstName} ${lastName}`.trim();
       const { data: newPatient, error: patientError } = await supabase
         .from('patients')
         .insert({
+          name: fullName,
           first_name: firstName,
           last_name: lastName,
           email: email.toLowerCase(),

@@ -31,16 +31,23 @@ export const servicePages = {
     tools: {
       title: 'Related Treatments',
       items: [
+        { title: 'HRT Membership', description: '$250/month includes all medications, monthly IV, and follow-up labs.', link: '/hrt-membership' },
         { title: 'Peptide Therapy', description: 'Growth hormone peptides that support hormone function naturally.', link: '/peptide-therapy' },
         { title: 'IV Therapy', description: 'Direct nutrient delivery to support cellular energy.', link: '/iv-therapy' },
         { title: 'Lab Panels', description: 'Comprehensive testing that goes beyond standard bloodwork.', link: '/lab-panels' }
       ]
     },
+    pricing: {
+      title: 'HRT Membership',
+      price: '$250/month',
+      link: '/hrt-membership',
+      includes: ['All hormone medications', 'Ongoing lab monitoring', 'Provider check-ins', 'One IV per month ($225 value)']
+    },
     faqs: [
       { question: 'Is hormone therapy safe?', answer: 'When monitored by a licensed provider with regular labs, HRT is safe and effective for most people.' },
       { question: 'How soon will I feel better?', answer: 'Most patients notice improvements in energy and mood within 2-6 weeks.' },
       { question: 'Do I need labs first?', answer: 'Yes — we run comprehensive labs to understand your baseline and personalize your protocol.' },
-      { question: 'How much does it cost?', answer: 'HRT membership is $250/month, which includes testosterone or hormone therapy, ongoing lab monitoring, provider check-ins, and one IV per month.' }
+      { question: 'How much does it cost?', answer: 'HRT membership is $250/month, which includes all your hormone medications, ongoing lab monitoring, provider check-ins, and one IV per month. See full details on our HRT Membership page.' }
     ]
   },
 

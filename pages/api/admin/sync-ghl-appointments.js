@@ -136,10 +136,18 @@ export default async function handler(req, res) {
     results.debug.processingRange = `${startIdx}-${endIdx}`;
     results.debug.contactsToProcess = pageContacts.length;
 
-    // Check if Kelly's contact ID is in this page
-    const kellyId = 'wvWLq6kjnyvzhw9Q3mZ7';
-    const kellyContact = pageContacts.find(c => c.id === kellyId);
-    results.debug.kellyInThisPage = !!kellyContact;
+    // Check if specific contacts are in this page (for debugging)
+    const debugContacts = {
+      kelly: 'wvWLq6kjnyvzhw9Q3mZ7',
+      luke: 'RbNFWi618ceAodr7dYdw'
+    };
+    results.debug.debugContactsInPage = {};
+    for (const [name, id] of Object.entries(debugContacts)) {
+      const found = pageContacts.find(c => c.id === id);
+      if (found) {
+        results.debug.debugContactsInPage[name] = true;
+      }
+    }
 
     // Calculate if there are more pages
     results.hasMorePages = endIdx < uniqueContacts.length;

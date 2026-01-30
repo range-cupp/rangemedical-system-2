@@ -47,6 +47,9 @@ export default function PatientProfile() {
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingDocs, setLoadingDocs] = useState(false);
 
+  // Slide-out PDF viewer state
+  const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '' });
+
   // Template/peptide data for protocol assignment
   const [templates, setTemplates] = useState({ grouped: {} });
   const [peptides, setPeptides] = useState([]);
@@ -488,7 +491,29 @@ export default function PatientProfile() {
 
   const ghlLink = getGhlLink();
   const latestLabs = labs?.[0];
+  const latestLabDoc = labDocuments?.[0];
+  const hasBaselineLabs = latestLabs || latestLabDoc;
   const baselineSymptoms = symptomResponses?.[0];
+
+  // Helper to open PDF in slide-out viewer
+  const openPdfViewer = (url, title = 'Document') => {
+    setPdfSlideOut({ open: true, url, title });
+  };
+
+  const closePdfViewer = () => {
+    setPdfSlideOut({ open: false, url: '', title: '' });
+  };
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && pdfSlideOut.open) {
+        closePdfViewer();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [pdfSlideOut.open]);
 
   return (
     <>
@@ -585,8 +610,10 @@ export default function PatientProfile() {
                         <button onClick={() => setShowLabsModal(true)} className="btn-text">+ Add</button>
                       </div>
                     </div>
-                    {latestLabs ? (
-                      <span className="status-complete">✓ {latestLabs.lab_panel || 'Complete'} ({formatShortDate(latestLabs.completed_date || latestLabs.collection_date)})</span>
+                    {hasBaselineLabs ? (
+                      <span className="status-complete">
+                        ✓ {latestLabs?.lab_panel || latestLabDoc?.panel_type || 'Complete'} ({formatShortDate(latestLabs?.completed_date || latestLabs?.collection_date || latestLabDoc?.collection_date)})
+                      </span>
                     ) : (
                       <span className="status-pending">Not completed</span>
                     )}
@@ -660,7 +687,7 @@ export default function PatientProfile() {
                           <strong>{consent.consent_type ? consent.consent_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Consent'}</strong>
                           <span>{formatDate(consent.submitted_at)} {consent.consent_given ? '• Signed' : '• Pending'}</span>
                         </div>
-                        {consent.pdf_url && <a href={consent.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-text" onClick={e => e.stopPropagation()}>View</a>}
+                        {consent.pdf_url && <button className="btn-text" onClick={e => { e.stopPropagation(); openPdfViewer(consent.pdf_url, `${consent.consent_type || 'Consent'} Form`); }}>View</button>}
                       </div>
                     ))}
                     {intakes.slice(0, 2).map(intake => (
@@ -767,7 +794,7 @@ export default function PatientProfile() {
                           <span>{doc.panel_type} • {formatShortDate(doc.collection_date)} • {formatFileSize(doc.file_size)}</span>
                         </div>
                         <div className="doc-actions">
-                          {doc.url && <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm">View</a>}
+                          {doc.url && <button onClick={() => openPdfViewer(doc.url, doc.file_name || 'Lab Document')} className="btn-secondary-sm">View</button>}
                           <button onClick={() => handleDeleteDocument(doc.id)} className="btn-text danger">×</button>
                         </div>
                       </div>
@@ -835,8 +862,8 @@ export default function PatientProfile() {
                           <span>{formatDate(consent.consent_date || consent.submitted_at)}</span>
                         </div>
                         <div className="consent-actions">
-                          {consent.pdf_url && <a href={consent.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm">View PDF</a>}
-                          {consent.signature_url && <a href={consent.signature_url} target="_blank" rel="noopener noreferrer" className="btn-text">Signature</a>}
+                          {consent.pdf_url && <button onClick={() => openPdfViewer(consent.pdf_url, `${consent.consent_type || 'Consent'} Form`)} className="btn-secondary-sm">View PDF</button>}
+                          {consent.signature_url && <button onClick={() => openPdfViewer(consent.signature_url, 'Signature')} className="btn-text">Signature</button>}
                         </div>
                       </div>
                     ))}
@@ -868,8 +895,8 @@ export default function PatientProfile() {
                           {intake.date_of_birth && <span>DOB: {formatDate(intake.date_of_birth)}</span>}
                         </div>
                         <div className="intake-actions">
-                          {intake.pdf_url && <a href={intake.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm" onClick={e => e.stopPropagation()}>View PDF</a>}
-                          {intake.photo_id_url && <a href={intake.photo_id_url} target="_blank" rel="noopener noreferrer" className="btn-text" onClick={e => e.stopPropagation()}>Photo ID</a>}
+                          {intake.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.pdf_url, 'Medical Intake'); }} className="btn-secondary-sm">View PDF</button>}
+                          {intake.photo_id_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.photo_id_url, 'Photo ID'); }} className="btn-text">Photo ID</button>}
                         </div>
                       </div>
                     ))}
@@ -898,7 +925,7 @@ export default function PatientProfile() {
                           {doc.uploaded_by && <span>by {doc.uploaded_by}</span>}
                         </div>
                         <div className="document-actions">
-                          {doc.document_url && <a href={doc.document_url} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm">View</a>}
+                          {doc.document_url && <button onClick={() => openPdfViewer(doc.document_url, doc.document_name || 'Document')} className="btn-secondary-sm">View</button>}
                         </div>
                       </div>
                     ))}
@@ -1301,13 +1328,33 @@ export default function PatientProfile() {
                   </div>
                 )}
                 <div className="intake-links">
-                  {selectedIntake.pdf_url && <a href={selectedIntake.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-secondary">View Full PDF</a>}
-                  {selectedIntake.photo_id_url && <a href={selectedIntake.photo_id_url} target="_blank" rel="noopener noreferrer" className="btn-secondary">View Photo ID</a>}
-                  {selectedIntake.signature_url && <a href={selectedIntake.signature_url} target="_blank" rel="noopener noreferrer" className="btn-secondary">View Signature</a>}
+                  {selectedIntake.pdf_url && <button onClick={() => openPdfViewer(selectedIntake.pdf_url, 'Medical Intake')} className="btn-secondary">View Full PDF</button>}
+                  {selectedIntake.photo_id_url && <button onClick={() => openPdfViewer(selectedIntake.photo_id_url, 'Photo ID')} className="btn-secondary">View Photo ID</button>}
+                  {selectedIntake.signature_url && <button onClick={() => openPdfViewer(selectedIntake.signature_url, 'Signature')} className="btn-secondary">View Signature</button>}
                 </div>
               </div>
             </div>
           </div>
+        )}
+
+        {/* PDF Slide-Out Viewer */}
+        {pdfSlideOut.open && (
+          <>
+            <div className="slideout-overlay" onClick={closePdfViewer} />
+            <div className="slideout-panel">
+              <div className="slideout-header">
+                <h3>{pdfSlideOut.title}</h3>
+                <button onClick={closePdfViewer} className="close-btn">×</button>
+              </div>
+              <div className="slideout-content">
+                <iframe
+                  src={pdfSlideOut.url}
+                  title={pdfSlideOut.title}
+                  className="slideout-iframe"
+                />
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -1953,6 +2000,63 @@ export default function PatientProfile() {
           margin-top: 16px;
         }
 
+        /* Slide-Out PDF Viewer */
+        .slideout-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.4);
+          z-index: 1100;
+          animation: fadeIn 0.2s ease-out;
+        }
+        .slideout-panel {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 70%;
+          max-width: 900px;
+          min-width: 400px;
+          background: #fff;
+          box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+          z-index: 1101;
+          display: flex;
+          flex-direction: column;
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .slideout-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 20px;
+          border-bottom: 1px solid #e5e7eb;
+          background: #f9fafb;
+        }
+        .slideout-header h3 {
+          font-size: 16px;
+          font-weight: 600;
+          margin: 0;
+        }
+        .slideout-content {
+          flex: 1;
+          overflow: hidden;
+        }
+        .slideout-iframe {
+          width: 100%;
+          height: 100%;
+          border: none;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .demographics-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1961,6 +2065,7 @@ export default function PatientProfile() {
           .pending-card { flex-direction: column; gap: 12px; align-items: flex-start; }
           .protocol-row { flex-direction: column; align-items: flex-start; gap: 8px; }
           .intake-detail-grid { grid-template-columns: 1fr; }
+          .slideout-panel { width: 100%; min-width: unset; }
         }
       `}</style>
     </>

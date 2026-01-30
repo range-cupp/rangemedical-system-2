@@ -38,166 +38,129 @@ export default async function handler(req, res) {
       }
     };
 
-    // Step 1: Get all calendars for this location
-    const calendarsUrl = `https://services.leadconnectorhq.com/calendars/?locationId=${GHL_LOCATION_ID}`;
-    console.log('Fetching calendars from:', calendarsUrl);
-
-    const calendarsResponse = await fetch(calendarsUrl, {
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Version': '2021-07-28'
-      }
-    });
-
+    // Search for contacts who have appointments by using targeted name searches
+    // This approach is more reliable than pagination for finding all active patients
     let allAppointments = [];
 
-    if (calendarsResponse.ok) {
-      const calendarsData = await calendarsResponse.json();
-      const calendars = calendarsData.calendars || [];
-      results.debug.calendarsFound = calendars.length;
-      results.debug.calendarNames = calendars.map(c => c.name);
+    // First, get a list of patient names we expect to have appointments from our database
+    // and also run a broad search for recent contacts
+    const { data: recentPatients } = await supabase
+      .from('patients')
+      .select('name, first_name, last_name, ghl_contact_id')
+      .not('ghl_contact_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(500);
 
-      // Build date range for the target date (Pacific Time)
-      const startTime = `${targetDate}T00:00:00-08:00`;
-      const endTime = `${targetDate}T23:59:59-08:00`;
-      const startTimeMs = new Date(startTime).getTime();
-      const endTimeMs = new Date(endTime).getTime();
+    // Build a set of contact IDs to check
+    const contactIdsToCheck = new Set();
+    const contactNameMap = new Map(); // contactId -> name
 
-      // Step 2: Fetch events for each calendar
-      for (const calendar of calendars) {
-        try {
-          const eventsUrl = `https://services.leadconnectorhq.com/calendars/events?locationId=${GHL_LOCATION_ID}&calendarId=${calendar.id}&startTime=${startTimeMs}&endTime=${endTimeMs}`;
-
-          const eventsResponse = await fetch(eventsUrl, {
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-07-28'
-            }
-          });
-
-          if (eventsResponse.ok) {
-            const eventsData = await eventsResponse.json();
-            const events = eventsData.events || [];
-            console.log(`Calendar "${calendar.name}" returned ${events.length} events`);
-
-            // Add calendar info to each event
-            for (const event of events) {
-              allAppointments.push({
-                ...event,
-                calendarId: calendar.id,
-                calendarName: calendar.name
-              });
-            }
-          } else {
-            const errorText = await eventsResponse.text();
-            console.log(`Calendar "${calendar.name}" error: ${errorText.substring(0, 200)}`);
-          }
-        } catch (e) {
-          console.error(`Error fetching calendar ${calendar.name}:`, e.message);
-        }
-      }
-
-      console.log(`Total appointments from calendars: ${allAppointments.length}`);
-    } else {
-      // If Calendars API fails, fall back to contacts-based approach
-      const errorText = await calendarsResponse.text();
-      results.debug.calendarsApiError = errorText.substring(0, 500);
-      console.log('Calendars API failed, falling back to contacts approach');
-
-      // Fallback: Get all contacts and check their appointments
-      let contacts = [];
-      let hasMore = true;
-      let startAfter = null;
-      let startAfterId = null;
-      const limit = 100;
-      let pageCount = 0;
-      const maxPages = 20;
-
-      while (hasMore && pageCount < maxPages) {
-        let contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}`;
-        if (startAfter && startAfterId) {
-          contactsUrl += `&startAfter=${startAfter}&startAfterId=${startAfterId}`;
-        }
-
-        const contactsResponse = await fetch(contactsUrl, {
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-07-28'
-          }
-        });
-
-        if (!contactsResponse.ok) break;
-
-        const contactsData = await contactsResponse.json();
-        const batch = contactsData.contacts || [];
-
-        if (batch.length === 0) {
-          hasMore = false;
-        } else {
-          contacts.push(...batch);
-          pageCount++;
-          startAfter = contactsData.meta?.startAfter;
-          startAfterId = contactsData.meta?.startAfterId;
-          if (batch.length < limit || !contactsData.meta?.nextPage) {
-            hasMore = false;
-          }
-        }
-      }
-
-      // Deduplicate contacts
-      const uniqueContacts = [];
-      const seenIds = new Set();
-      for (const contact of contacts) {
-        if (!seenIds.has(contact.id)) {
-          seenIds.add(contact.id);
-          uniqueContacts.push(contact);
-        }
-      }
-
-      results.debug.contactsFetched = uniqueContacts.length;
-
-      // Fetch appointments for each contact in batches
-      const batchSize = 30;
-      for (let i = 0; i < uniqueContacts.length; i += batchSize) {
-        const batch = uniqueContacts.slice(i, i + batchSize);
-        const batchResults = await Promise.all(
-          batch.map(async (contact) => {
-            try {
-              const aptsUrl = `https://services.leadconnectorhq.com/contacts/${contact.id}/appointments`;
-              const aptsResponse = await fetch(aptsUrl, {
-                headers: {
-                  'Authorization': `Bearer ${GHL_API_KEY}`,
-                  'Version': '2021-07-28'
-                }
-              });
-
-              if (aptsResponse.ok) {
-                const aptsData = await aptsResponse.json();
-                const appointments = aptsData.events || aptsData.appointments || [];
-                return appointments
-                  .filter(apt => {
-                    const aptStartTime = apt.startTime || apt.start_time || '';
-                    const aptDate = aptStartTime.split(/[T ]/)[0];
-                    return aptDate === targetDate;
-                  })
-                  .map(apt => ({
-                    ...apt,
-                    contactId: contact.id,
-                    contactName: contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
-                  }));
-              }
-              return [];
-            } catch {
-              return [];
-            }
-          })
-        );
-
-        for (const appointments of batchResults) {
-          allAppointments.push(...appointments);
+    // Add contacts from our patient database
+    if (recentPatients) {
+      for (const patient of recentPatients) {
+        if (patient.ghl_contact_id) {
+          contactIdsToCheck.add(patient.ghl_contact_id);
+          contactNameMap.set(patient.ghl_contact_id, patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim());
         }
       }
     }
+    results.debug.patientsFromDb = contactIdsToCheck.size;
+
+    // Also get contacts from GHL pagination (as backup)
+    let contacts = [];
+    let hasMore = true;
+    let startAfter = null;
+    let startAfterId = null;
+    const limit = 100;
+    let pageCount = 0;
+    const maxPages = 25; // Increase to get more contacts
+
+    while (hasMore && pageCount < maxPages) {
+      let contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}`;
+      if (startAfter && startAfterId) {
+        contactsUrl += `&startAfter=${startAfter}&startAfterId=${startAfterId}`;
+      }
+
+      const contactsResponse = await fetch(contactsUrl, {
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28'
+        }
+      });
+
+      if (!contactsResponse.ok) break;
+
+      const contactsData = await contactsResponse.json();
+      const batch = contactsData.contacts || [];
+
+      if (batch.length === 0) {
+        hasMore = false;
+      } else {
+        contacts.push(...batch);
+        for (const c of batch) {
+          contactIdsToCheck.add(c.id);
+          if (!contactNameMap.has(c.id)) {
+            contactNameMap.set(c.id, c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim());
+          }
+        }
+        pageCount++;
+        startAfter = contactsData.meta?.startAfter;
+        startAfterId = contactsData.meta?.startAfterId;
+        if (batch.length < limit || !contactsData.meta?.nextPage) {
+          hasMore = false;
+        }
+      }
+    }
+
+    results.debug.contactsFromGhl = contacts.length;
+    results.debug.totalUniqueContactIds = contactIdsToCheck.size;
+
+    // Convert to array for processing
+    const allContactIds = Array.from(contactIdsToCheck);
+
+    // Fetch appointments for each contact in parallel batches
+    const batchSize = 40; // Process more in parallel for speed
+    for (let i = 0; i < allContactIds.length; i += batchSize) {
+      const batch = allContactIds.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(async (contactId) => {
+          try {
+            const aptsUrl = `https://services.leadconnectorhq.com/contacts/${contactId}/appointments`;
+            const aptsResponse = await fetch(aptsUrl, {
+              headers: {
+                'Authorization': `Bearer ${GHL_API_KEY}`,
+                'Version': '2021-07-28'
+              }
+            });
+
+            if (aptsResponse.ok) {
+              const aptsData = await aptsResponse.json();
+              const appointments = aptsData.events || aptsData.appointments || [];
+              return appointments
+                .filter(apt => {
+                  const aptStartTime = apt.startTime || apt.start_time || '';
+                  const aptDate = aptStartTime.split(/[T ]/)[0];
+                  return aptDate === targetDate;
+                })
+                .map(apt => ({
+                  ...apt,
+                  contactId: contactId,
+                  contactName: contactNameMap.get(contactId) || ''
+                }));
+            }
+            return [];
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      for (const appointments of batchResults) {
+        allAppointments.push(...appointments);
+      }
+    }
+
+    results.debug.contactsChecked = allContactIds.length;
 
     results.appointmentsFound = allAppointments.length;
     console.log(`Appointments found for ${targetDate}: ${allAppointments.length}`);

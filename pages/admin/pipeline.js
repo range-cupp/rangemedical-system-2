@@ -527,7 +527,7 @@ export default function UnifiedPipeline() {
     return (
       <tr key={protocol.id} style={styles.row}>
         <td style={styles.cell}>
-          <a href={`/admin/patient/${protocol.patient_id}`} style={styles.patientLink}>{protocol.patient_name || 'Unknown'}</a>
+          <a href={`/patients/${protocol.patient_id}`} style={styles.patientLink}>{protocol.patient_name || 'Unknown'}</a>
         </td>
         <td style={styles.cell}>
           <span style={{ ...styles.categoryBadge, background: badge.color }}>{badge.emoji}</span>

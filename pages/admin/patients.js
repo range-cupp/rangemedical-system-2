@@ -110,7 +110,7 @@ export default function PatientsList() {
             {filteredPatients.map(patient => (
               <Link 
                 key={patient.id} 
-                href={`/admin/patient/${patient.id}`}
+                href={`/patients/${patient.id}`}
                 style={{ textDecoration: 'none' }}
               >
                 <div style={styles.card}>

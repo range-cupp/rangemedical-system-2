@@ -439,7 +439,7 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
   return (
     <div style={styles.card(isOverdue)}>
       <div style={styles.cardHeader}>
-        <Link href={`/admin/patient/${journey.patient_id || journey.ghl_contact_id}`} style={styles.patientName}>
+        <Link href={`/patients/${journey.patient_id}`} style={styles.patientName}>
           {journey.patient_name || 'Unknown'}
         </Link>
         {journey.patient_phone && (
@@ -493,7 +493,7 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
                   Started: {formatDate(linkedProtocol.start_date)}
                   {linkedProtocol.medication && ` • ${linkedProtocol.medication}`}
                 </div>
-                <Link href={`/admin/patient/${journey.patient_id}`} style={styles.viewProtocolLink}>
+                <Link href={`/patients/${journey.patient_id}`} style={styles.viewProtocolLink}>
                   View Protocol →
                 </Link>
               </div>
@@ -569,7 +569,7 @@ function FollowUpCard({ followUp, stage, isOverdue, formatDate, onMarkReviewed, 
   return (
     <div style={styles.card(isOverdue)}>
       <div style={styles.cardHeader}>
-        <Link href={`/admin/patient/${followUp.patient_id}`} style={styles.patientName}>
+        <Link href={`/patients/${followUp.patient_id}`} style={styles.patientName}>
           {followUp.patient_name || 'Unknown'}
         </Link>
         <span style={{

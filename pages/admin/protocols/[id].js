@@ -345,8 +345,8 @@ export default function ProtocolDetail() {
             <p style={styles.subtitle}>{protocol?.program_name || PROTOCOL_TYPES[form.protocolType]?.name}</p>
           </div>
           <div style={styles.headerActions}>
-            {protocol?.ghl_contact_id && (
-              <Link href={`/admin/patient/${protocol.ghl_contact_id}`} style={styles.headerBtn}>
+            {protocol?.patient_id && (
+              <Link href={`/patients/${protocol.patient_id}`} style={styles.headerBtn}>
                 Patient Profile
               </Link>
             )}
@@ -698,9 +698,9 @@ export default function ProtocolDetail() {
             <div style={styles.card}>
               <h2 style={styles.cardTitle}>Actions</h2>
               <div style={styles.actionStack}>
-                {protocol?.ghl_contact_id && (
-                  <a href={`/admin/patient/${protocol.ghl_contact_id}`} target="_blank" style={styles.actionBtn}>
-                    👁️ View Patient Portal
+                {protocol?.patient_id && (
+                  <a href={`/patients/${protocol.patient_id}`} target="_blank" style={styles.actionBtn}>
+                    👁️ View Patient Profile
                   </a>
                 )}
                 {protocol?.patient_phone && (
@@ -712,12 +712,12 @@ export default function ProtocolDetail() {
               </div>
             </div>
 
-            {protocol?.ghl_contact_id && (
+            {protocol?.patient_id && (
               <div style={styles.card}>
-                <h2 style={styles.cardTitle}>Portal Link</h2>
+                <h2 style={styles.cardTitle}>Profile Link</h2>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/admin/patient/${protocol.ghl_contact_id}`);
+                    navigator.clipboard.writeText(`${window.location.origin}/patients/${protocol.patient_id}`);
                     setSuccess('Copied!');
                   }}
                   style={styles.copyBtn}

@@ -43,21 +43,16 @@ export default async function handler(req, res) {
       }
     };
 
-    // Step 1: Get contacts from GHL (paginated to avoid timeout)
-    // Skip to the correct page based on pageNum
+    // Step 1: Get ALL contacts from GHL first
     let allContacts = [];
     let hasMore = true;
     let startAfter = null;
     let startAfterId = null;
     const limit = 100;
     let pageCount = 0;
-    const skipToContact = (pageNum - 1) * contactsPerPage;
-    const maxContactsThisPage = contactsPerPage;
+    const maxPages = 15; // Fetch up to 1500 contacts
 
-    // Fetch all contacts up to our target range
-    const totalPagesToFetch = Math.ceil((pageNum * contactsPerPage) / limit);
-
-    while (hasMore && pageCount < totalPagesToFetch) {
+    while (hasMore && pageCount < maxPages) {
       try {
         let contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}`;
         // GHL requires both startAfter AND startAfterId for pagination
@@ -133,8 +128,8 @@ export default async function handler(req, res) {
     console.log(`Contacts fetched: ${allContacts.length}, unique: ${uniqueContacts.length}`);
 
     // Slice to just this page's contacts
-    const startIdx = skipToContact;
-    const endIdx = skipToContact + maxContactsThisPage;
+    const startIdx = (pageNum - 1) * contactsPerPage;
+    const endIdx = startIdx + contactsPerPage;
     const pageContacts = uniqueContacts.slice(startIdx, endIdx);
 
     results.debug.totalUniqueContacts = uniqueContacts.length;

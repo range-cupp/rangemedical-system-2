@@ -1,5 +1,6 @@
 // /pages/api/admin/sync-ghl-appointments.js
 // Sync appointments from GHL to local database
+// Uses Calendar Events API to get all appointments for a date directly
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -17,10 +18,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { date, page = 1 } = req.body;
+  const { date } = req.body;
   const targetDate = date || new Date().toISOString().split('T')[0];
-  const pageNum = parseInt(page) || 1;
-  const contactsPerPage = 300; // Process 300 contacts per API call
 
   console.log('=== SYNC GHL APPOINTMENTS ===');
   console.log('Target Date:', targetDate);
@@ -29,10 +28,6 @@ export default async function handler(req, res) {
   try {
     const results = {
       date: targetDate,
-      page: pageNum,
-      contactsPerPage,
-      contactsFetched: 0,
-      contactsChecked: 0,
       appointmentsFound: 0,
       synced: 0,
       errors: [],
@@ -43,23 +38,60 @@ export default async function handler(req, res) {
       }
     };
 
-    // Step 1: Get ALL contacts from GHL first
-    let allContacts = [];
-    let hasMore = true;
-    let startAfter = null;
-    let startAfterId = null;
-    const limit = 100;
-    let pageCount = 0;
-    const maxPages = 15; // Fetch up to 1500 contacts
+    // Step 1: Use Calendar Events API to get all appointments for the date
+    // Build date range for the target date (start of day to end of day in Pacific Time)
+    // January is PST (-08:00), use UTC equivalents
+    const startTime = `${targetDate}T00:00:00-08:00`;
+    const endTime = `${targetDate}T23:59:59-08:00`;
 
-    while (hasMore && pageCount < maxPages) {
-      try {
+    // Convert to epoch milliseconds for GHL API
+    const startTimeMs = new Date(startTime).getTime();
+    const endTimeMs = new Date(endTime).getTime();
+
+    let allAppointments = [];
+
+    // Try the Calendar Events endpoint first
+    const eventsUrl = `https://services.leadconnectorhq.com/calendars/events?locationId=${GHL_LOCATION_ID}&startTime=${startTimeMs}&endTime=${endTimeMs}`;
+    console.log('Fetching events from:', eventsUrl);
+
+    const eventsResponse = await fetch(eventsUrl, {
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Version': '2021-07-28'
+      }
+    });
+
+    results.debug.eventsApiStatus = eventsResponse.status;
+
+    if (eventsResponse.ok) {
+      const eventsData = await eventsResponse.json();
+      results.debug.eventsApiResponse = {
+        keys: Object.keys(eventsData),
+        eventCount: eventsData.events?.length || eventsData.appointments?.length || 0
+      };
+
+      allAppointments = eventsData.events || eventsData.appointments || [];
+      console.log(`Calendar Events API returned ${allAppointments.length} appointments`);
+    } else {
+      // If Calendar Events fails, fall back to contacts-based approach
+      const errorText = await eventsResponse.text();
+      results.debug.eventsApiError = errorText.substring(0, 500);
+      console.log('Calendar Events API failed, falling back to contacts approach');
+
+      // Fallback: Get all contacts and check their appointments
+      let contacts = [];
+      let hasMore = true;
+      let startAfter = null;
+      let startAfterId = null;
+      const limit = 100;
+      let pageCount = 0;
+      const maxPages = 20;
+
+      while (hasMore && pageCount < maxPages) {
         let contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}`;
-        // GHL requires both startAfter AND startAfterId for pagination
         if (startAfter && startAfterId) {
           contactsUrl += `&startAfter=${startAfter}&startAfterId=${startAfterId}`;
         }
-        console.log(`Fetching contacts: page=${pageCount}`);
 
         const contactsResponse = await fetch(contactsUrl, {
           headers: {
@@ -68,161 +100,77 @@ export default async function handler(req, res) {
           }
         });
 
-        if (!contactsResponse.ok) {
-          const errorText = await contactsResponse.text();
-          results.debug.contactsError = { status: contactsResponse.status, body: errorText.substring(0, 500) };
-          break;
-        }
+        if (!contactsResponse.ok) break;
 
-        const contactsText = await contactsResponse.text();
-        let contactsData;
-        try {
-          contactsData = JSON.parse(contactsText);
-        } catch (e) {
-          results.debug.parseError = { error: e.message, raw: contactsText.substring(0, 500) };
-          break;
-        }
+        const contactsData = await contactsResponse.json();
+        const batch = contactsData.contacts || [];
 
-        if (pageCount === 0) {
-          results.debug.firstResponse = {
-            contactCount: contactsData.contacts?.length || 0,
-            keys: Object.keys(contactsData),
-            meta: contactsData.meta
-          };
-        }
-
-        const contacts = contactsData.contacts || [];
-
-        if (contacts.length === 0) {
+        if (batch.length === 0) {
           hasMore = false;
         } else {
-          allContacts.push(...contacts);
+          contacts.push(...batch);
           pageCount++;
-          // Use pagination values from meta response
           startAfter = contactsData.meta?.startAfter;
           startAfterId = contactsData.meta?.startAfterId;
-          if (contacts.length < limit || !contactsData.meta?.nextPage) {
+          if (batch.length < limit || !contactsData.meta?.nextPage) {
             hasMore = false;
           }
         }
-      } catch (e) {
-        console.error('Error fetching contacts:', e);
-        results.errors.push({ step: 'fetch_contacts', error: e.message });
-        hasMore = false;
       }
-    }
 
-    // Deduplicate contacts
-    const uniqueContacts = [];
-    const seenIds = new Set();
-    for (const contact of allContacts) {
-      if (!seenIds.has(contact.id)) {
-        seenIds.add(contact.id);
-        uniqueContacts.push(contact);
+      // Deduplicate contacts
+      const uniqueContacts = [];
+      const seenIds = new Set();
+      for (const contact of contacts) {
+        if (!seenIds.has(contact.id)) {
+          seenIds.add(contact.id);
+          uniqueContacts.push(contact);
+        }
       }
-    }
 
-    results.contactsFetched = allContacts.length;
-    results.debug.uniqueContacts = uniqueContacts.length;
-    results.debug.duplicatesRemoved = allContacts.length - uniqueContacts.length;
-    console.log(`Contacts fetched: ${allContacts.length}, unique: ${uniqueContacts.length}`);
+      results.debug.contactsFetched = uniqueContacts.length;
 
-    // Slice to just this page's contacts
-    const startIdx = (pageNum - 1) * contactsPerPage;
-    const endIdx = startIdx + contactsPerPage;
-    const pageContacts = uniqueContacts.slice(startIdx, endIdx);
+      // Fetch appointments for each contact in batches
+      const batchSize = 30;
+      for (let i = 0; i < uniqueContacts.length; i += batchSize) {
+        const batch = uniqueContacts.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(async (contact) => {
+            try {
+              const aptsUrl = `https://services.leadconnectorhq.com/contacts/${contact.id}/appointments`;
+              const aptsResponse = await fetch(aptsUrl, {
+                headers: {
+                  'Authorization': `Bearer ${GHL_API_KEY}`,
+                  'Version': '2021-07-28'
+                }
+              });
 
-    results.debug.totalUniqueContacts = uniqueContacts.length;
-    results.debug.processingRange = `${startIdx}-${endIdx}`;
-    results.debug.contactsToProcess = pageContacts.length;
-
-    // Check if specific contacts are in this page (for debugging)
-    const debugContacts = {
-      kelly: 'wvWLq6kjnyvzhw9Q3mZ7',
-      luke: 'RbNFWi618ceAodr7dYdw'
-    };
-    results.debug.debugContactsInPage = {};
-    for (const [name, id] of Object.entries(debugContacts)) {
-      const found = pageContacts.find(c => c.id === id);
-      if (found) {
-        results.debug.debugContactsInPage[name] = true;
-      }
-    }
-
-    // Calculate if there are more pages
-    results.hasMorePages = endIdx < uniqueContacts.length;
-    results.nextPage = results.hasMorePages ? pageNum + 1 : null;
-    results.totalPages = Math.ceil(uniqueContacts.length / contactsPerPage);
-
-    // Use page contacts for appointment fetching
-    allContacts = pageContacts;
-
-    // Step 2: Fetch appointments for all contacts in parallel batches
-    const allAppointments = [];
-    const batchSize = 30; // Process 30 contacts at a time for speed
-
-    for (let i = 0; i < allContacts.length; i += batchSize) {
-      const batch = allContacts.slice(i, i + batchSize);
-
-      // Debug: Track specific contacts
-      const debugContactIds = ['wvWLq6kjnyvzhw9Q3mZ7']; // Kelly Ripley
-
-      const batchResults = await Promise.all(
-        batch.map(async (contact) => {
-          const isDebugContact = debugContactIds.includes(contact.id);
-
-          try {
-            const appointmentsUrl = `https://services.leadconnectorhq.com/contacts/${contact.id}/appointments`;
-            const aptsResponse = await fetch(appointmentsUrl, {
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Version': '2021-07-28'
+              if (aptsResponse.ok) {
+                const aptsData = await aptsResponse.json();
+                const appointments = aptsData.events || aptsData.appointments || [];
+                return appointments
+                  .filter(apt => {
+                    const aptStartTime = apt.startTime || apt.start_time || '';
+                    const aptDate = aptStartTime.split(/[T ]/)[0];
+                    return aptDate === targetDate;
+                  })
+                  .map(apt => ({
+                    ...apt,
+                    contactId: contact.id,
+                    contactName: contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
+                  }));
               }
-            });
-
-            if (aptsResponse.ok) {
-              const aptsData = await aptsResponse.json();
-              const appointments = aptsData.events || aptsData.appointments || [];
-
-              if (isDebugContact) {
-                results.debug.kellyCheck = {
-                  contactId: contact.id,
-                  totalAppointments: appointments.length,
-                  appointmentDates: appointments.map(a => (a.startTime || '').split(/[T ]/)[0])
-                };
-              }
-
-              // Filter appointments to target date
-              return appointments
-                .filter(apt => {
-                  const aptStartTime = apt.startTime || apt.start_time || apt.selectedTimeslot?.startTime || '';
-                  const aptDate = aptStartTime.split(/[T ]/)[0];
-                  return aptDate === targetDate;
-                })
-                .map(apt => ({
-                  ...apt,
-                  contactId: contact.id,
-                  contactName: contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
-                  contactEmail: contact.email,
-                  contactPhone: contact.phone
-                }));
+              return [];
+            } catch {
+              return [];
             }
-            return [];
-          } catch (e) {
-            if (isDebugContact) {
-              results.debug.kellyError = e.message;
-            }
-            return [];
-          }
-        })
-      );
+          })
+        );
 
-      // Flatten batch results
-      for (const appointments of batchResults) {
-        allAppointments.push(...appointments);
+        for (const appointments of batchResults) {
+          allAppointments.push(...appointments);
+        }
       }
-
-      results.contactsChecked += batch.length;
     }
 
     results.appointmentsFound = allAppointments.length;

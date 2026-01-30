@@ -109,6 +109,17 @@ export default function PatientProfile() {
     }
   }, [id]);
 
+  // Close PDF viewer on Escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && pdfSlideOut.open) {
+        setPdfSlideOut({ open: false, url: '', title: '' });
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [pdfSlideOut.open]);
+
   const fetchPatient = async () => {
     try {
       setLoading(true);
@@ -503,17 +514,6 @@ export default function PatientProfile() {
   const closePdfViewer = () => {
     setPdfSlideOut({ open: false, url: '', title: '' });
   };
-
-  // Close on Escape key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && pdfSlideOut.open) {
-        closePdfViewer();
-      }
-    };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [pdfSlideOut.open]);
 
   return (
     <>

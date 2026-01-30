@@ -12,6 +12,17 @@ const supabase = createClient(
 const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
+// Service calendar IDs from GHL (these are different from personal calendars)
+const SERVICE_CALENDARS = [
+  { id: '68f01d9a238b376bfa9a758c', name: 'Range Injections' },
+  { id: '6946d1509a25681dba593fcd', name: 'Injection - Medical' },
+  { id: '68fbe09a4866ec6b798932b6', name: 'Injection - Testosterone' },
+  { id: '6900eedaf5009e264f9ded8e', name: 'Injection - Peptide' },
+  { id: '69363659022462924d66805c', name: 'New Patient Blood Draw' },
+  { id: '68fbc3300d41ec836e706680', name: 'Follow-up Blood Draw' },
+  { id: '68fbc3cc4cbe5615edb2016d', name: 'Initial Lab Review' }
+];
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -108,30 +119,128 @@ export default async function handler(req, res) {
       results.errors.push({ endpoint: '/calendars/', error: e.message });
     }
 
-    // Endpoint 3: Try /appointments/ endpoint
-    try {
-      const url = `https://services.leadconnectorhq.com/appointments/?locationId=${GHL_LOCATION_ID}&startDate=${encodeURIComponent(startTime)}&endDate=${encodeURIComponent(endTime)}`;
-      console.log('Trying:', url);
+    // Endpoint 3: Try service calendars directly
+    for (const calendar of SERVICE_CALENDARS) {
+      try {
+        // Try /calendars/{id}/appointments
+        const aptsUrl = `https://services.leadconnectorhq.com/calendars/${calendar.id}/appointments?startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`;
+        const aptsResponse = await fetch(aptsUrl, {
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28'
+          }
+        });
+        const aptsData = await aptsResponse.json();
 
-      const response = await fetch(url, {
+        results.endpoints_tried.push({
+          endpoint: `/calendars/${calendar.id}/appointments`,
+          calendarName: calendar.name,
+          status: aptsResponse.status,
+          count: aptsData.appointments?.length || 0
+        });
+
+        if (aptsData.appointments && aptsData.appointments.length > 0) {
+          results.appointments.push(...aptsData.appointments.map(a => ({
+            ...a,
+            calendarName: calendar.name,
+            calendarId: calendar.id,
+            source: `service-calendar:${calendar.name}`
+          })));
+        }
+      } catch (e) {
+        results.errors.push({ calendar: calendar.name, error: e.message });
+      }
+
+      // Also try /calendars/events with calendarId filter
+      try {
+        const eventsUrl = `https://services.leadconnectorhq.com/calendars/events?locationId=${GHL_LOCATION_ID}&calendarId=${calendar.id}&startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`;
+        const eventsResponse = await fetch(eventsUrl, {
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28'
+          }
+        });
+        const eventsData = await eventsResponse.json();
+
+        if (eventsData.events && eventsData.events.length > 0) {
+          results.appointments.push(...eventsData.events.map(e => ({
+            ...e,
+            calendarName: calendar.name,
+            calendarId: calendar.id,
+            source: `service-events:${calendar.name}`
+          })));
+        }
+      } catch (e) {
+        // Skip
+      }
+    }
+
+    // Endpoint 4: Try /appointments/ endpoint with different params
+    const appointmentEndpoints = [
+      `/appointments/?locationId=${GHL_LOCATION_ID}&startDate=${encodeURIComponent(startTime)}&endDate=${encodeURIComponent(endTime)}`,
+      `/appointments/?locationId=${GHL_LOCATION_ID}&rangeStart=${encodeURIComponent(startTime)}&rangeEnd=${encodeURIComponent(endTime)}`,
+      `/appointments?locationId=${GHL_LOCATION_ID}&date=${targetDate}`
+    ];
+
+    for (const endpoint of appointmentEndpoints) {
+      try {
+        const url = `https://services.leadconnectorhq.com${endpoint}`;
+        console.log('Trying:', url);
+
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28'
+          }
+        });
+
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text.substring(0, 500) };
+        }
+
+        results.endpoints_tried.push({
+          endpoint: endpoint.split('?')[0],
+          status: response.status,
+          count: data.appointments?.length || 0
+        });
+
+        if (data.appointments && data.appointments.length > 0) {
+          results.appointments.push(...data.appointments.map(a => ({ ...a, source: 'appointments/' })));
+        }
+      } catch (e) {
+        results.errors.push({ endpoint, error: e.message });
+      }
+    }
+
+    // Endpoint 5: Try searching via contacts API
+    try {
+      // Get contacts with appointments today
+      const searchUrl = `https://services.leadconnectorhq.com/contacts/search`;
+      const searchResponse = await fetch(searchUrl, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28'
-        }
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          locationId: GHL_LOCATION_ID,
+          pageSize: 100,
+          filters: []
+        })
       });
-
-      const data = await response.json();
+      const searchData = await searchResponse.json();
       results.endpoints_tried.push({
-        endpoint: '/appointments/',
-        status: response.status,
-        count: data.appointments?.length || 0
+        endpoint: '/contacts/search',
+        status: searchResponse.status,
+        contactsFound: searchData.contacts?.length || 0
       });
-
-      if (data.appointments && data.appointments.length > 0) {
-        results.appointments.push(...data.appointments.map(a => ({ ...a, source: 'appointments/' })));
-      }
     } catch (e) {
-      results.errors.push({ endpoint: '/appointments/', error: e.message });
+      results.errors.push({ endpoint: '/contacts/search', error: e.message });
     }
 
     // Deduplicate appointments by ID

@@ -17,8 +17,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { date } = req.body;
+  const { date, page = 1 } = req.body;
   const targetDate = date || new Date().toISOString().split('T')[0];
+  const pageNum = parseInt(page) || 1;
+  const contactsPerPage = 300; // Process 300 contacts per API call
 
   console.log('=== SYNC GHL APPOINTMENTS ===');
   console.log('Target Date:', targetDate);
@@ -27,6 +29,8 @@ export default async function handler(req, res) {
   try {
     const results = {
       date: targetDate,
+      page: pageNum,
+      contactsPerPage,
       contactsFetched: 0,
       contactsChecked: 0,
       appointmentsFound: 0,
@@ -39,17 +43,21 @@ export default async function handler(req, res) {
       }
     };
 
-    // Step 1: Get contacts from GHL (limited to avoid timeout)
-    // Vercel has a 10s timeout on hobby, so we need to be fast
+    // Step 1: Get contacts from GHL (paginated to avoid timeout)
+    // Skip to the correct page based on pageNum
     let allContacts = [];
     let hasMore = true;
     let startAfter = null;
     let startAfterId = null;
     const limit = 100;
     let pageCount = 0;
-    const maxPages = 15; // Up to 1500 contacts
+    const skipToContact = (pageNum - 1) * contactsPerPage;
+    const maxContactsThisPage = contactsPerPage;
 
-    while (hasMore && pageCount < maxPages) {
+    // Fetch all contacts up to our target range
+    const totalPagesToFetch = Math.ceil((pageNum * contactsPerPage) / limit);
+
+    while (hasMore && pageCount < totalPagesToFetch) {
       try {
         let contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=${limit}`;
         // GHL requires both startAfter AND startAfterId for pagination
@@ -124,13 +132,27 @@ export default async function handler(req, res) {
     results.debug.duplicatesRemoved = allContacts.length - uniqueContacts.length;
     console.log(`Contacts fetched: ${allContacts.length}, unique: ${uniqueContacts.length}`);
 
-    // Check if Kelly's contact ID is in the list
-    const kellyId = 'wvWLq6kjnyvzhw9Q3mZ7';
-    const kellyContact = uniqueContacts.find(c => c.id === kellyId);
-    results.debug.kellyInList = !!kellyContact;
+    // Slice to just this page's contacts
+    const startIdx = skipToContact;
+    const endIdx = skipToContact + maxContactsThisPage;
+    const pageContacts = uniqueContacts.slice(startIdx, endIdx);
 
-    // Use unique contacts for appointment fetching
-    allContacts = uniqueContacts;
+    results.debug.totalUniqueContacts = uniqueContacts.length;
+    results.debug.processingRange = `${startIdx}-${endIdx}`;
+    results.debug.contactsToProcess = pageContacts.length;
+
+    // Check if Kelly's contact ID is in this page
+    const kellyId = 'wvWLq6kjnyvzhw9Q3mZ7';
+    const kellyContact = pageContacts.find(c => c.id === kellyId);
+    results.debug.kellyInThisPage = !!kellyContact;
+
+    // Calculate if there are more pages
+    results.hasMorePages = endIdx < uniqueContacts.length;
+    results.nextPage = results.hasMorePages ? pageNum + 1 : null;
+    results.totalPages = Math.ceil(uniqueContacts.length / contactsPerPage);
+
+    // Use page contacts for appointment fetching
+    allContacts = pageContacts;
 
     // Step 2: Fetch appointments for all contacts in parallel batches
     const allAppointments = [];

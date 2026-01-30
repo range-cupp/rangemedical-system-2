@@ -960,6 +960,7 @@ export default function UnifiedPipeline() {
                   {[{ value: 'all', label: 'All' }, { value: 'in_clinic', label: 'In Clinic' }, { value: 'take_home', label: 'Take Home' }].map(opt => <button key={opt.value} style={{ ...styles.tab, ...(deliveryFilter === opt.value ? styles.tabActive : {}) }} onClick={() => setDeliveryFilter(opt.value)}>{opt.label}</button>)}
                 </div>
                 <button style={styles.refreshBtn} onClick={fetchData}>↻ Refresh</button>
+                <a href="/admin/patients" style={styles.activityLogBtn}>👥 Patients</a>
                 <a href="/admin/activity-log" style={styles.activityLogBtn}>📋 Activity Log</a>
                 <a href="/admin/clinic-schedule" style={styles.activityLogBtn}>🏥 Clinic Schedule</a>
                 <button style={styles.startProtocolBtn} onClick={openStartModal}>➕ Start Protocol</button>

@@ -216,31 +216,90 @@ export default async function handler(req, res) {
       }
     }
 
-    // Endpoint 5: Try searching via contacts API
+    // Endpoint 5: Get appointments for contacts with upcoming appointments
     try {
-      // Get contacts with appointments today
-      const searchUrl = `https://services.leadconnectorhq.com/contacts/search`;
-      const searchResponse = await fetch(searchUrl, {
-        method: 'POST',
+      // First get contacts
+      const contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=100`;
+      const contactsResponse = await fetch(contactsUrl, {
         headers: {
           'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          locationId: GHL_LOCATION_ID,
-          pageSize: 100,
-          filters: []
-        })
+          'Version': '2021-07-28'
+        }
       });
-      const searchData = await searchResponse.json();
+      const contactsData = await contactsResponse.json();
+      const contacts = contactsData.contacts || [];
+
       results.endpoints_tried.push({
-        endpoint: '/contacts/search',
-        status: searchResponse.status,
-        contactsFound: searchData.contacts?.length || 0
+        endpoint: '/contacts/',
+        status: contactsResponse.status,
+        contactsFound: contacts.length
+      });
+
+      // For each contact, try to get their appointments
+      let appointmentsFound = 0;
+      for (const contact of contacts.slice(0, 50)) { // Limit to first 50 to avoid rate limits
+        try {
+          const contactAptsUrl = `https://services.leadconnectorhq.com/contacts/${contact.id}/appointments`;
+          const contactAptsResponse = await fetch(contactAptsUrl, {
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28'
+            }
+          });
+
+          if (contactAptsResponse.ok) {
+            const contactAptsData = await contactAptsResponse.json();
+            const appts = contactAptsData.appointments || contactAptsData.events || [];
+
+            // Filter to target date
+            const todayAppts = appts.filter(a => {
+              const aptDate = (a.startTime || a.start_time || '').split('T')[0];
+              return aptDate === targetDate;
+            });
+
+            if (todayAppts.length > 0) {
+              results.appointments.push(...todayAppts.map(a => ({
+                ...a,
+                contactId: contact.id,
+                contactName: contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
+                source: 'contacts/appointments'
+              })));
+              appointmentsFound += todayAppts.length;
+            }
+          }
+        } catch (e) {
+          // Skip individual contact errors
+        }
+      }
+
+      results.endpoints_tried.push({
+        endpoint: '/contacts/{id}/appointments',
+        contactsChecked: Math.min(contacts.length, 50),
+        appointmentsFound
       });
     } catch (e) {
-      results.errors.push({ endpoint: '/contacts/search', error: e.message });
+      results.errors.push({ endpoint: '/contacts/', error: e.message });
+    }
+
+    // Endpoint 6: Try the calendar blocks/slots endpoints
+    for (const calendar of SERVICE_CALENDARS.slice(0, 3)) { // Try first 3 to test
+      try {
+        const slotsUrl = `https://services.leadconnectorhq.com/calendars/${calendar.id}/free-slots?startDate=${targetDate}&endDate=${targetDate}`;
+        const slotsResponse = await fetch(slotsUrl, {
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28'
+          }
+        });
+
+        results.endpoints_tried.push({
+          endpoint: `/calendars/${calendar.id}/free-slots`,
+          calendarName: calendar.name,
+          status: slotsResponse.status
+        });
+      } catch (e) {
+        // Skip
+      }
     }
 
     // Deduplicate appointments by ID

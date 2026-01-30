@@ -102,7 +102,8 @@ export default async function handler(req, res) {
           // Filter appointments to target date
           for (const apt of appointments) {
             const aptStartTime = apt.startTime || apt.start_time || apt.selectedTimeslot?.startTime || '';
-            const aptDate = aptStartTime.split('T')[0];
+            // Handle both "2026-01-30T08:30:00" and "2026-01-30 08:30:00" formats
+            const aptDate = aptStartTime.split(/[T ]/)[0];
 
             if (aptDate === targetDate) {
               allAppointments.push({
@@ -134,11 +135,21 @@ export default async function handler(req, res) {
       try {
         const appointmentId = apt.id || apt.appointmentId;
         const calendarId = apt.calendarId || apt.calendar_id || '';
-        const calendarName = apt.calendar?.name || apt.calendarName || apt.title || 'Appointment';
+        // Extract calendar name from title (e.g., "Kristen Collins - Red Light Therapy" -> "Red Light Therapy")
+        const titleParts = (apt.title || '').split(' - ');
+        const calendarName = titleParts.length > 1 ? titleParts.slice(1).join(' - ') : (apt.calendar?.name || apt.calendarName || apt.title || 'Appointment');
         const title = apt.title || apt.name || calendarName;
         const status = (apt.status || apt.appointmentStatus || 'scheduled').toLowerCase();
-        const startTimeVal = apt.startTime || apt.start_time || apt.selectedTimeslot?.startTime;
-        const endTimeVal = apt.endTime || apt.end_time || apt.selectedTimeslot?.endTime;
+        // Convert "2026-01-30 08:30:00" to ISO format if needed
+        let startTimeVal = apt.startTime || apt.start_time || apt.selectedTimeslot?.startTime || '';
+        let endTimeVal = apt.endTime || apt.end_time || apt.selectedTimeslot?.endTime || '';
+        // Handle space-separated date format
+        if (startTimeVal && !startTimeVal.includes('T')) {
+          startTimeVal = startTimeVal.replace(' ', 'T');
+        }
+        if (endTimeVal && !endTimeVal.includes('T')) {
+          endTimeVal = endTimeVal.replace(' ', 'T');
+        }
         const notes = apt.notes || '';
 
         // Find patient by GHL contact ID

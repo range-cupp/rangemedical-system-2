@@ -38,45 +38,71 @@ export default async function handler(req, res) {
       }
     };
 
-    // Step 1: Use Calendar Events API to get all appointments for the date
-    // Build date range for the target date (start of day to end of day in Pacific Time)
-    // January is PST (-08:00), use UTC equivalents
-    const startTime = `${targetDate}T00:00:00-08:00`;
-    const endTime = `${targetDate}T23:59:59-08:00`;
+    // Step 1: Get all calendars for this location
+    const calendarsUrl = `https://services.leadconnectorhq.com/calendars/?locationId=${GHL_LOCATION_ID}`;
+    console.log('Fetching calendars from:', calendarsUrl);
 
-    // Convert to epoch milliseconds for GHL API
-    const startTimeMs = new Date(startTime).getTime();
-    const endTimeMs = new Date(endTime).getTime();
-
-    let allAppointments = [];
-
-    // Try the Calendar Events endpoint first
-    const eventsUrl = `https://services.leadconnectorhq.com/calendars/events?locationId=${GHL_LOCATION_ID}&startTime=${startTimeMs}&endTime=${endTimeMs}`;
-    console.log('Fetching events from:', eventsUrl);
-
-    const eventsResponse = await fetch(eventsUrl, {
+    const calendarsResponse = await fetch(calendarsUrl, {
       headers: {
         'Authorization': `Bearer ${GHL_API_KEY}`,
         'Version': '2021-07-28'
       }
     });
 
-    results.debug.eventsApiStatus = eventsResponse.status;
+    let allAppointments = [];
 
-    if (eventsResponse.ok) {
-      const eventsData = await eventsResponse.json();
-      results.debug.eventsApiResponse = {
-        keys: Object.keys(eventsData),
-        eventCount: eventsData.events?.length || eventsData.appointments?.length || 0
-      };
+    if (calendarsResponse.ok) {
+      const calendarsData = await calendarsResponse.json();
+      const calendars = calendarsData.calendars || [];
+      results.debug.calendarsFound = calendars.length;
+      results.debug.calendarNames = calendars.map(c => c.name);
 
-      allAppointments = eventsData.events || eventsData.appointments || [];
-      console.log(`Calendar Events API returned ${allAppointments.length} appointments`);
+      // Build date range for the target date (Pacific Time)
+      const startTime = `${targetDate}T00:00:00-08:00`;
+      const endTime = `${targetDate}T23:59:59-08:00`;
+      const startTimeMs = new Date(startTime).getTime();
+      const endTimeMs = new Date(endTime).getTime();
+
+      // Step 2: Fetch events for each calendar
+      for (const calendar of calendars) {
+        try {
+          const eventsUrl = `https://services.leadconnectorhq.com/calendars/events?locationId=${GHL_LOCATION_ID}&calendarId=${calendar.id}&startTime=${startTimeMs}&endTime=${endTimeMs}`;
+
+          const eventsResponse = await fetch(eventsUrl, {
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28'
+            }
+          });
+
+          if (eventsResponse.ok) {
+            const eventsData = await eventsResponse.json();
+            const events = eventsData.events || [];
+            console.log(`Calendar "${calendar.name}" returned ${events.length} events`);
+
+            // Add calendar info to each event
+            for (const event of events) {
+              allAppointments.push({
+                ...event,
+                calendarId: calendar.id,
+                calendarName: calendar.name
+              });
+            }
+          } else {
+            const errorText = await eventsResponse.text();
+            console.log(`Calendar "${calendar.name}" error: ${errorText.substring(0, 200)}`);
+          }
+        } catch (e) {
+          console.error(`Error fetching calendar ${calendar.name}:`, e.message);
+        }
+      }
+
+      console.log(`Total appointments from calendars: ${allAppointments.length}`);
     } else {
-      // If Calendar Events fails, fall back to contacts-based approach
-      const errorText = await eventsResponse.text();
-      results.debug.eventsApiError = errorText.substring(0, 500);
-      console.log('Calendar Events API failed, falling back to contacts approach');
+      // If Calendars API fails, fall back to contacts-based approach
+      const errorText = await calendarsResponse.text();
+      results.debug.calendarsApiError = errorText.substring(0, 500);
+      console.log('Calendars API failed, falling back to contacts approach');
 
       // Fallback: Get all contacts and check their appointments
       let contacts = [];

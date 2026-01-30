@@ -31,7 +31,12 @@ export default async function handler(req, res) {
       contactsChecked: 0,
       appointmentsFound: 0,
       synced: 0,
-      errors: []
+      errors: [],
+      debug: {
+        hasApiKey: !!GHL_API_KEY,
+        hasLocationId: !!GHL_LOCATION_ID,
+        locationId: GHL_LOCATION_ID
+      }
     };
 
     // Step 1: Get ALL contacts from GHL (paginated)
@@ -53,11 +58,28 @@ export default async function handler(req, res) {
         });
 
         if (!contactsResponse.ok) {
-          console.log('Contacts fetch failed:', contactsResponse.status);
+          const errorText = await contactsResponse.text();
+          results.debug.contactsError = { status: contactsResponse.status, body: errorText.substring(0, 500) };
           break;
         }
 
-        const contactsData = await contactsResponse.json();
+        const contactsText = await contactsResponse.text();
+        let contactsData;
+        try {
+          contactsData = JSON.parse(contactsText);
+        } catch (e) {
+          results.debug.parseError = { error: e.message, raw: contactsText.substring(0, 500) };
+          break;
+        }
+
+        if (skip === 0) {
+          results.debug.firstResponse = {
+            contactCount: contactsData.contacts?.length || 0,
+            keys: Object.keys(contactsData),
+            meta: contactsData.meta
+          };
+        }
+
         const contacts = contactsData.contacts || [];
 
         if (contacts.length === 0) {

@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     tests: []
   };
 
-  // Test 1: List all calendars
+  // Test 1: List all calendars - get full list with IDs and names
   try {
     const response = await fetch(
       `https://services.leadconnectorhq.com/calendars/?locationId=${GHL_LOCATION_ID}`,
@@ -30,13 +30,19 @@ export default async function handler(req, res) {
         }
       }
     );
-    const text = await response.text();
+    const data = await response.json();
+    const calendars = (data.calendars || []).map(c => ({
+      id: c.id,
+      name: c.name,
+      type: c.calendarType
+    }));
+    results.calendars = calendars;
     results.tests.push({
       test: 'List Calendars',
       endpoint: `/calendars/?locationId=${GHL_LOCATION_ID}`,
       status: response.status,
       ok: response.ok,
-      response: text.substring(0, 1000)
+      count: calendars.length
     });
   } catch (e) {
     results.tests.push({ test: 'List Calendars', error: e.message });
@@ -132,6 +138,32 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     results.tests.push({ test: 'Calendar Appointments', error: e.message });
+  }
+
+  // Test 6: Try fetching events from first calendar found
+  if (results.calendars && results.calendars.length > 0) {
+    const firstCalendar = results.calendars[0];
+    try {
+      const response = await fetch(
+        `https://services.leadconnectorhq.com/calendars/events?locationId=${GHL_LOCATION_ID}&calendarId=${firstCalendar.id}&startTime=${startTime}&endTime=${endTime}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28'
+          }
+        }
+      );
+      const text = await response.text();
+      results.tests.push({
+        test: `Get Events (${firstCalendar.name})`,
+        calendarId: firstCalendar.id,
+        status: response.status,
+        ok: response.ok,
+        response: text.substring(0, 1000)
+      });
+    } catch (e) {
+      results.tests.push({ test: 'Get Events (first calendar)', error: e.message });
+    }
   }
 
   return res.status(200).json(results);

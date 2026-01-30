@@ -75,7 +75,11 @@ async function updateProtocol(id, updates, res) {
     'notes',
     'program_name',
     'program_type',
-    'starting_weight'
+    'starting_weight',
+    // HRT vial-specific fields
+    'dose_per_injection',
+    'injections_per_week',
+    'vial_size'
   ];
   
   // Filter to only allowed fields

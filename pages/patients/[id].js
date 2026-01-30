@@ -73,7 +73,9 @@ export default function PatientProfile() {
 
   const [editForm, setEditForm] = useState({
     medication: '', selectedDose: '', frequency: '', startDate: '',
-    endDate: '', status: '', notes: '', sessionsUsed: 0, totalSessions: null
+    endDate: '', status: '', notes: '', sessionsUsed: 0, totalSessions: null,
+    // HRT vial-specific fields
+    dosePerInjection: '', injectionsPerWeek: 2, vialSize: '', supplyType: '', lastRefillDate: ''
   });
 
   const [labForm, setLabForm] = useState({
@@ -305,7 +307,13 @@ export default function PatientProfile() {
       status: protocol.status || 'active',
       notes: protocol.notes || '',
       sessionsUsed: protocol.sessions_used || 0,
-      totalSessions: protocol.total_sessions || null
+      totalSessions: protocol.total_sessions || null,
+      // HRT vial-specific fields
+      dosePerInjection: protocol.dose_per_injection || '',
+      injectionsPerWeek: protocol.injections_per_week || 2,
+      vialSize: protocol.vial_size || '',
+      supplyType: protocol.supply_type || '',
+      lastRefillDate: protocol.last_refill_date || ''
     });
     setShowEditModal(true);
   };
@@ -313,17 +321,23 @@ export default function PatientProfile() {
   const handleEditProtocol = async () => {
     try {
       const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medication: editForm.medication,
-          selectedDose: editForm.selectedDose,
+          selected_dose: editForm.selectedDose,
           frequency: editForm.frequency,
-          startDate: editForm.startDate,
-          endDate: editForm.endDate,
+          start_date: editForm.startDate,
+          end_date: editForm.endDate,
           status: editForm.status,
           notes: editForm.notes,
-          sessionsUsed: editForm.sessionsUsed
+          sessions_used: editForm.sessionsUsed,
+          // HRT vial-specific fields
+          dose_per_injection: editForm.dosePerInjection ? parseFloat(editForm.dosePerInjection) : null,
+          injections_per_week: editForm.injectionsPerWeek ? parseInt(editForm.injectionsPerWeek) : null,
+          vial_size: editForm.vialSize ? parseFloat(editForm.vialSize) : null,
+          supply_type: editForm.supplyType,
+          last_refill_date: editForm.lastRefillDate
         })
       });
 
@@ -959,7 +973,7 @@ export default function PatientProfile() {
 
                 <div className="form-group">
                   <label>Dose</label>
-                  <input type="text" value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})} />
+                  <input type="text" value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})} placeholder="e.g., 0.4ml/80mg" />
                 </div>
 
                 <div className="form-group">
@@ -973,6 +987,49 @@ export default function PatientProfile() {
                     <option value="As needed">As needed</option>
                   </select>
                 </div>
+
+                {/* HRT Vial Tracking Fields - show for HRT protocols */}
+                {selectedProtocol.category === 'hrt' && (
+                  <>
+                    <div className="form-section-label">HRT Vial Tracking</div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Dose per Injection (ml)</label>
+                        <select value={editForm.dosePerInjection} onChange={e => setEditForm({...editForm, dosePerInjection: e.target.value})}>
+                          <option value="">Select...</option>
+                          <option value="0.25">0.25ml (50mg)</option>
+                          <option value="0.3">0.3ml (60mg)</option>
+                          <option value="0.35">0.35ml (70mg)</option>
+                          <option value="0.4">0.4ml (80mg)</option>
+                          <option value="0.5">0.5ml (100mg)</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Injections/Week</label>
+                        <select value={editForm.injectionsPerWeek} onChange={e => setEditForm({...editForm, injectionsPerWeek: e.target.value})}>
+                          <option value="1">1x per week</option>
+                          <option value="2">2x per week</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Supply Type</label>
+                        <select value={editForm.supplyType} onChange={e => setEditForm({...editForm, supplyType: e.target.value})}>
+                          <option value="">Select...</option>
+                          <option value="vial_10ml">10ml Vial</option>
+                          <option value="vial_5ml">5ml Vial</option>
+                          <option value="prefill_2week">2-Week Prefilled</option>
+                          <option value="prefill_4week">4-Week Prefilled</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Last Refill Date</label>
+                        <input type="date" value={editForm.lastRefillDate} onChange={e => setEditForm({...editForm, lastRefillDate: e.target.value})} />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {editForm.totalSessions ? (
                   <div className="form-group">
@@ -1628,6 +1685,16 @@ export default function PatientProfile() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 16px;
+        }
+        .form-section-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin: 16px 0 8px 0;
+          padding-top: 16px;
+          border-top: 1px solid #e5e7eb;
         }
         .error-box {
           background: #fef2f2;

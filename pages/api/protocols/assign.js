@@ -33,7 +33,12 @@ export default async function handler(req, res) {
       totalSessions,
       supplyDuration,
       isWeightLoss,
-      wlDuration
+      wlDuration,
+      // HRT vial-specific fields
+      dosePerInjection,
+      injectionsPerWeek,
+      vialSize,
+      supplyType
     } = req.body;
 
     // For non-weight-loss, template is required
@@ -188,6 +193,12 @@ export default async function handler(req, res) {
         sessions_used: 0,
         status: isSingle ? 'completed' : 'active',
         notes: notes,
+        // HRT vial-specific fields
+        dose_per_injection: dosePerInjection ? parseFloat(dosePerInjection) : null,
+        injections_per_week: injectionsPerWeek ? parseInt(injectionsPerWeek) : null,
+        vial_size: vialSize ? parseFloat(vialSize) : null,
+        supply_type: supplyType || null,
+        last_refill_date: startDate, // Initialize refill date to start date
         created_at: new Date().toISOString()
       })
       .select()

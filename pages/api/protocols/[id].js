@@ -79,7 +79,12 @@ async function updateProtocol(id, updates, res) {
     // HRT vial-specific fields
     'dose_per_injection',
     'injections_per_week',
-    'vial_size'
+    'vial_size',
+    // In-clinic visit scheduling fields
+    'visit_frequency',
+    'scheduled_days',
+    'last_visit_date',
+    'next_expected_date'
   ];
   
   // Filter to only allowed fields

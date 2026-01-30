@@ -961,6 +961,7 @@ export default function UnifiedPipeline() {
                 </div>
                 <button style={styles.refreshBtn} onClick={fetchData}>↻ Refresh</button>
                 <a href="/admin/activity-log" style={styles.activityLogBtn}>📋 Activity Log</a>
+                <a href="/admin/clinic-schedule" style={styles.activityLogBtn}>🏥 Clinic Schedule</a>
                 <button style={styles.startProtocolBtn} onClick={openStartModal}>➕ Start Protocol</button>
               </div>
             </div>
@@ -971,6 +972,12 @@ export default function UnifiedPipeline() {
                 <div style={{ ...styles.statCard, borderLeftColor: '#f59e0b' }}><div style={styles.statLabel}>ACTIVE (4-14 DAYS)</div><div style={styles.statValue}>{data.counts.active || 0}</div></div>
                 <div style={{ ...styles.statCard, borderLeftColor: '#22c55e' }}><div style={styles.statLabel}>JUST STARTED (15+ DAYS)</div><div style={styles.statValue}>{data.counts.just_started || 0}</div></div>
                 <div style={{ ...styles.statCard, borderLeftColor: '#6b7280' }}><div style={styles.statLabel}>NEEDS FOLLOW-UP</div><div style={styles.statValue}>{data.counts.needs_followup || 0}</div></div>
+                {(data.counts.overdue_visits || 0) > 0 && (
+                  <a href="/admin/clinic-schedule" style={{ ...styles.statCard, borderLeftColor: '#7c3aed', textDecoration: 'none', cursor: 'pointer' }}>
+                    <div style={styles.statLabel}>OVERDUE VISITS</div>
+                    <div style={{ ...styles.statValue, color: '#7c3aed' }}>{data.counts.overdue_visits}</div>
+                  </a>
+                )}
               </div>
             )}
 

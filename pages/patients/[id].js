@@ -81,7 +81,9 @@ export default function PatientProfile() {
     medication: '', selectedDose: '', frequency: '', startDate: '',
     endDate: '', status: '', notes: '', sessionsUsed: 0, totalSessions: null,
     // HRT vial-specific fields
-    dosePerInjection: '', injectionsPerWeek: 2, vialSize: '', supplyType: '', lastRefillDate: ''
+    dosePerInjection: '', injectionsPerWeek: 2, vialSize: '', supplyType: '', lastRefillDate: '',
+    // In-clinic scheduling fields
+    deliveryMethod: '', visitFrequency: '', scheduledDays: [], lastVisitDate: '', nextExpectedDate: ''
   });
 
   const [labForm, setLabForm] = useState({
@@ -333,7 +335,13 @@ export default function PatientProfile() {
       injectionsPerWeek: protocol.injections_per_week || 2,
       vialSize: protocol.vial_size || '',
       supplyType: protocol.supply_type || '',
-      lastRefillDate: protocol.last_refill_date || ''
+      lastRefillDate: protocol.last_refill_date || '',
+      // In-clinic scheduling fields
+      deliveryMethod: protocol.delivery_method || '',
+      visitFrequency: protocol.visit_frequency || '',
+      scheduledDays: protocol.scheduled_days || [],
+      lastVisitDate: protocol.last_visit_date || '',
+      nextExpectedDate: protocol.next_expected_date || ''
     });
     setShowEditModal(true);
   };
@@ -357,7 +365,13 @@ export default function PatientProfile() {
           injections_per_week: editForm.injectionsPerWeek ? parseInt(editForm.injectionsPerWeek) : null,
           vial_size: editForm.vialSize ? parseFloat(editForm.vialSize) : null,
           supply_type: editForm.supplyType,
-          last_refill_date: editForm.lastRefillDate
+          last_refill_date: editForm.lastRefillDate,
+          // In-clinic scheduling fields
+          delivery_method: editForm.deliveryMethod,
+          visit_frequency: editForm.visitFrequency || null,
+          scheduled_days: editForm.scheduledDays.length > 0 ? editForm.scheduledDays : null,
+          last_visit_date: editForm.lastVisitDate || null,
+          next_expected_date: editForm.nextExpectedDate || null
         })
       });
 
@@ -740,11 +754,18 @@ export default function PatientProfile() {
                           <div className="protocol-card-header">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                            {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                           </div>
                           <div className="protocol-details">
                             {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
                             {protocol.frequency && <span>{protocol.frequency}</span>}
                           </div>
+                          {protocol.delivery_method === 'in_clinic' && protocol.scheduled_days?.length > 0 && (
+                            <div className="protocol-schedule">
+                              Schedule: {protocol.scheduled_days.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ')}
+                              {protocol.next_expected_date && ` • Next: ${formatShortDate(protocol.next_expected_date)}`}
+                            </div>
+                          )}
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
                           <div className="protocol-footer">
                             <span className="status-badge">{protocol.status_text}</span>
@@ -1161,6 +1182,65 @@ export default function PatientProfile() {
                       <div className="form-group">
                         <label>Last Refill Date</label>
                         <input type="date" value={editForm.lastRefillDate} onChange={e => setEditForm({...editForm, lastRefillDate: e.target.value})} />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* In-Clinic Visit Scheduling */}
+                <div className="form-section-label">Delivery & Scheduling</div>
+                <div className="form-group">
+                  <label>Delivery Method</label>
+                  <select value={editForm.deliveryMethod} onChange={e => setEditForm({...editForm, deliveryMethod: e.target.value})}>
+                    <option value="">Select...</option>
+                    <option value="at_home">At Home (Shipped)</option>
+                    <option value="in_clinic">In Clinic</option>
+                  </select>
+                </div>
+
+                {editForm.deliveryMethod === 'in_clinic' && (
+                  <>
+                    <div className="form-group">
+                      <label>Visit Frequency</label>
+                      <select value={editForm.visitFrequency} onChange={e => setEditForm({...editForm, visitFrequency: e.target.value})}>
+                        <option value="">Select...</option>
+                        <option value="2x_week">2x per week</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Every 2 weeks</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Scheduled Days</label>
+                      <div className="checkbox-group">
+                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].map(day => (
+                          <label key={day} className="checkbox-label">
+                            <input
+                              type="checkbox"
+                              checked={editForm.scheduledDays.includes(day)}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setEditForm({...editForm, scheduledDays: [...editForm.scheduledDays, day]});
+                                } else {
+                                  setEditForm({...editForm, scheduledDays: editForm.scheduledDays.filter(d => d !== day)});
+                                }
+                              }}
+                            />
+                            {day.charAt(0).toUpperCase() + day.slice(1, 3)}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Last Visit</label>
+                        <input type="date" value={editForm.lastVisitDate} onChange={e => setEditForm({...editForm, lastVisitDate: e.target.value})} />
+                      </div>
+                      <div className="form-group">
+                        <label>Next Expected</label>
+                        <input type="date" value={editForm.nextExpectedDate} onChange={e => setEditForm({...editForm, nextExpectedDate: e.target.value})} />
                       </div>
                     </div>
                   </>
@@ -1612,6 +1692,20 @@ export default function PatientProfile() {
         }
         .protocol-details span { margin-right: 12px; }
         .protocol-dates { font-size: 13px; color: #9ca3af; }
+        .protocol-schedule {
+          font-size: 13px;
+          color: #2563eb;
+          margin-bottom: 4px;
+        }
+        .clinic-badge {
+          font-size: 10px;
+          font-weight: 600;
+          padding: 2px 6px;
+          background: #fef3c7;
+          color: #92400e;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
         .protocol-footer {
           display: flex;
           justify-content: space-between;
@@ -1945,6 +2039,23 @@ export default function PatientProfile() {
           margin: 16px 0 8px 0;
           padding-top: 16px;
           border-top: 1px solid #e5e7eb;
+        }
+        .checkbox-group {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 13px;
+          cursor: pointer;
+        }
+        .checkbox-label input[type="checkbox"] {
+          width: 16px;
+          height: 16px;
+          cursor: pointer;
         }
         .error-box {
           background: #fef2f2;

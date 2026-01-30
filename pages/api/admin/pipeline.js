@@ -329,6 +329,10 @@ export default async function handler(req, res) {
         starting_weight,
         created_at,
         updated_at,
+        visit_frequency,
+        scheduled_days,
+        last_visit_date,
+        next_expected_date,
         patients (
           id,
           name,
@@ -473,6 +477,21 @@ export default async function handler(req, res) {
       }));
 
     // ============================================
+    // COUNT OVERDUE CLINIC VISITS
+    // ============================================
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+
+    const overdueVisits = (protocols || []).filter(p => {
+      if (p.status !== 'active') return false;
+      if (p.delivery_method !== 'in_clinic') return false;
+      if (!p.next_expected_date) return false;
+      // Check if overdue (expected date is before today) and not visited today
+      return p.next_expected_date < todayStr && p.last_visit_date !== todayStr;
+    });
+
+    // ============================================
     // RETURN RESPONSE
     // ============================================
     return res.status(200).json({
@@ -483,7 +502,8 @@ export default async function handler(req, res) {
         just_started: justStarted.length,
         needs_followup: needsFollowUp.length,
         completed: completedProtocols.length,
-        needs_protocol: needsProtocol.length
+        needs_protocol: needsProtocol.length,
+        overdue_visits: overdueVisits.length
       },
       protocols: {
         ending_soon: endingSoon,

@@ -130,7 +130,7 @@ export default function CellularEnergyReset() {
             <div className="included-card">
               <span className="included-icon">💨</span>
               <h4>18 HBOT Sessions</h4>
-              <p>60 minutes each at 1.5 ATA. Increased oxygen delivery to support cellular repair and energy production.</p>
+              <p>60 minutes each at 2.0 ATA. Increased oxygen delivery to support cellular repair and energy production.</p>
             </div>
             <div className="included-card">
               <span className="included-icon">🔴</span>

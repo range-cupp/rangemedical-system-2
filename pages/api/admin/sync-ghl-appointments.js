@@ -231,6 +231,14 @@ export default async function handler(req, res) {
 
     console.log('Sync complete:', results.synced, 'appointments synced');
 
+    // Include appointment summaries in response for debugging
+    results.appointmentSummaries = allAppointments.map(apt => ({
+      id: apt.id,
+      title: apt.title,
+      startTime: apt.startTime,
+      contactName: apt.contactName
+    }));
+
     return res.status(200).json({
       success: true,
       ...results

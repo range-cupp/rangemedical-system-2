@@ -6,8 +6,9 @@ const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
 export default async function handler(req, res) {
-  const { name } = req.query;
+  const { name, date } = req.query;
   const searchName = name || 'Amir';
+  const targetDate = date || new Date().toISOString().split('T')[0];
 
   const results = {
     env: {
@@ -16,82 +17,11 @@ export default async function handler(req, res) {
       locationId: GHL_LOCATION_ID
     },
     searchingFor: searchName,
+    targetDate,
     tests: []
   };
 
-  // Test 1: Get contacts
-  try {
-    const contactsUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&limit=5`;
-    const contactsResponse = await fetch(contactsUrl, {
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Version': '2021-07-28'
-      }
-    });
-
-    const contactsText = await contactsResponse.text();
-    let contactsData;
-    try {
-      contactsData = JSON.parse(contactsText);
-    } catch {
-      contactsData = { raw: contactsText.substring(0, 500) };
-    }
-
-    results.tests.push({
-      test: 'Get Contacts',
-      url: contactsUrl,
-      status: contactsResponse.status,
-      ok: contactsResponse.ok,
-      contactCount: contactsData.contacts?.length || 0,
-      firstContact: contactsData.contacts?.[0] ? {
-        id: contactsData.contacts[0].id,
-        name: contactsData.contacts[0].name || `${contactsData.contacts[0].firstName} ${contactsData.contacts[0].lastName}`,
-        phone: contactsData.contacts[0].phone
-      } : null,
-      error: contactsData.error || contactsData.message || null
-    });
-
-    // Test 2: Get appointments for first contact
-    if (contactsData.contacts?.[0]?.id) {
-      const contactId = contactsData.contacts[0].id;
-      const appointmentsUrl = `https://services.leadconnectorhq.com/contacts/${contactId}/appointments`;
-
-      const aptsResponse = await fetch(appointmentsUrl, {
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28'
-        }
-      });
-
-      const aptsText = await aptsResponse.text();
-      let aptsData;
-      try {
-        aptsData = JSON.parse(aptsText);
-      } catch {
-        aptsData = { raw: aptsText.substring(0, 500) };
-      }
-
-      results.tests.push({
-        test: 'Get Contact Appointments',
-        url: appointmentsUrl,
-        contactId: contactId,
-        status: aptsResponse.status,
-        ok: aptsResponse.ok,
-        appointmentCount: aptsData.events?.length || aptsData.appointments?.length || 0,
-        dataKeys: Object.keys(aptsData),
-        sample: aptsData.events?.[0] || aptsData.appointments?.[0] || null,
-        error: aptsData.error || aptsData.message || null
-      });
-    }
-
-  } catch (e) {
-    results.tests.push({
-      test: 'Get Contacts',
-      error: e.message
-    });
-  }
-
-  // Test 3: Search for a specific contact by name (configurable via query param)
+  // Search for contact by name
   try {
     const searchUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(searchName)}`;
     const searchResponse = await fetch(searchUrl, {
@@ -105,18 +35,18 @@ export default async function handler(req, res) {
 
     results.tests.push({
       test: `Search Contact: ${searchName}`,
-      url: searchUrl,
       status: searchResponse.status,
       contactCount: searchData.contacts?.length || 0,
-      contacts: (searchData.contacts || []).slice(0, 3).map(c => ({
+      contacts: (searchData.contacts || []).slice(0, 5).map(c => ({
         id: c.id,
         name: c.name || `${c.firstName} ${c.lastName}`
       }))
     });
 
-    // If found, get their appointments with FULL data
+    // Get appointments for first matching contact
     if (searchData.contacts?.[0]?.id) {
-      const contactId = searchData.contacts[0].id;
+      const contact = searchData.contacts[0];
+      const contactId = contact.id;
       const aptsUrl = `https://services.leadconnectorhq.com/contacts/${contactId}/appointments`;
       const aptsResponse = await fetch(aptsUrl, {
         headers: {
@@ -126,20 +56,44 @@ export default async function handler(req, res) {
       });
 
       const aptsData = await aptsResponse.json();
+      const allAppointments = aptsData.events || [];
+
+      // Filter to target date
+      const todayAppointments = allAppointments.filter(apt => {
+        const aptDate = (apt.startTime || '').split(/[T ]/)[0];
+        return aptDate === targetDate;
+      });
+
+      // Get all appointments sorted by date desc
+      const sortedAppointments = [...allAppointments].sort((a, b) =>
+        (b.startTime || '').localeCompare(a.startTime || '')
+      );
 
       results.tests.push({
-        test: `Get ${searchName} Appointments`,
+        test: `${searchName} Appointments`,
         contactId,
-        status: aptsResponse.status,
-        appointmentCount: aptsData.events?.length || 0,
-        // Show full appointment data for debugging
-        fullAppointments: (aptsData.events || []).slice(0, 3)
+        contactName: contact.name || `${contact.firstName} ${contact.lastName}`,
+        totalAppointments: allAppointments.length,
+        appointmentsOnTargetDate: todayAppointments.length,
+        todayAppointments: todayAppointments.map(a => ({
+          id: a.id,
+          title: a.title,
+          startTime: a.startTime,
+          status: a.appointmentStatus || a.status,
+          calendarId: a.calendarId
+        })),
+        mostRecentAppointments: sortedAppointments.slice(0, 5).map(a => ({
+          id: a.id,
+          title: a.title,
+          startTime: a.startTime,
+          status: a.appointmentStatus || a.status
+        }))
       });
     }
 
   } catch (e) {
     results.tests.push({
-      test: 'Search Contact',
+      test: 'Search Error',
       error: e.message
     });
   }

@@ -86,6 +86,65 @@ export default async function handler(req, res) {
     console.log('Status:', status);
     console.log('Contact:', contactName);
 
+    // ==========================================
+    // STORE ALL APPOINTMENTS FOR CLINIC SCHEDULE
+    // ==========================================
+    if (appointmentId) {
+      const calendarName = appointment.calendar?.name || appointment.calendarName || 'Appointment';
+      const title = appointment.title || appointment.name || calendarName;
+      const endTime = appointment.endTime || appointment.end_time || appointment.selectedTimeslot?.endTime;
+      const notes = appointment.notes || '';
+      const appointmentDate = startTime ? startTime.split('T')[0] : new Date().toISOString().split('T')[0];
+
+      // Find patient by GHL contact ID
+      let clinicPatientId = null;
+      if (contactId) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('ghl_contact_id', contactId)
+          .single();
+        if (patient) {
+          clinicPatientId = patient.id;
+        }
+      }
+
+      // Check if appointment exists
+      const { data: existingApt } = await supabase
+        .from('clinic_appointments')
+        .select('id')
+        .eq('ghl_appointment_id', appointmentId)
+        .single();
+
+      const appointmentData = {
+        ghl_appointment_id: appointmentId,
+        ghl_contact_id: contactId,
+        patient_id: clinicPatientId,
+        calendar_id: calendarId,
+        calendar_name: calendarName,
+        appointment_title: title,
+        appointment_date: appointmentDate,
+        start_time: startTime,
+        end_time: endTime,
+        status: status?.toLowerCase() || 'scheduled',
+        notes: notes,
+        updated_at: new Date().toISOString()
+      };
+
+      if (existingApt) {
+        await supabase
+          .from('clinic_appointments')
+          .update(appointmentData)
+          .eq('ghl_appointment_id', appointmentId);
+        console.log('📅 Updated clinic appointment:', appointmentId);
+      } else {
+        await supabase
+          .from('clinic_appointments')
+          .insert(appointmentData);
+        console.log('📅 Created clinic appointment:', appointmentId);
+      }
+    }
+
     // Determine which calendar this is for
     let calendarType = null;
     if (calendarId === CALENDAR_IDS.NEW_PATIENT_BLOOD_DRAW) {
@@ -96,7 +155,15 @@ export default async function handler(req, res) {
       calendarType = 'initial_lab_review';
     } else {
       console.log('Calendar not tracked for lab journeys:', calendarId);
-      return res.status(200).json({ status: 'ignored', reason: 'Calendar not tracked' });
+      // Still return success since appointment was stored for clinic schedule
+      return res.status(200).json({
+        status: 'success',
+        calendarType: 'clinic_only',
+        appointmentId,
+        contactId,
+        patientId,
+        message: 'Stored for clinic schedule (not a lab journey calendar)'
+      });
     }
 
     console.log('Calendar Type:', calendarType);

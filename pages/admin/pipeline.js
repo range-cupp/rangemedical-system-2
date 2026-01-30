@@ -44,6 +44,7 @@ const PEPTIDE_OPTIONS = [
       { value: 'TB500 (Thymosin Beta 4)', startingDose: '2.5mg', maxDose: '5mg', frequency: '2x per week', notes: 'Reconstitute with 2mL BAC water' },
       { value: 'BPC-157/TB4 (Thymosin Beta 4)', startingDose: '500mcg/500mcg', maxDose: '500mcg/500mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
       { value: 'Wolverine Blend (BPC-157/TB-500)', startingDose: '500mcg/500mcg', maxDose: '1mg/1mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'BPC-157/TB-500/KPV/MGF', startingDose: '1mg', maxDose: '2mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
     ]
   },
   {

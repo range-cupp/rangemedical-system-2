@@ -149,34 +149,62 @@ const findPeptideInfo = (peptideName) => {
   return null;
 };
 
-// Normalize peptide name for fuzzy matching (handles variations like "BPC / TB500" vs "BPC-157/TB-500")
-const normalizePeptideName = (name) => {
+// Extract base name (before parentheses) from peptide name
+const getBaseName = (name) => {
   if (!name) return '';
-  return name.toLowerCase()
-    .replace(/[\s\-\/]+/g, '') // Remove spaces, hyphens, slashes
-    .replace(/157/g, '')       // Remove "157" from BPC-157
-    .replace(/500/g, '')       // Normalize TB500/TB-500
-    .replace(/[()]/g, '');     // Remove parentheses
+  const match = name.match(/^([^(]+)/);
+  return match ? match[1].trim().toLowerCase() : name.toLowerCase();
 };
 
-// Find matching peptide option by fuzzy matching
+// Normalize parenthetical content for comparison
+const normalizeParenContent = (name) => {
+  if (!name) return '';
+  const match = name.match(/\(([^)]+)\)/);
+  if (!match) return '';
+  return match[1].toLowerCase()
+    .replace(/[\s\-\/]+/g, '')  // Remove spaces, hyphens, slashes
+    .replace(/157/g, '')         // Remove "157" from BPC-157
+    .replace(/beta\s*4?/gi, '')  // Remove "Beta 4" variations
+    .replace(/thymosin/gi, '');  // Remove "Thymosin"
+};
+
+// Find matching peptide option with smarter matching
 const findMatchingPeptide = (savedMedication) => {
   if (!savedMedication) return null;
-  const normalizedSaved = normalizePeptideName(savedMedication);
 
+  // Step 1: Try exact match (case-insensitive)
   for (const group of PEPTIDE_OPTIONS) {
     for (const opt of group.options) {
-      const normalizedOpt = normalizePeptideName(opt.value);
-      // Check if the normalized names match or one contains the other
-      if (normalizedSaved === normalizedOpt ||
-          normalizedSaved.includes(normalizedOpt) ||
-          normalizedOpt.includes(normalizedSaved)) {
+      if (opt.value.toLowerCase() === savedMedication.toLowerCase()) {
         return opt.value;
       }
     }
   }
 
-  // If no fuzzy match, return the original value
+  // Step 2: Try matching by base name first, then parenthetical content
+  const savedBaseName = getBaseName(savedMedication);
+  const savedParenContent = normalizeParenContent(savedMedication);
+
+  for (const group of PEPTIDE_OPTIONS) {
+    for (const opt of group.options) {
+      const optBaseName = getBaseName(opt.value);
+      const optParenContent = normalizeParenContent(opt.value);
+
+      // Base names must match (or be very similar)
+      if (savedBaseName === optBaseName) {
+        // If base names match exactly, this is likely the right one
+        // Check if paren content is similar enough
+        if (!savedParenContent || !optParenContent ||
+            savedParenContent === optParenContent ||
+            savedParenContent.includes(optParenContent) ||
+            optParenContent.includes(savedParenContent)) {
+          return opt.value;
+        }
+      }
+    }
+  }
+
+  // If no match found, return the original value (will show as not selected)
   return savedMedication;
 };
 

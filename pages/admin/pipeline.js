@@ -442,6 +442,16 @@ export default function UnifiedPipeline() {
         payload.dose = protocolForm.peptide_dosage;
         payload.frequency = protocolForm.peptide_frequency;
         payload.delivery_method = protocolForm.peptide_delivery;
+        // Calculate total_sessions based on program duration
+        if (protocolForm.peptide_program === 'Vial') {
+          payload.total_sessions = 20; // Vials = 20 injections (2ml BAC water)
+        } else {
+          // Extract days from program name (e.g., "10 Day" -> 10)
+          const daysMatch = protocolForm.peptide_program?.match(/(\d+)\s*Day/i);
+          if (daysMatch) {
+            payload.total_sessions = parseInt(daysMatch[1]);
+          }
+        }
         break;
       case 'hrt':
         payload.medication = protocolForm.hrt_medication;
@@ -719,6 +729,22 @@ export default function UnifiedPipeline() {
         );
       case 'peptide':
         const selectedPeptideInfo = findPeptideInfo(protocolForm.peptide_medication);
+        // Check if linked purchase is a vial product
+        const isVialPurchase = selectedPurchase?.product_name?.toLowerCase().includes('vial');
+        // Calculate expected duration for vial programs based on frequency
+        const getVialDuration = (frequency) => {
+          if (!frequency) return null;
+          const freq = frequency.toLowerCase();
+          if (freq.includes('2x daily') || freq.includes('twice')) return '10 days';
+          if (freq.includes('3x daily')) return '~7 days';
+          if (freq.includes('every other') || freq.includes('eod')) return '40 days';
+          if (freq.includes('5 on')) return '~28 days (4 weeks)';
+          if (freq.includes('2x per week') || freq.includes('twice a week')) return '10 weeks';
+          if (freq.includes('3x per week')) return '~7 weeks';
+          if (freq.includes('1x per week') || freq.includes('weekly')) return '20 weeks';
+          return '20 days'; // Default for daily
+        };
+        const vialDuration = protocolForm.peptide_program === 'Vial' ? getVialDuration(protocolForm.peptide_frequency) : null;
         return (
           <>
             <div style={styles.formGroup}>
@@ -730,8 +756,17 @@ export default function UnifiedPipeline() {
                 <option value="14 Day">14 Day</option>
                 <option value="20 Day">20 Day</option>
                 <option value="30 Day">30 Day</option>
-                <option value="Vial">Vial</option>
+                <option value="Vial">Vial (20 injections)</option>
               </select>
+              {isVialPurchase && !protocolForm.peptide_program && (
+                <small style={{ color: '#059669', marginTop: '4px', display: 'block', fontSize: '12px' }}>💡 Linked to vial purchase - consider selecting "Vial (20 injections)"</small>
+              )}
+              {protocolForm.peptide_program === 'Vial' && (
+                <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
+                  📦 Vial = 20 injections (reconstituted with 2ml BAC water)
+                  {vialDuration && <><br />⏱️ Expected duration: <strong>{vialDuration}</strong> at {protocolForm.peptide_frequency || 'Daily'} frequency</>}
+                </small>
+              )}
             </div>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Peptide *</label>

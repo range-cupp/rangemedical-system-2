@@ -536,16 +536,34 @@ export default function UnifiedPipeline() {
   const openEditModal = (protocol) => {
     setEditModal(protocol);
 
-    // For peptide protocols, use fuzzy matching to find the correct dropdown value
+    // For peptide protocols, use fuzzy matching to find the correct dropdown value and dose
     let medicationValue = protocol.medication || protocol.program_name || '';
+    let doseValue = protocol.dose || protocol.selected_dose || '';
+    let frequencyValue = protocol.frequency || '';
+
     if (protocol.category === 'peptide') {
-      medicationValue = findMatchingPeptide(medicationValue) || medicationValue;
+      const matchedMedication = findMatchingPeptide(medicationValue);
+      if (matchedMedication) {
+        medicationValue = matchedMedication;
+        // Get the peptide info to use its starting dose and frequency
+        const peptideInfo = findPeptideInfo(matchedMedication);
+        if (peptideInfo) {
+          // Use peptide's dose if saved dose doesn't match the expected format
+          if (peptideInfo.startingDose && peptideInfo.startingDose !== doseValue) {
+            doseValue = peptideInfo.startingDose;
+          }
+          // Use peptide's frequency if not already set
+          if (!frequencyValue && peptideInfo.frequency) {
+            frequencyValue = peptideInfo.frequency;
+          }
+        }
+      }
     }
 
     setEditForm({
       medication: medicationValue,
-      dose: protocol.dose || protocol.selected_dose || '',
-      frequency: protocol.frequency || '',
+      dose: doseValue,
+      frequency: frequencyValue,
       program_name: protocol.program_name || '',
       delivery_method: protocol.delivery_method || protocol.delivery || '',
       start_date: protocol.start_date ? protocol.start_date.split('T')[0] : '',

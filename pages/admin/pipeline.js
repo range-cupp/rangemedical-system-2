@@ -444,7 +444,9 @@ export default function UnifiedPipeline() {
         payload.delivery_method = protocolForm.peptide_delivery;
         // Calculate total_sessions based on program duration
         if (protocolForm.peptide_program === 'Vial') {
-          payload.total_sessions = 20; // Vials = 20 injections (2ml BAC water)
+          const vialQty = parseInt(protocolForm.peptide_vial_count) || 1;
+          payload.total_sessions = vialQty * 20; // Each vial = 20 injections (2ml BAC water)
+          payload.program_name = vialQty > 1 ? `${vialQty} Vials` : 'Vial';
         } else {
           // Extract days from program name (e.g., "10 Day" -> 10)
           const daysMatch = protocolForm.peptide_program?.match(/(\d+)\s*Day/i);
@@ -731,43 +733,57 @@ export default function UnifiedPipeline() {
         const selectedPeptideInfo = findPeptideInfo(protocolForm.peptide_medication);
         // Check if linked purchase is a vial product
         const isVialPurchase = selectedPurchase?.product_name?.toLowerCase().includes('vial');
-        // Calculate expected duration for vial programs based on frequency
-        const getVialDuration = (frequency) => {
+        // Calculate expected duration for vial programs based on frequency and quantity
+        const vialCount = parseInt(protocolForm.peptide_vial_count) || 1;
+        const totalVialInjections = vialCount * 20;
+        const getVialDuration = (frequency, injections) => {
           if (!frequency) return null;
           const freq = frequency.toLowerCase();
-          if (freq.includes('2x daily') || freq.includes('twice')) return '10 days';
-          if (freq.includes('3x daily')) return '~7 days';
-          if (freq.includes('every other') || freq.includes('eod')) return '40 days';
-          if (freq.includes('5 on')) return '~28 days (4 weeks)';
-          if (freq.includes('2x per week') || freq.includes('twice a week')) return '10 weeks';
-          if (freq.includes('3x per week')) return '~7 weeks';
-          if (freq.includes('1x per week') || freq.includes('weekly')) return '20 weeks';
-          return '20 days'; // Default for daily
+          let injectionsPerDay = 1;
+          if (freq.includes('2x daily') || freq.includes('twice daily')) injectionsPerDay = 2;
+          else if (freq.includes('3x daily')) injectionsPerDay = 3;
+          else if (freq.includes('every other') || freq.includes('eod')) injectionsPerDay = 0.5;
+          else if (freq.includes('5 on')) injectionsPerDay = 5/7;
+          else if (freq.includes('2x per week') || freq.includes('twice a week')) injectionsPerDay = 2/7;
+          else if (freq.includes('3x per week')) injectionsPerDay = 3/7;
+          else if (freq.includes('1x per week') || freq.includes('weekly')) injectionsPerDay = 1/7;
+          const days = Math.round(injections / injectionsPerDay);
+          if (days >= 7 && days % 7 === 0) return `${days / 7} weeks`;
+          if (days > 60) return `~${Math.round(days / 7)} weeks`;
+          return `${days} days`;
         };
-        const vialDuration = protocolForm.peptide_program === 'Vial' ? getVialDuration(protocolForm.peptide_frequency) : null;
+        const vialDuration = protocolForm.peptide_program === 'Vial' ? getVialDuration(protocolForm.peptide_frequency, totalVialInjections) : null;
         return (
           <>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Program Duration *</label>
-              <select value={protocolForm.peptide_program || ''} onChange={(e) => setProtocolForm({ ...protocolForm, peptide_program: e.target.value })} style={styles.formSelect} required>
+              <select value={protocolForm.peptide_program || ''} onChange={(e) => setProtocolForm({ ...protocolForm, peptide_program: e.target.value, peptide_vial_count: e.target.value === 'Vial' ? '1' : '' })} style={styles.formSelect} required>
                 <option value="">Select program...</option>
                 <option value="7 Day">7 Day</option>
                 <option value="10 Day">10 Day</option>
                 <option value="14 Day">14 Day</option>
                 <option value="20 Day">20 Day</option>
                 <option value="30 Day">30 Day</option>
-                <option value="Vial">Vial (20 injections)</option>
+                <option value="Vial">Vial</option>
               </select>
               {isVialPurchase && !protocolForm.peptide_program && (
-                <small style={{ color: '#059669', marginTop: '4px', display: 'block', fontSize: '12px' }}>💡 Linked to vial purchase - consider selecting "Vial (20 injections)"</small>
-              )}
-              {protocolForm.peptide_program === 'Vial' && (
-                <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
-                  📦 Vial = 20 injections (reconstituted with 2ml BAC water)
-                  {vialDuration && <><br />⏱️ Expected duration: <strong>{vialDuration}</strong> at {protocolForm.peptide_frequency || 'Daily'} frequency</>}
-                </small>
+                <small style={{ color: '#059669', marginTop: '4px', display: 'block', fontSize: '12px' }}>💡 Linked to vial purchase - consider selecting "Vial"</small>
               )}
             </div>
+            {protocolForm.peptide_program === 'Vial' && (
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Number of Vials</label>
+                <select value={protocolForm.peptide_vial_count || '1'} onChange={(e) => setProtocolForm({ ...protocolForm, peptide_vial_count: e.target.value })} style={styles.formSelect}>
+                  <option value="1">1 Vial (20 injections)</option>
+                  <option value="2">2 Vials (40 injections)</option>
+                  <option value="3">3 Vials (60 injections)</option>
+                </select>
+                <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
+                  📦 Each vial = 20 injections (reconstituted with 2ml BAC water)
+                  {vialDuration && <><br />⏱️ Expected duration: <strong>{vialDuration}</strong> at {protocolForm.peptide_frequency || 'Daily'} frequency</>}
+                </small>
+              </div>
+            )}
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Peptide *</label>
               <select value={protocolForm.peptide_medication || ''} onChange={(e) => { const selected = e.target.value; const peptideInfo = findPeptideInfo(selected); setProtocolForm({ ...protocolForm, peptide_medication: selected, peptide_dosage: peptideInfo?.startingDose || '', peptide_frequency: peptideInfo?.frequency || 'Daily' }); }} style={styles.formSelect} required>

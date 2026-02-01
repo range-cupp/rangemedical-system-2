@@ -99,6 +99,45 @@ export default function OxygenLanding() {
     { step: "Step 4", title: "You're done", desc: "The pressure slowly comes back to normal. You can go about your day right after — no recovery time needed. Many people say they feel more energized." }
   ];
 
+  const researchStudies = [
+    {
+      category: "PERFORMANCE",
+      headline: "Improved VO2 Max and Endurance in Athletes",
+      summary: "A double-blind, randomized controlled trial found that athletes who used hyperbaric oxygen therapy showed a significant increase in VO2 max — one of the most important markers of athletic fitness. Researchers also saw improvements in power output and anaerobic threshold compared to the placebo group.",
+      source: "Sports Medicine – Open, 2022"
+    },
+    {
+      category: "CELLULAR ENERGY",
+      headline: "Increased Mitochondrial Mass and Respiration",
+      summary: "The same clinical trial used muscle biopsies and found that repeated HBOT sessions led to a significant increase in mitochondrial mass — the \"power plants\" inside your cells. This suggests the body may be creating more energy-producing machinery at a cellular level.",
+      source: "Sports Medicine – Open, 2022"
+    },
+    {
+      category: "HEALING & RECOVERY",
+      headline: "Faster Wound Healing in Clinical Patients",
+      summary: "In a study of 40 patients with complex, non-healing wounds, 77.5% fully healed after a series of hyperbaric oxygen sessions. Researchers saw an average wound size reduction of nearly 30% after just five treatments.",
+      source: "Journal of the American College of Clinical Wound Specialists, 2015"
+    },
+    {
+      category: "INFLAMMATION",
+      headline: "Reduced Inflammatory Markers",
+      summary: "A systematic review of human studies found that hyperbaric oxygen therapy may reduce concentrations of pro-inflammatory proteins and cytokines while increasing growth factors that support tissue repair and new blood vessel formation.",
+      source: "Biomolecules (MDPI), 2021"
+    },
+    {
+      category: "CIRCULATION",
+      headline: "8× Increase in Circulating Stem Cells",
+      summary: "A study published in the American Journal of Physiology found that a single HBOT session doubled circulating stem cells, and over 20 sessions, levels increased eightfold. These cells play a key role in repairing damaged tissue and forming new blood vessels.",
+      source: "American Journal of Physiology – Heart and Circulatory Physiology, 2006"
+    },
+    {
+      category: "BRAIN HEALTH",
+      headline: "Cognitive Improvements After Brain Injury",
+      summary: "A randomized controlled trial showed that 40 sessions of HBOT produced significant improvements in memory, cognitive function, sleep quality, and quality of life in patients with persistent post-concussion symptoms — with benefits lasting at least two months after treatment ended.",
+      source: "Medical Gas Research, 2020"
+    }
+  ];
+
   return (
     <>
       <Head>
@@ -209,6 +248,35 @@ export default function OxygenLanding() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Research Section */}
+        <section className="section section-alt" id="research-section">
+          <div className="container">
+            <div className="animate">
+              <div className="kicker">Backed by Science</div>
+              <h2>What the Research Says</h2>
+              <div className="divider"></div>
+              <p className="body-text">
+                Hyperbaric oxygen therapy isn't new — it's been studied for decades. Here's what researchers have found.
+              </p>
+            </div>
+
+            <div className="research-grid">
+              {researchStudies.map((study, i) => (
+                <div key={i} className="research-card animate">
+                  <div className="research-category">{study.category}</div>
+                  <h3 className="research-headline">{study.headline}</h3>
+                  <p className="research-summary">{study.summary}</p>
+                  <p className="research-source">{study.source}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="research-disclaimer animate">
+              These studies reflect clinical research findings. Individual results may vary. Hyperbaric oxygen therapy at Range Medical is provided under medical supervision and is not a substitute for professional medical advice.
+            </p>
           </div>
         </section>
 
@@ -592,6 +660,67 @@ export default function OxygenLanding() {
           color: #525252;
         }
 
+        /* Research Cards */
+        .research-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+          margin-top: 2.5rem;
+        }
+
+        .research-card {
+          padding: 2rem;
+          border-radius: 12px;
+          border: 1px solid #e5e5e5;
+          background: #ffffff;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .research-card:hover {
+          border-color: #000000;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .research-category {
+          display: inline-block;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #0d9488;
+          margin-bottom: 0.875rem;
+        }
+
+        .research-headline {
+          font-size: 1.0625rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.75rem;
+          line-height: 1.4;
+        }
+
+        .research-summary {
+          font-size: 0.875rem;
+          line-height: 1.7;
+          color: #525252;
+          margin-bottom: 1rem;
+        }
+
+        .research-source {
+          font-size: 0.8125rem;
+          font-style: italic;
+          color: #737373;
+        }
+
+        .research-disclaimer {
+          font-size: 0.8125rem;
+          color: #737373;
+          text-align: center;
+          max-width: 700px;
+          margin: 3rem auto 0;
+          line-height: 1.7;
+        }
+
         /* Athlete Cards */
         .athletes-grid {
           display: grid;
@@ -832,6 +961,10 @@ export default function OxygenLanding() {
           }
 
           .benefits-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .research-grid {
             grid-template-columns: 1fr;
           }
 

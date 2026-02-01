@@ -85,7 +85,7 @@ export default function Book() {
     },
     {
       id: 'check4',
-      bold: 'This is a consultation to build your plan.',
+      bold: 'This assessment is to build your plan.',
       text: 'You\'ll leave with clear next steps, not a "wait and see" answer.'
     },
     {
@@ -119,7 +119,7 @@ export default function Book() {
     },
     {
       id: 'check4',
-      bold: 'This is a consultation to build your plan.',
+      bold: 'This assessment is to build your plan.',
       text: 'You\'ll leave with clear next steps, not a "wait and see" answer.'
     },
     {

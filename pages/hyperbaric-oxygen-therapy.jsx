@@ -637,9 +637,7 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-photo-wrapper img {
           width: 100%;
-          height: 400px;
-          object-fit: cover;
-          object-position: center top;
+          height: auto;
           border-radius: 12px;
           transition: box-shadow 0.2s ease, transform 0.2s ease;
         }
@@ -963,10 +961,6 @@ export default function HyperbaricOxygenTherapy() {
 
           .hbot-photos-grid {
             grid-template-columns: 1fr;
-          }
-
-          .hbot-photo-wrapper img {
-            height: 280px;
           }
 
           .hbot-benefits-grid {

@@ -464,9 +464,15 @@ export default function UnifiedPipeline() {
         break;
       case 'hrt':
         payload.medication = protocolForm.hrt_medication;
-        payload.dose = protocolForm.hrt_dosage;
-        payload.delivery_method = protocolForm.hrt_delivery;
-        payload.supply_type = protocolForm.hrt_supply_type;
+        if (protocolForm.hrt_medication === 'Testosterone Booster (Oral)') {
+          payload.delivery_method = 'take_home';
+          payload.program_name = '30 Day Program';
+          payload.dose = 'Oral';
+        } else {
+          payload.dose = protocolForm.hrt_dosage;
+          payload.delivery_method = protocolForm.hrt_delivery;
+          payload.supply_type = protocolForm.hrt_supply_type;
+        }
         break;
       case 'iv':
         payload.program_name = protocolForm.iv_package;
@@ -874,35 +880,52 @@ export default function UnifiedPipeline() {
                 <option value="Testosterone Enanthate">Testosterone Enanthate</option>
                 <option value="Nandrolone">Nandrolone</option>
                 <option value="HCG">HCG</option>
+                {(protocolForm.hrt_type === 'male' || !protocolForm.hrt_type) && (
+                  <option value="Testosterone Booster (Oral)">Testosterone Booster (Oral)</option>
+                )}
               </select>
             </div>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Dosage *</label>
-              <select value={protocolForm.hrt_dosage || ''} onChange={(e) => setProtocolForm({ ...protocolForm, hrt_dosage: e.target.value })} style={styles.formSelect} required>
-                <option value="">Select dose...</option>
-                {(TESTOSTERONE_DOSES[protocolForm.hrt_type || 'male'] || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-              </select>
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Delivery *</label>
-              <select value={protocolForm.hrt_delivery || ''} onChange={(e) => setProtocolForm({ ...protocolForm, hrt_delivery: e.target.value })} style={styles.formSelect} required>
-                <option value="">Select delivery...</option>
-                <option value="in_clinic">In Clinic (2x/week injections)</option>
-                <option value="take_home">Take Home (Self-inject)</option>
-              </select>
-            </div>
-            {protocolForm.hrt_delivery === 'take_home' && (
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Supply Type</label>
-                <select value={protocolForm.hrt_supply_type || ''} onChange={(e) => setProtocolForm({ ...protocolForm, hrt_supply_type: e.target.value })} style={styles.formSelect}>
-                  <option value="">Select type...</option>
-                  <option value="prefilled_1week">Pre-filled 1 Week (2 injections)</option>
-                  <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
-                  <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
-                  <option value="vial_5ml">Vial 5ml</option>
-                  <option value="vial_10ml">Vial 10ml</option>
-                </select>
-              </div>
+            {protocolForm.hrt_medication === 'Testosterone Booster (Oral)' ? (
+              <>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Program Duration</label>
+                  <select value={protocolForm.hrt_program_duration || '30_day'} onChange={(e) => setProtocolForm({ ...protocolForm, hrt_program_duration: e.target.value })} style={styles.formSelect}>
+                    <option value="30_day">30 Day Program (Monthly)</option>
+                  </select>
+                </div>
+                <div style={styles.infoBox}>💊 Oral medication - Take Home (30 day supply)</div>
+              </>
+            ) : (
+              <>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Dosage *</label>
+                  <select value={protocolForm.hrt_dosage || ''} onChange={(e) => setProtocolForm({ ...protocolForm, hrt_dosage: e.target.value })} style={styles.formSelect} required>
+                    <option value="">Select dose...</option>
+                    {(TESTOSTERONE_DOSES[protocolForm.hrt_type || 'male'] || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  </select>
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Delivery *</label>
+                  <select value={protocolForm.hrt_delivery || ''} onChange={(e) => setProtocolForm({ ...protocolForm, hrt_delivery: e.target.value })} style={styles.formSelect} required>
+                    <option value="">Select delivery...</option>
+                    <option value="in_clinic">In Clinic (2x/week injections)</option>
+                    <option value="take_home">Take Home (Self-inject)</option>
+                  </select>
+                </div>
+                {protocolForm.hrt_delivery === 'take_home' && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Supply Type</label>
+                    <select value={protocolForm.hrt_supply_type || ''} onChange={(e) => setProtocolForm({ ...protocolForm, hrt_supply_type: e.target.value })} style={styles.formSelect}>
+                      <option value="">Select type...</option>
+                      <option value="prefilled_1week">Pre-filled 1 Week (2 injections)</option>
+                      <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
+                      <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                      <option value="vial_5ml">Vial 5ml</option>
+                      <option value="vial_10ml">Vial 10ml</option>
+                    </select>
+                  </div>
+                )}
+              </>
             )}
           </>
         );

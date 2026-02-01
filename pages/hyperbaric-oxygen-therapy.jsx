@@ -181,7 +181,7 @@ export default function HyperbaricOxygenTherapy() {
               <h2>A simple idea with powerful results.</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
-                Hyperbaric oxygen therapy (HBOT) is when you sit inside a special chamber and breathe in pure oxygen. The air pressure inside is raised to about twice the normal level. This pushes more oxygen into your blood — so it can reach the parts of your body that need healing the most.
+                Hyperbaric oxygen therapy (HBOT) is when you sit inside a special chamber and breathe in concentrated oxygen. The air pressure inside is raised to about twice the normal level. This pushes more oxygen into your blood — so it can reach the parts of your body that need healing the most.
               </p>
               <p className="hbot-body-text" style={{ marginTop: '1rem' }}>
                 Think of it this way: your body already uses oxygen to heal itself. HBOT just gives it a lot more to work with.
@@ -198,8 +198,28 @@ export default function HyperbaricOxygenTherapy() {
                 <div className="hbot-stat-label">More oxygen delivered<br />to your body's tissues</div>
               </div>
               <div className="hbot-stat-item hbot-animate">
-                <div className="hbot-stat-number">100%</div>
-                <div className="hbot-stat-label">Pure oxygen breathed<br />during each session</div>
+                <div className="hbot-stat-number">95%+</div>
+                <div className="hbot-stat-label">Concentrated oxygen breathed<br />during each session</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Chamber Photos */}
+        <section className="hbot-section hbot-photos-section">
+          <div className="hbot-container">
+            <div className="hbot-photos-grid">
+              <div className="hbot-photo-wrapper hbot-animate">
+                <img
+                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/697fbd4f1f68d10a92caef4d.jpeg"
+                  alt="Hyperbaric oxygen chamber at Range Medical"
+                />
+              </div>
+              <div className="hbot-photo-wrapper hbot-animate">
+                <img
+                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/697fbd4f1f68d11e2acaef4e.jpeg"
+                  alt="Hyperbaric oxygen chamber at Range Medical"
+                />
               </div>
             </div>
           </div>
@@ -599,6 +619,34 @@ export default function HyperbaricOxygenTherapy() {
           border-color: rgba(255, 255, 255, 0.25);
         }
 
+        /* Chamber Photos */
+        .hbot-photos-section {
+          background: #ffffff;
+        }
+
+        .hbot-photos-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+        }
+
+        .hbot-photo-wrapper {
+          overflow: hidden;
+          border-radius: 12px;
+        }
+
+        .hbot-photo-wrapper img {
+          width: 100%;
+          height: 400px;
+          object-fit: cover;
+          border-radius: 12px;
+          transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .hbot-photo-wrapper:hover img {
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
         /* Benefit Cards */
         .hbot-benefits-grid {
           display: grid;
@@ -910,6 +958,14 @@ export default function HyperbaricOxygenTherapy() {
           .hbot-stat-row {
             grid-template-columns: 1fr;
             gap: 2rem;
+          }
+
+          .hbot-photos-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .hbot-photo-wrapper img {
+            height: 280px;
           }
 
           .hbot-benefits-grid {

@@ -128,9 +128,9 @@ export default function OxygenLanding() {
             <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" />
           </div>
           <div className="kicker">Recovery · Energy · Healing</div>
-          <h1 className="animate">Your Guide to Hyperbaric Oxygen Therapy</h1>
-          <p className="body-text animate">Everything you need to know about the recovery tool used by pro athletes, the military, and top medical centers — explained simply.</p>
-          <div className="hero-scroll animate">
+          <h1>Your Guide to Hyperbaric Oxygen Therapy</h1>
+          <p className="body-text">Everything you need to know about the recovery tool used by pro athletes, the military, and top medical centers — explained simply.</p>
+          <div className="hero-scroll">
             Scroll to explore
             <span>↓</span>
           </div>
@@ -334,7 +334,7 @@ export default function OxygenLanding() {
           transition: opacity 0.7s ease, transform 0.7s ease;
         }
 
-        .animate:global(.visible) {
+        :global(.animate.visible) {
           opacity: 1;
           transform: translateY(0);
         }

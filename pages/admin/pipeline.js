@@ -795,7 +795,7 @@ export default function UnifiedPipeline() {
               <label style={styles.formLabel}>Peptide *</label>
               <select value={protocolForm.peptide_medication || ''} onChange={(e) => { const selected = e.target.value; const peptideInfo = findPeptideInfo(selected); setProtocolForm({ ...protocolForm, peptide_medication: selected, peptide_dosage: peptideInfo?.startingDose || '', peptide_frequency: peptideInfo?.frequency || 'Daily' }); }} style={styles.formSelect} required>
                 <option value="">Select peptide...</option>
-                {PEPTIDE_OPTIONS.map(group => <optgroup key={group.group} label={group.group}>{group.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value} ({opt.startingDose})</option>)}</optgroup>)}
+                {PEPTIDE_OPTIONS.map(group => <optgroup key={group.group} label={group.group}>{group.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}</optgroup>)}
               </select>
             </div>
             <div style={styles.formGroup}>
@@ -1283,7 +1283,7 @@ export default function UnifiedPipeline() {
                 ) : editModal.category === 'peptide' ? (
                   <select value={editForm.medication || ''} onChange={(e) => { const peptideInfo = findPeptideInfo(e.target.value); setEditForm({ ...editForm, medication: e.target.value, dose: peptideInfo?.startingDose || editForm.dose, frequency: peptideInfo?.frequency || editForm.frequency }); }} style={styles.formSelect}>
                     <option value="">Select peptide...</option>
-                    {PEPTIDE_OPTIONS.map(group => <optgroup key={group.group} label={group.group}>{group.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value} ({opt.startingDose})</option>)}</optgroup>)}
+                    {PEPTIDE_OPTIONS.map(group => <optgroup key={group.group} label={group.group}>{group.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}</optgroup>)}
                   </select>
                 ) : <input type="text" value={editForm.medication || ''} onChange={(e) => setEditForm({ ...editForm, medication: e.target.value })} style={styles.formInput} placeholder="e.g. Testosterone Cypionate, Male HRT" />}
               </div>

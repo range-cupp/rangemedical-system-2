@@ -639,6 +639,7 @@ export default function HyperbaricOxygenTherapy() {
           width: 100%;
           height: 400px;
           object-fit: cover;
+          object-position: center top;
           border-radius: 12px;
           transition: box-shadow 0.2s ease, transform 0.2s ease;
         }

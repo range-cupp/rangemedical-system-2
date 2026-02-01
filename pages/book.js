@@ -104,8 +104,8 @@ export default function Book() {
   const energyChecklistItems = [
     {
       id: 'check1',
-      bold: 'Bring any lab work from the past year if you have it.',
-      text: "We'll review it together. If you don't have any, that's okay — we can order what's needed."
+      bold: 'Email any lab work from the past year to info@range-medical.com.',
+      text: "We'll review it before your assessment. If you don't have any, that's okay — we can order what's needed."
     },
     {
       id: 'check2',

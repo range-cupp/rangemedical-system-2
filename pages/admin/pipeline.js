@@ -54,6 +54,13 @@ const PEPTIDE_OPTIONS = [
     ]
   },
   {
+    group: 'GLP-1 Agonists',
+    options: [
+      { value: 'Retatrutide', startingDose: '1mg', maxDose: '12mg', frequency: 'Weekly', notes: 'GLP-1 agonist - titrate monthly (1mg → 2mg → 4mg → 8mg → 12mg)' },
+      { value: 'Tirzepatide', startingDose: '2.5mg', maxDose: '15mg', frequency: 'Weekly', notes: 'GLP-1 agonist - titrate monthly (2.5mg → 5mg → 7.5mg → 10mg → 12.5mg → 15mg)' },
+    ]
+  },
+  {
     group: 'Skin/Hair',
     options: [
       { value: 'GHK-Cu', startingDose: '1mg', maxDose: '2mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },

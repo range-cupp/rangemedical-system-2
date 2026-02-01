@@ -10,7 +10,6 @@ import { useRouter } from 'next/router';
 export default function Book() {
   const router = useRouter();
   const [selectedReason, setSelectedReason] = useState('');
-  const [showCalendar, setShowCalendar] = useState(false);
   const [checkboxes, setCheckboxes] = useState({
     check1: false,
     check2: false,
@@ -32,21 +31,6 @@ export default function Book() {
 
   const handleCheckboxChange = (id) => {
     setCheckboxes(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleShowCalendar = () => {
-    if (!selectedReason) {
-      // Scroll to reason selection
-      document.getElementById('reasonSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    if (!allChecked) {
-      return;
-    }
-    setShowCalendar(true);
-    setTimeout(() => {
-      document.getElementById('calendarSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
   };
 
   const checklistItems = [
@@ -216,41 +200,25 @@ export default function Book() {
             )}
 
             <div className="book-cta">
-              <button 
-                className={`book-button ${canProceed ? 'ready' : ''}`}
-                onClick={handleShowCalendar}
-                disabled={!canProceed}
-              >
-                {canProceed ? 'Continue to Select a Time' : 'Complete the steps above to continue'}
-              </button>
+              {canProceed ? (
+                <a
+                  href="https://link.range-medical.com/booking/WICdvbXmTjQORW6GiHWW/sv/69769eed725303dcad0eb2da"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="book-button ready"
+                >
+                  Book Your Assessment →
+                </a>
+              ) : (
+                <button className="book-button" disabled>
+                  Complete the steps above to continue
+                </button>
+              )}
               <p className="cta-note">You'll pay $199 at the clinic when you arrive.</p>
             </div>
           </div>
         </section>
 
-        {/* Calendar Section */}
-        {showCalendar && (
-          <section className="book-section calendar-section" id="calendarSection">
-            <div className="book-container">
-              <div className="step-header">
-                <span className="step-number complete">3</span>
-                <div>
-                  <h2>Select a Time</h2>
-                  <p>Choose a time that works best for you.</p>
-                </div>
-              </div>
-
-              <div className="calendar-wrapper">
-                <iframe 
-                  src="https://link.range-medical.com/booking/range-medical/sv/69769eed725303dcad0eb2da?heightMode=fixed&showHeader=true"
-                  style={{ width: '100%', height: '800px', border: 'none', overflow: 'hidden' }}
-                  scrolling="no"
-                  title="Book your Range Assessment"
-                />
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Questions */}
         <section className="book-section section-cta">
@@ -661,6 +629,9 @@ export default function Book() {
           background: #000;
           color: #fff;
           cursor: pointer;
+          text-decoration: none;
+          display: inline-block;
+          text-align: center;
         }
 
         .book-button.ready:hover {
@@ -673,18 +644,6 @@ export default function Book() {
           margin-top: 16px;
           font-size: 14px;
           color: #666;
-        }
-
-        /* Calendar Section */
-        .calendar-section {
-          background: #f8f9fa;
-        }
-
-        .calendar-wrapper {
-          background: #fff;
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
         /* Final CTA */

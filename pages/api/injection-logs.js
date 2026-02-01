@@ -105,6 +105,7 @@ async function handleGet(req, res) {
 async function handlePost(req, res) {
   const {
     patient_id,
+    protocol_id,
     category,
     entry_type,
     entry_date,
@@ -115,17 +116,18 @@ async function handlePost(req, res) {
     supply_type,
     notes
   } = req.body;
-  
+
   if (!patient_id || !category) {
     return res.status(400).json({ success: false, error: 'Missing required fields: patient_id and category' });
   }
-  
+
   const logDate = entry_date || new Date().toISOString().split('T')[0];
-  
+
   try {
     // 1. Create the log entry - only use columns that exist
     const logData = {
       patient_id,
+      protocol_id: protocol_id || null,
       category,
       entry_type: entry_type || 'injection',
       entry_date: logDate,
@@ -135,25 +137,28 @@ async function handlePost(req, res) {
       quantity: quantity ? parseInt(quantity) : null,
       notes: notes || null
     };
-    
+
     const { data: log, error: logError } = await supabase
       .from('injection_logs')
       .insert([logData])
       .select()
       .single();
-    
+
     if (logError) throw logError;
-    
-    // 2. Try to sync with protocol based on category
+
+    // 2. Try to sync with protocol based on entry type
     let protocolUpdate = { updated: false, reason: null };
-    
+
     if (entry_type === 'pickup') {
       // For pickups, update the protocol's last_refill_date
       protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type);
+    } else if (protocol_id && (entry_type === 'injection' || entry_type === 'session')) {
+      // For sessions/injections, increment sessions_used on the protocol
+      protocolUpdate = await incrementSessionCount(protocol_id, logDate);
     }
-    
-    return res.status(200).json({ 
-      success: true, 
+
+    return res.status(200).json({
+      success: true,
       log,
       protocol_update: protocolUpdate
     });
@@ -284,14 +289,63 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       return { updated: false, reason: 'Error updating protocol' };
     }
     
-    return { 
-      updated: true, 
+    return {
+      updated: true,
       protocol_id: protocol.id,
       new_last_refill_date: logDate,
       changes: { supply_type }
     };
   } catch (err) {
     console.error('Error syncing pickup with protocol:', err);
+    return { updated: false, reason: err.message };
+  }
+}
+
+// Helper: Increment session count on protocol
+async function incrementSessionCount(protocol_id, logDate) {
+  try {
+    // Get current protocol
+    const { data: protocol, error: findError } = await supabase
+      .from('protocols')
+      .select('id, sessions_used, total_sessions')
+      .eq('id', protocol_id)
+      .single();
+
+    if (findError) {
+      console.error('Error finding protocol:', findError);
+      return { updated: false, reason: 'Error finding protocol' };
+    }
+
+    if (!protocol) {
+      return { updated: false, reason: 'Protocol not found' };
+    }
+
+    // Increment sessions_used
+    const currentSessions = protocol.sessions_used || 0;
+    const newSessionCount = currentSessions + 1;
+
+    const { error: updateError } = await supabase
+      .from('protocols')
+      .update({
+        sessions_used: newSessionCount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', protocol_id);
+
+    if (updateError) {
+      console.error('Error updating protocol sessions_used:', updateError);
+      return { updated: false, reason: 'Error updating protocol' };
+    }
+
+    return {
+      updated: true,
+      protocol_id: protocol_id,
+      previous_sessions: currentSessions,
+      new_sessions: newSessionCount,
+      total_sessions: protocol.total_sessions
+    };
+  } catch (err) {
+    console.error('Error incrementing session count:', err);
     return { updated: false, reason: err.message };
   }
 }

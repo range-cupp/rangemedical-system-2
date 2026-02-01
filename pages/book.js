@@ -90,8 +90,8 @@ export default function Book() {
     },
     {
       id: 'check5',
-      bold: 'Arrive 5–10 minutes early',
-      text: 'with a valid ID so we can start on time.'
+      bold: "If you're coming to the clinic,",
+      text: 'arrive 5 minutes early with a valid ID.'
     },
     {
       id: 'check6',
@@ -124,8 +124,8 @@ export default function Book() {
     },
     {
       id: 'check5',
-      bold: 'Arrive 5–10 minutes early',
-      text: 'with a valid ID so we can start on time.'
+      bold: "If you're coming to the clinic,",
+      text: 'arrive 5 minutes early with a valid ID.'
     },
     {
       id: 'check6',

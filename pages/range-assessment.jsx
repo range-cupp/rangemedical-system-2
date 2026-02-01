@@ -6,13 +6,13 @@ export default function RangeAssessmentPage() {
   return (
     <Layout
       title="Range Assessment | Energy & Optimization | Range Medical Newport Beach"
-      description="The Range Assessment is a 30-45 minute visit to understand your symptoms and build a clear plan. $199, credited toward any program. Newport Beach."
+      description="The Range Assessment is a 20-30 minute visit to understand your symptoms and build a clear plan. $199, credited toward any program. Newport Beach."
     >
       <Head>
         <meta name="keywords" content="Range Assessment, wellness consultation, energy optimization, hormone testing, fatigue treatment, brain fog help, Newport Beach, Costa Mesa" />
         <link rel="canonical" href="https://www.range-medical.com/range-assessment" />
         <meta property="og:title" content="Range Assessment | Energy & Optimization | Range Medical" />
-        <meta property="og:description" content="The Range Assessment is a 30-45 minute visit to understand your symptoms and build a clear plan. $199, credited toward any program." />
+        <meta property="og:description" content="The Range Assessment is a 20-30 minute visit to understand your symptoms and build a clear plan. $199, credited toward any program." />
         <meta property="og:url" content="https://www.range-medical.com/range-assessment" />
         <script
           type="application/ld+json"
@@ -58,7 +58,7 @@ export default function RangeAssessmentPage() {
           <div className="hero-cta">
             <Link href="/book" className="btn-primary">Book Your Assessment — $199</Link>
             <p className="hero-secondary">
-              30–45 minutes · Credited toward any program
+              20–30 minutes · Credited toward any program
             </p>
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function RangeAssessmentPage() {
           <div className="included-box">
             <div className="included-price-section">
               <div className="included-price">$199</div>
-              <div className="included-duration">30–45 minute visit</div>
+              <div className="included-duration">20–30 minute visit</div>
               <div className="included-credit">✓ Credited toward any program</div>
             </div>
             <div className="included-list-section">

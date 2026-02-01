@@ -30,6 +30,8 @@ export default function Book() {
       setSelectedReason('injury');
     } else if (router.query.reason === 'energy') {
       setSelectedReason('energy');
+    } else if (router.query.reason === 'both') {
+      setSelectedReason('both');
     }
   }, [router.query.reason]);
 
@@ -134,8 +136,46 @@ export default function Book() {
     }
   ];
 
+  // Both checklist (consolidated)
+  const bothChecklistItems = [
+    {
+      id: 'check1',
+      bold: 'Bring any labs, imaging, or medical records from the past year.',
+      text: "Blood work, MRI, X-rays, doctor's notes — whatever you have. If you don't have any, that's okay."
+    },
+    {
+      id: 'check2',
+      bold: "Think about what's bothering you most.",
+      text: "Your injury, your energy levels, weight changes, sleep, motivation — we'll cover all of it."
+    },
+    {
+      id: 'check3',
+      bold: "We'll discuss the full range of options available to you.",
+      text: 'From PRP and peptide therapy for recovery, to hormone optimization and weight loss programs — whatever fits your situation.'
+    },
+    {
+      id: 'check4',
+      bold: 'This assessment is to build your plan.',
+      text: 'You\'ll leave with clear next steps, not a "wait and see" answer.'
+    },
+    {
+      id: 'check5',
+      bold: "If you're coming to the clinic,",
+      text: 'arrive 5 minutes early with a valid ID.'
+    },
+    {
+      id: 'check6',
+      bold: 'The assessment fee is $199,',
+      text: 'payable at the clinic. This is credited toward any program, including labs.'
+    }
+  ];
+
   // Get the appropriate checklist based on selected reason
-  const checklistItems = selectedReason === 'injury' ? injuryChecklistItems : energyChecklistItems;
+  const checklistItems = selectedReason === 'injury'
+    ? injuryChecklistItems
+    : selectedReason === 'both'
+      ? bothChecklistItems
+      : energyChecklistItems;
 
   return (
     <Layout 
@@ -191,7 +231,7 @@ export default function Book() {
                 </div>
               </button>
 
-              <button 
+              <button
                 className={`reason-card ${selectedReason === 'energy' ? 'selected' : ''}`}
                 onClick={() => setSelectedReason('energy')}
               >
@@ -206,11 +246,30 @@ export default function Book() {
               </button>
             </div>
 
+            <div className="reason-both-section">
+              <p className="both-label">Dealing with both?</p>
+              <button
+                className={`reason-card reason-card-both ${selectedReason === 'both' ? 'selected' : ''}`}
+                onClick={() => setSelectedReason('both')}
+              >
+                <div className="reason-icon">🩹⚡</div>
+                <div className="reason-text">
+                  <h3>Both</h3>
+                  <p>I have an injury AND I want to optimize my energy, hormones, or weight.</p>
+                </div>
+                <div className={`reason-indicator ${selectedReason === 'both' ? 'checked' : ''}`}>
+                  {selectedReason === 'both' && <span className="check">✓</span>}
+                </div>
+              </button>
+            </div>
+
             {selectedReason && (
               <div className="reason-confirmed">
-                ✓ {selectedReason === 'injury' 
+                ✓ {selectedReason === 'injury'
                   ? "We'll focus your Range Assessment on your injury and recovery goals."
-                  : "We'll focus your Range Assessment on your energy, health, and optimization goals."}
+                  : selectedReason === 'both'
+                    ? "We'll cover both your injury recovery AND your energy, health, and optimization goals."
+                    : "We'll focus your Range Assessment on your energy, health, and optimization goals."}
               </div>
             )}
           </div>
@@ -306,7 +365,7 @@ export default function Book() {
 
               <div className="calendar-wrapper">
                 <iframe
-                  src="https://link.range-medical.com/booking/range-medical/sv/69769eed725303dcad0eb2da?heightMode=fixed&showHeader=true"
+                  src={`https://link.range-medical.com/booking/range-medical/sv/69769eed725303dcad0eb2da?heightMode=fixed&showHeader=true&reason=${selectedReason === 'injury' ? 'injury-recovery' : selectedReason === 'both' ? 'both' : 'energy-optimization'}`}
                   style={{ width: '100%', border: 'none', overflow: 'hidden' }}
                   scrolling="yes"
                   id="69769eed725303dcad0eb2da_1769970263180"
@@ -538,6 +597,21 @@ export default function Book() {
           color: #fff;
           font-weight: 700;
           font-size: 14px;
+        }
+
+        .reason-both-section {
+          margin-top: 24px;
+          text-align: center;
+        }
+
+        .both-label {
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 12px;
+        }
+
+        .reason-card-both {
+          max-width: 100%;
         }
 
         .reason-confirmed {

@@ -34,13 +34,13 @@ export default function Home() {
           Start with a Range Assessment for your biggest problem: injury recovery or low energy.
         </p>
         <div className="assessment-options">
-          <Link href="/injury-recovery" className="assessment-button">
+          <Link href="/book?reason=injury" className="assessment-button">
             <span className="button-icon">✎</span>
             <span>Injury & Recovery</span>
             <span className="button-divider"></span>
             <span className="button-price">$199</span>
           </Link>
-          <Link href="/range-assessment" className="assessment-button">
+          <Link href="/book?reason=energy" className="assessment-button">
             <span className="button-icon">⚡</span>
             <span>Energy & Optimization</span>
             <span className="button-divider"></span>
@@ -69,8 +69,8 @@ export default function Home() {
                 <li>Get a clear recovery protocol</li>
                 <li>$199 credited toward your program</li>
               </ul>
-              <Link href="/injury-recovery" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
-                Learn More
+              <Link href="/book?reason=injury" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
+                Book Assessment
               </Link>
             </div>
 
@@ -85,8 +85,8 @@ export default function Home() {
                 <li>Labs when they help</li>
                 <li>Programs tailored to you</li>
               </ul>
-              <Link href="/range-assessment" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
-                Learn More
+              <Link href="/book?reason=energy" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
+                Book Assessment
               </Link>
             </div>
           </div>
@@ -178,10 +178,10 @@ export default function Home() {
           <h2>Ready to Feel Like Yourself Again?</h2>
           <p>Pick the door that fits your situation. Both start with a $199 Range Assessment.</p>
           <div className="cta-buttons">
-            <Link href="/injury-recovery" className="btn-white">
+            <Link href="/book?reason=injury" className="btn-white">
               Injury & Recovery
             </Link>
-            <Link href="/range-assessment" className="btn-outline-white">
+            <Link href="/book?reason=energy" className="btn-outline-white">
               Energy & Optimization
             </Link>
           </div>

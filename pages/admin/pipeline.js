@@ -56,8 +56,8 @@ const PEPTIDE_OPTIONS = [
   {
     group: 'GLP-1 Agonists',
     options: [
-      { value: 'Retatrutide', startingDose: '1mg', maxDose: '12mg', frequency: 'Weekly', notes: 'GLP-1 agonist - titrate monthly (1mg → 2mg → 4mg → 8mg → 12mg)' },
-      { value: 'Tirzepatide', startingDose: '2.5mg', maxDose: '15mg', frequency: 'Weekly', notes: 'GLP-1 agonist - titrate monthly (2.5mg → 5mg → 7.5mg → 10mg → 12.5mg → 15mg)' },
+      { value: 'Retatrutide', startingDose: '0.5mg', maxDose: '15mg', frequency: 'Weekly', notes: 'GLP-1 agonist - titrate monthly', doses: ['0.5mg', '1mg', '1.5mg', '2mg', '2.5mg', '3mg', '3.5mg', '4mg', '4.5mg', '5mg', '5.5mg', '6mg', '6.5mg', '7mg', '7.5mg', '8mg', '8.5mg', '9mg', '9.5mg', '10mg', '10.5mg', '11mg', '11.5mg', '12mg', '12.5mg', '13mg', '13.5mg', '14mg', '14.5mg', '15mg'] },
+      { value: 'Tirzepatide', startingDose: '0.5mg', maxDose: '15mg', frequency: 'Weekly', notes: 'GLP-1 agonist - titrate monthly', doses: ['0.5mg', '1mg', '1.5mg', '2mg', '2.5mg', '3mg', '3.5mg', '4mg', '4.5mg', '5mg', '5.5mg', '6mg', '6.5mg', '7mg', '7.5mg', '8mg', '8.5mg', '9mg', '9.5mg', '10mg', '10.5mg', '11mg', '11.5mg', '12mg', '12.5mg', '13mg', '13.5mg', '14mg', '14.5mg', '15mg'] },
     ]
   },
   {
@@ -804,8 +804,14 @@ export default function UnifiedPipeline() {
                 <>
                   <select value={protocolForm.peptide_dosage || ''} onChange={(e) => setProtocolForm({ ...protocolForm, peptide_dosage: e.target.value })} style={styles.formSelect}>
                     <option value="">Select dose...</option>
-                    <option value={selectedPeptideInfo.startingDose}>{selectedPeptideInfo.startingDose} (Starting)</option>
-                    {selectedPeptideInfo.maxDose !== selectedPeptideInfo.startingDose && <option value={selectedPeptideInfo.maxDose}>{selectedPeptideInfo.maxDose} (Max)</option>}
+                    {selectedPeptideInfo.doses ? (
+                      selectedPeptideInfo.doses.map(dose => <option key={dose} value={dose}>{dose}</option>)
+                    ) : (
+                      <>
+                        <option value={selectedPeptideInfo.startingDose}>{selectedPeptideInfo.startingDose} (Starting)</option>
+                        {selectedPeptideInfo.maxDose !== selectedPeptideInfo.startingDose && <option value={selectedPeptideInfo.maxDose}>{selectedPeptideInfo.maxDose} (Max)</option>}
+                      </>
+                    )}
                     <option value="custom">Custom dose...</option>
                   </select>
                   {selectedPeptideInfo.notes && <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>💡 {selectedPeptideInfo.notes}</small>}

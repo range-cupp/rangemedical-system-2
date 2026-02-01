@@ -17,6 +17,8 @@ export default function Book() {
     check2: false,
     check3: false,
     check4: false,
+    check5: false,
+    check6: false,
   });
 
   // Check if all boxes are checked
@@ -30,6 +32,21 @@ export default function Book() {
       setSelectedReason('energy');
     }
   }, [router.query.reason]);
+
+  // Reset checkboxes when switching between Injury & Energy options
+  useEffect(() => {
+    if (selectedReason) {
+      setCheckboxes({
+        check1: false,
+        check2: false,
+        check3: false,
+        check4: false,
+        check5: false,
+        check6: false,
+      });
+      setShowCalendar(false);
+    }
+  }, [selectedReason]);
 
   const handleCheckboxChange = (id) => {
     setCheckboxes(prev => ({ ...prev, [id]: !prev[id] }));
@@ -49,28 +66,76 @@ export default function Book() {
     }, 100);
   };
 
-  const checklistItems = [
+  // Injury & Recovery checklist
+  const injuryChecklistItems = [
     {
       id: 'check1',
-      bold: 'Bring any labs or records from the past year if you have them.',
-      text: "We'll review them together. If you don't have any, that's okay."
+      bold: 'Bring any imaging or medical records related to your injury.',
+      text: "MRI, X-ray, or doctor's notes — whatever you have. If you don't have any, that's okay."
     },
     {
       id: 'check2',
+      bold: 'Know your injury timeline.',
+      text: "When it happened, what you've tried, and how it's affecting you today."
+    },
+    {
+      id: 'check3',
+      bold: "We'll discuss recovery options tailored to your situation.",
+      text: 'This may include peptide therapy, PRP, exosome therapy, hyperbaric oxygen, IV support, or other modalities — depending on what fits.'
+    },
+    {
+      id: 'check4',
       bold: 'This is a consultation to build your plan.',
       text: 'You\'ll leave with clear next steps, not a "wait and see" answer.'
     },
     {
-      id: 'check3',
+      id: 'check5',
       bold: 'Arrive 5–10 minutes early',
       text: 'with a valid ID so we can start on time.'
     },
     {
+      id: 'check6',
+      bold: 'The assessment fee is $199,',
+      text: 'payable at the clinic. This is credited toward any program.'
+    }
+  ];
+
+  // Energy & Optimization checklist
+  const energyChecklistItems = [
+    {
+      id: 'check1',
+      bold: 'Bring any lab work from the past year if you have it.',
+      text: "We'll review it together. If you don't have any, that's okay — we can order what's needed."
+    },
+    {
+      id: 'check2',
+      bold: 'Think about your main symptoms.',
+      text: "Fatigue, brain fog, weight changes, low motivation, poor sleep, low drive — anything that doesn't feel right."
+    },
+    {
+      id: 'check3',
+      bold: "We'll explore options based on your symptoms and labs.",
+      text: 'This may include hormone optimization, medical weight loss, peptide therapy, IV therapy, or other programs — depending on what your body needs.'
+    },
+    {
       id: 'check4',
+      bold: 'This is a consultation to build your plan.',
+      text: 'You\'ll leave with clear next steps, not a "wait and see" answer.'
+    },
+    {
+      id: 'check5',
+      bold: 'Arrive 5–10 minutes early',
+      text: 'with a valid ID so we can start on time.'
+    },
+    {
+      id: 'check6',
       bold: 'The assessment fee is $199,',
       text: 'payable at the clinic. This is credited toward any program, including labs.'
     }
   ];
+
+  // Get the appropriate checklist based on selected reason
+  const checklistItems = selectedReason === 'injury' ? injuryChecklistItems : energyChecklistItems;
 
   return (
     <Layout 

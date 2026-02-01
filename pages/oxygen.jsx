@@ -275,7 +275,7 @@ export default function OxygenLanding() {
               {faqs.map((faq, i) => (
                 <div
                   key={i}
-                  className={`faq-item animate ${openFaq === i ? 'open' : ''}`}
+                  className={`faq-item ${openFaq === i ? 'open' : ''}`}
                   onClick={() => toggleFaq(i)}
                 >
                   <div className="faq-question">
@@ -720,14 +720,19 @@ export default function OxygenLanding() {
         }
 
         .faq-item.open .faq-answer {
-          max-height: 200px;
+          max-height: 300px;
           padding-top: 1rem;
+          opacity: 1;
         }
 
         .faq-answer p {
           font-size: 0.875rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: rgba(255, 255, 255, 0.75);
           line-height: 1.8;
+        }
+
+        .faq-item.open .faq-question {
+          color: #ffffff;
         }
 
         /* CTA Section */

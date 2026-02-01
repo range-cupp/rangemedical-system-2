@@ -154,7 +154,6 @@ export default function Book() {
         {/* Hero */}
         <section className="book-hero">
           <div className="book-container">
-            <div className="hero-badge">One Product, One Price</div>
             <h1>Book Your Range Assessment</h1>
             <p>One visit to understand your situation and build a clear plan.</p>
             <div className="hero-price">

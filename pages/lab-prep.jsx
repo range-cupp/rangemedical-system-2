@@ -4,7 +4,7 @@ import Head from 'next/head';
 
 export default function LabPrepPage() {
   return (
-    <Layout 
+    <Layout
       title="How to Prepare for Your Lab Appointment | Range Medical Newport Beach"
       description="Simple instructions to prepare for your lab work at Range Medical in Newport Beach. Fasting guidelines, cycle timing, and what to bring."
     >
@@ -16,12 +16,27 @@ export default function LabPrepPage() {
         <meta property="og:url" content="https://www.range-medical.com/lab-prep" />
       </Head>
 
+      {/* Trust Bar */}
+      <div className="trust-bar">
+        <div className="trust-inner">
+          <span className="trust-item">
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">✓ Licensed Providers</span>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <section className="hero">
-        <div className="container">
-          <div className="section-kicker">Patient Guide</div>
-          <h1>How to Prepare for Your Lab Appointment</h1>
-          <p className="hero-subtitle">Getting accurate lab results starts with a little preparation. These are general guidelines—your provider may give you specific instructions based on your situation.</p>
+        <div className="hero-kicker">Prep · Labs · Results</div>
+        <h1>How to Prepare for Your Lab Appointment</h1>
+        <p className="hero-body">
+          Getting accurate lab results starts with a little preparation. These are general guidelines—your provider may give you specific instructions based on your situation.
+        </p>
+        <div className="hero-scroll">
+          Scroll to explore
+          <span>↓</span>
         </div>
       </section>
 
@@ -230,10 +245,28 @@ export default function LabPrepPage() {
 
       <style jsx>{`
         /* Hero */
+        .hero-kicker {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 1.25rem;
+        }
+
+        .hero-body {
+          font-size: 1.125rem;
+          color: #525252;
+          line-height: 1.7;
+          max-width: 620px;
+        }
+
         .hero {
-          padding: 4rem 1.5rem 3rem;
+          padding: 4rem 1.5rem 5rem;
           text-align: center;
-          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .hero h1 {
@@ -242,18 +275,36 @@ export default function LabPrepPage() {
           color: #171717;
           line-height: 1.15;
           letter-spacing: -0.02em;
-          margin-bottom: 1rem;
-          max-width: 800px;
-          margin-left: auto;
-          margin-right: auto;
+          max-width: 680px;
+          margin: 0 0 1.5rem;
         }
 
-        .hero-subtitle {
-          font-size: 1.0625rem;
-          color: #525252;
-          line-height: 1.6;
-          max-width: 700px;
-          margin: 0 auto;
+        .hero .hero-body {
+          text-align: center;
+          margin: 0 auto 2.5rem;
+        }
+
+        .hero-scroll {
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #737373;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .hero-scroll span {
+          display: block;
+          margin-top: 0.75rem;
+          font-size: 1.125rem;
+          animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(6px); }
         }
 
         /* Section Kicker */
@@ -657,7 +708,7 @@ export default function LabPrepPage() {
 
         @media (max-width: 640px) {
           .hero {
-            padding: 3rem 1.5rem 2rem;
+            padding: 3rem 1.5rem;
           }
 
           .hero h1 {

@@ -222,13 +222,13 @@ export default function RedLightTherapy() {
             <div className="rlt-photos-grid">
               <div className="rlt-photo-wrapper rlt-animate">
                 <img
-                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6799fa4fd1ae5e5d2afdf8db.png"
+                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6915ef9ab8272573cd5176df.jpeg"
                   alt="INNER Light LED Bed at Range Medical"
                 />
               </div>
               <div className="rlt-photo-wrapper rlt-animate">
                 <img
-                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6799fa4fd1ae5e79defdf8dc.png"
+                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6915ef9ab8272573cd5176df.jpeg"
                   alt="Red Light Therapy session at Range Medical"
                 />
               </div>

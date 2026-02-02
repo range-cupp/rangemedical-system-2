@@ -10,6 +10,7 @@ export default function Header() {
     { href: '/hyperbaric-oxygen-therapy', label: 'Hyperbaric Oxygen' },
     { href: '/red-light-therapy', label: 'Red Light Therapy' },
     { href: '/peptide-therapy', label: 'Peptide Therapy' },
+    { href: '/nad-therapy', label: 'NAD+ Therapy' },
     { href: '/iv-therapy', label: 'IV Therapy' },
     { href: '/hormone-optimization', label: 'Hormone Optimization' },
     { href: '/weight-loss', label: 'Weight Loss' },

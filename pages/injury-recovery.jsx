@@ -582,10 +582,10 @@ export default function InjuryRecovery() {
             margin-bottom: 1rem;
           }
 
-          .inj-btn-primary {
+          :global(.inj-btn-primary) {
             display: inline-block;
-            background: #000000;
-            color: #ffffff;
+            background: #000000 !important;
+            color: #ffffff !important;
             padding: 1rem 2.5rem;
             border-radius: 8px;
             font-weight: 600;
@@ -594,10 +594,11 @@ export default function InjuryRecovery() {
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
             transition: all 0.2s ease;
             cursor: pointer;
+            border: none;
           }
 
-          .inj-btn-primary:hover {
-            background: #171717;
+          :global(.inj-btn-primary:hover) {
+            background: #171717 !important;
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
           }
@@ -948,24 +949,25 @@ export default function InjuryRecovery() {
             line-height: 1.7;
           }
 
-          .inj-btn-white {
+          :global(.inj-btn-white) {
             display: inline-block;
-            background: #ffffff;
-            color: #000000;
+            background: #ffffff !important;
+            color: #000000 !important;
             padding: 1rem 2.5rem;
             border-radius: 8px;
             font-weight: 600;
             font-size: 1rem;
             text-decoration: none;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3);
             transition: all 0.2s ease;
             cursor: pointer;
+            border: none;
           }
 
-          .inj-btn-white:hover {
-            background: #f5f5f5;
+          :global(.inj-btn-white:hover) {
+            background: #f0f0f0 !important;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4);
           }
 
           .inj-cta-location {

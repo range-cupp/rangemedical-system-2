@@ -585,16 +585,20 @@ export default function InjuryRecovery() {
             display: inline-block;
             background: #000000;
             color: #ffffff;
-            padding: 1rem 2rem;
+            padding: 1rem 2.5rem;
             border-radius: 8px;
             font-weight: 600;
             font-size: 1rem;
             text-decoration: none;
-            transition: background 0.2s;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s ease;
+            cursor: pointer;
           }
 
           .inj-btn-primary:hover {
-            background: #333333;
+            background: #171717;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
           }
 
           /* Section Styles */
@@ -947,16 +951,20 @@ export default function InjuryRecovery() {
             display: inline-block;
             background: #ffffff;
             color: #000000;
-            padding: 1rem 2rem;
+            padding: 1rem 2.5rem;
             border-radius: 8px;
             font-weight: 600;
             font-size: 1rem;
             text-decoration: none;
-            transition: background 0.2s;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s ease;
+            cursor: pointer;
           }
 
           .inj-btn-white:hover {
             background: #f5f5f5;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
           }
 
           .inj-cta-location {

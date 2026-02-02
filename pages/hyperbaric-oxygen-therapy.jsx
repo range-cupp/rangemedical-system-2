@@ -448,25 +448,20 @@ export default function HyperbaricOxygenTherapy() {
         </section>
 
         {/* FAQ */}
-        <section className="hbot-section hbot-section-inverted">
+        <section className="hbot-section-alt">
           <div className="hbot-container">
-            <div className="hbot-animate">
-              <div className="hbot-kicker">Common Questions</div>
-              <h2>Everything you might be wondering.</h2>
-              <div className="hbot-divider"></div>
-            </div>
+            <span className="hbot-section-label">Questions</span>
+            <h2>Common Questions</h2>
 
             <div className="hbot-faq-list">
-              {faqs.map((faq, i) => (
-                <div
-                  key={i}
-                  className={`hbot-faq-item ${openFaq === i ? 'open' : ''}`}
-                  onClick={() => toggleFaq(i)}
-                >
-                  <div className="hbot-faq-question">
-                    {faq.question}
-                    <span className="hbot-faq-toggle">+</span>
-                  </div>
+              {faqs.map((faq, index) => (
+                <div key={index} className={`hbot-faq-item ${openFaq === index ? 'hbot-faq-open' : ''}`}>
+                  <button className="hbot-faq-question" onClick={() => toggleFaq(index)}>
+                    <span>{faq.question}</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
+                    </svg>
+                  </button>
                   <div className="hbot-faq-answer">
                     <p>{faq.answer}</p>
                   </div>
@@ -531,6 +526,17 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-section-alt {
           background: #fafafa;
+          padding: 5rem 1.5rem;
+        }
+
+        .hbot-section-label {
+          display: inline-block;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 0.75rem;
         }
 
         .hbot-section-inverted {
@@ -935,13 +941,12 @@ export default function HyperbaricOxygenTherapy() {
 
         /* FAQ */
         .hbot-faq-list {
-          margin-top: 2.5rem;
+          max-width: 700px;
+          margin: 0 auto;
         }
 
         .hbot-faq-item {
-          padding: 1.5rem 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-          cursor: pointer;
+          border-bottom: 1px solid #e5e5e5;
         }
 
         .hbot-faq-item:last-child {
@@ -949,47 +954,51 @@ export default function HyperbaricOxygenTherapy() {
         }
 
         .hbot-faq-question {
-          font-size: 1.0625rem;
-          font-weight: 600;
-          color: #ffffff;
+          width: 100%;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 1rem;
+          padding: 1.25rem 0;
+          background: none;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
         }
 
-        .hbot-faq-toggle {
-          font-size: 1.25rem;
-          font-weight: 300;
-          color: rgba(255, 255, 255, 0.3);
-          transition: transform 0.3s ease;
+        .hbot-faq-question span {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #171717;
+          padding-right: 1rem;
+        }
+
+        .hbot-faq-question svg {
           flex-shrink: 0;
+          color: #737373;
+          transition: transform 0.2s;
         }
 
-        .hbot-faq-item.open .hbot-faq-toggle {
-          transform: rotate(45deg);
+        .hbot-faq-open .hbot-faq-question svg {
+          transform: rotate(180deg);
         }
 
         .hbot-faq-answer {
           max-height: 0;
           overflow: hidden;
-          transition: max-height 0.4s ease, padding 0.4s ease;
+          transition: max-height 0.3s ease, padding 0.3s ease;
         }
 
-        .hbot-faq-item.open .hbot-faq-answer {
+        .hbot-faq-open .hbot-faq-answer {
           max-height: 300px;
-          padding-top: 1rem;
-          opacity: 1;
+          padding-bottom: 1.25rem;
         }
 
         .hbot-faq-answer p {
-          font-size: 0.875rem;
-          color: rgba(255, 255, 255, 0.75);
-          line-height: 1.8;
-        }
-
-        .hbot-faq-item.open .hbot-faq-question {
-          color: #ffffff;
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.7;
+          margin: 0;
         }
 
         /* CTA Section */

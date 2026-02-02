@@ -394,25 +394,20 @@ export default function ExosomeTherapy() {
         </section>
 
         {/* FAQ */}
-        <section className="exo-section exo-section-inverted">
+        <section className="exo-section-alt">
           <div className="exo-container">
-            <div className="exo-animate">
-              <div className="exo-kicker">Common Questions</div>
-              <h2>Everything you might be wondering.</h2>
-              <div className="exo-divider"></div>
-            </div>
+            <span className="exo-section-label">Questions</span>
+            <h2>Common Questions</h2>
 
             <div className="exo-faq-list">
-              {faqs.map((faq, i) => (
-                <div
-                  key={i}
-                  className={`exo-faq-item ${openFaq === i ? 'open' : ''}`}
-                  onClick={() => toggleFaq(i)}
-                >
-                  <div className="exo-faq-question">
-                    {faq.question}
-                    <span className="exo-faq-toggle">+</span>
-                  </div>
+              {faqs.map((faq, index) => (
+                <div key={index} className={`exo-faq-item ${openFaq === index ? 'exo-faq-open' : ''}`}>
+                  <button className="exo-faq-question" onClick={() => toggleFaq(index)}>
+                    <span>{faq.question}</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
+                    </svg>
+                  </button>
                   <div className="exo-faq-answer">
                     <p>{faq.answer}</p>
                   </div>
@@ -477,6 +472,17 @@ export default function ExosomeTherapy() {
 
         .exo-section-alt {
           background: #fafafa;
+          padding: 5rem 1.5rem;
+        }
+
+        .exo-section-label {
+          display: inline-block;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 0.75rem;
         }
 
         .exo-section-inverted {
@@ -808,13 +814,12 @@ export default function ExosomeTherapy() {
 
         /* FAQ */
         .exo-faq-list {
-          margin-top: 2.5rem;
+          max-width: 700px;
+          margin: 0 auto;
         }
 
         .exo-faq-item {
-          padding: 1.5rem 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-          cursor: pointer;
+          border-bottom: 1px solid #e5e5e5;
         }
 
         .exo-faq-item:last-child {
@@ -822,47 +827,51 @@ export default function ExosomeTherapy() {
         }
 
         .exo-faq-question {
-          font-size: 1.0625rem;
-          font-weight: 600;
-          color: #ffffff;
+          width: 100%;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 1rem;
+          padding: 1.25rem 0;
+          background: none;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
         }
 
-        .exo-faq-toggle {
-          font-size: 1.25rem;
-          font-weight: 300;
-          color: rgba(255, 255, 255, 0.3);
-          transition: transform 0.3s ease;
+        .exo-faq-question span {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #171717;
+          padding-right: 1rem;
+        }
+
+        .exo-faq-question svg {
           flex-shrink: 0;
+          color: #737373;
+          transition: transform 0.2s;
         }
 
-        .exo-faq-item.open .exo-faq-toggle {
-          transform: rotate(45deg);
+        .exo-faq-open .exo-faq-question svg {
+          transform: rotate(180deg);
         }
 
         .exo-faq-answer {
           max-height: 0;
           overflow: hidden;
-          transition: max-height 0.4s ease, padding 0.4s ease;
+          transition: max-height 0.3s ease, padding 0.3s ease;
         }
 
-        .exo-faq-item.open .exo-faq-answer {
+        .exo-faq-open .exo-faq-answer {
           max-height: 300px;
-          padding-top: 1rem;
-          opacity: 1;
+          padding-bottom: 1.25rem;
         }
 
         .exo-faq-answer p {
-          font-size: 0.875rem;
-          color: rgba(255, 255, 255, 0.75);
-          line-height: 1.8;
-        }
-
-        .exo-faq-item.open .exo-faq-question {
-          color: #ffffff;
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.7;
+          margin: 0;
         }
 
         /* CTA Section */

@@ -147,22 +147,6 @@ export default function Home() {
               Start with a Range Assessment for your biggest concern — injury recovery or low energy.
               One visit, one plan, $199 to start.
             </p>
-            <div className="home-hero-buttons">
-              <Link href="/book?reason=injury" className="home-btn-primary">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                </svg>
-                <span>Injury & Recovery</span>
-                <span className="home-btn-price">$199</span>
-              </Link>
-              <Link href="/book?reason=energy" className="home-btn-secondary">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                <span>Energy & Optimization</span>
-                <span className="home-btn-price">$199</span>
-              </Link>
-            </div>
           </div>
         </section>
 

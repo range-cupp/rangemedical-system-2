@@ -276,8 +276,8 @@ export default function NADTherapy() {
         {/* Hero */}
         <section className="nad-hero">
           <div className="nad-kicker">Cellular Energy · Longevity · Cognition</div>
-          <h1>NAD+ Therapy</h1>
-          <p className="nad-body-text">Restore the molecule your cells need for energy, repair, and healthy aging. IV and injection protocols designed for real results.</p>
+          <h1>Your Guide to NAD+ Therapy</h1>
+          <p className="nad-body-text">Everything you need to know about NAD+ — what it is, how it works, and which protocol is right for your goals.</p>
           <div className="nad-hero-scroll">
             Scroll to explore
             <span>↓</span>

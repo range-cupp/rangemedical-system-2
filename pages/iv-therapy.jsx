@@ -248,8 +248,8 @@ export default function IVTherapy() {
         {/* Hero */}
         <section className="iv-hero">
           <div className="iv-kicker">Hydration · Energy · Recovery</div>
-          <h1>IV Therapy</h1>
-          <p className="iv-body-text">Vitamins and nutrients delivered directly to your bloodstream. 100% absorption. Results you can feel.</p>
+          <h1>Your Guide to IV Therapy</h1>
+          <p className="iv-body-text">Everything you need to know about IV vitamin therapy — what it is, how it works, and whether it's right for your goals.</p>
           <div className="iv-hero-scroll">
             Scroll to explore
             <span>↓</span>

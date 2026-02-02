@@ -126,12 +126,15 @@ export default function Home() {
 
         {/* Hero Section */}
         <section className="home-hero">
-          <div className="home-hero-inner">
-            <h1>Two Ways to Feel Like Yourself Again</h1>
-            <p className="home-hero-sub">
-              Start with a Range Assessment for your biggest concern — injury recovery or low energy.
-              One visit, one plan, $199 to start.
-            </p>
+          <div className="home-kicker">Recovery · Energy · Optimization</div>
+          <h1>Two Ways to Feel Like Yourself Again</h1>
+          <p className="home-body-text">
+            Start with a Range Assessment for your biggest concern — injury recovery or low energy.
+            One visit, one plan, $199 to start.
+          </p>
+          <div className="home-hero-scroll">
+            Scroll to explore
+            <span>↓</span>
           </div>
         </section>
 
@@ -390,15 +393,28 @@ export default function Home() {
 
         <style jsx>{`
           /* Hero Section */
-          .home-hero {
-            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-            padding: 5rem 1.5rem;
+          .home-kicker {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #737373;
+            margin-bottom: 1.25rem;
           }
 
-          .home-hero-inner {
-            max-width: 800px;
-            margin: 0 auto;
+          .home-body-text {
+            font-size: 1.125rem;
+            color: #525252;
+            line-height: 1.7;
+            max-width: 620px;
+          }
+
+          .home-hero {
+            padding: 4rem 1.5rem 5rem;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
           .home-hero h1 {
@@ -406,17 +422,36 @@ export default function Home() {
             font-weight: 700;
             color: #171717;
             line-height: 1.15;
-            margin: 0 0 1.25rem;
+            max-width: 680px;
+            margin: 0 0 1.5rem;
           }
 
-          .home-hero-sub {
+          .home-hero .home-body-text {
+            text-align: center;
+            margin: 0 auto 2.5rem;
+          }
+
+          .home-hero-scroll {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #737373;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+
+          .home-hero-scroll span {
+            display: block;
+            margin-top: 0.75rem;
             font-size: 1.125rem;
-            color: #525252;
-            line-height: 1.7;
-            margin: 0 0 2.5rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            animation: home-bounce 2s ease-in-out infinite;
+          }
+
+          @keyframes home-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(6px); }
           }
 
           .home-hero-buttons {
@@ -876,23 +911,11 @@ export default function Home() {
             }
 
             .home-hero {
-              padding: 3.5rem 1.5rem;
+              padding: 3rem 1.5rem;
             }
 
             .home-hero h1 {
               font-size: 2rem;
-            }
-
-            .home-hero-buttons {
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .home-btn-primary,
-            .home-btn-secondary {
-              width: 100%;
-              max-width: 300px;
-              justify-content: center;
             }
 
             .home-section,

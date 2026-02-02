@@ -160,31 +160,16 @@ export default function RangeAssessment() {
 
         {/* Hero Section */}
         <section className="ra-hero">
-          <div className="ra-hero-inner">
-            <span className="ra-category">Energy & Optimization</span>
-            <h1>Your Guide to the Range Assessment</h1>
-            <p className="ra-hero-sub">
-              A real conversation with a provider who listens. Understand what's going on,
-              connect your symptoms to a plan, and leave with clear next steps — not a
-              "wait and see" answer.
-            </p>
-            <div className="ra-hero-stats">
-              <div className="ra-stat">
-                <span className="ra-stat-value">$199</span>
-                <span className="ra-stat-label">Assessment Fee</span>
-              </div>
-              <div className="ra-stat">
-                <span className="ra-stat-value">30</span>
-                <span className="ra-stat-label">Minute Visit</span>
-              </div>
-              <div className="ra-stat">
-                <span className="ra-stat-value">100%</span>
-                <span className="ra-stat-label">Credited to Program</span>
-              </div>
-            </div>
-            <div className="ra-hero-cta">
-              <Link href="/book?reason=energy" className="ra-btn-primary">Book Assessment — $199</Link>
-            </div>
+          <div className="ra-kicker">Energy · Clarity · Optimization</div>
+          <h1>Your Guide to the Range Assessment</h1>
+          <p className="ra-body-text">
+            A real conversation with a provider who listens. Understand what's going on,
+            connect your symptoms to a plan, and leave with clear next steps — not a
+            "wait and see" answer.
+          </p>
+          <div className="ra-hero-scroll">
+            Scroll to explore
+            <span>↓</span>
           </div>
         </section>
 
@@ -483,76 +468,61 @@ export default function RangeAssessment() {
 
         <style jsx>{`
           /* Hero Section */
-          .ra-hero {
-            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-            padding: 5rem 1.5rem;
-          }
-
-          .ra-hero-inner {
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: center;
-          }
-
-          .ra-category {
-            display: inline-block;
-            background: #171717;
-            color: white;
+          .ra-kicker {
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            padding: 0.375rem 0.875rem;
-            border-radius: 100px;
-            margin-bottom: 1.5rem;
+            color: #737373;
+            margin-bottom: 1.25rem;
           }
 
-          .ra-hero h1 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            color: #171717;
-            line-height: 1.15;
-            margin: 0 0 1.25rem;
-          }
-
-          .ra-hero-sub {
+          .ra-body-text {
             font-size: 1.125rem;
             color: #525252;
             line-height: 1.7;
-            margin: 0 0 2.5rem;
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
+            max-width: 620px;
           }
 
-          .ra-hero-stats {
-            display: flex;
-            justify-content: center;
-            gap: 3rem;
-            margin-bottom: 2.5rem;
-          }
-
-          .ra-stat {
+          .ra-hero {
+            padding: 4rem 1.5rem 5rem;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
-          .ra-stat-value {
-            display: block;
-            font-size: 2.5rem;
+          .ra-hero h1 {
+            max-width: 680px;
+            margin-bottom: 1.5rem;
+          }
+
+          .ra-hero .ra-body-text {
+            text-align: center;
+            margin: 0 auto 2.5rem;
+          }
+
+          .ra-hero-scroll {
+            font-size: 0.75rem;
             font-weight: 700;
-            color: #171717;
-            line-height: 1;
-          }
-
-          .ra-stat-label {
-            font-size: 0.8125rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
             color: #737373;
-            margin-top: 0.375rem;
-            display: block;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
-          .ra-hero-cta {
-            margin-bottom: 1rem;
+          .ra-hero-scroll span {
+            display: block;
+            margin-top: 0.75rem;
+            font-size: 1.125rem;
+            animation: ra-bounce 2s ease-in-out infinite;
+          }
+
+          @keyframes ra-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(6px); }
           }
 
           :global(.ra-btn-primary) {
@@ -1042,13 +1012,12 @@ export default function RangeAssessment() {
               gap: 0.5rem;
             }
 
-            .ra-hero h1 {
-              font-size: 2rem;
+            .ra-hero {
+              padding: 3rem 1.5rem;
             }
 
-            .ra-hero-stats {
-              flex-direction: column;
-              gap: 1.5rem;
+            .ra-hero h1 {
+              font-size: 2rem;
             }
 
             .ra-section h2,

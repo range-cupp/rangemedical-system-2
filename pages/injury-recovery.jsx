@@ -193,31 +193,16 @@ export default function InjuryRecovery() {
 
         {/* Hero Section */}
         <section className="inj-hero">
-          <div className="inj-hero-inner">
-            <span className="inj-category">Recovery Programs</span>
-            <h1>Your Guide to Injury Recovery</h1>
-            <p className="inj-hero-sub">
-              Healing feels slow because your body needs more than time. We use targeted recovery
-              protocols to help you get back to normal faster — whether you're post-surgery,
-              rehabbing an injury, or stuck in a healing plateau.
-            </p>
-            <div className="inj-hero-stats">
-              <div className="inj-stat">
-                <span className="inj-stat-value">$199</span>
-                <span className="inj-stat-label">Assessment Fee</span>
-              </div>
-              <div className="inj-stat">
-                <span className="inj-stat-value">30</span>
-                <span className="inj-stat-label">Minute Visit</span>
-              </div>
-              <div className="inj-stat">
-                <span className="inj-stat-value">100%</span>
-                <span className="inj-stat-label">Credited to Program</span>
-              </div>
-            </div>
-            <div className="inj-hero-cta">
-              <Link href="/book?reason=injury" className="inj-btn-primary">Book Assessment — $199</Link>
-            </div>
+          <div className="inj-kicker">Recovery · Healing · Results</div>
+          <h1>Your Guide to Injury Recovery</h1>
+          <p className="inj-body-text">
+            Healing feels slow because your body needs more than time. We use targeted recovery
+            protocols to help you get back to normal faster — whether you're post-surgery,
+            rehabbing an injury, or stuck in a healing plateau.
+          </p>
+          <div className="inj-hero-scroll">
+            Scroll to explore
+            <span>↓</span>
           </div>
         </section>
 
@@ -471,77 +456,63 @@ export default function InjuryRecovery() {
 
         <style jsx>{`
           /* Hero Section */
-          .inj-hero {
-            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-            padding: 5rem 1.5rem;
-          }
-
-          .inj-hero-inner {
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: center;
-          }
-
-          .inj-category {
-            display: inline-block;
-            background: #171717;
-            color: white;
+          .inj-kicker {
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            padding: 0.375rem 0.875rem;
-            border-radius: 100px;
-            margin-bottom: 1.5rem;
+            color: #737373;
+            margin-bottom: 1.25rem;
           }
 
-          .inj-hero h1 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            color: #171717;
-            line-height: 1.15;
-            margin: 0 0 1.25rem;
-          }
-
-          .inj-hero-sub {
+          .inj-body-text {
             font-size: 1.125rem;
             color: #525252;
             line-height: 1.7;
-            margin: 0 0 2.5rem;
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
+            max-width: 620px;
           }
 
-          .inj-hero-stats {
-            display: flex;
-            justify-content: center;
-            gap: 3rem;
-            margin-bottom: 2.5rem;
-          }
-
-          .inj-stat {
+          .inj-hero {
+            padding: 4rem 1.5rem 5rem;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
-          .inj-stat-value {
-            display: block;
-            font-size: 2.5rem;
+          .inj-hero h1 {
+            max-width: 680px;
+            margin-bottom: 1.5rem;
+          }
+
+          .inj-hero .inj-body-text {
+            text-align: center;
+            margin: 0 auto 2.5rem;
+          }
+
+          .inj-hero-scroll {
+            font-size: 0.75rem;
             font-weight: 700;
-            color: #171717;
-            line-height: 1;
-          }
-
-          .inj-stat-label {
-            font-size: 0.8125rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
             color: #737373;
-            margin-top: 0.375rem;
-            display: block;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
-          .inj-hero-cta {
-            margin-bottom: 1rem;
+          .inj-hero-scroll span {
+            display: block;
+            margin-top: 0.75rem;
+            font-size: 1.125rem;
+            animation: inj-bounce 2s ease-in-out infinite;
           }
+
+          @keyframes inj-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(6px); }
+          }
+
 
           :global(.inj-btn-primary) {
             display: inline-block;
@@ -966,13 +937,12 @@ export default function InjuryRecovery() {
               gap: 0.5rem;
             }
 
-            .inj-hero h1 {
-              font-size: 2rem;
+            .inj-hero {
+              padding: 3rem 1.5rem;
             }
 
-            .inj-hero-stats {
-              flex-direction: column;
-              gap: 1.5rem;
+            .inj-hero h1 {
+              font-size: 2rem;
             }
 
             .inj-section h2,

@@ -67,8 +67,14 @@ export default function LabPrepPage() {
           <div className="section-kicker">Men's Guidelines</div>
           <h2 className="section-title">For Men</h2>
           <p className="section-subtitle">Additional considerations for accurate hormone testing.</p>
-          
-          <div className="two-col-grid">
+
+          <div className="three-col-grid">
+            <div className="info-card">
+              <h3><span className="icon">📅</span> Timing</h3>
+              <ul>
+                <li><strong>Cortisol, testosterone, or prolactin:</strong> Schedule between 7:30–9:30 AM</li>
+              </ul>
+            </div>
             <div className="info-card">
               <h3><span className="icon">💉</span> Testosterone Injections</h3>
               <ul>
@@ -309,6 +315,14 @@ export default function LabPrepPage() {
           grid-template-columns: repeat(2, 1fr);
           gap: 1.5rem;
           max-width: 900px;
+          margin: 0 auto;
+        }
+
+        .three-col-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
+          max-width: 1100px;
           margin: 0 auto;
         }
 
@@ -631,7 +645,8 @@ export default function LabPrepPage() {
             grid-template-columns: 1fr;
           }
 
-          .two-col-grid {
+          .two-col-grid,
+          .three-col-grid {
             grid-template-columns: 1fr;
           }
 

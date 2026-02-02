@@ -117,7 +117,7 @@ export default function Home() {
         <div className="home-trust-bar">
           <div className="home-trust-inner">
             <span className="home-trust-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#171717">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
               <span>5.0 on Google</span>
@@ -410,7 +410,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="home-cta-location">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
@@ -906,7 +906,7 @@ export default function Home() {
             justify-content: center;
             gap: 0.5rem;
             font-size: 0.9375rem;
-            color: #737373;
+            color: #a3a3a3;
             margin: 0;
           }
 

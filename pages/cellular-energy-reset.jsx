@@ -1189,7 +1189,7 @@ export default function CellularEnergyReset() {
           .cer-cta-location {
             margin-top: 2rem;
             font-size: 0.9375rem;
-            color: #737373;
+            color: #a3a3a3;
             line-height: 1.6;
           }
 

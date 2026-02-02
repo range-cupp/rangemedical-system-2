@@ -30,6 +30,7 @@ export default function Footer() {
             <li><Link href="/cellular-energy-reset">Cellular Energy Reset</Link></li>
             <li><Link href="/iv-therapy">IV Therapy</Link></li>
             <li><Link href="/peptide-therapy">Peptide Therapy</Link></li>
+            <li><Link href="/nad-therapy">NAD+ Therapy</Link></li>
             <li><Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link></li>
             <li><Link href="/red-light-therapy">Red Light Therapy</Link></li>
             <li><Link href="/prp-injections">PRP Injections</Link></li>

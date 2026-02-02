@@ -143,11 +143,110 @@ export default function HyperbaricOxygenTherapy() {
       description="Learn how hyperbaric oxygen therapy may support injury recovery, energy, and healing. Used by pro athletes and top medical centers. Available at Range Medical in Newport Beach."
     >
       <Head>
-        <meta name="keywords" content="hyperbaric oxygen therapy, HBOT, Newport Beach, oxygen therapy, injury recovery, athletic recovery, Range Medical" />
+        {/* Basic Meta Tags */}
+        <meta name="keywords" content="hyperbaric oxygen therapy Newport Beach, HBOT Orange County, oxygen therapy, injury recovery, athletic recovery, Range Medical" />
         <link rel="canonical" href="https://www.range-medical.com/hyperbaric-oxygen-therapy" />
+
+        {/* Open Graph */}
         <meta property="og:title" content="Hyperbaric Oxygen Therapy (HBOT) | Newport Beach | Range Medical" />
-        <meta property="og:description" content="Learn how hyperbaric oxygen therapy may support injury recovery, energy, and healing. Used by pro athletes and top medical centers." />
+        <meta property="og:description" content="Pressurized oxygen therapy for injury recovery, energy, and healing. Used by pro athletes. Available at Range Medical in Newport Beach." />
         <meta property="og:url" content="https://www.range-medical.com/hyperbaric-oxygen-therapy" />
+        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/697fbd4f1f68d10a92caef4d.jpeg" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Range Medical" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Hyperbaric Oxygen Therapy (HBOT) | Newport Beach | Range Medical" />
+        <meta name="twitter:description" content="Pressurized oxygen therapy for injury recovery, energy, and healing. Used by pro athletes. Newport Beach." />
+        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/697fbd4f1f68d10a92caef4d.jpeg" />
+
+        {/* Geo Tags */}
+        <meta name="geo.region" content="US-CA" />
+        <meta name="geo.placename" content="Newport Beach" />
+        <meta name="geo.position" content="33.6189;-117.9298" />
+        <meta name="ICBM" content="33.6189, -117.9298" />
+
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "MedicalBusiness",
+                "name": "Range Medical",
+                "url": "https://www.range-medical.com",
+                "telephone": "(949) 997-3988",
+                "image": "https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png",
+                "address": {
+                  "@type": "PostalAddress",
+                  "streetAddress": "1901 Westcliff Dr. Suite 10",
+                  "addressLocality": "Newport Beach",
+                  "addressRegion": "CA",
+                  "postalCode": "92660",
+                  "addressCountry": "US"
+                },
+                "geo": {
+                  "@type": "GeoCoordinates",
+                  "latitude": 33.6189,
+                  "longitude": -117.9298
+                },
+                "areaServed": [
+                  { "@type": "City", "name": "Newport Beach" },
+                  { "@type": "City", "name": "Costa Mesa" },
+                  { "@type": "City", "name": "Irvine" },
+                  { "@type": "City", "name": "Huntington Beach" },
+                  { "@type": "City", "name": "Laguna Beach" },
+                  { "@type": "City", "name": "Corona del Mar" },
+                  { "@type": "AdministrativeArea", "name": "Orange County" }
+                ],
+                "priceRange": "$",
+                "aggregateRating": {
+                  "@type": "AggregateRating",
+                  "ratingValue": "5.0",
+                  "reviewCount": "90",
+                  "bestRating": "5"
+                },
+                "openingHoursSpecification": {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                  "opens": "09:00",
+                  "closes": "17:00"
+                }
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "MedicalTherapy",
+                "name": "Hyperbaric Oxygen Therapy",
+                "alternateName": "HBOT",
+                "description": "Hyperbaric oxygen therapy using a pressurized chamber at 2.0 atmospheres, delivering 2-3x more oxygen to body tissues for injury recovery, energy, and healing.",
+                "url": "https://www.range-medical.com/hyperbaric-oxygen-therapy",
+                "provider": {
+                  "@type": "MedicalBusiness",
+                  "name": "Range Medical",
+                  "url": "https://www.range-medical.com"
+                },
+                "areaServed": {
+                  "@type": "City",
+                  "name": "Newport Beach, CA"
+                }
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": faqs.map(faq => ({
+                  "@type": "Question",
+                  "name": faq.question,
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": faq.answer
+                  }
+                }))
+              }
+            ])
+          }}
+        />
       </Head>
 
       {/* Trust Bar */}
@@ -184,7 +283,7 @@ export default function HyperbaricOxygenTherapy() {
                 Hyperbaric oxygen therapy (HBOT) is when you sit inside a special chamber and breathe in concentrated oxygen. The air pressure inside is raised to about twice the normal level. This pushes more oxygen into your blood — so it can reach the parts of your body that need healing the most.
               </p>
               <p className="hbot-body-text" style={{ marginTop: '1rem' }}>
-                Think of it this way: your body already uses oxygen to heal itself. HBOT just gives it a lot more to work with.
+                Think of it this way: your body already uses oxygen to heal itself. HBOT just gives it a lot more to work with. At Range Medical in Newport Beach, we offer one of Orange County's most advanced hyperbaric chambers.
               </p>
             </div>
 
@@ -233,7 +332,7 @@ export default function HyperbaricOxygenTherapy() {
               <h2>You don't have to be a pro athlete.</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
-                If any of these sound like you, hyperbaric oxygen therapy could be worth exploring. It's for everyday people who want to give their body a little extra help.
+                If any of these sound like you, hyperbaric oxygen therapy could be worth exploring at our Newport Beach clinic. It's for everyday people who want to give their body a little extra help.
               </p>
             </div>
 
@@ -384,7 +483,7 @@ export default function HyperbaricOxygenTherapy() {
               <div className="hbot-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="hbot-cta-title">Ready to learn more?</h2>
               <p className="hbot-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                If you have questions or want to find out if hyperbaric oxygen therapy is right for you, we're here to help. No pressure — just the information you need.
+                If you have questions or want to find out if hyperbaric oxygen therapy is right for you, our Newport Beach team is here to help. No pressure — just the information you need.
               </p>
               <div className="hbot-cta-buttons">
                 <Link href="/book" className="hbot-btn-primary">Book Your Assessment</Link>

@@ -117,20 +117,20 @@ export default function Home() {
         <div className="home-trust-bar">
           <div className="home-trust-inner">
             <span className="home-trust-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#171717">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffffff">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
               <span>5.0 on Google</span>
             </span>
             <span className="home-trust-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
               <span>Newport Beach, CA</span>
             </span>
             <span className="home-trust-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
@@ -422,9 +422,8 @@ export default function Home() {
         <style jsx>{`
           /* Trust Bar */
           .home-trust-bar {
-            background: #fafafa;
-            border-bottom: 1px solid #e5e5e5;
-            padding: 0.75rem 1.5rem;
+            background: #000000;
+            padding: 1rem 1.5rem;
           }
 
           .home-trust-inner {
@@ -432,7 +431,7 @@ export default function Home() {
             margin: 0 auto;
             display: flex;
             justify-content: center;
-            gap: 2rem;
+            gap: 2.5rem;
             flex-wrap: wrap;
           }
 
@@ -441,12 +440,12 @@ export default function Home() {
             align-items: center;
             gap: 0.5rem;
             font-size: 0.8125rem;
-            color: #525252;
+            color: #ffffff;
             font-weight: 500;
           }
 
           .home-trust-item svg {
-            color: #171717;
+            color: #ffffff;
           }
 
           /* Hero Section */

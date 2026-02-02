@@ -145,11 +145,110 @@ export default function RedLightTherapy() {
       description="Discover how red light therapy may support skin health, muscle recovery, energy, and more. Full-body LED bed with 14,400 LEDs. Available at Range Medical in Newport Beach."
     >
       <Head>
-        <meta name="keywords" content="red light therapy, photobiomodulation, LED therapy, Newport Beach, skin health, muscle recovery, inflammation, Range Medical" />
+        {/* Basic Meta Tags */}
+        <meta name="keywords" content="red light therapy Newport Beach, photobiomodulation Orange County, LED light bed therapy, skin health, muscle recovery, inflammation, Range Medical" />
         <link rel="canonical" href="https://www.range-medical.com/red-light-therapy" />
+
+        {/* Open Graph */}
         <meta property="og:title" content="Red Light Therapy | Newport Beach | Range Medical" />
-        <meta property="og:description" content="Discover how red light therapy may support skin health, muscle recovery, energy, and more. Full-body LED bed available at Range Medical." />
+        <meta property="og:description" content="Full-body INNER Light LED Bed with 14,400 medical-grade LEDs. Recovery, energy, and skin support in Newport Beach." />
         <meta property="og:url" content="https://www.range-medical.com/red-light-therapy" />
+        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/69160cda039bdc6a28e019cd.jpeg" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Range Medical" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Red Light Therapy | Newport Beach | Range Medical" />
+        <meta name="twitter:description" content="Full-body INNER Light LED Bed with 14,400 medical-grade LEDs. Recovery, energy, and skin support. Newport Beach." />
+        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/69160cda039bdc6a28e019cd.jpeg" />
+
+        {/* Geo Tags */}
+        <meta name="geo.region" content="US-CA" />
+        <meta name="geo.placename" content="Newport Beach" />
+        <meta name="geo.position" content="33.6189;-117.9298" />
+        <meta name="ICBM" content="33.6189, -117.9298" />
+
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "MedicalBusiness",
+                "name": "Range Medical",
+                "url": "https://www.range-medical.com",
+                "telephone": "(949) 997-3988",
+                "image": "https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png",
+                "address": {
+                  "@type": "PostalAddress",
+                  "streetAddress": "1901 Westcliff Dr. Suite 10",
+                  "addressLocality": "Newport Beach",
+                  "addressRegion": "CA",
+                  "postalCode": "92660",
+                  "addressCountry": "US"
+                },
+                "geo": {
+                  "@type": "GeoCoordinates",
+                  "latitude": 33.6189,
+                  "longitude": -117.9298
+                },
+                "areaServed": [
+                  { "@type": "City", "name": "Newport Beach" },
+                  { "@type": "City", "name": "Costa Mesa" },
+                  { "@type": "City", "name": "Irvine" },
+                  { "@type": "City", "name": "Huntington Beach" },
+                  { "@type": "City", "name": "Laguna Beach" },
+                  { "@type": "City", "name": "Corona del Mar" },
+                  { "@type": "AdministrativeArea", "name": "Orange County" }
+                ],
+                "priceRange": "$",
+                "aggregateRating": {
+                  "@type": "AggregateRating",
+                  "ratingValue": "5.0",
+                  "reviewCount": "90",
+                  "bestRating": "5"
+                },
+                "openingHoursSpecification": {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                  "opens": "09:00",
+                  "closes": "17:00"
+                }
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "MedicalTherapy",
+                "name": "Red Light Therapy",
+                "alternateName": "Photobiomodulation",
+                "description": "Full-body red light therapy using the INNER Light LED Bed with 14,400 medical-grade LEDs delivering 660nm red and 850nm near-infrared wavelengths.",
+                "url": "https://www.range-medical.com/red-light-therapy",
+                "provider": {
+                  "@type": "MedicalBusiness",
+                  "name": "Range Medical",
+                  "url": "https://www.range-medical.com"
+                },
+                "areaServed": {
+                  "@type": "City",
+                  "name": "Newport Beach, CA"
+                }
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": faqs.map(faq => ({
+                  "@type": "Question",
+                  "name": faq.question,
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": faq.answer
+                  }
+                }))
+              }
+            ])
+          }}
+        />
       </Head>
 
       {/* Dark Trust Bar Override */}
@@ -195,7 +294,7 @@ export default function RedLightTherapy() {
                 Red light therapy (also called photobiomodulation) uses specific wavelengths of red and near-infrared light to penetrate your skin and reach your cells. These wavelengths are absorbed by your mitochondria — the "power plants" inside your cells — which may help them produce more energy.
               </p>
               <p className="rlt-body-text" style={{ marginTop: '1rem' }}>
-                Think of it like charging your cells' batteries. More cellular energy means your body may heal faster, recover better, and function more efficiently.
+                Think of it like charging your cells' batteries. More cellular energy means your body may heal faster, recover better, and function more efficiently. At Range Medical in Newport Beach, we use the INNER Light LED Bed — one of the most advanced photobiomodulation systems available in Orange County.
               </p>
             </div>
 
@@ -244,7 +343,7 @@ export default function RedLightTherapy() {
               <h2>For anyone looking to feel and function better.</h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
-                Red light therapy isn't just for athletes or biohackers. If any of these sound like you, it could be worth exploring.
+                Red light therapy isn't just for athletes or biohackers. If any of these sound like you, it could be worth exploring at our Newport Beach clinic.
               </p>
             </div>
 
@@ -397,7 +496,7 @@ export default function RedLightTherapy() {
               <div className="rlt-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="rlt-cta-title">Ready to try red light therapy?</h2>
               <p className="rlt-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Whether you're looking to improve your skin, recover faster, or just feel more energized — we're here to help. Book a session or talk to our team.
+                Whether you're looking to improve your skin, recover faster, or just feel more energized — our Newport Beach team is here to help. Book a session or give us a call.
               </p>
               <div className="rlt-cta-buttons">
                 <Link href="/book" className="rlt-btn-primary">Book Your Assessment</Link>

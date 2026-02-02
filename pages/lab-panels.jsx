@@ -49,7 +49,7 @@ export default function LabPanels() {
     },
     {
       question: "Can I just order labs without an Assessment?",
-      answer: "Yes. You can schedule labs directly by calling (949) 997-3988. However, we recommend starting with an Assessment so your provider can recommend the right panel for your goals."
+      answer: "No. We require an Assessment first so your provider can recommend the right panel for your goals and properly interpret your results. This ensures you get the most value from your lab work."
     },
     {
       question: "Is the blood draw done at your office?",
@@ -492,7 +492,7 @@ export default function LabPanels() {
             <span className="lab-section-label-light">Get Started</span>
             <h2>Ready to See What's Really Going On?</h2>
             <p className="lab-cta-text">
-              Book an Assessment to discuss which panel is right for you, or call to order labs directly.
+              Book an Assessment to discuss which panel is right for you and get the most value from your lab work.
             </p>
             <div className="lab-cta-buttons">
               <Link href="/book?reason=energy" className="lab-btn-white">Book Assessment — $199</Link>

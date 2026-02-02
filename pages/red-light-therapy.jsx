@@ -228,7 +228,7 @@ export default function RedLightTherapy() {
               </div>
               <div className="rlt-photo-wrapper rlt-animate">
                 <img
-                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6915ef9ab8272573cd5176df.jpeg"
+                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/69160cda039bdc6a28e019cd.jpeg"
                   alt="Red Light Therapy session at Range Medical"
                 />
               </div>

@@ -191,6 +191,17 @@ export default function CellularEnergyReset() {
       </Head>
 
       <Layout>
+        {/* Trust Bar */}
+        <div className="trust-bar">
+          <div className="trust-inner">
+            <span className="trust-item">
+              <span className="trust-rating">★★★★★</span> 5.0 on Google
+            </span>
+            <span className="trust-item">📍 Newport Beach, CA</span>
+            <span className="trust-item">✓ Licensed Providers</span>
+          </div>
+        </div>
+
         {/* Hero Section */}
         <section className="cer-hero">
           <div className="cer-hero-inner">
@@ -559,7 +570,7 @@ export default function CellularEnergyReset() {
 
           .cer-category {
             display: inline-block;
-            background: #0891b2;
+            background: #171717;
             color: white;
             font-size: 0.75rem;
             font-weight: 600;
@@ -672,7 +683,7 @@ export default function CellularEnergyReset() {
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: #0891b2;
+            color: #737373;
             margin-bottom: 0.75rem;
           }
 
@@ -745,7 +756,7 @@ export default function CellularEnergyReset() {
             align-items: center;
             justify-content: center;
             margin: 0 auto 1.25rem;
-            color: #0891b2;
+            color: #737373;
           }
 
           .cer-what-card h3 {
@@ -845,7 +856,7 @@ export default function CellularEnergyReset() {
           .cer-included-number {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #0891b2;
+            color: #737373;
             line-height: 1;
             margin-bottom: 0.5rem;
           }
@@ -1086,7 +1097,7 @@ export default function CellularEnergyReset() {
 
           .cer-research-journal {
             font-size: 0.8125rem;
-            color: #0891b2;
+            color: #737373;
             font-weight: 500;
             display: block;
             margin-bottom: 0.75rem;

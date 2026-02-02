@@ -194,13 +194,14 @@ export default function InjuryRecovery() {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              <span>Newport Beach, CA</span>
+              <span>Newport Beach, California</span>
             </span>
             <span className="inj-trust-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
-              <span>Recovery Door</span>
+              <span>Licensed Providers</span>
             </span>
           </div>
         </div>

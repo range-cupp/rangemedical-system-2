@@ -148,28 +148,13 @@ export default function RangeAssessment() {
 
       <Layout>
         {/* Trust Bar */}
-        <div className="ra-trust-bar">
-          <div className="ra-trust-inner">
-            <span className="ra-trust-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffffff">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-              <span>5.0 on Google</span>
+        <div className="trust-bar">
+          <div className="trust-inner">
+            <span className="trust-item">
+              <span className="trust-rating">★★★★★</span> 5.0 on Google
             </span>
-            <span className="ra-trust-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              <span>Newport Beach, California</span>
-            </span>
-            <span className="ra-trust-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-              <span>Licensed Providers</span>
-            </span>
+            <span className="trust-item">📍 Newport Beach, CA</span>
+            <span className="trust-item">✓ Licensed Providers</span>
           </div>
         </div>
 
@@ -497,30 +482,6 @@ export default function RangeAssessment() {
         </section>
 
         <style jsx>{`
-          /* Trust Bar */
-          .ra-trust-bar {
-            background: #000000;
-            padding: 1rem 1.5rem;
-          }
-
-          .ra-trust-inner {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: center;
-            gap: 2.5rem;
-            flex-wrap: wrap;
-          }
-
-          .ra-trust-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8125rem;
-            color: #ffffff;
-            font-weight: 500;
-          }
-
           /* Hero Section */
           .ra-hero {
             background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
@@ -535,7 +496,7 @@ export default function RangeAssessment() {
 
           .ra-category {
             display: inline-block;
-            background: #0891b2;
+            background: #171717;
             color: white;
             font-size: 0.75rem;
             font-weight: 600;
@@ -647,7 +608,7 @@ export default function RangeAssessment() {
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: #0891b2;
+            color: #737373;
             margin-bottom: 0.75rem;
           }
 

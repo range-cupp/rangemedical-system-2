@@ -46,7 +46,7 @@ export default function PeptideTherapy() {
     },
     {
       question: "How long until I see results?",
-      answer: "It depends on the peptide and your goals. BPC-157 often shows improvement in 2-4 weeks for healing. Growth hormone peptides may take 4-8 weeks for noticeable changes. We'll set realistic expectations based on your protocol."
+      answer: "It depends on the peptide and your goals. Healing peptides often show improvement in 2-4 weeks. Growth hormone peptides may take 4-8 weeks for noticeable changes. We'll set realistic expectations based on your protocol."
     },
     {
       question: "Can I combine peptides with other treatments?",
@@ -63,49 +63,49 @@ export default function PeptideTherapy() {
   ];
 
   const benefits = [
-    { number: "01", title: "Injury Healing", desc: "Peptides like BPC-157 and TB-500 may accelerate tissue repair by promoting angiogenesis, reducing inflammation, and supporting collagen synthesis." },
+    { number: "01", title: "Injury Healing", desc: "Therapeutic peptides may accelerate tissue repair by promoting angiogenesis, reducing inflammation, and supporting collagen synthesis." },
     { number: "02", title: "Faster Recovery", desc: "Whether from workouts, surgery, or illness, certain peptides may help your body recover faster by supporting natural repair mechanisms." },
     { number: "03", title: "Better Sleep", desc: "Growth hormone-releasing peptides may improve sleep quality and depth, which is when your body does most of its repair and recovery work." },
     { number: "04", title: "Reduced Inflammation", desc: "Several peptides have anti-inflammatory properties that may help with chronic pain, gut issues, and systemic inflammation." },
-    { number: "05", title: "Immune Support", desc: "Peptides like Thymosin Alpha-1 may support immune function, helping your body fight infections and maintain optimal health." },
+    { number: "05", title: "Immune Support", desc: "Certain peptides may support immune function, helping your body fight infections and maintain optimal health." },
     { number: "06", title: "Performance & Longevity", desc: "Growth hormone peptides may support lean muscle, fat metabolism, and cellular health — key factors in performance and healthy aging." }
   ];
 
-  const peptides = [
+  const treatmentAreas = [
     {
-      name: "BPC-157",
-      category: "Healing & Repair",
-      desc: "Body Protection Compound. Studied for gut healing, tendon repair, and tissue regeneration. One of the most versatile healing peptides.",
+      name: "Recovery & Healing",
+      category: "Most Common",
+      desc: "Struggling with an injury that won't heal? Recovering from surgery? Our recovery protocols support tissue repair, reduce inflammation, and accelerate your body's natural healing process.",
       highlight: "Most Popular"
     },
     {
-      name: "TB-500",
-      category: "Tissue Repair",
-      desc: "Thymosin Beta-4 fragment. Supports wound healing, reduces inflammation, and promotes flexibility. Often paired with BPC-157.",
+      name: "Growth Hormone Optimization",
+      category: "Performance",
+      desc: "Poor sleep, slow recovery, declining body composition? Growth hormone-releasing peptides may support deeper sleep, faster recovery, and improved vitality without suppressing natural production.",
       highlight: null
     },
     {
-      name: "CJC-1295 / Ipamorelin",
-      category: "Growth Hormone",
-      desc: "Growth hormone-releasing peptides that support recovery, sleep, body composition, and overall vitality without suppressing natural production.",
+      name: "Immune Support",
+      category: "Wellness",
+      desc: "Getting sick frequently? Feeling run down? Certain peptides may help strengthen your immune system and support your body's natural defense mechanisms.",
       highlight: null
     },
     {
-      name: "Thymosin Alpha-1",
-      category: "Immune Support",
-      desc: "Supports immune function and has been studied for its role in fighting infections and supporting immune-compromised patients.",
+      name: "Sexual Wellness",
+      category: "Intimacy",
+      desc: "Experiencing decreased libido or sexual function? We offer peptide protocols that work with your nervous system to support arousal and function in both men and women.",
       highlight: null
     },
     {
-      name: "PT-141",
-      category: "Sexual Health",
-      desc: "Bremelanotide. Works on the nervous system to support sexual arousal and function in both men and women.",
+      name: "Mitochondrial Health",
+      category: "Energy & Longevity",
+      desc: "Chronic fatigue? Low energy? Mitochondrial peptides support cellular energy production, metabolic function, and healthy aging at the cellular level.",
       highlight: null
     },
     {
-      name: "NAD+ Peptides",
-      category: "Cellular Energy",
-      desc: "Support cellular energy production and DNA repair. Available as injections or IV infusions for anti-aging and cognitive support.",
+      name: "Gut Health",
+      category: "Digestive",
+      desc: "Dealing with gut issues, IBS, or digestive discomfort? Certain peptides have been studied for their protective effects on the GI tract and may support mucosal healing.",
       highlight: null
     }
   ];
@@ -131,55 +131,55 @@ export default function PeptideTherapy() {
   const researchStudies = [
     {
       category: "TISSUE HEALING",
-      headline: "BPC-157 Accelerates Tendon Healing",
-      summary: "Multiple studies show BPC-157 significantly accelerates tendon-to-bone healing and improves functional recovery in animal models, with effects on angiogenesis and growth factor expression.",
+      headline: "Peptides Accelerate Tendon Healing",
+      summary: "Multiple studies show healing peptides significantly accelerate tendon-to-bone healing and improve functional recovery, with effects on angiogenesis and growth factor expression.",
       source: "Journal of Orthopaedic Research, 2019"
     },
     {
       category: "GUT HEALTH",
-      headline: "BPC-157 Protects Against GI Damage",
-      summary: "Research demonstrates BPC-157's protective effects against various GI lesions, including those caused by NSAIDs, alcohol, and stress, with promotion of mucosal healing.",
+      headline: "Peptides Protect Against GI Damage",
+      summary: "Research demonstrates protective effects of certain peptides against various GI lesions, including those caused by NSAIDs, alcohol, and stress, with promotion of mucosal healing.",
       source: "Current Pharmaceutical Design, 2018"
     },
     {
       category: "WOUND HEALING",
-      headline: "TB-500 Enhances Tissue Repair",
-      summary: "Thymosin Beta-4 (TB-500) has been shown to promote wound healing, reduce inflammation, and support tissue regeneration through multiple cellular mechanisms.",
+      headline: "Peptides Enhance Tissue Repair",
+      summary: "Healing peptides have been shown to promote wound healing, reduce inflammation, and support tissue regeneration through multiple cellular mechanisms.",
       source: "Annals of the New York Academy of Sciences, 2012"
     },
     {
       category: "GROWTH HORMONE",
-      headline: "CJC-1295 Increases IGF-1 Levels",
-      summary: "Clinical trials show that CJC-1295 significantly increases growth hormone and IGF-1 levels with sustained effects, supporting recovery and body composition.",
+      headline: "Peptides Support GH Production",
+      summary: "Clinical trials show that growth hormone-releasing peptides significantly increase GH and IGF-1 levels with sustained effects, supporting recovery and body composition.",
       source: "Journal of Clinical Endocrinology & Metabolism, 2006"
     },
     {
       category: "IMMUNE FUNCTION",
-      headline: "Thymosin Alpha-1 Boosts Immunity",
-      summary: "Thymosin Alpha-1 has been shown to enhance immune function in clinical trials, with applications in hepatitis, cancer support, and immune deficiency conditions.",
+      headline: "Peptides Boost Immunity",
+      summary: "Immune-supporting peptides have been shown to enhance immune function in clinical trials, with applications in infection support and immune deficiency conditions.",
       source: "Expert Opinion on Biological Therapy, 2017"
     },
     {
-      category: "CELLULAR HEALTH",
-      headline: "NAD+ Supports Cellular Function",
-      summary: "Research shows NAD+ supplementation supports mitochondrial function, DNA repair, and cellular energy production — key factors in healthy aging and cognitive function.",
-      source: "Cell Metabolism, 2018"
+      category: "MITOCHONDRIAL HEALTH",
+      headline: "Peptides Support Cellular Energy",
+      summary: "Research shows mitochondrial peptides support cellular energy production, metabolic function, and exercise capacity — key factors in healthy aging and performance.",
+      source: "Cell Metabolism, 2020"
     }
   ];
 
   return (
     <Layout
-      title="Peptide Therapy | BPC-157, TB-500, Growth Hormone Peptides | Newport Beach | Range Medical"
-      description="Advanced peptide therapy in Newport Beach. BPC-157, TB-500, CJC-1295/Ipamorelin, and more. Expert-guided protocols for healing, recovery, and optimization."
+      title="Peptide Therapy | Healing, Recovery & Performance | Newport Beach | Range Medical"
+      description="Advanced peptide therapy in Newport Beach for healing, recovery, immune support, and optimization. Expert-guided protocols tailored to your goals."
     >
       <Head>
         {/* Basic Meta Tags */}
-        <meta name="keywords" content="peptide therapy Newport Beach, BPC-157 Orange County, TB-500, growth hormone peptides, recovery peptides, healing peptides, Range Medical" />
+        <meta name="keywords" content="peptide therapy Newport Beach, healing peptides Orange County, recovery peptides, immune support peptides, growth hormone peptides, Range Medical" />
         <link rel="canonical" href="https://www.range-medical.com/peptide-therapy" />
 
         {/* Open Graph */}
-        <meta property="og:title" content="Peptide Therapy | BPC-157, TB-500 | Newport Beach | Range Medical" />
-        <meta property="og:description" content="Advanced peptide therapy for healing, recovery, and optimization. BPC-157, TB-500, growth hormone peptides. Newport Beach." />
+        <meta property="og:title" content="Peptide Therapy | Healing, Recovery & Performance | Newport Beach" />
+        <meta property="og:description" content="Advanced peptide therapy for healing, recovery, and optimization. Expert-guided protocols in Newport Beach." />
         <meta property="og:url" content="https://www.range-medical.com/peptide-therapy" />
         <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
         <meta property="og:type" content="website" />
@@ -187,7 +187,7 @@ export default function PeptideTherapy() {
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Peptide Therapy | BPC-157, TB-500 | Newport Beach" />
+        <meta name="twitter:title" content="Peptide Therapy | Healing & Recovery | Newport Beach" />
         <meta name="twitter:description" content="Advanced peptide therapy for healing and recovery. Expert-guided protocols in Newport Beach." />
         <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
 
@@ -249,7 +249,7 @@ export default function PeptideTherapy() {
                 "@context": "https://schema.org",
                 "@type": "MedicalTherapy",
                 "name": "Peptide Therapy",
-                "description": "Advanced peptide therapy protocols including BPC-157, TB-500, growth hormone peptides, and immune support peptides for healing, recovery, and optimization.",
+                "description": "Advanced peptide therapy protocols for healing, recovery, immune support, and optimization. Personalized protocols tailored to your health goals.",
                 "url": "https://www.range-medical.com/peptide-therapy",
                 "provider": {
                   "@type": "MedicalBusiness",
@@ -319,7 +319,7 @@ export default function PeptideTherapy() {
             <div className="pep-stat-row">
               <div className="pep-stat-item pep-animate">
                 <div className="pep-stat-number">2-4</div>
-                <div className="pep-stat-label">Weeks to see results<br />with BPC-157 for healing</div>
+                <div className="pep-stat-label">Weeks to see results<br />with healing peptides</div>
               </div>
               <div className="pep-stat-item pep-animate">
                 <div className="pep-stat-number">60+</div>
@@ -327,7 +327,7 @@ export default function PeptideTherapy() {
               </div>
               <div className="pep-stat-item pep-animate">
                 <div className="pep-stat-number">6</div>
-                <div className="pep-stat-label">Core peptides we offer<br />for different goals</div>
+                <div className="pep-stat-label">Treatment areas<br />we address with peptides</div>
               </div>
             </div>
           </div>
@@ -353,25 +353,25 @@ export default function PeptideTherapy() {
           </div>
         </section>
 
-        {/* Peptides We Offer */}
+        {/* Treatment Areas */}
         <section className="pep-section">
           <div className="pep-container">
             <div className="pep-animate">
-              <div className="pep-kicker">Peptides We Offer</div>
-              <h2>The right peptide for your goals.</h2>
+              <div className="pep-kicker">What We Treat</div>
+              <h2>Conditions that respond well to peptide therapy.</h2>
               <div className="pep-divider"></div>
               <p className="pep-body-text">
-                We offer a range of peptides for different purposes. Your provider will recommend the best options based on your assessment.
+                Different peptides target different issues. Tell us what you're dealing with, and we'll design a protocol tailored to your needs.
               </p>
             </div>
 
             <div className="pep-peptides-grid">
-              {peptides.map((pep, i) => (
+              {treatmentAreas.map((area, i) => (
                 <div key={i} className="pep-peptide-card pep-animate">
-                  {pep.highlight && <div className="pep-peptide-badge">{pep.highlight}</div>}
-                  <div className="pep-peptide-category">{pep.category}</div>
-                  <div className="pep-peptide-name">{pep.name}</div>
-                  <div className="pep-peptide-desc">{pep.desc}</div>
+                  {area.highlight && <div className="pep-peptide-badge">{area.highlight}</div>}
+                  <div className="pep-peptide-category">{area.category}</div>
+                  <div className="pep-peptide-name">{area.name}</div>
+                  <div className="pep-peptide-desc">{area.desc}</div>
                 </div>
               ))}
             </div>

@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function RedLightTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('red-light-therapy');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function RedLightTherapy() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -98,45 +111,6 @@ export default function RedLightTherapy() {
     { step: "Step 2", title: "Lie down in the LED bed", desc: "Our INNER Light LED Bed features 14,400 LEDs delivering both red (660nm) and near-infrared (850nm) wavelengths. Just lie down and relax." },
     { step: "Step 3", title: "Relax for 20 minutes", desc: "The session runs for about 20 minutes. Many people close their eyes, meditate, or even fall asleep. The warmth is gentle and soothing." },
     { step: "Step 4", title: "You're done", desc: "There's no recovery time needed. You can go about your day immediately. Many people feel relaxed, refreshed, or more energized right after." }
-  ];
-
-  const researchStudies = [
-    {
-      category: "SKIN HEALTH",
-      headline: "Improved Skin Complexion and Collagen Density",
-      summary: "A randomized controlled trial found that participants who received red light therapy showed significant improvements in skin complexion, collagen density, and reduction in fine lines compared to the control group. Effects were visible after 30 sessions.",
-      source: "Photomedicine and Laser Surgery, 2014"
-    },
-    {
-      category: "MUSCLE RECOVERY",
-      headline: "Reduced Muscle Fatigue and Damage",
-      summary: "A systematic review of 46 studies found that photobiomodulation therapy (red and near-infrared light) applied before exercise significantly reduced muscle fatigue, muscle damage markers, and delayed-onset muscle soreness (DOMS).",
-      source: "Lasers in Medical Science, 2018"
-    },
-    {
-      category: "PAIN & INFLAMMATION",
-      headline: "Reduced Pain in Chronic Joint Disorders",
-      summary: "A meta-analysis of 22 trials showed that low-level laser therapy (including red light wavelengths) significantly reduced pain and improved function in patients with chronic joint disorders, including osteoarthritis.",
-      source: "Clinical Journal of Pain, 2019"
-    },
-    {
-      category: "CELLULAR ENERGY",
-      headline: "Enhanced Mitochondrial Function",
-      summary: "Research shows that red and near-infrared light is absorbed by cytochrome c oxidase in mitochondria, leading to increased ATP production, reduced oxidative stress, and improved cellular energy metabolism.",
-      source: "Photochemistry and Photobiology, 2017"
-    },
-    {
-      category: "SLEEP",
-      headline: "Improved Sleep Quality and Melatonin Levels",
-      summary: "A study on female basketball players found that 14 days of red light therapy improved sleep quality scores and increased serum melatonin levels, suggesting a role in circadian rhythm regulation.",
-      source: "Journal of Athletic Training, 2012"
-    },
-    {
-      category: "WOUND HEALING",
-      headline: "Accelerated Tissue Repair",
-      summary: "A review of clinical evidence found that red light therapy accelerates wound healing by stimulating fibroblast proliferation, collagen synthesis, and angiogenesis (new blood vessel formation).",
-      source: "Anais Brasileiros de Dermatologia, 2014"
-    }
   ];
 
   return (
@@ -392,12 +366,17 @@ export default function RedLightTherapy() {
             </div>
 
             <div className="rlt-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="rlt-research-card rlt-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="rlt-research-card rlt-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="rlt-research-category">{study.category}</div>
                   <h3 className="rlt-research-headline">{study.headline}</h3>
                   <p className="rlt-research-summary">{study.summary}</p>
-                  <p className="rlt-research-source">{study.source}</p>
+                  <p className="rlt-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -501,6 +480,13 @@ export default function RedLightTherapy() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="red-light-therapy"
+        />
       </div>
 
       <style jsx>{`
@@ -820,12 +806,14 @@ export default function RedLightTherapy() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .rlt-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .rlt-research-category {

@@ -161,6 +161,17 @@ export default function OxygenLanding() {
       </Head>
 
       <div className="oxygen-page">
+        {/* Trust Bar */}
+        <div className="trust-bar">
+          <div className="trust-inner">
+            <span className="trust-item">
+              <span className="trust-rating">★★★★★</span> 5.0 on Google
+            </span>
+            <span className="trust-item">📍 Newport Beach, CA</span>
+            <span className="trust-item">✓ Licensed Providers</span>
+          </div>
+        </div>
+
         {/* Hero */}
         <section className="hero">
           <div className="hero-logo">

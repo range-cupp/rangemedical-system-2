@@ -204,32 +204,16 @@ export default function CellularEnergyReset() {
 
         {/* Hero Section */}
         <section className="cer-hero">
-          <div className="cer-hero-inner">
-            <span className="cer-category">6-Week Program</span>
-            <h1>Your Guide to Cellular Energy Reset</h1>
-            <p className="cer-hero-sub">
-              A structured protocol combining HBOT and Red Light Therapy to restore energy
-              at the cellular level — for those who want a clear plan to fix fatigue, brain fog,
-              and slow recovery at the source.
-            </p>
-            <div className="cer-hero-stats">
-              <div className="cer-stat">
-                <span className="cer-stat-value">36</span>
-                <span className="cer-stat-label">Total Sessions</span>
-              </div>
-              <div className="cer-stat">
-                <span className="cer-stat-value">6</span>
-                <span className="cer-stat-label">Week Protocol</span>
-              </div>
-              <div className="cer-stat">
-                <span className="cer-stat-value">2</span>
-                <span className="cer-stat-label">Therapies Combined</span>
-              </div>
-            </div>
-            <div className="cer-hero-cta">
-              <Link href="/range-assessment" className="cer-btn-primary">Book Range Assessment — $199</Link>
-            </div>
-            <p className="cer-hero-note">Start with an assessment so we can confirm this program is right for you</p>
+          <div className="cer-kicker">Energy · Recovery · Cellular</div>
+          <h1>Your Guide to Cellular Energy Reset</h1>
+          <p className="cer-body-text">
+            A structured 6-week protocol combining HBOT and Red Light Therapy to restore energy
+            at the cellular level — for those who want a clear plan to fix fatigue, brain fog,
+            and slow recovery at the source.
+          </p>
+          <div className="cer-hero-scroll">
+            Scroll to explore
+            <span>↓</span>
           </div>
         </section>
 
@@ -557,28 +541,28 @@ export default function CellularEnergyReset() {
 
         <style jsx>{`
           /* Hero Section */
-          .cer-hero {
-            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-            padding: 5rem 1.5rem;
-          }
-
-          .cer-hero-inner {
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: center;
-          }
-
-          .cer-category {
-            display: inline-block;
-            background: #171717;
-            color: white;
+          .cer-kicker {
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            padding: 0.375rem 0.875rem;
-            border-radius: 100px;
-            margin-bottom: 1.5rem;
+            color: #737373;
+            margin-bottom: 1.25rem;
+          }
+
+          .cer-body-text {
+            font-size: 1.125rem;
+            color: #525252;
+            line-height: 1.7;
+            max-width: 620px;
+          }
+
+          .cer-hero {
+            padding: 4rem 1.5rem 5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
           .cer-hero h1 {
@@ -586,69 +570,36 @@ export default function CellularEnergyReset() {
             font-weight: 700;
             color: #171717;
             line-height: 1.15;
-            margin: 0 0 1.25rem;
+            max-width: 680px;
+            margin: 0 0 1.5rem;
           }
 
-          .cer-hero-sub {
-            font-size: 1.125rem;
-            color: #525252;
-            line-height: 1.7;
-            margin: 0 0 2.5rem;
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
-          }
-
-          .cer-hero-stats {
-            display: flex;
-            justify-content: center;
-            gap: 3rem;
-            margin-bottom: 2.5rem;
-          }
-
-          .cer-stat {
+          .cer-hero .cer-body-text {
             text-align: center;
+            margin: 0 auto 2.5rem;
           }
 
-          .cer-stat-value {
-            display: block;
-            font-size: 2.5rem;
+          .cer-hero-scroll {
+            font-size: 0.75rem;
             font-weight: 700;
-            color: #171717;
-            line-height: 1;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #737373;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
-          .cer-stat-label {
-            font-size: 0.8125rem;
-            color: #737373;
-            margin-top: 0.375rem;
+          .cer-hero-scroll span {
             display: block;
+            margin-top: 0.75rem;
+            font-size: 1.125rem;
+            animation: cer-bounce 2s ease-in-out infinite;
           }
 
-          .cer-hero-cta {
-            margin-bottom: 1rem;
-          }
-
-          .cer-btn-primary {
-            display: inline-block;
-            background: #000000;
-            color: #ffffff;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            transition: background 0.2s;
-          }
-
-          .cer-btn-primary:hover {
-            background: #333333;
-          }
-
-          .cer-hero-note {
-            font-size: 0.875rem;
-            color: #737373;
-            margin: 0;
+          @keyframes cer-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(6px); }
           }
 
           /* Section Styles */
@@ -1233,13 +1184,12 @@ export default function CellularEnergyReset() {
           }
 
           @media (max-width: 640px) {
-            .cer-hero h1 {
-              font-size: 2rem;
+            .cer-hero {
+              padding: 3rem 1.5rem;
             }
 
-            .cer-hero-stats {
-              flex-direction: column;
-              gap: 1.5rem;
+            .cer-hero h1 {
+              font-size: 2rem;
             }
 
             .cer-section h2,

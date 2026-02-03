@@ -29,15 +29,14 @@ export default function HRTMembership() {
 
       {/* Hero */}
       <section className="hero">
-        <p className="hero-kicker">Monthly Membership</p>
+        <p className="hero-kicker">Hormones · Membership · Results</p>
         <h1>HRT Membership: Everything You Need for $250/Month</h1>
         <p className="hero-sub">
           All your hormone medications, a monthly Range IV, and member perks—one simple price, no surprises.
         </p>
-        <p className="hero-price">$250/month • All Medications Included</p>
-        <div className="hero-buttons">
-          <a href="/range-assessment" className="btn-primary">Book Assessment — $199</a>
-          <a href="#whats-included" className="btn-outline">See What's Included</a>
+        <div className="hero-scroll">
+          Scroll to explore
+          <span>↓</span>
         </div>
       </section>
 
@@ -428,21 +427,19 @@ export default function HRTMembership() {
 
         /* Hero */
         .hero {
-          padding: 5rem 1.5rem 6rem;
-          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+          padding: 4rem 1.5rem 5rem;
           text-align: center;
-          max-width: 900px;
-          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         .hero-kicker {
-          display: inline-block;
-          background: #000000;
-          color: #ffffff;
-          padding: 0.5rem 1rem;
-          border-radius: 100px;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          margin-bottom: 1.5rem;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 1.25rem;
         }
         .hero h1 {
           font-size: 2.5rem;
@@ -450,26 +447,36 @@ export default function HRTMembership() {
           line-height: 1.15;
           letter-spacing: -0.02em;
           color: #171717;
-          margin-bottom: 1.25rem;
+          max-width: 680px;
+          margin: 0 0 1.5rem;
         }
         .hero-sub {
           font-size: 1.125rem;
           color: #525252;
-          max-width: 600px;
-          margin: 0 auto 1rem;
+          max-width: 620px;
+          margin: 0 auto 2.5rem;
           line-height: 1.7;
+          text-align: center;
         }
-        .hero-price {
-          font-size: 1.25rem;
+        .hero-scroll {
+          font-size: 0.75rem;
           font-weight: 700;
-          color: #171717;
-          margin-bottom: 2rem;
-        }
-        .hero-buttons {
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #737373;
           display: flex;
-          gap: 1rem;
-          justify-content: center;
-          flex-wrap: wrap;
+          flex-direction: column;
+          align-items: center;
+        }
+        .hero-scroll span {
+          display: block;
+          margin-top: 0.75rem;
+          font-size: 1.125rem;
+          animation: bounce 2s ease-in-out infinite;
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(6px); }
         }
 
         /* Buttons */

@@ -39,7 +39,7 @@ export default function Quiz() {
       lowLabel: 'Impossible despite effort',
       highLabel: 'Easily maintain ideal weight',
       insight: "If you're doing everything right but can't lose weight, your metabolism might be working against you.",
-      treatments: 'GLP-1 weight loss program (Retatrutide, Semaglutide), thyroid optimization, metabolic reset',
+      treatments: 'GLP-1 weight loss program (Tirzepatide, Semaglutide), thyroid optimization, metabolic reset',
       treatmentIcon: '⚖️',
       title: 'Weight & Metabolism'
     },
@@ -152,7 +152,7 @@ export default function Quiz() {
   const hasEliteBenefit = () => {
     const problems = getProblemAreas();
     const ids = problems.map(p => p.id);
-    return ids.includes('heart') || ids.includes('stress') || ids.includes('recovery') || 
+    return ids.includes('heart') || ids.includes('stress') || ids.includes('recovery') ||
            ids.includes('muscle') || ids.includes('focus') || problems.length >= 3;
   };
 
@@ -177,8 +177,6 @@ export default function Quiz() {
       return;
     }
     setDiscountUnlocked(true);
-    
-    // Could add Supabase/GHL integration here
   };
 
   const getSmsLink = (panel) => {
@@ -201,76 +199,106 @@ export default function Quiz() {
         <title>What's Your Body Telling You? | Range Medical</title>
         <meta name="description" content="Take our 2-minute symptom quiz. We'll show you which biomarkers explain how you're feeling—and what we can do about it." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="canonical" href="https://www.range-medical.com/quiz" />
+
+        {/* Open Graph */}
+        <meta property="og:title" content="What's Your Body Telling You? | Range Medical" />
+        <meta property="og:description" content="Take our 2-minute symptom quiz. We'll show you which biomarkers explain how you're feeling—and what we can do about it." />
+        <meta property="og:url" content="https://www.range-medical.com/quiz" />
+        <meta property="og:type" content="website" />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="What's Your Body Telling You? | Range Medical" />
+        <meta name="twitter:description" content="Take our 2-minute symptom quiz. We'll show you which biomarkers explain how you're feeling." />
       </Head>
 
+      {/* Trust Bar */}
+      <div className="quiz-trust-bar">
+        <div className="quiz-trust-inner">
+          <span className="quiz-trust-item">
+            <span className="quiz-trust-rating">★★★★★</span> 5.0 on Google
+          </span>
+          <span className="quiz-trust-item">📍 Newport Beach, CA</span>
+          <span className="quiz-trust-item">✓ Licensed Providers</span>
+        </div>
+      </div>
+
       <div className="quiz-page">
+        {/* Header */}
+        <div className="quiz-header">
+          <Link href="/">
+            <img
+              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+              alt="Range Medical"
+              className="quiz-logo"
+            />
+          </Link>
+        </div>
+
         {/* Intro Section */}
         {section === 'intro' && (
-          <div className="quiz-section">
-            <div className="quiz-header">
-              <Link href="/">
-                <img 
-                  src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
-                  alt="Range Medical" 
-                  className="quiz-logo"
-                />
-              </Link>
-            </div>
-            <div className="quiz-kicker">2-Minute Assessment</div>
+          <div className="quiz-section quiz-intro">
+            <div className="quiz-kicker">Quiz · Assessment · Results</div>
             <h1>What's Your Body Telling You?</h1>
             <p className="quiz-subtitle">Answer 10 quick questions about how you feel. We'll show you exactly which biomarkers explain your symptoms—and what we can do about it.</p>
-            
-            <p className="gender-label">First, select your biological sex:</p>
-            
-            <div className="gender-buttons">
-              <button className="gender-btn" onClick={() => selectGender('male')}>Male</button>
-              <button className="gender-btn" onClick={() => selectGender('female')}>Female</button>
+
+            <p className="quiz-gender-label">First, select your biological sex:</p>
+
+            <div className="quiz-gender-buttons">
+              <button className="quiz-gender-btn" onClick={() => selectGender('male')}>Male</button>
+              <button className="quiz-gender-btn" onClick={() => selectGender('female')}>Female</button>
+            </div>
+
+            <div className="quiz-scroll">
+              Scroll to explore
+              <span>↓</span>
             </div>
           </div>
         )}
 
         {/* Questions Section */}
         {section === 'questions' && (
-          <div className="quiz-section">
-            <div className="progress-container">
-              <div className="progress-info">
+          <div className="quiz-section quiz-questions">
+            <div className="quiz-progress-container">
+              <div className="quiz-progress-info">
                 <span>Question {currentQuestion + 1} of {questions.length}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${progress}%` }} />
+              <div className="quiz-progress-bar">
+                <div className="quiz-progress-fill" style={{ width: `${progress}%` }} />
               </div>
             </div>
-            
-            <div className="question-text">{q.question}</div>
-            
-            <div className="scale-labels">
-              <span className="scale-label">{q.lowLabel}</span>
-              <span className="scale-label right">{q.highLabel}</span>
+
+            <div className="quiz-question-text">{q.question}</div>
+
+            <div className="quiz-scale-labels">
+              <span className="quiz-scale-label">{q.lowLabel}</span>
+              <span className="quiz-scale-label quiz-scale-right">{q.highLabel}</span>
             </div>
-            
-            <div className="scale-buttons">
+
+            <div className="quiz-scale-buttons">
               {[1,2,3,4,5,6,7,8,9,10].map(i => (
-                <button 
+                <button
                   key={i}
-                  className={`scale-btn ${answers[q.id] === i ? 'selected' : ''}`}
+                  className={`quiz-scale-btn ${answers[q.id] === i ? 'quiz-scale-selected' : ''}`}
                   onClick={() => selectAnswer(i)}
                 >
                   {i}
                 </button>
               ))}
             </div>
-            
-            <div className="nav-buttons">
-              <button 
-                className="btn-back" 
+
+            <div className="quiz-nav-buttons">
+              <button
+                className="quiz-btn-back"
                 onClick={prevQuestion}
                 disabled={currentQuestion === 0}
               >
                 ← Back
               </button>
-              <button 
-                className="btn-next"
+              <button
+                className="quiz-btn-next"
                 onClick={nextQuestion}
                 disabled={answers[q.id] === undefined}
               >
@@ -282,36 +310,34 @@ export default function Quiz() {
 
         {/* Results Section */}
         {section === 'results' && (
-          <div className="quiz-section">
+          <div className="quiz-section quiz-results">
             {problems.length === 0 ? (
-              <>
-                <div className="good-results">
-                  <div className="emoji">✨</div>
-                  <h2>Great News!</h2>
-                  <p>Based on your answers, you're feeling pretty good across the board. That said, the best time to get baseline labs is when you're feeling healthy—so you know your optimal levels and can track changes over time.</p>
-                </div>
-              </>
+              <div className="quiz-good-results">
+                <div className="quiz-emoji">✨</div>
+                <h2>Great News!</h2>
+                <p>Based on your answers, you're feeling pretty good across the board. That said, the best time to get baseline labs is when you're feeling healthy—so you know your optimal levels and can track changes over time.</p>
+              </div>
             ) : (
               <>
                 <div className="quiz-kicker">Your Results</div>
                 <h2>Here's What We Found</h2>
                 <p className="quiz-subtitle">Based on your answers, you have {problems.length} area{problems.length > 1 ? 's' : ''} we should look into. Here's what your labs would reveal—and how we can help.</p>
-                
-                <div className="results-label">Your Concern Areas</div>
-                
+
+                <div className="quiz-results-label">Your Concern Areas</div>
+
                 {problems.map(p => (
-                  <div key={p.id} className="concern-card">
-                    <div className="concern-header">
-                      <div className="concern-title">{p.title}</div>
-                      <div className="concern-score">{answers[p.id]}/10</div>
+                  <div key={p.id} className="quiz-concern-card">
+                    <div className="quiz-concern-header">
+                      <div className="quiz-concern-title">{p.title}</div>
+                      <div className="quiz-concern-score">{answers[p.id]}/10</div>
                     </div>
-                    <p className="concern-insight">{p.insight}</p>
-                    <div className="concern-divider" />
-                    <div className="treatment-section">
-                      <div className="treatment-icon">{p.treatmentIcon}</div>
-                      <div className="treatment-content">
-                        <div className="treatment-label">If biomarkers are off, treatment options include</div>
-                        <div className="treatment-text">{p.treatments}</div>
+                    <p className="quiz-concern-insight">{p.insight}</p>
+                    <div className="quiz-concern-divider" />
+                    <div className="quiz-treatment-section">
+                      <div className="quiz-treatment-icon">{p.treatmentIcon}</div>
+                      <div className="quiz-treatment-content">
+                        <div className="quiz-treatment-label">If biomarkers are off, treatment options include</div>
+                        <div className="quiz-treatment-text">{p.treatments}</div>
                       </div>
                     </div>
                   </div>
@@ -320,19 +346,19 @@ export default function Quiz() {
             )}
 
             {/* What happens next */}
-            <div className="next-steps-box">
+            <div className="quiz-next-steps-box">
               <h3>What Happens Next</h3>
-              <ul className="next-steps-list">
+              <ul className="quiz-next-steps-list">
                 <li>
-                  <span className="step-num">1</span>
+                  <span className="quiz-step-num">1</span>
                   <span>Book your blood draw at our Newport Beach clinic (takes 10 minutes)</span>
                 </li>
                 <li>
-                  <span className="step-num">2</span>
+                  <span className="quiz-step-num">2</span>
                   <span>Results come back within 3-5 business days</span>
                 </li>
                 <li>
-                  <span className="step-num">3</span>
+                  <span className="quiz-step-num">3</span>
                   <span>Meet 1:1 with your provider to review results and discuss treatment options</span>
                 </li>
               </ul>
@@ -340,40 +366,40 @@ export default function Quiz() {
 
             {/* Lead capture */}
             {!discountUnlocked ? (
-              <div className="discount-box">
-                <div className="discount-badge">Limited Time</div>
+              <div className="quiz-discount-box">
+                <div className="quiz-discount-badge">Limited Time</div>
                 <h3>Get $50 Off Your Labs</h3>
                 <p>Complete the form below to unlock $50 off either panel. We'll send you booking details.</p>
-                <div className="lead-form">
-                  <input 
-                    type="text" 
+                <div className="quiz-lead-form">
+                  <input
+                    type="text"
                     placeholder="Your name"
                     value={leadInfo.name}
                     onChange={(e) => setLeadInfo({ ...leadInfo, name: e.target.value })}
                   />
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     placeholder="Phone number"
                     value={leadInfo.phone}
                     onChange={(e) => setLeadInfo({ ...leadInfo, phone: e.target.value })}
                   />
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     placeholder="Email address"
                     value={leadInfo.email}
                     onChange={(e) => setLeadInfo({ ...leadInfo, email: e.target.value })}
                   />
-                  <button className="btn-unlock" onClick={unlockDiscount}>
+                  <button className="quiz-btn-unlock" onClick={unlockDiscount}>
                     Unlock $50 Off →
                   </button>
                 </div>
-                <p className="fine-print">We respect your privacy. No spam, ever.</p>
+                <p className="quiz-fine-print">We respect your privacy. No spam, ever.</p>
               </div>
             ) : (
-              <div className="discount-box unlocked">
-                <div className="discount-badge">Discount Applied</div>
-                <div className="unlocked-message">
-                  <span className="check">✓</span>
+              <div className="quiz-discount-box quiz-unlocked">
+                <div className="quiz-discount-badge">Discount Applied</div>
+                <div className="quiz-unlocked-message">
+                  <span className="quiz-check">✓</span>
                   <span>$50 Off Unlocked!</span>
                 </div>
                 <p style={{ marginTop: '1rem', marginBottom: 0 }}>
@@ -383,39 +409,754 @@ export default function Quiz() {
             )}
 
             {/* Panel options */}
-            <div className="results-label">Choose Your Panel</div>
-            
-            <div className="panels-grid">
-              <div className="panel-card essential">
-                <div className="panel-name">Essential Panel</div>
-                <div className="panel-price">
+            <div className="quiz-results-label">Choose Your Panel</div>
+
+            <div className="quiz-panels-grid">
+              <div className="quiz-panel-card">
+                <div className="quiz-panel-name">Essential Panel</div>
+                <div className="quiz-panel-price">
                   {discountUnlocked ? (
-                    <><span className="price-strike">$350</span> $300</>
+                    <><span className="quiz-price-strike">$350</span> $300</>
                   ) : '$350'}
                 </div>
-                <p className="panel-description">Complete hormone, thyroid, and metabolic panel. Includes HgbA1c, full lipid panel, and 1:1 provider review.</p>
-                <a href={getSmsLink('essential')} className="btn-book">Book Essential →</a>
+                <p className="quiz-panel-description">Complete hormone, thyroid, and metabolic panel. Includes HgbA1c, full lipid panel, and 1:1 provider review.</p>
+                <a href={getSmsLink('essential')} className="quiz-btn-book">Book Essential →</a>
               </div>
-              
-              <div className="panel-card elite">
-                <div className="panel-name">Elite Panel</div>
-                <div className="panel-price">
+
+              <div className="quiz-panel-card quiz-panel-featured">
+                <div className="quiz-panel-badge">Recommended</div>
+                <div className="quiz-panel-name">Elite Panel</div>
+                <div className="quiz-panel-price">
                   {discountUnlocked ? (
-                    <><span className="price-strike">$750</span> $700</>
+                    <><span className="quiz-price-strike">$750</span> $700</>
                   ) : '$750'}
                 </div>
                 {hasEliteBenefit() && problems.length > 0 && (
-                  <div className="elite-benefit">✓ Recommended for your concerns—includes {getEliteBenefitReason(problems)}</div>
+                  <div className="quiz-elite-benefit">✓ Recommended for your concerns—includes {getEliteBenefitReason(problems)}</div>
                 )}
-                <p className="panel-description">Everything in Essential plus advanced cardiovascular, inflammation, adrenal, and growth markers.</p>
-                <a href={getSmsLink('elite')} className="btn-book">Book Elite →</a>
+                <p className="quiz-panel-description">Everything in Essential plus advanced cardiovascular, inflammation, adrenal, and growth markers.</p>
+                <a href={getSmsLink('elite')} className="quiz-btn-book quiz-btn-book-featured">Book Elite →</a>
               </div>
             </div>
-            
+
             <p className="quiz-footer">Range Medical · 1901 Westcliff Dr Suite 10, Newport Beach</p>
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        /* ===== QUIZ PAGE SCOPED STYLES ===== */
+
+        /* Trust Bar */
+        .quiz-trust-bar {
+          background: #000000;
+          color: #ffffff;
+          padding: 1rem 1.5rem;
+        }
+
+        .quiz-trust-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: center;
+          gap: 2.5rem;
+          flex-wrap: wrap;
+        }
+
+        .quiz-trust-item {
+          font-size: 0.8125rem;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .quiz-trust-rating {
+          color: #fbbf24;
+        }
+
+        /* Page Container */
+        .quiz-page {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          background: #ffffff;
+          color: #171717;
+          min-height: 100vh;
+        }
+
+        /* Header */
+        .quiz-header {
+          padding: 1.5rem;
+          text-align: center;
+          border-bottom: 1px solid #e5e5e5;
+        }
+
+        .quiz-logo {
+          height: 60px;
+          width: auto;
+        }
+
+        /* Sections */
+        .quiz-section {
+          max-width: 700px;
+          margin: 0 auto;
+          padding: 3rem 1.5rem 4rem;
+        }
+
+        .quiz-intro {
+          text-align: center;
+          padding-top: 4rem;
+        }
+
+        /* Kicker */
+        .quiz-kicker {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 1rem;
+        }
+
+        /* Headlines */
+        .quiz-page h1 {
+          font-size: 2.5rem;
+          font-weight: 700;
+          line-height: 1.15;
+          letter-spacing: -0.02em;
+          color: #171717;
+          margin-bottom: 1rem;
+        }
+
+        .quiz-page h2 {
+          font-size: 2rem;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          color: #171717;
+          margin-bottom: 1rem;
+        }
+
+        .quiz-page h3 {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 1rem;
+        }
+
+        .quiz-subtitle {
+          font-size: 1.0625rem;
+          color: #525252;
+          line-height: 1.7;
+          margin-bottom: 2rem;
+        }
+
+        /* Scroll indicator */
+        .quiz-scroll {
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #737373;
+          margin-top: 3rem;
+        }
+
+        .quiz-scroll span {
+          display: block;
+          margin-top: 0.75rem;
+          font-size: 1.125rem;
+          animation: quiz-bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes quiz-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(6px); }
+        }
+
+        /* Gender Selection */
+        .quiz-gender-label {
+          font-size: 0.9375rem;
+          font-weight: 600;
+          color: #171717;
+          margin-bottom: 1rem;
+        }
+
+        .quiz-gender-buttons {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+        }
+
+        .quiz-gender-btn {
+          font-family: inherit;
+          font-size: 1rem;
+          font-weight: 600;
+          padding: 1rem 3rem;
+          background: #ffffff;
+          color: #171717;
+          border: 2px solid #e5e5e5;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .quiz-gender-btn:hover {
+          border-color: #000000;
+          background: #fafafa;
+        }
+
+        /* Progress Bar */
+        .quiz-progress-container {
+          margin-bottom: 2.5rem;
+        }
+
+        .quiz-progress-info {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #737373;
+          margin-bottom: 0.5rem;
+        }
+
+        .quiz-progress-bar {
+          height: 6px;
+          background: #e5e5e5;
+          border-radius: 100px;
+          overflow: hidden;
+        }
+
+        .quiz-progress-fill {
+          height: 100%;
+          background: #000000;
+          border-radius: 100px;
+          transition: width 0.3s ease;
+        }
+
+        /* Question */
+        .quiz-question-text {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #171717;
+          line-height: 1.4;
+          margin-bottom: 2rem;
+          text-align: center;
+        }
+
+        /* Scale Labels */
+        .quiz-scale-labels {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 0.75rem;
+        }
+
+        .quiz-scale-label {
+          font-size: 0.8125rem;
+          color: #737373;
+          max-width: 120px;
+        }
+
+        .quiz-scale-right {
+          text-align: right;
+        }
+
+        /* Scale Buttons */
+        .quiz-scale-buttons {
+          display: flex;
+          gap: 0.5rem;
+          justify-content: center;
+          margin-bottom: 2.5rem;
+        }
+
+        .quiz-scale-btn {
+          width: 44px;
+          height: 44px;
+          border: 2px solid #e5e5e5;
+          border-radius: 8px;
+          background: #ffffff;
+          font-family: inherit;
+          font-size: 0.9375rem;
+          font-weight: 600;
+          color: #525252;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .quiz-scale-btn:hover {
+          border-color: #171717;
+          color: #171717;
+        }
+
+        .quiz-scale-selected {
+          background: #000000;
+          border-color: #000000;
+          color: #ffffff;
+        }
+
+        /* Navigation Buttons */
+        .quiz-nav-buttons {
+          display: flex;
+          justify-content: space-between;
+          gap: 1rem;
+        }
+
+        .quiz-btn-back {
+          font-family: inherit;
+          font-size: 0.9375rem;
+          font-weight: 600;
+          padding: 0.875rem 1.5rem;
+          background: #ffffff;
+          color: #525252;
+          border: 1px solid #e5e5e5;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .quiz-btn-back:hover:not(:disabled) {
+          border-color: #171717;
+          color: #171717;
+        }
+
+        .quiz-btn-back:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .quiz-btn-next {
+          font-family: inherit;
+          font-size: 0.9375rem;
+          font-weight: 600;
+          padding: 0.875rem 2rem;
+          background: #000000;
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .quiz-btn-next:hover:not(:disabled) {
+          background: #262626;
+        }
+
+        .quiz-btn-next:disabled {
+          background: #a3a3a3;
+          cursor: not-allowed;
+        }
+
+        /* Results */
+        .quiz-results {
+          text-align: center;
+        }
+
+        .quiz-good-results {
+          padding: 2rem;
+          background: #fafafa;
+          border-radius: 12px;
+          margin-bottom: 2rem;
+        }
+
+        .quiz-emoji {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+        }
+
+        .quiz-good-results p {
+          font-size: 1rem;
+          color: #525252;
+          line-height: 1.7;
+          max-width: 500px;
+          margin: 0 auto;
+        }
+
+        .quiz-results-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin: 2.5rem 0 1rem;
+          text-align: left;
+        }
+
+        /* Concern Cards */
+        .quiz-concern-card {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-bottom: 1rem;
+          text-align: left;
+        }
+
+        .quiz-concern-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+
+        .quiz-concern-title {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #171717;
+        }
+
+        .quiz-concern-score {
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: #dc2626;
+          background: #fef2f2;
+          padding: 0.25rem 0.75rem;
+          border-radius: 100px;
+        }
+
+        .quiz-concern-insight {
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.7;
+          margin: 0;
+        }
+
+        .quiz-concern-divider {
+          height: 1px;
+          background: #e5e5e5;
+          margin: 1rem 0;
+        }
+
+        .quiz-treatment-section {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+        }
+
+        .quiz-treatment-icon {
+          font-size: 1.5rem;
+          flex-shrink: 0;
+        }
+
+        .quiz-treatment-content {
+          flex: 1;
+        }
+
+        .quiz-treatment-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #737373;
+          margin-bottom: 0.25rem;
+        }
+
+        .quiz-treatment-text {
+          font-size: 0.875rem;
+          color: #171717;
+          line-height: 1.6;
+        }
+
+        /* Next Steps Box */
+        .quiz-next-steps-box {
+          background: #fafafa;
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin: 2rem 0;
+          text-align: left;
+        }
+
+        .quiz-next-steps-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .quiz-next-steps-list li {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          padding: 0.75rem 0;
+          font-size: 0.9375rem;
+          color: #525252;
+          border-bottom: 1px solid #e5e5e5;
+        }
+
+        .quiz-next-steps-list li:last-child {
+          border-bottom: none;
+        }
+
+        .quiz-step-num {
+          width: 28px;
+          height: 28px;
+          background: #000000;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.8125rem;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+
+        /* Discount Box */
+        .quiz-discount-box {
+          background: #000000;
+          color: #ffffff;
+          border-radius: 12px;
+          padding: 2rem;
+          margin: 2rem 0;
+          text-align: center;
+        }
+
+        .quiz-discount-box h3 {
+          color: #ffffff;
+          margin-bottom: 0.5rem;
+        }
+
+        .quiz-discount-box p {
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 0.9375rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .quiz-discount-badge {
+          display: inline-block;
+          background: #16a34a;
+          color: #ffffff;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.375rem 0.75rem;
+          border-radius: 4px;
+          margin-bottom: 1rem;
+        }
+
+        .quiz-lead-form {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          max-width: 320px;
+          margin: 0 auto;
+        }
+
+        .quiz-lead-form input {
+          font-family: inherit;
+          font-size: 0.9375rem;
+          padding: 0.875rem 1rem;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+        }
+
+        .quiz-lead-form input::placeholder {
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .quiz-lead-form input:focus {
+          outline: none;
+          border-color: rgba(255, 255, 255, 0.4);
+          background: rgba(255, 255, 255, 0.15);
+        }
+
+        .quiz-btn-unlock {
+          font-family: inherit;
+          font-size: 0.9375rem;
+          font-weight: 600;
+          padding: 0.875rem 1.5rem;
+          background: #ffffff;
+          color: #000000;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .quiz-btn-unlock:hover {
+          background: #e5e5e5;
+        }
+
+        .quiz-fine-print {
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-top: 1rem;
+          margin-bottom: 0;
+        }
+
+        .quiz-unlocked {
+          background: #16a34a;
+        }
+
+        .quiz-unlocked-message {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          font-size: 1.25rem;
+          font-weight: 700;
+        }
+
+        .quiz-check {
+          font-size: 1.5rem;
+        }
+
+        /* Panel Cards */
+        .quiz-panels-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+          margin-bottom: 2rem;
+        }
+
+        .quiz-panel-card {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.5rem;
+          text-align: left;
+          position: relative;
+        }
+
+        .quiz-panel-featured {
+          border: 2px solid #000000;
+        }
+
+        .quiz-panel-badge {
+          position: absolute;
+          top: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #000000;
+          color: #ffffff;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.375rem 0.75rem;
+          border-radius: 4px;
+        }
+
+        .quiz-panel-name {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.5rem;
+        }
+
+        .quiz-panel-price {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.75rem;
+        }
+
+        .quiz-price-strike {
+          font-size: 1.25rem;
+          color: #a3a3a3;
+          text-decoration: line-through;
+          margin-right: 0.5rem;
+        }
+
+        .quiz-elite-benefit {
+          font-size: 0.8125rem;
+          color: #16a34a;
+          background: #f0fdf4;
+          padding: 0.5rem 0.75rem;
+          border-radius: 6px;
+          margin-bottom: 0.75rem;
+        }
+
+        .quiz-panel-description {
+          font-size: 0.875rem;
+          color: #525252;
+          line-height: 1.6;
+          margin-bottom: 1.25rem;
+        }
+
+        .quiz-btn-book {
+          display: block;
+          font-family: inherit;
+          font-size: 0.9375rem;
+          font-weight: 600;
+          padding: 0.75rem 1.5rem;
+          background: #ffffff;
+          color: #171717;
+          border: 2px solid #e5e5e5;
+          border-radius: 8px;
+          text-align: center;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+
+        .quiz-btn-book:hover {
+          border-color: #000000;
+        }
+
+        .quiz-btn-book-featured {
+          background: #000000;
+          color: #ffffff;
+          border-color: #000000;
+        }
+
+        .quiz-btn-book-featured:hover {
+          background: #262626;
+        }
+
+        /* Footer */
+        .quiz-footer {
+          font-size: 0.875rem;
+          color: #737373;
+          text-align: center;
+          margin-top: 2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+          .quiz-trust-inner {
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: center;
+          }
+
+          .quiz-page h1 {
+            font-size: 1.75rem;
+          }
+
+          .quiz-page h2 {
+            font-size: 1.5rem;
+          }
+
+          .quiz-gender-buttons {
+            flex-direction: column;
+          }
+
+          .quiz-gender-btn {
+            padding: 1rem 2rem;
+          }
+
+          .quiz-question-text {
+            font-size: 1.25rem;
+          }
+
+          .quiz-scale-buttons {
+            flex-wrap: wrap;
+          }
+
+          .quiz-scale-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 0.875rem;
+          }
+
+          .quiz-panels-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .quiz-panel-featured {
+            order: -1;
+          }
+        }
+      `}</style>
     </>
   );
 }

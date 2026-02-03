@@ -83,12 +83,6 @@ export default function WeightLoss() {
       brand: "Ozempic / Wegovy",
       desc: "GLP-1 receptor agonist. Well-studied with years of clinical data. Effective for weight loss and blood sugar control.",
       highlight: null
-    },
-    {
-      name: "Retatrutide",
-      brand: "Triple Agonist",
-      desc: "Next-generation triple receptor agonist (GIP/GLP-1/Glucagon). Available for select patients seeking maximum results.",
-      highlight: "Advanced"
     }
   ];
 
@@ -160,7 +154,7 @@ export default function WeightLoss() {
   return (
     <Layout
       title="Medical Weight Loss | Tirzepatide & Semaglutide | Newport Beach | Range Medical"
-      description="Physician-supervised weight loss with Tirzepatide (Mounjaro), Semaglutide (Ozempic/Wegovy), and Retatrutide in Newport Beach. Real medical support, not just prescriptions."
+      description="Physician-supervised weight loss with Tirzepatide (Mounjaro) and Semaglutide (Ozempic/Wegovy) in Newport Beach. Real medical support, not just prescriptions."
     >
       <Head>
         {/* Basic Meta Tags */}
@@ -169,7 +163,7 @@ export default function WeightLoss() {
 
         {/* Open Graph */}
         <meta property="og:title" content="Medical Weight Loss | Tirzepatide & Semaglutide | Newport Beach | Range Medical" />
-        <meta property="og:description" content="Physician-supervised GLP-1 weight loss with real medical support. Tirzepatide, Semaglutide, Retatrutide available. Newport Beach." />
+        <meta property="og:description" content="Physician-supervised GLP-1 weight loss with real medical support. Tirzepatide and Semaglutide available. Newport Beach." />
         <meta property="og:url" content="https://www.range-medical.com/weight-loss" />
         <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
         <meta property="og:type" content="website" />
@@ -178,7 +172,7 @@ export default function WeightLoss() {
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Medical Weight Loss | Tirzepatide & Semaglutide | Newport Beach" />
-        <meta name="twitter:description" content="Physician-supervised GLP-1 weight loss. Tirzepatide, Semaglutide, Retatrutide. Real medical support in Newport Beach." />
+        <meta name="twitter:description" content="Physician-supervised GLP-1 weight loss. Tirzepatide and Semaglutide. Real medical support in Newport Beach." />
         <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
 
         {/* Geo Tags */}
@@ -240,7 +234,7 @@ export default function WeightLoss() {
                 "@type": "MedicalTherapy",
                 "name": "Medical Weight Loss",
                 "alternateName": "GLP-1 Weight Loss Therapy",
-                "description": "Physician-supervised weight loss using GLP-1 medications including Tirzepatide, Semaglutide, and Retatrutide with comprehensive metabolic monitoring.",
+                "description": "Physician-supervised weight loss using GLP-1 medications including Tirzepatide and Semaglutide with comprehensive metabolic monitoring.",
                 "url": "https://www.range-medical.com/weight-loss",
                 "provider": {
                   "@type": "MedicalBusiness",
@@ -352,7 +346,7 @@ export default function WeightLoss() {
               <h2>The right medication for your situation.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
-                We offer all three major GLP-1 medications. Your provider will recommend the best option based on your labs, history, and goals.
+                We offer both major GLP-1 medications. Your provider will recommend the best option based on your labs, history, and goals.
               </p>
             </div>
 

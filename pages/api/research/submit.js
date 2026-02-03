@@ -11,9 +11,29 @@ const supabase = supabaseUrl && supabaseKey
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// GHL API helper - Add note to contact
+async function addGHLNote(contactId, noteBody, ghlApiKey) {
+  try {
+    await fetch(
+      `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ghlApiKey}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ body: noteBody })
+      }
+    );
+  } catch (error) {
+    console.error('GHL note error:', error);
+  }
+}
+
 // GHL API helper
 async function createOrUpdateGHLContact(data) {
-  const { firstName, lastName, email, studyId, servicePage, category, tags } = data;
+  const { firstName, lastName, email, studyId, studyTitle, servicePage, category, tags } = data;
 
   const ghlLocationId = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
   const ghlApiKey = process.env.GHL_API_KEY;
@@ -26,7 +46,7 @@ async function createOrUpdateGHLContact(data) {
   try {
     // Search for existing contact
     const searchResponse = await fetch(
-      `https://services.leadconnectorhq.com/contacts/search?locationId=${ghlLocationId}&query=${encodeURIComponent(email)}`,
+      `https://services.leadconnectorhq.com/contacts/?locationId=${ghlLocationId}&query=${encodeURIComponent(email)}`,
       {
         headers: {
           'Authorization': `Bearer ${ghlApiKey}`,
@@ -55,6 +75,29 @@ async function createOrUpdateGHLContact(data) {
       source: 'Research Download'
     };
 
+    // Format service name for note
+    const serviceNames = {
+      'red-light-therapy': 'Red Light Therapy',
+      'hyperbaric-oxygen-therapy': 'Hyperbaric Oxygen Therapy',
+      'peptide-therapy': 'Peptide Therapy',
+      'iv-therapy': 'IV Therapy',
+      'hormone-optimization': 'Hormone Optimization',
+      'weight-loss': 'Weight Loss'
+    };
+    const serviceName = serviceNames[servicePage] || servicePage;
+
+    // Build note content
+    const noteBody = `📚 Research Download
+
+Study: ${studyTitle}
+Category: ${category}
+Service Page: ${serviceName}
+Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+
+This contact downloaded research about ${category.toLowerCase()} related to ${serviceName.toLowerCase()}. Research summary was emailed automatically.`;
+
+    let contactId;
+
     if (existingContact) {
       // Update existing contact - merge tags
       const existingTags = existingContact.tags || [];
@@ -76,7 +119,7 @@ async function createOrUpdateGHLContact(data) {
         }
       );
 
-      return existingContact.id;
+      contactId = existingContact.id;
     } else {
       // Create new contact
       const createResponse = await fetch(
@@ -93,8 +136,15 @@ async function createOrUpdateGHLContact(data) {
       );
 
       const createData = await createResponse.json();
-      return createData.contact?.id;
+      contactId = createData.contact?.id;
     }
+
+    // Add note to contact
+    if (contactId) {
+      await addGHLNote(contactId, noteBody, ghlApiKey);
+    }
+
+    return contactId;
   } catch (error) {
     console.error('GHL sync error:', error);
     return null;
@@ -300,6 +350,7 @@ export default async function handler(req, res) {
       lastName,
       email,
       studyId,
+      studyTitle: studyTitle || study.headline,
       servicePage,
       category,
       tags

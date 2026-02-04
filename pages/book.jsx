@@ -113,7 +113,7 @@ export default function Book() {
     },
     {
       id: 'check6',
-      bold: 'The assessment fee is $199,',
+      bold: 'The assessment fee is free,',
       text: 'payable at the clinic. This is credited toward any program.'
     }
   ];
@@ -147,7 +147,7 @@ export default function Book() {
     },
     {
       id: 'check6',
-      bold: 'The assessment fee is $199,',
+      bold: 'The assessment fee is free,',
       text: 'payable at the clinic. This is credited toward any program, including labs.'
     }
   ];
@@ -181,7 +181,7 @@ export default function Book() {
     },
     {
       id: 'check6',
-      bold: 'The assessment fee is $199,',
+      bold: 'The assessment fee is free,',
       text: 'payable at the clinic. This is credited toward any program, including labs.'
     }
   ];
@@ -197,12 +197,12 @@ export default function Book() {
     <>
       <Head>
         <title>Book Your Range Assessment | Range Medical | Newport Beach</title>
-        <meta name="description" content="Schedule your Range Assessment at Range Medical in Newport Beach. One visit to understand your situation and build a clear plan. $199, credited toward any program." />
+        <meta name="description" content="Schedule your Range Assessment at Range Medical in Newport Beach. One visit to understand your situation and build a clear plan. free, credited toward any program." />
         <meta name="keywords" content="book assessment Newport Beach, wellness consultation, injury recovery consultation, energy optimization, hormone consultation, Range Medical appointment" />
         <link rel="canonical" href="https://www.range-medical.com/book" />
 
         <meta property="og:title" content="Book Your Range Assessment | Range Medical" />
-        <meta property="og:description" content="Schedule your Range Assessment at Range Medical in Newport Beach. One visit to understand your situation and build a clear plan. $199." />
+        <meta property="og:description" content="Schedule your Range Assessment at Range Medical in Newport Beach. One visit to understand your situation and build a clear plan. free." />
         <meta property="og:url" content="https://www.range-medical.com/book" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.range-medical.com/og-book.jpg" />
@@ -211,7 +211,7 @@ export default function Book() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Book Your Range Assessment | Range Medical" />
-        <meta name="twitter:description" content="Schedule your Range Assessment. One visit to understand your situation and build a clear plan. $199." />
+        <meta name="twitter:description" content="Schedule your Range Assessment. One visit to understand your situation and build a clear plan. free." />
         <meta name="twitter:image" content="https://www.range-medical.com/og-book.jpg" />
 
         <meta name="geo.region" content="US-CA" />
@@ -296,7 +296,7 @@ export default function Book() {
             </p>
             <div className="book-hero-stats">
               <div className="book-stat">
-                <span className="book-stat-value">$199</span>
+                <span className="book-stat-value">free</span>
                 <span className="book-stat-label">Assessment Fee</span>
               </div>
               <div className="book-stat">
@@ -424,7 +424,7 @@ export default function Book() {
           <div className="book-container">
             <div className="book-included-grid">
               <div className="book-included-price-box">
-                <div className="book-price-amount">$199</div>
+                <div className="book-price-amount">free</div>
                 <div className="book-price-duration">20–30 minute visit</div>
                 <div className="book-price-credit">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -518,7 +518,7 @@ export default function Book() {
               >
                 {canProceed ? 'Continue to Select a Time' : 'Complete the steps above to continue'}
               </button>
-              <p className="book-cta-note">You'll pay $199 at the clinic when you arrive.</p>
+              <p className="book-cta-note">You'll pay free at the clinic when you arrive.</p>
             </div>
           </div>
         </section>

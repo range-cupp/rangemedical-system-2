@@ -22,7 +22,7 @@ export const servicePages = {
     howItWorks: {
       title: 'How It Works',
       steps: [
-        { title: 'Take Assessment', description: 'Start with a $199 Range Assessment to discuss your symptoms and goals.' },
+        { title: 'Take Assessment', description: 'Start with a free Range Assessment to discuss your symptoms and goals.' },
         { title: 'Run Labs', description: 'Comprehensive hormone panel to see what\'s actually going on.' },
         { title: 'Review Results', description: 'Your provider explains your labs and recommends a plan.' },
         { title: 'Start Treatment', description: 'Personalized protocol with ongoing monitoring and adjustments.' }
@@ -73,7 +73,7 @@ export const servicePages = {
     howItWorks: {
       title: 'How It Works',
       steps: [
-        { title: 'Take Assessment', description: 'Start with a $199 Range Assessment to see if GLP-1s are right for you.' },
+        { title: 'Take Assessment', description: 'Start with a free Range Assessment to see if GLP-1s are right for you.' },
         { title: 'Run Labs', description: 'Check metabolic markers, thyroid, and hormones that affect weight.' },
         { title: 'Start Medication', description: 'Tirzepatide, Semaglutide, or Retatrutide — dosed for your body.' },
         { title: 'Ongoing Support', description: 'Weekly check-ins, dose adjustments, and lab monitoring.' }

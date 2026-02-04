@@ -404,7 +404,7 @@ export default function PRPTherapy() {
               <div className="prp-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="prp-cta-title">Ready to explore PRP therapy?</h2>
               <p className="prp-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a $199 Range Assessment. Your provider will evaluate your injury and determine if PRP is right for your situation. Our Newport Beach team is here to help.
+                Start with a free Range Assessment. Your provider will evaluate your injury and determine if PRP is right for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="prp-cta-buttons">
                 <Link href="/range-assessment" className="prp-btn-primary">Book Your Assessment</Link>

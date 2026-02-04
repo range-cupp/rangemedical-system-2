@@ -404,7 +404,7 @@ export default function ExosomeTherapy() {
               <div className="exo-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="exo-cta-title">Interested in exosome therapy?</h2>
               <p className="exo-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a $199 Range Assessment. Your provider will review your goals and determine if exosome therapy is a good fit for your situation. Our Newport Beach team is here to help.
+                Start with a free Range Assessment. Your provider will review your goals and determine if exosome therapy is a good fit for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="exo-cta-buttons">
                 <Link href="/range-assessment" className="exo-btn-primary">Book Your Assessment</Link>

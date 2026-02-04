@@ -28,12 +28,12 @@ export default function Home() {
     <>
       <Head>
         <title>Range Medical | Newport Beach Wellness & Recovery Clinic</title>
-        <meta name="description" content="Two ways to feel like yourself again. Range Medical in Newport Beach offers injury recovery and energy optimization programs. Start with a $199 Range Assessment." />
+        <meta name="description" content="Two ways to feel like yourself again. Range Medical in Newport Beach offers injury recovery and energy optimization programs. Take our free Range Assessment to get started." />
         <meta name="keywords" content="wellness clinic Newport Beach, injury recovery, low energy treatment, brain fog help, hormone optimization, medical weight loss, peptide therapy, PRP therapy, IV therapy" />
         <link rel="canonical" href="https://www.range-medical.com/" />
 
         <meta property="og:title" content="Range Medical | Newport Beach Wellness & Recovery" />
-        <meta property="og:description" content="Two ways to feel like yourself again. Injury recovery or energy optimization. Start with a $199 Range Assessment." />
+        <meta property="og:description" content="Two ways to feel like yourself again. Injury recovery or energy optimization. Take our free Range Assessment." />
         <meta property="og:url" content="https://www.range-medical.com/" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.range-medical.com/og-home.jpg" />
@@ -42,7 +42,7 @@ export default function Home() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Range Medical | Newport Beach Wellness & Recovery" />
-        <meta name="twitter:description" content="Two ways to feel like yourself again. Start with a $199 Range Assessment." />
+        <meta name="twitter:description" content="Two ways to feel like yourself again. Take our free Range Assessment." />
         <meta name="twitter:image" content="https://www.range-medical.com/og-home.jpg" />
 
         <meta name="geo.region" content="US-CA" />
@@ -130,7 +130,7 @@ export default function Home() {
           <h1>Two Ways to Feel Like Yourself Again</h1>
           <p className="home-body-text">
             Start with a Range Assessment for your biggest concern — injury recovery or low energy.
-            One visit, one plan, $199 to start.
+            One visit, one plan.
           </p>
           <div className="home-hero-scroll">
             Scroll to explore
@@ -144,7 +144,7 @@ export default function Home() {
             <span className="home-section-label">How It Works</span>
             <h2>Two Doors, One Goal: Help You Feel Better</h2>
             <p className="home-section-intro">
-              Pick the door that matches your main concern. Both start with a $199 Range Assessment.
+              Pick the door that matches your main concern. Both start with a Range Assessment.
             </p>
 
             <div className="home-doors-grid">
@@ -160,7 +160,7 @@ export default function Home() {
                   <li>Review your injury and rehab history</li>
                   <li>Discuss recovery timeline and goals</li>
                   <li>Get a clear protocol recommendation</li>
-                  <li>$199 credited toward your program</li>
+                  <li>Free — no cost to start</li>
                 </ul>
                 <Link href="/range-assessment?path=injury" className="home-door-btn">
                   Take Assessment
@@ -180,7 +180,7 @@ export default function Home() {
                   <li>Connect symptoms to root causes</li>
                   <li>Review labs if you have them</li>
                   <li>Get a personalized program</li>
-                  <li>$199 credited toward treatment</li>
+                  <li>Free — no cost to start</li>
                 </ul>
                 <Link href="/range-assessment?path=energy" className="home-door-btn">
                   Take Assessment
@@ -371,7 +371,7 @@ export default function Home() {
           <div className="home-container">
             <h2>Ready to Feel Like Yourself Again?</h2>
             <p className="home-cta-text">
-              Pick the door that fits your situation. Both start with a $199 Range Assessment.
+              Pick the door that fits your situation. Both start with a free Range Assessment.
             </p>
             <div className="home-cta-buttons">
               <Link href="/range-assessment?path=injury" className="home-btn-white">

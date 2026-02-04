@@ -65,7 +65,7 @@ export default function BookRecovery() {
 
           <div className="included-box">
             <div className="included-left">
-              <div className="included-price">$199</div>
+              <div className="included-price">free</div>
               <div className="included-duration">One-on-one consultation</div>
               <span className="included-credit">✓ Credited toward any treatment</span>
             </div>
@@ -118,7 +118,7 @@ export default function BookRecovery() {
             </div>
           </div>
           
-          <p className="credit-note-text">Your $199 assessment fee is credited toward any treatment you start.</p>
+          <p className="credit-note-text">Your free assessment fee is credited toward any treatment you start.</p>
         </div>
       </section>
 
@@ -186,7 +186,7 @@ export default function BookRecovery() {
                 checked={checkboxes.check6}
                 onChange={() => handleCheckboxChange('check6')}
               />
-              <label htmlFor="check6">I understand the <strong>assessment fee is $199</strong>, payable at the clinic. This is credited toward any treatment.</label>
+              <label htmlFor="check6">I understand the <strong>assessment fee is free</strong>, payable at the clinic. This is credited toward any treatment.</label>
             </div>
           </div>
 
@@ -198,7 +198,7 @@ export default function BookRecovery() {
             >
               Continue to Select a Time
             </button>
-            <p className="booking-price-note">You'll pay $199 at the clinic when you arrive.</p>
+            <p className="booking-price-note">You'll pay free at the clinic when you arrive.</p>
           </div>
 
           <div className="info-note">

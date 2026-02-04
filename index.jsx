@@ -82,7 +82,7 @@ export default function Home() {
                 <li>Range Assessment with a provider</li>
                 <li>Labs when they help your plan</li>
                 <li>Leads to personalized programs</li>
-                <li>$199 to start</li>
+                <li>Free to start</li>
               </ul>
               <Link href="/range-assessment" className="btn-primary" style={{width: '100%', textAlign: 'center', marginTop: '1rem'}}>
                 Learn More
@@ -181,7 +181,7 @@ export default function Home() {
               Injury Recovery — $250
             </Link>
             <Link href="/range-assessment" className="btn-outline-white">
-              Range Assessment — $199
+              Range Assessment — Free
             </Link>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>

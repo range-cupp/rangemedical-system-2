@@ -470,7 +470,7 @@ export default function NADTherapy() {
               <div className="nad-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="nad-cta-title">Ready to restore your NAD+ levels?</h2>
               <p className="nad-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a $199 Range Assessment. We'll discuss your goals and determine which NAD+ protocol is right for you. Our Newport Beach team is here to help.
+                Start with a free Range Assessment. We'll discuss your goals and determine which NAD+ protocol is right for you. Our Newport Beach team is here to help.
               </p>
               <div className="nad-cta-buttons">
                 <Link href="/range-assessment" className="nad-btn-primary">Book Your Assessment</Link>

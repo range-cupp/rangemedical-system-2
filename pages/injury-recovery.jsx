@@ -93,12 +93,12 @@ export default function InjuryRecovery() {
     <>
       <Head>
         <title>Your Guide to Injury Recovery | Range Medical | Newport Beach</title>
-        <meta name="description" content="Speed up your injury recovery with targeted protocols including HBOT, red light therapy, peptides, and PRP. Start with a $199 Range Assessment in Newport Beach." />
+        <meta name="description" content="Speed up your injury recovery with targeted protocols including HBOT, red light therapy, peptides, and PRP. Start with a free Range Assessment in Newport Beach." />
         <meta name="keywords" content="injury recovery Newport Beach, sports injury treatment, HBOT injury recovery, red light therapy healing, peptide therapy recovery, PRP treatment, post-surgical recovery" />
         <link rel="canonical" href="https://www.range-medical.com/injury-recovery" />
 
         <meta property="og:title" content="Your Guide to Injury Recovery | Range Medical" />
-        <meta property="og:description" content="Speed up your injury recovery with targeted protocols. Start with a $199 Range Assessment." />
+        <meta property="og:description" content="Speed up your injury recovery with targeted protocols. Start with a free Range Assessment." />
         <meta property="og:url" content="https://www.range-medical.com/injury-recovery" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.range-medical.com/og-injury-recovery.jpg" />
@@ -107,7 +107,7 @@ export default function InjuryRecovery() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Your Guide to Injury Recovery | Range Medical" />
-        <meta name="twitter:description" content="Speed up your injury recovery with targeted protocols. Start with a $199 Range Assessment." />
+        <meta name="twitter:description" content="Speed up your injury recovery with targeted protocols. Start with a free Range Assessment." />
         <meta name="twitter:image" content="https://www.range-medical.com/og-injury-recovery.jpg" />
 
         <meta name="geo.region" content="US-CA" />
@@ -441,7 +441,7 @@ export default function InjuryRecovery() {
             <span className="inj-section-label-light">Get Started</span>
             <h2>Ready to Speed Up Your Recovery?</h2>
             <p className="inj-cta-text">
-              Book your Range Assessment. If you move forward with a program, the $199 is credited toward it.
+              Book your Range Assessment. If you move forward with a program, the free is credited toward it.
             </p>
             <Link href="/range-assessment?path=injury" className="inj-btn-white">Take Assessment</Link>
             <p className="inj-cta-location">

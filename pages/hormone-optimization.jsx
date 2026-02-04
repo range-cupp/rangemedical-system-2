@@ -104,7 +104,7 @@ export default function HormoneOptimization() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Book your assessment", desc: "Start with a $199 Range Assessment. We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
+    { step: "Step 1", title: "Book your assessment", desc: "Start with a free Range Assessment. We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
     { step: "Step 2", title: "Run comprehensive labs", desc: "We check testosterone, estrogen, thyroid, metabolic markers, and more — not just the basics your regular doctor runs." },
     { step: "Step 3", title: "Review & start protocol", desc: "Your provider explains your results and designs a personalized protocol. You start your $250/month membership." },
     { step: "Step 4", title: "Ongoing optimization", desc: "Follow-up labs at 6-8 weeks, then quarterly. We adjust your protocol as needed. Direct access to your provider anytime." }
@@ -475,7 +475,7 @@ export default function HormoneOptimization() {
               <div className="hrt-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="hrt-cta-title">Ready to feel like yourself again?</h2>
               <p className="hrt-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a $199 Range Assessment. We'll review your symptoms, run comprehensive labs, and build a plan. Our Newport Beach team is here to help.
+                Start with a free Range Assessment. We'll review your symptoms, run comprehensive labs, and build a plan. Our Newport Beach team is here to help.
               </p>
               <div className="hrt-cta-buttons">
                 <Link href="/range-assessment?path=energy" className="hrt-btn-primary">Book Your Assessment</Link>

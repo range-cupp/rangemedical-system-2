@@ -291,11 +291,11 @@ export default function GHKCuCream() {
             </div>
             <div className="faq-item">
               <h3>How much does it cost?</h3>
-              <p>GHK-Cu cream is $299/month, which includes the prescription medication from our pharmacy. You'll start with a $199 Range Assessment to determine if it's right for your skin goals.</p>
+              <p>GHK-Cu cream is $299/month, which includes the prescription medication from our pharmacy. You'll start with a free Range Assessment to determine if it's right for your skin goals.</p>
             </div>
             <div className="faq-item">
               <h3>Do I need a prescription?</h3>
-              <p>Yes, GHK-Cu cream is a prescription medication dispensed from our pharmacy. Start with a $199 Range Assessment where we'll review your skin goals and determine if GHK-Cu is right for you.</p>
+              <p>Yes, GHK-Cu cream is a prescription medication dispensed from our pharmacy. Start with a free Range Assessment where we'll review your skin goals and determine if GHK-Cu is right for you.</p>
             </div>
             <div className="faq-item">
               <h3>What if I have sensitive skin?</h3>
@@ -309,7 +309,7 @@ export default function GHKCuCream() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to Start?</h2>
-          <p>GHK-Cu cream is $299/month, prescribed through our pharmacy after your Range Assessment ($199).</p>
+          <p>GHK-Cu cream is $299/month, prescribed through our pharmacy after your Range Assessment (free).</p>
           <div className="cta-buttons">
             <a href="/range-assessment" className="btn-white">Take Assessment</a>
           </div>

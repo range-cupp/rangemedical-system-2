@@ -32,7 +32,7 @@ export default function CellularEnergyReset() {
   const faqs = [
     {
       question: "Do I need a Range Assessment before starting this program?",
-      answer: "We recommend starting with a Range Assessment ($199) so your provider can confirm this is the right program for your situation. The Assessment ensures we're not missing something else that might be causing your symptoms."
+      answer: "We recommend starting with a Range Assessment (free) so your provider can confirm this is the right program for your situation. The Assessment ensures we're not missing something else that might be causing your symptoms."
     },
     {
       question: "How long does each session take?",
@@ -531,7 +531,7 @@ export default function CellularEnergyReset() {
               Start with a Range Assessment. Your provider will confirm if the Cellular
               Energy Reset is the right program for your situation.
             </p>
-            <Link href="/range-assessment" className="cer-btn-white">Book Range Assessment — $199</Link>
+            <Link href="/range-assessment" className="cer-btn-white">Book Range Assessment — free</Link>
             <p className="cer-cta-location">
               Range Medical • 1901 Westcliff Dr, Newport Beach<br />
               <a href="tel:9499973988">(949) 997-3988</a>

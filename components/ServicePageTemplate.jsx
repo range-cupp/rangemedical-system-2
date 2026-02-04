@@ -11,7 +11,7 @@ import Head from 'next/head';
  * - title: string
  * - subtitle: string
  * - trustBadge: string (optional, defaults to "✓ Licensed Providers")
- * - ctaText: string (default: "Book Your Assessment — $199")
+ * - ctaText: string (default: "Book Your Assessment — Free")
  * - ctaLink: string (default: "/book")
  * - ctaSecondary: string (optional secondary text below CTA)
  * - isThisForYou: { title, subtitle, items: [{emoji, title, description}] }
@@ -28,7 +28,7 @@ export default function ServicePageTemplate({
   title,
   subtitle,
   trustBadge = "✓ Licensed Providers",
-  ctaText = "Book Your Assessment — $199",
+  ctaText = "Book Your Assessment — Free",
   ctaLink = "/book",
   ctaSecondary,
   isThisForYou,

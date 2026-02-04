@@ -257,7 +257,7 @@ export default function HRTMembership() {
             <div className="step-card">
               <div className="step-number">1</div>
               <h3>Range Assessment</h3>
-              <p>$199 consultation where we review your symptoms, health history, and goals. We'll order labs if needed.</p>
+              <p>free consultation where we review your symptoms, health history, and goals. We'll order labs if needed.</p>
             </div>
             <div className="step-card">
               <div className="step-number">2</div>
@@ -369,7 +369,7 @@ export default function HRTMembership() {
             </div>
             <div className="faq-item">
               <h3>How do I get started?</h3>
-              <p>Book a $199 Range Assessment. We'll review your symptoms, order labs if needed, and determine if HRT is right for you. If it is, you'll start your membership when you begin your protocol.</p>
+              <p>Book a free Range Assessment. We'll review your symptoms, order labs if needed, and determine if HRT is right for you. If it is, you'll start your membership when you begin your protocol.</p>
             </div>
             <div className="faq-item">
               <h3>Is there a contract or commitment?</h3>
@@ -391,7 +391,7 @@ export default function HRTMembership() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to Feel Like Yourself Again?</h2>
-          <p>Start with a $199 Range Assessment. If HRT is right for you, your $250/month membership includes everything you need.</p>
+          <p>Start with a free Range Assessment. If HRT is right for you, your $250/month membership includes everything you need.</p>
           <div className="cta-buttons">
             <a href="/range-assessment" className="btn-white">Take Assessment</a>
           </div>

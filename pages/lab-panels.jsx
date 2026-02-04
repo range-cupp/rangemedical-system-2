@@ -373,16 +373,26 @@ export default function LabPanels() {
                   ))}
                 </div>
 
-                {/* Footer with totals and CTAs */}
+                {/* Footer with CTAs */}
                 <div className="lab-chart-footer">
-                  <div className="lab-chart-marker-col lab-chart-total">Total Biomarkers</div>
+                  <div className="lab-chart-marker-col"></div>
                   <div className="lab-chart-panel-col">
-                    <span className="lab-chart-count">{activeTab === 'men' ? menEssential.length : womenEssential.length}</span>
-                    <Link href="/range-assessment?path=energy" className="lab-btn-secondary-sm">Book Essential</Link>
+                    <button
+                      onClick={() => {
+                        const url = 'https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7';
+                        const width = 500;
+                        const height = 700;
+                        const left = (window.innerWidth - width) / 2 + window.screenX;
+                        const top = (window.innerHeight - height) / 2 + window.screenY;
+                        window.open(url, 'RangePayment', `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`);
+                      }}
+                      className="lab-btn-secondary-sm"
+                    >
+                      Book Essential
+                    </button>
                   </div>
                   <div className="lab-chart-panel-col lab-chart-panel-featured">
-                    <span className="lab-chart-count">{activeTab === 'men' ? menEssential.length + menEliteExtra.length : womenEssential.length + womenEliteExtra.length}</span>
-                    <Link href="/range-assessment?path=energy" className="lab-btn-primary-sm">Book Elite</Link>
+                    <Link href="/range-assessment?path=energy" className="lab-btn-primary-sm">Take Assessment</Link>
                   </div>
                 </div>
               </div>
@@ -861,23 +871,13 @@ export default function LabPanels() {
           }
 
           .lab-chart-footer .lab-chart-panel-col {
-            padding: 1rem 0.5rem;
+            padding: 1.25rem 0.5rem;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.5rem;
           }
 
           .lab-chart-footer .lab-chart-panel-featured {
             background: #171717;
-          }
-
-          .lab-chart-count {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #171717;
-          }
-
-          .lab-chart-footer .lab-chart-panel-featured .lab-chart-count {
-            color: #ffffff;
           }
 
           :global(.lab-btn-secondary-sm),
@@ -889,6 +889,8 @@ export default function LabPanels() {
             font-weight: 600;
             text-decoration: none;
             transition: all 0.2s;
+            cursor: pointer;
+            font-family: inherit;
           }
 
           :global(.lab-btn-secondary-sm) {

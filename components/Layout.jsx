@@ -32,8 +32,7 @@ export default function Layout({ children, title, description }) {
           <nav className="rm-nav">
             <div className="rm-nav-links">
               <Link href="/injury-recovery" className="rm-nav-link">Injury Recovery</Link>
-              <Link href="/range-assessment" className="rm-nav-link">Range Assessment</Link>
-              
+
               {/* How We Treat Dropdown */}
               <div 
                 className="rm-dropdown"
@@ -83,7 +82,6 @@ export default function Layout({ children, title, description }) {
         {/* Mobile Menu */}
         <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
           <Link href="/injury-recovery" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injury Recovery</Link>
-          <Link href="/range-assessment" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Range Assessment</Link>
           <div className="rm-mobile-divider"></div>
           <div className="rm-mobile-label">How We Treat</div>
           <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
@@ -123,8 +121,8 @@ export default function Layout({ children, title, description }) {
           <div className="rm-footer-col">
             <h4>Start Here</h4>
             <ul>
+              <li><Link href="/range-assessment">Take Assessment</Link></li>
               <li><Link href="/injury-recovery">Injury Recovery</Link></li>
-              <li><Link href="/range-assessment">Range Assessment</Link></li>
               <li><Link href="/lab-panels">Labs & Testing</Link></li>
             </ul>
           </div>

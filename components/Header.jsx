@@ -33,20 +33,13 @@ export default function Header() {
         
         <nav className="rm-nav">
           <div className="rm-nav-links">
-            <Link 
-              href="/injury-recovery" 
+            <Link
+              href="/injury-recovery"
               className={`rm-nav-link ${router.pathname === '/injury-recovery' ? 'active' : ''}`}
             >
               Injury Recovery
             </Link>
 
-            <Link 
-              href="/range-assessment" 
-              className={`rm-nav-start ${router.pathname === '/range-assessment' ? 'active' : ''}`}
-            >
-              Range Assessment
-            </Link>
-            
             <div className="rm-nav-dropdown">
               <button className={`rm-nav-dropdown-trigger ${isActiveTreatment ? 'active' : ''}`}>
                 How We Treat 
@@ -91,9 +84,6 @@ export default function Header() {
         <div className="rm-mobile-menu">
           <Link href="/injury-recovery" onClick={() => setMobileOpen(false)}>
             Injury Recovery
-          </Link>
-          <Link href="/range-assessment" className="rm-mobile-start" onClick={() => setMobileOpen(false)}>
-            Range Assessment
           </Link>
           <div className="rm-mobile-section-label">How We Treat</div>
           {treatments.map(t => (

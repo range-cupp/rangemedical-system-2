@@ -30,11 +30,11 @@ export default async function handler(req, res) {
       inPhysicalTherapy,
       recoveryGoal,
       // Energy fields
-      primarySymptom,
+      symptoms,
       symptomDuration,
-      hasRecentLabs,
+      lastLabWork,
       triedHormoneTherapy,
-      energyGoal,
+      goals,
       // Additional
       additionalInfo
     } = req.body;
@@ -54,11 +54,17 @@ export default async function handler(req, res) {
       if (inPhysicalTherapy) tags.push(`pt_status_${inPhysicalTherapy}`);
       if (recoveryGoal) tags.push(`goal_${recoveryGoal}`);
     } else {
-      if (primarySymptom) tags.push(`symptom_${primarySymptom}`);
+      // Add tags for each selected symptom
+      if (symptoms && symptoms.length > 0) {
+        symptoms.forEach(s => tags.push(`symptom_${s}`));
+      }
       if (symptomDuration) tags.push(`symptom_duration_${symptomDuration}`);
-      if (hasRecentLabs) tags.push(`has_labs_${hasRecentLabs}`);
+      if (lastLabWork) tags.push(`last_labs_${lastLabWork}`);
       if (triedHormoneTherapy) tags.push(`hrt_experience_${triedHormoneTherapy}`);
-      if (energyGoal) tags.push(`goal_${energyGoal}`);
+      // Add tags for each selected goal
+      if (goals && goals.length > 0) {
+        goals.forEach(g => tags.push(`goal_${g}`));
+      }
     }
 
     // 1. Save to Supabase
@@ -75,11 +81,11 @@ export default async function handler(req, res) {
         injury_duration: injuryDuration || null,
         in_physical_therapy: inPhysicalTherapy || null,
         recovery_goal: recoveryGoal || null,
-        primary_symptom: primarySymptom || null,
+        primary_symptom: symptoms && symptoms.length > 0 ? symptoms.join(', ') : null,
         symptom_duration: symptomDuration || null,
-        has_recent_labs: hasRecentLabs || null,
+        last_lab_work: lastLabWork || null,
         tried_hormone_therapy: triedHormoneTherapy || null,
-        energy_goal: energyGoal || null,
+        energy_goal: goals && goals.length > 0 ? goals.join(', ') : null,
         additional_info: additionalInfo || null,
         tags
       };
@@ -169,7 +175,7 @@ export default async function handler(req, res) {
         if (ghlContactId) {
           const noteBody = buildAssessmentNote(assessmentPath, {
             injuryType, injuryLocation, injuryDuration, inPhysicalTherapy, recoveryGoal,
-            primarySymptom, symptomDuration, hasRecentLabs, triedHormoneTherapy, energyGoal,
+            symptoms, symptomDuration, lastLabWork, triedHormoneTherapy, goals,
             additionalInfo
           });
 
@@ -223,11 +229,20 @@ export default async function handler(req, res) {
         phone,
         assessmentPath,
         injuryType, injuryLocation, injuryDuration, inPhysicalTherapy, recoveryGoal,
-        primarySymptom, symptomDuration, hasRecentLabs, triedHormoneTherapy, energyGoal,
+        symptoms, symptomDuration, lastLabWork, triedHormoneTherapy, goals,
         additionalInfo
       });
     } catch (emailError) {
       console.error('Email notification error:', emailError);
+    }
+
+    // 5. Send patient results email (for energy path)
+    if (assessmentPath === 'energy') {
+      try {
+        await sendPatientResultsEmail({ firstName, email, symptoms, goals, lastLabWork });
+      } catch (patientEmailError) {
+        console.error('Patient results email error:', patientEmailError);
+      }
     }
 
     return res.status(200).json({
@@ -258,14 +273,21 @@ Recovery Goal: ${getLabelForValue('recoveryGoal', data.recoveryGoal) || 'Not spe
 
 ${data.additionalInfo ? `Additional Notes: ${data.additionalInfo}` : ''}`;
   } else {
+    const symptomsDisplay = data.symptoms && data.symptoms.length > 0
+      ? data.symptoms.map(s => getLabelForValue('symptoms', s)).join(', ')
+      : 'Not specified';
+    const goalsDisplay = data.goals && data.goals.length > 0
+      ? data.goals.map(g => getLabelForValue('goals', g)).join(', ')
+      : 'Not specified';
+
     return `📋 Range Assessment - Energy & Optimization
 Date: ${date}
 
-Primary Symptom: ${getLabelForValue('primarySymptom', data.primarySymptom) || 'Not specified'}
+Symptoms: ${symptomsDisplay}
 Duration: ${getLabelForValue('symptomDuration', data.symptomDuration) || 'Not specified'}
-Recent Labs: ${data.hasRecentLabs || 'Not specified'}
-Previous HRT: ${data.triedHormoneTherapy || 'Not specified'}
-Main Goal: ${getLabelForValue('energyGoal', data.energyGoal) || 'Not specified'}
+Last Lab Work: ${getLabelForValue('lastLabWork', data.lastLabWork) || 'Not specified'}
+Previous HRT: ${getLabelForValue('triedHormoneTherapy', data.triedHormoneTherapy) || 'Not specified'}
+Goals: ${goalsDisplay}
 
 ${data.additionalInfo ? `Additional Notes: ${data.additionalInfo}` : ''}`;
   }
@@ -312,7 +334,7 @@ async function sendEmailNotification(data) {
   const {
     firstName, lastName, email, phone, assessmentPath,
     injuryType, injuryLocation, injuryDuration, inPhysicalTherapy, recoveryGoal,
-    primarySymptom, symptomDuration, hasRecentLabs, triedHormoneTherapy, energyGoal,
+    symptoms, symptomDuration, lastLabWork, triedHormoneTherapy, goals,
     additionalInfo
   } = data;
 
@@ -337,12 +359,19 @@ async function sendEmailNotification(data) {
       <tr><td style="padding: 8px 0; color: #737373;">Recovery Goal:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('recoveryGoal', recoveryGoal) || 'Not specified'}</td></tr>
     `;
   } else {
+    const symptomsDisplay = symptoms && symptoms.length > 0
+      ? symptoms.map(s => getLabelForValue('symptoms', s)).join(', ')
+      : 'Not specified';
+    const goalsDisplay = goals && goals.length > 0
+      ? goals.map(g => getLabelForValue('goals', g)).join(', ')
+      : 'Not specified';
+
     detailsHtml = `
-      <tr><td style="padding: 8px 0; color: #737373;">Primary Symptom:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('primarySymptom', primarySymptom) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Symptoms:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${symptomsDisplay}</td></tr>
       <tr><td style="padding: 8px 0; color: #737373;">Duration:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('symptomDuration', symptomDuration) || 'Not specified'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #737373;">Has Recent Labs:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${hasRecentLabs === 'yes' ? 'Yes - within 60 days' : 'No'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Last Lab Work:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('lastLabWork', lastLabWork) || 'Not specified'}</td></tr>
       <tr><td style="padding: 8px 0; color: #737373;">Previous HRT:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('triedHormoneTherapy', triedHormoneTherapy) || 'Not specified'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #171717;">Main Goal:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('energyGoal', energyGoal) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #171717;">Goals:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${goalsDisplay}</td></tr>
     `;
   }
 
@@ -444,6 +473,177 @@ async function sendEmailNotification(data) {
   }
 }
 
+// Send patient results email with their recommendation
+async function sendPatientResultsEmail({ firstName, email, symptoms, goals, lastLabWork }) {
+  // Calculate recommendation (same logic as frontend)
+  const recommendElite = goals.includes('longevity') ||
+                         symptoms.length >= 3 ||
+                         goals.includes('performance') ||
+                         (symptoms.includes('brain_fog') && (symptoms.includes('mood_changes') || symptoms.includes('fatigue'))) ||
+                         symptoms.includes('muscle_loss') ||
+                         goals.includes('build_muscle') ||
+                         symptoms.includes('recovery') ||
+                         lastLabWork === 'over_year' ||
+                         lastLabWork === 'never';
+
+  const panelName = recommendElite ? 'Elite Panel' : 'Essential Panel';
+  const panelPrice = recommendElite ? '$750' : '$350';
+
+  const symptomLabels = {
+    fatigue: 'Fatigue or low energy',
+    brain_fog: 'Brain fog or poor focus',
+    weight_gain: 'Unexplained weight gain',
+    poor_sleep: 'Poor sleep or insomnia',
+    low_libido: 'Low libido or sexual function',
+    muscle_loss: 'Muscle loss or weakness',
+    mood_changes: 'Mood changes or irritability',
+    recovery: 'Slow recovery from workouts'
+  };
+
+  const goalLabels = {
+    more_energy: 'More energy throughout the day',
+    better_sleep: 'Better, more restful sleep',
+    lose_weight: 'Lose weight',
+    build_muscle: 'Build or maintain muscle',
+    mental_clarity: 'Mental clarity and focus',
+    feel_myself: 'Feel like myself again',
+    longevity: 'Optimize for longevity',
+    performance: 'Athletic or sexual performance'
+  };
+
+  const symptomsHtml = symptoms.map(s => `<li style="padding: 4px 0; color: #171717;">${symptomLabels[s] || s}</li>`).join('');
+  const goalsHtml = goals.map(g => `<li style="padding: 4px 0; color: #171717;">${goalLabels[g] || g}</li>`).join('');
+
+  const labsSection = lastLabWork === 'within_60_days' ? `
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #166534;">You mentioned having recent labs</h3>
+                <p style="margin: 0 0 12px; font-size: 14px; line-height: 1.6; color: #166534;">
+                  Please send your lab results to help us prepare for your visit:
+                </p>
+                <a href="mailto:intake@range-medical.com" style="display: inline-block; background: #166534; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 14px;">Email Labs to intake@range-medical.com</a>
+              </div>
+  ` : '';
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #000000; padding: 24px 32px; text-align: center;">
+              <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" style="height: 60px; width: auto;" />
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 32px;">
+              <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #171717;">Thanks for completing your assessment, ${firstName}!</h1>
+              <p style="margin: 0 0 32px; font-size: 16px; color: #737373;">Here's a summary of your personalized lab recommendation.</p>
+
+              <!-- Recommendation Box -->
+              <div style="background: #000000; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #a3a3a3;">Your Recommended Panel</p>
+                <h2 style="margin: 0 0 8px; font-size: 28px; font-weight: 700; color: #ffffff;">${panelName}</h2>
+                <p style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;">${panelPrice}</p>
+              </div>
+
+              ${labsSection}
+
+              <!-- What You Told Us -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td width="48%" style="vertical-align: top; padding-right: 12px;">
+                    <h3 style="margin: 0 0 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #737373;">Your Symptoms</h3>
+                    <ul style="margin: 0; padding: 0 0 0 16px; font-size: 14px;">
+                      ${symptomsHtml}
+                    </ul>
+                  </td>
+                  <td width="48%" style="vertical-align: top; padding-left: 12px;">
+                    <h3 style="margin: 0 0 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #737373;">Your Goals</h3>
+                    <ul style="margin: 0; padding: 0 0 0 16px; font-size: 14px;">
+                      ${goalsHtml}
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Next Steps -->
+              <div style="background: #f5f5f5; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #171717;">What Happens Next</h3>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding-bottom: 12px;">
+                      <span style="display: inline-block; width: 24px; height: 24px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 12px;">1</span>
+                      <span style="font-size: 14px; color: #171717;">Book your panel online or call us</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-bottom: 12px;">
+                      <span style="display: inline-block; width: 24px; height: 24px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 12px;">2</span>
+                      <span style="font-size: 14px; color: #171717;">Get your blood draw at a local lab</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span style="display: inline-block; width: 24px; height: 24px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 12px;">3</span>
+                      <span style="font-size: 14px; color: #171717;">Review results with your provider</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- CTA -->
+              <div style="text-align: center;">
+                <a href="${recommendElite ? 'https://link.range-medical.com/payment-link/698365ba6503ca98c6834212' : 'https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7'}" style="display: inline-block; background: #000000; color: #ffffff; padding: 14px 32px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 16px;">Pay & Book ${panelName}</a>
+                <p style="margin: 16px 0 0; font-size: 14px; color: #737373;">
+                  Or call <a href="tel:9499973988" style="color: #171717; font-weight: 600;">(949) 997-3988</a>
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #fafafa; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #171717;">Range Medical</p>
+              <p style="margin: 0 0 4px; font-size: 13px; color: #737373;">1901 Westcliff Dr. Suite 10</p>
+              <p style="margin: 0 0 12px; font-size: 13px; color: #737373;">Newport Beach, CA 92660</p>
+              <a href="tel:9499973988" style="font-size: 13px; color: #737373; text-decoration: none;">(949) 997-3988</a>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: 'Range Medical <noreply@range-medical.com>',
+    to: email,
+    subject: `Your Lab Recommendation: ${panelName} - Range Medical`,
+    html: emailHtml
+  });
+
+  if (error) {
+    console.error('Patient results email error:', error);
+  } else {
+    console.log('Patient results email sent successfully to:', email);
+  }
+}
+
 // Helper function to convert field values to readable labels
 function getLabelForValue(fieldName, value) {
   if (!value) return null;
@@ -502,6 +702,17 @@ function getLabelForValue(fieldName, value) {
       'recovery': 'Slow recovery from workouts',
       'other': 'Other'
     },
+    symptoms: {
+      'fatigue': 'Fatigue or low energy',
+      'brain_fog': 'Brain fog or poor focus',
+      'weight_gain': 'Unexplained weight gain',
+      'poor_sleep': 'Poor sleep or insomnia',
+      'low_libido': 'Low libido or sexual function',
+      'muscle_loss': 'Muscle loss or weakness',
+      'mood_changes': 'Mood changes/anxiety/irritability',
+      'recovery': 'Slow recovery from workouts',
+      'other': 'Other'
+    },
     symptomDuration: {
       'less_1_month': 'Less than 1 month',
       '1_3_months': '1–3 months',
@@ -519,10 +730,27 @@ function getLabelForValue(fieldName, value) {
       'longevity': 'Optimize for longevity',
       'performance': 'Athletic or sexual performance'
     },
+    goals: {
+      'more_energy': 'More energy throughout the day',
+      'better_sleep': 'Better, more restful sleep',
+      'lose_weight': 'Lose weight',
+      'build_muscle': 'Build or maintain muscle',
+      'mental_clarity': 'Mental clarity and focus',
+      'feel_myself': 'Feel like myself again',
+      'longevity': 'Optimize for longevity',
+      'performance': 'Athletic or sexual performance'
+    },
     triedHormoneTherapy: {
       'yes': 'Yes',
       'no': 'No',
       'not_sure': 'Not sure what this is'
+    },
+    lastLabWork: {
+      'within_60_days': 'Within the last 60 days',
+      '2_6_months': '2–6 months ago',
+      '6_12_months': '6–12 months ago',
+      'over_year': 'Over a year ago',
+      'never': 'Never or don\'t remember'
     }
   };
 

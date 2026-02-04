@@ -1,45 +1,159 @@
 import Layout from '../components/Layout';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+
+// Biomarker mapping - which markers are relevant for each symptom/goal
+const biomarkerMapping = {
+  symptoms: {
+    fatigue: {
+      essential: ['TSH', 'T3, Free', 'T4, Total', 'Testosterone (Free & Total)', 'Vitamin D', 'HbA1c', 'CBC'],
+      elite: ['Ferritin', 'Iron & TIBC', 'Vitamin B-12', 'Cortisol'],
+      reason: 'Fatigue often stems from thyroid dysfunction, low testosterone, vitamin deficiencies, or metabolic issues.'
+    },
+    brain_fog: {
+      essential: ['TSH', 'T3, Free', 'T4, Total', 'Testosterone (Free & Total)', 'Vitamin D'],
+      elite: ['Vitamin B-12', 'Homocysteine', 'Cortisol', 'Ferritin'],
+      reason: 'Brain fog is commonly linked to thyroid imbalances, hormone deficiency, and B-vitamin status.'
+    },
+    weight_gain: {
+      essential: ['TSH', 'T3, Free', 'T4, Total', 'Insulin, Fasting', 'HbA1c', 'Testosterone (Free & Total)', 'Estradiol'],
+      elite: ['Cortisol', 'DHEA-S', 'Lipid Panel (Advanced)'],
+      reason: 'Unexplained weight gain often points to thyroid issues, insulin resistance, or hormone imbalances.'
+    },
+    poor_sleep: {
+      essential: ['TSH', 'Testosterone (Free & Total)', 'Estradiol'],
+      elite: ['Cortisol', 'DHEA-S', 'Magnesium'],
+      reason: 'Sleep quality is directly affected by cortisol patterns, hormone levels, and mineral status.'
+    },
+    low_libido: {
+      essential: ['Testosterone (Free & Total)', 'SHBG', 'Estradiol', 'TSH'],
+      elite: ['DHEA-S', 'Cortisol', 'Prolactin'],
+      reason: 'Libido is primarily driven by testosterone and balanced by estrogen and stress hormones.'
+    },
+    muscle_loss: {
+      essential: ['Testosterone (Free & Total)', 'SHBG'],
+      elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'CRP-HS'],
+      reason: 'Muscle maintenance requires adequate testosterone and growth factors, while high cortisol breaks down muscle.'
+    },
+    mood_changes: {
+      essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D'],
+      elite: ['Vitamin B-12', 'Cortisol', 'DHEA-S', 'Homocysteine'],
+      reason: 'Mood is heavily influenced by thyroid function, hormones, and B-vitamin/homocysteine status.'
+    },
+    recovery: {
+      essential: ['Testosterone (Free & Total)', 'CBC'],
+      elite: ['IGF-1', 'Cortisol', 'CRP-HS', 'Ferritin', 'Magnesium'],
+      reason: 'Recovery depends on anabolic hormones, inflammation levels, and mineral status.'
+    }
+  },
+  goals: {
+    more_energy: {
+      essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D', 'HbA1c'],
+      elite: ['Vitamin B-12', 'Ferritin', 'Iron & TIBC', 'Cortisol'],
+      reason: 'Sustained energy requires optimal thyroid, hormones, and nutrient levels.'
+    },
+    better_sleep: {
+      essential: ['TSH', 'Testosterone (Free & Total)'],
+      elite: ['Cortisol', 'Magnesium', 'DHEA-S'],
+      reason: 'Quality sleep is regulated by cortisol rhythm and hormone balance.'
+    },
+    lose_weight: {
+      essential: ['TSH', 'T3, Free', 'T4, Total', 'Insulin, Fasting', 'HbA1c', 'Testosterone (Free & Total)', 'Lipid Panel'],
+      elite: ['Cortisol', 'CRP-HS', 'Apolipoprotein B'],
+      reason: 'Weight loss success depends on metabolic health, insulin sensitivity, and inflammation.'
+    },
+    build_muscle: {
+      essential: ['Testosterone (Free & Total)', 'SHBG'],
+      elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'CRP-HS'],
+      reason: 'Muscle building requires optimal testosterone, IGF-1, and low inflammation.'
+    },
+    mental_clarity: {
+      essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D'],
+      elite: ['Vitamin B-12', 'Homocysteine', 'Folate', 'Cortisol'],
+      reason: 'Mental clarity depends on brain-thyroid connection and methylation nutrients.'
+    },
+    feel_myself: {
+      essential: ['Full Hormone Panel', 'Thyroid Panel', 'Metabolic Markers'],
+      elite: ['Comprehensive Testing'],
+      reason: 'A complete picture helps identify exactly what\'s off and how to restore balance.'
+    },
+    longevity: {
+      essential: ['Lipid Panel', 'HbA1c', 'Insulin'],
+      elite: ['Apolipoprotein B', 'Lipoprotein(a)', 'Homocysteine', 'CRP-HS', 'IGF-1', 'Uric Acid'],
+      reason: 'Longevity optimization requires advanced cardiovascular and metabolic markers.'
+    },
+    performance: {
+      essential: ['Testosterone (Free & Total)', 'SHBG', 'Estradiol', 'CBC'],
+      elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'Ferritin', 'Iron & TIBC', 'Magnesium'],
+      reason: 'Peak performance depends on optimal hormones, oxygen-carrying capacity, and recovery factors.'
+    }
+  }
+};
+
+// Symptom and goal labels for display
+const symptomLabels = {
+  fatigue: 'Fatigue or low energy',
+  brain_fog: 'Brain fog or poor focus',
+  weight_gain: 'Unexplained weight gain',
+  poor_sleep: 'Poor sleep or insomnia',
+  low_libido: 'Low libido or sexual function',
+  muscle_loss: 'Muscle loss or weakness',
+  mood_changes: 'Mood changes or irritability',
+  recovery: 'Slow recovery from workouts'
+};
+
+const goalLabels = {
+  more_energy: 'More energy throughout the day',
+  better_sleep: 'Better, more restful sleep',
+  lose_weight: 'Lose weight',
+  build_muscle: 'Build or maintain muscle',
+  mental_clarity: 'Mental clarity and focus',
+  feel_myself: 'Feel like myself again',
+  longevity: 'Optimize for longevity',
+  performance: 'Athletic or sexual performance'
+};
 
 export default function RangeAssessment() {
   const router = useRouter();
   const { path } = router.query;
 
   const [selectedPath, setSelectedPath] = useState(null);
-  const [step, setStep] = useState(0); // 0 = contact info, 1+ = questions
+  const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showResults, setShowResults] = useState(false);
+  const [recommendation, setRecommendation] = useState(null);
 
-  // Form data
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    // Injury path
     injuryType: '',
     injuryLocation: '',
     injuryDuration: '',
     inPhysicalTherapy: '',
     recoveryGoal: '',
-    // Energy path
-    primarySymptom: '',
+    symptoms: [],
     symptomDuration: '',
-    hasRecentLabs: '',
+    lastLabWork: '',
     triedHormoneTherapy: '',
-    energyGoal: '',
-    // Additional
+    goals: [],
     additionalInfo: ''
   });
 
-  // Set path from URL query parameter
   useEffect(() => {
     if (path === 'injury' || path === 'energy') {
       setSelectedPath(path);
     }
   }, [path]);
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -72,6 +186,80 @@ export default function RangeAssessment() {
     }
   };
 
+  // Calculate lab recommendation based on symptoms and goals
+  const calculateRecommendation = () => {
+    const { symptoms, goals, lastLabWork } = formData;
+
+    const essentialMarkers = new Set();
+    const eliteMarkers = new Set();
+    const reasons = [];
+
+    // Collect markers from symptoms
+    symptoms.forEach(symptom => {
+      const mapping = biomarkerMapping.symptoms[symptom];
+      if (mapping) {
+        mapping.essential.forEach(m => essentialMarkers.add(m));
+        mapping.elite.forEach(m => eliteMarkers.add(m));
+        reasons.push({ type: 'symptom', key: symptom, reason: mapping.reason });
+      }
+    });
+
+    // Collect markers from goals
+    goals.forEach(goal => {
+      const mapping = biomarkerMapping.goals[goal];
+      if (mapping) {
+        mapping.essential.forEach(m => essentialMarkers.add(m));
+        mapping.elite.forEach(m => eliteMarkers.add(m));
+        reasons.push({ type: 'goal', key: goal, reason: mapping.reason });
+      }
+    });
+
+    // Determine recommendation logic
+    const eliteReasons = [];
+
+    // Elite if: hasn't had labs in over a year or never
+    if (lastLabWork === 'over_year' || lastLabWork === 'never') {
+      eliteReasons.push("It's been a while since your last blood work — a comprehensive baseline will give us the full picture");
+    }
+    // Elite if: longevity goal
+    if (goals.includes('longevity')) {
+      eliteReasons.push('You\'re focused on longevity — this requires advanced cardiovascular and metabolic markers');
+    }
+    // Elite if: 3+ symptoms
+    if (symptoms.length >= 3) {
+      eliteReasons.push('Multiple symptoms suggest a more comprehensive evaluation is needed');
+    }
+    // Elite if: performance goal
+    if (goals.includes('performance')) {
+      eliteReasons.push('Optimizing performance requires tracking growth factors and recovery markers');
+    }
+    // Elite if: brain fog + mood/fatigue combo
+    if (symptoms.includes('brain_fog') && (symptoms.includes('mood_changes') || symptoms.includes('fatigue'))) {
+      eliteReasons.push('Your symptom combination benefits from B-vitamin and methylation testing');
+    }
+    // Elite if: muscle-related
+    if (symptoms.includes('muscle_loss') || goals.includes('build_muscle')) {
+      eliteReasons.push('Muscle-related goals require IGF-1 and advanced hormone markers');
+    }
+    // Elite if: slow recovery
+    if (symptoms.includes('recovery')) {
+      eliteReasons.push('Slow recovery often involves inflammation — CRP and IGF-1 provide key insights');
+    }
+
+    const recommendElite = eliteReasons.length > 0;
+
+    return {
+      panel: recommendElite ? 'elite' : 'essential',
+      essentialMarkers: Array.from(essentialMarkers),
+      eliteMarkers: Array.from(eliteMarkers),
+      reasons,
+      eliteReasons,
+      symptoms,
+      goals,
+      lastLabWork
+    };
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError('');
@@ -92,13 +280,230 @@ export default function RangeAssessment() {
         throw new Error(data.error || 'Something went wrong');
       }
 
-      // Redirect to intake form
-      router.push('/intake');
+      // For Energy path, show results. For Injury path, redirect to intake
+      if (selectedPath === 'energy') {
+        const rec = calculateRecommendation();
+        setRecommendation(rec);
+        setIsSubmitting(false);
+        setShowResults(true);
+      } else {
+        router.push('/intake');
+      }
     } catch (err) {
       setError(err.message);
       setIsSubmitting(false);
     }
   };
+
+  // Payment links
+  const PAYMENT_LINKS = {
+    elite: 'https://link.range-medical.com/payment-link/698365ba6503ca98c6834212',
+    essential: 'https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7'
+  };
+
+  // Results screen for Energy path
+  if (showResults && recommendation) {
+    return (
+      <Layout>
+        <Head>
+          <title>Your Lab Recommendation | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+
+        {/* Hero */}
+        <section className="res-hero">
+          <div className="res-container">
+            <span className="res-kicker">Your Personalized Recommendation</span>
+            <h1>Here's What We Need to Check</h1>
+            <p className="res-intro">
+              Based on what you told us, we've identified the specific biomarkers that matter for your situation.
+            </p>
+          </div>
+        </section>
+
+        {/* Main Content */}
+        <section className="res-main">
+          <div className="res-container">
+            <div className="res-grid">
+              {/* Left Column - Recommendation */}
+              <div className="res-primary">
+                {/* Panel Card */}
+                <div className={`res-panel-card ${recommendation.panel === 'elite' ? 'res-panel-elite' : ''}`}>
+                  <div className="res-panel-badge">
+                    {recommendation.panel === 'elite' ? 'Recommended For You' : 'Recommended For You'}
+                  </div>
+                  <h2 className="res-panel-name">
+                    {recommendation.panel === 'elite' ? 'Elite Panel' : 'Essential Panel'}
+                  </h2>
+                  <div className="res-panel-price">
+                    {recommendation.panel === 'elite' ? '$750' : '$350'}
+                  </div>
+                  <p className="res-panel-desc">
+                    {recommendation.panel === 'elite'
+                      ? 'Comprehensive testing with advanced cardiovascular, inflammation, and longevity markers.'
+                      : 'Core hormone, thyroid, and metabolic markers for a solid health baseline.'
+                    }
+                  </p>
+
+                  {recommendation.panel === 'elite' && recommendation.eliteReasons.length > 0 && (
+                    <div className="res-panel-reasons">
+                      <h4>Why we recommend Elite for you:</h4>
+                      <ul>
+                        {recommendation.eliteReasons.slice(0, 3).map((reason, i) => (
+                          <li key={i}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {formData.lastLabWork === 'within_60_days' && (
+                  <div className="res-labs-notice">
+                    <div className="res-labs-notice-header">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                      </svg>
+                      <span>Already have labs?</span>
+                    </div>
+                    <p className="res-labs-notice-text">
+                      You mentioned having labs from the last 60 days. Before purchasing a new panel,
+                      send them over — we'll review and let you know if additional testing is needed.
+                    </p>
+                    <a href="mailto:info@range-medical.com" className="res-labs-notice-btn">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                      </svg>
+                      Email Labs to info@range-medical.com
+                    </a>
+                  </div>
+                )}
+
+                <a
+                  href={PAYMENT_LINKS[recommendation.panel]}
+                  className="res-panel-cta"
+                >
+                  Pay & Book {recommendation.panel === 'elite' ? 'Elite' : 'Essential'} Panel
+                </a>
+
+                  {recommendation.panel === 'elite' && (
+                  <a href={PAYMENT_LINKS.essential} className="res-panel-alt">
+                    Or start with Essential — $350
+                  </a>
+                )}
+                </div>
+
+                {/* Biomarkers */}
+                <div className="res-card">
+                  <h3>Key Biomarkers We'll Check</h3>
+                  <div className="res-markers">
+                    {recommendation.essentialMarkers.slice(0, 10).map((marker, i) => (
+                      <span key={i} className="res-marker">{marker}</span>
+                    ))}
+                    {recommendation.panel === 'elite' && recommendation.eliteMarkers.slice(0, 6).map((marker, i) => (
+                      <span key={`elite-${i}`} className="res-marker res-marker-elite">{marker}</span>
+                    ))}
+                  </div>
+                  <p className="res-markers-more">
+                    {recommendation.panel === 'elite'
+                      ? `+ ${Math.max(0, 36 - 16)} more markers included`
+                      : '+ thyroid antibodies, lipids, and metabolic markers'
+                    }
+                  </p>
+                </div>
+
+                {/* Why These Matter */}
+                <div className="res-card">
+                  <h3>Why These Markers Matter For You</h3>
+                  <div className="res-reasons-list">
+                    {recommendation.reasons.slice(0, 4).map((item, i) => (
+                      <div key={i} className="res-reason">
+                        <h4>{item.type === 'symptom' ? symptomLabels[item.key] : goalLabels[item.key]}</h4>
+                        <p>{item.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Summary & Next Steps */}
+              <div className="res-secondary">
+                {/* What You Told Us */}
+                <div className="res-card res-summary-card">
+                  <h3>What You Told Us</h3>
+                  <div className="res-summary-section">
+                    <h4>Symptoms</h4>
+                    <ul>
+                      {recommendation.symptoms.map(s => (
+                        <li key={s}>{symptomLabels[s]}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="res-summary-section">
+                    <h4>Goals</h4>
+                    <ul>
+                      {recommendation.goals.map(g => (
+                        <li key={g}>{goalLabels[g]}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* What Happens Next */}
+                <div className="res-card res-next-card">
+                  <h3>What Happens Next</h3>
+                  <div className="res-steps">
+                    <div className="res-step">
+                      <div className="res-step-num">1</div>
+                      <div>
+                        <h4>Complete Your Payment</h4>
+                        <p>Secure checkout takes less than a minute.</p>
+                      </div>
+                    </div>
+                    <div className="res-step">
+                      <div className="res-step-num">2</div>
+                      <div>
+                        <h4>We'll Schedule Your Visit</h4>
+                        <p>Our team will call to book your appointment at Range Medical.</p>
+                      </div>
+                    </div>
+                    <div className="res-step">
+                      <div className="res-step-num">3</div>
+                      <div>
+                        <h4>Blood Draw at Range Medical</h4>
+                        <p>Come to our Newport Beach office. Fasting 10-12 hours recommended. Not local? We'll coordinate with a lab near you.</p>
+                      </div>
+                    </div>
+                    <div className="res-step">
+                      <div className="res-step-num">4</div>
+                      <div>
+                        <h4>Review Results Together</h4>
+                        <p>Your provider walks through everything and builds your personalized plan.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact */}
+                <div className="res-contact">
+                  <p>Questions? Call us</p>
+                  <a href="tel:9499973988" className="res-phone">(949) 997-3988</a>
+                  <p className="res-location">
+                    Range Medical<br />
+                    1901 Westcliff Dr, Newport Beach
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <style jsx>{resultsStyles}</style>
+      </Layout>
+    );
+  }
 
   // Path selection screen
   if (!selectedPath) {
@@ -240,11 +645,11 @@ export default function RangeAssessment() {
 
   const energyQuestions = [
     {
-      id: 'primarySymptom',
-      question: "What's your #1 symptom right now?",
-      type: 'select',
+      id: 'symptoms',
+      question: "What symptoms are you experiencing?",
+      subtitle: "Select all that apply",
+      type: 'multiselect',
       options: [
-        { value: '', label: 'Select one...' },
         { value: 'fatigue', label: 'Fatigue or low energy' },
         { value: 'brain_fog', label: 'Brain fog or poor focus' },
         { value: 'weight_gain', label: 'Unexplained weight gain' },
@@ -252,29 +657,33 @@ export default function RangeAssessment() {
         { value: 'low_libido', label: 'Low libido or sexual function' },
         { value: 'muscle_loss', label: 'Muscle loss or weakness' },
         { value: 'mood_changes', label: 'Mood changes, anxiety, or irritability' },
-        { value: 'recovery', label: 'Slow recovery from workouts' },
-        { value: 'other', label: 'Other' }
+        { value: 'recovery', label: 'Slow recovery from workouts' }
       ]
     },
     {
       id: 'symptomDuration',
-      question: 'How long have you been experiencing this?',
+      question: 'When did you first notice something was off?',
       type: 'select',
       options: [
         { value: '', label: 'Select one...' },
-        { value: 'less_1_month', label: 'Less than 1 month' },
-        { value: '1_3_months', label: '1–3 months' },
-        { value: '3_6_months', label: '3–6 months' },
-        { value: '6_12_months', label: '6–12 months' },
-        { value: '1_plus_years', label: '1+ years' }
+        { value: 'less_1_month', label: 'Within the last month' },
+        { value: '1_3_months', label: 'A few months ago' },
+        { value: '3_6_months', label: '3–6 months ago' },
+        { value: '6_12_months', label: '6–12 months ago' },
+        { value: '1_plus_years', label: 'Over a year ago' }
       ]
     },
     {
-      id: 'hasRecentLabs',
-      question: 'Do you have lab work from the last 60 days?',
-      type: 'checkbox',
-      checkboxLabel: 'Yes, I have recent labs',
-      followUp: 'Please send your lab results to info@range-medical.com so we can review them before your visit.'
+      id: 'lastLabWork',
+      question: 'When did you last have blood work done?',
+      type: 'radio',
+      options: [
+        { value: 'within_60_days', label: 'Within the last 60 days' },
+        { value: '2_6_months', label: '2–6 months ago' },
+        { value: '6_12_months', label: '6–12 months ago' },
+        { value: 'over_year', label: 'Over a year ago' },
+        { value: 'never', label: "Never or don't remember" }
+      ]
     },
     {
       id: 'triedHormoneTherapy',
@@ -287,11 +696,11 @@ export default function RangeAssessment() {
       ]
     },
     {
-      id: 'energyGoal',
-      question: "What's your main goal?",
-      type: 'select',
+      id: 'goals',
+      question: "What are you hoping to accomplish?",
+      subtitle: "Select all that apply",
+      type: 'multiselect',
       options: [
-        { value: '', label: 'Select one...' },
         { value: 'more_energy', label: 'More energy throughout the day' },
         { value: 'better_sleep', label: 'Better, more restful sleep' },
         { value: 'lose_weight', label: 'Lose weight' },
@@ -305,7 +714,7 @@ export default function RangeAssessment() {
   ];
 
   const questions = selectedPath === 'injury' ? injuryQuestions : energyQuestions;
-  const totalSteps = questions.length + 1; // +1 for contact info
+  const totalSteps = questions.length + 1;
   const currentQuestion = questions[step - 1];
   const progress = ((step) / totalSteps) * 100;
 
@@ -345,7 +754,10 @@ export default function RangeAssessment() {
               <div className="ra-step">
                 <h2>Let's start with your contact info</h2>
                 <p className="ra-step-desc">
-                  This helps us reach you to schedule your visit.
+                  {selectedPath === 'energy'
+                    ? "Answer a few questions and we'll show you exactly which lab markers matter for your situation."
+                    : "This short assessment helps us understand your situation. After completing it, you'll continue to our medical intake form."
+                  }
                 </p>
 
                 <div className="ra-form-grid">
@@ -453,15 +865,40 @@ export default function RangeAssessment() {
                       />
                       <span className="ra-checkbox-label">{currentQuestion.checkboxLabel}</span>
                     </label>
-                    {formData[currentQuestion.id] === 'yes' && currentQuestion.followUp && (
-                      <div className="ra-followup-message">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                          <polyline points="22,6 12,13 2,6"/>
-                        </svg>
-                        {currentQuestion.followUp}
-                      </div>
+                  </div>
+                )}
+
+                {currentQuestion.type === 'multiselect' && (
+                  <div className="ra-multiselect-section">
+                    {currentQuestion.subtitle && (
+                      <p className="ra-multiselect-hint">{currentQuestion.subtitle}</p>
                     )}
+                    <div className="ra-multiselect-grid">
+                      {currentQuestion.options.map(opt => {
+                        const isSelected = (formData[currentQuestion.id] || []).includes(opt.value);
+                        return (
+                          <label key={opt.value} className={`ra-multiselect-option ${isSelected ? 'ra-selected' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                const current = formData[currentQuestion.id] || [];
+                                const updated = isSelected
+                                  ? current.filter(v => v !== opt.value)
+                                  : [...current, opt.value];
+                                handleInputChange(currentQuestion.id, updated);
+                              }}
+                            />
+                            <span className="ra-multiselect-label">{opt.label}</span>
+                            {isSelected && (
+                              <svg className="ra-check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                              </svg>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
@@ -521,11 +958,11 @@ export default function RangeAssessment() {
                     {isSubmitting ? (
                       <>
                         <span className="ra-spinner" />
-                        Submitting...
+                        {selectedPath === 'energy' ? 'Analyzing...' : 'Submitting...'}
                       </>
                     ) : (
                       <>
-                        Submit & Continue to Intake
+                        {selectedPath === 'energy' ? 'See My Lab Recommendation' : 'Submit & Continue to Intake'}
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
@@ -614,25 +1051,6 @@ const styles = `
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   }
 
-  .ra-path-featured {
-    border-color: #000000;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  }
-
-  .ra-path-badge {
-    position: absolute;
-    top: -0.75rem;
-    left: 1.5rem;
-    background: #000000;
-    color: #ffffff;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.375rem 0.75rem;
-    border-radius: 100px;
-  }
-
   .ra-path-icon {
     width: 56px;
     height: 56px;
@@ -644,11 +1062,6 @@ const styles = `
     margin-bottom: 1.25rem;
     color: #171717;
     transition: all 0.2s;
-  }
-
-  .ra-path-featured .ra-path-icon {
-    background: #000000;
-    color: #ffffff;
   }
 
   .ra-path-card:hover .ra-path-icon {
@@ -913,24 +1326,56 @@ const styles = `
     color: #171717;
   }
 
-  .ra-followup-message {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    padding: 1rem 1.25rem;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    color: #166534;
-    line-height: 1.5;
+  .ra-multiselect-section {
+    margin-bottom: 1.5rem;
   }
 
-  .ra-followup-message svg {
-    flex-shrink: 0;
-    margin-top: 2px;
-    stroke: #16a34a;
+  .ra-multiselect-hint {
+    font-size: 0.875rem;
+    color: #737373;
+    margin: 0 0 1rem;
+  }
+
+  .ra-multiselect-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+  }
+
+  .ra-multiselect-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .ra-multiselect-option:hover {
+    border-color: #d4d4d4;
+    background: #fafafa;
+  }
+
+  .ra-multiselect-option.ra-selected {
+    border-color: #171717;
+    background: #fafafa;
+  }
+
+  .ra-multiselect-option input {
+    display: none;
+  }
+
+  .ra-multiselect-label {
+    font-size: 0.9375rem;
+    color: #171717;
+    flex: 1;
+  }
+
+  .ra-check-icon {
+    color: #171717;
   }
 
   .ra-error {
@@ -1038,6 +1483,499 @@ const styles = `
     .ra-btn-secondary {
       width: 100%;
       justify-content: center;
+    }
+  }
+`;
+
+const resultsStyles = `
+  /* Results Page - Matching Site Design */
+
+  /* Hero Section */
+  .res-hero {
+    padding: 4rem 1.5rem 3rem;
+    text-align: center;
+    background: #ffffff;
+  }
+
+  .res-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .res-kicker {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #737373;
+    margin-bottom: 0.75rem;
+  }
+
+  .res-hero h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #171717;
+    margin: 0 0 1rem;
+    line-height: 1.15;
+  }
+
+  .res-intro {
+    font-size: 1.0625rem;
+    color: #525252;
+    line-height: 1.7;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* Main Content */
+  .res-main {
+    padding: 0 1.5rem 5rem;
+    background: #fafafa;
+  }
+
+  .res-main .res-container {
+    padding-top: 3rem;
+  }
+
+  .res-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  /* Cards */
+  .res-card {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .res-card h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #171717;
+    margin: 0 0 1.25rem;
+  }
+
+  /* Panel Recommendation Card */
+  .res-panel-card {
+    background: #ffffff;
+    border: 2px solid #e5e5e5;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .res-panel-card.res-panel-elite {
+    border-color: #000000;
+  }
+
+  .res-panel-badge {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #000000;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 100px;
+    margin-bottom: 1.25rem;
+  }
+
+  .res-panel-name {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #171717;
+    margin: 0 0 0.5rem;
+  }
+
+  .res-panel-price {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 1rem;
+  }
+
+  .res-panel-desc {
+    font-size: 0.9375rem;
+    color: #525252;
+    line-height: 1.6;
+    margin: 0 0 1.5rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .res-panel-reasons {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+
+  .res-panel-reasons h4 {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #171717;
+    margin: 0 0 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .res-panel-reasons ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .res-panel-reasons li {
+    font-size: 0.9375rem;
+    color: #525252;
+    padding: 0.375rem 0;
+    padding-left: 1.25rem;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .res-panel-reasons li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #22c55e;
+    font-weight: 700;
+  }
+
+  /* Labs Notice */
+  .res-labs-notice {
+    background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+    border: 1px solid #fde047;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+
+  .res-labs-notice-header {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .res-labs-notice-header svg {
+    color: #a16207;
+  }
+
+  .res-labs-notice-header span {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #854d0e;
+  }
+
+  .res-labs-notice-text {
+    font-size: 0.9375rem;
+    color: #a16207;
+    line-height: 1.6;
+    margin: 0 0 1rem;
+  }
+
+  .res-labs-notice-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #854d0e;
+    color: #ffffff;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .res-labs-notice-btn:hover {
+    background: #713f12;
+  }
+
+  .res-labs-notice-btn svg {
+    color: #ffffff;
+  }
+
+  .res-panel-cta {
+    display: block;
+    width: 100%;
+    background: #000000;
+    color: #ffffff;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.2s;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  }
+
+  .res-panel-cta:hover {
+    background: #333333;
+  }
+
+  .res-panel-alt {
+    display: inline-block;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: #737373;
+    text-decoration: underline;
+  }
+
+  .res-panel-alt:hover {
+    color: #171717;
+  }
+
+  /* Biomarkers */
+  .res-markers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .res-marker {
+    display: inline-block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #171717;
+    background: #f5f5f5;
+    padding: 0.5rem 0.875rem;
+    border-radius: 6px;
+    border: 1px solid #e5e5e5;
+  }
+
+  .res-marker.res-marker-elite {
+    background: #171717;
+    color: #ffffff;
+    border-color: #171717;
+  }
+
+  .res-markers-more {
+    font-size: 0.8125rem;
+    color: #737373;
+    margin: 0;
+  }
+
+  /* Reasons List */
+  .res-reasons-list {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .res-reason {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .res-reason:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .res-reason h4 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #171717;
+    margin: 0 0 0.375rem;
+  }
+
+  .res-reason p {
+    font-size: 0.875rem;
+    color: #525252;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Summary Card */
+  .res-summary-card {
+    background: #ffffff;
+  }
+
+  .res-summary-section {
+    margin-bottom: 1.25rem;
+  }
+
+  .res-summary-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .res-summary-section h4 {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #737373;
+    margin: 0 0 0.5rem;
+  }
+
+  .res-summary-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .res-summary-section li {
+    font-size: 0.875rem;
+    color: #171717;
+    padding: 0.25rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .res-summary-section li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #a3a3a3;
+  }
+
+  /* Steps */
+  .res-next-card {
+    background: #ffffff;
+  }
+
+  .res-steps {
+    display: grid;
+    gap: 0;
+  }
+
+  .res-step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    position: relative;
+  }
+
+  .res-step:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .res-step:first-child {
+    padding-top: 0;
+  }
+
+  .res-step-num {
+    width: 32px;
+    height: 32px;
+    background: #000000;
+    color: #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    flex-shrink: 0;
+  }
+
+  .res-step h4 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #171717;
+    margin: 0 0 0.25rem;
+  }
+
+  .res-step p {
+    font-size: 0.8125rem;
+    color: #525252;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Contact */
+  .res-contact {
+    text-align: center;
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+  }
+
+  .res-contact p {
+    font-size: 0.875rem;
+    color: #737373;
+    margin: 0;
+  }
+
+  .res-phone {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #171717;
+    text-decoration: none;
+    margin: 0.5rem 0 1rem;
+  }
+
+  .res-phone:hover {
+    color: #000000;
+  }
+
+  .res-location {
+    font-size: 0.8125rem !important;
+    color: #a3a3a3 !important;
+    line-height: 1.5;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .res-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .res-secondary {
+      order: -1;
+    }
+
+    .res-summary-card {
+      display: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .res-hero {
+      padding: 3rem 1.5rem 2rem;
+    }
+
+    .res-hero h1 {
+      font-size: 1.75rem;
+    }
+
+    .res-main .res-container {
+      padding-top: 2rem;
+    }
+
+    .res-panel-card {
+      padding: 1.5rem;
+    }
+
+    .res-panel-name {
+      font-size: 1.5rem;
+    }
+
+    .res-panel-price {
+      font-size: 2rem;
+    }
+
+    .res-card {
+      padding: 1.25rem;
     }
   }
 `;

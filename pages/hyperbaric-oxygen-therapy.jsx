@@ -348,10 +348,10 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="hbot-kicker">Backed by Science</div>
-              <h2>What the Research Says</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
-                Hyperbaric oxygen therapy isn't new — it's been studied for decades. Here's what researchers have found.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

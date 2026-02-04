@@ -410,10 +410,10 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="nad-kicker">Backed by Science</div>
-              <h2>What the research shows.</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
-                NAD+ has been studied extensively. Here's what the science tells us about cellular uptake and clinical effects.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

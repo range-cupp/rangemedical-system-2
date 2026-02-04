@@ -358,10 +358,10 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="rlt-kicker">Backed by Science</div>
-              <h2>What the Research Says</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
-                Red light therapy has been studied extensively over the past few decades. Here's what the science shows.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

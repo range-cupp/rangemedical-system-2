@@ -344,10 +344,10 @@ export default function PRPTherapy() {
           <div className="prp-container">
             <div className="prp-animate">
               <div className="prp-kicker">Backed by Science</div>
-              <h2>What the research shows.</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
-                PRP has been studied extensively in orthopedic and sports medicine. Here's what the science tells us.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

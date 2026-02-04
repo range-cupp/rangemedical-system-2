@@ -389,10 +389,10 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="hrt-kicker">Backed by Science</div>
-              <h2>What the Research Says</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="hrt-divider"></div>
               <p className="hrt-body-text">
-                Hormone replacement therapy has been studied extensively. Here's what the evidence shows.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

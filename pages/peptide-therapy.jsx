@@ -382,10 +382,10 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="pep-kicker">Backed by Science</div>
-              <h2>What the Research Says</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="pep-divider"></div>
               <p className="pep-body-text">
-                Peptides have been studied extensively in medical research. Here's what the science shows.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

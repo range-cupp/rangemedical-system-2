@@ -344,10 +344,10 @@ export default function ExosomeTherapy() {
           <div className="exo-container">
             <div className="exo-animate">
               <div className="exo-kicker">Backed by Science</div>
-              <h2>What the research shows.</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
-                Exosome research is rapidly expanding. Here's what the science currently tells us.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

@@ -393,10 +393,10 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="wl-kicker">Backed by Science</div>
-              <h2>What the Research Says</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
-                GLP-1 medications are the most studied weight loss drugs in history. Here's what the clinical trials show.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

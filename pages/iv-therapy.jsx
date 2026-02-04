@@ -339,10 +339,10 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="iv-kicker">Backed by Science</div>
-              <h2>What the research shows.</h2>
+              <h2>Evidence-Based Results</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
-                IV nutrient therapy is supported by decades of research. Here's what the science tells us.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
             </div>
 

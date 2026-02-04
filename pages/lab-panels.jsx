@@ -488,7 +488,7 @@ export default function LabPanels() {
               Book an Assessment to discuss which panel is right for you and get the most value from your lab work.
             </p>
             <div className="lab-cta-buttons">
-              <Link href="/range-assessment?path=energy" className="lab-btn-white">Book Assessment — $199</Link>
+              <Link href="/range-assessment?path=energy" className="lab-btn-white">Take Assessment</Link>
             </div>
             <p className="lab-cta-phone">
               Or call <a href="tel:9499973988">(949) 997-3988</a> to schedule labs directly

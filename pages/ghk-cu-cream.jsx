@@ -311,7 +311,7 @@ export default function GHKCuCream() {
           <h2>Ready to Start?</h2>
           <p>GHK-Cu cream is $299/month, prescribed through our pharmacy after your Range Assessment ($199).</p>
           <div className="cta-buttons">
-            <a href="/range-assessment" className="btn-white">Book Assessment — $199</a>
+            <a href="/range-assessment" className="btn-white">Take Assessment</a>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>
         </div>

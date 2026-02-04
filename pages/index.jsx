@@ -163,7 +163,7 @@ export default function Home() {
                   <li>$199 credited toward your program</li>
                 </ul>
                 <Link href="/range-assessment?path=injury" className="home-door-btn">
-                  Book Assessment
+                  Take Assessment
                 </Link>
               </div>
 
@@ -183,7 +183,7 @@ export default function Home() {
                   <li>$199 credited toward treatment</li>
                 </ul>
                 <Link href="/range-assessment?path=energy" className="home-door-btn">
-                  Book Assessment
+                  Take Assessment
                 </Link>
               </div>
             </div>

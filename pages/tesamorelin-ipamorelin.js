@@ -621,7 +621,7 @@ export default function TesamorelinIpamorelin() {
           </a>
           <div className="header-cta">
             <a href="tel:949-997-3988" className="header-phone">949-997-3988</a>
-            <a href="/range-assessment" className="cta-link">Book Assessment</a>
+            <a href="/range-assessment" className="cta-link">Take Assessment</a>
           </div>
         </div>
       </header>

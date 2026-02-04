@@ -124,6 +124,7 @@ export default function RangeAssessment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showResults, setShowResults] = useState(false);
+  const [showInjuryResults, setShowInjuryResults] = useState(false);
   const [recommendation, setRecommendation] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -280,14 +281,15 @@ export default function RangeAssessment() {
         throw new Error(data.error || 'Something went wrong');
       }
 
-      // For Energy path, show results. For Injury path, redirect to intake
+      // For Energy path, show lab results. For Injury path, show peptide results
       if (selectedPath === 'energy') {
         const rec = calculateRecommendation();
         setRecommendation(rec);
         setIsSubmitting(false);
         setShowResults(true);
       } else {
-        router.push('/intake');
+        setIsSubmitting(false);
+        setShowInjuryResults(true);
       }
     } catch (err) {
       setError(err.message);
@@ -314,6 +316,437 @@ export default function RangeAssessment() {
       `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
     );
   };
+
+  // Get peptide benefits based on injury type and goal
+  const getPeptideBenefits = () => {
+    const { injuryType, injuryLocation, recoveryGoal } = formData;
+
+    const bpcBenefits = [];
+    const tb4Benefits = [];
+
+    // BPC-157 benefits based on injury type
+    if (injuryType === 'joint_ligament') {
+      bpcBenefits.push('May support ligament and joint tissue repair');
+    }
+    if (injuryType === 'muscle_tendon') {
+      bpcBenefits.push('May help repair muscle and tendon damage');
+    }
+    if (injuryType === 'post_surgical') {
+      bpcBenefits.push('Could help speed tissue healing after surgery');
+    }
+    if (injuryType === 'chronic_pain') {
+      bpcBenefits.push('May support healing of damaged tissue causing pain');
+    }
+    if (injuryType === 'fracture') {
+      bpcBenefits.push('Could promote bone and surrounding tissue repair');
+    }
+
+    // TB-4 benefits based on recovery goal
+    if (recoveryGoal === 'reduce_pain') {
+      tb4Benefits.push('May help reduce inflammation and swelling');
+    }
+    if (recoveryGoal === 'speed_healing') {
+      tb4Benefits.push('Could bring more blood flow to the injured area');
+    }
+    if (recoveryGoal === 'return_sport') {
+      tb4Benefits.push('May help rebuild tissue strength for activity');
+    }
+    if (recoveryGoal === 'avoid_surgery') {
+      tb4Benefits.push('Could support natural healing');
+    }
+    if (recoveryGoal === 'post_surgery') {
+      tb4Benefits.push('May promote faster recovery after surgical repair');
+    }
+
+    // Add general benefits if lists are short
+    if (bpcBenefits.length === 0) {
+      bpcBenefits.push('May support tissue repair at the injury site');
+    }
+    if (tb4Benefits.length === 0) {
+      tb4Benefits.push('May help reduce inflammation and improve blood flow');
+    }
+
+    // Always add these
+    bpcBenefits.push('Could improve blood flow to damaged tissue');
+    tb4Benefits.push('May help cells move to where healing is needed');
+
+    return { bpcBenefits, tb4Benefits };
+  };
+
+  // Injury Results screen
+  if (showInjuryResults) {
+    const peptideBenefits = getPeptideBenefits();
+
+    // Label mappings for display
+    const injuryTypeLabels = {
+      'joint_ligament': 'Joint or ligament injury',
+      'muscle_tendon': 'Muscle or tendon injury',
+      'post_surgical': 'Post-surgical recovery',
+      'concussion': 'Concussion or head injury',
+      'chronic_pain': 'Chronic pain condition',
+      'fracture': 'Bone fracture',
+      'other': 'Other'
+    };
+    const locationLabels = {
+      'shoulder': 'Shoulder', 'knee': 'Knee', 'back': 'Back', 'hip': 'Hip',
+      'neck': 'Neck', 'ankle': 'Ankle', 'elbow': 'Elbow', 'wrist_hand': 'Wrist or hand',
+      'head': 'Head', 'multiple': 'Multiple areas', 'other': 'Other'
+    };
+    const durationLabels = {
+      'less_2_weeks': 'Less than 2 weeks', '2_4_weeks': '2–4 weeks',
+      '1_3_months': '1–3 months', '3_6_months': '3–6 months', '6_plus_months': '6+ months'
+    };
+    const goalLabels = {
+      'return_sport': 'Return to sport or athletic activity',
+      'daily_activities': 'Get back to daily activities pain-free',
+      'avoid_surgery': 'Avoid surgery if possible',
+      'speed_healing': 'Speed up the healing process',
+      'reduce_pain': 'Reduce pain and inflammation',
+      'post_surgery': 'Recover faster after surgery'
+    };
+
+    const injuryLabel = injuryTypeLabels[formData.injuryType] || 'your injury';
+    const locationLabel = locationLabels[formData.injuryLocation] || '';
+
+    return (
+      <Layout>
+        <Head>
+          <title>We Can Help | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+
+        {/* Hero */}
+        <section className="inj-res-hero">
+          <div className="inj-res-container">
+            <div className="inj-res-check">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <h1>Good News, {formData.firstName}</h1>
+            <p className="inj-res-intro">
+              Based on what you told us about your {locationLabel.toLowerCase()} injury, we have a treatment that may help with your recovery.
+            </p>
+          </div>
+        </section>
+
+        {/* Main Content */}
+        <section className="inj-res-main">
+          <div className="inj-res-container">
+
+            {/* Treatment Card */}
+            <div className="inj-res-treatment-card">
+              <h2>Our Recovery Protocol: BPC-157 + TB-4</h2>
+              <p className="inj-res-treatment-desc">
+                These two peptides may work together to support your body's healing process. They're natural compounds that could help with your recovery.
+              </p>
+
+              <div className="inj-res-peptide-grid">
+                <div className="inj-res-peptide-card">
+                  <h3>BPC-157</h3>
+                  <p className="inj-res-peptide-subtitle">Body Protection Compound</p>
+                  <ul>
+                    {peptideBenefits.bpcBenefits.map((benefit, i) => (
+                      <li key={i}>{benefit}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="inj-res-peptide-card">
+                  <h3>TB-4</h3>
+                  <p className="inj-res-peptide-subtitle">Thymosin Beta-4</p>
+                  <ul>
+                    {peptideBenefits.tb4Benefits.map((benefit, i) => (
+                      <li key={i}>{benefit}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="inj-res-why">
+                <h4>Why These Work Together</h4>
+                <p>BPC-157 may help repair damaged tissue directly. TB-4 could reduce swelling and bring more blood to the area. Together, they may support recovery from both angles.</p>
+              </div>
+            </div>
+
+            {/* What You Told Us */}
+            <div className="inj-res-summary-card">
+              <h3>What You Told Us</h3>
+              <div className="inj-res-summary-grid">
+                <div>
+                  <span className="inj-res-label">Injury Type</span>
+                  <span className="inj-res-value">{injuryLabel}</span>
+                </div>
+                <div>
+                  <span className="inj-res-label">Location</span>
+                  <span className="inj-res-value">{locationLabel}</span>
+                </div>
+                <div>
+                  <span className="inj-res-label">Duration</span>
+                  <span className="inj-res-value">{durationLabels[formData.injuryDuration] || '-'}</span>
+                </div>
+                <div>
+                  <span className="inj-res-label">Goal</span>
+                  <span className="inj-res-value">{goalLabels[formData.recoveryGoal] || '-'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Next Step */}
+            <div className="inj-res-next-card">
+              <h3>Next Step: Complete Your Medical Intake</h3>
+              <p>
+                To get started, we need a bit more medical history. This form takes about 5 minutes and helps our provider create your personalized protocol.
+              </p>
+              <a href="https://app.range-medical.com/intake" className="inj-res-cta" target="_blank" rel="noopener noreferrer">
+                Continue to Medical Intake
+              </a>
+              <p className="inj-res-contact">
+                Questions? Call us at <a href="tel:9499973988">(949) 997-3988</a>
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        <style jsx>{`
+          .inj-res-hero {
+            background: #fafafa;
+            padding: 4rem 1.5rem;
+            text-align: center;
+          }
+
+          .inj-res-container {
+            max-width: 800px;
+            margin: 0 auto;
+          }
+
+          .inj-res-check {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            background: #22c55e;
+            border-radius: 50%;
+            margin-bottom: 1.5rem;
+          }
+
+          .inj-res-check svg {
+            stroke: #ffffff;
+          }
+
+          .inj-res-hero h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #171717;
+            margin: 0 0 1rem;
+          }
+
+          .inj-res-intro {
+            font-size: 1.125rem;
+            color: #525252;
+            margin: 0;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+          }
+
+          .inj-res-main {
+            padding: 3rem 1.5rem 4rem;
+            background: #ffffff;
+          }
+
+          .inj-res-treatment-card {
+            background: #fafafa;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+          }
+
+          .inj-res-treatment-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #171717;
+            margin: 0 0 0.75rem;
+          }
+
+          .inj-res-treatment-desc {
+            font-size: 1rem;
+            color: #525252;
+            margin: 0 0 2rem;
+            line-height: 1.6;
+          }
+
+          .inj-res-peptide-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+          }
+
+          .inj-res-peptide-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #e5e5e5;
+          }
+
+          .inj-res-peptide-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #171717;
+            margin: 0 0 0.25rem;
+          }
+
+          .inj-res-peptide-subtitle {
+            font-size: 0.875rem;
+            color: #737373;
+            margin: 0 0 1rem;
+          }
+
+          .inj-res-peptide-card ul {
+            margin: 0;
+            padding: 0 0 0 1.25rem;
+          }
+
+          .inj-res-peptide-card li {
+            font-size: 0.95rem;
+            color: #404040;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+          }
+
+          .inj-res-peptide-card li:last-child {
+            margin-bottom: 0;
+          }
+
+          .inj-res-why {
+            background: #000000;
+            border-radius: 12px;
+            padding: 1.5rem;
+            color: #ffffff;
+          }
+
+          .inj-res-why h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem;
+          }
+
+          .inj-res-why p {
+            font-size: 0.95rem;
+            margin: 0;
+            line-height: 1.6;
+            color: #d4d4d4;
+          }
+
+          .inj-res-summary-card {
+            background: #fafafa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+          }
+
+          .inj-res-summary-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #737373;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 0 1rem;
+          }
+
+          .inj-res-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+          }
+
+          .inj-res-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #737373;
+            margin-bottom: 0.25rem;
+          }
+
+          .inj-res-value {
+            display: block;
+            font-size: 0.95rem;
+            color: #171717;
+            font-weight: 500;
+          }
+
+          .inj-res-next-card {
+            background: #000000;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            color: #ffffff;
+          }
+
+          .inj-res-next-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0 0 0.75rem;
+            color: #ffffff;
+          }
+
+          .inj-res-next-card > p {
+            font-size: 1rem;
+            color: #a3a3a3;
+            margin: 0 0 1.5rem;
+            line-height: 1.6;
+          }
+
+          .inj-res-cta {
+            display: inline-block;
+            background: #ffffff;
+            color: #000000;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: background 0.2s;
+          }
+
+          .inj-res-cta:hover {
+            background: #f5f5f5;
+          }
+
+          .inj-res-contact {
+            margin: 1.5rem 0 0;
+            font-size: 0.9rem;
+            color: #a3a3a3;
+          }
+
+          .inj-res-contact a {
+            color: #ffffff;
+            font-weight: 600;
+          }
+
+          @media (max-width: 640px) {
+            .inj-res-hero {
+              padding: 3rem 1.5rem;
+            }
+
+            .inj-res-hero h1 {
+              font-size: 1.75rem;
+            }
+
+            .inj-res-peptide-grid {
+              grid-template-columns: 1fr;
+            }
+
+            .inj-res-summary-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   // Results screen for Energy path
   if (showResults && recommendation) {

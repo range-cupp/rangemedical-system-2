@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function NADTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('nad-therapy');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function NADTherapy() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -111,45 +124,7 @@ export default function NADTherapy() {
     "Longevity Focus"
   ];
 
-  const researchStudies = [
-    {
-      category: "CELLULAR UPTAKE",
-      headline: "NAD+ Enters Cells Through Connexin 43 Channels",
-      summary: "Research has identified that extracellular NAD+ can directly enter cells through connexin 43 (Cx43) hemichannels. This direct uptake pathway allows intact NAD+ molecules to cross the cell membrane, challenging the previous belief that NAD+ couldn't enter cells directly.",
-      source: "Billington et al., Journal of Biological Chemistry, 2008"
-    },
-    {
-      category: "CELLULAR UPTAKE",
-      headline: "CD73 Pathway: NAD+ Conversion to Absorbable Forms",
-      summary: "The second mechanism involves extracellular NAD+ being broken down by CD38 and CD73 enzymes into nicotinamide riboside (NR) and nicotinamide mononucleotide (NMN). These smaller precursors easily enter cells and are reconverted to NAD+ intracellularly.",
-      source: "Sociali et al., FASEB Journal, 2019"
-    },
-    {
-      category: "AGING",
-      headline: "NAD+ Decline Is a Hallmark of Aging",
-      summary: "Studies show NAD+ levels decline by approximately 50% between ages 40 and 60. This decline correlates with mitochondrial dysfunction, reduced DNA repair capacity, and decreased sirtuin activity — all factors in age-related decline.",
-      source: "Massudi et al., PLoS ONE, 2012"
-    },
-    {
-      category: "COGNITIVE FUNCTION",
-      headline: "NAD+ Supports Neuronal Health",
-      summary: "Research demonstrates that NAD+ supplementation supports neuronal health by improving mitochondrial function in brain cells, reducing oxidative stress, and supporting the brain's energy demands. Clinical observations suggest improvements in cognitive clarity.",
-      source: "Hou et al., Neurobiology of Aging, 2018"
-    },
-    {
-      category: "METABOLISM",
-      headline: "NAD+ Regulates Metabolic Pathways",
-      summary: "NAD+ is a critical cofactor in glycolysis, the citric acid cycle, and oxidative phosphorylation. Studies show that restoring NAD+ levels can improve metabolic efficiency and support healthy glucose and lipid metabolism.",
-      source: "Cantó et al., Cell Metabolism, 2015"
-    },
-    {
-      category: "LONGEVITY",
-      headline: "Sirtuin Activation Requires NAD+",
-      summary: "Sirtuins (SIRT1-7) are longevity-associated proteins that depend entirely on NAD+ for their function. Research shows that maintaining NAD+ levels keeps sirtuins active, supporting DNA repair, inflammation control, and metabolic regulation.",
-      source: "Imai & Guarente, Trends in Cell Biology, 2014"
-    }
-  ];
-
+  
   return (
     <Layout
       title="NAD+ Therapy | IV & Injection Protocols | Newport Beach | Range Medical"
@@ -443,12 +418,17 @@ export default function NADTherapy() {
             </div>
 
             <div className="nad-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="nad-research-card nad-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="nad-research-card nad-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="nad-research-category">{study.category}</div>
                   <h3 className="nad-research-headline">{study.headline}</h3>
                   <p className="nad-research-summary">{study.summary}</p>
-                  <p className="nad-research-source">{study.source}</p>
+                  <p className="nad-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -500,6 +480,13 @@ export default function NADTherapy() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="nad-therapy"
+        />
       </div>
 
       <style jsx>{`
@@ -929,12 +916,14 @@ export default function NADTherapy() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .nad-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .nad-research-category {

@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function HyperbaricOxygenTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('hyperbaric-oxygen-therapy');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function HyperbaricOxygenTherapy() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -98,45 +111,7 @@ export default function HyperbaricOxygenTherapy() {
     { step: "Step 4", title: "You're done", desc: "The pressure slowly comes back to normal. You can go about your day right after — no recovery time needed. Many people say they feel more energized." }
   ];
 
-  const researchStudies = [
-    {
-      category: "PERFORMANCE",
-      headline: "Improved VO2 Max and Endurance in Athletes",
-      summary: "A double-blind, randomized controlled trial found that athletes who used hyperbaric oxygen therapy showed a significant increase in VO2 max — one of the most important markers of athletic fitness. Researchers also saw improvements in power output and anaerobic threshold compared to the placebo group.",
-      source: "Sports Medicine – Open, 2022"
-    },
-    {
-      category: "CELLULAR ENERGY",
-      headline: "Increased Mitochondrial Mass and Respiration",
-      summary: "The same clinical trial used muscle biopsies and found that repeated HBOT sessions led to a significant increase in mitochondrial mass — the \"power plants\" inside your cells. This suggests the body may be creating more energy-producing machinery at a cellular level.",
-      source: "Sports Medicine – Open, 2022"
-    },
-    {
-      category: "HEALING & RECOVERY",
-      headline: "Faster Wound Healing in Clinical Patients",
-      summary: "In a study of 40 patients with complex, non-healing wounds, 77.5% fully healed after a series of hyperbaric oxygen sessions. Researchers saw an average wound size reduction of nearly 30% after just five treatments.",
-      source: "Journal of the American College of Clinical Wound Specialists, 2015"
-    },
-    {
-      category: "INFLAMMATION",
-      headline: "Reduced Inflammatory Markers",
-      summary: "A systematic review of human studies found that hyperbaric oxygen therapy may reduce concentrations of pro-inflammatory proteins and cytokines while increasing growth factors that support tissue repair and new blood vessel formation.",
-      source: "Biomolecules (MDPI), 2021"
-    },
-    {
-      category: "CIRCULATION",
-      headline: "8× Increase in Circulating Stem Cells",
-      summary: "A study published in the American Journal of Physiology found that a single HBOT session doubled circulating stem cells, and over 20 sessions, levels increased eightfold. These cells play a key role in repairing damaged tissue and forming new blood vessels.",
-      source: "American Journal of Physiology – Heart and Circulatory Physiology, 2006"
-    },
-    {
-      category: "BRAIN HEALTH",
-      headline: "Cognitive Improvements After Brain Injury",
-      summary: "A randomized controlled trial showed that 40 sessions of HBOT produced significant improvements in memory, cognitive function, sleep quality, and quality of life in patients with persistent post-concussion symptoms — with benefits lasting at least two months after treatment ended.",
-      source: "Medical Gas Research, 2020"
-    }
-  ];
-
+  
   return (
     <Layout
       title="Hyperbaric Oxygen Therapy (HBOT) | Newport Beach | Range Medical"
@@ -381,12 +356,17 @@ export default function HyperbaricOxygenTherapy() {
             </div>
 
             <div className="hbot-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="hbot-research-card hbot-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="hbot-research-card hbot-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="hbot-research-category">{study.category}</div>
                   <h3 className="hbot-research-headline">{study.headline}</h3>
                   <p className="hbot-research-summary">{study.summary}</p>
-                  <p className="hbot-research-source">{study.source}</p>
+                  <p className="hbot-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -488,6 +468,13 @@ export default function HyperbaricOxygenTherapy() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="hyperbaric-oxygen-therapy"
+        />
       </div>
 
       <style jsx>{`
@@ -807,12 +794,14 @@ export default function HyperbaricOxygenTherapy() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .hbot-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .hbot-research-category {

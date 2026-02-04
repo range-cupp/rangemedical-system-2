@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function ExosomeTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('exosome-therapy');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function ExosomeTherapy() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -89,45 +102,7 @@ export default function ExosomeTherapy() {
     { step: "Step 4", title: "Signaling begins", desc: "Once in your bloodstream, exosomes circulate and deliver regenerative signals to cells throughout your body. Results develop over weeks to months." }
   ];
 
-  const researchStudies = [
-    {
-      category: "MECHANISM",
-      headline: "Exosomes Mediate Cell-to-Cell Communication",
-      summary: "Research has established that exosomes are key mediators of intercellular communication, carrying proteins, lipids, and nucleic acids that influence recipient cell behavior and function.",
-      source: "Théry et al., Nature Reviews Immunology, 2009"
-    },
-    {
-      category: "REGENERATION",
-      headline: "Exosomes Promote Tissue Repair",
-      summary: "Studies demonstrate that mesenchymal stem cell-derived exosomes can promote tissue repair and regeneration by delivering regenerative signals to damaged tissues.",
-      source: "Zhang et al., Frontiers in Cell and Developmental Biology, 2020"
-    },
-    {
-      category: "INFLAMMATION",
-      headline: "Anti-Inflammatory Properties Documented",
-      summary: "Research shows exosomes carry immunomodulatory molecules that can help regulate inflammatory responses, making them promising for conditions involving chronic inflammation.",
-      source: "Harrell et al., Cells, 2019"
-    },
-    {
-      category: "NEUROLOGICAL",
-      headline: "Potential for Neurological Support",
-      summary: "Emerging research suggests exosomes can cross the blood-brain barrier and may support neurological health by delivering neuroprotective signals to brain tissue.",
-      source: "Xin et al., Journal of Cerebral Blood Flow & Metabolism, 2017"
-    },
-    {
-      category: "WOUND HEALING",
-      headline: "Accelerated Wound Healing Observed",
-      summary: "Clinical and preclinical studies show exosomes can accelerate wound healing by promoting angiogenesis, collagen synthesis, and cellular proliferation.",
-      source: "Hu et al., Theranostics, 2018"
-    },
-    {
-      category: "SAFETY",
-      headline: "Favorable Safety Profile",
-      summary: "Clinical studies report exosome therapy has a favorable safety profile with minimal adverse effects, as exosomes are naturally occurring biological messengers.",
-      source: "Zhu et al., Stem Cells International, 2017"
-    }
-  ];
-
+  
   return (
     <Layout
       title="Exosome Therapy | Regenerative Medicine | Newport Beach | Range Medical"
@@ -377,12 +352,17 @@ export default function ExosomeTherapy() {
             </div>
 
             <div className="exo-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="exo-research-card exo-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="exo-research-card exo-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="exo-research-category">{study.category}</div>
                   <h3 className="exo-research-headline">{study.headline}</h3>
                   <p className="exo-research-summary">{study.summary}</p>
-                  <p className="exo-research-source">{study.source}</p>
+                  <p className="exo-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -434,6 +414,13 @@ export default function ExosomeTherapy() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="exosome-therapy"
+        />
       </div>
 
       <style jsx>{`
@@ -764,12 +751,14 @@ export default function ExosomeTherapy() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .exo-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .exo-research-category {

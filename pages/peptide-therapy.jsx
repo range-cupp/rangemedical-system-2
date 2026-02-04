@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function PeptideTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('peptide-therapy');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function PeptideTherapy() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -128,45 +141,7 @@ export default function PeptideTherapy() {
     { step: "Step 4", title: "Track & adjust", desc: "Regular check-ins to monitor your progress. We adjust your protocol as needed to optimize results." }
   ];
 
-  const researchStudies = [
-    {
-      category: "TISSUE HEALING",
-      headline: "Peptides Accelerate Tendon Healing",
-      summary: "Multiple studies show healing peptides significantly accelerate tendon-to-bone healing and improve functional recovery, with effects on angiogenesis and growth factor expression.",
-      source: "Journal of Orthopaedic Research, 2019"
-    },
-    {
-      category: "GUT HEALTH",
-      headline: "Peptides Protect Against GI Damage",
-      summary: "Research demonstrates protective effects of certain peptides against various GI lesions, including those caused by NSAIDs, alcohol, and stress, with promotion of mucosal healing.",
-      source: "Current Pharmaceutical Design, 2018"
-    },
-    {
-      category: "WOUND HEALING",
-      headline: "Peptides Enhance Tissue Repair",
-      summary: "Healing peptides have been shown to promote wound healing, reduce inflammation, and support tissue regeneration through multiple cellular mechanisms.",
-      source: "Annals of the New York Academy of Sciences, 2012"
-    },
-    {
-      category: "GROWTH HORMONE",
-      headline: "Peptides Support GH Production",
-      summary: "Clinical trials show that growth hormone-releasing peptides significantly increase GH and IGF-1 levels with sustained effects, supporting recovery and body composition.",
-      source: "Journal of Clinical Endocrinology & Metabolism, 2006"
-    },
-    {
-      category: "IMMUNE FUNCTION",
-      headline: "Peptides Boost Immunity",
-      summary: "Immune-supporting peptides have been shown to enhance immune function in clinical trials, with applications in infection support and immune deficiency conditions.",
-      source: "Expert Opinion on Biological Therapy, 2017"
-    },
-    {
-      category: "MITOCHONDRIAL HEALTH",
-      headline: "Peptides Support Cellular Energy",
-      summary: "Research shows mitochondrial peptides support cellular energy production, metabolic function, and exercise capacity — key factors in healthy aging and performance.",
-      source: "Cell Metabolism, 2020"
-    }
-  ];
-
+  
   return (
     <Layout
       title="Peptide Therapy | Healing, Recovery & Performance | Newport Beach | Range Medical"
@@ -415,12 +390,17 @@ export default function PeptideTherapy() {
             </div>
 
             <div className="pep-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="pep-research-card pep-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="pep-research-card pep-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="pep-research-category">{study.category}</div>
                   <h3 className="pep-research-headline">{study.headline}</h3>
                   <p className="pep-research-summary">{study.summary}</p>
-                  <p className="pep-research-source">{study.source}</p>
+                  <p className="pep-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -498,6 +478,13 @@ export default function PeptideTherapy() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="peptide-therapy"
+        />
       </div>
 
       <style jsx>{`
@@ -848,12 +835,14 @@ export default function PeptideTherapy() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .pep-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .pep-research-category {

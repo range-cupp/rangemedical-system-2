@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function PRPTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('prp-therapy');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function PRPTherapy() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -89,45 +102,7 @@ export default function PRPTherapy() {
     { step: "Step 4", title: "Healing begins", desc: "Growth factors in the PRP signal your body to repair the area. Healing continues over weeks to months as new tissue forms." }
   ];
 
-  const researchStudies = [
-    {
-      category: "KNEE OSTEOARTHRITIS",
-      headline: "PRP Improves Knee Function",
-      summary: "Multiple clinical trials show PRP injections significantly improve pain and function scores in patients with knee osteoarthritis, with effects lasting 6-12 months in many cases.",
-      source: "Filardo et al., Knee Surgery Sports Traumatology Arthroscopy, 2015"
-    },
-    {
-      category: "TENDON HEALING",
-      headline: "PRP Supports Tendon Repair",
-      summary: "Research demonstrates that PRP enhances tendon healing by promoting collagen synthesis, cell proliferation, and tissue remodeling in damaged tendons.",
-      source: "Andia & Maffulli, Nature Reviews Rheumatology, 2013"
-    },
-    {
-      category: "TENNIS ELBOW",
-      headline: "PRP Effective for Lateral Epicondylitis",
-      summary: "Studies show PRP injections provide significant pain relief and functional improvement in chronic tennis elbow that hasn't responded to conservative treatment.",
-      source: "Gosens et al., American Journal of Sports Medicine, 2011"
-    },
-    {
-      category: "GROWTH FACTORS",
-      headline: "Platelets Release Healing Factors",
-      summary: "Platelets contain and release multiple growth factors (PDGF, TGF-β, VEGF) that promote tissue repair, angiogenesis, and cellular proliferation at the injury site.",
-      source: "Foster et al., Sports Medicine, 2009"
-    },
-    {
-      category: "ROTATOR CUFF",
-      headline: "PRP May Support Rotator Cuff Healing",
-      summary: "Clinical evidence suggests PRP injections can improve outcomes in partial rotator cuff tears and may support healing when used alongside physical therapy.",
-      source: "Carr et al., Arthroscopy, 2015"
-    },
-    {
-      category: "SAFETY",
-      headline: "Excellent Safety Profile",
-      summary: "Because PRP uses the patient's own blood, the risk of adverse reactions is minimal. Large reviews confirm PRP's safety profile with very low complication rates.",
-      source: "Chahla et al., Orthopaedic Journal of Sports Medicine, 2017"
-    }
-  ];
-
+  
   return (
     <Layout
       title="PRP Therapy | Platelet-Rich Plasma Injections | Newport Beach | Range Medical"
@@ -377,12 +352,17 @@ export default function PRPTherapy() {
             </div>
 
             <div className="prp-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="prp-research-card prp-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="prp-research-card prp-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="prp-research-category">{study.category}</div>
                   <h3 className="prp-research-headline">{study.headline}</h3>
                   <p className="prp-research-summary">{study.summary}</p>
-                  <p className="prp-research-source">{study.source}</p>
+                  <p className="prp-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -434,6 +414,13 @@ export default function PRPTherapy() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="prp-therapy"
+        />
       </div>
 
       <style jsx>{`
@@ -764,12 +751,14 @@ export default function PRPTherapy() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .prp-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .prp-research-category {

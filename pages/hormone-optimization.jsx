@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function HormoneOptimization() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('hormone-optimization');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function HormoneOptimization() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -104,45 +117,7 @@ export default function HormoneOptimization() {
     { icon: "📱", title: "Direct Provider Access", desc: "Text or call your provider directly. No waiting for appointments for simple questions." }
   ];
 
-  const researchStudies = [
-    {
-      category: "ENERGY & FATIGUE",
-      headline: "Significant Improvement in Fatigue Symptoms",
-      summary: "A meta-analysis of 27 randomized controlled trials found that testosterone therapy significantly improved fatigue symptoms in men with low testosterone, with effects seen as early as 4 weeks into treatment.",
-      source: "Journal of Clinical Endocrinology & Metabolism, 2018"
-    },
-    {
-      category: "BODY COMPOSITION",
-      headline: "Increased Lean Mass, Decreased Fat Mass",
-      summary: "A systematic review of 59 studies found that testosterone therapy increased lean body mass by an average of 3-5 kg and decreased fat mass by 2-3 kg over 6-12 months in men with low testosterone.",
-      source: "Endocrine Reviews, 2018"
-    },
-    {
-      category: "COGNITIVE FUNCTION",
-      headline: "Improved Verbal Memory and Spatial Ability",
-      summary: "A randomized controlled trial showed that testosterone therapy improved verbal memory and spatial ability in older men with low testosterone levels over a 12-month period.",
-      source: "JAMA Internal Medicine, 2017"
-    },
-    {
-      category: "MOOD & DEPRESSION",
-      headline: "Reduced Depressive Symptoms",
-      summary: "A meta-analysis of 27 randomized controlled trials found that testosterone treatment significantly reduced depressive symptoms, particularly in men with baseline low testosterone and mild depression.",
-      source: "JAMA Psychiatry, 2019"
-    },
-    {
-      category: "BONE HEALTH",
-      headline: "Increased Bone Mineral Density",
-      summary: "The Testosterone Trials found that one year of testosterone treatment significantly increased volumetric bone mineral density and estimated bone strength in older men with low testosterone.",
-      source: "JAMA Internal Medicine, 2017"
-    },
-    {
-      category: "CARDIOVASCULAR",
-      headline: "No Increased Cardiovascular Risk",
-      summary: "A large randomized controlled trial (TRAVERSE) of over 5,000 men found that testosterone replacement therapy did not increase the incidence of major cardiovascular events compared to placebo.",
-      source: "New England Journal of Medicine, 2023"
-    }
-  ];
-
+  
   return (
     <Layout
       title="Hormone Optimization & HRT | Newport Beach | Range Medical"
@@ -422,12 +397,17 @@ export default function HormoneOptimization() {
             </div>
 
             <div className="hrt-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="hrt-research-card hrt-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="hrt-research-card hrt-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="hrt-research-category">{study.category}</div>
                   <h3 className="hrt-research-headline">{study.headline}</h3>
                   <p className="hrt-research-summary">{study.summary}</p>
-                  <p className="hrt-research-source">{study.source}</p>
+                  <p className="hrt-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -505,6 +485,13 @@ export default function HormoneOptimization() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="hormone-optimization"
+        />
       </div>
 
       <style jsx>{`
@@ -899,12 +886,14 @@ export default function HormoneOptimization() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .hrt-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .hrt-research-category {

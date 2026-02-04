@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function WeightLoss() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('weight-loss');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function WeightLoss() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -112,45 +125,7 @@ export default function WeightLoss() {
     { step: "Step 4", title: "Ongoing support", desc: "Weekly check-ins, dose adjustments based on your response, and lab monitoring throughout your journey. Real support, not just refills." }
   ];
 
-  const researchStudies = [
-    {
-      category: "WEIGHT LOSS",
-      headline: "22.5% Body Weight Reduction with Tirzepatide",
-      summary: "The SURMOUNT-1 trial found that participants taking the highest dose of tirzepatide lost an average of 22.5% of their body weight over 72 weeks — more than any other approved obesity medication.",
-      source: "New England Journal of Medicine, 2022"
-    },
-    {
-      category: "WEIGHT LOSS",
-      headline: "15% Body Weight Reduction with Semaglutide",
-      summary: "The STEP 1 trial showed that participants taking semaglutide 2.4mg lost an average of 14.9% of their body weight over 68 weeks, with one-third losing more than 20%.",
-      source: "New England Journal of Medicine, 2021"
-    },
-    {
-      category: "CARDIOVASCULAR",
-      headline: "20% Reduction in Heart Attack and Stroke Risk",
-      summary: "The SELECT trial found that semaglutide reduced the risk of major cardiovascular events (heart attack, stroke, cardiovascular death) by 20% in overweight adults with heart disease.",
-      source: "New England Journal of Medicine, 2023"
-    },
-    {
-      category: "METABOLIC HEALTH",
-      headline: "Significant Improvements in Blood Sugar Control",
-      summary: "GLP-1 medications consistently improve HbA1c levels and insulin sensitivity, with many pre-diabetic patients returning to normal blood sugar ranges during treatment.",
-      source: "Diabetes Care, 2022"
-    },
-    {
-      category: "APPETITE",
-      headline: "Reduced Hunger and Increased Satiety",
-      summary: "Neuroimaging studies show that GLP-1 medications reduce activity in brain regions associated with appetite and food reward, explaining why patients feel satisfied with less food.",
-      source: "Nature Medicine, 2023"
-    },
-    {
-      category: "MAINTENANCE",
-      headline: "Sustained Weight Loss at 2+ Years",
-      summary: "Long-term follow-up studies show that patients who continue GLP-1 therapy maintain their weight loss, while those who stop typically regain — highlighting the importance of a long-term plan.",
-      source: "JAMA, 2024"
-    }
-  ];
-
+  
   return (
     <Layout
       title="Medical Weight Loss | Tirzepatide & Semaglutide | Newport Beach | Range Medical"
@@ -426,12 +401,17 @@ export default function WeightLoss() {
             </div>
 
             <div className="wl-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="wl-research-card wl-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="wl-research-card wl-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="wl-research-category">{study.category}</div>
                   <h3 className="wl-research-headline">{study.headline}</h3>
                   <p className="wl-research-summary">{study.summary}</p>
-                  <p className="wl-research-source">{study.source}</p>
+                  <p className="wl-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -509,6 +489,13 @@ export default function WeightLoss() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="weight-loss"
+        />
       </div>
 
       <style jsx>{`
@@ -898,12 +885,14 @@ export default function WeightLoss() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .wl-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .wl-research-category {

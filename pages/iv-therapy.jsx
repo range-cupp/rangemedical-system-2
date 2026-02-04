@@ -5,9 +5,14 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function IVTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('iv-therapy');
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function IVTherapy() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
   };
 
   const faqs = [
@@ -83,45 +96,7 @@ export default function IVTherapy() {
     "General Wellness"
   ];
 
-  const researchStudies = [
-    {
-      category: "BIOAVAILABILITY",
-      headline: "IV Delivery Achieves Higher Nutrient Levels",
-      summary: "Research shows IV administration of vitamins achieves significantly higher blood concentrations than oral supplementation. Vitamin C, for example, reaches plasma levels 50-70x higher via IV than the maximum achievable orally.",
-      source: "Padayatty et al., Annals of Internal Medicine, 2004"
-    },
-    {
-      category: "IMMUNE FUNCTION",
-      headline: "High-Dose Vitamin C Supports Immune Response",
-      summary: "Studies demonstrate that high-dose intravenous Vitamin C supports immune cell function and may reduce duration and severity of illness. IV delivery is required to achieve therapeutic concentrations.",
-      source: "Carr & Maggini, Nutrients, 2017"
-    },
-    {
-      category: "HYDRATION",
-      headline: "IV Fluids Restore Hydration Faster",
-      summary: "IV hydration restores fluid balance more rapidly than oral intake, particularly important for athletes, illness recovery, and situations where oral intake is compromised.",
-      source: "Casa et al., Journal of Athletic Training, 2000"
-    },
-    {
-      category: "ANTIOXIDANT",
-      headline: "Glutathione Supports Detoxification",
-      summary: "Glutathione is the body's master antioxidant. IV administration bypasses the digestive breakdown that limits oral glutathione absorption, delivering active glutathione directly to cells.",
-      source: "Richie et al., European Journal of Nutrition, 2015"
-    },
-    {
-      category: "ENERGY",
-      headline: "B Vitamins Essential for Energy Production",
-      summary: "B vitamins are cofactors in cellular energy production pathways. IV delivery ensures adequate levels for individuals with absorption issues or increased metabolic demands.",
-      source: "Kennedy, Nutrients, 2016"
-    },
-    {
-      category: "RECOVERY",
-      headline: "Magnesium Supports Muscle Recovery",
-      summary: "Magnesium plays a critical role in muscle function, protein synthesis, and recovery. Many athletes are deficient, and IV magnesium can rapidly restore optimal levels.",
-      source: "Nielsen & Lukaski, Magnesium Research, 2006"
-    }
-  ];
-
+  
   return (
     <Layout
       title="IV Therapy | Vitamin Infusions | Newport Beach | Range Medical"
@@ -372,12 +347,17 @@ export default function IVTherapy() {
             </div>
 
             <div className="iv-research-grid">
-              {researchStudies.map((study, i) => (
-                <div key={i} className="iv-research-card iv-animate">
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="iv-research-card iv-animate"
+                  onClick={() => handleResearchClick(study.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="iv-research-category">{study.category}</div>
                   <h3 className="iv-research-headline">{study.headline}</h3>
                   <p className="iv-research-summary">{study.summary}</p>
-                  <p className="iv-research-source">{study.source}</p>
+                  <p className="iv-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
@@ -429,6 +409,13 @@ export default function IVTherapy() {
             </div>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="iv-therapy"
+        />
       </div>
 
       <style jsx>{`
@@ -772,12 +759,14 @@ export default function IVTherapy() {
           border-radius: 12px;
           border: 1px solid #e5e5e5;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
         .iv-research-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
         }
 
         .iv-research-category {

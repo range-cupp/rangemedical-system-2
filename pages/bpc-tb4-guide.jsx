@@ -411,6 +411,7 @@ export default function BPCTB4Guide() {
           font-size: 1.125rem;
           font-weight: 700;
           margin-bottom: 0.5rem;
+          color: #ffffff;
         }
         
         .combo-box p {

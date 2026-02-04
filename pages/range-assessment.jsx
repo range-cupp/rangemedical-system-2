@@ -138,7 +138,8 @@ export default function RangeAssessment() {
     injuryLocationOther: '',
     injuryDuration: '',
     inPhysicalTherapy: '',
-    recoveryGoal: '',
+    recoveryGoal: [],
+    wantsPTRecommendation: null,
     symptoms: [],
     symptomDuration: '',
     lastLabWork: '',
@@ -343,20 +344,21 @@ export default function RangeAssessment() {
       bpcBenefits.push('Could promote bone and surrounding tissue repair');
     }
 
-    // TB-4 benefits based on recovery goal
-    if (recoveryGoal === 'reduce_pain') {
+    // TB-4 benefits based on recovery goals (now an array)
+    const goals = recoveryGoal || [];
+    if (goals.includes('reduce_pain')) {
       tb4Benefits.push('May help reduce inflammation and swelling');
     }
-    if (recoveryGoal === 'speed_healing') {
+    if (goals.includes('speed_healing')) {
       tb4Benefits.push('Could bring more blood flow to the injured area');
     }
-    if (recoveryGoal === 'return_sport') {
+    if (goals.includes('return_sport')) {
       tb4Benefits.push('May help rebuild tissue strength for activity');
     }
-    if (recoveryGoal === 'avoid_surgery') {
+    if (goals.includes('avoid_surgery')) {
       tb4Benefits.push('Could support natural healing');
     }
-    if (recoveryGoal === 'post_surgery') {
+    if (goals.includes('post_surgery')) {
       tb4Benefits.push('May promote faster recovery after surgical repair');
     }
 
@@ -488,11 +490,45 @@ export default function RangeAssessment() {
                   <span className="inj-res-value">{durationLabels[formData.injuryDuration] || '-'}</span>
                 </div>
                 <div>
-                  <span className="inj-res-label">Goal</span>
-                  <span className="inj-res-value">{goalLabels[formData.recoveryGoal] || '-'}</span>
+                  <span className="inj-res-label">Goals</span>
+                  <span className="inj-res-value">
+                    {(formData.recoveryGoal || []).length > 0
+                      ? formData.recoveryGoal.map(g => goalLabels[g]).join(', ')
+                      : '-'}
+                  </span>
                 </div>
               </div>
             </div>
+
+            {/* Physical Therapy Recommendation - only show if not in PT */}
+            {formData.inPhysicalTherapy === 'no' && (
+              <div className="inj-res-pt-card">
+                <h3>Physical Therapy Can Help</h3>
+                <p>
+                  You mentioned you're not currently in physical therapy. Combining peptide treatment with PT often leads to better results.
+                </p>
+                <p className="inj-res-pt-question">
+                  Would you like a recommendation from <strong>Range Sports Therapy</strong>? They work closely with us to help patients recover faster.
+                </p>
+                <div className="inj-res-pt-buttons">
+                  <button
+                    className={`inj-res-pt-btn ${formData.wantsPTRecommendation === true ? 'selected' : ''}`}
+                    onClick={() => handleInputChange('wantsPTRecommendation', true)}
+                  >
+                    Yes, I'm interested
+                  </button>
+                  <button
+                    className={`inj-res-pt-btn inj-res-pt-btn-outline ${formData.wantsPTRecommendation === false ? 'selected' : ''}`}
+                    onClick={() => handleInputChange('wantsPTRecommendation', false)}
+                  >
+                    No thanks
+                  </button>
+                </div>
+                {formData.wantsPTRecommendation === true && (
+                  <p className="inj-res-pt-confirm">Great! We'll include this in your intake and have Range Sports Therapy reach out.</p>
+                )}
+              </div>
+            )}
 
             {/* Next Step */}
             <div className="inj-res-next-card">
@@ -728,6 +764,92 @@ export default function RangeAssessment() {
             font-weight: 600;
           }
 
+          /* PT Recommendation Card */
+          .inj-res-pt-card {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+          }
+
+          .inj-res-pt-card h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #0c4a6e;
+            margin: 0 0 0.75rem;
+          }
+
+          .inj-res-pt-card > p {
+            font-size: 0.95rem;
+            color: #0369a1;
+            line-height: 1.6;
+            margin: 0 0 1rem;
+          }
+
+          .inj-res-pt-question {
+            font-size: 1rem;
+            color: #0c4a6e;
+            margin: 1rem 0;
+          }
+
+          .inj-res-pt-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+          }
+
+          .inj-res-pt-btn {
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #0284c7;
+            background: #0284c7;
+            color: #ffffff;
+            font-family: inherit;
+          }
+
+          .inj-res-pt-btn:hover {
+            background: #0369a1;
+            border-color: #0369a1;
+          }
+
+          .inj-res-pt-btn.selected {
+            background: #0369a1;
+            border-color: #0369a1;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+          }
+
+          .inj-res-pt-btn-outline {
+            background: transparent;
+            color: #0284c7;
+          }
+
+          .inj-res-pt-btn-outline:hover {
+            background: #e0f2fe;
+            border-color: #0284c7;
+            color: #0284c7;
+          }
+
+          .inj-res-pt-btn-outline.selected {
+            background: #e0f2fe;
+            border-color: #0284c7;
+            color: #0284c7;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+          }
+
+          .inj-res-pt-confirm {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: #dcfce7;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #166534;
+          }
+
           @media (max-width: 640px) {
             .inj-res-hero {
               padding: 3rem 1.5rem;
@@ -743,6 +865,15 @@ export default function RangeAssessment() {
 
             .inj-res-summary-grid {
               grid-template-columns: 1fr;
+            }
+
+            .inj-res-pt-buttons {
+              flex-direction: column;
+            }
+
+            .inj-res-pt-btn {
+              width: 100%;
+              text-align: center;
             }
           }
         `}</style>
@@ -1078,10 +1209,10 @@ export default function RangeAssessment() {
     },
     {
       id: 'recoveryGoal',
-      question: "What's your main recovery goal?",
-      type: 'select',
+      question: "What are your recovery goals?",
+      subtitle: "Select all that apply",
+      type: 'multiselect',
       options: [
-        { value: '', label: 'Select one...' },
         { value: 'return_sport', label: 'Return to sport or athletic activity' },
         { value: 'daily_activities', label: 'Get back to daily activities pain-free' },
         { value: 'avoid_surgery', label: 'Avoid surgery if possible' },
@@ -1720,6 +1851,38 @@ const styles = `
   .ra-other-input:focus {
     outline: none;
     border-color: #000000;
+  }
+
+  .ra-pt-suggestion {
+    display: flex;
+    gap: 1rem;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .ra-pt-suggestion-icon {
+    flex-shrink: 0;
+    color: #0284c7;
+  }
+
+  .ra-pt-suggestion-content p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #0c4a6e;
+    line-height: 1.5;
+  }
+
+  .ra-pt-suggestion-content p:first-child {
+    margin-bottom: 0.25rem;
+  }
+
+  .ra-pt-suggestion-content a {
+    color: #0284c7;
+    font-weight: 600;
+    text-decoration: underline;
   }
 
   .ra-radio-group {

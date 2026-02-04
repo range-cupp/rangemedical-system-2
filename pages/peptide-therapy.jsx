@@ -471,7 +471,7 @@ export default function PeptideTherapy() {
                 Start with a $199 Range Assessment. We'll discuss your goals and design a peptide protocol for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="pep-cta-buttons">
-                <Link href="/book?reason=injury" className="pep-btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment?path=injury" className="pep-btn-primary">Book Your Assessment</Link>
                 <div className="pep-cta-or">or</div>
                 <a href="tel:9499973988" className="pep-cta-phone">(949) 997-3988</a>
               </div>

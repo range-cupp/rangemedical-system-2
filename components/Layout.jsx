@@ -63,7 +63,7 @@ export default function Layout({ children, title, description }) {
               <Link href="/lab-panels" className="rm-nav-link">Labs & Testing</Link>
             </div>
 
-            <Link href="/book" className="rm-nav-cta">
+            <Link href="/range-assessment" className="rm-nav-cta">
               Book Assessment
             </Link>
           </nav>
@@ -98,7 +98,7 @@ export default function Layout({ children, title, description }) {
           <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
           <div className="rm-mobile-divider"></div>
           <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
-          <Link href="/book" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</Link>
+          <Link href="/range-assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</Link>
         </div>
       </header>
 

@@ -162,7 +162,7 @@ export default function Home() {
                   <li>Get a clear protocol recommendation</li>
                   <li>$199 credited toward your program</li>
                 </ul>
-                <Link href="/book?reason=injury" className="home-door-btn">
+                <Link href="/range-assessment?path=injury" className="home-door-btn">
                   Book Assessment
                 </Link>
               </div>
@@ -182,7 +182,7 @@ export default function Home() {
                   <li>Get a personalized program</li>
                   <li>$199 credited toward treatment</li>
                 </ul>
-                <Link href="/book?reason=energy" className="home-door-btn">
+                <Link href="/range-assessment?path=energy" className="home-door-btn">
                   Book Assessment
                 </Link>
               </div>
@@ -374,10 +374,10 @@ export default function Home() {
               Pick the door that fits your situation. Both start with a $199 Range Assessment.
             </p>
             <div className="home-cta-buttons">
-              <Link href="/book?reason=injury" className="home-btn-white">
+              <Link href="/range-assessment?path=injury" className="home-btn-white">
                 Injury & Recovery
               </Link>
-              <Link href="/book?reason=energy" className="home-btn-outline-white">
+              <Link href="/range-assessment?path=energy" className="home-btn-outline-white">
                 Energy & Optimization
               </Link>
             </div>

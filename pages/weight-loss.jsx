@@ -482,7 +482,7 @@ export default function WeightLoss() {
                 Start with a $199 Range Assessment. We'll review your history, run labs, and see if GLP-1 medications are right for you. Our Newport Beach team is here to help.
               </p>
               <div className="wl-cta-buttons">
-                <Link href="/book?reason=energy" className="wl-btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment?path=energy" className="wl-btn-primary">Book Your Assessment</Link>
                 <div className="wl-cta-or">or</div>
                 <a href="tel:9499973988" className="wl-cta-phone">(949) 997-3988</a>
               </div>

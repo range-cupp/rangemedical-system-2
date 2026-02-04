@@ -443,7 +443,7 @@ export default function InjuryRecovery() {
             <p className="inj-cta-text">
               Book your Range Assessment. If you move forward with a program, the $199 is credited toward it.
             </p>
-            <Link href="/book?reason=injury" className="inj-btn-white">Book Assessment — $199</Link>
+            <Link href="/range-assessment?path=injury" className="inj-btn-white">Book Assessment — $199</Link>
             <p className="inj-cta-location">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>

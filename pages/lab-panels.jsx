@@ -378,11 +378,11 @@ export default function LabPanels() {
                   <div className="lab-chart-marker-col lab-chart-total">Total Biomarkers</div>
                   <div className="lab-chart-panel-col">
                     <span className="lab-chart-count">{activeTab === 'men' ? menEssential.length : womenEssential.length}</span>
-                    <Link href="/book?reason=energy" className="lab-btn-secondary-sm">Book Essential</Link>
+                    <Link href="/range-assessment?path=energy" className="lab-btn-secondary-sm">Book Essential</Link>
                   </div>
                   <div className="lab-chart-panel-col lab-chart-panel-featured">
                     <span className="lab-chart-count">{activeTab === 'men' ? menEssential.length + menEliteExtra.length : womenEssential.length + womenEliteExtra.length}</span>
-                    <Link href="/book?reason=energy" className="lab-btn-primary-sm">Book Elite</Link>
+                    <Link href="/range-assessment?path=energy" className="lab-btn-primary-sm">Book Elite</Link>
                   </div>
                 </div>
               </div>
@@ -488,7 +488,7 @@ export default function LabPanels() {
               Book an Assessment to discuss which panel is right for you and get the most value from your lab work.
             </p>
             <div className="lab-cta-buttons">
-              <Link href="/book?reason=energy" className="lab-btn-white">Book Assessment — $199</Link>
+              <Link href="/range-assessment?path=energy" className="lab-btn-white">Book Assessment — $199</Link>
             </div>
             <p className="lab-cta-phone">
               Or call <a href="tel:9499973988">(949) 997-3988</a> to schedule labs directly

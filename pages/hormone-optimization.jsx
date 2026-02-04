@@ -478,7 +478,7 @@ export default function HormoneOptimization() {
                 Start with a $199 Range Assessment. We'll review your symptoms, run comprehensive labs, and build a plan. Our Newport Beach team is here to help.
               </p>
               <div className="hrt-cta-buttons">
-                <Link href="/book?reason=energy" className="hrt-btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment?path=energy" className="hrt-btn-primary">Book Your Assessment</Link>
                 <div className="hrt-cta-or">or</div>
                 <a href="tel:9499973988" className="hrt-cta-phone">(949) 997-3988</a>
               </div>

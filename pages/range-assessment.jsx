@@ -10,84 +10,84 @@ const biomarkerMapping = {
     fatigue: {
       essential: ['TSH', 'T3, Free', 'T4, Total', 'Testosterone (Free & Total)', 'Vitamin D', 'HbA1c', 'CBC'],
       elite: ['Ferritin', 'Iron & TIBC', 'Vitamin B-12', 'Cortisol'],
-      reason: 'Fatigue often stems from thyroid dysfunction, low testosterone, vitamin deficiencies, or metabolic issues.'
+      reason: 'Feeling tired can come from your thyroid, low hormones, or missing vitamins.'
     },
     brain_fog: {
       essential: ['TSH', 'T3, Free', 'T4, Total', 'Testosterone (Free & Total)', 'Vitamin D'],
       elite: ['Vitamin B-12', 'Homocysteine', 'Cortisol', 'Ferritin'],
-      reason: 'Brain fog is commonly linked to thyroid imbalances, hormone deficiency, and B-vitamin status.'
+      reason: 'Trouble focusing is often caused by thyroid or hormone levels being off.'
     },
     weight_gain: {
       essential: ['TSH', 'T3, Free', 'T4, Total', 'Insulin, Fasting', 'HbA1c', 'Testosterone (Free & Total)', 'Estradiol'],
       elite: ['Cortisol', 'DHEA-S', 'Lipid Panel (Advanced)'],
-      reason: 'Unexplained weight gain often points to thyroid issues, insulin resistance, or hormone imbalances.'
+      reason: 'Gaining weight for no clear reason can point to thyroid or blood sugar issues.'
     },
     poor_sleep: {
       essential: ['TSH', 'Testosterone (Free & Total)', 'Estradiol'],
       elite: ['Cortisol', 'DHEA-S', 'Magnesium'],
-      reason: 'Sleep quality is directly affected by cortisol patterns, hormone levels, and mineral status.'
+      reason: 'Bad sleep is often tied to stress hormones or hormone levels being off.'
     },
     low_libido: {
       essential: ['Testosterone (Free & Total)', 'SHBG', 'Estradiol', 'TSH'],
       elite: ['DHEA-S', 'Cortisol', 'Prolactin'],
-      reason: 'Libido is primarily driven by testosterone and balanced by estrogen and stress hormones.'
+      reason: 'Low sex drive is usually linked to testosterone and other key hormones.'
     },
     muscle_loss: {
       essential: ['Testosterone (Free & Total)', 'SHBG'],
       elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'CRP-HS'],
-      reason: 'Muscle maintenance requires adequate testosterone and growth factors, while high cortisol breaks down muscle.'
+      reason: 'Losing muscle often means testosterone is low or stress hormones are too high.'
     },
     mood_changes: {
       essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D'],
       elite: ['Vitamin B-12', 'Cortisol', 'DHEA-S', 'Homocysteine'],
-      reason: 'Mood is heavily influenced by thyroid function, hormones, and B-vitamin/homocysteine status.'
+      reason: 'Mood swings can be caused by thyroid issues, hormone levels, or low vitamins.'
     },
     recovery: {
       essential: ['Testosterone (Free & Total)', 'CBC'],
       elite: ['IGF-1', 'Cortisol', 'CRP-HS', 'Ferritin', 'Magnesium'],
-      reason: 'Recovery depends on anabolic hormones, inflammation levels, and mineral status.'
+      reason: 'Slow recovery often means hormones or minerals are out of balance.'
     }
   },
   goals: {
     more_energy: {
       essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D', 'HbA1c'],
       elite: ['Vitamin B-12', 'Ferritin', 'Iron & TIBC', 'Cortisol'],
-      reason: 'Sustained energy requires optimal thyroid, hormones, and nutrient levels.'
+      reason: 'Lasting energy needs your thyroid, hormones, and vitamins working well together.'
     },
     better_sleep: {
       essential: ['TSH', 'Testosterone (Free & Total)'],
       elite: ['Cortisol', 'Magnesium', 'DHEA-S'],
-      reason: 'Quality sleep is regulated by cortisol rhythm and hormone balance.'
+      reason: 'Good sleep depends on balanced stress hormones and the right mineral levels.'
     },
     lose_weight: {
       essential: ['TSH', 'T3, Free', 'T4, Total', 'Insulin, Fasting', 'HbA1c', 'Testosterone (Free & Total)', 'Lipid Panel'],
       elite: ['Cortisol', 'CRP-HS', 'Apolipoprotein B'],
-      reason: 'Weight loss success depends on metabolic health, insulin sensitivity, and inflammation.'
+      reason: 'Weight loss works best when your thyroid, blood sugar, and hormones are in check.'
     },
     build_muscle: {
       essential: ['Testosterone (Free & Total)', 'SHBG'],
       elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'CRP-HS'],
-      reason: 'Muscle building requires optimal testosterone, IGF-1, and low inflammation.'
+      reason: 'Building muscle needs good testosterone levels and low inflammation.'
     },
     mental_clarity: {
       essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D'],
       elite: ['Vitamin B-12', 'Homocysteine', 'Folate', 'Cortisol'],
-      reason: 'Mental clarity depends on brain-thyroid connection and methylation nutrients.'
+      reason: 'Clear thinking depends on your thyroid and B-vitamins working together.'
     },
     feel_myself: {
       essential: ['Full Hormone Panel', 'Thyroid Panel', 'Metabolic Markers'],
       elite: ['Comprehensive Testing'],
-      reason: 'A complete picture helps identify exactly what\'s off and how to restore balance.'
+      reason: 'A full picture helps us find exactly what\'s off so we can fix it.'
     },
     longevity: {
       essential: ['Lipid Panel', 'HbA1c', 'Insulin'],
       elite: ['Apolipoprotein B', 'Lipoprotein(a)', 'Homocysteine', 'CRP-HS', 'IGF-1', 'Uric Acid'],
-      reason: 'Longevity optimization requires advanced cardiovascular and metabolic markers.'
+      reason: 'Living longer and healthier means checking your heart and blood sugar markers closely.'
     },
     performance: {
       essential: ['Testosterone (Free & Total)', 'SHBG', 'Estradiol', 'CBC'],
       elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'Ferritin', 'Iron & TIBC', 'Magnesium'],
-      reason: 'Peak performance depends on optimal hormones, oxygen-carrying capacity, and recovery factors.'
+      reason: 'Peak performance needs strong hormones, good iron levels, and fast recovery.'
     }
   }
 };
@@ -219,31 +219,31 @@ export default function RangeAssessment() {
 
     // Elite if: hasn't had labs in over a year or never
     if (lastLabWork === 'over_year' || lastLabWork === 'never') {
-      eliteReasons.push("It's been a while since your last blood work — a comprehensive baseline will give us the full picture");
+      eliteReasons.push("It's been a while since your last blood work — we should check everything to see where you stand");
     }
     // Elite if: longevity goal
     if (goals.includes('longevity')) {
-      eliteReasons.push('You\'re focused on longevity — this requires advanced cardiovascular and metabolic markers');
+      eliteReasons.push('You want to live longer and healthier — we need to check your heart and blood sugar markers closely');
     }
     // Elite if: 3+ symptoms
     if (symptoms.length >= 3) {
-      eliteReasons.push('Multiple symptoms suggest a more comprehensive evaluation is needed');
+      eliteReasons.push('You have several symptoms — we should check more markers to get the full picture');
     }
     // Elite if: performance goal
     if (goals.includes('performance')) {
-      eliteReasons.push('Optimizing performance requires tracking growth factors and recovery markers');
+      eliteReasons.push('Peak performance needs us to check your growth and recovery hormones');
     }
     // Elite if: brain fog + mood/fatigue combo
     if (symptoms.includes('brain_fog') && (symptoms.includes('mood_changes') || symptoms.includes('fatigue'))) {
-      eliteReasons.push('Your symptom combination benefits from B-vitamin and methylation testing');
+      eliteReasons.push('Your symptoms together suggest we should check your B-vitamins and brain health markers');
     }
     // Elite if: muscle-related
     if (symptoms.includes('muscle_loss') || goals.includes('build_muscle')) {
-      eliteReasons.push('Muscle-related goals require IGF-1 and advanced hormone markers');
+      eliteReasons.push('Building or keeping muscle means we need to check your growth hormones');
     }
     // Elite if: slow recovery
     if (symptoms.includes('recovery')) {
-      eliteReasons.push('Slow recovery often involves inflammation — CRP and IGF-1 provide key insights');
+      eliteReasons.push('Slow recovery usually means we should check for hidden inflammation');
     }
 
     const recommendElite = eliteReasons.length > 0;
@@ -301,6 +301,20 @@ export default function RangeAssessment() {
     essential: 'https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7'
   };
 
+  // Open payment in centered popup window
+  const openPaymentPopup = (panelType) => {
+    const url = PAYMENT_LINKS[panelType];
+    const width = 500;
+    const height = 700;
+    const left = (window.innerWidth - width) / 2 + window.screenX;
+    const top = (window.innerHeight - height) / 2 + window.screenY;
+    window.open(
+      url,
+      'RangePayment',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
+  };
+
   // Results screen for Energy path
   if (showResults && recommendation) {
     return (
@@ -316,7 +330,7 @@ export default function RangeAssessment() {
             <span className="res-kicker">Your Personalized Recommendation</span>
             <h1>Here's What We Need to Check</h1>
             <p className="res-intro">
-              Based on what you told us, we've identified the specific biomarkers that matter for your situation.
+              Based on your answers, here's what we recommend testing to find out what's going on.
             </p>
           </div>
         </section>
@@ -340,8 +354,8 @@ export default function RangeAssessment() {
                   </div>
                   <p className="res-panel-desc">
                     {recommendation.panel === 'elite'
-                      ? 'Comprehensive testing with advanced cardiovascular, inflammation, and longevity markers.'
-                      : 'Core hormone, thyroid, and metabolic markers for a solid health baseline.'
+                      ? 'Our most complete panel — checks your hormones, heart health, inflammation, and more.'
+                      : 'A great starting point — covers your hormones, thyroid, and blood sugar.'
                     }
                   </p>
 
@@ -381,23 +395,23 @@ export default function RangeAssessment() {
                   </div>
                 )}
 
-                <a
-                  href={PAYMENT_LINKS[recommendation.panel]}
+                <button
+                  onClick={() => openPaymentPopup(recommendation.panel)}
                   className="res-panel-cta"
                 >
                   Pay & Book {recommendation.panel === 'elite' ? 'Elite' : 'Essential'} Panel
-                </a>
+                </button>
 
                   {recommendation.panel === 'elite' && (
-                  <a href={PAYMENT_LINKS.essential} className="res-panel-alt">
+                  <button onClick={() => openPaymentPopup('essential')} className="res-panel-alt">
                     Or start with Essential — $350
-                  </a>
+                  </button>
                 )}
                 </div>
 
                 {/* Biomarkers */}
                 <div className="res-card">
-                  <h3>Key Biomarkers We'll Check</h3>
+                  <h3>What We'll Test</h3>
                   <div className="res-markers">
                     {recommendation.essentialMarkers.slice(0, 10).map((marker, i) => (
                       <span key={i} className="res-marker">{marker}</span>
@@ -409,14 +423,14 @@ export default function RangeAssessment() {
                   <p className="res-markers-more">
                     {recommendation.panel === 'elite'
                       ? `+ ${Math.max(0, 36 - 16)} more markers included`
-                      : '+ thyroid antibodies, lipids, and metabolic markers'
+                      : '+ thyroid, cholesterol, and blood sugar tests'
                     }
                   </p>
                 </div>
 
                 {/* Why These Matter */}
                 <div className="res-card">
-                  <h3>Why These Markers Matter For You</h3>
+                  <h3>Why We're Checking These</h3>
                   <div className="res-reasons-list">
                     {recommendation.reasons.slice(0, 4).map((item, i) => (
                       <div key={i} className="res-reason">
@@ -480,7 +494,7 @@ export default function RangeAssessment() {
                       <div className="res-step-num">4</div>
                       <div>
                         <h4>Review Results Together</h4>
-                        <p>Your provider walks through everything and builds your personalized plan.</p>
+                        <p>Your provider goes over your results and creates a plan just for you.</p>
                       </div>
                     </div>
                   </div>
@@ -1722,6 +1736,9 @@ const resultsStyles = `
     text-align: center;
     transition: background 0.2s;
     box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
   }
 
   .res-panel-cta:hover {
@@ -1734,6 +1751,11 @@ const resultsStyles = `
     font-size: 0.875rem;
     color: #737373;
     text-decoration: underline;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
   }
 
   .res-panel-alt:hover {

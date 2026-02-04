@@ -133,7 +133,9 @@ export default function RangeAssessment() {
     email: '',
     phone: '',
     injuryType: '',
+    injuryTypeOther: '',
     injuryLocation: '',
+    injuryLocationOther: '',
     injuryDuration: '',
     inPhysicalTherapy: '',
     recoveryGoal: '',
@@ -1282,6 +1284,16 @@ export default function RangeAssessment() {
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
+                    {formData[currentQuestion.id] === 'other' && (
+                      <input
+                        type="text"
+                        className="ra-other-input"
+                        placeholder="Please describe..."
+                        value={formData[`${currentQuestion.id}Other`] || ''}
+                        onChange={(e) => handleInputChange(`${currentQuestion.id}Other`, e.target.value)}
+                        autoFocus
+                      />
+                    )}
                   </div>
                 )}
 
@@ -1694,6 +1706,20 @@ const styles = `
   .ra-field-large select {
     padding: 1rem 1.25rem;
     font-size: 1.0625rem;
+  }
+
+  .ra-other-input {
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    border: 1px solid #d4d4d4;
+    border-radius: 8px;
+    width: 100%;
+  }
+
+  .ra-other-input:focus {
+    outline: none;
+    border-color: #000000;
   }
 
   .ra-radio-group {

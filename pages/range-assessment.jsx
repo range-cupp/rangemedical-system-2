@@ -164,6 +164,29 @@ export default function RangeAssessment() {
     setError('');
   };
 
+  // Handle PT preference selection and save to GHL
+  const handlePTPreference = async (wantsPT) => {
+    // Update local state immediately for UI feedback
+    setFormData(prev => ({ ...prev, wantsPTRecommendation: wantsPT }));
+
+    // Save to GHL in background
+    try {
+      await fetch('/api/assessment/update-pt-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          wantsPTRecommendation: wantsPT
+        })
+      });
+    } catch (err) {
+      console.error('Failed to save PT preference:', err);
+      // Don't show error to user - preference is saved locally
+    }
+  };
+
   const validateContactInfo = () => {
     if (!formData.firstName.trim()) return 'First name is required';
     if (!formData.lastName.trim()) return 'Last name is required';
@@ -513,13 +536,13 @@ export default function RangeAssessment() {
                 <div className="inj-res-pt-buttons">
                   <button
                     className={`inj-res-pt-btn ${formData.wantsPTRecommendation === true ? 'selected' : ''}`}
-                    onClick={() => handleInputChange('wantsPTRecommendation', true)}
+                    onClick={() => handlePTPreference(true)}
                   >
                     Yes, I'm interested
                   </button>
                   <button
                     className={`inj-res-pt-btn inj-res-pt-btn-outline ${formData.wantsPTRecommendation === false ? 'selected' : ''}`}
-                    onClick={() => handleInputChange('wantsPTRecommendation', false)}
+                    onClick={() => handlePTPreference(false)}
                   >
                     No thanks
                   </button>

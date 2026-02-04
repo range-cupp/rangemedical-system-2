@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 
+const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = supabaseUrl && supabaseKey
@@ -212,6 +214,22 @@ export default async function handler(req, res) {
       console.error('SMS notification error:', smsError);
     }
 
+    // 4. Send email notification to cupp@range-medical.com
+    try {
+      await sendEmailNotification({
+        firstName,
+        lastName,
+        email,
+        phone,
+        assessmentPath,
+        injuryType, injuryLocation, injuryDuration, inPhysicalTherapy, recoveryGoal,
+        primarySymptom, symptomDuration, hasRecentLabs, triedHormoneTherapy, energyGoal,
+        additionalInfo
+      });
+    } catch (emailError) {
+      console.error('Email notification error:', emailError);
+    }
+
     return res.status(200).json({
       success: true,
       leadId: savedLead?.id,
@@ -289,6 +307,143 @@ async function sendSMSNotification(data) {
   }
 }
 
+// Send email notification
+async function sendEmailNotification(data) {
+  const {
+    firstName, lastName, email, phone, assessmentPath,
+    injuryType, injuryLocation, injuryDuration, inPhysicalTherapy, recoveryGoal,
+    primarySymptom, symptomDuration, hasRecentLabs, triedHormoneTherapy, energyGoal,
+    additionalInfo
+  } = data;
+
+  const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
+  const date = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+
+  let detailsHtml = '';
+
+  if (assessmentPath === 'injury') {
+    detailsHtml = `
+      <tr><td style="padding: 8px 0; color: #737373;">Injury Type:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('injuryType', injuryType) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Location:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('injuryLocation', injuryLocation) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Duration:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('injuryDuration', injuryDuration) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Physical Therapy:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('inPhysicalTherapy', inPhysicalTherapy) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Recovery Goal:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('recoveryGoal', recoveryGoal) || 'Not specified'}</td></tr>
+    `;
+  } else {
+    detailsHtml = `
+      <tr><td style="padding: 8px 0; color: #737373;">Primary Symptom:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('primarySymptom', primarySymptom) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Duration:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('symptomDuration', symptomDuration) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Has Recent Labs:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${hasRecentLabs === 'yes' ? 'Yes - within 60 days' : 'No'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #737373;">Previous HRT:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('triedHormoneTherapy', triedHormoneTherapy) || 'Not specified'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #171717;">Main Goal:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${getLabelForValue('energyGoal', energyGoal) || 'Not specified'}</td></tr>
+    `;
+  }
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #000000; padding: 24px 32px;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 600;">New Assessment Lead</h1>
+            </td>
+          </tr>
+
+          <!-- Path Badge -->
+          <tr>
+            <td style="padding: 24px 32px 0;">
+              <span style="display: inline-block; background: ${assessmentPath === 'injury' ? '#fef2f2' : '#f0fdf4'}; color: ${assessmentPath === 'injury' ? '#dc2626' : '#16a34a'}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; border-radius: 4px;">
+                ${pathName}
+              </span>
+              <p style="margin: 8px 0 0; font-size: 13px; color: #737373;">${date}</p>
+            </td>
+          </tr>
+
+          <!-- Contact Info -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Contact Information</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 15px;">
+                <tr><td style="padding: 8px 0; color: #737373;">Name:</td><td style="padding: 8px 0; color: #171717; font-weight: 600;">${firstName} ${lastName}</td></tr>
+                <tr><td style="padding: 8px 0; color: #737373;">Email:</td><td style="padding: 8px 0;"><a href="mailto:${email}" style="color: #171717;">${email}</a></td></tr>
+                <tr><td style="padding: 8px 0; color: #737373;">Phone:</td><td style="padding: 8px 0;"><a href="tel:${phone}" style="color: #171717;">${phone}</a></td></tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td>
+          </tr>
+
+          <!-- Assessment Details -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Assessment Details</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 15px;">
+                ${detailsHtml}
+              </table>
+            </td>
+          </tr>
+
+          ${additionalInfo ? `
+          <!-- Additional Notes -->
+          <tr>
+            <td style="padding: 0 32px 24px;">
+              <div style="background: #fafafa; border-radius: 8px; padding: 16px;">
+                <h3 style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #737373; text-transform: uppercase;">Additional Notes</h3>
+                <p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.6;">${additionalInfo}</p>
+              </div>
+            </td>
+          </tr>
+          ` : ''}
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #fafafa; padding: 20px 32px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0; font-size: 13px; color: #737373;">Range Medical Assessment System</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: 'Range Medical <notifications@range-medical.com>',
+    to: 'cupp@range-medical.com',
+    subject: `New ${pathName} Assessment: ${firstName} ${lastName}`,
+    html: emailHtml
+  });
+
+  if (error) {
+    console.error('Email notification error:', error);
+  } else {
+    console.log('Assessment email notification sent successfully');
+  }
+}
+
 // Helper function to convert field values to readable labels
 function getLabelForValue(fieldName, value) {
   if (!value) return null;
@@ -363,6 +518,11 @@ function getLabelForValue(fieldName, value) {
       'feel_myself': 'Feel like myself again',
       'longevity': 'Optimize for longevity',
       'performance': 'Athletic or sexual performance'
+    },
+    triedHormoneTherapy: {
+      'yes': 'Yes',
+      'no': 'No',
+      'not_sure': 'Not sure what this is'
     }
   };
 

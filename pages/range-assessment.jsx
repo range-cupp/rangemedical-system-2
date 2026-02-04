@@ -271,13 +271,10 @@ export default function RangeAssessment() {
     },
     {
       id: 'hasRecentLabs',
-      question: 'Have you had blood work done in the past 12 months?',
-      type: 'radio',
-      options: [
-        { value: 'yes', label: 'Yes' },
-        { value: 'no', label: 'No' },
-        { value: 'unsure', label: "Not sure" }
-      ]
+      question: 'Do you have lab work from the last 60 days?',
+      type: 'checkbox',
+      checkboxLabel: 'Yes, I have recent labs',
+      followUp: 'Please send your lab results to info@range-medical.com so we can review them before your visit.'
     },
     {
       id: 'triedHormoneTherapy',
@@ -443,6 +440,28 @@ export default function RangeAssessment() {
                         <span className="ra-radio-label">{opt.label}</span>
                       </label>
                     ))}
+                  </div>
+                )}
+
+                {currentQuestion.type === 'checkbox' && (
+                  <div className="ra-checkbox-section">
+                    <label className="ra-checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={formData[currentQuestion.id] === 'yes'}
+                        onChange={(e) => handleInputChange(currentQuestion.id, e.target.checked ? 'yes' : 'no')}
+                      />
+                      <span className="ra-checkbox-label">{currentQuestion.checkboxLabel}</span>
+                    </label>
+                    {formData[currentQuestion.id] === 'yes' && currentQuestion.followUp && (
+                      <div className="ra-followup-message">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                          <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        {currentQuestion.followUp}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -855,6 +874,63 @@ const styles = `
   .ra-radio-label {
     font-size: 0.9375rem;
     color: #171717;
+  }
+
+  .ra-checkbox-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .ra-checkbox-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .ra-checkbox-option:hover {
+    border-color: #d4d4d4;
+    background: #fafafa;
+  }
+
+  .ra-checkbox-option:has(input:checked) {
+    border-color: #171717;
+    background: #fafafa;
+  }
+
+  .ra-checkbox-option input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #171717;
+  }
+
+  .ra-checkbox-label {
+    font-size: 0.9375rem;
+    color: #171717;
+  }
+
+  .ra-followup-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: #166534;
+    line-height: 1.5;
+  }
+
+  .ra-followup-message svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    stroke: #16a34a;
   }
 
   .ra-error {

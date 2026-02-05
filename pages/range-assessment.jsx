@@ -1290,7 +1290,7 @@ export default function RangeAssessment() {
     },
     {
       id: 'triedHormoneTherapy',
-      question: 'Have you tried hormone therapy before?',
+      question: 'Have you tried hormone replacement therapy before?',
       type: 'radio',
       options: [
         { value: 'yes', label: 'Yes' },

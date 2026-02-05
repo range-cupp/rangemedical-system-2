@@ -5,13 +5,13 @@ import Head from 'next/head';
 export default function GHKCuCream() {
   return (
     <Layout
-      title="GHK-Cu Anti-Aging Cream | Range Medical | Newport Beach"
+      title="GHK-Cu Face Cream | Range Medical | Newport Beach"
       description="GHK-Cu copper peptide cream for skin repair, collagen production, and anti-aging. Prescription-only at Range Medical Newport Beach. Call (949) 997-3988."
     >
       <Head>
         <meta name="keywords" content="GHK-Cu cream, copper peptide cream, anti-aging cream, collagen cream, skin repair peptide, Newport Beach skincare, Orange County anti-aging" />
         <link rel="canonical" href="https://www.range-medical.com/ghk-cu-cream" />
-        <meta property="og:title" content="GHK-Cu Anti-Aging Cream | Range Medical" />
+        <meta property="og:title" content="GHK-Cu Face Cream | Range Medical" />
         <meta property="og:description" content="GHK-Cu copper peptide cream for skin repair, collagen production, and anti-aging. Prescription-only." />
         <meta property="og:url" content="https://www.range-medical.com/ghk-cu-cream" />
       </Head>
@@ -30,7 +30,7 @@ export default function GHKCuCream() {
       {/* Hero */}
       <section className="hero">
         <p className="hero-kicker">Skin · Repair · Peptides</p>
-        <h1>GHK-Cu Cream: Your Skin's Natural Repair Signal</h1>
+        <h1>GHK-Cu Face Cream: Your Skin's Natural Repair Signal</h1>
         <p className="hero-sub">
           A copper peptide that tells your skin to rebuild collagen, smooth fine lines, and restore that healthy glow you thought was gone forever.
         </p>

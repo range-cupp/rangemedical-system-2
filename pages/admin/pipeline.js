@@ -1114,10 +1114,155 @@ export default function UnifiedPipeline() {
       <div style={styles.container}>
         <div style={styles.mainViewTabs}>
           <button style={{ ...styles.mainViewTab, ...(mainView === 'protocols' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('protocols')}>💊 Protocols</button>
+          <button style={{ ...styles.mainViewTab, ...(mainView === 'in_clinic' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('in_clinic')}>🏥 In-Clinic {data?.counts?.overdue_visits > 0 && <span style={{ background: '#dc2626', color: '#fff', borderRadius: '10px', padding: '2px 6px', fontSize: '11px', marginLeft: '4px' }}>{data.counts.overdue_visits}</span>}</button>
           <button style={{ ...styles.mainViewTab, ...(mainView === 'labs' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('labs')}>🩸 Labs</button>
         </div>
 
         {mainView === 'labs' && <div style={styles.labsContainer}><LabsPipelineTab /></div>}
+
+        {mainView === 'in_clinic' && (
+          <div style={{ padding: '20px' }}>
+            <div style={styles.header}>
+              <h1 style={styles.title}>🏥 In-Clinic Visit Tracking</h1>
+              <div style={styles.headerActions}>
+                <button style={styles.refreshBtn} onClick={fetchData}>↻ Refresh</button>
+                <button style={styles.startProtocolBtn} onClick={async () => {
+                  if (confirm('Sync visit data from GHL appointments?')) {
+                    try {
+                      const res = await fetch('/api/admin/sync-injection-appointments', { method: 'POST' });
+                      const result = await res.json();
+                      if (result.success) { showToast(`Synced ${result.results.synced.length} protocols`); fetchData(); }
+                      else showToast(result.error || 'Sync failed', 'error');
+                    } catch (err) { showToast('Sync error', 'error'); }
+                  }
+                }}>🔄 Sync GHL Appointments</button>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div style={styles.statsBar}>
+              <div style={{ ...styles.statCard, borderLeftColor: '#dc2626' }}>
+                <div style={styles.statLabel}>OVERDUE</div>
+                <div style={{ ...styles.statValue, color: '#dc2626' }}>{data?.counts?.overdue_visits || 0}</div>
+              </div>
+              <div style={{ ...styles.statCard, borderLeftColor: '#f59e0b' }}>
+                <div style={styles.statLabel}>DUE TODAY</div>
+                <div style={{ ...styles.statValue, color: '#f59e0b' }}>{data?.counts?.due_today || 0}</div>
+              </div>
+              <div style={{ ...styles.statCard, borderLeftColor: '#22c55e' }}>
+                <div style={styles.statLabel}>UPCOMING (3 DAYS)</div>
+                <div style={styles.statValue}>{data?.counts?.upcoming_visits || 0}</div>
+              </div>
+            </div>
+
+            {/* Overdue Visits */}
+            {data?.in_clinic?.overdue?.length > 0 && (
+              <div style={{ ...styles.purchasesSection, marginTop: '20px' }}>
+                <div style={styles.purchasesHeader}>
+                  <h3 style={{ ...styles.purchasesTitle, color: '#dc2626' }}>🚨 Overdue Visits ({data.in_clinic.overdue.length})</h3>
+                </div>
+                <table style={styles.table}>
+                  <thead><tr style={styles.headerRow}>
+                    <th style={styles.headerCell}>PATIENT</th>
+                    <th style={styles.headerCell}>TYPE</th>
+                    <th style={styles.headerCell}>LAST VISIT</th>
+                    <th style={styles.headerCell}>EXPECTED</th>
+                    <th style={styles.headerCell}>OVERDUE</th>
+                    <th style={styles.headerCell}>SESSIONS</th>
+                    <th style={styles.headerCell}>ACTIONS</th>
+                  </tr></thead>
+                  <tbody>
+                    {data.in_clinic.overdue.map(v => (
+                      <tr key={v.id} style={{ ...styles.row, background: '#fef2f2' }}>
+                        <td style={styles.cell}><a href={`/patients/${v.patient_id}`} style={{ fontWeight: '600', color: '#1e40af', textDecoration: 'none' }}>{v.patient_name}</a></td>
+                        <td style={styles.cell}><span style={{ ...styles.categoryBadge, background: v.program_type === 'hrt' ? '#fed7aa' : '#bbf7d0' }}>{v.program_type === 'hrt' ? '💊 HRT' : '💉 Weight Loss'}</span></td>
+                        <td style={styles.cell}>{v.last_visit_date ? formatDate(v.last_visit_date) : '-'}</td>
+                        <td style={styles.cell}>{formatDate(v.next_expected_date)}</td>
+                        <td style={{ ...styles.cell, color: '#dc2626', fontWeight: '600' }}>{v.days_overdue} days</td>
+                        <td style={styles.cell}>{v.total_sessions ? `${v.sessions_used || 0}/${v.total_sessions}` : '-'}</td>
+                        <td style={styles.cell}>
+                          <button style={styles.actionBtn} onClick={() => openGHL(v.ghl_contact_id)} title="Open in GHL">GHL</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Due Today */}
+            {data?.in_clinic?.due_today?.length > 0 && (
+              <div style={{ ...styles.purchasesSection, marginTop: '20px' }}>
+                <div style={styles.purchasesHeader}>
+                  <h3 style={{ ...styles.purchasesTitle, color: '#f59e0b' }}>📅 Due Today ({data.in_clinic.due_today.length})</h3>
+                </div>
+                <table style={styles.table}>
+                  <thead><tr style={styles.headerRow}>
+                    <th style={styles.headerCell}>PATIENT</th>
+                    <th style={styles.headerCell}>TYPE</th>
+                    <th style={styles.headerCell}>LAST VISIT</th>
+                    <th style={styles.headerCell}>SESSIONS</th>
+                    <th style={styles.headerCell}>ACTIONS</th>
+                  </tr></thead>
+                  <tbody>
+                    {data.in_clinic.due_today.map(v => (
+                      <tr key={v.id} style={{ ...styles.row, background: '#fffbeb' }}>
+                        <td style={styles.cell}><a href={`/patients/${v.patient_id}`} style={{ fontWeight: '600', color: '#1e40af', textDecoration: 'none' }}>{v.patient_name}</a></td>
+                        <td style={styles.cell}><span style={{ ...styles.categoryBadge, background: v.program_type === 'hrt' ? '#fed7aa' : '#bbf7d0' }}>{v.program_type === 'hrt' ? '💊 HRT' : '💉 Weight Loss'}</span></td>
+                        <td style={styles.cell}>{v.last_visit_date ? formatDate(v.last_visit_date) : '-'}</td>
+                        <td style={styles.cell}>{v.total_sessions ? `${v.sessions_used || 0}/${v.total_sessions}` : '-'}</td>
+                        <td style={styles.cell}>
+                          <button style={styles.actionBtn} onClick={() => openGHL(v.ghl_contact_id)} title="Open in GHL">GHL</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Upcoming */}
+            {data?.in_clinic?.upcoming?.length > 0 && (
+              <div style={{ ...styles.purchasesSection, marginTop: '20px' }}>
+                <div style={styles.purchasesHeader}>
+                  <h3 style={{ ...styles.purchasesTitle, color: '#22c55e' }}>📆 Upcoming Visits ({data.in_clinic.upcoming.length})</h3>
+                </div>
+                <table style={styles.table}>
+                  <thead><tr style={styles.headerRow}>
+                    <th style={styles.headerCell}>PATIENT</th>
+                    <th style={styles.headerCell}>TYPE</th>
+                    <th style={styles.headerCell}>EXPECTED</th>
+                    <th style={styles.headerCell}>LAST VISIT</th>
+                    <th style={styles.headerCell}>SESSIONS</th>
+                    <th style={styles.headerCell}>ACTIONS</th>
+                  </tr></thead>
+                  <tbody>
+                    {data.in_clinic.upcoming.map(v => (
+                      <tr key={v.id} style={styles.row}>
+                        <td style={styles.cell}><a href={`/patients/${v.patient_id}`} style={{ fontWeight: '600', color: '#1e40af', textDecoration: 'none' }}>{v.patient_name}</a></td>
+                        <td style={styles.cell}><span style={{ ...styles.categoryBadge, background: v.program_type === 'hrt' ? '#fed7aa' : '#bbf7d0' }}>{v.program_type === 'hrt' ? '💊 HRT' : '💉 Weight Loss'}</span></td>
+                        <td style={styles.cell}>{formatDate(v.next_expected_date)}</td>
+                        <td style={styles.cell}>{v.last_visit_date ? formatDate(v.last_visit_date) : '-'}</td>
+                        <td style={styles.cell}>{v.total_sessions ? `${v.sessions_used || 0}/${v.total_sessions}` : '-'}</td>
+                        <td style={styles.cell}>
+                          <button style={styles.actionBtn} onClick={() => openGHL(v.ghl_contact_id)} title="Open in GHL">GHL</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* No visits message */}
+            {(!data?.in_clinic?.overdue?.length && !data?.in_clinic?.due_today?.length && !data?.in_clinic?.upcoming?.length) && (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                <p>No in-clinic visits to track.</p>
+                <p style={{ fontSize: '14px', marginTop: '10px' }}>In-clinic protocols with visit_frequency will appear here based on their last_visit_date and next_expected_date.</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {mainView === 'protocols' && (
           <>

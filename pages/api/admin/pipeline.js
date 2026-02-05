@@ -478,19 +478,73 @@ export default async function handler(req, res) {
       }));
 
     // ============================================
-    // COUNT OVERDUE CLINIC VISITS
+    // IN-CLINIC VISIT TRACKING
     // ============================================
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
+    const threeDaysFromNow = new Date(today);
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+    const threeDaysStr = threeDaysFromNow.toISOString().split('T')[0];
 
-    const overdueVisits = (protocols || []).filter(p => {
-      if (p.status !== 'active') return false;
-      if (p.delivery_method !== 'in_clinic') return false;
-      if (!p.next_expected_date) return false;
-      // Check if overdue (expected date is before today) and not visited today
-      return p.next_expected_date < todayStr && p.last_visit_date !== todayStr;
-    });
+    // Get all in-clinic protocols
+    const inClinicProtocols = (protocols || []).filter(p =>
+      p.status === 'active' && p.delivery_method === 'in_clinic'
+    );
+
+    // Overdue visits (expected date passed, not visited today)
+    const overdueVisits = inClinicProtocols
+      .filter(p => p.next_expected_date && p.next_expected_date < todayStr && p.last_visit_date !== todayStr)
+      .map(p => {
+        const daysOverdue = Math.floor((today - new Date(p.next_expected_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+        return {
+          id: p.id,
+          patient_id: p.patient_id,
+          patient_name: p.patients?.name || 'Unknown',
+          ghl_contact_id: p.patients?.ghl_contact_id,
+          program_type: p.program_type,
+          medication: p.medication,
+          last_visit_date: p.last_visit_date,
+          next_expected_date: p.next_expected_date,
+          days_overdue: daysOverdue,
+          sessions_used: p.sessions_used,
+          total_sessions: p.total_sessions
+        };
+      })
+      .sort((a, b) => b.days_overdue - a.days_overdue);
+
+    // Due today
+    const dueToday = inClinicProtocols
+      .filter(p => p.next_expected_date === todayStr && p.last_visit_date !== todayStr)
+      .map(p => ({
+        id: p.id,
+        patient_id: p.patient_id,
+        patient_name: p.patients?.name || 'Unknown',
+        ghl_contact_id: p.patients?.ghl_contact_id,
+        program_type: p.program_type,
+        medication: p.medication,
+        last_visit_date: p.last_visit_date,
+        next_expected_date: p.next_expected_date,
+        sessions_used: p.sessions_used,
+        total_sessions: p.total_sessions
+      }));
+
+    // Upcoming visits (next 3 days, excluding today)
+    const upcomingVisits = inClinicProtocols
+      .filter(p => p.next_expected_date && p.next_expected_date > todayStr && p.next_expected_date <= threeDaysStr)
+      .map(p => ({
+        id: p.id,
+        patient_id: p.patient_id,
+        patient_name: p.patients?.name || 'Unknown',
+        ghl_contact_id: p.patients?.ghl_contact_id,
+        program_type: p.program_type,
+        medication: p.medication,
+        last_visit_date: p.last_visit_date,
+        next_expected_date: p.next_expected_date,
+        sessions_used: p.sessions_used,
+        total_sessions: p.total_sessions
+      }))
+      .sort((a, b) => new Date(a.next_expected_date) - new Date(b.next_expected_date));
 
     // ============================================
     // RETURN RESPONSE
@@ -504,7 +558,9 @@ export default async function handler(req, res) {
         needs_followup: needsFollowUp.length,
         completed: completedProtocols.length,
         needs_protocol: needsProtocol.length,
-        overdue_visits: overdueVisits.length
+        overdue_visits: overdueVisits.length,
+        due_today: dueToday.length,
+        upcoming_visits: upcomingVisits.length
       },
       protocols: {
         ending_soon: endingSoon,
@@ -516,6 +572,11 @@ export default async function handler(req, res) {
       purchases: {
         needs_protocol: needsProtocol,
         since_date: thirtyDaysAgo.toISOString().split('T')[0]
+      },
+      in_clinic: {
+        overdue: overdueVisits,
+        due_today: dueToday,
+        upcoming: upcomingVisits
       }
     });
 

@@ -51,9 +51,11 @@ const APPOINTMENT_MAPPING = {
   'B12 Injection': { type: 'injection_pack', action: 'decrement' },
   'Vitamin Injection': { type: 'injection_pack', action: 'decrement' },
   
-  // Log only (no session decrement)
-  'Injection - Testosterone': { type: 'hrt', action: 'log' },
-  'Injection - Weight Loss': { type: 'weight_loss', action: 'log' },
+  // In-Clinic Injection Tracking (updates protocol visit dates and sessions)
+  'Injection - Testosterone': { type: 'hrt', action: 'track_visit' },
+  'Injection - Weight Loss': { type: 'weight_loss', action: 'track_visit' },
+
+  // Log only (no session decrement or tracking)
   'Initial Consultation': { type: 'consult', action: 'log' },
   'Follow-Up Consultation': { type: 'consult', action: 'log' }
 };
@@ -214,9 +216,153 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
+    // TRACK IN-CLINIC VISIT (for HRT and Weight Loss injections)
+    // =====================================================
+
+    if (mapping.action === 'track_visit') {
+      if (!contactId) {
+        console.log('⚠️ No contact ID - cannot track visit');
+        return res.status(200).json({
+          success: true,
+          message: 'No contact ID to match patient for visit tracking',
+          action: 'log_only'
+        });
+      }
+
+      // Find active protocol for this patient
+      const protocolTypes = mapping.type === 'hrt'
+        ? ['hrt']
+        : ['weight_loss'];
+
+      // First try to find by ghl_contact_id
+      let { data: protocols, error: findError } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('ghl_contact_id', contactId)
+        .in('program_type', protocolTypes)
+        .eq('status', 'active')
+        .eq('delivery_method', 'in_clinic')
+        .order('created_at', { ascending: false });
+
+      // If not found, try to find patient by ghl_contact_id and then find protocol by patient_id
+      if ((!protocols || protocols.length === 0) && !findError) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('ghl_contact_id', contactId)
+          .single();
+
+        if (patient) {
+          const { data: patientProtocols, error: patientError } = await supabase
+            .from('protocols')
+            .select('*')
+            .eq('patient_id', patient.id)
+            .in('program_type', protocolTypes)
+            .eq('status', 'active')
+            .eq('delivery_method', 'in_clinic')
+            .order('created_at', { ascending: false });
+
+          if (!patientError && patientProtocols && patientProtocols.length > 0) {
+            protocols = patientProtocols;
+            console.log(`📌 Found protocol via patient_id lookup (patient: ${patient.id})`);
+          }
+        }
+      }
+
+      if (findError) {
+        console.error('❌ Error finding protocol for visit tracking:', findError);
+        return res.status(200).json({
+          success: false,
+          error: 'Database error finding protocol'
+        });
+      }
+
+      if (!protocols || protocols.length === 0) {
+        console.log(`⚠️ No active in-clinic ${mapping.type} protocol found for contact ${contactId}`);
+        return res.status(200).json({
+          success: true,
+          message: `No active in-clinic ${mapping.type} protocol - appointment logged only`,
+          action: 'log_only'
+        });
+      }
+
+      const protocol = protocols[0];
+      const visitDate = appointmentDate ? appointmentDate.split('T')[0] : new Date().toISOString().split('T')[0];
+
+      // Calculate next expected date based on visit frequency
+      let nextExpectedDate = null;
+      const visitFrequency = protocol.visit_frequency || (mapping.type === 'weight_loss' ? 'weekly' : 'twice_weekly');
+
+      const visitDateObj = new Date(visitDate + 'T12:00:00');
+      if (visitFrequency === 'weekly') {
+        visitDateObj.setDate(visitDateObj.getDate() + 7);
+      } else if (visitFrequency === 'twice_weekly') {
+        visitDateObj.setDate(visitDateObj.getDate() + 3); // ~3-4 days for twice weekly
+      } else if (visitFrequency === 'monthly') {
+        visitDateObj.setDate(visitDateObj.getDate() + 30);
+      } else {
+        visitDateObj.setDate(visitDateObj.getDate() + 7); // default to weekly
+      }
+      nextExpectedDate = visitDateObj.toISOString().split('T')[0];
+
+      // Update protocol with visit tracking
+      const updateData = {
+        last_visit_date: visitDate,
+        next_expected_date: nextExpectedDate,
+        updated_at: new Date().toISOString()
+      };
+
+      // For weight loss, also increment sessions_used
+      if (mapping.type === 'weight_loss' && protocol.total_sessions > 0) {
+        const currentUsed = protocol.sessions_used || 0;
+        updateData.sessions_used = currentUsed + 1;
+
+        // Auto-complete if all sessions used
+        if (updateData.sessions_used >= protocol.total_sessions) {
+          updateData.status = 'completed';
+          console.log('✅ Weight loss protocol completed - all sessions used');
+        }
+      }
+
+      const { data: updatedProtocol, error: updateError } = await supabase
+        .from('protocols')
+        .update(updateData)
+        .eq('id', protocol.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('❌ Error updating protocol visit:', updateError);
+        return res.status(200).json({
+          success: false,
+          error: 'Failed to update protocol visit tracking'
+        });
+      }
+
+      console.log(`✅ In-clinic visit tracked for ${mapping.type}: last_visit=${visitDate}, next_expected=${nextExpectedDate}`);
+      if (mapping.type === 'weight_loss') {
+        console.log(`   Sessions: ${updateData.sessions_used}/${protocol.total_sessions}`);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'In-clinic visit tracked',
+        protocol: {
+          id: protocol.id,
+          type: mapping.type,
+          last_visit_date: visitDate,
+          next_expected_date: nextExpectedDate,
+          sessions_used: updateData.sessions_used,
+          total_sessions: protocol.total_sessions,
+          status: updateData.status || 'active'
+        }
+      });
+    }
+
+    // =====================================================
     // DECREMENT SESSION (if action is 'decrement')
     // =====================================================
-    
+
     if (mapping.action !== 'decrement') {
       return res.status(200).json({
         success: true,

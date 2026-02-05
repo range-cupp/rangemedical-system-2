@@ -281,40 +281,31 @@ export default async function handler(req, res) {
         ? ['hrt']
         : ['weight_loss'];
 
-      // First try to find by ghl_contact_id
-      let { data: protocols, error: findError } = await supabase
+      // Find patient by ghl_contact_id first
+      const { data: patient, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('ghl_contact_id', contactId)
+        .single();
+
+      if (patientError || !patient) {
+        console.log(`⚠️ No patient found for contact ${contactId}`);
+        return res.status(200).json({
+          success: true,
+          message: 'No patient found for contact - appointment logged only',
+          action: 'log_only'
+        });
+      }
+
+      // Find protocol by patient_id
+      const { data: protocols, error: findError } = await supabase
         .from('protocols')
         .select('*')
-        .eq('ghl_contact_id', contactId)
+        .eq('patient_id', patient.id)
         .in('program_type', protocolTypes)
         .eq('status', 'active')
         .eq('delivery_method', 'in_clinic')
         .order('created_at', { ascending: false });
-
-      // If not found, try to find patient by ghl_contact_id and then find protocol by patient_id
-      if ((!protocols || protocols.length === 0) && !findError) {
-        const { data: patient } = await supabase
-          .from('patients')
-          .select('id')
-          .eq('ghl_contact_id', contactId)
-          .single();
-
-        if (patient) {
-          const { data: patientProtocols, error: patientError } = await supabase
-            .from('protocols')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .in('program_type', protocolTypes)
-            .eq('status', 'active')
-            .eq('delivery_method', 'in_clinic')
-            .order('created_at', { ascending: false });
-
-          if (!patientError && patientProtocols && patientProtocols.length > 0) {
-            protocols = patientProtocols;
-            console.log(`📌 Found protocol via patient_id lookup (patient: ${patient.id})`);
-          }
-        }
-      }
 
       if (findError) {
         console.error('❌ Error finding protocol for visit tracking:', findError);

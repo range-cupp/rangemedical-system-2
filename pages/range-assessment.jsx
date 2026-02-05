@@ -329,18 +329,10 @@ export default function RangeAssessment() {
     essential: 'https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7'
   };
 
-  // Open payment in centered popup window
-  const openPaymentPopup = (panelType) => {
+  // Open payment in new tab
+  const openPayment = (panelType) => {
     const url = PAYMENT_LINKS[panelType];
-    const width = 500;
-    const height = 700;
-    const left = (window.innerWidth - width) / 2 + window.screenX;
-    const top = (window.innerHeight - height) / 2 + window.screenY;
-    window.open(
-      url,
-      'RangePayment',
-      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-    );
+    window.open(url, '_blank');
   };
 
   // Get peptide benefits based on injury type and goal
@@ -930,36 +922,8 @@ export default function RangeAssessment() {
             <div className="res-grid">
               {/* Left Column - Recommendation */}
               <div className="res-primary">
-                {/* Panel Card */}
-                <div className={`res-panel-card ${recommendation.panel === 'elite' ? 'res-panel-elite' : ''}`}>
-                  <div className="res-panel-badge">
-                    {recommendation.panel === 'elite' ? 'Recommended For You' : 'Recommended For You'}
-                  </div>
-                  <h2 className="res-panel-name">
-                    {recommendation.panel === 'elite' ? 'Elite Panel' : 'Essential Panel'}
-                  </h2>
-                  <div className="res-panel-price">
-                    {recommendation.panel === 'elite' ? '$750' : '$350'}
-                  </div>
-                  <p className="res-panel-desc">
-                    {recommendation.panel === 'elite'
-                      ? 'Our most complete panel — checks your hormones, heart health, inflammation, and more.'
-                      : 'A great starting point — covers your hormones, thyroid, and blood sugar.'
-                    }
-                  </p>
-
-                  {recommendation.panel === 'elite' && recommendation.eliteReasons.length > 0 && (
-                    <div className="res-panel-reasons">
-                      <h4>Why we recommend Elite for you:</h4>
-                      <ul>
-                        {recommendation.eliteReasons.slice(0, 3).map((reason, i) => (
-                          <li key={i}>{reason}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {formData.lastLabWork === 'within_60_days' && (
+                {/* Labs Notice - if they have recent labs */}
+                {formData.lastLabWork === 'within_60_days' && (
                   <div className="res-labs-notice">
                     <div className="res-labs-notice-header">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -984,18 +948,61 @@ export default function RangeAssessment() {
                   </div>
                 )}
 
-                <button
-                  onClick={() => openPaymentPopup(recommendation.panel)}
-                  className="res-panel-cta"
-                >
-                  Pay & Book {recommendation.panel === 'elite' ? 'Elite' : 'Essential'} Panel
-                </button>
-
-                  {recommendation.panel === 'elite' && (
-                  <button onClick={() => openPaymentPopup('essential')} className="res-panel-alt">
-                    Or start with Essential — $350
-                  </button>
+                {/* Elite Recommendation Reasons */}
+                {recommendation.panel === 'elite' && recommendation.eliteReasons.length > 0 && (
+                  <div className="res-panel-reasons">
+                    <h4>Why we recommend Elite for you:</h4>
+                    <ul>
+                      {recommendation.eliteReasons.slice(0, 3).map((reason, i) => (
+                        <li key={i}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
+
+                {/* Both Panel Options */}
+                <div className="res-panels-grid">
+                  {/* Elite Panel */}
+                  <div className={`res-panel-option ${recommendation.panel === 'elite' ? 'res-panel-recommended' : ''}`}>
+                    {recommendation.panel === 'elite' && (
+                      <div className="res-panel-badge">Recommended</div>
+                    )}
+                    <h3 className="res-panel-name">Elite Panel</h3>
+                    <div className="res-panel-price">$750</div>
+                    <p className="res-panel-desc">
+                      Our most complete panel — checks your hormones, heart health, inflammation, and more.
+                    </p>
+                    <a
+                      href={PAYMENT_LINKS.elite}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="res-panel-cta"
+                    >
+                      Pay & Book Elite
+                    </a>
+                  </div>
+
+                  <div className="res-panels-or">or</div>
+
+                  {/* Essential Panel */}
+                  <div className={`res-panel-option ${recommendation.panel === 'essential' ? 'res-panel-recommended' : ''}`}>
+                    {recommendation.panel === 'essential' && (
+                      <div className="res-panel-badge">Recommended</div>
+                    )}
+                    <h3 className="res-panel-name">Essential Panel</h3>
+                    <div className="res-panel-price">$350</div>
+                    <p className="res-panel-desc">
+                      A great starting point — covers your hormones, thyroid, and blood sugar.
+                    </p>
+                    <a
+                      href={PAYMENT_LINKS.essential}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="res-panel-cta"
+                    >
+                      Pay & Book Essential
+                    </a>
+                  </div>
                 </div>
 
                 {/* Biomarkers */}
@@ -2312,6 +2319,65 @@ const resultsStyles = `
     font-weight: 700;
   }
 
+  /* Panels Grid - Both Options */
+  .res-panels-grid {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+    margin-bottom: 1.5rem;
+  }
+
+  .res-panel-option {
+    flex: 1;
+    background: #ffffff;
+    border: 2px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .res-panel-option.res-panel-recommended {
+    border-color: #000000;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  .res-panel-option .res-panel-badge {
+    position: absolute;
+    top: -0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 0;
+  }
+
+  .res-panel-option .res-panel-name {
+    font-size: 1.25rem;
+    margin-top: 0.5rem;
+  }
+
+  .res-panel-option .res-panel-price {
+    font-size: 2rem;
+  }
+
+  .res-panel-option .res-panel-desc {
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .res-panel-option .res-panel-cta {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+
+  .res-panels-or {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #737373;
+    text-transform: uppercase;
+  }
+
   /* Labs Notice */
   .res-labs-notice {
     background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
@@ -2643,6 +2709,23 @@ const resultsStyles = `
 
     .res-card {
       padding: 1.25rem;
+    }
+
+    .res-panels-grid {
+      flex-direction: column;
+    }
+
+    .res-panels-or {
+      justify-content: center;
+      padding: 0.5rem 0;
+    }
+
+    .res-panel-option .res-panel-name {
+      font-size: 1.125rem;
+    }
+
+    .res-panel-option .res-panel-price {
+      font-size: 1.75rem;
     }
   }
 `;

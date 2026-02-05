@@ -377,19 +377,14 @@ export default function LabPanels() {
                 <div className="lab-chart-footer">
                   <div className="lab-chart-marker-col"></div>
                   <div className="lab-chart-panel-col">
-                    <button
-                      onClick={() => {
-                        const url = 'https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7';
-                        const width = 500;
-                        const height = 700;
-                        const left = (window.innerWidth - width) / 2 + window.screenX;
-                        const top = (window.innerHeight - height) / 2 + window.screenY;
-                        window.open(url, 'RangePayment', `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`);
-                      }}
+                    <a
+                      href="https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="lab-btn-secondary-sm"
                     >
                       Book Essential
-                    </button>
+                    </a>
                   </div>
                   <div className="lab-chart-panel-col lab-chart-panel-featured">
                     <Link href="/range-assessment?path=energy" className="lab-btn-primary-sm">Take Assessment</Link>

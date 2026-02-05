@@ -216,6 +216,53 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
+    // SAVE TO CLINIC_APPOINTMENTS TABLE
+    // This keeps the appointments synced for historical tracking
+    // =====================================================
+
+    if (appointmentId && contactId) {
+      // Extract calendar name from title (e.g., "John Smith - Injection - Weight Loss" -> "Injection - Weight Loss")
+      const titleParts = (appointmentTitle || '').split(' - ');
+      const calendarName = titleParts.length > 1 ? titleParts.slice(1).join(' - ') : appointmentTitle;
+
+      // Parse the date
+      const dateOnly = appointmentDate ? appointmentDate.split('T')[0] : new Date().toISOString().split('T')[0];
+
+      // Find patient by GHL contact ID
+      let patientId = null;
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('ghl_contact_id', contactId)
+        .single();
+      if (patient) {
+        patientId = patient.id;
+      }
+
+      const clinicAppointmentData = {
+        ghl_appointment_id: appointmentId,
+        ghl_contact_id: contactId,
+        patient_id: patientId,
+        calendar_name: calendarName,
+        appointment_title: appointmentTitle,
+        appointment_date: dateOnly,
+        start_time: appointmentDate,
+        status: appointmentStatus?.toLowerCase() || 'showed',
+        updated_at: new Date().toISOString()
+      };
+
+      const { error: clinicAptError } = await supabase
+        .from('clinic_appointments')
+        .upsert(clinicAppointmentData, { onConflict: 'ghl_appointment_id' });
+
+      if (clinicAptError) {
+        console.log('⚠️ Could not save to clinic_appointments:', clinicAptError.message);
+      } else {
+        console.log('✅ Saved to clinic_appointments:', appointmentId);
+      }
+    }
+
+    // =====================================================
     // TRACK IN-CLINIC VISIT (for HRT and Weight Loss injections)
     // =====================================================
 

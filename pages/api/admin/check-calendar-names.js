@@ -14,23 +14,27 @@ export default async function handler(req, res) {
     // Get distinct calendar names from clinic_appointments
     const { data: appointments, error } = await supabase
       .from('clinic_appointments')
-      .select('calendar_name, appointment_title, ghl_contact_id, appointment_date, status')
+      .select('calendar_name, calendar_id, appointment_title, ghl_contact_id, appointment_date, status')
       .order('appointment_date', { ascending: false })
-      .limit(100);
+      .limit(200);
 
     if (error) {
       return res.status(500).json({ error: error.message });
     }
 
-    // Group by calendar name
+    // Group by calendar name and collect calendar IDs
     const calendarCounts = {};
     const samples = {};
+    const calendarIds = {};
 
     for (const apt of appointments || []) {
       const name = apt.calendar_name || apt.appointment_title || 'Unknown';
       calendarCounts[name] = (calendarCounts[name] || 0) + 1;
       if (!samples[name]) {
         samples[name] = apt;
+      }
+      if (apt.calendar_id && !calendarIds[name]) {
+        calendarIds[name] = apt.calendar_id;
       }
     }
 
@@ -51,6 +55,7 @@ export default async function handler(req, res) {
       clinic_appointments: {
         total: appointments?.length || 0,
         calendar_names: calendarCounts,
+        calendar_ids: calendarIds,
         samples
       },
       appointment_logs: {

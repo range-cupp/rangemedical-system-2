@@ -7,22 +7,25 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 
-// Category colors for protocols
-const CATEGORY_COLORS = {
-  hrt: { bg: '#f3e8ff', text: '#7c3aed', label: 'HRT' },
-  weight_loss: { bg: '#dbeafe', text: '#1e40af', label: 'Weight Loss' },
-  peptide: { bg: '#dcfce7', text: '#166534', label: 'Peptide' },
-  iv: { bg: '#ffedd5', text: '#c2410c', label: 'IV' },
-  hbot: { bg: '#e0e7ff', text: '#3730a3', label: 'HBOT' },
-  rlt: { bg: '#fee2e2', text: '#dc2626', label: 'RLT' },
-  injection: { bg: '#fef3c7', text: '#92400e', label: 'Injection' },
-  other: { bg: '#f3f4f6', text: '#374151', label: 'Other' }
-};
-
-const INJECTION_MEDICATIONS = [
-  'Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3',
-  'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'
-];
+// Import unified protocol configuration
+import {
+  CATEGORY_COLORS,
+  INJECTION_MEDICATIONS,
+  PEPTIDE_OPTIONS,
+  WEIGHT_LOSS_MEDICATIONS,
+  WEIGHT_LOSS_DOSAGES,
+  HRT_MEDICATIONS,
+  TESTOSTERONE_DOSES,
+  HRT_SUPPLY_TYPES,
+  FREQUENCY_OPTIONS,
+  VISIT_FREQUENCY_OPTIONS,
+  PROTOCOL_STATUS_OPTIONS,
+  DELIVERY_METHODS,
+  IV_THERAPY_TYPES,
+  findPeptideInfo,
+  findMatchingPeptide,
+  getDoseOptions
+} from '../../lib/protocol-config';
 
 export default function PatientProfile() {
   const router = useRouter();
@@ -322,8 +325,25 @@ export default function PatientProfile() {
 
   const openEditModal = (protocol) => {
     setSelectedProtocol(protocol);
+
+    // Normalize delivery method (at_home → take_home for consistency)
+    let deliveryMethod = protocol.delivery_method || '';
+    if (deliveryMethod === 'at_home') deliveryMethod = 'take_home';
+
+    // Normalize supply type (prefill_ → prefilled_ for consistency)
+    let supplyType = protocol.supply_type || '';
+    if (supplyType === 'prefill_2week') supplyType = 'prefilled_2week';
+    if (supplyType === 'prefill_4week') supplyType = 'prefilled_4week';
+
+    // For peptides, try to match medication to the full peptide name
+    let medication = protocol.medication || '';
+    if (protocol.category === 'peptide' && medication) {
+      const matched = findMatchingPeptide(medication);
+      if (matched) medication = matched;
+    }
+
     setEditForm({
-      medication: protocol.medication || '',
+      medication: medication,
       selectedDose: protocol.selected_dose || '',
       frequency: protocol.frequency || '',
       startDate: protocol.start_date || '',
@@ -336,10 +356,10 @@ export default function PatientProfile() {
       dosePerInjection: protocol.dose_per_injection || '',
       injectionsPerWeek: protocol.injections_per_week || 2,
       vialSize: protocol.vial_size || '',
-      supplyType: protocol.supply_type || '',
+      supplyType: supplyType,
       lastRefillDate: protocol.last_refill_date || '',
       // In-clinic scheduling fields
-      deliveryMethod: protocol.delivery_method || '',
+      deliveryMethod: deliveryMethod,
       visitFrequency: protocol.visit_frequency || '',
       scheduledDays: protocol.scheduled_days || [],
       lastVisitDate: protocol.last_visit_date || '',
@@ -1138,11 +1158,9 @@ export default function PatientProfile() {
                       <label>Frequency</label>
                       <select value={assignForm.frequency} onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}>
                         <option value="">Select frequency...</option>
-                        <option value="Daily">Daily</option>
-                        <option value="Every other day">Every other day</option>
-                        <option value="2x weekly">2x weekly</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="As needed">As needed</option>
+                        {FREQUENCY_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -1173,7 +1191,7 @@ export default function PatientProfile() {
         {/* Edit Protocol Modal */}
         {showEditModal && selectedProtocol && (
           <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal modal-large" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Edit Protocol</h3>
                 <button onClick={() => setShowEditModal(false)} className="close-btn">×</button>
@@ -1181,37 +1199,239 @@ export default function PatientProfile() {
               <div className="modal-body">
                 <div className="modal-preview">{selectedProtocol.program_name}</div>
 
-                <div className="form-group">
-                  <label>Dose</label>
-                  <input type="text" value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})} placeholder="e.g., 0.4ml/80mg" />
-                </div>
+                {/* Medication Selection - Category-based */}
+                <div className="form-section-label">Medication & Dosing</div>
 
+                {/* Weight Loss Protocols */}
+                {selectedProtocol.category === 'weight_loss' && (
+                  <>
+                    <div className="form-group">
+                      <label>Medication</label>
+                      <select
+                        value={editForm.medication}
+                        onChange={e => setEditForm({...editForm, medication: e.target.value, selectedDose: ''})}
+                      >
+                        <option value="">Select medication...</option>
+                        {WEIGHT_LOSS_MEDICATIONS.map(med => (
+                          <option key={med} value={med}>{med}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Dose</label>
+                      <select
+                        value={editForm.selectedDose}
+                        onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                      >
+                        <option value="">Select dose...</option>
+                        {editForm.medication && WEIGHT_LOSS_DOSAGES[editForm.medication]?.map(dose => (
+                          <option key={dose} value={dose}>{dose}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* Peptide Protocols */}
+                {selectedProtocol.category === 'peptide' && (
+                  <>
+                    <div className="form-group">
+                      <label>Peptide</label>
+                      <select
+                        value={editForm.medication}
+                        onChange={e => {
+                          const peptideInfo = findPeptideInfo(e.target.value);
+                          setEditForm({
+                            ...editForm,
+                            medication: e.target.value,
+                            selectedDose: peptideInfo?.startingDose || '',
+                            frequency: peptideInfo?.frequency || editForm.frequency
+                          });
+                        }}
+                      >
+                        <option value="">Select peptide...</option>
+                        {PEPTIDE_OPTIONS.map(group => (
+                          <optgroup key={group.group} label={group.group}>
+                            {group.options.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.value}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Dose</label>
+                      {(() => {
+                        const peptideInfo = findPeptideInfo(editForm.medication);
+                        if (peptideInfo?.doses) {
+                          return (
+                            <select
+                              value={editForm.selectedDose}
+                              onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                            >
+                              <option value="">Select dose...</option>
+                              {peptideInfo.doses.map(dose => (
+                                <option key={dose} value={dose}>{dose}</option>
+                              ))}
+                            </select>
+                          );
+                        } else if (peptideInfo) {
+                          return (
+                            <select
+                              value={editForm.selectedDose}
+                              onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                            >
+                              <option value="">Select dose...</option>
+                              <option value={peptideInfo.startingDose}>{peptideInfo.startingDose} (Starting)</option>
+                              {peptideInfo.maxDose !== peptideInfo.startingDose && (
+                                <option value={peptideInfo.maxDose}>{peptideInfo.maxDose} (Max)</option>
+                              )}
+                              <option value="custom">Custom...</option>
+                            </select>
+                          );
+                        }
+                        return (
+                          <input
+                            type="text"
+                            value={editForm.selectedDose}
+                            onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                            placeholder="Enter dose"
+                          />
+                        );
+                      })()}
+                    </div>
+                    {editForm.selectedDose === 'custom' && (
+                      <div className="form-group">
+                        <label>Custom Dose</label>
+                        <input
+                          type="text"
+                          onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                          placeholder="e.g., 400mcg"
+                        />
+                      </div>
+                    )}
+                    {findPeptideInfo(editForm.medication)?.notes && (
+                      <div className="form-hint">{findPeptideInfo(editForm.medication).notes}</div>
+                    )}
+                  </>
+                )}
+
+                {/* HRT Protocols */}
+                {selectedProtocol.category === 'hrt' && (
+                  <>
+                    <div className="form-group">
+                      <label>Medication</label>
+                      <select
+                        value={editForm.medication}
+                        onChange={e => setEditForm({...editForm, medication: e.target.value})}
+                      >
+                        <option value="">Select medication...</option>
+                        {HRT_MEDICATIONS.map(med => (
+                          <option key={med} value={med}>{med}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Dose</label>
+                      <select
+                        value={editForm.selectedDose}
+                        onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                      >
+                        <option value="">Select dose...</option>
+                        {TESTOSTERONE_DOSES.male.map(d => (
+                          <option key={d.value} value={d.value}>{d.label}</option>
+                        ))}
+                        <optgroup label="Female Doses">
+                          {TESTOSTERONE_DOSES.female.map(d => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* Injection Protocols */}
+                {selectedProtocol.category === 'injection' && (
+                  <>
+                    <div className="form-group">
+                      <label>Medication</label>
+                      <select
+                        value={editForm.medication}
+                        onChange={e => setEditForm({...editForm, medication: e.target.value})}
+                      >
+                        <option value="">Select medication...</option>
+                        {INJECTION_MEDICATIONS.map(med => (
+                          <option key={med} value={med}>{med}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Dose</label>
+                      <input
+                        type="text"
+                        value={editForm.selectedDose}
+                        onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                        placeholder="e.g., 100mg, 1ml"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* IV Therapy Protocols */}
+                {selectedProtocol.category === 'iv' && (
+                  <>
+                    <div className="form-group">
+                      <label>IV Type</label>
+                      <select
+                        value={editForm.medication}
+                        onChange={e => setEditForm({...editForm, medication: e.target.value})}
+                      >
+                        <option value="">Select IV type...</option>
+                        {IV_THERAPY_TYPES.map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* Generic fallback for other categories */}
+                {!['weight_loss', 'peptide', 'hrt', 'injection', 'iv'].includes(selectedProtocol.category) && (
+                  <div className="form-group">
+                    <label>Dose</label>
+                    <input
+                      type="text"
+                      value={editForm.selectedDose}
+                      onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}
+                      placeholder="Enter dose"
+                    />
+                  </div>
+                )}
+
+                {/* Frequency - Full options from config */}
                 <div className="form-group">
                   <label>Frequency</label>
                   <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
                     <option value="">Select...</option>
-                    <option value="Daily">Daily</option>
-                    <option value="Every other day">Every other day</option>
-                    <option value="2x weekly">2x weekly</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="As needed">As needed</option>
+                    {FREQUENCY_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
                   </select>
                 </div>
 
                 {/* HRT Vial Tracking Fields - show for HRT protocols */}
                 {selectedProtocol.category === 'hrt' && (
                   <>
-                    <div className="form-section-label">HRT Vial Tracking</div>
+                    <div className="form-section-label">HRT Supply Tracking</div>
                     <div className="form-row">
                       <div className="form-group">
                         <label>Dose per Injection (ml)</label>
                         <select value={editForm.dosePerInjection} onChange={e => setEditForm({...editForm, dosePerInjection: e.target.value})}>
                           <option value="">Select...</option>
-                          <option value="0.25">0.25ml (50mg)</option>
-                          <option value="0.3">0.3ml (60mg)</option>
-                          <option value="0.35">0.35ml (70mg)</option>
-                          <option value="0.4">0.4ml (80mg)</option>
-                          <option value="0.5">0.5ml (100mg)</option>
+                          {TESTOSTERONE_DOSES.male.map(d => (
+                            <option key={d.value} value={d.value.split('/')[0]}>{d.label}</option>
+                          ))}
                         </select>
                       </div>
                       <div className="form-group">
@@ -1227,10 +1447,9 @@ export default function PatientProfile() {
                         <label>Supply Type</label>
                         <select value={editForm.supplyType} onChange={e => setEditForm({...editForm, supplyType: e.target.value})}>
                           <option value="">Select...</option>
-                          <option value="vial_10ml">10ml Vial</option>
-                          <option value="vial_5ml">5ml Vial</option>
-                          <option value="prefill_2week">2-Week Prefilled</option>
-                          <option value="prefill_4week">4-Week Prefilled</option>
+                          {HRT_SUPPLY_TYPES.map(st => (
+                            <option key={st.value} value={st.value}>{st.label}</option>
+                          ))}
                         </select>
                       </div>
                       <div className="form-group">
@@ -1241,14 +1460,15 @@ export default function PatientProfile() {
                   </>
                 )}
 
-                {/* In-Clinic Visit Scheduling */}
+                {/* Delivery & Scheduling */}
                 <div className="form-section-label">Delivery & Scheduling</div>
                 <div className="form-group">
                   <label>Delivery Method</label>
                   <select value={editForm.deliveryMethod} onChange={e => setEditForm({...editForm, deliveryMethod: e.target.value})}>
                     <option value="">Select...</option>
-                    <option value="at_home">At Home (Shipped)</option>
-                    <option value="in_clinic">In Clinic</option>
+                    {DELIVERY_METHODS.map(dm => (
+                      <option key={dm.value} value={dm.value}>{dm.label}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -1258,10 +1478,9 @@ export default function PatientProfile() {
                       <label>Visit Frequency</label>
                       <select value={editForm.visitFrequency} onChange={e => setEditForm({...editForm, visitFrequency: e.target.value})}>
                         <option value="">Select...</option>
-                        <option value="2x_week">2x per week</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="biweekly">Every 2 weeks</option>
-                        <option value="monthly">Monthly</option>
+                        {VISIT_FREQUENCY_OPTIONS.map(vf => (
+                          <option key={vf.value} value={vf.value}>{vf.label}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -1300,6 +1519,8 @@ export default function PatientProfile() {
                   </>
                 )}
 
+                {/* Sessions or Date Range */}
+                <div className="form-section-label">Duration</div>
                 {editForm.totalSessions ? (
                   <div className="form-group">
                     <label>Sessions Used (of {editForm.totalSessions})</label>
@@ -1318,16 +1539,17 @@ export default function PatientProfile() {
                   </div>
                 )}
 
+                {/* Status */}
                 <div className="form-group">
                   <label>Status</label>
                   <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="paused">Paused</option>
-                    <option value="cancelled">Cancelled</option>
+                    {PROTOCOL_STATUS_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
                   </select>
                 </div>
 
+                {/* Notes */}
                 <div className="form-group">
                   <label>Notes</label>
                   <textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={2} />
@@ -2076,6 +2298,7 @@ export default function PatientProfile() {
         }
         .modal-sm { max-width: 380px; }
         .modal-lg { max-width: 700px; }
+        .modal-large { max-width: 600px; }
         .modal-header {
           display: flex;
           justify-content: space-between;
@@ -2144,6 +2367,14 @@ export default function PatientProfile() {
           margin: 16px 0 8px 0;
           padding-top: 16px;
           border-top: 1px solid #e5e7eb;
+        }
+        .form-hint {
+          font-size: 12px;
+          color: #6b7280;
+          margin-top: 6px;
+          padding: 8px 10px;
+          background: #f9fafb;
+          border-radius: 4px;
         }
         .checkbox-group {
           display: flex;

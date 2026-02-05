@@ -120,6 +120,19 @@ async function updateProtocol(id, updates, res) {
     updateData.dose = dose; // Keep in sync
   }
 
+  // Normalize delivery_method (at_home → take_home for consistency)
+  if (updateData.delivery_method === 'at_home') {
+    updateData.delivery_method = 'take_home';
+  }
+
+  // Normalize supply_type (prefill_ → prefilled_ for consistency)
+  if (updateData.supply_type === 'prefill_2week') {
+    updateData.supply_type = 'prefilled_2week';
+  }
+  if (updateData.supply_type === 'prefill_4week') {
+    updateData.supply_type = 'prefilled_4week';
+  }
+
   // Always update the updated_at timestamp
   updateData.updated_at = new Date().toISOString();
   

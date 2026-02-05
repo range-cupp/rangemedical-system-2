@@ -145,10 +145,14 @@ export default async function handler(req, res) {
     // =====================================================
     // CHECK IF THIS IS A "SHOWED" STATUS
     // Only decrement sessions when patient actually attended
+    // Note: If status is null, assume "showed" since GHL workflow
+    // is triggered by "Appointment Status Changed to Showed"
     // =====================================================
-    
+
     const validStatuses = ['showed', 'completed', 'confirmed'];
-    if (!validStatuses.includes(appointmentStatus?.toLowerCase())) {
+    const effectiveStatus = appointmentStatus?.toLowerCase() || 'showed'; // Default to showed if null
+
+    if (!validStatuses.includes(effectiveStatus)) {
       console.log(`⚠️ Appointment status "${appointmentStatus}" - no action needed`);
       return res.status(200).json({
         success: true,
@@ -156,6 +160,8 @@ export default async function handler(req, res) {
         action: 'none'
       });
     }
+
+    console.log(`✅ Processing as status: ${effectiveStatus}`);
 
     // =====================================================
     // MATCH APPOINTMENT TO SERVICE TYPE

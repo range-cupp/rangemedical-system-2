@@ -676,7 +676,7 @@ export default function Home() {
             font-size: 0.8125rem;
           }
 
-          .home-door-btn {
+          :global(.home-door-btn) {
             display: block;
             width: 100%;
             text-align: center;
@@ -690,7 +690,7 @@ export default function Home() {
             transition: background 0.2s;
           }
 
-          .home-door-btn:hover {
+          :global(.home-door-btn:hover) {
             background: #333333;
           }
 

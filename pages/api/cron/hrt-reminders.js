@@ -252,7 +252,7 @@ function getWorkflowId(type, { urgent, overdue }) {
 // BUILD SMS MESSAGE (fallback if no workflow)
 // =====================================================
 function buildSMSMessage(type, data) {
-  const bookingLink = 'https://rangemedical.com/book'; // Update with your actual booking link
+  const bookingLink = 'https://range-medical.com/range-assessment';
 
   switch (type) {
     case 'iv_reminder':

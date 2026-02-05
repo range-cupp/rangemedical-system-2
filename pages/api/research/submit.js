@@ -334,7 +334,7 @@ function generateEmailHtml(study, firstName) {
           <tr>
             <td style="padding: 0 40px 32px; text-align: center;">
               <p style="margin: 0 0 20px; font-size: 16px; color: #525252;">Want to learn more about how ${serviceName.toLowerCase()} could help you?</p>
-              <a href="https://range-medical.com/book" style="display: inline-block; background-color: #171717; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">Book Your Assessment</a>
+              <a href="https://range-medical.com/range-assessment" style="display: inline-block; background-color: #171717; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">Take Assessment</a>
             </td>
           </tr>
 

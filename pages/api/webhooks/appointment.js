@@ -185,6 +185,38 @@ export default async function handler(req, res) {
       }
     }
     
+    // If no mapping found but we have a contact ID, try to auto-detect
+    // by finding any active in-clinic protocol for this patient
+    if (!mapping && contactId) {
+      console.log(`🔍 No mapping for "${appointmentTitle}" - trying auto-detect for contact ${contactId}`);
+
+      // Find patient by GHL contact ID
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('ghl_contact_id', contactId)
+        .single();
+
+      if (patient) {
+        // Look for any active in-clinic protocol
+        const { data: inClinicProtocols } = await supabase
+          .from('protocols')
+          .select('program_type')
+          .eq('patient_id', patient.id)
+          .eq('delivery_method', 'in_clinic')
+          .eq('status', 'active')
+          .in('program_type', ['weight_loss', 'hrt'])
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (inClinicProtocols && inClinicProtocols.length > 0) {
+          const protocolType = inClinicProtocols[0].program_type;
+          mapping = { type: protocolType, action: 'track_visit' };
+          console.log(`✅ Auto-detected in-clinic protocol: ${protocolType}`);
+        }
+      }
+    }
+
     if (!mapping) {
       console.log(`⚠️ No mapping found for appointment: "${appointmentTitle}"`);
       return res.status(200).json({

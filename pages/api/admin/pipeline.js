@@ -1,20 +1,21 @@
 // /pages/api/admin/pipeline.js
 // Pipeline API - Returns protocols with patient names AND tracking status
-// Range Medical - FIXED 2026-01-28
-// Issue: Previous fix got names right but lost tracking calculations
+// Range Medical - Updated 2026-02-04
+// Uses shared tracking logic from /lib/protocol-tracking.js
 
 import { createClient } from '@supabase/supabase-js';
+import { getProtocolTracking } from '../../../lib/protocol-tracking';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 // ================================================================
-// PROTOCOL TRACKING CALCULATOR
-// Returns days_remaining, status_text, urgency, category, delivery
+// PROTOCOL TRACKING CALCULATOR (imported from shared lib)
+// Kept here for reference - actual implementation in /lib/protocol-tracking.js
 // ================================================================
-function getProtocolTracking(protocol) {
+function _legacyGetProtocolTracking(protocol) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   

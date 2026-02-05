@@ -1,15 +1,14 @@
 // /pages/dashboard/pipeline.js
-// Protocol Pipeline Dashboard - Visual overview of patient journey
+// Protocol Pipeline Dashboard - Shows ONLY protocols (not labs)
+// Range Medical - Updated 2026-02-04
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 
 export default function PipelineDashboard() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [labsComplete, setLabsComplete] = useState([]);
+  const [pending, setPending] = useState([]);
   const [endingSoon, setEndingSoon] = useState([]);
   const [active, setActive] = useState([]);
   const [stats, setStats] = useState({});
@@ -22,9 +21,9 @@ export default function PipelineDashboard() {
     try {
       const res = await fetch('/api/dashboard/pipeline');
       const data = await res.json();
-      
+
       if (res.ok) {
-        setLabsComplete(data.labsComplete || []);
+        setPending(data.pending || []);
         setEndingSoon(data.endingSoon || []);
         setActive(data.active || []);
         setStats(data.stats || {});
@@ -38,16 +37,11 @@ export default function PipelineDashboard() {
 
   function formatDate(dateString) {
     if (!dateString) return '—';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'America/Los_Angeles'
     });
-  }
-
-  function getDaysRemaining(endDate) {
-    if (!endDate) return null;
-    const days = Math.ceil((new Date(endDate) - new Date()) / (1000 * 60 * 60 * 24));
-    return days;
   }
 
   function getCategoryColor(category) {
@@ -55,9 +49,20 @@ export default function PipelineDashboard() {
       peptide: { bg: '#dcfce7', text: '#166534', dot: '🟢' },
       weight_loss: { bg: '#dbeafe', text: '#1e40af', dot: '🔵' },
       hrt: { bg: '#f3e8ff', text: '#7c3aed', dot: '🟣' },
-      therapy: { bg: '#ffedd5', text: '#c2410c', dot: '🟠' }
+      therapy: { bg: '#ffedd5', text: '#c2410c', dot: '🟠' },
+      iv: { bg: '#e0f2fe', text: '#0369a1', dot: '💧' },
+      hbot: { bg: '#fce7f3', text: '#be185d', dot: '🫁' },
+      rlt: { bg: '#fee2e2', text: '#dc2626', dot: '🔴' },
+      injection: { bg: '#fef3c7', text: '#92400e', dot: '💉' }
     };
     return colors[category] || { bg: '#f3f4f6', text: '#374151', dot: '⚪' };
+  }
+
+  function getDeliveryBadge(method) {
+    if (method === 'take_home' || method === 'at_home') {
+      return { label: 'Take Home', bg: '#dbeafe', text: '#1e40af' };
+    }
+    return { label: 'In Clinic', bg: '#dcfce7', text: '#166534' };
   }
 
   if (loading) {
@@ -73,7 +78,7 @@ export default function PipelineDashboard() {
       <Head>
         <title>Protocol Pipeline | Range Medical</title>
       </Head>
-      
+
       <div style={styles.container}>
         <div style={styles.header}>
           <h1 style={styles.title}>Protocol Pipeline</h1>
@@ -87,46 +92,59 @@ export default function PipelineDashboard() {
 
         <div style={styles.statsRow}>
           <div style={styles.statCard}>
-            <div style={styles.statNumber}>{stats.labsNoProtocol || 0}</div>
-            <div style={styles.statLabel}>Labs Done, No Protocol</div>
+            <div style={{...styles.statNumber, color: '#3b82f6'}}>{stats.pending || 0}</div>
+            <div style={styles.statLabel}>New / Pending</div>
           </div>
           <div style={styles.statCard}>
             <div style={{...styles.statNumber, color: '#ef4444'}}>{stats.endingSoon || 0}</div>
-            <div style={styles.statLabel}>Ending in 3 Days</div>
+            <div style={styles.statLabel}>Ending Soon</div>
           </div>
           <div style={styles.statCard}>
             <div style={{...styles.statNumber, color: '#22c55e'}}>{stats.activeProtocols || 0}</div>
-            <div style={styles.statLabel}>Active Protocols</div>
+            <div style={styles.statLabel}>Active</div>
           </div>
         </div>
 
         <div style={styles.pipeline}>
-          {/* Column 1: Labs Complete, No Protocol */}
+          {/* Column 1: New / Pending */}
           <div style={styles.column}>
-            <div style={styles.columnHeader}>
-              <h2 style={styles.columnTitle}>Labs Complete</h2>
-              <span style={styles.columnSubtitle}>No Protocol Yet</span>
-              <span style={styles.columnCount}>{labsComplete.length}</span>
+            <div style={{...styles.columnHeader, background: '#eff6ff'}}>
+              <h2 style={styles.columnTitle}>New / Pending</h2>
+              <span style={styles.columnSubtitle}>Started in last 7 days</span>
+              <span style={{...styles.columnCount, background: '#3b82f6'}}>{pending.length}</span>
             </div>
             <div style={styles.columnContent}>
-              {labsComplete.length === 0 ? (
-                <div style={styles.emptyColumn}>No patients</div>
+              {pending.length === 0 ? (
+                <div style={styles.emptyColumn}>No new protocols</div>
               ) : (
-                labsComplete.map(patient => (
-                  <Link 
-                    href={`/patients/${patient.id}`} 
-                    key={patient.id}
-                    style={styles.card}
-                  >
-                    <div style={styles.cardName}>{patient.name}</div>
-                    <div style={styles.cardMeta}>
-                      {patient.lab_panel || 'Labs'} • {formatDate(patient.lab_date)}
-                    </div>
-                    {patient.has_symptoms && (
-                      <div style={styles.cardBadge}>✓ Symptoms</div>
-                    )}
-                  </Link>
-                ))
+                pending.map(protocol => {
+                  const colors = getCategoryColor(protocol.category);
+                  const delivery = getDeliveryBadge(protocol.delivery_method);
+                  return (
+                    <Link
+                      href={`/patients/${protocol.patient_id}`}
+                      key={protocol.id}
+                      style={{...styles.card, borderLeft: `4px solid ${colors.text}`}}
+                    >
+                      <div style={styles.cardName}>{protocol.patient_name}</div>
+                      <div style={styles.cardProtocol}>
+                        {colors.dot} {protocol.protocol_name}
+                      </div>
+                      <div style={styles.cardMeta}>
+                        Started {formatDate(protocol.start_date)}
+                      </div>
+                      <div style={styles.cardBadges}>
+                        <span style={{
+                          ...styles.badge,
+                          background: delivery.bg,
+                          color: delivery.text
+                        }}>
+                          {delivery.label}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })
               )}
             </div>
           </div>
@@ -144,29 +162,42 @@ export default function PipelineDashboard() {
               ) : (
                 endingSoon.map(protocol => {
                   const colors = getCategoryColor(protocol.category);
-                  const daysLeft = getDaysRemaining(protocol.end_date);
+                  const daysLeft = protocol.days_remaining;
+                  const sessionsLeft = protocol.sessions_remaining;
                   return (
-                    <Link 
-                      href={`/patients/${protocol.patient_id}`} 
+                    <Link
+                      href={`/patients/${protocol.patient_id}`}
                       key={protocol.id}
                       style={{...styles.card, borderLeft: `4px solid ${colors.text}`}}
                     >
                       <div style={styles.cardHeader}>
                         <span style={styles.cardName}>{protocol.patient_name}</span>
-                        <span style={{
-                          ...styles.daysLeft,
-                          background: daysLeft <= 1 ? '#fee2e2' : '#fef3c7',
-                          color: daysLeft <= 1 ? '#dc2626' : '#92400e'
-                        }}>
-                          {daysLeft <= 0 ? 'Today' : daysLeft === 1 ? 'Tomorrow' : `${daysLeft} days`}
-                        </span>
+                        {daysLeft !== null && daysLeft !== undefined ? (
+                          <span style={{
+                            ...styles.daysLeft,
+                            background: daysLeft <= 0 ? '#fee2e2' : daysLeft <= 1 ? '#fef3c7' : '#fef9c3',
+                            color: daysLeft <= 0 ? '#dc2626' : '#92400e'
+                          }}>
+                            {daysLeft <= 0 ? 'Overdue' : daysLeft === 1 ? '1 day' : `${daysLeft} days`}
+                          </span>
+                        ) : sessionsLeft !== null && sessionsLeft !== undefined ? (
+                          <span style={{
+                            ...styles.daysLeft,
+                            background: sessionsLeft <= 0 ? '#fee2e2' : '#fef3c7',
+                            color: sessionsLeft <= 0 ? '#dc2626' : '#92400e'
+                          }}>
+                            {sessionsLeft <= 0 ? 'Complete' : `${sessionsLeft} left`}
+                          </span>
+                        ) : null}
                       </div>
                       <div style={styles.cardProtocol}>
                         {colors.dot} {protocol.protocol_name}
                       </div>
-                      <div style={styles.cardMeta}>
-                        Ends {formatDate(protocol.end_date)}
-                      </div>
+                      {protocol.end_date && (
+                        <div style={styles.cardMeta}>
+                          Ends {formatDate(protocol.end_date)}
+                        </div>
+                      )}
                     </Link>
                   );
                 })
@@ -187,13 +218,11 @@ export default function PipelineDashboard() {
               ) : (
                 active.map(protocol => {
                   const colors = getCategoryColor(protocol.category);
-                  const daysLeft = getDaysRemaining(protocol.end_date);
-                  const progress = protocol.duration_days 
-                    ? Math.round(((protocol.duration_days - (daysLeft || 0)) / protocol.duration_days) * 100)
-                    : null;
+                  const daysLeft = protocol.days_remaining;
+                  const delivery = getDeliveryBadge(protocol.delivery_method);
                   return (
-                    <Link 
-                      href={`/patients/${protocol.patient_id}`} 
+                    <Link
+                      href={`/patients/${protocol.patient_id}`}
                       key={protocol.id}
                       style={{...styles.card, borderLeft: `4px solid ${colors.text}`}}
                     >
@@ -201,21 +230,25 @@ export default function PipelineDashboard() {
                       <div style={styles.cardProtocol}>
                         {colors.dot} {protocol.protocol_name}
                       </div>
-                      {progress !== null && (
-                        <div style={styles.progressContainer}>
-                          <div style={styles.progressBar}>
-                            <div style={{...styles.progressFill, width: `${progress}%`}} />
-                          </div>
-                          <span style={styles.progressText}>
-                            Day {protocol.duration_days - daysLeft} of {protocol.duration_days}
-                          </span>
-                        </div>
-                      )}
-                      {protocol.compliance_percent !== null && (
+                      {daysLeft !== null && daysLeft !== undefined && (
                         <div style={styles.cardMeta}>
-                          Compliance: {protocol.compliance_percent}%
+                          {daysLeft} days remaining
                         </div>
                       )}
+                      {protocol.total_sessions > 0 && (
+                        <div style={styles.cardMeta}>
+                          {protocol.sessions_used || 0}/{protocol.total_sessions} sessions
+                        </div>
+                      )}
+                      <div style={styles.cardBadges}>
+                        <span style={{
+                          ...styles.badge,
+                          background: delivery.bg,
+                          color: delivery.text
+                        }}>
+                          {delivery.label}
+                        </span>
+                      </div>
                     </Link>
                   );
                 })
@@ -357,37 +390,23 @@ const styles = {
     fontSize: '12px',
     color: '#666'
   },
-  cardBadge: {
+  cardBadges: {
+    marginTop: '8px',
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap'
+  },
+  badge: {
     display: 'inline-block',
-    marginTop: '6px',
     padding: '2px 8px',
-    background: '#dcfce7',
-    color: '#166534',
     borderRadius: '4px',
-    fontSize: '11px'
+    fontSize: '11px',
+    fontWeight: '500'
   },
   daysLeft: {
     padding: '2px 8px',
     borderRadius: '4px',
     fontSize: '11px',
     fontWeight: '600'
-  },
-  progressContainer: {
-    marginTop: '8px'
-  },
-  progressBar: {
-    height: '4px',
-    background: '#e5e7eb',
-    borderRadius: '2px',
-    marginBottom: '4px'
-  },
-  progressFill: {
-    height: '100%',
-    background: '#22c55e',
-    borderRadius: '2px'
-  },
-  progressText: {
-    fontSize: '11px',
-    color: '#666'
   }
 };

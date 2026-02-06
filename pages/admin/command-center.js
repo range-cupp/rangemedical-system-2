@@ -446,8 +446,8 @@ function OverviewTab({ data, setActiveTab }) {
         <div style={styles.overviewColumn}>
           {/* Needs Protocol Alert */}
           {(data?.purchasesNeedingProtocol || []).length > 0 && (
-            <div style={{ ...styles.card, background: '#331800', borderColor: '#FF8C00' }}>
-              <h3 style={{ ...styles.cardTitle, color: '#FF8C00' }}>
+            <div style={{ ...styles.card, background: '#FFF7ED', borderColor: '#FB923C', borderWidth: '2px' }}>
+              <h3 style={{ ...styles.cardTitle, color: '#C2410C' }}>
                 Needs Protocol ({data.purchasesNeedingProtocol.length})
               </h3>
               <div style={styles.activityList}>
@@ -489,8 +489,8 @@ function OverviewTab({ data, setActiveTab }) {
 
           {/* In-Clinic Overdue */}
           {(data?.inClinicData?.overdue || []).length > 0 && (
-            <div style={{ ...styles.card, background: '#330000', borderColor: '#FF4444' }}>
-              <h3 style={{ ...styles.cardTitle, color: '#FF4444' }}>
+            <div style={{ ...styles.card, background: '#FEF2F2', borderColor: '#EF4444', borderWidth: '2px' }}>
+              <h3 style={{ ...styles.cardTitle, color: '#DC2626' }}>
                 Overdue Visits ({data.inClinicData.overdue.length})
               </h3>
               <div style={styles.protocolList}>

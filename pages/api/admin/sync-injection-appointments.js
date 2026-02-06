@@ -142,13 +142,25 @@ export default async function handler(req, res) {
             updated_at: new Date().toISOString()
           };
 
+          // Track whether we're updating the last visit
+          let updatingLastVisit = false;
+
           if (lastVisit) {
-            updateData.last_visit_date = lastVisit.appointment_date;
+            // Only update last_visit_date if it's newer than current value
+            // This prevents regression when clinic_appointments might be incomplete
+            const existingDate = protocol.last_visit_date;
+            const newDate = lastVisit.appointment_date;
+            if (!existingDate || newDate >= existingDate) {
+              updateData.last_visit_date = newDate;
+              updatingLastVisit = true;
+            }
           }
 
+          // Only recalculate next_expected_date if we have a scheduled appointment
+          // OR if we're updating the last_visit_date (new visit data)
           if (nextScheduled) {
             updateData.next_expected_date = nextScheduled.appointment_date;
-          } else if (lastVisit) {
+          } else if (lastVisit && updatingLastVisit) {
             // Calculate next expected based on visit frequency
             const visitFrequency = protocol.visit_frequency ||
               (protocol.program_type === 'weight_loss' ? 'weekly' : 'twice_weekly');
@@ -166,9 +178,13 @@ export default async function handler(req, res) {
             updateData.next_expected_date = lastDate.toISOString().split('T')[0];
           }
 
-          // For weight loss, update sessions_used based on completed appointments
+          // For weight loss, only update sessions_used if it would increase
+          // This prevents regression when clinic_appointments might be incomplete
           if (protocol.program_type === 'weight_loss' && completedAppointments.length > 0) {
-            updateData.sessions_used = completedAppointments.length;
+            const currentSessions = protocol.sessions_used || 0;
+            if (completedAppointments.length > currentSessions) {
+              updateData.sessions_used = completedAppointments.length;
+            }
           }
 
           const { error: updateError } = await supabase

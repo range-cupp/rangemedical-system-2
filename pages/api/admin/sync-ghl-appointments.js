@@ -264,6 +264,25 @@ export default async function handler(req, res) {
           }
         }
 
+        // Check if this appointment already exists with a "final" status
+        // Don't overwrite "showed" or "completed" with a less-final status like "scheduled"
+        let finalStatus = status;
+        const finalStatuses = ['showed', 'completed', 'no_show', 'cancelled'];
+
+        if (!finalStatuses.includes(status)) {
+          // Check existing status
+          const { data: existingApt } = await supabase
+            .from('clinic_appointments')
+            .select('status')
+            .eq('ghl_appointment_id', appointmentId)
+            .single();
+
+          if (existingApt && finalStatuses.includes(existingApt.status)) {
+            // Preserve the existing final status
+            finalStatus = existingApt.status;
+          }
+        }
+
         const appointmentData = {
           ghl_appointment_id: appointmentId,
           ghl_contact_id: apt.contactId,
@@ -274,7 +293,7 @@ export default async function handler(req, res) {
           appointment_date: targetDate,
           start_time: startTimeVal,
           end_time: endTimeVal,
-          status: status,
+          status: finalStatus,
           notes: notes,
           updated_at: new Date().toISOString()
         };

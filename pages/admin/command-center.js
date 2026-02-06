@@ -430,6 +430,9 @@ export default function CommandCenter() {
 
   const getSelectedPeptide = () => peptides.find(p => p.id === assignForm.peptideId) || null;
   const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
+  const isNADTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('nad+');
+
+  const NAD_DOSE_OPTIONS = ['25mg', '50mg', '100mg', '125mg', '150mg'];
 
   const handleAssignProtocol = async () => {
     if (!selectedPatient?.id || !assignForm.templateId) {
@@ -859,6 +862,21 @@ export default function CommandCenter() {
                   </div>
                 )}
               </>
+            )}
+
+            {/* NAD+ Dose Selection */}
+            {isNADTemplate() && (
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>NAD+ Dose *</label>
+                <select
+                  value={assignForm.selectedDose}
+                  onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select dose...</option>
+                  {NAD_DOSE_OPTIONS.map(dose => <option key={dose} value={dose}>{dose}</option>)}
+                </select>
+              </div>
             )}
 
             <div style={styles.modalFormGroup}>

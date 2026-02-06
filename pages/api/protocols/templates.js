@@ -27,6 +27,7 @@ export default async function handler(req, res) {
       peptide: templates.filter(t => t.category === 'peptide'),
       weight_loss: templates.filter(t => t.category === 'weight_loss'),
       hrt: templates.filter(t => t.category === 'hrt'),
+      injection: templates.filter(t => t.category === 'injection'),
       therapy: templates.filter(t => t.category === 'therapy')
     };
 

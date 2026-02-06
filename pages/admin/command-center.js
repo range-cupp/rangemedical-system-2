@@ -1,6 +1,6 @@
 // /pages/admin/command-center.js
 // Range Medical Command Center - Unified Admin Dashboard
-// Single page with 4 tabs: Overview, Leads, Protocols, Patients
+// 6 tabs: Overview, Leads, Protocols, Patients, Injections, Send Forms
 
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
@@ -31,6 +31,91 @@ const CATEGORY_LABELS = {
   injection: 'Injection',
   labs: 'Labs',
 };
+
+// ============================================
+// INJECTION LOG CONSTANTS
+// ============================================
+
+const TESTOSTERONE_OPTIONS = {
+  male: {
+    label: 'Male HRT (200mg/ml)',
+    medication: 'Testosterone Cypionate 200mg/ml',
+    dosages: [
+      { value: '0.2ml/40mg', label: '0.2ml (40mg)' },
+      { value: '0.3ml/60mg', label: '0.3ml (60mg)' },
+      { value: '0.35ml/70mg', label: '0.35ml (70mg)' },
+      { value: '0.4ml/80mg', label: '0.4ml (80mg)' },
+      { value: '0.5ml/100mg', label: '0.5ml (100mg)' },
+      { value: 'custom', label: 'Custom dose' }
+    ]
+  },
+  female: {
+    label: 'Female HRT (100mg/ml)',
+    medication: 'Testosterone Cypionate 100mg/ml',
+    dosages: [
+      { value: '0.1ml/10mg', label: '0.1ml (10mg)' },
+      { value: '0.15ml/15mg', label: '0.15ml (15mg)' },
+      { value: '0.2ml/20mg', label: '0.2ml (20mg)' },
+      { value: '0.25ml/25mg', label: '0.25ml (25mg)' },
+      { value: '0.3ml/30mg', label: '0.3ml (30mg)' },
+      { value: '0.4ml/40mg', label: '0.4ml (40mg)' },
+      { value: '0.5ml/50mg', label: '0.5ml (50mg)' },
+      { value: 'custom', label: 'Custom dose' }
+    ]
+  }
+};
+
+const WEIGHT_LOSS_OPTIONS = {
+  medications: [
+    { value: 'Semaglutide', label: 'Semaglutide' },
+    { value: 'Tirzepatide', label: 'Tirzepatide' },
+    { value: 'Retatrutide', label: 'Retatrutide' }
+  ],
+  dosages: {
+    Semaglutide: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'],
+    Tirzepatide: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'],
+    Retatrutide: ['1mg', '2mg', '4mg', '6mg', '8mg', '10mg', '12mg']
+  }
+};
+
+const VITAMIN_OPTIONS = [
+  { value: 'B12', label: 'B12' },
+  { value: 'B-Complex', label: 'B-Complex' },
+  { value: 'Amino Blend', label: 'Amino Blend' },
+  { value: 'Biotin', label: 'Biotin' },
+  { value: 'Vitamin D3', label: 'Vitamin D3' },
+  { value: 'Glutathione', label: 'Glutathione' },
+  { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
+  { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
+  { value: 'L-Carnitine', label: 'L-Carnitine' },
+  { value: 'Lipo-C', label: 'Lipo-C' }
+];
+
+// ============================================
+// SEND FORMS CONSTANTS
+// ============================================
+
+const AVAILABLE_FORMS = [
+  { id: 'intake', name: 'Medical Intake', icon: '📋', time: '10 min', required: true },
+  { id: 'hipaa', name: 'HIPAA Privacy Notice', icon: '🔒', time: '3 min', required: true },
+  { id: 'blood-draw', name: 'Blood Draw Consent', icon: '🩸', time: '2 min' },
+  { id: 'hrt', name: 'HRT Consent', icon: '💊', time: '5 min' },
+  { id: 'peptide', name: 'Peptide Therapy Consent', icon: '🧬', time: '5 min' },
+  { id: 'iv', name: 'IV & Injection Consent', icon: '💧', time: '5 min' },
+  { id: 'hbot', name: 'HBOT Consent', icon: '🫁', time: '5 min' },
+  { id: 'weight-loss', name: 'Weight Loss Consent', icon: '⚖️', time: '5 min' },
+  { id: 'red-light', name: 'Red Light Therapy', icon: '🔴', time: '5 min' },
+];
+
+const QUICK_SELECTIONS = [
+  { label: 'New Patient', forms: ['intake', 'hipaa'] },
+  { label: 'HRT Patient', forms: ['intake', 'hipaa', 'hrt', 'blood-draw'] },
+  { label: 'Weight Loss', forms: ['intake', 'hipaa', 'weight-loss', 'blood-draw'] },
+  { label: 'IV Therapy', forms: ['intake', 'hipaa', 'iv'] },
+  { label: 'Peptides', forms: ['intake', 'hipaa', 'peptide'] },
+  { label: 'HBOT', forms: ['intake', 'hipaa', 'hbot'] },
+  { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
+];
 
 const URGENCY_COLORS = {
   expired: '#FF4444',
@@ -151,10 +236,54 @@ export default function CommandCenter() {
   const [patientSearch, setPatientSearch] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
 
+  // Injection logs state
+  const [injectionCategory, setInjectionCategory] = useState('testosterone');
+  const [injectionLogs, setInjectionLogs] = useState([]);
+  const [injectionLoading, setInjectionLoading] = useState(false);
+  const [showInjectionModal, setShowInjectionModal] = useState(false);
+  const [injectionFormData, setInjectionFormData] = useState({
+    patient_id: '',
+    patient_name: '',
+    log_type: 'injection',
+    category: 'testosterone',
+    hrt_type: 'male',
+    medication: '',
+    dosage: '',
+    custom_dosage: '',
+    pickup_type: 'vial',
+    quantity: 1,
+    week_supply: 4,
+    weight: '',
+    entry_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
+    notes: ''
+  });
+  const [injectionPatientSearch, setInjectionPatientSearch] = useState('');
+  const [showInjectionPatientDropdown, setShowInjectionPatientDropdown] = useState(false);
+  const [injectionSearchTerm, setInjectionSearchTerm] = useState('');
+
+  // Send forms state
+  const [formEntryMode, setFormEntryMode] = useState('search');
+  const [formPhone, setFormPhone] = useState('');
+  const [formFirstName, setFormFirstName] = useState('');
+  const [selectedForms, setSelectedForms] = useState(['intake', 'hipaa']);
+  const [formStatus, setFormStatus] = useState({ type: '', message: '' });
+  const [formLoading, setFormLoading] = useState(false);
+  const [recentSends, setRecentSends] = useState([]);
+  const [formPatientSearch, setFormPatientSearch] = useState('');
+  const [selectedFormPatient, setSelectedFormPatient] = useState(null);
+  const [showFormPatientDropdown, setShowFormPatientDropdown] = useState(false);
+
   // Fetch data
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Fetch injection logs when category changes
+  useEffect(() => {
+    if (activeTab === 'injections') {
+      fetchInjectionLogs();
+    }
+  }, [activeTab, injectionCategory]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -172,6 +301,54 @@ export default function CommandCenter() {
     }
     setLoading(false);
   };
+
+  const fetchInjectionLogs = async () => {
+    setInjectionLoading(true);
+    try {
+      const res = await fetch(`/api/injection-logs?category=${injectionCategory}&limit=100`);
+      const result = await res.json();
+      if (result.success) {
+        setInjectionLogs(result.logs || []);
+      }
+    } catch (err) {
+      console.error('Error fetching injection logs:', err);
+    }
+    setInjectionLoading(false);
+  };
+
+  // Filter patients for injection modal
+  const filteredInjectionPatients = useMemo(() => {
+    if (!injectionPatientSearch || injectionPatientSearch.length < 1 || !data?.patients) return [];
+    const term = injectionPatientSearch.toLowerCase();
+    return data.patients.filter(p => {
+      const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
+      const altName = (p.name || '').toLowerCase();
+      const phone = (p.phone || '').replace(/\D/g, '');
+      return fullName.includes(term) || altName.includes(term) || phone.includes(term);
+    }).slice(0, 10);
+  }, [injectionPatientSearch, data?.patients]);
+
+  // Filter patients for send forms
+  const filteredFormPatients = useMemo(() => {
+    if (!formPatientSearch || !data?.patients) return [];
+    const query = formPatientSearch.toLowerCase();
+    return data.patients.filter(p =>
+      p.name?.toLowerCase().includes(query) ||
+      p.email?.toLowerCase().includes(query) ||
+      p.phone?.includes(query)
+    ).slice(0, 20);
+  }, [formPatientSearch, data?.patients]);
+
+  // Filtered injection logs
+  const filteredInjectionLogs = useMemo(() => {
+    if (!injectionSearchTerm) return injectionLogs;
+    const term = injectionSearchTerm.toLowerCase();
+    return injectionLogs.filter(log => {
+      const patientName = (log.patient_name || '').toLowerCase();
+      const medication = (log.medication || '').toLowerCase();
+      return patientName.includes(term) || medication.includes(term);
+    });
+  }, [injectionLogs, injectionSearchTerm]);
 
   // Filtered protocols
   const filteredProtocols = useMemo(() => {
@@ -301,6 +478,8 @@ export default function CommandCenter() {
             { id: 'leads', label: 'Leads', icon: '🎯', badge: data?.stats?.needsProtocol },
             { id: 'protocols', label: 'Protocols', icon: '💊', badge: data?.stats?.endingSoon },
             { id: 'patients', label: 'Patients', icon: '👥' },
+            { id: 'injections', label: 'Injections', icon: '💉' },
+            { id: 'forms', label: 'Send Forms', icon: '📤' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -347,6 +526,52 @@ export default function CommandCenter() {
               setSelected={setSelectedPatient}
               details={patientDetails}
               data={data}
+            />
+          )}
+          {activeTab === 'injections' && (
+            <InjectionsTab
+              category={injectionCategory}
+              setCategory={setInjectionCategory}
+              logs={filteredInjectionLogs}
+              loading={injectionLoading}
+              searchTerm={injectionSearchTerm}
+              setSearchTerm={setInjectionSearchTerm}
+              showModal={showInjectionModal}
+              setShowModal={setShowInjectionModal}
+              formData={injectionFormData}
+              setFormData={setInjectionFormData}
+              patientSearch={injectionPatientSearch}
+              setPatientSearch={setInjectionPatientSearch}
+              filteredPatients={filteredInjectionPatients}
+              showPatientDropdown={showInjectionPatientDropdown}
+              setShowPatientDropdown={setShowInjectionPatientDropdown}
+              fetchLogs={fetchInjectionLogs}
+            />
+          )}
+          {activeTab === 'forms' && (
+            <SendFormsTab
+              patients={data?.patients || []}
+              entryMode={formEntryMode}
+              setEntryMode={setFormEntryMode}
+              phone={formPhone}
+              setPhone={setFormPhone}
+              firstName={formFirstName}
+              setFirstName={setFormFirstName}
+              selectedForms={selectedForms}
+              setSelectedForms={setSelectedForms}
+              status={formStatus}
+              setStatus={setFormStatus}
+              loading={formLoading}
+              setLoading={setFormLoading}
+              recentSends={recentSends}
+              setRecentSends={setRecentSends}
+              patientSearch={formPatientSearch}
+              setPatientSearch={setFormPatientSearch}
+              selectedPatient={selectedFormPatient}
+              setSelectedPatient={setSelectedFormPatient}
+              filteredPatients={filteredFormPatients}
+              showDropdown={showFormPatientDropdown}
+              setShowDropdown={setShowFormPatientDropdown}
             />
           )}
         </main>
@@ -874,6 +1099,866 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
         ) : (
           <div style={styles.patientDetailEmpty}>
             Select a patient to view details
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InjectionsTab({
+  category, setCategory, logs, loading, searchTerm, setSearchTerm,
+  showModal, setShowModal, formData, setFormData,
+  patientSearch, setPatientSearch, filteredPatients,
+  showPatientDropdown, setShowPatientDropdown, fetchLogs
+}) {
+  const formatLogDate = (dateStr) => {
+    if (!dateStr) return '-';
+    let d;
+    if (dateStr.length === 10 && dateStr.includes('-')) {
+      d = new Date(dateStr + 'T00:00:00');
+    } else {
+      d = new Date(dateStr);
+    }
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'America/Los_Angeles'
+    });
+  };
+
+  const formatLogTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Los_Angeles'
+    });
+  };
+
+  const getCategoryLabel = () => {
+    switch(category) {
+      case 'testosterone': return 'Testosterone';
+      case 'weight_loss': return 'Weight Loss';
+      case 'vitamin': return 'Vitamin Injection';
+      default: return category;
+    }
+  };
+
+  const openModal = () => {
+    setPatientSearch('');
+    setFormData(prev => ({
+      ...prev,
+      patient_id: '',
+      patient_name: '',
+      category: category,
+      log_type: 'injection',
+      dosage: '',
+      custom_dosage: '',
+      weight: '',
+      medication: category === 'weight_loss' ? 'Semaglutide' : '',
+      notes: '',
+      entry_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+    }));
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setPatientSearch('');
+    setFormData(prev => ({ ...prev, patient_id: '', patient_name: '' }));
+  };
+
+  const selectPatient = (patient) => {
+    const name = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.name || 'Unknown';
+    setFormData(prev => ({
+      ...prev,
+      patient_id: patient.id,
+      patient_name: name
+    }));
+    setPatientSearch(name);
+    setShowPatientDropdown(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.patient_id) {
+      alert('Please select a patient');
+      return;
+    }
+
+    const payload = {
+      patient_id: formData.patient_id,
+      category: category,
+      entry_type: formData.log_type,
+      entry_date: formData.entry_date,
+      notes: formData.notes || null
+    };
+
+    if (category === 'testosterone') {
+      payload.medication = formData.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
+      if (formData.log_type === 'injection') {
+        payload.dosage = formData.dosage === 'custom' ? formData.custom_dosage : formData.dosage;
+      } else {
+        payload.supply_type = formData.pickup_type === 'vial' ? 'vial_10ml' :
+          formData.quantity === 8 ? 'prefilled_4week' : 'prefilled_2week';
+        payload.quantity = formData.quantity;
+        if (formData.pickup_type === 'vial') {
+          const totalMg = formData.hrt_type === 'male' ? 2000 : 1000;
+          const match = formData.dosage.match(/(\d+)mg/);
+          let weeks = 12;
+          if (match) {
+            const dosePerInjection = parseInt(match[1]);
+            const weeklyMg = dosePerInjection * 2;
+            weeks = Math.floor(totalMg / weeklyMg);
+          }
+          payload.dosage = `1 vial @ ${formData.dosage} (${weeks} weeks)`;
+        } else {
+          payload.dosage = `${formData.quantity} prefilled @ ${formData.dosage}`;
+        }
+      }
+    } else if (category === 'weight_loss') {
+      payload.medication = formData.medication;
+      if (formData.log_type === 'injection') {
+        payload.dosage = formData.dosage;
+        payload.weight = formData.weight ? parseFloat(formData.weight) : null;
+      } else {
+        payload.quantity = formData.week_supply;
+        payload.dosage = `${formData.week_supply} week supply`;
+      }
+    } else if (category === 'vitamin') {
+      payload.medication = formData.medication;
+      payload.dosage = 'Standard';
+    }
+
+    try {
+      const res = await fetch('/api/injection-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        closeModal();
+        fetchLogs();
+        if (data.protocol_update?.updated) {
+          alert(`✓ Entry saved!\n\nProtocol updated:\n- Last refill: ${data.protocol_update.new_last_refill_date || 'updated'}`);
+        }
+      } else {
+        alert('Error: ' + (data.error || 'Failed to save'));
+      }
+    } catch (err) {
+      console.error('Submit error:', err);
+      alert('Error saving entry');
+    }
+  };
+
+  const deleteLog = async (id) => {
+    if (!confirm('Delete this entry?')) return;
+    try {
+      const res = await fetch(`/api/injection-logs?id=${id}`, { method: 'DELETE' });
+      if (res.ok) fetchLogs();
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  return (
+    <div style={styles.tabContent}>
+      {/* Category Tabs */}
+      <div style={styles.injectionTabs}>
+        {[
+          { id: 'testosterone', label: 'Testosterone' },
+          { id: 'weight_loss', label: 'Weight Loss' },
+          { id: 'vitamin', label: 'Vitamin Injections' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            style={{
+              ...styles.injectionTab,
+              ...(category === tab.id ? styles.injectionTabActive : {})
+            }}
+            onClick={() => setCategory(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Actions Bar */}
+      <div style={styles.injectionActions}>
+        <input
+          type="text"
+          placeholder="Search logs..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={styles.searchInput}
+        />
+        <button style={styles.newEntryBtn} onClick={openModal}>
+          + New Entry
+        </button>
+      </div>
+
+      {/* Logs Table */}
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Date</th>
+              <th style={styles.th}>Patient</th>
+              <th style={styles.th}>Type</th>
+              <th style={styles.th}>Medication</th>
+              <th style={styles.th}>Dose/Details</th>
+              <th style={styles.th}>Notes</th>
+              <th style={styles.th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan="7" style={styles.emptyState}>Loading...</td></tr>
+            ) : logs.length === 0 ? (
+              <tr><td colSpan="7" style={styles.emptyState}>No entries found</td></tr>
+            ) : (
+              logs.map(log => (
+                <tr key={log.id} style={styles.tr}>
+                  <td style={styles.td}>
+                    <div>{formatLogDate(log.entry_date || log.created_at)}</div>
+                    <div style={{ fontSize: '11px', color: '#888' }}>{formatLogTime(log.created_at)}</div>
+                  </td>
+                  <td style={styles.td}>{log.patient_name || 'Unknown'}</td>
+                  <td style={styles.td}>
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      background: log.entry_type === 'pickup' ? '#DBEAFE' : '#DCFCE7',
+                      color: log.entry_type === 'pickup' ? '#1D4ED8' : '#166534'
+                    }}>
+                      {log.entry_type === 'pickup' ? '📦 Pickup' : '💉 Injection'}
+                    </span>
+                  </td>
+                  <td style={styles.td}>{log.medication || '-'}</td>
+                  <td style={styles.td}>{log.dosage || '-'}</td>
+                  <td style={styles.td}>{log.notes || '-'}</td>
+                  <td style={styles.td}>
+                    <button
+                      style={styles.deleteLogBtn}
+                      onClick={() => deleteLog(log.id)}
+                      title="Delete"
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Stats */}
+      <div style={styles.injectionStats}>
+        <span>Today: <strong>{logs.filter(l => {
+          const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+          const logDate = (l.entry_date || l.created_at || '').split('T')[0];
+          return logDate === today;
+        }).length}</strong></span>
+        <span style={{ marginLeft: '24px' }}>This Week: <strong>{logs.filter(l => {
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          const logDate = new Date(l.entry_date || l.created_at);
+          return logDate >= weekAgo;
+        }).length}</strong></span>
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>New {getCategoryLabel()} Entry</h2>
+              <button style={styles.modalCloseBtn} onClick={closeModal}>×</button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              {/* Patient Search */}
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Patient *</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={patientSearch}
+                    onChange={(e) => {
+                      setPatientSearch(e.target.value);
+                      setFormData(prev => ({ ...prev, patient_id: '', patient_name: '' }));
+                      setShowPatientDropdown(true);
+                    }}
+                    placeholder="Type to search patient..."
+                    style={styles.formInput}
+                    autoComplete="off"
+                  />
+                  {showPatientDropdown && filteredPatients.length > 0 && (
+                    <div style={styles.patientDropdown}>
+                      {filteredPatients.map(p => {
+                        const displayName = `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.name || 'Unknown';
+                        return (
+                          <div
+                            key={p.id}
+                            style={styles.patientDropdownItem}
+                            onClick={() => selectPatient(p)}
+                          >
+                            <div style={{ fontWeight: '500' }}>{displayName}</div>
+                            <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                              {p.phone || p.email || 'No contact'}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Date */}
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Date *</label>
+                <input
+                  type="date"
+                  value={formData.entry_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, entry_date: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+
+              {/* Type (Injection vs Pickup) */}
+              {category !== 'vitamin' && (
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Type</label>
+                  <div style={styles.radioGroup}>
+                    <label style={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="log_type"
+                        value="injection"
+                        checked={formData.log_type === 'injection'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
+                      />
+                      💉 In-Clinic Injection
+                    </label>
+                    <label style={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="log_type"
+                        value="pickup"
+                        checked={formData.log_type === 'pickup'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
+                      />
+                      📦 Medication Pickup
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Testosterone Fields */}
+              {category === 'testosterone' && (
+                <>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>HRT Type</label>
+                    <select
+                      value={formData.hrt_type}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        hrt_type: e.target.value,
+                        dosage: ''
+                      }))}
+                      style={styles.formSelect}
+                    >
+                      <option value="male">Male HRT (200mg/ml)</option>
+                      <option value="female">Female HRT (100mg/ml)</option>
+                    </select>
+                  </div>
+
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Dosage *</label>
+                    <select
+                      value={formData.dosage}
+                      onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                      style={styles.formSelect}
+                      required
+                    >
+                      <option value="">Select dosage...</option>
+                      {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages.map(d => (
+                        <option key={d.value} value={d.value}>{d.label}</option>
+                      ))}
+                    </select>
+                    {formData.dosage === 'custom' && (
+                      <input
+                        type="text"
+                        placeholder="Enter custom dosage..."
+                        value={formData.custom_dosage}
+                        onChange={(e) => setFormData(prev => ({ ...prev, custom_dosage: e.target.value }))}
+                        style={{ ...styles.formInput, marginTop: '8px' }}
+                        required
+                      />
+                    )}
+                  </div>
+
+                  {formData.log_type === 'pickup' && (
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Pickup Type</label>
+                      <select
+                        value={formData.pickup_type}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          pickup_type: e.target.value,
+                          quantity: e.target.value === 'vial' ? 1 : 4
+                        }))}
+                        style={styles.formSelect}
+                      >
+                        <option value="vial">Vial (10ml)</option>
+                        <option value="prefilled">Prefilled Syringes</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {formData.log_type === 'pickup' && formData.pickup_type === 'prefilled' && (
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Quantity</label>
+                      <select
+                        value={formData.quantity}
+                        onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                        style={styles.formSelect}
+                      >
+                        <option value="4">4 syringes (2 weeks)</option>
+                        <option value="8">8 syringes (4 weeks)</option>
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Weight Loss Fields */}
+              {category === 'weight_loss' && (
+                <>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Medication</label>
+                    <select
+                      value={formData.medication}
+                      onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value, dosage: '' }))}
+                      style={styles.formSelect}
+                    >
+                      {WEIGHT_LOSS_OPTIONS.medications.map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {formData.log_type === 'injection' ? (
+                    <>
+                      <div style={styles.modalFormGroup}>
+                        <label style={styles.formLabel}>Dosage *</label>
+                        <select
+                          value={formData.dosage}
+                          onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                          style={styles.formSelect}
+                          required
+                        >
+                          <option value="">Select dosage...</option>
+                          {(WEIGHT_LOSS_OPTIONS.dosages[formData.medication] || []).map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={styles.modalFormGroup}>
+                        <label style={styles.formLabel}>Weight (lbs)</label>
+                        <input
+                          type="number"
+                          value={formData.weight}
+                          onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
+                          placeholder="Optional"
+                          style={styles.formInput}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Week Supply</label>
+                      <select
+                        value={formData.week_supply}
+                        onChange={(e) => setFormData(prev => ({ ...prev, week_supply: parseInt(e.target.value) }))}
+                        style={styles.formSelect}
+                      >
+                        <option value="4">4 weeks</option>
+                        <option value="8">8 weeks</option>
+                        <option value="12">12 weeks</option>
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Vitamin Fields */}
+              {category === 'vitamin' && (
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Vitamin Type *</label>
+                  <select
+                    value={formData.medication}
+                    onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
+                    style={styles.formSelect}
+                    required
+                  >
+                    <option value="">Select vitamin...</option>
+                    {VITAMIN_OPTIONS.map(v => (
+                      <option key={v.value} value={v.value}>{v.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Notes */}
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Optional notes..."
+                  style={{ ...styles.formInput, minHeight: '60px', resize: 'vertical' }}
+                />
+              </div>
+
+              <button type="submit" style={styles.submitBtn}>
+                Save Entry
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SendFormsTab({
+  patients, entryMode, setEntryMode, phone, setPhone,
+  firstName, setFirstName, selectedForms, setSelectedForms,
+  status, setStatus, loading, setLoading, recentSends, setRecentSends,
+  patientSearch, setPatientSearch, selectedPatient, setSelectedPatient,
+  filteredPatients, showDropdown, setShowDropdown
+}) {
+  const formatPhone = (value) => {
+    if (!value) return '';
+    let digits = value.replace(/\D/g, '');
+    if (digits.length === 11 && digits.startsWith('1')) {
+      digits = digits.slice(1);
+    }
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  };
+
+  const handlePhoneChange = (e) => {
+    setPhone(formatPhone(e.target.value));
+  };
+
+  const selectPatient = (patient) => {
+    setSelectedPatient(patient);
+    setPatientSearch(patient.name);
+    setShowDropdown(false);
+    if (patient.phone) setPhone(formatPhone(patient.phone));
+    if (patient.name) {
+      const nameParts = patient.name.split(' ');
+      setFirstName(nameParts[0] || '');
+    }
+  };
+
+  const clearPatient = () => {
+    setSelectedPatient(null);
+    setPatientSearch('');
+    setPhone('');
+    setFirstName('');
+  };
+
+  const toggleForm = (formId) => {
+    setSelectedForms(prev =>
+      prev.includes(formId)
+        ? prev.filter(id => id !== formId)
+        : [...prev, formId]
+    );
+  };
+
+  const applyQuickSelection = (formIds) => {
+    setSelectedForms(formIds);
+  };
+
+  const getSortedForms = (formIds) => {
+    const formOrder = AVAILABLE_FORMS.map(f => f.id);
+    return [...formIds].sort((a, b) => formOrder.indexOf(a) - formOrder.indexOf(b));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length !== 10) {
+      setStatus({ type: 'error', message: 'Please enter a valid 10-digit phone number' });
+      return;
+    }
+
+    if (selectedForms.length === 0) {
+      setStatus({ type: 'error', message: 'Please select at least one form to send' });
+      return;
+    }
+
+    setLoading(true);
+    setStatus({ type: 'loading', message: 'Sending forms...' });
+
+    try {
+      const sortedForms = getSortedForms(selectedForms);
+
+      const response = await fetch('/api/send-forms-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: digits,
+          firstName: firstName.trim() || null,
+          formIds: sortedForms
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        const formNames = sortedForms.map(id =>
+          AVAILABLE_FORMS.find(f => f.id === id)?.name
+        ).join(', ');
+
+        setStatus({ type: 'success', message: `✓ ${selectedForms.length} form(s) sent to ${phone}` });
+        setRecentSends(prev => [{
+          phone,
+          firstName: firstName.trim() || selectedPatient?.name || 'Patient',
+          forms: formNames,
+          count: selectedForms.length,
+          time: new Date().toLocaleTimeString()
+        }, ...prev.slice(0, 9)]);
+
+        setPhone('');
+        setFirstName('');
+        setSelectedPatient(null);
+        setPatientSearch('');
+      } else {
+        setStatus({ type: 'error', message: result.error || 'Failed to send' });
+      }
+    } catch (error) {
+      setStatus({ type: 'error', message: 'Network error. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={styles.formsTabContent}>
+      <div style={styles.formsCard}>
+        <h2 style={styles.formsCardTitle}>Send Patient Forms</h2>
+
+        <form onSubmit={handleSubmit}>
+          {/* Mode Toggle */}
+          <div style={styles.modeToggle}>
+            <button
+              type="button"
+              style={{ ...styles.modeBtn, ...(entryMode === 'search' ? styles.modeBtnActive : {}) }}
+              onClick={() => { setEntryMode('search'); clearPatient(); }}
+            >
+              🔍 Search Patient
+            </button>
+            <button
+              type="button"
+              style={{ ...styles.modeBtn, ...(entryMode === 'manual' ? styles.modeBtnActive : {}) }}
+              onClick={() => { setEntryMode('manual'); clearPatient(); }}
+            >
+              ✏️ Enter Manually
+            </button>
+          </div>
+
+          {entryMode === 'search' && (
+            <>
+              {selectedPatient ? (
+                <div style={styles.selectedPatientCard}>
+                  <div style={styles.selectedPatientInfo}>
+                    <div style={styles.selectedPatientName}>✓ {selectedPatient.name}</div>
+                    <div style={styles.selectedPatientPhone}>{formatPhone(selectedPatient.phone) || selectedPatient.email || 'No contact info'}</div>
+                  </div>
+                  <button type="button" style={styles.changePatientBtn} onClick={clearPatient}>
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Search by Name, Email, or Phone</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Start typing patient name..."
+                      value={patientSearch}
+                      onChange={(e) => {
+                        setPatientSearch(e.target.value);
+                        setShowDropdown(true);
+                      }}
+                      onFocus={() => setShowDropdown(true)}
+                      style={styles.formInput}
+                    />
+                    {showDropdown && patientSearch && (
+                      <div style={styles.patientDropdown}>
+                        {filteredPatients.length === 0 ? (
+                          <div style={styles.patientDropdownEmpty}>No patients found</div>
+                        ) : (
+                          filteredPatients.map(patient => (
+                            <div
+                              key={patient.id}
+                              style={styles.patientDropdownItem}
+                              onClick={() => selectPatient(patient)}
+                            >
+                              <div style={{ fontWeight: '600' }}>{patient.name}</div>
+                              <div style={{ fontSize: '12px', color: '#737373' }}>
+                                {formatPhone(patient.phone) || patient.email || 'No contact'}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {(entryMode === 'manual' || selectedPatient) && (
+            <>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Phone Number *</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  placeholder="(555) 555-5555"
+                  style={{ ...styles.formInput, fontSize: '18px', textAlign: 'center', letterSpacing: '0.025em' }}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>First Name (for personalized message)</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Optional"
+                  style={styles.formInput}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Quick Selections */}
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>Quick Select</label>
+            <div style={styles.quickBtns}>
+              {QUICK_SELECTIONS.map(qs => {
+                const isActive = qs.forms.length === selectedForms.length &&
+                  qs.forms.every(f => selectedForms.includes(f));
+                return (
+                  <button
+                    key={qs.label}
+                    type="button"
+                    style={{ ...styles.quickBtn, ...(isActive ? styles.quickBtnActive : {}) }}
+                    onClick={() => applyQuickSelection(qs.forms)}
+                  >
+                    {qs.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Form Selection */}
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>Select Forms to Send</label>
+            <div style={styles.formsGrid}>
+              {AVAILABLE_FORMS.map(form => {
+                const isSelected = selectedForms.includes(form.id);
+                return (
+                  <div
+                    key={form.id}
+                    style={{ ...styles.formItem, ...(isSelected ? styles.formItemSelected : {}) }}
+                    onClick={() => toggleForm(form.id)}
+                  >
+                    <div style={{ ...styles.formCheckbox, ...(isSelected ? styles.formCheckboxSelected : {}) }}>
+                      {isSelected && '✓'}
+                    </div>
+                    <span style={{ fontSize: '20px' }}>{form.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600' }}>{form.name}</div>
+                      <div style={{ fontSize: '11px', color: '#737373' }}>{form.time}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={styles.selectionActions}>
+              <span style={{ fontSize: '14px', color: '#525252' }}>
+                <strong>{selectedForms.length}</strong> form(s) selected
+              </span>
+              <div>
+                <button type="button" style={styles.textBtn} onClick={() => setSelectedForms(AVAILABLE_FORMS.map(f => f.id))}>
+                  Select All
+                </button>
+                <button type="button" style={{ ...styles.textBtn, marginLeft: '12px' }} onClick={() => setSelectedForms([])}>
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            style={styles.sendBtn}
+            disabled={loading || (entryMode === 'search' && !selectedPatient)}
+          >
+            {loading ? 'Sending...' : `Send ${selectedForms.length} Form(s)`}
+          </button>
+
+          {status.message && (
+            <div style={{
+              ...styles.statusMessage,
+              background: status.type === 'error' ? '#FEF2F2' : status.type === 'success' ? '#F0FDF4' : '#F5F5F5',
+              color: status.type === 'error' ? '#DC2626' : status.type === 'success' ? '#16A34A' : '#525252',
+              borderColor: status.type === 'error' ? '#DC2626' : status.type === 'success' ? '#16A34A' : '#D4D4D4',
+            }}>
+              {status.message}
+            </div>
+          )}
+        </form>
+
+        {/* Recent Sends */}
+        {recentSends.length > 0 && (
+          <div style={styles.recentSends}>
+            <div style={styles.recentTitle}>Recent Sends</div>
+            <div style={styles.recentList}>
+              {recentSends.map((send, i) => (
+                <div key={i} style={styles.recentItem}>
+                  <div style={styles.recentTop}>
+                    <span><strong>{send.firstName}</strong> · {send.phone}</span>
+                    <span style={{ color: '#A3A3A3', fontSize: '12px' }}>{send.time}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#737373' }}>{send.forms}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -1537,6 +2622,375 @@ const styles = {
   detailItemDate: {
     color: '#888',
     fontSize: '12px',
+  },
+
+  // Injections Tab Styles
+  injectionTabs: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '20px',
+  },
+  injectionTab: {
+    padding: '10px 20px',
+    background: '#FFFFFF',
+    border: '1px solid #D1D5DB',
+    borderRadius: '6px',
+    color: '#555',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  injectionTabActive: {
+    background: '#1A1A1A',
+    color: '#FFFFFF',
+    borderColor: '#1A1A1A',
+  },
+  injectionActions: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+    gap: '16px',
+  },
+  newEntryBtn: {
+    padding: '10px 20px',
+    background: '#059669',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+  injectionStats: {
+    marginTop: '16px',
+    fontSize: '14px',
+    color: '#555',
+  },
+  deleteLogBtn: {
+    padding: '4px 10px',
+    background: '#FEF2F2',
+    border: '1px solid #FECACA',
+    borderRadius: '4px',
+    color: '#DC2626',
+    fontSize: '16px',
+    cursor: 'pointer',
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  modal: {
+    background: '#FFFFFF',
+    borderRadius: '12px',
+    width: '90%',
+    maxWidth: '500px',
+    maxHeight: '90vh',
+    overflow: 'auto',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px',
+    borderBottom: '1px solid #E5E5E5',
+  },
+  modalTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    margin: 0,
+    color: '#1A1A1A',
+  },
+  modalCloseBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    color: '#666',
+    cursor: 'pointer',
+    padding: '4px',
+  },
+  formGroup: {
+    marginBottom: '16px',
+  },
+  modalFormGroup: {
+    marginBottom: '16px',
+    padding: '0 24px',
+  },
+  formLabel: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: '6px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+  },
+  formInput: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '14px',
+    border: '1px solid #D1D5DB',
+    borderRadius: '6px',
+    background: '#FFFFFF',
+    color: '#1A1A1A',
+  },
+  formSelect: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '14px',
+    border: '1px solid #D1D5DB',
+    borderRadius: '6px',
+    background: '#FFFFFF',
+    color: '#1A1A1A',
+  },
+  radioGroup: {
+    display: 'flex',
+    gap: '16px',
+  },
+  radioLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '14px',
+    cursor: 'pointer',
+  },
+  patientDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: '#FFFFFF',
+    border: '1px solid #D1D5DB',
+    borderTop: 'none',
+    borderRadius: '0 0 6px 6px',
+    maxHeight: '200px',
+    overflow: 'auto',
+    zIndex: 100,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+  },
+  patientDropdownItem: {
+    padding: '10px 12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #F3F4F6',
+  },
+  patientDropdownEmpty: {
+    padding: '12px',
+    textAlign: 'center',
+    color: '#888',
+    fontSize: '14px',
+  },
+  submitBtn: {
+    width: 'calc(100% - 48px)',
+    margin: '16px 24px 24px',
+    padding: '12px',
+    background: '#1A1A1A',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+
+  // Send Forms Tab Styles
+  formsTabContent: {
+    maxWidth: '600px',
+    margin: '0 auto',
+  },
+  formsCard: {
+    background: '#FFFFFF',
+    border: '1px solid #E5E5E5',
+    borderRadius: '8px',
+    padding: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  },
+  formsCardTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    marginBottom: '20px',
+    color: '#1A1A1A',
+  },
+  modeToggle: {
+    display: 'flex',
+    gap: '0',
+    marginBottom: '20px',
+    border: '1px solid #D1D5DB',
+    borderRadius: '6px',
+    overflow: 'hidden',
+  },
+  modeBtn: {
+    flex: 1,
+    padding: '10px 16px',
+    fontSize: '14px',
+    fontWeight: '500',
+    border: 'none',
+    background: '#FFFFFF',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    borderRight: '1px solid #D1D5DB',
+  },
+  modeBtnActive: {
+    background: '#1A1A1A',
+    color: '#FFFFFF',
+  },
+  selectedPatientCard: {
+    background: '#F0FDF4',
+    border: '1px solid #16A34A',
+    borderRadius: '6px',
+    padding: '12px 16px',
+    marginBottom: '16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectedPatientInfo: {},
+  selectedPatientName: {
+    fontWeight: '700',
+    fontSize: '15px',
+    color: '#166534',
+  },
+  selectedPatientPhone: {
+    fontSize: '13px',
+    color: '#15803D',
+  },
+  changePatientBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#DC2626',
+    cursor: 'pointer',
+    fontSize: '13px',
+    textDecoration: 'underline',
+  },
+  quickBtns: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  quickBtn: {
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    border: '1px solid #D1D5DB',
+    borderRadius: '4px',
+    background: '#FFFFFF',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
+  quickBtnActive: {
+    background: '#1A1A1A',
+    color: '#FFFFFF',
+    borderColor: '#1A1A1A',
+  },
+  formsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '10px',
+  },
+  formItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 12px',
+    border: '1px solid #E5E5E5',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
+  formItemSelected: {
+    borderColor: '#1A1A1A',
+    background: '#F5F5F5',
+  },
+  formCheckbox: {
+    width: '18px',
+    height: '18px',
+    border: '2px solid #D1D5DB',
+    borderRadius: '3px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '11px',
+    flexShrink: 0,
+  },
+  formCheckboxSelected: {
+    background: '#1A1A1A',
+    borderColor: '#1A1A1A',
+    color: '#FFFFFF',
+  },
+  selectionActions: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '12px',
+    paddingTop: '12px',
+    borderTop: '1px solid #E5E5E5',
+  },
+  textBtn: {
+    fontSize: '12px',
+    color: '#555',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+  },
+  sendBtn: {
+    width: '100%',
+    padding: '14px',
+    fontSize: '14px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    border: 'none',
+    borderRadius: '6px',
+    background: '#1A1A1A',
+    color: '#FFFFFF',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    marginTop: '16px',
+  },
+  statusMessage: {
+    marginTop: '12px',
+    padding: '12px',
+    textAlign: 'center',
+    fontWeight: '500',
+    borderRadius: '6px',
+    border: '1px solid',
+  },
+  recentSends: {
+    marginTop: '24px',
+    paddingTop: '20px',
+    borderTop: '1px solid #E5E5E5',
+  },
+  recentTitle: {
+    fontSize: '12px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: '#737373',
+    marginBottom: '12px',
+  },
+  recentList: {},
+  recentItem: {
+    padding: '10px 0',
+    borderBottom: '1px solid #E5E5E5',
+    fontSize: '14px',
+  },
+  recentTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '4px',
   },
 };
 

@@ -52,12 +52,41 @@ export default async function handler(req, res) {
     if (protocolsError) console.error('Protocols error:', protocolsError);
 
     // 3. Get all purchases
-    const { data: purchases, error: purchasesError } = await supabase
+    const { data: rawPurchases, error: purchasesError } = await supabase
       .from('purchases')
       .select('*')
       .order('purchase_date', { ascending: false });
 
     if (purchasesError) console.error('Purchases error:', purchasesError);
+
+    // Process purchases to extract actual payment amount from raw_payload
+    const purchases = (rawPurchases || []).map(purchase => {
+      let paymentAmount = purchase.amount_paid || purchase.amount;
+
+      // Try to extract from raw_payload if amount_paid is null
+      if (!purchase.amount_paid && purchase.raw_payload) {
+        try {
+          const payload = typeof purchase.raw_payload === 'string'
+            ? JSON.parse(purchase.raw_payload)
+            : purchase.raw_payload;
+
+          // Check for payment.total_amount or payment.invoice.amount_paid
+          if (payload?.payment?.total_amount) {
+            paymentAmount = payload.payment.total_amount;
+          } else if (payload?.payment?.invoice?.amount_paid) {
+            paymentAmount = payload.payment.invoice.amount_paid;
+          }
+        } catch (e) {
+          // Keep original amount if parsing fails
+        }
+      }
+
+      return {
+        ...purchase,
+        display_amount: paymentAmount,
+        list_price: purchase.list_price || purchase.amount,
+      };
+    });
 
     // 4. Get recent injection logs
     const { data: injectionLogs, error: injectionError } = await supabase

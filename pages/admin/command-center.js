@@ -429,7 +429,7 @@ function OverviewTab({ data, setActiveTab }) {
                     <span style={styles.activityDesc}>{p.item_name}</span>
                   </div>
                   <div style={styles.activityMeta}>
-                    <span style={styles.activityAmount}>${p.amount}</span>
+                    <span style={styles.activityAmount}>${p.display_amount || p.amount}</span>
                     <span style={styles.activityTime}>{timeAgo(p.purchase_date)}</span>
                   </div>
                 </div>
@@ -457,7 +457,7 @@ function OverviewTab({ data, setActiveTab }) {
                       <span style={styles.activityDesc}>{p.item_name}</span>
                     </div>
                     <div style={styles.activityMeta}>
-                      <span style={styles.activityAmount}>${p.amount}</span>
+                      <span style={styles.activityAmount}>${p.display_amount || p.amount}</span>
                       <span style={styles.activityTime}>{timeAgo(p.purchase_date)}</span>
                     </div>
                   </div>
@@ -527,7 +527,7 @@ function LeadsTab({ data, leads, filter, setFilter }) {
             <div style={styles.alertItems}>
               {data.purchasesNeedingProtocol.slice(0, 3).map((p, i) => (
                 <span key={i} style={styles.alertItem}>
-                  {p.patient_name}: {p.item_name} (${p.amount})
+                  {p.patient_name}: {p.item_name} (${p.display_amount || p.amount})
                 </span>
               ))}
             </div>
@@ -861,7 +861,7 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
               {(details?.purchases || []).map(p => (
                 <div key={p.id} style={styles.detailItem}>
                   <span style={styles.detailItemName}>{p.item_name}</span>
-                  <span style={styles.detailItemAmount}>${p.amount}</span>
+                  <span style={styles.detailItemAmount}>${p.display_amount || p.amount}</span>
                   <span style={styles.detailItemDate}>{formatDate(p.purchase_date)}</span>
                 </div>
               ))}

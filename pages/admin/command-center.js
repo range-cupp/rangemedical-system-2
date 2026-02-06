@@ -135,6 +135,22 @@ const LEAD_STATUS_LABELS = {
 
 const GHL_LOCATION_ID = 'WICdvbXmTjQORW6GiHWW';
 
+// Protocol frequency options
+const FREQUENCY_OPTIONS = [
+  { value: 'Daily', label: 'Daily' },
+  { value: '1x daily (AM)', label: '1x daily (AM)' },
+  { value: '1x daily (PM/bedtime)', label: '1x daily (PM/bedtime)' },
+  { value: '2x daily', label: '2x daily' },
+  { value: '3x daily', label: '3x daily' },
+  { value: '5 on / 2 off', label: '5 on / 2 off' },
+  { value: 'Every other day', label: 'Every other day' },
+  { value: '3x per week', label: '3x per week' },
+  { value: '2x per week', label: '2x per week' },
+  { value: 'Weekly', label: 'Weekly' },
+  { value: 'Every 2 weeks', label: 'Every 2 weeks' },
+  { value: 'PRN', label: 'PRN (as needed)' },
+];
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -276,9 +292,24 @@ export default function CommandCenter() {
   const [selectedFormPatient, setSelectedFormPatient] = useState(null);
   const [showFormPatientDropdown, setShowFormPatientDropdown] = useState(false);
 
+  // Protocol assignment state
+  const [templates, setTemplates] = useState({ grouped: {} });
+  const [peptides, setPeptides] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignForm, setAssignForm] = useState({
+    templateId: '',
+    peptideId: '',
+    selectedDose: '',
+    frequency: '',
+    startDate: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+
   // Fetch data
   useEffect(() => {
     fetchData();
+    fetchTemplates();
+    fetchPeptides();
   }, []);
 
   // Fetch injection logs when category changes
@@ -348,6 +379,88 @@ export default function CommandCenter() {
       console.error('Error fetching patient details:', err);
     }
     setPatientDetailLoading(false);
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await fetch('/api/protocols/templates');
+      const data = await res.json();
+      if (data.grouped) setTemplates(data);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+  };
+
+  const fetchPeptides = async () => {
+    try {
+      const res = await fetch('/api/peptides');
+      const data = await res.json();
+      if (data.peptides) setPeptides(data.peptides);
+    } catch (error) {
+      console.error('Error fetching peptides:', error);
+    }
+  };
+
+  // Protocol assignment handlers
+  const openAssignModal = () => {
+    setAssignForm({
+      templateId: '',
+      peptideId: '',
+      selectedDose: '',
+      frequency: '',
+      startDate: new Date().toISOString().split('T')[0],
+      notes: ''
+    });
+    setShowAssignModal(true);
+  };
+
+  const getSelectedTemplate = () => {
+    if (!assignForm.templateId) return null;
+    for (const category of Object.values(templates.grouped || {})) {
+      const found = category.find(t => t.id === assignForm.templateId);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  const getSelectedPeptide = () => peptides.find(p => p.id === assignForm.peptideId) || null;
+  const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
+
+  const handleAssignProtocol = async () => {
+    if (!selectedPatient?.id || !assignForm.templateId) {
+      alert('Please select a protocol template');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/protocols/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: selectedPatient.id,
+          templateId: assignForm.templateId,
+          peptideId: assignForm.peptideId,
+          selectedDose: assignForm.selectedDose,
+          frequency: assignForm.frequency,
+          startDate: assignForm.startDate,
+          notes: assignForm.notes
+        })
+      });
+
+      if (res.ok) {
+        setShowAssignModal(false);
+        // Refresh patient data
+        fetchPatientDetails(selectedPatient.id);
+        fetchData();
+        alert('Protocol assigned successfully!');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to assign protocol');
+      }
+    } catch (error) {
+      console.error('Error assigning protocol:', error);
+      alert('Error assigning protocol');
+    }
   };
 
   // Filter patients for injection modal
@@ -565,6 +678,7 @@ export default function CommandCenter() {
               detailLoading={patientDetailLoading}
               data={data}
               openPdf={(url, title) => setPdfSlideOut({ open: true, url, title })}
+              onAssignProtocol={openAssignModal}
             />
           )}
           {activeTab === 'injections' && (
@@ -640,6 +754,121 @@ export default function CommandCenter() {
             />
           </div>
         </>
+      )}
+
+      {/* Assign Protocol Modal */}
+      {showAssignModal && selectedPatient && (
+        <div style={styles.modalOverlay} onClick={() => setShowAssignModal(false)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Assign Protocol</h3>
+              <button style={styles.modalCloseBtn} onClick={() => setShowAssignModal(false)}>×</button>
+            </div>
+
+            <div style={styles.assignModalPatient}>
+              <span style={styles.assignModalPatientLabel}>Patient:</span>
+              <span style={styles.assignModalPatientName}>
+                {selectedPatient.name || `${selectedPatient.first_name || ''} ${selectedPatient.last_name || ''}`.trim()}
+              </span>
+            </div>
+
+            <div style={styles.modalFormGroup}>
+              <label style={styles.formLabel}>Protocol Template *</label>
+              <select
+                value={assignForm.templateId}
+                onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
+                style={styles.formSelect}
+              >
+                <option value="">Select template...</option>
+                {Object.entries(templates.grouped || {}).map(([category, temps]) => (
+                  <optgroup key={category} label={category}>
+                    {temps.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+
+            {isPeptideTemplate() && (
+              <>
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Select Peptide</label>
+                  <select
+                    value={assignForm.peptideId}
+                    onChange={e => setAssignForm({...assignForm, peptideId: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select peptide...</option>
+                    {peptides.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                {getSelectedPeptide()?.dose_options?.length > 0 && (
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Dose</label>
+                    <select
+                      value={assignForm.selectedDose}
+                      onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
+                      style={styles.formSelect}
+                    >
+                      <option value="">Select dose...</option>
+                      {getSelectedPeptide().dose_options.map(dose => <option key={dose} value={dose}>{dose}</option>)}
+                    </select>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={styles.modalFormGroup}>
+              <label style={styles.formLabel}>Frequency</label>
+              <select
+                value={assignForm.frequency}
+                onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
+                style={styles.formSelect}
+              >
+                <option value="">Select frequency...</option>
+                {FREQUENCY_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.modalFormGroup}>
+              <label style={styles.formLabel}>Start Date</label>
+              <input
+                type="date"
+                value={assignForm.startDate}
+                onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
+                style={styles.formInput}
+              />
+            </div>
+
+            <div style={styles.modalFormGroup}>
+              <label style={styles.formLabel}>Notes</label>
+              <textarea
+                value={assignForm.notes}
+                onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
+                style={{ ...styles.formInput, minHeight: '60px', resize: 'vertical' }}
+                rows={2}
+                placeholder="Optional notes..."
+              />
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button
+                style={styles.modalCancelBtn}
+                onClick={() => setShowAssignModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={styles.modalSubmitBtn}
+                onClick={handleAssignProtocol}
+                disabled={!assignForm.templateId}
+              >
+                Assign Protocol
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style jsx global>{`
@@ -1047,7 +1276,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter }) {
   );
 }
 
-function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf }) {
+function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf, onAssignProtocol }) {
   const CONSENT_ICONS = {
     hipaa: '🔒',
     hrt: '💉',
@@ -1219,7 +1448,15 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
 
             {/* Active Protocols */}
             <div style={styles.detailSection}>
-              <h3 style={styles.detailTitle}>Active Protocols ({details?.protocols?.length || 0})</h3>
+              <div style={styles.detailHeader}>
+                <h3 style={styles.detailTitle}>Active Protocols ({details?.protocols?.length || 0})</h3>
+                <button
+                  style={styles.addProtocolBtn}
+                  onClick={onAssignProtocol}
+                >
+                  + Assign Protocol
+                </button>
+              </div>
               {(details?.protocols || []).map(p => (
                 <div key={p.id} style={styles.detailItem}>
                   <span style={{ ...styles.categoryBadge, background: CATEGORY_COLORS[p.program_type] }}>
@@ -2772,11 +3009,27 @@ const styles = {
   detailSection: {
     marginBottom: '24px',
   },
+  detailHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px',
+  },
   detailTitle: {
     fontSize: '14px',
     fontWeight: '600',
-    marginBottom: '12px',
+    margin: 0,
     color: '#1A1A1A',
+  },
+  addProtocolBtn: {
+    padding: '6px 12px',
+    background: '#059669',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
   },
   detailItem: {
     display: 'flex',
@@ -3055,6 +3308,51 @@ const styles = {
     margin: '16px 24px 24px',
     padding: '12px',
     background: '#1A1A1A',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+  assignModalPatient: {
+    padding: '12px 24px',
+    background: '#F0FDF4',
+    borderBottom: '1px solid #E5E5E5',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  assignModalPatientLabel: {
+    fontSize: '13px',
+    color: '#555',
+  },
+  assignModalPatientName: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#166534',
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    padding: '16px 24px',
+    borderTop: '1px solid #E5E5E5',
+    marginTop: '8px',
+  },
+  modalCancelBtn: {
+    padding: '10px 20px',
+    background: '#FFFFFF',
+    color: '#555',
+    border: '1px solid #D1D5DB',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+  },
+  modalSubmitBtn: {
+    padding: '10px 20px',
+    background: '#059669',
     color: '#FFFFFF',
     border: 'none',
     borderRadius: '6px',

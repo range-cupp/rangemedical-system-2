@@ -297,11 +297,23 @@ export default async function handler(req, res) {
       .from('patients')
       .select('id, name, ghl_contact_id')
       .not('ghl_contact_id', 'is', null);
-    
+
     const patientsByGhl = {};
     (allPatients || []).forEach(p => {
       if (p.ghl_contact_id) {
         patientsByGhl[p.ghl_contact_id] = p;
+      }
+    });
+
+    // Also fetch ghl_contacts for fallback name lookup
+    const { data: ghlContacts } = await supabase
+      .from('ghl_contacts')
+      .select('ghl_id, first_name, last_name');
+
+    const ghlContactsById = {};
+    (ghlContacts || []).forEach(c => {
+      if (c.ghl_id) {
+        ghlContactsById[c.ghl_id] = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown';
       }
     });
 
@@ -474,7 +486,7 @@ export default async function handler(req, res) {
         patient_id: p.patient_id,
         ghl_contact_id: p.ghl_contact_id,
         category: p.category,
-        patient_name: patientsByGhl[p.ghl_contact_id]?.name || 'Unknown'
+        patient_name: patientsByGhl[p.ghl_contact_id]?.name || ghlContactsById[p.ghl_contact_id] || 'Unknown'
       }));
 
     // ============================================

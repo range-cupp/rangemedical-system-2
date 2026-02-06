@@ -305,6 +305,11 @@ export default function CommandCenter() {
     notes: ''
   });
 
+  // Protocol edit/delete state
+  const [editingProtocol, setEditingProtocol] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
   // Fetch data
   useEffect(() => {
     fetchData();
@@ -477,6 +482,77 @@ export default function CommandCenter() {
     } catch (error) {
       console.error('Error assigning protocol:', error);
       alert('Error assigning protocol');
+    }
+  };
+
+  // Protocol edit handler
+  const handleEditProtocol = (protocol) => {
+    setEditingProtocol({
+      ...protocol,
+      start_date: protocol.start_date || '',
+      end_date: protocol.end_date || '',
+      total_sessions: protocol.total_sessions || '',
+      sessions_used: protocol.sessions_used || 0,
+      selected_dose: protocol.selected_dose || '',
+      delivery_method: protocol.delivery_method || '',
+      status: protocol.status || 'active',
+      notes: protocol.notes || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveProtocol = async () => {
+    if (!editingProtocol?.id) return;
+
+    try {
+      const res = await fetch(`/api/protocols/${editingProtocol.id}/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start_date: editingProtocol.start_date,
+          end_date: editingProtocol.end_date || null,
+          total_sessions: editingProtocol.total_sessions ? parseInt(editingProtocol.total_sessions) : null,
+          sessions_used: parseInt(editingProtocol.sessions_used) || 0,
+          selected_dose: editingProtocol.selected_dose || null,
+          delivery_method: editingProtocol.delivery_method || null,
+          status: editingProtocol.status,
+          notes: editingProtocol.notes || null
+        })
+      });
+
+      if (res.ok) {
+        setShowEditModal(false);
+        setEditingProtocol(null);
+        fetchData();
+        alert('Protocol updated successfully!');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update protocol');
+      }
+    } catch (error) {
+      console.error('Error updating protocol:', error);
+      alert('Error updating protocol');
+    }
+  };
+
+  // Protocol delete handler
+  const handleDeleteProtocol = async (protocolId) => {
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}/delete`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        setDeleteConfirm(null);
+        fetchData();
+        alert('Protocol deleted successfully!');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to delete protocol');
+      }
+    } catch (error) {
+      console.error('Error deleting protocol:', error);
+      alert('Error deleting protocol');
     }
   };
 
@@ -705,6 +781,8 @@ export default function CommandCenter() {
               protocols={filteredProtocols}
               filter={protocolFilter}
               setFilter={setProtocolFilter}
+              onEdit={handleEditProtocol}
+              onDelete={(protocol) => setDeleteConfirm(protocol)}
             />
           )}
           {activeTab === 'patients' && (
@@ -951,6 +1029,169 @@ export default function CommandCenter() {
                 disabled={!assignForm.templateId}
               >
                 Assign Protocol
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Protocol Modal */}
+      {showEditModal && editingProtocol && (
+        <div style={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
+          <div style={{ ...styles.modal, maxWidth: '550px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Edit Protocol</h3>
+              <button style={styles.modalCloseBtn} onClick={() => setShowEditModal(false)}>×</button>
+            </div>
+
+            <div style={styles.assignModalPatient}>
+              <span style={styles.assignModalPatientLabel}>Patient:</span>
+              <span style={styles.assignModalPatientName}>{getPatientName(editingProtocol)}</span>
+            </div>
+
+            <div style={{ padding: '0 24px 12px', background: '#F3F4F6', margin: '0 0 16px 0' }}>
+              <span style={{ fontSize: '13px', color: '#6B7280' }}>
+                {editingProtocol.program_name || editingProtocol.medication || 'Protocol'}
+              </span>
+            </div>
+
+            <div style={{ padding: '0 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Status</label>
+                <select
+                  value={editingProtocol.status}
+                  onChange={e => setEditingProtocol({...editingProtocol, status: e.target.value})}
+                  style={styles.formSelect}
+                >
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="paused">Paused</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Delivery Method</label>
+                <select
+                  value={editingProtocol.delivery_method || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, delivery_method: e.target.value})}
+                  style={styles.formSelect}
+                >
+                  <option value="">Not set</option>
+                  <option value="in_clinic">In Clinic</option>
+                  <option value="take_home">Take Home</option>
+                </select>
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Start Date</label>
+                <input
+                  type="date"
+                  value={editingProtocol.start_date || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, start_date: e.target.value})}
+                  style={styles.formInput}
+                />
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>End Date</label>
+                <input
+                  type="date"
+                  value={editingProtocol.end_date || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, end_date: e.target.value})}
+                  style={styles.formInput}
+                />
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Total Sessions</label>
+                <input
+                  type="number"
+                  value={editingProtocol.total_sessions || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, total_sessions: e.target.value})}
+                  style={styles.formInput}
+                  min="0"
+                />
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Sessions Used</label>
+                <input
+                  type="number"
+                  value={editingProtocol.sessions_used || 0}
+                  onChange={e => setEditingProtocol({...editingProtocol, sessions_used: e.target.value})}
+                  style={styles.formInput}
+                  min="0"
+                />
+              </div>
+
+              <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
+                <label style={styles.formLabel}>Dose</label>
+                <input
+                  type="text"
+                  value={editingProtocol.selected_dose || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
+                  style={styles.formInput}
+                  placeholder="e.g., 100mg"
+                />
+              </div>
+
+              <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
+                <label style={styles.formLabel}>Notes</label>
+                <textarea
+                  value={editingProtocol.notes || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, notes: e.target.value})}
+                  style={{ ...styles.formInput, minHeight: '60px', resize: 'vertical' }}
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button style={styles.modalCancelBtn} onClick={() => setShowEditModal(false)}>
+                Cancel
+              </button>
+              <button style={styles.modalSubmitBtn} onClick={handleSaveProtocol}>
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div style={styles.modalOverlay} onClick={() => setDeleteConfirm(null)}>
+          <div style={{ ...styles.modal, maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={{ ...styles.modalTitle, color: '#DC2626' }}>Delete Protocol</h3>
+              <button style={styles.modalCloseBtn} onClick={() => setDeleteConfirm(null)}>×</button>
+            </div>
+
+            <div style={{ padding: '24px', textAlign: 'center' }}>
+              <p style={{ marginBottom: '16px', color: '#374151' }}>
+                Are you sure you want to delete this protocol?
+              </p>
+              <p style={{ fontWeight: '600', marginBottom: '8px' }}>
+                {getPatientName(deleteConfirm)}
+              </p>
+              <p style={{ color: '#6B7280', fontSize: '14px' }}>
+                {deleteConfirm.program_name || deleteConfirm.medication}
+              </p>
+              <p style={{ color: '#DC2626', fontSize: '13px', marginTop: '16px' }}>
+                This action cannot be undone.
+              </p>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button style={styles.modalCancelBtn} onClick={() => setDeleteConfirm(null)}>
+                Cancel
+              </button>
+              <button
+                style={{ ...styles.modalSubmitBtn, background: '#DC2626' }}
+                onClick={() => handleDeleteProtocol(deleteConfirm.id)}
+              >
+                Delete Protocol
               </button>
             </div>
           </div>
@@ -1384,7 +1625,7 @@ function LeadsTab({ data, leads, filter, setFilter }) {
   );
 }
 
-function ProtocolsTab({ data, protocols, filter, setFilter }) {
+function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete }) {
   return (
     <div style={styles.tabContent}>
       {/* Filters */}
@@ -1490,7 +1731,19 @@ function ProtocolsTab({ data, protocols, filter, setFilter }) {
                   {getProtocolStatus(protocol)}
                 </td>
                 <td style={styles.td}>{formatDate(protocol.start_date)}</td>
-                <td style={styles.td}>
+                <td style={{ ...styles.td, display: 'flex', gap: '6px' }}>
+                  <button
+                    style={{ ...styles.smallBtn, background: '#3B82F6' }}
+                    onClick={() => onEdit(protocol)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    style={{ ...styles.smallBtn, background: '#EF4444' }}
+                    onClick={() => onDelete(protocol)}
+                  >
+                    Delete
+                  </button>
                   <button
                     style={styles.smallBtn}
                     onClick={() => openGHL(protocol.patients?.ghl_contact_id)}

@@ -1,6 +1,5 @@
 // /pages/api/protocols/[id]/delete.js
 // Delete a protocol
-// Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -10,57 +9,40 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'DELETE' && req.method !== 'POST') {
+  if (req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ error: 'Protocol ID required' });
+    return res.status(400).json({ error: 'Protocol ID is required' });
   }
 
   try {
-    // First, get the protocol to find linked purchase
-    const { data: protocol, error: fetchError } = await supabase
+    // First check if protocol exists
+    const { data: existing, error: checkError } = await supabase
       .from('protocols')
-      .select('id')
+      .select('id, patient_id')
       .eq('id', id)
       .single();
 
-    if (fetchError || !protocol) {
+    if (checkError || !existing) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // Reset any purchases linked to this protocol
-    await supabase
-      .from('purchases')
-      .update({ 
-        protocol_id: null,
-        protocol_created: false
-      })
-      .eq('protocol_id', id);
-
-    // Delete any protocol logs
-    await supabase
-      .from('protocol_logs')
-      .delete()
-      .eq('protocol_id', id);
-
     // Delete the protocol
-    const { error: deleteError } = await supabase
+    const { error } = await supabase
       .from('protocols')
       .delete()
       .eq('id', id);
 
-    if (deleteError) {
-      throw deleteError;
-    }
+    if (error) throw error;
 
     return res.status(200).json({ success: true, message: 'Protocol deleted' });
 
   } catch (error) {
     console.error('Error deleting protocol:', error);
-    return res.status(500).json({ error: error.message || 'Server error' });
+    return res.status(500).json({ error: error.message });
   }
 }

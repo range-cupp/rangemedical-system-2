@@ -443,12 +443,14 @@ export default function CommandCenter() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: selectedPatient.id,
+          patientName: selectedPatient.name || `${selectedPatient.first_name || ''} ${selectedPatient.last_name || ''}`.trim(),
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
           selectedDose: assignForm.selectedDose,
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
-          notes: assignForm.notes
+          notes: assignForm.notes,
+          purchaseId: assignForm.purchaseId || null
         })
       });
 
@@ -654,7 +656,30 @@ export default function CommandCenter() {
         {/* Content */}
         <main style={styles.main}>
           {activeTab === 'overview' && (
-            <OverviewTab data={data} setActiveTab={setActiveTab} />
+            <OverviewTab
+              data={data}
+              setActiveTab={setActiveTab}
+              onAssignFromPurchase={(purchase) => {
+                // Find patient from data.patients
+                const patient = data.patients?.find(p => p.id === purchase.patient_id);
+                if (patient) {
+                  setSelectedPatient(patient);
+                  setAssignForm({
+                    templateId: '',
+                    peptideId: '',
+                    selectedDose: '',
+                    frequency: '',
+                    startDate: new Date().toISOString().split('T')[0],
+                    notes: '',
+                    purchaseId: purchase.id,
+                    purchaseItem: purchase.item_name
+                  });
+                  setShowAssignModal(true);
+                } else {
+                  alert('Patient not found. Please assign from the Patients tab.');
+                }
+              }}
+            />
           )}
           {activeTab === 'leads' && (
             <LeadsTab
@@ -776,6 +801,14 @@ export default function CommandCenter() {
                 {selectedPatient.name || `${selectedPatient.first_name || ''} ${selectedPatient.last_name || ''}`.trim()}
               </span>
             </div>
+
+            {assignForm.purchaseItem && (
+              <div style={{ padding: '12px 24px', background: '#F0FDF4', borderBottom: '1px solid #E5E5E5' }}>
+                <span style={{ fontSize: '12px', color: '#166534' }}>
+                  📦 Creating protocol for: <strong>{assignForm.purchaseItem}</strong>
+                </span>
+              </div>
+            )}
 
             <div style={styles.modalFormGroup}>
               <label style={styles.formLabel}>Protocol Template *</label>
@@ -907,7 +940,7 @@ export default function CommandCenter() {
 // TAB COMPONENTS
 // ============================================
 
-function OverviewTab({ data, setActiveTab }) {
+function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
   const stats = data?.stats || {};
   const recentPurchases = (data?.purchases || []).slice(0, 10);
   const endingSoon = (data?.protocols || []).filter(p =>
@@ -1025,19 +1058,42 @@ function OverviewTab({ data, setActiveTab }) {
                 Needs Protocol ({data.purchasesNeedingProtocol.length})
               </h3>
               <div style={styles.activityList}>
-                {data.purchasesNeedingProtocol.slice(0, 5).map((p, i) => (
-                  <div key={p.id || i} style={styles.activityItem}>
-                    <div style={styles.activityMain}>
+                {data.purchasesNeedingProtocol.slice(0, 10).map((p, i) => (
+                  <div key={p.id || i} style={{ ...styles.activityItem, alignItems: 'center' }}>
+                    <div style={{ ...styles.activityMain, flex: 1 }}>
                       <span style={styles.activityName}>{p.patient_name || 'Unknown'}</span>
                       <span style={styles.activityDesc}>{p.item_name}</span>
                     </div>
-                    <div style={styles.activityMeta}>
+                    <div style={{ ...styles.activityMeta, marginRight: '12px' }}>
                       <span style={styles.activityAmount}>${p.display_amount || p.amount}</span>
                       <span style={styles.activityTime}>{timeAgo(p.purchase_date)}</span>
                     </div>
+                    <button
+                      onClick={() => onAssignFromPurchase(p)}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#059669',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      + Create Protocol
+                    </button>
                   </div>
                 ))}
               </div>
+              {data.purchasesNeedingProtocol.length > 10 && (
+                <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                  <span style={{ color: '#C2410C', fontSize: '13px' }}>
+                    +{data.purchasesNeedingProtocol.length - 10} more
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

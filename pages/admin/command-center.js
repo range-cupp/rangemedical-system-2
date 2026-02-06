@@ -413,6 +413,7 @@ export default function CommandCenter() {
       peptideId: '',
       selectedDose: '',
       frequency: '',
+      deliveryMethod: '',
       startDate: new Date().toISOString().split('T')[0],
       notes: ''
     });
@@ -431,8 +432,13 @@ export default function CommandCenter() {
   const getSelectedPeptide = () => peptides.find(p => p.id === assignForm.peptideId) || null;
   const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
   const isNADTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('nad+');
+  const isInjectionTemplate = () => getSelectedTemplate()?.category === 'injection';
 
   const NAD_DOSE_OPTIONS = ['25mg', '50mg', '100mg', '125mg', '150mg'];
+  const DELIVERY_METHOD_OPTIONS = [
+    { value: 'in_clinic', label: 'In Clinic' },
+    { value: 'take_home', label: 'Take Home' }
+  ];
 
   const handleAssignProtocol = async () => {
     if (!selectedPatient?.id || !assignForm.templateId) {
@@ -453,7 +459,8 @@ export default function CommandCenter() {
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes,
-          purchaseId: assignForm.purchaseId || null
+          purchaseId: assignForm.purchaseId || null,
+          deliveryMethod: assignForm.deliveryMethod || null
         })
       });
 
@@ -875,6 +882,23 @@ export default function CommandCenter() {
                 >
                   <option value="">Select dose...</option>
                   {NAD_DOSE_OPTIONS.map(dose => <option key={dose} value={dose}>{dose}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Delivery Method for Injection Templates */}
+            {isInjectionTemplate() && (
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Delivery Method *</label>
+                <select
+                  value={assignForm.deliveryMethod || ''}
+                  onChange={e => setAssignForm({...assignForm, deliveryMethod: e.target.value})}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select delivery method...</option>
+                  {DELIVERY_METHOD_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </select>
               </div>
             )}

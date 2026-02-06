@@ -295,13 +295,16 @@ export default async function handler(req, res) {
     // ============================================
     const { data: allPatients } = await supabase
       .from('patients')
-      .select('id, name, ghl_contact_id')
-      .not('ghl_contact_id', 'is', null);
+      .select('id, name, ghl_contact_id');
 
     const patientsByGhl = {};
+    const patientsById = {};
     (allPatients || []).forEach(p => {
       if (p.ghl_contact_id) {
         patientsByGhl[p.ghl_contact_id] = p;
+      }
+      if (p.id) {
+        patientsById[p.id] = p;
       }
     });
 
@@ -486,7 +489,7 @@ export default async function handler(req, res) {
         patient_id: p.patient_id,
         ghl_contact_id: p.ghl_contact_id,
         category: p.category,
-        patient_name: patientsByGhl[p.ghl_contact_id]?.name || ghlContactsById[p.ghl_contact_id] || 'Unknown'
+        patient_name: patientsById[p.patient_id]?.name || patientsByGhl[p.ghl_contact_id]?.name || ghlContactsById[p.ghl_contact_id] || 'Unknown'
       }));
 
     // ============================================

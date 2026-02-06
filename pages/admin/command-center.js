@@ -383,11 +383,14 @@ export default function CommandCenter() {
 
   const fetchTemplates = async () => {
     try {
+      console.log('Fetching templates...');
       const res = await fetch('/api/protocols/templates');
       const data = await res.json();
+      console.log('Templates loaded:', data.grouped ? Object.keys(data.grouped).length + ' categories' : 'none');
       if (data.grouped) setTemplates(data);
     } catch (error) {
       console.error('Error fetching templates:', error);
+      alert('Failed to load protocol templates. Please refresh the page.');
     }
   };
 
@@ -403,6 +406,8 @@ export default function CommandCenter() {
 
   // Protocol assignment handlers
   const openAssignModal = () => {
+    console.log('Opening assign modal for patient:', selectedPatient?.id, selectedPatient?.name);
+    console.log('Templates available:', Object.keys(templates.grouped || {}).length, 'categories');
     setAssignForm({
       templateId: '',
       peptideId: '',
@@ -774,18 +779,24 @@ export default function CommandCenter() {
 
             <div style={styles.modalFormGroup}>
               <label style={styles.formLabel}>Protocol Template *</label>
-              <select
-                value={assignForm.templateId}
-                onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
-                style={styles.formSelect}
-              >
-                <option value="">Select template...</option>
-                {Object.entries(templates.grouped || {}).map(([category, temps]) => (
-                  <optgroup key={category} label={category}>
-                    {temps.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+              {Object.keys(templates.grouped || {}).length === 0 ? (
+                <div style={{ padding: '12px', background: '#FEF3C7', borderRadius: '6px', color: '#92400E', fontSize: '13px' }}>
+                  Loading templates... If this persists, please refresh the page.
+                </div>
+              ) : (
+                <select
+                  value={assignForm.templateId}
+                  onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select template...</option>
+                  {Object.entries(templates.grouped || {}).map(([category, temps]) => (
+                    <optgroup key={category} label={category}>
+                      {temps.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              )}
             </div>
 
             {isPeptideTemplate() && (

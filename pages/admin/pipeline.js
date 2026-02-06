@@ -1127,13 +1127,24 @@ export default function UnifiedPipeline() {
               <div style={styles.headerActions}>
                 <button style={styles.refreshBtn} onClick={fetchData}>↻ Refresh</button>
                 <button style={styles.startProtocolBtn} onClick={async () => {
-                  if (confirm('Sync visit data from GHL appointments?')) {
+                  if (confirm('Sync appointments from GHL and update visit tracking?')) {
                     try {
+                      // Step 1: Sync appointments from GHL (last 14 days)
+                      showToast('Syncing appointments from GHL...');
+                      const ghlRes = await fetch('/api/admin/sync-ghl-appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+                      const ghlResult = await ghlRes.json();
+
+                      // Step 2: Update protocol visit tracking
                       const res = await fetch('/api/admin/sync-injection-appointments', { method: 'POST' });
                       const result = await res.json();
-                      if (result.success) { showToast(`Synced ${result.results.synced.length} protocols`); fetchData(); }
-                      else showToast(result.error || 'Sync failed', 'error');
-                    } catch (err) { showToast('Sync error', 'error'); }
+
+                      if (result.success) {
+                        showToast(`Synced ${ghlResult.synced || 0} appointments, updated ${result.results.synced.length} protocols`);
+                        fetchData();
+                      } else {
+                        showToast(result.error || 'Sync failed', 'error');
+                      }
+                    } catch (err) { showToast('Sync error: ' + err.message, 'error'); }
                   }
                 }}>🔄 Sync GHL Appointments</button>
               </div>

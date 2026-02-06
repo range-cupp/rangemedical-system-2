@@ -235,6 +235,8 @@ export default function CommandCenter() {
   const [leadFilter, setLeadFilter] = useState({ status: 'all', search: '' });
   const [patientSearch, setPatientSearch] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientDetailData, setPatientDetailData] = useState(null);
+  const [patientDetailLoading, setPatientDetailLoading] = useState(false);
 
   // Injection logs state
   const [injectionCategory, setInjectionCategory] = useState('testosterone');
@@ -285,6 +287,15 @@ export default function CommandCenter() {
     }
   }, [activeTab, injectionCategory]);
 
+  // Fetch detailed patient data when a patient is selected
+  useEffect(() => {
+    if (selectedPatient?.id) {
+      fetchPatientDetails(selectedPatient.id);
+    } else {
+      setPatientDetailData(null);
+    }
+  }, [selectedPatient?.id]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -314,6 +325,28 @@ export default function CommandCenter() {
       console.error('Error fetching injection logs:', err);
     }
     setInjectionLoading(false);
+  };
+
+  const fetchPatientDetails = async (patientId) => {
+    setPatientDetailLoading(true);
+    try {
+      const res = await fetch(`/api/patients/${patientId}`);
+      const result = await res.json();
+      if (result.patient) {
+        setPatientDetailData({
+          intakes: result.intakes || [],
+          consents: result.consents || [],
+          activeProtocols: result.activeProtocols || [],
+          completedProtocols: result.completedProtocols || [],
+          labs: result.labs || [],
+          medicalDocuments: result.medicalDocuments || [],
+          appointments: result.appointments || [],
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching patient details:', err);
+    }
+    setPatientDetailLoading(false);
   };
 
   // Filter patients for injection modal
@@ -408,12 +441,15 @@ export default function CommandCenter() {
   // Patient details
   const patientDetails = useMemo(() => {
     if (!selectedPatient || !data) return null;
-    const protocols = (data.protocols || []).filter(p => p.patient_id === selectedPatient.id);
-    const completedProtocols = (data.completedProtocols || []).filter(p => p.patient_id === selectedPatient.id);
+    const protocols = patientDetailData?.activeProtocols || (data.protocols || []).filter(p => p.patient_id === selectedPatient.id);
+    const completedProtocols = patientDetailData?.completedProtocols || (data.completedProtocols || []).filter(p => p.patient_id === selectedPatient.id);
     const injectionLogs = (data.injectionLogs || []).filter(l => l.patient_id === selectedPatient.id).slice(0, 10);
     const purchases = (data.purchases || []).filter(p => p.patient_id === selectedPatient.id);
-    return { protocols, completedProtocols, injectionLogs, purchases };
-  }, [selectedPatient, data]);
+    const intakes = patientDetailData?.intakes || [];
+    const consents = patientDetailData?.consents || [];
+    const labs = patientDetailData?.labs || [];
+    return { protocols, completedProtocols, injectionLogs, purchases, intakes, consents, labs };
+  }, [selectedPatient, data, patientDetailData]);
 
   if (loading) {
     return (
@@ -525,6 +561,7 @@ export default function CommandCenter() {
               selected={selectedPatient}
               setSelected={setSelectedPatient}
               details={patientDetails}
+              detailLoading={patientDetailLoading}
               data={data}
             />
           )}
@@ -978,7 +1015,36 @@ function ProtocolsTab({ data, protocols, filter, setFilter }) {
   );
 }
 
-function PatientsTab({ patients, search, setSearch, selected, setSelected, details, data }) {
+function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data }) {
+  const CONSENT_ICONS = {
+    hipaa: '🔒',
+    hrt: '💉',
+    peptide: '🧬',
+    'weight-loss': '⚖️',
+    iv: '💧',
+    hbot: '🫁',
+    'blood-draw': '🩸',
+    'red-light': '🔴',
+  };
+
+  const getConsentIcon = (type) => {
+    const t = (type || '').toLowerCase();
+    for (const [key, icon] of Object.entries(CONSENT_ICONS)) {
+      if (t.includes(key)) return icon;
+    }
+    return '📝';
+  };
+
+  const formatConsentType = (type) => {
+    if (!type) return 'Consent';
+    return type
+      .replace(/-/g, ' ')
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  };
+
   return (
     <div style={styles.patientsLayout}>
       {/* Patient List */}
@@ -1049,6 +1115,77 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
               </button>
             </div>
 
+            {detailLoading && (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                Loading patient details...
+              </div>
+            )}
+
+            {/* Intake Forms */}
+            <div style={styles.detailSection}>
+              <h3 style={styles.detailTitle}>
+                📋 Intake Forms ({details?.intakes?.length || 0})
+              </h3>
+              {(details?.intakes || []).map(intake => (
+                <div key={intake.id} style={styles.detailItem}>
+                  <span style={styles.intakeIcon}>📋</span>
+                  <span style={styles.detailItemName}>
+                    Medical Intake
+                    {intake.first_name && ` - ${intake.first_name} ${intake.last_name || ''}`}
+                  </span>
+                  <span style={styles.detailItemDate}>{formatDate(intake.submitted_at)}</span>
+                  {intake.pdf_url && (
+                    <a
+                      href={intake.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={styles.viewPdfBtn}
+                    >
+                      View PDF
+                    </a>
+                  )}
+                </div>
+              ))}
+              {!detailLoading && (details?.intakes || []).length === 0 && (
+                <div style={styles.emptyState}>No intake forms submitted</div>
+              )}
+            </div>
+
+            {/* Consent Forms */}
+            <div style={styles.detailSection}>
+              <h3 style={styles.detailTitle}>
+                ✍️ Consent Forms ({details?.consents?.length || 0})
+              </h3>
+              {(details?.consents || []).map(consent => (
+                <div key={consent.id} style={styles.detailItem}>
+                  <span style={styles.consentIcon}>{getConsentIcon(consent.consent_type)}</span>
+                  <span style={styles.detailItemName}>
+                    {formatConsentType(consent.consent_type)}
+                  </span>
+                  <span style={{
+                    ...styles.consentStatus,
+                    color: consent.consent_given ? '#16A34A' : '#DC2626'
+                  }}>
+                    {consent.consent_given ? '✓ Signed' : 'Pending'}
+                  </span>
+                  <span style={styles.detailItemDate}>{formatDate(consent.consent_date || consent.submitted_at)}</span>
+                  {consent.pdf_url && (
+                    <a
+                      href={consent.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={styles.viewPdfBtn}
+                    >
+                      View PDF
+                    </a>
+                  )}
+                </div>
+              ))}
+              {!detailLoading && (details?.consents || []).length === 0 && (
+                <div style={styles.emptyState}>No consent forms submitted</div>
+              )}
+            </div>
+
             {/* Active Protocols */}
             <div style={styles.detailSection}>
               <h3 style={styles.detailTitle}>Active Protocols ({details?.protocols?.length || 0})</h3>
@@ -1065,6 +1202,20 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                 <div style={styles.emptyState}>No active protocols</div>
               )}
             </div>
+
+            {/* Labs */}
+            {(details?.labs || []).length > 0 && (
+              <div style={styles.detailSection}>
+                <h3 style={styles.detailTitle}>🧪 Lab Results ({details?.labs?.length || 0})</h3>
+                {(details?.labs || []).map(lab => (
+                  <div key={lab.id} style={styles.detailItem}>
+                    <span style={styles.detailItemType}>{lab.lab_type || 'Lab'}</span>
+                    <span style={styles.detailItemName}>{lab.panel_type || lab.lab_panel || 'Results'}</span>
+                    <span style={styles.detailItemDate}>{formatDate(lab.completed_date || lab.created_at)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Recent Injection Logs */}
             <div style={styles.detailSection}>
@@ -2622,6 +2773,29 @@ const styles = {
   detailItemDate: {
     color: '#888',
     fontSize: '12px',
+  },
+  intakeIcon: {
+    fontSize: '16px',
+    marginRight: '4px',
+  },
+  consentIcon: {
+    fontSize: '16px',
+    marginRight: '4px',
+  },
+  consentStatus: {
+    fontSize: '12px',
+    fontWeight: '600',
+  },
+  viewPdfBtn: {
+    padding: '4px 8px',
+    background: '#EFF6FF',
+    border: '1px solid #BFDBFE',
+    borderRadius: '4px',
+    color: '#1D4ED8',
+    fontSize: '11px',
+    fontWeight: '500',
+    textDecoration: 'none',
+    marginLeft: 'auto',
   },
 
   // Injections Tab Styles

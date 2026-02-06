@@ -237,6 +237,7 @@ export default function CommandCenter() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientDetailData, setPatientDetailData] = useState(null);
   const [patientDetailLoading, setPatientDetailLoading] = useState(false);
+  const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '' });
 
   // Injection logs state
   const [injectionCategory, setInjectionCategory] = useState('testosterone');
@@ -563,6 +564,7 @@ export default function CommandCenter() {
               details={patientDetails}
               detailLoading={patientDetailLoading}
               data={data}
+              openPdf={(url, title) => setPdfSlideOut({ open: true, url, title })}
             />
           )}
           {activeTab === 'injections' && (
@@ -614,6 +616,32 @@ export default function CommandCenter() {
         </main>
       </div>
 
+      {/* PDF Slide-out Viewer */}
+      {pdfSlideOut.open && (
+        <>
+          <div
+            style={styles.pdfOverlay}
+            onClick={() => setPdfSlideOut({ open: false, url: '', title: '' })}
+          />
+          <div style={styles.pdfSlideOut}>
+            <div style={styles.pdfSlideOutHeader}>
+              <h3 style={styles.pdfSlideOutTitle}>{pdfSlideOut.title}</h3>
+              <button
+                style={styles.pdfSlideOutClose}
+                onClick={() => setPdfSlideOut({ open: false, url: '', title: '' })}
+              >
+                ×
+              </button>
+            </div>
+            <iframe
+              src={pdfSlideOut.url}
+              style={styles.pdfSlideOutFrame}
+              title={pdfSlideOut.title}
+            />
+          </div>
+        </>
+      )}
+
       <style jsx global>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -626,6 +654,10 @@ export default function CommandCenter() {
         ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
         input::placeholder { color: #9CA3AF; }
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
       `}</style>
     </>
   );
@@ -1015,7 +1047,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter }) {
   );
 }
 
-function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data }) {
+function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf }) {
   const CONSENT_ICONS = {
     hipaa: '🔒',
     hrt: '💉',
@@ -1133,16 +1165,17 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                     Medical Intake
                     {intake.first_name && ` - ${intake.first_name} ${intake.last_name || ''}`}
                   </span>
+                  <span style={{ ...styles.consentStatus, color: '#16A34A' }}>
+                    ✓ Submitted
+                  </span>
                   <span style={styles.detailItemDate}>{formatDate(intake.submitted_at)}</span>
                   {intake.pdf_url && (
-                    <a
-                      href={intake.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
                       style={styles.viewPdfBtn}
+                      onClick={() => openPdf(intake.pdf_url, `Medical Intake - ${intake.first_name || ''} ${intake.last_name || ''}`)}
                     >
                       View PDF
-                    </a>
+                    </button>
                   )}
                 </div>
               ))}
@@ -1170,14 +1203,12 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                   </span>
                   <span style={styles.detailItemDate}>{formatDate(consent.consent_date || consent.submitted_at)}</span>
                   {consent.pdf_url && (
-                    <a
-                      href={consent.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
                       style={styles.viewPdfBtn}
+                      onClick={() => openPdf(consent.pdf_url, `${formatConsentType(consent.consent_type)} Consent`)}
                     >
                       View PDF
-                    </a>
+                    </button>
                   )}
                 </div>
               ))}
@@ -2796,6 +2827,60 @@ const styles = {
     fontWeight: '500',
     textDecoration: 'none',
     marginLeft: 'auto',
+    cursor: 'pointer',
+  },
+
+  // PDF Slide-out Styles
+  pdfOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999,
+  },
+  pdfSlideOut: {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    width: '60%',
+    maxWidth: '800px',
+    height: '100vh',
+    background: '#FFFFFF',
+    boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
+    zIndex: 1000,
+    display: 'flex',
+    flexDirection: 'column',
+    animation: 'slideIn 0.2s ease-out',
+  },
+  pdfSlideOutHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 20px',
+    borderBottom: '1px solid #E5E5E5',
+    background: '#FAFAFA',
+  },
+  pdfSlideOutTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    margin: 0,
+    color: '#1A1A1A',
+  },
+  pdfSlideOutClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    color: '#666',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: '4px',
+  },
+  pdfSlideOutFrame: {
+    flex: 1,
+    width: '100%',
+    border: 'none',
   },
 
   // Injections Tab Styles

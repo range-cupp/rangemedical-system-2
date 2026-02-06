@@ -5,7 +5,7 @@
 // UPDATED: 2026-02-06 - Auto-decrement sessions for in-clinic HRT/WL with alerts
 
 import { createClient } from '@supabase/supabase-js';
-import { addGHLNote } from '../../../lib/ghl-sync';
+import { addGHLNote, sendStaffSMS } from '../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -468,6 +468,14 @@ Sessions Used: ${newSessionsUsed}/${totalSessions}
             await addGHLNote(contactId, ghlNote);
             console.log('📝 GHL note added for session alert');
           }
+
+          // Send SMS to staff
+          const smsMessage = isOverdraft
+            ? `🚨 SESSIONS EXCEEDED: ${patientName} used ${overdraftCount} session(s) beyond their ${mapping.type.toUpperCase()} package (${newSessionsUsed}/${totalSessions}). Payment needed.`
+            : `⚠️ PACKAGE COMPLETE: ${patientName} used all ${totalSessions} sessions in their ${mapping.type.toUpperCase()} package. Ready for renewal.`;
+
+          await sendStaffSMS(smsMessage);
+          console.log('📱 Staff SMS sent for session alert');
 
           // Mark protocol as completed only when EXACTLY at limit (not overdraft)
           // For overdraft, keep it active so we can see the negative balance

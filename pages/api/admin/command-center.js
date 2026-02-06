@@ -255,6 +255,32 @@ export default async function handler(req, res) {
       })
     };
 
+    // Weekly Pickups - Take-home weight loss patients expected this week
+    const takeHomeWLProtocols = activeProtocols.filter(p =>
+      p.delivery_method === 'take_home' &&
+      p.program_type === 'weight_loss'
+    );
+
+    const weeklyPickups = {
+      overdue: takeHomeWLProtocols.filter(p =>
+        p.next_expected_date && p.next_expected_date < todayStr
+      ).map(p => ({
+        ...p,
+        days_overdue: Math.floor((now - new Date(p.next_expected_date)) / (1000 * 60 * 60 * 24))
+      })),
+      dueToday: takeHomeWLProtocols.filter(p =>
+        p.next_expected_date === todayStr
+      ),
+      upcoming: takeHomeWLProtocols.filter(p => {
+        if (!p.next_expected_date) return false;
+        const expected = new Date(p.next_expected_date);
+        return expected > now && expected <= sevenDaysFromNow;
+      }),
+      needsPayment: takeHomeWLProtocols.filter(p =>
+        (p.sessions_used || 0) >= (p.total_sessions || 0) && p.total_sessions > 0
+      )
+    };
+
     return res.status(200).json({
       success: true,
       timestamp: now.toISOString(),
@@ -270,6 +296,7 @@ export default async function handler(req, res) {
       clinicAppointments: clinicAppointments || [],
       leads,
       inClinicData,
+      weeklyPickups,
       alerts: alerts || [],
       sessionAlerts,
     });

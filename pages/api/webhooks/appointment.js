@@ -338,13 +338,19 @@ export default async function handler(req, res) {
       }
 
       // Find protocol by patient_id
+      // For weight_loss, include both in_clinic and take_home (weekly pickups)
+      // For HRT, only in_clinic
+      const deliveryMethods = mapping.type === 'weight_loss'
+        ? ['in_clinic', 'take_home']
+        : ['in_clinic'];
+
       const { data: protocols, error: findError } = await supabase
         .from('protocols')
         .select('*')
         .eq('patient_id', patient.id)
         .in('program_type', protocolTypes)
         .eq('status', 'active')
-        .eq('delivery_method', 'in_clinic')
+        .in('delivery_method', deliveryMethods)
         .order('created_at', { ascending: false });
 
       if (findError) {
@@ -356,10 +362,10 @@ export default async function handler(req, res) {
       }
 
       if (!protocols || protocols.length === 0) {
-        console.log(`⚠️ No active in-clinic ${mapping.type} protocol found for contact ${contactId}`);
+        console.log(`⚠️ No active ${mapping.type} protocol found for contact ${contactId}`);
         return res.status(200).json({
           success: true,
-          message: `No active in-clinic ${mapping.type} protocol - appointment logged only`,
+          message: `No active ${mapping.type} protocol - appointment logged only`,
           action: 'log_only'
         });
       }
@@ -478,10 +484,15 @@ Sessions Used: ${newSessionsUsed}/${totalSessions}
           console.log('📱 Staff SMS sent for session alert');
 
           // Mark protocol as completed only when EXACTLY at limit (not overdraft)
+          // EXCEPTION: Take-home weight loss stays active - they come back weekly for pickups
           // For overdraft, keep it active so we can see the negative balance
-          if (newSessionsUsed === totalSessions) {
+          const isTakeHomeWeightLoss = mapping.type === 'weight_loss' && protocol.delivery_method === 'take_home';
+
+          if (newSessionsUsed === totalSessions && !isTakeHomeWeightLoss) {
             updateData.status = 'completed';
             console.log(`✅ ${mapping.type} protocol completed - all sessions used`);
+          } else if (isTakeHomeWeightLoss) {
+            console.log(`📦 Take-home weight loss - keeping active for weekly pickups. Next expected: ${nextExpectedDate}`);
           }
         }
       }

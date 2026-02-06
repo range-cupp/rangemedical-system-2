@@ -1050,6 +1050,91 @@ function OverviewTab({ data, setActiveTab }) {
             </div>
           </div>
 
+          {/* Weekly Pickups - Take-home Weight Loss */}
+          {((data?.weeklyPickups?.overdue || []).length > 0 ||
+            (data?.weeklyPickups?.dueToday || []).length > 0 ||
+            (data?.weeklyPickups?.needsPayment || []).length > 0) && (
+            <div style={styles.card}>
+              <h3 style={styles.cardTitle}>📦 Weekly Pickups (Weight Loss)</h3>
+
+              {/* Needs Payment */}
+              {(data?.weeklyPickups?.needsPayment || []).length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 style={{ fontSize: '14px', color: '#DC2626', marginBottom: '8px' }}>
+                    💰 Needs Payment ({data.weeklyPickups.needsPayment.length})
+                  </h4>
+                  <div style={styles.protocolList}>
+                    {data.weeklyPickups.needsPayment.slice(0, 5).map((p, i) => (
+                      <div key={p.id || i} style={styles.protocolRow}>
+                        <span style={styles.protocolName}>{getPatientName(p)}</span>
+                        <span style={{ color: '#DC2626', fontSize: '12px' }}>
+                          {p.sessions_used}/{p.total_sessions} used
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Overdue Pickups */}
+              {(data?.weeklyPickups?.overdue || []).length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 style={{ fontSize: '14px', color: '#F59E0B', marginBottom: '8px' }}>
+                    ⚠️ Overdue ({data.weeklyPickups.overdue.length})
+                  </h4>
+                  <div style={styles.protocolList}>
+                    {data.weeklyPickups.overdue.slice(0, 5).map((p, i) => (
+                      <div key={p.id || i} style={styles.protocolRow}>
+                        <span style={styles.protocolName}>{getPatientName(p)}</span>
+                        <span style={{ color: '#F59E0B', fontSize: '12px' }}>
+                          {p.days_overdue} days overdue
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Due Today */}
+              {(data?.weeklyPickups?.dueToday || []).length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 style={{ fontSize: '14px', color: '#10B981', marginBottom: '8px' }}>
+                    ✅ Due Today ({data.weeklyPickups.dueToday.length})
+                  </h4>
+                  <div style={styles.protocolList}>
+                    {data.weeklyPickups.dueToday.map((p, i) => (
+                      <div key={p.id || i} style={styles.protocolRow}>
+                        <span style={styles.protocolName}>{getPatientName(p)}</span>
+                        <span style={{ color: '#10B981', fontSize: '12px' }}>
+                          {p.sessions_used || 0}/{p.total_sessions} sessions
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Upcoming */}
+              {(data?.weeklyPickups?.upcoming || []).length > 0 && (
+                <div>
+                  <h4 style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>
+                    📅 This Week ({data.weeklyPickups.upcoming.length})
+                  </h4>
+                  <div style={styles.protocolList}>
+                    {data.weeklyPickups.upcoming.slice(0, 5).map((p, i) => (
+                      <div key={p.id || i} style={styles.protocolRow}>
+                        <span style={styles.protocolName}>{getPatientName(p)}</span>
+                        <span style={{ color: '#6B7280', fontSize: '12px' }}>
+                          {p.next_expected_date}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* In-Clinic Overdue */}
           {(data?.inClinicData?.overdue || []).length > 0 && (
             <div style={{ ...styles.card, background: '#FEF2F2', borderColor: '#EF4444', borderWidth: '2px' }}>

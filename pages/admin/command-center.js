@@ -1352,9 +1352,9 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
                       <span style={styles.activityName}>{p.patient_name || 'Unknown'}</span>
                       <span style={styles.activityDesc}>{p.item_name}</span>
                     </div>
-                    <div style={{ ...styles.activityMeta, marginRight: '12px' }}>
+                    <div style={{ ...styles.activityMeta, marginRight: '12px', textAlign: 'right' }}>
                       <span style={styles.activityAmount}>${p.display_amount || p.amount}</span>
-                      <span style={styles.activityTime}>{timeAgo(p.purchase_date)}</span>
+                      <span style={styles.activityTime}>{formatDate(p.purchase_date)}</span>
                     </div>
                     <button
                       onClick={() => onAssignFromPurchase(p)}

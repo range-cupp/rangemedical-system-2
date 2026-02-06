@@ -18,23 +18,31 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { date } = req.body;
+  const { date, days } = req.body;
+  const syncDays = days || 14; // Default to syncing last 14 days
   const targetDate = date || new Date().toISOString().split('T')[0];
 
+  // Calculate date range
+  const endDate = new Date(targetDate + 'T23:59:59');
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - syncDays);
+  const startDateStr = startDate.toISOString().split('T')[0];
+
   console.log('=== SYNC GHL APPOINTMENTS ===');
-  console.log('Target Date:', targetDate);
+  console.log('Date Range:', startDateStr, 'to', targetDate);
   console.log('Location ID:', GHL_LOCATION_ID);
 
   try {
     const results = {
-      date: targetDate,
+      dateRange: { start: startDateStr, end: targetDate },
       appointmentsFound: 0,
       synced: 0,
       errors: [],
       debug: {
         hasApiKey: !!GHL_API_KEY,
         hasLocationId: !!GHL_LOCATION_ID,
-        locationId: GHL_LOCATION_ID
+        locationId: GHL_LOCATION_ID,
+        syncDays
       }
     };
 
@@ -190,7 +198,8 @@ export default async function handler(req, res) {
                 .filter(apt => {
                   const aptStartTime = apt.startTime || apt.start_time || '';
                   const aptDate = aptStartTime.split(/[T ]/)[0];
-                  return aptDate === targetDate;
+                  // Include appointments within the date range
+                  return aptDate >= startDateStr && aptDate <= targetDate;
                 })
                 .map(apt => ({
                   ...apt,
@@ -213,7 +222,7 @@ export default async function handler(req, res) {
     results.debug.contactsChecked = allContactIds.length;
 
     results.appointmentsFound = allAppointments.length;
-    console.log(`Appointments found for ${targetDate}: ${allAppointments.length}`);
+    console.log(`Appointments found for ${startDateStr} to ${targetDate}: ${allAppointments.length}`);
 
     // Step 3: Store appointments in database
     for (const apt of allAppointments) {
@@ -283,6 +292,9 @@ export default async function handler(req, res) {
           }
         }
 
+        // Extract the actual appointment date from start time
+        const actualAppointmentDate = startTimeVal ? startTimeVal.split(/[T ]/)[0] : targetDate;
+
         const appointmentData = {
           ghl_appointment_id: appointmentId,
           ghl_contact_id: apt.contactId,
@@ -290,7 +302,7 @@ export default async function handler(req, res) {
           calendar_id: calendarId,
           calendar_name: calendarName,
           appointment_title: title,
-          appointment_date: targetDate,
+          appointment_date: actualAppointmentDate,
           start_time: startTimeVal,
           end_time: endTimeVal,
           status: finalStatus,

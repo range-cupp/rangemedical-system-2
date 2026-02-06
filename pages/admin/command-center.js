@@ -403,7 +403,12 @@ export default function CommandCenter() {
     try {
       const res = await fetch('/api/peptides');
       const data = await res.json();
-      if (data.peptides) setPeptides(data.peptides);
+      // API returns array directly, not { peptides: [...] }
+      if (Array.isArray(data)) {
+        setPeptides(data);
+      } else if (data.peptides) {
+        setPeptides(data.peptides);
+      }
     } catch (error) {
       console.error('Error fetching peptides:', error);
     }

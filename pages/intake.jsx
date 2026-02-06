@@ -813,6 +813,13 @@ export default function IntakeForm() {
                   <input type="text" id="howHeardOther" name="howHeardOther" placeholder="How did you hear about us?" />
                 </div>
               </div>
+
+              <div className="conditional-field" id="howHeardFriendField">
+                <div className="form-group">
+                  <label htmlFor="howHeardFriend">Who is the friend or family member? <span className="required">*</span></label>
+                  <input type="text" id="howHeardFriend" name="howHeardFriend" placeholder="Enter their name" />
+                </div>
+              </div>
             </div>
 
             {/* Health Concerns Section */}
@@ -1961,8 +1968,10 @@ function initializeForm() {
   
   const howHeardSelect = document.getElementById('howHeardAboutUs');
   const howHeardOtherField = document.getElementById('howHeardOtherField');
+  const howHeardFriendField = document.getElementById('howHeardFriendField');
   howHeardSelect.addEventListener('change', () => {
     howHeardOtherField.classList.toggle('visible', howHeardSelect.value === 'Other');
+    howHeardFriendField.classList.toggle('visible', howHeardSelect.value === 'Friend or Family Member');
   });
 
   document.querySelectorAll('input[name="injured"]').forEach(radio => {

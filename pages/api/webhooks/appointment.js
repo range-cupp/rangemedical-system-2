@@ -2,8 +2,10 @@
 // Range Medical - Appointment Webhook Handler
 // Decrements sessions from protocols when appointments are completed
 // Services: HBOT, Red Light, IV Therapy, In-Clinic Injections
+// UPDATED: 2026-02-06 - Auto-decrement sessions for in-clinic HRT/WL with alerts
 
 import { createClient } from '@supabase/supabase-js';
+import { addGHLNote } from '../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -388,15 +390,91 @@ export default async function handler(req, res) {
         updated_at: new Date().toISOString()
       };
 
-      // For weight loss, also increment sessions_used
-      if (mapping.type === 'weight_loss' && protocol.total_sessions > 0) {
-        const currentUsed = protocol.sessions_used || 0;
-        updateData.sessions_used = currentUsed + 1;
+      // For BOTH HRT and Weight Loss in-clinic, track sessions
+      // Always increment sessions_used, even if it exceeds total (to track overdraft)
+      const currentUsed = protocol.sessions_used || 0;
+      const totalSessions = protocol.total_sessions || 0;
+      const newSessionsUsed = currentUsed + 1;
+      const sessionsRemaining = totalSessions - newSessionsUsed;
 
-        // Auto-complete if all sessions used
-        if (updateData.sessions_used >= protocol.total_sessions) {
-          updateData.status = 'completed';
-          console.log('✅ Weight loss protocol completed - all sessions used');
+      // Only track sessions if total_sessions is set (> 0)
+      if (totalSessions > 0) {
+        updateData.sessions_used = newSessionsUsed;
+
+        console.log(`📊 Session tracking: ${currentUsed}/${totalSessions} → ${newSessionsUsed}/${totalSessions} (${sessionsRemaining} remaining)`);
+
+        // Check if sessions are exhausted or exceeded
+        if (newSessionsUsed >= totalSessions) {
+          const patientName = contactName || 'Patient';
+          const isOverdraft = newSessionsUsed > totalSessions;
+          const overdraftCount = isOverdraft ? newSessionsUsed - totalSessions : 0;
+
+          // Create alert in database
+          const alertMessage = isOverdraft
+            ? `${patientName} used ${overdraftCount} session(s) BEYOND their ${mapping.type.toUpperCase()} package limit. Sessions: ${newSessionsUsed}/${totalSessions}. Payment required for additional sessions.`
+            : `${patientName} has used all sessions in their ${mapping.type.toUpperCase()} package. Sessions: ${newSessionsUsed}/${totalSessions}. Ready for renewal.`;
+
+          const alertSeverity = isOverdraft ? 'high' : 'medium';
+          const alertType = isOverdraft ? 'sessions_exceeded' : 'sessions_exhausted';
+
+          const { error: alertError } = await supabase
+            .from('alerts')
+            .insert({
+              patient_id: patient.id,
+              alert_type: alertType,
+              message: alertMessage,
+              severity: alertSeverity,
+              status: 'active',
+              metadata: {
+                protocol_id: protocol.id,
+                program_type: mapping.type,
+                sessions_used: newSessionsUsed,
+                total_sessions: totalSessions,
+                overdraft_count: overdraftCount,
+                appointment_title: appointmentTitle,
+                appointment_date: visitDate
+              }
+            });
+
+          if (alertError) {
+            console.log('⚠️ Could not create alert:', alertError.message);
+          } else {
+            console.log(`🚨 Alert created: ${alertType} for ${patientName}`);
+          }
+
+          // Add note to GHL
+          const ghlNote = isOverdraft
+            ? `🚨 SESSIONS EXCEEDED - PAYMENT NEEDED
+
+${mapping.type.toUpperCase()} Injection appointment marked as showed.
+Patient has used ${overdraftCount} session(s) BEYOND their package limit.
+
+Package: ${protocol.program_name || mapping.type}
+Sessions Used: ${newSessionsUsed}/${totalSessions}
+Overdraft: ${overdraftCount} session(s)
+
+⚠️ Please collect payment for additional sessions or new package.`
+            : `⚠️ PACKAGE COMPLETE - RENEWAL NEEDED
+
+${mapping.type.toUpperCase()} Injection appointment marked as showed.
+Patient has used all sessions in their package.
+
+Package: ${protocol.program_name || mapping.type}
+Sessions Used: ${newSessionsUsed}/${totalSessions}
+
+📋 Patient may need to purchase a new package to continue treatment.`;
+
+          if (contactId) {
+            await addGHLNote(contactId, ghlNote);
+            console.log('📝 GHL note added for session alert');
+          }
+
+          // Mark protocol as completed only when EXACTLY at limit (not overdraft)
+          // For overdraft, keep it active so we can see the negative balance
+          if (newSessionsUsed === totalSessions) {
+            updateData.status = 'completed';
+            console.log(`✅ ${mapping.type} protocol completed - all sessions used`);
+          }
         }
       }
 
@@ -416,8 +494,8 @@ export default async function handler(req, res) {
       }
 
       console.log(`✅ In-clinic visit tracked for ${mapping.type}: last_visit=${visitDate}, next_expected=${nextExpectedDate}`);
-      if (mapping.type === 'weight_loss') {
-        console.log(`   Sessions: ${updateData.sessions_used}/${protocol.total_sessions}`);
+      if (totalSessions > 0) {
+        console.log(`   Sessions: ${newSessionsUsed}/${totalSessions} (${sessionsRemaining} remaining)`);
       }
 
       return res.status(200).json({
@@ -428,9 +506,11 @@ export default async function handler(req, res) {
           type: mapping.type,
           last_visit_date: visitDate,
           next_expected_date: nextExpectedDate,
-          sessions_used: updateData.sessions_used,
-          total_sessions: protocol.total_sessions,
-          status: updateData.status || 'active'
+          sessions_used: newSessionsUsed,
+          total_sessions: totalSessions,
+          sessions_remaining: sessionsRemaining,
+          status: updateData.status || 'active',
+          alert_created: sessionsRemaining <= 0
         }
       });
     }

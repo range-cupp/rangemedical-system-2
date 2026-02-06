@@ -115,7 +115,27 @@ export default async function handler(req, res) {
 
     if (clinicError) console.error('Clinic appointments error:', clinicError);
 
-    // 7. Get leads from GHL
+    // 7. Get active alerts (session exhausted, overdraft, etc.)
+    const { data: alerts, error: alertsError } = await supabase
+      .from('alerts')
+      .select(`
+        *,
+        patients (
+          id,
+          name,
+          first_name,
+          last_name,
+          phone,
+          ghl_contact_id
+        )
+      `)
+      .eq('status', 'active')
+      .order('triggered_at', { ascending: false })
+      .limit(50);
+
+    if (alertsError) console.error('Alerts error:', alertsError);
+
+    // 8. Get leads from GHL
     let ghlLeads = [];
     try {
       const ghlRes = await fetch(
@@ -150,6 +170,11 @@ export default async function handler(req, res) {
     processedProtocols.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
 
     // Calculate stats
+    const activeAlerts = (alerts || []).filter(a => a.status === 'active');
+    const sessionAlerts = activeAlerts.filter(a =>
+      a.alert_type === 'sessions_exhausted' || a.alert_type === 'sessions_exceeded'
+    );
+
     const stats = {
       totalPatients: (patients || []).length,
       activeProtocols: activeProtocols.length,
@@ -165,6 +190,8 @@ export default async function handler(req, res) {
       noResponse: ghlLeads.filter(c =>
         (c.tags || []).some(t => t.toLowerCase().includes('no-response') || t.toLowerCase().includes('no response'))
       ).length,
+      activeAlerts: activeAlerts.length,
+      sessionAlerts: sessionAlerts.length,
     };
 
     // Protocol counts by category
@@ -243,6 +270,8 @@ export default async function handler(req, res) {
       clinicAppointments: clinicAppointments || [],
       leads,
       inClinicData,
+      alerts: alerts || [],
+      sessionAlerts,
     });
 
   } catch (error) {

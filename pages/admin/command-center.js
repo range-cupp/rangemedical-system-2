@@ -902,16 +902,56 @@ function OverviewTab({ data, setActiveTab }) {
   const endingSoon = (data?.protocols || []).filter(p =>
     p.urgency === 'critical' || p.urgency === 'warning'
   ).slice(0, 10);
+  const sessionAlerts = data?.sessionAlerts || [];
 
   return (
     <div style={styles.overviewGrid}>
+      {/* Session Alerts Banner - Top Priority */}
+      {sessionAlerts.length > 0 && (
+        <div style={styles.sessionAlertsBanner}>
+          <div style={styles.sessionAlertsIcon}>🚨</div>
+          <div style={styles.sessionAlertsContent}>
+            <strong style={styles.sessionAlertsTitle}>
+              {sessionAlerts.length} Session Alert{sessionAlerts.length > 1 ? 's' : ''} - Payment Needed
+            </strong>
+            <div style={styles.sessionAlertsList}>
+              {sessionAlerts.slice(0, 5).map((alert, i) => {
+                const patientName = alert.patients?.name ||
+                  `${alert.patients?.first_name || ''} ${alert.patients?.last_name || ''}`.trim() || 'Patient';
+                const isOverdraft = alert.alert_type === 'sessions_exceeded';
+                const metadata = alert.metadata || {};
+                return (
+                  <div key={alert.id || i} style={styles.sessionAlertItem}>
+                    <span style={{
+                      ...styles.sessionAlertBadge,
+                      background: isOverdraft ? '#DC2626' : '#F59E0B'
+                    }}>
+                      {isOverdraft ? 'OVERDRAFT' : 'EXHAUSTED'}
+                    </span>
+                    <span style={styles.sessionAlertPatient}>{patientName}</span>
+                    <span style={styles.sessionAlertDetail}>
+                      {metadata.program_type?.toUpperCase()} - {metadata.sessions_used}/{metadata.total_sessions} sessions
+                    </span>
+                    {alert.patients?.phone && (
+                      <a href={`tel:${alert.patients.phone}`} style={styles.sessionAlertPhone}>
+                        📞 {alert.patients.phone}
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Row */}
       <div style={styles.statsRow}>
         <StatCard label="New Leads" value={stats.newLeads || 0} color="#4488FF" onClick={() => setActiveTab('leads')} />
         <StatCard label="Active Protocols" value={stats.activeProtocols || 0} color="#00CC66" onClick={() => setActiveTab('protocols')} />
         <StatCard label="Ending Soon" value={stats.endingSoon || 0} color="#FF8C00" onClick={() => setActiveTab('protocols')} />
         <StatCard label="Needs Protocol" value={stats.needsProtocol || 0} color="#FF4444" onClick={() => setActiveTab('leads')} />
-        <StatCard label="No Response" value={stats.noResponse || 0} color="#666666" />
+        <StatCard label="Session Alerts" value={stats.sessionAlerts || 0} color="#DC2626" />
         <StatCard label="Total Patients" value={stats.totalPatients || 0} color="#9966FF" onClick={() => setActiveTab('patients')} />
       </div>
 
@@ -2520,6 +2560,66 @@ const styles = {
 
   // Overview
   overviewGrid: {},
+  sessionAlertsBanner: {
+    display: 'flex',
+    gap: '16px',
+    padding: '16px 20px',
+    background: '#FEF2F2',
+    border: '2px solid #DC2626',
+    borderRadius: '8px',
+    marginBottom: '20px',
+  },
+  sessionAlertsIcon: {
+    fontSize: '28px',
+  },
+  sessionAlertsContent: {
+    flex: 1,
+  },
+  sessionAlertsTitle: {
+    color: '#991B1B',
+    fontSize: '16px',
+    display: 'block',
+    marginBottom: '12px',
+  },
+  sessionAlertsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  sessionAlertItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '8px 12px',
+    background: '#FFFFFF',
+    borderRadius: '6px',
+    border: '1px solid #FECACA',
+    flexWrap: 'wrap',
+  },
+  sessionAlertBadge: {
+    padding: '2px 8px',
+    borderRadius: '4px',
+    fontSize: '10px',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+  },
+  sessionAlertPatient: {
+    fontWeight: '600',
+    color: '#1A1A1A',
+    fontSize: '14px',
+  },
+  sessionAlertDetail: {
+    color: '#666',
+    fontSize: '13px',
+  },
+  sessionAlertPhone: {
+    marginLeft: 'auto',
+    color: '#2563EB',
+    fontSize: '13px',
+    textDecoration: 'none',
+  },
   statsRow: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',

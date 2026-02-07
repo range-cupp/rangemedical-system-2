@@ -473,7 +473,7 @@ export default function CommandCenter() {
 
   // Peptide vial options
   const VIAL_QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-  const DEFAULT_VIAL_SIZE_MCG = 5000; // 5mg vials standard
+  const DEFAULT_VIAL_SIZE_MCG = 10000; // 10mg vials (20 days at 500mcg daily)
 
   // Calculate peptide duration based on vials, dose, and frequency
   const calculatePeptideDuration = (numVials, doseMcg, frequency) => {

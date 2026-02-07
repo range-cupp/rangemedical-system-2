@@ -1244,19 +1244,22 @@ export default function CommandCenter() {
                   </select>
                 </div>
 
-                <div style={styles.modalFormGroup}>
-                  <label style={styles.formLabel}>Pickup Frequency *</label>
-                  <select
-                    value={assignForm.pickupFrequency || ''}
-                    onChange={e => setAssignForm({...assignForm, pickupFrequency: e.target.value})}
-                    style={styles.formSelect}
-                  >
-                    <option value="">Select frequency...</option>
-                    {PICKUP_FREQUENCY_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Show pickup frequency only for take-home */}
+                {assignForm.deliveryMethod === 'take_home' && (
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Pickup Frequency *</label>
+                    <select
+                      value={assignForm.pickupFrequency || ''}
+                      onChange={e => setAssignForm({...assignForm, pickupFrequency: e.target.value})}
+                      style={styles.formSelect}
+                    >
+                      <option value="">Select frequency...</option>
+                      {PICKUP_FREQUENCY_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div style={styles.modalFormGroup}>
                   <label style={styles.formLabel}>Injection Frequency *</label>

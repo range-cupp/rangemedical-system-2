@@ -1,7 +1,7 @@
 // /pages/api/protocols/[id]/log-session.js
 // Log a session, injection, or weight for a protocol
 // Range Medical
-// UPDATED: 2026-01-04 - Added comprehensive GHL sync for all protocol types
+// UPDATED: 2026-02-07 - Added payment due SMS notification when protocol completes
 
 import { createClient } from '@supabase/supabase-js';
 import { syncSessionLogToGHL } from '../../../../lib/ghl-sync';
@@ -10,6 +10,48 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Send SMS notification to clinic when protocol completes (payment due)
+async function sendPaymentDueNotification(patientName, programName, programType) {
+  const ghlApiKey = process.env.GHL_API_KEY;
+  // Contact ID for Chris Cupp - used for clinic notifications
+  const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+
+  if (!ghlApiKey) {
+    console.warn('GHL_API_KEY not configured, skipping payment notification');
+    return;
+  }
+
+  const message = `💰 Payment Due!\n\n${patientName} has completed their ${programName} protocol.\n\nTime to collect payment for next period.`;
+
+  try {
+    const response = await fetch(
+      'https://services.leadconnectorhq.com/conversations/messages',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ghlApiKey}`,
+          'Version': '2021-04-15',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'SMS',
+          contactId: notifyContactId,
+          message: message
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Payment notification SMS error:', errorData);
+    } else {
+      console.log('Payment due notification sent for:', patientName);
+    }
+  } catch (error) {
+    console.error('Payment notification error:', error);
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -93,6 +135,15 @@ export default async function handler(req, res) {
         .eq('id', id);
 
       if (updateError) throw updateError;
+
+      // Send payment due notification when protocol completes
+      if (protocolCompleted) {
+        try {
+          await sendPaymentDueNotification(patientName, protocol.program_name, protocol.program_type);
+        } catch (notifyError) {
+          console.error('Payment notification error (non-fatal):', notifyError);
+        }
+      }
     }
 
     // Update protocol object with new values for GHL sync

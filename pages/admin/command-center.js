@@ -785,7 +785,9 @@ export default function CommandCenter() {
               filter={leadFilter}
               setFilter={setLeadFilter}
               onAssignFromPurchase={(purchase) => {
+                // Find patient by patient_id first, then fall back to name matching
                 const patient = (data?.patients || []).find(p =>
+                  p.id === purchase.patient_id ||
                   p.name?.toLowerCase() === purchase.patient_name?.toLowerCase() ||
                   p.ghl_contact_id === purchase.ghl_contact_id
                 );
@@ -794,7 +796,7 @@ export default function CommandCenter() {
                   setSelectedPurchase(purchase);
                   openAssignModal();
                 } else {
-                  alert('Patient not found. Please assign from the Patients tab.');
+                  alert('Patient "' + purchase.patient_name + '" not found in system. They may need to be added first.');
                 }
               }}
             />

@@ -437,6 +437,7 @@ export default function CommandCenter() {
       // Weight loss specific fields
       wlMedication: '',
       pickupFrequency: '',
+      injectionFrequency: '',
       injectionDay: '',
       checkinReminderEnabled: false
     });
@@ -477,9 +478,14 @@ export default function CommandCenter() {
   });
 
   const PICKUP_FREQUENCY_OPTIONS = [
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'every_2_weeks', label: 'Every 2 Weeks' },
-    { value: 'every_4_weeks', label: 'Every 4 Weeks' }
+    { value: '7', label: 'Weekly (7 days)', days: 7 },
+    { value: '14', label: 'Every 2 Weeks (14 days)', days: 14 },
+    { value: '28', label: 'Every 4 Weeks (28 days)', days: 28 }
+  ];
+
+  const INJECTION_FREQUENCY_OPTIONS = [
+    { value: '7', label: 'Every 7 Days' },
+    { value: '10', label: 'Every 10 Days' }
   ];
 
   const INJECTION_DAY_OPTIONS = [
@@ -513,7 +519,8 @@ export default function CommandCenter() {
           deliveryMethod: assignForm.deliveryMethod || null,
           // Weight loss specific fields
           wlMedication: assignForm.wlMedication || null,
-          pickupFrequency: assignForm.pickupFrequency || null,
+          pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
+          injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
           injectionDay: assignForm.injectionDay || null,
           checkinReminderEnabled: assignForm.checkinReminderEnabled || false
         })
@@ -1097,6 +1104,20 @@ export default function CommandCenter() {
                   >
                     <option value="">Select frequency...</option>
                     {PICKUP_FREQUENCY_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Injection Frequency *</label>
+                  <select
+                    value={assignForm.injectionFrequency || ''}
+                    onChange={e => setAssignForm({...assignForm, injectionFrequency: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select injection frequency...</option>
+                    {INJECTION_FREQUENCY_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>

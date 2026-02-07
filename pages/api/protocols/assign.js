@@ -36,7 +36,8 @@ export default async function handler(req, res) {
       wlDuration,
       // Weight loss specific fields
       wlMedication,
-      pickupFrequency,
+      pickupFrequencyDays,
+      injectionFrequencyDays,
       injectionDay,
       checkinReminderEnabled,
       // HRT vial-specific fields
@@ -168,6 +169,13 @@ export default async function handler(req, res) {
       if (isSingle) {
         finalTotalSessions = 1;
       }
+
+      // For weight loss templates, override end_date with pickupFrequencyDays
+      if (programType === 'weight_loss' && pickupFrequencyDays && startDate) {
+        const start = new Date(startDate);
+        start.setDate(start.getDate() + pickupFrequencyDays);
+        endDate = start.toISOString().split('T')[0];
+      }
     }
 
     // Get peptide info if provided
@@ -209,7 +217,8 @@ export default async function handler(req, res) {
         status: isSingle ? 'completed' : 'active',
         notes: notes,
         // Weight loss specific fields
-        pickup_frequency: pickupFrequency || null,
+        pickup_frequency: pickupFrequencyDays || null,
+        injection_frequency: injectionFrequencyDays || null,
         injection_day: injectionDay || null,
         checkin_reminder_enabled: checkinReminderEnabled || false,
         // HRT vial-specific fields

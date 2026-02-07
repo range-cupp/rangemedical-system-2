@@ -460,6 +460,7 @@ export default function CommandCenter() {
 
   const getSelectedPeptide = () => peptides.find(p => p.id === assignForm.peptideId) || null;
   const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
+  const isPeptideVialTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide') && getSelectedTemplate()?.name?.toLowerCase().includes('vial');
   const isNADTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('nad+');
   const isInjectionTemplate = () => getSelectedTemplate()?.category === 'injection';
   const isWeightLossTemplate = () => getSelectedTemplate()?.category === 'weight_loss';
@@ -1076,39 +1077,44 @@ export default function CommandCenter() {
                   </div>
                 )}
 
-                <div style={styles.modalFormGroup}>
-                  <label style={styles.formLabel}>Number of Vials</label>
-                  <select
-                    value={assignForm.numVials || ''}
-                    onChange={e => setAssignForm({...assignForm, numVials: e.target.value})}
-                    style={styles.formSelect}
-                  >
-                    <option value="">Select quantity...</option>
-                    {VIAL_QUANTITY_OPTIONS.map(num => (
-                      <option key={num} value={num}>{num} vial{num > 1 ? 's' : ''}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Show calculated duration */}
-                {assignForm.numVials && assignForm.selectedDose && assignForm.frequency && (
-                  <div style={{ padding: '0 24px', marginBottom: '12px' }}>
-                    <div style={{
-                      padding: '10px 12px',
-                      background: '#EFF6FF',
-                      border: '1px solid #BFDBFE',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      color: '#1E40AF'
-                    }}>
-                      <strong>📅 Calculated Duration:</strong>{' '}
-                      {(() => {
-                        const doseMcg = parseDoseToMcg(assignForm.selectedDose);
-                        const days = calculatePeptideDuration(parseInt(assignForm.numVials), doseMcg, assignForm.frequency);
-                        return days ? `${days} days (refill needed around ${new Date(new Date(assignForm.startDate).getTime() + days * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : 'Unable to calculate';
-                      })()}
+                {/* Only show vial quantity for Peptide Therapy - Vial */}
+                {isPeptideVialTemplate() && (
+                  <>
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Number of Vials</label>
+                      <select
+                        value={assignForm.numVials || ''}
+                        onChange={e => setAssignForm({...assignForm, numVials: e.target.value})}
+                        style={styles.formSelect}
+                      >
+                        <option value="">Select quantity...</option>
+                        {VIAL_QUANTITY_OPTIONS.map(num => (
+                          <option key={num} value={num}>{num} vial{num > 1 ? 's' : ''}</option>
+                        ))}
+                      </select>
                     </div>
-                  </div>
+
+                    {/* Show calculated duration */}
+                    {assignForm.numVials && assignForm.selectedDose && assignForm.frequency && (
+                      <div style={{ padding: '0 24px', marginBottom: '12px' }}>
+                        <div style={{
+                          padding: '10px 12px',
+                          background: '#EFF6FF',
+                          border: '1px solid #BFDBFE',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          color: '#1E40AF'
+                        }}>
+                          <strong>📅 Calculated Duration:</strong>{' '}
+                          {(() => {
+                            const doseMcg = parseDoseToMcg(assignForm.selectedDose);
+                            const days = calculatePeptideDuration(parseInt(assignForm.numVials), doseMcg, assignForm.frequency);
+                            return days ? `${days} days (refill needed around ${new Date(new Date(assignForm.startDate).getTime() + days * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : 'Unable to calculate';
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}

@@ -255,6 +255,7 @@ export default function CommandCenter() {
   const [leadFilter, setLeadFilter] = useState({ status: 'all', search: '' });
   const [patientSearch, setPatientSearch] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [patientDetailData, setPatientDetailData] = useState(null);
   const [patientDetailLoading, setPatientDetailLoading] = useState(false);
   const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '' });

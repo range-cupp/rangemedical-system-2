@@ -421,10 +421,12 @@ export default function CommandCenter() {
   };
 
   // Protocol assignment handlers
-  const openAssignModal = () => {
+  const openAssignModal = (purchase = null) => {
+    // Use passed purchase or fall back to selectedPurchase state
+    const purchaseToUse = purchase || selectedPurchase;
     console.log('Opening assign modal for patient:', selectedPatient?.id, selectedPatient?.name);
     console.log('Templates available:', Object.keys(templates.grouped || {}).length, 'categories');
-    console.log('Selected purchase:', selectedPurchase?.id, selectedPurchase?.item_name);
+    console.log('Selected purchase:', purchaseToUse?.id, purchaseToUse?.item_name);
     setAssignForm({
       templateId: '',
       peptideId: '',
@@ -433,7 +435,8 @@ export default function CommandCenter() {
       deliveryMethod: '',
       startDate: new Date().toISOString().split('T')[0],
       notes: '',
-      purchaseId: selectedPurchase?.id || null,
+      purchaseId: purchaseToUse?.id || null,
+      purchaseItem: purchaseToUse?.item_name || null,
       // Weight loss specific fields
       wlMedication: '',
       pickupFrequency: '',
@@ -846,7 +849,7 @@ export default function CommandCenter() {
                 if (patient) {
                   setSelectedPatient(patient);
                   setSelectedPurchase(purchase);
-                  openAssignModal();
+                  openAssignModal(purchase);
                 } else {
                   alert('Patient "' + purchase.patient_name + '" not found in system. They may need to be added first.');
                 }

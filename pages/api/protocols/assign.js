@@ -34,6 +34,9 @@ export default async function handler(req, res) {
       supplyDuration,
       isWeightLoss,
       wlDuration,
+      // Peptide vial specific fields
+      numVials,
+      peptideDurationDays,
       // Weight loss specific fields
       wlMedication,
       pickupFrequencyDays,
@@ -176,6 +179,13 @@ export default async function handler(req, res) {
         start.setDate(start.getDate() + pickupFrequencyDays);
         endDate = start.toISOString().split('T')[0];
       }
+
+      // For peptide templates, override end_date with peptideDurationDays
+      if (programType === 'peptide' && peptideDurationDays && startDate) {
+        const start = new Date(startDate);
+        start.setDate(start.getDate() + peptideDurationDays);
+        endDate = start.toISOString().split('T')[0];
+      }
     }
 
     // Get peptide info if provided
@@ -216,6 +226,8 @@ export default async function handler(req, res) {
         sessions_used: 0,
         status: isSingle ? 'completed' : 'active',
         notes: notes,
+        // Peptide vial specific fields
+        num_vials: numVials || null,
         // Weight loss specific fields
         pickup_frequency: pickupFrequencyDays || null,
         injection_frequency: injectionFrequencyDays || null,

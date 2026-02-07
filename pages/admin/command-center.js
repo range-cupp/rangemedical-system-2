@@ -437,6 +437,8 @@ export default function CommandCenter() {
       notes: '',
       purchaseId: purchaseToUse?.id || null,
       purchaseItem: purchaseToUse?.item_name || null,
+      // Peptide vial specific fields
+      numVials: '',
       // Weight loss specific fields
       wlMedication: '',
       pickupFrequency: '',
@@ -467,6 +469,39 @@ export default function CommandCenter() {
     { value: 'in_clinic', label: 'In Clinic' },
     { value: 'take_home', label: 'Take Home' }
   ];
+
+  // Peptide vial options
+  const VIAL_QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const DEFAULT_VIAL_SIZE_MCG = 5000; // 5mg vials standard
+
+  // Calculate peptide duration based on vials, dose, and frequency
+  const calculatePeptideDuration = (numVials, doseMcg, frequency) => {
+    if (!numVials || !doseMcg) return null;
+    const totalDosesMcg = numVials * DEFAULT_VIAL_SIZE_MCG;
+    const totalInjections = Math.floor(totalDosesMcg / doseMcg);
+
+    // Convert frequency to injections per day
+    let injectionsPerDay = 1; // default daily
+    if (frequency?.toLowerCase().includes('2x daily')) injectionsPerDay = 2;
+    if (frequency?.toLowerCase().includes('3x daily')) injectionsPerDay = 3;
+    if (frequency?.toLowerCase().includes('every other day') || frequency?.toLowerCase().includes('eod')) injectionsPerDay = 0.5;
+    if (frequency?.toLowerCase().includes('2x') && frequency?.toLowerCase().includes('week')) injectionsPerDay = 2/7;
+    if (frequency?.toLowerCase().includes('3x') && frequency?.toLowerCase().includes('week')) injectionsPerDay = 3/7;
+    if (frequency?.toLowerCase().includes('weekly') || frequency?.toLowerCase().includes('1x/week')) injectionsPerDay = 1/7;
+
+    const durationDays = Math.floor(totalInjections / injectionsPerDay);
+    return durationDays;
+  };
+
+  // Parse dose string to mcg (e.g., "500mcg" -> 500, "1mg" -> 1000)
+  const parseDoseToMcg = (doseStr) => {
+    if (!doseStr) return null;
+    const match = doseStr.match(/([\d.]+)\s*(mcg|mg)/i);
+    if (!match) return null;
+    const value = parseFloat(match[1]);
+    const unit = match[2].toLowerCase();
+    return unit === 'mg' ? value * 1000 : value;
+  };
 
   // Weight loss specific options
   const WEIGHT_LOSS_MEDICATIONS = [
@@ -520,6 +555,11 @@ export default function CommandCenter() {
           notes: assignForm.notes,
           purchaseId: assignForm.purchaseId || null,
           deliveryMethod: assignForm.deliveryMethod || null,
+          // Peptide vial specific fields
+          numVials: assignForm.numVials ? parseInt(assignForm.numVials) : null,
+          peptideDurationDays: assignForm.numVials && assignForm.selectedDose && assignForm.frequency
+            ? calculatePeptideDuration(parseInt(assignForm.numVials), parseDoseToMcg(assignForm.selectedDose), assignForm.frequency)
+            : null,
           // Weight loss specific fields
           wlMedication: assignForm.wlMedication || null,
           pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
@@ -1033,6 +1073,41 @@ export default function CommandCenter() {
                       <option value="">Select dose...</option>
                       {getSelectedPeptide().dose_options.map(dose => <option key={dose} value={dose}>{dose}</option>)}
                     </select>
+                  </div>
+                )}
+
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Number of Vials</label>
+                  <select
+                    value={assignForm.numVials || ''}
+                    onChange={e => setAssignForm({...assignForm, numVials: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select quantity...</option>
+                    {VIAL_QUANTITY_OPTIONS.map(num => (
+                      <option key={num} value={num}>{num} vial{num > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Show calculated duration */}
+                {assignForm.numVials && assignForm.selectedDose && assignForm.frequency && (
+                  <div style={{ padding: '0 24px', marginBottom: '12px' }}>
+                    <div style={{
+                      padding: '10px 12px',
+                      background: '#EFF6FF',
+                      border: '1px solid #BFDBFE',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      color: '#1E40AF'
+                    }}>
+                      <strong>📅 Calculated Duration:</strong>{' '}
+                      {(() => {
+                        const doseMcg = parseDoseToMcg(assignForm.selectedDose);
+                        const days = calculatePeptideDuration(parseInt(assignForm.numVials), doseMcg, assignForm.frequency);
+                        return days ? `${days} days (refill needed around ${new Date(new Date(assignForm.startDate).getTime() + days * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : 'Unable to calculate';
+                      })()}
+                    </div>
                   </div>
                 )}
               </>

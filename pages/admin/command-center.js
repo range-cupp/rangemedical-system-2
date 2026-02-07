@@ -786,17 +786,12 @@ export default function CommandCenter() {
               filter={leadFilter}
               setFilter={setLeadFilter}
               onAssignFromPurchase={(purchase) => {
-                console.log('Assign clicked for:', purchase.patient_name, 'patient_id:', purchase.patient_id);
-                console.log('Patients available:', (data?.patients || []).length);
-
                 // Find patient by patient_id first, then fall back to name matching
                 const patient = (data?.patients || []).find(p =>
                   p.id === purchase.patient_id ||
                   p.name?.toLowerCase() === purchase.patient_name?.toLowerCase() ||
                   p.ghl_contact_id === purchase.ghl_contact_id
                 );
-
-                console.log('Found patient:', patient ? patient.name : 'NOT FOUND');
 
                 if (patient) {
                   setSelectedPatient(patient);

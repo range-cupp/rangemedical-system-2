@@ -301,6 +301,7 @@ export default function CommandCenter() {
   const [templates, setTemplates] = useState({ grouped: {} });
   const [peptides, setPeptides] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
   const [assignForm, setAssignForm] = useState({
     templateId: '',
     peptideId: '',
@@ -463,6 +464,10 @@ export default function CommandCenter() {
       return;
     }
 
+    // Prevent double-clicks
+    if (isAssigning) return;
+    setIsAssigning(true);
+
     try {
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
@@ -482,11 +487,12 @@ export default function CommandCenter() {
       });
 
       if (res.ok) {
+        // Close modal immediately
         setShowAssignModal(false);
-        // Refresh patient data
+        setSelectedPurchase(null);
+        // Refresh data in background
         fetchPatientDetails(selectedPatient.id);
         fetchData();
-        alert('Protocol assigned successfully!');
       } else {
         const error = await res.json();
         alert(error.error || 'Failed to assign protocol');
@@ -494,6 +500,8 @@ export default function CommandCenter() {
     } catch (error) {
       console.error('Error assigning protocol:', error);
       alert('Error assigning protocol');
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -1054,11 +1062,15 @@ export default function CommandCenter() {
                 Cancel
               </button>
               <button
-                style={styles.modalSubmitBtn}
+                style={{
+                  ...styles.modalSubmitBtn,
+                  opacity: isAssigning ? 0.7 : 1,
+                  cursor: isAssigning ? 'wait' : 'pointer'
+                }}
                 onClick={handleAssignProtocol}
-                disabled={!assignForm.templateId}
+                disabled={!assignForm.templateId || isAssigning}
               >
-                Assign Protocol
+                {isAssigning ? 'Creating...' : 'Assign Protocol'}
               </button>
             </div>
           </div>

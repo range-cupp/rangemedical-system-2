@@ -31,7 +31,9 @@ export default async function handler(req, res) {
       selected_dose,
       notes,
       injection_day,
-      checkin_reminder_enabled
+      checkin_reminder_enabled,
+      medication,
+      pickup_frequency
     } = req.body;
 
     const updateData = {};
@@ -48,6 +50,8 @@ export default async function handler(req, res) {
     if (notes !== undefined) updateData.notes = notes || null;
     if (injection_day !== undefined) updateData.injection_day = injection_day || null;
     if (checkin_reminder_enabled !== undefined) updateData.checkin_reminder_enabled = checkin_reminder_enabled;
+    if (medication !== undefined) updateData.medication = medication || null;
+    if (pickup_frequency !== undefined) updateData.pickup_frequency = pickup_frequency || null;
 
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();

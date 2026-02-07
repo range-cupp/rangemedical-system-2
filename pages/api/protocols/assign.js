@@ -34,6 +34,11 @@ export default async function handler(req, res) {
       supplyDuration,
       isWeightLoss,
       wlDuration,
+      // Weight loss specific fields
+      wlMedication,
+      pickupFrequency,
+      injectionDay,
+      checkinReminderEnabled,
       // HRT vial-specific fields
       dosePerInjection,
       injectionsPerWeek,
@@ -176,6 +181,16 @@ export default async function handler(req, res) {
       medicationName = peptide?.name;
     }
 
+    // For weight loss, use wlMedication as the medication name
+    if (isWeightLoss && wlMedication) {
+      medicationName = wlMedication;
+    }
+
+    // For weight loss from template, also use wlMedication
+    if (programType === 'weight_loss' && wlMedication) {
+      medicationName = wlMedication;
+    }
+
     // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
@@ -193,6 +208,10 @@ export default async function handler(req, res) {
         sessions_used: 0,
         status: isSingle ? 'completed' : 'active',
         notes: notes,
+        // Weight loss specific fields
+        pickup_frequency: pickupFrequency || null,
+        injection_day: injectionDay || null,
+        checkin_reminder_enabled: checkinReminderEnabled || false,
         // HRT vial-specific fields
         dose_per_injection: dosePerInjection ? parseFloat(dosePerInjection) : null,
         injections_per_week: injectionsPerWeek ? parseInt(injectionsPerWeek) : null,

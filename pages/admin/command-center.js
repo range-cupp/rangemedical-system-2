@@ -157,7 +157,11 @@ const FREQUENCY_OPTIONS = [
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
-  const d = new Date(dateStr);
+  // Handle date-only strings (YYYY-MM-DD) to avoid timezone shift
+  // Add T12:00:00 to prevent day rolling back when converting to Pacific
+  const d = dateStr.length === 10
+    ? new Date(dateStr + 'T12:00:00')
+    : new Date(dateStr);
   return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',

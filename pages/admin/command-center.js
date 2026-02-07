@@ -784,6 +784,19 @@ export default function CommandCenter() {
               leads={filteredLeads}
               filter={leadFilter}
               setFilter={setLeadFilter}
+              onAssignFromPurchase={(purchase) => {
+                const patient = (data?.patients || []).find(p =>
+                  p.name?.toLowerCase() === purchase.patient_name?.toLowerCase() ||
+                  p.ghl_contact_id === purchase.ghl_contact_id
+                );
+                if (patient) {
+                  setSelectedPatient(patient);
+                  setSelectedPurchase(purchase);
+                  openAssignModal();
+                } else {
+                  alert('Patient not found. Please assign from the Patients tab.');
+                }
+              }}
             />
           )}
           {activeTab === 'protocols' && (
@@ -1566,29 +1579,78 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
   );
 }
 
-function LeadsTab({ data, leads, filter, setFilter }) {
+function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase }) {
   const [expandedLead, setExpandedLead] = useState(null);
+  const [showSection, setShowSection] = useState('purchases'); // 'purchases' or 'leads'
+
+  const purchasesNeedingProtocol = data?.purchasesNeedingProtocol || [];
 
   return (
     <div style={styles.tabContent}>
-      {/* Needs Protocol Banner */}
-      {(data?.purchasesNeedingProtocol || []).length > 0 && (
-        <div style={styles.alertBanner}>
-          <div style={styles.alertIcon}>⚠️</div>
-          <div style={styles.alertContent}>
-            <strong>{data.purchasesNeedingProtocol.length} purchase(s) need protocol assignment</strong>
-            <div style={styles.alertItems}>
-              {data.purchasesNeedingProtocol.slice(0, 3).map((p, i) => (
-                <span key={i} style={styles.alertItem}>
-                  {p.patient_name}: {p.item_name} (${p.display_amount || p.amount})
-                </span>
-              ))}
-            </div>
-          </div>
+      {/* Section Toggle */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button
+          style={{
+            ...styles.filterPill,
+            ...(showSection === 'purchases' ? styles.filterPillActive : {}),
+          }}
+          onClick={() => setShowSection('purchases')}
+        >
+          Needs Protocol ({purchasesNeedingProtocol.length})
+        </button>
+        <button
+          style={{
+            ...styles.filterPill,
+            ...(showSection === 'leads' ? styles.filterPillActive : {}),
+          }}
+          onClick={() => setShowSection('leads')}
+        >
+          GHL Leads ({leads.length})
+        </button>
+      </div>
+
+      {/* Purchases Needing Protocol Section */}
+      {showSection === 'purchases' && (
+        <div style={styles.leadsList}>
+          {purchasesNeedingProtocol.length === 0 ? (
+            <div style={styles.emptyState}>All purchases have protocols assigned!</div>
+          ) : (
+            purchasesNeedingProtocol.map((p, i) => (
+              <div key={p.id || i} style={{ ...styles.leadCard, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={styles.leadName}>{p.patient_name || 'Unknown'}</div>
+                  <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>{p.item_name}</div>
+                </div>
+                <div style={{ textAlign: 'right', marginRight: '16px' }}>
+                  <div style={{ fontWeight: '600', color: '#059669' }}>${p.display_amount || p.amount}</div>
+                  <div style={{ fontSize: '12px', color: '#9CA3AF' }}>{formatDate(p.purchase_date)}</div>
+                </div>
+                <button
+                  onClick={() => onAssignFromPurchase && onAssignFromPurchase(p)}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#059669',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  + Assign Protocol
+                </button>
+              </div>
+            ))
+          )}
         </div>
       )}
 
-      {/* Filters */}
+      {/* GHL Leads Section */}
+      {showSection === 'leads' && (
+        <>
+          {/* Filters */}
       <div style={styles.filters}>
         <input
           type="text"
@@ -1675,6 +1737,8 @@ function LeadsTab({ data, leads, filter, setFilter }) {
           <div style={styles.emptyState}>No leads found</div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

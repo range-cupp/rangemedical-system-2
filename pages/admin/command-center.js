@@ -423,6 +423,7 @@ export default function CommandCenter() {
   const openAssignModal = () => {
     console.log('Opening assign modal for patient:', selectedPatient?.id, selectedPatient?.name);
     console.log('Templates available:', Object.keys(templates.grouped || {}).length, 'categories');
+    console.log('Selected purchase:', selectedPurchase?.id, selectedPurchase?.item_name);
     setAssignForm({
       templateId: '',
       peptideId: '',
@@ -430,7 +431,8 @@ export default function CommandCenter() {
       frequency: '',
       deliveryMethod: '',
       startDate: new Date().toISOString().split('T')[0],
-      notes: ''
+      notes: '',
+      purchaseId: selectedPurchase?.id || null
     });
     setShowAssignModal(true);
   };

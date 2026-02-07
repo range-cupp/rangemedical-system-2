@@ -114,19 +114,25 @@ export default async function handler(req, res) {
 
     if (isWeightLoss) {
       // Weight Loss Protocol - no template needed
-      const durationLabel = wlDuration === 7 ? 'Weekly' : wlDuration === 14 ? 'Two Weeks' : 'Monthly';
+      // Use pickupFrequencyDays as the payment period (determines protocol duration)
+      const paymentPeriod = pickupFrequencyDays || wlDuration || 28;
+      const durationLabel = paymentPeriod === 7 ? 'Weekly' : paymentPeriod === 14 ? 'Every 2 Weeks' : 'Monthly';
       programName = `Weight Loss - ${durationLabel}`;
       programType = 'weight_loss';
-      
-      // For in_clinic monthly, default to 4 sessions
-      if (deliveryMethod === 'in_clinic' && wlDuration === 28) {
-        finalTotalSessions = totalSessions || 4;
+
+      // Set total sessions based on payment period (weekly injections)
+      // Weekly = 1 session, Every 2 weeks = 2 sessions, Monthly = 4 sessions
+      if (deliveryMethod === 'in_clinic') {
+        finalTotalSessions = totalSessions || Math.floor(paymentPeriod / 7);
+      } else {
+        // Take-home: sessions based on pickup period
+        finalTotalSessions = totalSessions || Math.floor(paymentPeriod / 7);
       }
-      
-      // Calculate end date based on duration
-      if (startDate && wlDuration) {
+
+      // Calculate end date based on payment period
+      if (startDate && paymentPeriod) {
         const start = new Date(startDate);
-        start.setDate(start.getDate() + wlDuration);
+        start.setDate(start.getDate() + paymentPeriod);
         endDate = start.toISOString().split('T')[0];
       }
     } else {

@@ -578,6 +578,8 @@ export default function CommandCenter() {
           notes: assignForm.notes,
           purchaseId: assignForm.purchaseId || null,
           deliveryMethod: assignForm.deliveryMethod || null,
+          // Weight loss flag
+          isWeightLoss: isWeightLossTemplate(),
           // Peptide vial specific fields
           numVials: assignForm.numVials ? parseInt(assignForm.numVials) : null,
           reconstitutionMl: assignForm.reconstitutionMl || null,
@@ -587,6 +589,7 @@ export default function CommandCenter() {
             : null,
           // Weight loss specific fields
           wlMedication: assignForm.wlMedication || null,
+          medication: assignForm.wlMedication || null,
           pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
           injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
           injectionDay: assignForm.injectionDay || null,

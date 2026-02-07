@@ -1217,7 +1217,7 @@ export default function CommandCenter() {
                 </div>
 
                 <div style={styles.modalFormGroup}>
-                  <label style={styles.formLabel}>Starting Dose *</label>
+                  <label style={styles.formLabel}>Dose *</label>
                   <select
                     value={assignForm.selectedDose || ''}
                     onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
@@ -1244,40 +1244,54 @@ export default function CommandCenter() {
                   </select>
                 </div>
 
-                {/* Show pickup frequency only for take-home */}
-                {assignForm.deliveryMethod === 'take_home' && (
+                {/* In-clinic: Payment Period determines protocol duration */}
+                {assignForm.deliveryMethod === 'in_clinic' && (
                   <div style={styles.modalFormGroup}>
-                    <label style={styles.formLabel}>Pickup Frequency *</label>
+                    <label style={styles.formLabel}>Payment Period *</label>
                     <select
                       value={assignForm.pickupFrequency || ''}
-                      onChange={e => setAssignForm({...assignForm, pickupFrequency: e.target.value})}
+                      onChange={e => setAssignForm({...assignForm, pickupFrequency: e.target.value, frequency: e.target.value === '7' ? 'Weekly' : e.target.value === '14' ? 'Every 2 weeks' : 'Monthly'})}
                       style={styles.formSelect}
                     >
-                      <option value="">Select frequency...</option>
-                      {PICKUP_FREQUENCY_OPTIONS.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
+                      <option value="">Select payment period...</option>
+                      <option value="7">Weekly</option>
+                      <option value="14">Every 2 Weeks</option>
+                      <option value="28">Monthly</option>
                     </select>
                   </div>
                 )}
 
-                <div style={styles.modalFormGroup}>
-                  <label style={styles.formLabel}>Injection Frequency *</label>
-                  <select
-                    value={assignForm.injectionFrequency || ''}
-                    onChange={e => setAssignForm({...assignForm, injectionFrequency: e.target.value})}
-                    style={styles.formSelect}
-                  >
-                    <option value="">Select injection frequency...</option>
-                    {INJECTION_FREQUENCY_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Show injection day & reminder for take-home patients */}
+                {/* Take-home: Pickup Frequency and Injection Frequency */}
                 {assignForm.deliveryMethod === 'take_home' && (
                   <>
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Pickup Frequency *</label>
+                      <select
+                        value={assignForm.pickupFrequency || ''}
+                        onChange={e => setAssignForm({...assignForm, pickupFrequency: e.target.value})}
+                        style={styles.formSelect}
+                      >
+                        <option value="">Select frequency...</option>
+                        {PICKUP_FREQUENCY_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Injection Frequency *</label>
+                      <select
+                        value={assignForm.injectionFrequency || ''}
+                        onChange={e => setAssignForm({...assignForm, injectionFrequency: e.target.value})}
+                        style={styles.formSelect}
+                      >
+                        <option value="">Select injection frequency...</option>
+                        {INJECTION_FREQUENCY_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div style={styles.modalFormGroup}>
                       <label style={styles.formLabel}>Injection Day *</label>
                       <select
@@ -1330,36 +1344,39 @@ export default function CommandCenter() {
               </div>
             )}
 
-            <div style={styles.modalFormGroup}>
-              <label style={styles.formLabel}>
-                Frequency
-                {isPeptideTemplate() && getSelectedPeptide()?.frequency && (
-                  <span style={{ fontWeight: 'normal', color: '#059669', marginLeft: '8px', fontSize: '11px' }}>
-                    (Recommended: {getSelectedPeptide().frequency})
-                  </span>
+            {/* Hide frequency for weight loss - it's set by payment/pickup period */}
+            {!isWeightLossTemplate() && (
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>
+                  Frequency
+                  {isPeptideTemplate() && getSelectedPeptide()?.frequency && (
+                    <span style={{ fontWeight: 'normal', color: '#059669', marginLeft: '8px', fontSize: '11px' }}>
+                      (Recommended: {getSelectedPeptide().frequency})
+                    </span>
+                  )}
+                </label>
+                {isPeptideTemplate() && getSelectedPeptide()?.frequency ? (
+                  <input
+                    type="text"
+                    value={assignForm.frequency}
+                    onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
+                    style={styles.formInput}
+                    placeholder={getSelectedPeptide().frequency}
+                  />
+                ) : (
+                  <select
+                    value={assignForm.frequency}
+                    onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select frequency...</option>
+                    {FREQUENCY_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 )}
-              </label>
-              {isPeptideTemplate() && getSelectedPeptide()?.frequency ? (
-                <input
-                  type="text"
-                  value={assignForm.frequency}
-                  onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
-                  style={styles.formInput}
-                  placeholder={getSelectedPeptide().frequency}
-                />
-              ) : (
-                <select
-                  value={assignForm.frequency}
-                  onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}
-                  style={styles.formSelect}
-                >
-                  <option value="">Select frequency...</option>
-                  {FREQUENCY_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Peptide usage notes */}
             {isPeptideTemplate() && getSelectedPeptide()?.notes && (

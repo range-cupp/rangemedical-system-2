@@ -439,6 +439,8 @@ export default function CommandCenter() {
       purchaseItem: purchaseToUse?.item_name || null,
       // Peptide vial specific fields
       numVials: '',
+      reconstitutionMl: '',
+      peptideDose: '',
       // Weight loss specific fields
       wlMedication: '',
       pickupFrequency: '',
@@ -473,25 +475,45 @@ export default function CommandCenter() {
 
   // Peptide vial options
   const VIAL_QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-  const DEFAULT_VIAL_SIZE_MCG = 10000; // 10mg vials (20 days at 500mcg daily)
+  const VIAL_SIZE_MG = 10; // Each peptide is 10mg per vial (BPC-157 10mg / TB-4 10mg)
 
-  // Calculate peptide duration based on vials, dose, and frequency
-  const calculatePeptideDuration = (numVials, doseMcg, frequency) => {
-    if (!numVials || !doseMcg) return null;
-    const totalDosesMcg = numVials * DEFAULT_VIAL_SIZE_MCG;
-    const totalInjections = Math.floor(totalDosesMcg / doseMcg);
+  const RECONSTITUTION_OPTIONS = [
+    { value: '1', label: '1ml' },
+    { value: '2', label: '2ml' },
+    { value: '3', label: '3ml' },
+    { value: '4', label: '4ml' },
+    { value: '5', label: '5ml' }
+  ];
+
+  const PEPTIDE_DOSE_OPTIONS = [
+    { value: '500', label: '500mcg/500mcg', mcg: 500 },
+    { value: '1000', label: '1mg/1mg', mcg: 1000 }
+  ];
+
+  // Calculate peptide vial info
+  const calculatePeptideVialInfo = (numVials, reconstitutionMl, doseMcg, frequency) => {
+    if (!numVials || !reconstitutionMl || !doseMcg) return null;
+
+    const vialSizeMcg = VIAL_SIZE_MG * 1000; // 10mg = 10,000mcg
+    const concentrationMcgPerMl = vialSizeMcg / parseFloat(reconstitutionMl);
+    const injectionMl = doseMcg / concentrationMcgPerMl;
+    const dosesPerVial = Math.floor(vialSizeMcg / doseMcg);
+    const totalDoses = dosesPerVial * parseInt(numVials);
 
     // Convert frequency to injections per day
     let injectionsPerDay = 1; // default daily
     if (frequency?.toLowerCase().includes('2x daily')) injectionsPerDay = 2;
-    if (frequency?.toLowerCase().includes('3x daily')) injectionsPerDay = 3;
     if (frequency?.toLowerCase().includes('every other day') || frequency?.toLowerCase().includes('eod')) injectionsPerDay = 0.5;
-    if (frequency?.toLowerCase().includes('2x') && frequency?.toLowerCase().includes('week')) injectionsPerDay = 2/7;
-    if (frequency?.toLowerCase().includes('3x') && frequency?.toLowerCase().includes('week')) injectionsPerDay = 3/7;
-    if (frequency?.toLowerCase().includes('weekly') || frequency?.toLowerCase().includes('1x/week')) injectionsPerDay = 1/7;
 
-    const durationDays = Math.floor(totalInjections / injectionsPerDay);
-    return durationDays;
+    const durationDays = Math.floor(totalDoses / injectionsPerDay);
+
+    return {
+      injectionMl: injectionMl.toFixed(2),
+      injectionUnits: Math.round(injectionMl * 100), // Convert to units (0.1ml = 10 units)
+      dosesPerVial,
+      totalDoses,
+      durationDays
+    };
   };
 
   // Parse dose string to mcg (e.g., "500mcg" -> 500, "1mg" -> 1000)
@@ -558,8 +580,10 @@ export default function CommandCenter() {
           deliveryMethod: assignForm.deliveryMethod || null,
           // Peptide vial specific fields
           numVials: assignForm.numVials ? parseInt(assignForm.numVials) : null,
-          peptideDurationDays: assignForm.numVials && assignForm.selectedDose && assignForm.frequency
-            ? calculatePeptideDuration(parseInt(assignForm.numVials), parseDoseToMcg(assignForm.selectedDose), assignForm.frequency)
+          reconstitutionMl: assignForm.reconstitutionMl || null,
+          peptideDose: assignForm.peptideDose || null,
+          peptideDurationDays: assignForm.numVials && assignForm.reconstitutionMl && assignForm.peptideDose && assignForm.frequency
+            ? calculatePeptideVialInfo(assignForm.numVials, assignForm.reconstitutionMl, parseInt(assignForm.peptideDose), assignForm.frequency)?.durationDays
             : null,
           // Weight loss specific fields
           wlMedication: assignForm.wlMedication || null,
@@ -1077,11 +1101,11 @@ export default function CommandCenter() {
                   </div>
                 )}
 
-                {/* Only show vial quantity for Peptide Therapy - Vial */}
+                {/* Only show vial options for Peptide Therapy - Vial */}
                 {isPeptideVialTemplate() && (
                   <>
                     <div style={styles.modalFormGroup}>
-                      <label style={styles.formLabel}>Number of Vials</label>
+                      <label style={styles.formLabel}>Number of Vials *</label>
                       <select
                         value={assignForm.numVials || ''}
                         onChange={e => setAssignForm({...assignForm, numVials: e.target.value})}
@@ -1094,22 +1118,63 @@ export default function CommandCenter() {
                       </select>
                     </div>
 
-                    {/* Show calculated duration */}
-                    {assignForm.numVials && assignForm.selectedDose && assignForm.frequency && (
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Reconstitution Volume *</label>
+                      <select
+                        value={assignForm.reconstitutionMl || ''}
+                        onChange={e => setAssignForm({...assignForm, reconstitutionMl: e.target.value})}
+                        style={styles.formSelect}
+                      >
+                        <option value="">Select ml of bacteriostatic water...</option>
+                        {RECONSTITUTION_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Dose *</label>
+                      <select
+                        value={assignForm.peptideDose || ''}
+                        onChange={e => setAssignForm({...assignForm, peptideDose: e.target.value, selectedDose: e.target.value + 'mcg'})}
+                        style={styles.formSelect}
+                      >
+                        <option value="">Select dose...</option>
+                        {PEPTIDE_DOSE_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Show calculated injection info */}
+                    {assignForm.numVials && assignForm.reconstitutionMl && assignForm.peptideDose && assignForm.frequency && (
                       <div style={{ padding: '0 24px', marginBottom: '12px' }}>
                         <div style={{
-                          padding: '10px 12px',
+                          padding: '12px',
                           background: '#EFF6FF',
                           border: '1px solid #BFDBFE',
                           borderRadius: '6px',
                           fontSize: '13px',
                           color: '#1E40AF'
                         }}>
-                          <strong>📅 Calculated Duration:</strong>{' '}
                           {(() => {
-                            const doseMcg = parseDoseToMcg(assignForm.selectedDose);
-                            const days = calculatePeptideDuration(parseInt(assignForm.numVials), doseMcg, assignForm.frequency);
-                            return days ? `${days} days (refill needed around ${new Date(new Date(assignForm.startDate).getTime() + days * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : 'Unable to calculate';
+                            const info = calculatePeptideVialInfo(
+                              assignForm.numVials,
+                              assignForm.reconstitutionMl,
+                              parseInt(assignForm.peptideDose),
+                              assignForm.frequency
+                            );
+                            if (!info) return 'Unable to calculate';
+                            return (
+                              <>
+                                <div><strong>💉 Injection Amount:</strong> {info.injectionMl}ml ({info.injectionUnits} units)</div>
+                                <div style={{ marginTop: '6px' }}><strong>📦 Doses per vial:</strong> {info.dosesPerVial}</div>
+                                <div style={{ marginTop: '6px' }}><strong>📅 Total Duration:</strong> {info.durationDays} days</div>
+                                <div style={{ marginTop: '6px', color: '#059669' }}>
+                                  <strong>🔄 Refill needed:</strong> {new Date(new Date(assignForm.startDate).getTime() + info.durationDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              </>
+                            );
                           })()}
                         </div>
                       </div>

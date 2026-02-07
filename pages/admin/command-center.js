@@ -525,7 +525,9 @@ export default function CommandCenter() {
           selected_dose: editingProtocol.selected_dose || null,
           delivery_method: editingProtocol.delivery_method || null,
           status: editingProtocol.status,
-          notes: editingProtocol.notes || null
+          notes: editingProtocol.notes || null,
+          injection_day: editingProtocol.injection_day || null,
+          checkin_reminder_enabled: editingProtocol.checkin_reminder_enabled || false
         })
       });
 
@@ -1144,6 +1146,49 @@ export default function CommandCenter() {
                   placeholder="e.g., 100mg"
                 />
               </div>
+
+              {/* Weight Loss Check-in Reminder Fields */}
+              {editingProtocol.program_type === 'weight_loss' && (
+                <>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Injection Day</label>
+                    <select
+                      value={editingProtocol.injection_day || ''}
+                      onChange={e => setEditingProtocol({...editingProtocol, injection_day: e.target.value})}
+                      style={styles.formSelect}
+                    >
+                      <option value="">Not set</option>
+                      <option value="Monday">Monday</option>
+                      <option value="Tuesday">Tuesday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Thursday">Thursday</option>
+                      <option value="Friday">Friday</option>
+                      <option value="Saturday">Saturday</option>
+                      <option value="Sunday">Sunday</option>
+                    </select>
+                  </div>
+
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Weekly Check-in SMS</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={editingProtocol.checkin_reminder_enabled || false}
+                          onChange={e => setEditingProtocol({...editingProtocol, checkin_reminder_enabled: e.target.checked})}
+                          style={{ width: '18px', height: '18px' }}
+                        />
+                        <span style={{ fontSize: '14px', color: '#374151' }}>
+                          {editingProtocol.checkin_reminder_enabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </label>
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px', display: 'block' }}>
+                      Sends check-in link at 9 AM on injection day
+                    </span>
+                  </div>
+                </>
+              )}
 
               <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
                 <label style={styles.formLabel}>Notes</label>

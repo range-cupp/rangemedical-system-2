@@ -28,7 +28,10 @@ export default async function handler(req, res) {
       total_sessions,
       sessions_used,
       nad_dose,
-      notes
+      selected_dose,
+      notes,
+      injection_day,
+      checkin_reminder_enabled
     } = req.body;
 
     const updateData = {};
@@ -41,7 +44,10 @@ export default async function handler(req, res) {
     if (total_sessions !== undefined) updateData.total_sessions = parseInt(total_sessions) || 0;
     if (sessions_used !== undefined) updateData.sessions_used = parseInt(sessions_used) || 0;
     if (nad_dose !== undefined) updateData.nad_dose = nad_dose || null;
+    if (selected_dose !== undefined) updateData.selected_dose = selected_dose || null;
     if (notes !== undefined) updateData.notes = notes || null;
+    if (injection_day !== undefined) updateData.injection_day = injection_day || null;
+    if (checkin_reminder_enabled !== undefined) updateData.checkin_reminder_enabled = checkin_reminder_enabled;
 
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();

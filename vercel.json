@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/complete-protocols",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-checkin-reminder",
+      "schedule": "0 17 * * *"
     }
   ]
 }

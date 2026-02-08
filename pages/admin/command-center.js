@@ -1536,13 +1536,13 @@ export default function CommandCenter() {
                 />
               </div>
 
-              {/* Sessions - only show for HBOT, RLT, IV, NAD+, Injection, and Weight Loss In-Clinic */}
+              {/* Sessions - only show for HBOT, RLT, IV, Injection, and In-Clinic Weight Loss/HRT */}
               {(['hbot', 'rlt', 'iv', 'injection'].includes(editingProtocol.program_type) ||
-                (editingProtocol.program_type === 'weight_loss' && editingProtocol.delivery_method === 'in_clinic')) && (
+                (['weight_loss', 'hrt'].includes(editingProtocol.program_type) && editingProtocol.delivery_method === 'in_clinic')) && (
                 <>
                   <div style={styles.modalFormGroup}>
                     <label style={styles.formLabel}>
-                      {editingProtocol.program_type === 'weight_loss' ? 'Total Injections' : 'Total Sessions'}
+                      {['weight_loss', 'hrt'].includes(editingProtocol.program_type) ? 'Total Injections' : 'Total Sessions'}
                     </label>
                     <input
                       type="number"
@@ -1555,7 +1555,7 @@ export default function CommandCenter() {
 
                   <div style={styles.modalFormGroup}>
                     <label style={styles.formLabel}>
-                      {editingProtocol.program_type === 'weight_loss' ? 'Injections Used' : 'Sessions Used'}
+                      {['weight_loss', 'hrt'].includes(editingProtocol.program_type) ? 'Injections Used' : 'Sessions Used'}
                     </label>
                     <input
                       type="number"

@@ -620,10 +620,14 @@ export default function CommandCenter() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             purchaseId: assignForm.purchaseId || null,
+            newMedication: assignForm.wlMedication && assignForm.wlMedication !== existingWLProtocol.medication
+              ? assignForm.wlMedication
+              : null,
             newDose: assignForm.selectedDose && assignForm.selectedDose !== existingWLProtocol.selected_dose
               ? assignForm.selectedDose
               : null,
-            extensionDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
+            extensionDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : 28,
+            pickupFrequency: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : 28,
             notes: assignForm.notes
           })
         });
@@ -1204,12 +1208,22 @@ export default function CommandCenter() {
                       type="radio"
                       name="wlAction"
                       checked={extendExistingWL}
-                      onChange={() => setExtendExistingWL(true)}
+                      onChange={() => {
+                        setExtendExistingWL(true);
+                        // Pre-fill form with existing protocol values
+                        setAssignForm(prev => ({
+                          ...prev,
+                          wlMedication: existingWLProtocol.medication !== 'TBD' ? existingWLProtocol.medication : '',
+                          selectedDose: existingWLProtocol.selected_dose !== 'TBD' ? existingWLProtocol.selected_dose : '',
+                          deliveryMethod: existingWLProtocol.delivery_method || 'take_home',
+                          pickupFrequency: existingWLProtocol.pickup_frequency || '28'
+                        }));
+                      }}
                     />
                     <span style={{ fontSize: '14px' }}>
                       Continue existing: <strong>{existingWLProtocol.medication || 'Weight Loss'}</strong>
-                      {existingWLProtocol.selected_dose && ` @ ${existingWLProtocol.selected_dose}`}
-                      {existingWLProtocol.starting_dose && existingWLProtocol.starting_dose !== existingWLProtocol.selected_dose &&
+                      {existingWLProtocol.selected_dose && existingWLProtocol.selected_dose !== 'TBD' && ` @ ${existingWLProtocol.selected_dose}`}
+                      {existingWLProtocol.starting_dose && existingWLProtocol.starting_dose !== 'TBD' && existingWLProtocol.starting_dose !== existingWLProtocol.selected_dose &&
                         ` (started at ${existingWLProtocol.starting_dose})`}
                       <span style={{ color: '#6B7280', marginLeft: '8px' }}>
                         {existingWLProtocol.status === 'active' ? '(Active)' : `(Ended ${formatDate(existingWLProtocol.end_date)})`}
@@ -1219,7 +1233,7 @@ export default function CommandCenter() {
                 </div>
                 {extendExistingWL && (
                   <div style={{ marginTop: '12px', padding: '12px', background: '#FEF3C7', borderRadius: '6px', fontSize: '13px', color: '#92400E' }}>
-                    <strong>Continuing protocol:</strong> Select dose below if titrating up. The protocol end date will be extended based on pickup frequency.
+                    <strong>Continuing protocol:</strong> Update medication/dose below if needed. Protocol will be extended by 28 days (4 weeks).
                   </div>
                 )}
               </div>
@@ -1385,13 +1399,13 @@ export default function CommandCenter() {
             {isWeightLossTemplate() && (
               <>
                 <div style={styles.modalFormGroup}>
-                  <label style={styles.formLabel}>Medication *</label>
+                  <label style={styles.formLabel}>Medication {extendExistingWL ? '' : '*'}</label>
                   <select
                     value={assignForm.wlMedication || ''}
                     onChange={e => setAssignForm({...assignForm, wlMedication: e.target.value})}
                     style={styles.formSelect}
                   >
-                    <option value="">Select medication...</option>
+                    <option value="">{extendExistingWL ? 'Keep current medication' : 'Select medication...'}</option>
                     {WEIGHT_LOSS_MEDICATIONS.map(med => (
                       <option key={med.value} value={med.value}>{med.label}</option>
                     ))}
@@ -1399,35 +1413,54 @@ export default function CommandCenter() {
                 </div>
 
                 <div style={styles.modalFormGroup}>
-                  <label style={styles.formLabel}>Dose *</label>
+                  <label style={styles.formLabel}>Dose {extendExistingWL ? '(update if titrating)' : '*'}</label>
                   <select
                     value={assignForm.selectedDose || ''}
                     onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
                     style={styles.formSelect}
                   >
-                    <option value="">Select dose...</option>
+                    <option value="">{extendExistingWL ? 'Keep current dose' : 'Select dose...'}</option>
                     {WEIGHT_LOSS_DOSES.map(dose => (
                       <option key={dose.value} value={dose.value}>{dose.label}</option>
                     ))}
                   </select>
                 </div>
 
-                <div style={styles.modalFormGroup}>
-                  <label style={styles.formLabel}>Delivery Method *</label>
-                  <select
-                    value={assignForm.deliveryMethod || ''}
-                    onChange={e => setAssignForm({...assignForm, deliveryMethod: e.target.value})}
-                    style={styles.formSelect}
-                  >
-                    <option value="">Select delivery...</option>
-                    {DELIVERY_METHOD_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Hide delivery method when extending - use existing protocol's delivery */}
+                {!extendExistingWL && (
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Delivery Method *</label>
+                    <select
+                      value={assignForm.deliveryMethod || ''}
+                      onChange={e => setAssignForm({...assignForm, deliveryMethod: e.target.value})}
+                      style={styles.formSelect}
+                    >
+                      <option value="">Select delivery...</option>
+                      {DELIVERY_METHOD_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* When extending - simplified extension period */}
+                {extendExistingWL && (
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Extend By</label>
+                    <select
+                      value={assignForm.pickupFrequency || '28'}
+                      onChange={e => setAssignForm({...assignForm, pickupFrequency: e.target.value})}
+                      style={styles.formSelect}
+                    >
+                      <option value="7">1 Week (7 days)</option>
+                      <option value="14">2 Weeks (14 days)</option>
+                      <option value="28">4 Weeks (28 days)</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* In-clinic: Payment Period determines protocol duration */}
-                {assignForm.deliveryMethod === 'in_clinic' && (
+                {!extendExistingWL && assignForm.deliveryMethod === 'in_clinic' && (
                   <div style={styles.modalFormGroup}>
                     <label style={styles.formLabel}>Payment Period *</label>
                     <select
@@ -1444,7 +1477,7 @@ export default function CommandCenter() {
                 )}
 
                 {/* Take-home: Pickup Frequency and Injection Frequency */}
-                {assignForm.deliveryMethod === 'take_home' && (
+                {!extendExistingWL && assignForm.deliveryMethod === 'take_home' && (
                   <>
                     <div style={styles.modalFormGroup}>
                       <label style={styles.formLabel}>Pickup Frequency *</label>

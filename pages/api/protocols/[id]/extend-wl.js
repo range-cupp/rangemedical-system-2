@@ -19,7 +19,9 @@ export default async function handler(req, res) {
   const {
     purchaseId,
     newDose,           // If dose changed (titration)
+    newMedication,     // If medication needs to be set/changed
     extensionDays,     // Number of days to extend (based on pickup frequency)
+    pickupFrequency,   // Set pickup frequency if not already set
     notes
   } = req.body;
 
@@ -64,25 +66,45 @@ export default async function handler(req, res) {
       updated_at: new Date().toISOString()
     };
 
+    // Handle medication update (for TBD cases)
+    const oldMedication = protocol.medication;
+    let medicationChanged = false;
+    if (newMedication && newMedication !== oldMedication) {
+      updateData.medication = newMedication;
+      medicationChanged = true;
+    }
+
+    // Set pickup_frequency if provided and not already set
+    if (pickupFrequency && !protocol.pickup_frequency) {
+      updateData.pickup_frequency = pickupFrequency;
+    }
+
     // Handle dose change (titration)
     const oldDose = protocol.selected_dose;
     let doseChanged = false;
     if (newDose && newDose !== oldDose) {
-      // If no starting_dose set, use the old dose as starting
-      if (!protocol.starting_dose) {
-        updateData.starting_dose = oldDose;
+      // If no starting_dose set OR it's "TBD", use the new dose as starting
+      if (!protocol.starting_dose || protocol.starting_dose === 'TBD') {
+        updateData.starting_dose = newDose;
+      } else if (oldDose && oldDose !== 'TBD') {
+        // Keep original starting_dose, just update selected_dose
       }
       updateData.selected_dose = newDose;
-      doseChanged = true;
+      doseChanged = oldDose && oldDose !== 'TBD' && oldDose !== newDose;
     }
 
     // Add notes if provided
-    if (notes || doseChanged) {
+    if (notes || doseChanged || medicationChanged) {
       const existingNotes = protocol.notes || '';
       const dateStr = new Date().toISOString().split('T')[0];
       let refillNote = `[${dateStr}] Renewed.`;
+      if (medicationChanged) {
+        refillNote += ` Medication: ${newMedication}.`;
+      }
       if (doseChanged) {
-        refillNote += ` Dose changed: ${oldDose} → ${newDose}.`;
+        refillNote += ` Dose: ${oldDose} → ${newDose}.`;
+      } else if (newDose && oldDose === 'TBD') {
+        refillNote += ` Dose set: ${newDose}.`;
       }
       if (notes) {
         refillNote += ` ${notes}`;
@@ -131,11 +153,14 @@ export default async function handler(req, res) {
 
     // Add note to GHL
     if (ghlContactId) {
+      const displayMedication = newMedication || protocol.medication || 'Weight Loss';
+      const displayDose = newDose || protocol.selected_dose || 'N/A';
+
       const ghlNote = `⚖️ WEIGHT LOSS PROTOCOL RENEWED
 
 Patient: ${patientName}
-Medication: ${protocol.medication || 'Weight Loss'}
-${doseChanged ? `Dose: ${oldDose} → ${newDose}` : `Dose: ${protocol.selected_dose || 'N/A'}`}
+Medication: ${displayMedication}${medicationChanged ? ` (was: ${oldMedication})` : ''}
+Dose: ${displayDose}${doseChanged ? ` (was: ${oldDose})` : ''}
 Previous End: ${protocol.end_date || 'Not set'}
 New End: ${newEndDate}
 

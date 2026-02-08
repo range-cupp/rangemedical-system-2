@@ -1702,8 +1702,8 @@ export default function CommandCenter() {
                 </select>
               </div>
 
-              {/* Weight Loss specific fields */}
-              {editingProtocol.program_type === 'weight_loss' && (
+              {/* Weight Loss Take-Home specific fields - injection day & SMS reminder */}
+              {editingProtocol.program_type === 'weight_loss' && editingProtocol.delivery_method === 'take_home' && (
                 <>
                   <div style={styles.modalFormGroup}>
                     <label style={styles.formLabel}>Injection Day</label>

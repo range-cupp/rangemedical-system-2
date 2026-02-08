@@ -156,14 +156,32 @@ export default async function handler(req, res) {
       console.error('GHL fetch error:', e);
     }
 
+    // 9. Get last check-in text sent dates for protocols
+    const { data: lastTextLogs, error: textLogsError } = await supabase
+      .from('protocol_logs')
+      .select('protocol_id, log_date')
+      .eq('log_type', 'checkin_text_sent')
+      .order('log_date', { ascending: false });
+
+    if (textLogsError) console.error('Text logs error:', textLogsError);
+
+    // Build map of protocol_id -> last text date
+    const lastTextByProtocol = {};
+    (lastTextLogs || []).forEach(log => {
+      if (!lastTextByProtocol[log.protocol_id]) {
+        lastTextByProtocol[log.protocol_id] = log.log_date;
+      }
+    });
+
     // Process protocols for urgency
     const activeProtocols = (protocols || []).filter(p => p.status === 'active');
     const completedProtocols = (protocols || []).filter(p => p.status === 'completed');
 
-    // Calculate protocol urgency
+    // Calculate protocol urgency and add last text date
     const processedProtocols = activeProtocols.map(protocol => {
       const urgency = calculateProtocolUrgency(protocol, now);
-      return { ...protocol, urgency };
+      const lastTextDate = lastTextByProtocol[protocol.id] || null;
+      return { ...protocol, urgency, last_checkin_text_date: lastTextDate };
     });
 
     // Sort by urgency (most urgent first)

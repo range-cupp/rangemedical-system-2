@@ -334,6 +334,14 @@ export default function CommandCenter() {
     loading: false
   });
 
+  // SMS check-in modal state
+  const [smsModal, setSmsModal] = useState({
+    open: false,
+    protocol: null,
+    message: '',
+    sending: false
+  });
+
   // Fetch data
   useEffect(() => {
     fetchData();
@@ -448,6 +456,79 @@ export default function CommandCenter() {
       weightProgress: null,
       loading: false
     });
+  };
+
+  // SMS Check-in functions
+  const getCheckinMessage = (protocol) => {
+    const patientName = protocol.patients?.first_name ||
+      protocol.patients?.name?.split(' ')[0] || '';
+
+    if (protocol.program_type === 'peptide') {
+      return `Hi ${patientName}! Checking in from Range Medical. How's your peptide protocol treating you? We'd love to hear how you're doing and help you plan your next steps if you'd like to continue. - Chris`;
+    }
+
+    // Default message (can add more protocol types later)
+    return `Hi ${patientName}! Checking in from Range Medical. How is your protocol going? Let us know if you'd like to continue. - Chris`;
+  };
+
+  const openSmsModal = (protocol) => {
+    const message = getCheckinMessage(protocol);
+    setSmsModal({
+      open: true,
+      protocol,
+      message,
+      sending: false
+    });
+  };
+
+  const closeSmsModal = () => {
+    setSmsModal({
+      open: false,
+      protocol: null,
+      message: '',
+      sending: false
+    });
+  };
+
+  const sendCheckinSms = async () => {
+    if (!smsModal.protocol || !smsModal.message) return;
+
+    const contactId = smsModal.protocol.patients?.ghl_contact_id;
+    if (!contactId) {
+      alert('No GHL contact ID found for this patient');
+      return;
+    }
+
+    setSmsModal(prev => ({ ...prev, sending: true }));
+
+    try {
+      const res = await fetch('/api/ghl/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_id: contactId,
+          message: smsModal.message,
+          protocol_id: smsModal.protocol.id,
+          message_type: 'Peptide check-in'
+        })
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        alert('Text sent successfully!');
+        closeSmsModal();
+        // Refresh data to show updated "last texted" info
+        fetchData();
+      } else {
+        alert('Failed to send text: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Error sending SMS:', err);
+      alert('Error sending text: ' + err.message);
+    }
+
+    setSmsModal(prev => ({ ...prev, sending: false }));
   };
 
   const fetchTemplates = async () => {
@@ -1057,6 +1138,7 @@ export default function CommandCenter() {
               data={data}
               onEdit={handleEditProtocol}
               onViewDetail={openProtocolDetail}
+              onSendText={openSmsModal}
             />
           )}
           {activeTab === 'protocols' && (
@@ -1380,6 +1462,99 @@ export default function CommandCenter() {
             </div>
           </div>
         </>
+      )}
+
+      {/* SMS Check-in Preview Modal */}
+      {smsModal.open && smsModal.protocol && (
+        <div style={styles.modalOverlay} onClick={closeSmsModal}>
+          <div style={{ ...styles.modal, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Send Check-in Text</h3>
+              <button style={styles.modalCloseBtn} onClick={closeSmsModal}>×</button>
+            </div>
+
+            <div style={{ padding: '20px 24px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <span style={{ fontSize: '13px', color: '#666' }}>To:</span>
+                <span style={{ marginLeft: '8px', fontWeight: '500' }}>
+                  {smsModal.protocol.patients?.name ||
+                   `${smsModal.protocol.patients?.first_name || ''} ${smsModal.protocol.patients?.last_name || ''}`.trim()}
+                </span>
+                <span style={{ marginLeft: '8px', color: '#888', fontSize: '13px' }}>
+                  ({smsModal.protocol.patients?.phone || 'No phone'})
+                </span>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <span style={{
+                  ...styles.categoryBadge,
+                  background: CATEGORY_COLORS[smsModal.protocol.program_type],
+                  display: 'inline-block'
+                }}>
+                  {CATEGORY_LABELS[smsModal.protocol.program_type] || smsModal.protocol.program_type}
+                </span>
+                <span style={{ marginLeft: '8px', fontSize: '13px', color: '#666' }}>
+                  {smsModal.protocol.medication || smsModal.protocol.program_name}
+                </span>
+              </div>
+
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '8px' }}>
+                  Message Preview:
+                </label>
+                <div style={{
+                  background: '#F0F9FF',
+                  border: '1px solid #BAE6FD',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  color: '#1E40AF'
+                }}>
+                  {smsModal.message}
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid #E5E5E5',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px'
+            }}>
+              <button
+                style={{
+                  padding: '10px 20px',
+                  background: '#F3F4F6',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+                onClick={closeSmsModal}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  padding: '10px 24px',
+                  background: smsModal.sending ? '#9CA3AF' : '#10B981',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: smsModal.sending ? 'not-allowed' : 'pointer'
+                }}
+                onClick={sendCheckinSms}
+                disabled={smsModal.sending}
+              >
+                {smsModal.sending ? 'Sending...' : 'Send Text'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Assign Protocol Modal */}
@@ -2596,7 +2771,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
   );
 }
 
-function DueSoonTab({ data, onEdit, onViewDetail }) {
+function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const protocols = data?.protocols || [];
 
@@ -2672,6 +2847,15 @@ function DueSoonTab({ data, onEdit, onViewDetail }) {
     const phone = protocol.patients?.phone;
     const timeInfo = getTimeInfo(protocol);
 
+    // Calculate days since last text
+    let lastTextInfo = null;
+    if (protocol.last_checkin_text_date) {
+      const lastTextDate = new Date(protocol.last_checkin_text_date + 'T12:00:00');
+      const now = new Date();
+      const daysSince = Math.floor((now - lastTextDate) / (1000 * 60 * 60 * 24));
+      lastTextInfo = daysSince === 0 ? 'Texted today' : daysSince === 1 ? 'Texted yesterday' : `Texted ${daysSince} days ago`;
+    }
+
     return (
       <div
         key={protocol.id}
@@ -2682,6 +2866,11 @@ function DueSoonTab({ data, onEdit, onViewDetail }) {
           <div style={dueSoonStyles.patientInfo}>
             <span style={dueSoonStyles.patientName}>{patientName}</span>
             {phone && <span style={dueSoonStyles.phone}>{phone}</span>}
+            {protocol.program_type === 'peptide' && lastTextInfo && (
+              <span style={{ fontSize: '11px', color: '#10B981', marginLeft: '8px' }}>
+                {lastTextInfo}
+              </span>
+            )}
           </div>
           <div style={{
             ...dueSoonStyles.urgencyBadge,
@@ -2725,6 +2914,15 @@ function DueSoonTab({ data, onEdit, onViewDetail }) {
         </div>
 
         <div style={dueSoonStyles.cardActions} onClick={e => e.stopPropagation()}>
+          {/* Check-in Text button for peptide protocols */}
+          {protocol.program_type === 'peptide' && protocol.patients?.ghl_contact_id && (
+            <button
+              style={{ ...dueSoonStyles.actionBtn, background: '#10B981', color: '#fff' }}
+              onClick={() => onSendText && onSendText(protocol)}
+            >
+              💬 Check-in
+            </button>
+          )}
           {phone && (
             <>
               <a href={`sms:${phone}`} style={dueSoonStyles.actionBtn}>📱 Text</a>

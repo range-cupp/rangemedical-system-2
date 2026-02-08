@@ -42,6 +42,7 @@ async function getProtocol(id, res) {
         id,
         first_name,
         last_name,
+        name,
         email,
         phone,
         ghl_contact_id
@@ -49,12 +50,53 @@ async function getProtocol(id, res) {
     `)
     .eq('id', id)
     .single();
-  
+
   if (error) {
     return res.status(404).json({ error: 'Protocol not found' });
   }
-  
-  return res.status(200).json({ success: true, protocol: data });
+
+  // Fetch protocol logs (check-ins, renewals, notes)
+  const { data: logs, error: logsError } = await supabase
+    .from('protocol_logs')
+    .select('*')
+    .eq('protocol_id', id)
+    .order('log_date', { ascending: false });
+
+  if (logsError) {
+    console.error('Error fetching protocol logs:', logsError);
+  }
+
+  // Separate weight check-ins from other logs
+  const allLogs = logs || [];
+  const weightCheckins = allLogs.filter(log => log.log_type === 'checkin' && log.weight);
+  const activityLogs = allLogs.filter(log => log.log_type !== 'checkin' || !log.weight);
+
+  // Calculate weight progress for weight loss protocols
+  let weightProgress = null;
+  if (data.program_type === 'weight_loss' && weightCheckins.length > 0) {
+    const sortedCheckins = [...weightCheckins].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+    const startingWeight = data.starting_weight || sortedCheckins[0]?.weight;
+    const currentWeight = sortedCheckins[sortedCheckins.length - 1]?.weight;
+
+    if (startingWeight && currentWeight) {
+      const change = currentWeight - startingWeight;
+      weightProgress = {
+        startingWeight,
+        currentWeight,
+        change: change.toFixed(1),
+        changePercent: ((change / startingWeight) * 100).toFixed(1),
+        isLoss: change < 0
+      };
+    }
+  }
+
+  return res.status(200).json({
+    success: true,
+    protocol: data,
+    weightCheckins,
+    activityLogs,
+    weightProgress
+  });
 }
 
 async function updateProtocol(id, updates, res) {

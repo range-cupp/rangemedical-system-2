@@ -324,6 +324,16 @@ export default function CommandCenter() {
   const [existingWLProtocol, setExistingWLProtocol] = useState(null);
   const [extendExistingWL, setExtendExistingWL] = useState(false);
 
+  // Protocol detail slide-out panel state
+  const [protocolDetailPanel, setProtocolDetailPanel] = useState({
+    open: false,
+    protocol: null,
+    weightCheckins: [],
+    activityLogs: [],
+    weightProgress: null,
+    loading: false
+  });
+
   // Fetch data
   useEffect(() => {
     fetchData();
@@ -398,6 +408,46 @@ export default function CommandCenter() {
       console.error('Error fetching patient details:', err);
     }
     setPatientDetailLoading(false);
+  };
+
+  const openProtocolDetail = async (protocol) => {
+    setProtocolDetailPanel({
+      open: true,
+      protocol,
+      weightCheckins: [],
+      activityLogs: [],
+      weightProgress: null,
+      loading: true
+    });
+
+    try {
+      const res = await fetch(`/api/protocols/${protocol.id}`);
+      const result = await res.json();
+      if (result.success) {
+        setProtocolDetailPanel(prev => ({
+          ...prev,
+          protocol: result.protocol,
+          weightCheckins: result.weightCheckins || [],
+          activityLogs: result.activityLogs || [],
+          weightProgress: result.weightProgress,
+          loading: false
+        }));
+      }
+    } catch (err) {
+      console.error('Error fetching protocol details:', err);
+      setProtocolDetailPanel(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const closeProtocolDetail = () => {
+    setProtocolDetailPanel({
+      open: false,
+      protocol: null,
+      weightCheckins: [],
+      activityLogs: [],
+      weightProgress: null,
+      loading: false
+    });
   };
 
   const fetchTemplates = async () => {
@@ -1006,6 +1056,7 @@ export default function CommandCenter() {
             <DueSoonTab
               data={data}
               onEdit={handleEditProtocol}
+              onViewDetail={openProtocolDetail}
             />
           )}
           {activeTab === 'protocols' && (
@@ -1016,6 +1067,7 @@ export default function CommandCenter() {
               setFilter={setProtocolFilter}
               onEdit={handleEditProtocol}
               onDelete={(protocol) => setDeleteConfirm(protocol)}
+              onViewDetail={openProtocolDetail}
             />
           )}
           {activeTab === 'patients' && (
@@ -1103,6 +1155,229 @@ export default function CommandCenter() {
               style={styles.pdfSlideOutFrame}
               title={pdfSlideOut.title}
             />
+          </div>
+        </>
+      )}
+
+      {/* Protocol Detail Slide-out Panel */}
+      {protocolDetailPanel.open && protocolDetailPanel.protocol && (
+        <>
+          <div
+            style={styles.pdfOverlay}
+            onClick={closeProtocolDetail}
+          />
+          <div style={styles.protocolDetailSlideOut}>
+            <div style={styles.protocolDetailHeader}>
+              <div>
+                <h3 style={styles.protocolDetailTitle}>
+                  {getPatientName(protocolDetailPanel.protocol)}
+                </h3>
+                <span style={{
+                  ...styles.categoryBadge,
+                  background: CATEGORY_COLORS[protocolDetailPanel.protocol.program_type],
+                  marginTop: '8px',
+                  display: 'inline-block'
+                }}>
+                  {CATEGORY_LABELS[protocolDetailPanel.protocol.program_type] || protocolDetailPanel.protocol.program_type}
+                </span>
+              </div>
+              <button style={styles.pdfSlideOutClose} onClick={closeProtocolDetail}>×</button>
+            </div>
+
+            <div style={styles.protocolDetailContent}>
+              {protocolDetailPanel.loading ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
+                  Loading protocol details...
+                </div>
+              ) : (
+                <>
+                  {/* Basic Protocol Info */}
+                  <div style={styles.protocolDetailSection}>
+                    <h4 style={styles.protocolDetailSectionTitle}>Protocol Information</h4>
+                    <div style={styles.protocolDetailGrid}>
+                      <div style={styles.protocolDetailItem}>
+                        <span style={styles.protocolDetailLabel}>Program</span>
+                        <span style={styles.protocolDetailValue}>
+                          {protocolDetailPanel.protocol.program_name || protocolDetailPanel.protocol.medication || '-'}
+                        </span>
+                      </div>
+                      <div style={styles.protocolDetailItem}>
+                        <span style={styles.protocolDetailLabel}>Medication</span>
+                        <span style={styles.protocolDetailValue}>
+                          {protocolDetailPanel.protocol.medication || '-'}
+                        </span>
+                      </div>
+                      <div style={styles.protocolDetailItem}>
+                        <span style={styles.protocolDetailLabel}>Dose</span>
+                        <span style={styles.protocolDetailValue}>
+                          {protocolDetailPanel.protocol.selected_dose || protocolDetailPanel.protocol.dose || '-'}
+                          {protocolDetailPanel.protocol.starting_dose &&
+                           protocolDetailPanel.protocol.starting_dose !== protocolDetailPanel.protocol.selected_dose && (
+                            <span style={{ color: '#888', fontSize: '12px', marginLeft: '4px' }}>
+                              (started: {protocolDetailPanel.protocol.starting_dose})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div style={styles.protocolDetailItem}>
+                        <span style={styles.protocolDetailLabel}>Frequency</span>
+                        <span style={styles.protocolDetailValue}>
+                          {protocolDetailPanel.protocol.frequency || 'Weekly'}
+                        </span>
+                      </div>
+                      <div style={styles.protocolDetailItem}>
+                        <span style={styles.protocolDetailLabel}>Delivery</span>
+                        <span style={styles.protocolDetailValue}>
+                          {protocolDetailPanel.protocol.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home'}
+                        </span>
+                      </div>
+                      <div style={styles.protocolDetailItem}>
+                        <span style={styles.protocolDetailLabel}>Status</span>
+                        <span style={{
+                          ...styles.protocolDetailValue,
+                          color: URGENCY_COLORS[protocolDetailPanel.protocol.urgency] || '#00CC66'
+                        }}>
+                          {protocolDetailPanel.protocol.status || 'Active'}
+                        </span>
+                      </div>
+                      <div style={styles.protocolDetailItem}>
+                        <span style={styles.protocolDetailLabel}>Start Date</span>
+                        <span style={styles.protocolDetailValue}>
+                          {formatDate(protocolDetailPanel.protocol.start_date)}
+                        </span>
+                      </div>
+                      <div style={styles.protocolDetailItem}>
+                        <span style={styles.protocolDetailLabel}>End Date</span>
+                        <span style={styles.protocolDetailValue}>
+                          {formatDate(protocolDetailPanel.protocol.end_date)}
+                        </span>
+                      </div>
+                      {protocolDetailPanel.protocol.total_sessions > 0 && (
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>Sessions</span>
+                          <span style={styles.protocolDetailValue}>
+                            {protocolDetailPanel.protocol.sessions_used || 0} / {protocolDetailPanel.protocol.total_sessions}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Weight Progress Section (for weight loss protocols) */}
+                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>Weight Progress</h4>
+                      {protocolDetailPanel.weightProgress ? (
+                        <div style={styles.weightProgressCard}>
+                          <div style={styles.weightProgressStats}>
+                            <div style={styles.weightStat}>
+                              <span style={styles.weightStatLabel}>Starting</span>
+                              <span style={styles.weightStatValue}>
+                                {protocolDetailPanel.weightProgress.startingWeight} lbs
+                              </span>
+                            </div>
+                            <div style={styles.weightProgressArrow}>
+                              {protocolDetailPanel.weightProgress.isLoss ? '→' : '→'}
+                            </div>
+                            <div style={styles.weightStat}>
+                              <span style={styles.weightStatLabel}>Current</span>
+                              <span style={styles.weightStatValue}>
+                                {protocolDetailPanel.weightProgress.currentWeight} lbs
+                              </span>
+                            </div>
+                            <div style={{
+                              ...styles.weightChangeBox,
+                              background: protocolDetailPanel.weightProgress.isLoss ? '#DCFCE7' : '#FEE2E2',
+                              color: protocolDetailPanel.weightProgress.isLoss ? '#166534' : '#991B1B'
+                            }}>
+                              <span style={{ fontWeight: '600', fontSize: '18px' }}>
+                                {protocolDetailPanel.weightProgress.isLoss ? '↓' : '↑'} {Math.abs(protocolDetailPanel.weightProgress.change)} lbs
+                              </span>
+                              <span style={{ fontSize: '12px' }}>
+                                ({Math.abs(protocolDetailPanel.weightProgress.changePercent)}%)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ color: '#888', fontSize: '14px', padding: '16px', background: '#F5F5F5', borderRadius: '8px' }}>
+                          {protocolDetailPanel.protocol.starting_weight
+                            ? `Starting weight: ${protocolDetailPanel.protocol.starting_weight} lbs - No check-ins yet`
+                            : 'No weight data recorded yet'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Weight Check-in History (for weight loss protocols) */}
+                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.weightCheckins.length > 0 && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>
+                        Weight Check-ins ({protocolDetailPanel.weightCheckins.length})
+                      </h4>
+                      <div style={styles.checkinList}>
+                        {protocolDetailPanel.weightCheckins.slice(0, 10).map((checkin, idx) => (
+                          <div key={checkin.id || idx} style={styles.checkinItem}>
+                            <div style={styles.checkinDate}>{formatDate(checkin.log_date)}</div>
+                            <div style={styles.checkinWeight}>{checkin.weight} lbs</div>
+                            {checkin.notes && (
+                              <div style={styles.checkinNotes}>{checkin.notes}</div>
+                            )}
+                          </div>
+                        ))}
+                        {protocolDetailPanel.weightCheckins.length > 10 && (
+                          <div style={{ color: '#888', fontSize: '12px', padding: '8px', textAlign: 'center' }}>
+                            + {protocolDetailPanel.weightCheckins.length - 10} more check-ins
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Activity Logs */}
+                  {protocolDetailPanel.activityLogs.length > 0 && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>
+                        Activity Log ({protocolDetailPanel.activityLogs.length})
+                      </h4>
+                      <div style={styles.activityList}>
+                        {protocolDetailPanel.activityLogs.slice(0, 10).map((log, idx) => (
+                          <div key={log.id || idx} style={styles.activityItem}>
+                            <div style={styles.activityIcon}>
+                              {log.log_type === 'renewal' ? '🔄' :
+                               log.log_type === 'dose_change' ? '💊' :
+                               log.log_type === 'injection' ? '💉' : '📝'}
+                            </div>
+                            <div style={styles.activityContent}>
+                              <div style={styles.activityType}>
+                                {log.log_type === 'renewal' ? 'Protocol Renewed' :
+                                 log.log_type === 'dose_change' ? 'Dose Changed' :
+                                 log.log_type === 'injection' ? 'Injection' :
+                                 log.log_type}
+                              </div>
+                              {log.notes && <div style={styles.activityNotes}>{log.notes}</div>}
+                              <div style={styles.activityDate}>{formatDate(log.log_date)}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Protocol Notes */}
+                  {protocolDetailPanel.protocol.notes && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>Notes</h4>
+                      <div style={styles.protocolNotes}>
+                        {protocolDetailPanel.protocol.notes.split('\n').map((line, idx) => (
+                          <p key={idx} style={{ margin: '4px 0' }}>{line}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </>
       )}
@@ -2321,7 +2596,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
   );
 }
 
-function DueSoonTab({ data, onEdit }) {
+function DueSoonTab({ data, onEdit, onViewDetail }) {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const protocols = data?.protocols || [];
 
@@ -2398,7 +2673,11 @@ function DueSoonTab({ data, onEdit }) {
     const timeInfo = getTimeInfo(protocol);
 
     return (
-      <div key={protocol.id} style={dueSoonStyles.card}>
+      <div
+        key={protocol.id}
+        style={{ ...dueSoonStyles.card, cursor: 'pointer' }}
+        onClick={() => onViewDetail && onViewDetail(protocol)}
+      >
         <div style={dueSoonStyles.cardHeader}>
           <div style={dueSoonStyles.patientInfo}>
             <span style={dueSoonStyles.patientName}>{patientName}</span>
@@ -2445,7 +2724,7 @@ function DueSoonTab({ data, onEdit }) {
           </div>
         </div>
 
-        <div style={dueSoonStyles.cardActions}>
+        <div style={dueSoonStyles.cardActions} onClick={e => e.stopPropagation()}>
           {phone && (
             <>
               <a href={`sms:${phone}`} style={dueSoonStyles.actionBtn}>📱 Text</a>
@@ -2913,7 +3192,7 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase }) {
   );
 }
 
-function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete }) {
+function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, onViewDetail }) {
   return (
     <div style={styles.tabContent}>
       {/* Filters */}
@@ -2997,7 +3276,11 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete }) 
           </thead>
           <tbody>
             {protocols.map(protocol => (
-              <tr key={protocol.id} style={styles.tr}>
+              <tr
+                key={protocol.id}
+                style={{ ...styles.tr, cursor: 'pointer' }}
+                onClick={() => onViewDetail && onViewDetail(protocol)}
+              >
                 <td style={styles.td}>
                   <span style={{ ...styles.urgencyDot, background: URGENCY_COLORS[protocol.urgency] || '#666' }} />
                 </td>
@@ -3019,7 +3302,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete }) 
                   {getProtocolStatus(protocol)}
                 </td>
                 <td style={styles.td}>{formatDate(protocol.start_date)}</td>
-                <td style={{ ...styles.td, display: 'flex', gap: '6px' }}>
+                <td style={{ ...styles.td, display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
                   <button
                     style={{ ...styles.smallBtn, background: '#3B82F6' }}
                     onClick={() => onEdit(protocol)}
@@ -4969,6 +5252,186 @@ const styles = {
     flex: 1,
     width: '100%',
     border: 'none',
+  },
+
+  // Protocol Detail Slide-out Styles
+  protocolDetailSlideOut: {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    width: '50%',
+    maxWidth: '600px',
+    minWidth: '400px',
+    height: '100vh',
+    background: '#FFFFFF',
+    boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
+    zIndex: 1000,
+    display: 'flex',
+    flexDirection: 'column',
+    animation: 'slideIn 0.2s ease-out',
+  },
+  protocolDetailHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: '20px 24px',
+    borderBottom: '1px solid #E5E5E5',
+    background: '#FAFAFA',
+  },
+  protocolDetailTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    margin: 0,
+    color: '#1A1A1A',
+  },
+  protocolDetailContent: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '0',
+  },
+  protocolDetailSection: {
+    padding: '20px 24px',
+    borderBottom: '1px solid #F0F0F0',
+  },
+  protocolDetailSectionTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151',
+    margin: '0 0 16px 0',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  protocolDetailGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '16px',
+  },
+  protocolDetailItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  protocolDetailLabel: {
+    fontSize: '12px',
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  protocolDetailValue: {
+    fontSize: '14px',
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  weightProgressCard: {
+    background: '#F9FAFB',
+    borderRadius: '12px',
+    padding: '20px',
+  },
+  weightProgressStats: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+  },
+  weightStat: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  weightStatLabel: {
+    fontSize: '12px',
+    color: '#6B7280',
+  },
+  weightStatValue: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  weightProgressArrow: {
+    fontSize: '24px',
+    color: '#9CA3AF',
+  },
+  weightChangeBox: {
+    padding: '12px 16px',
+    borderRadius: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '2px',
+  },
+  checkinList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  checkinItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px',
+    background: '#F9FAFB',
+    borderRadius: '8px',
+  },
+  checkinDate: {
+    fontSize: '13px',
+    color: '#6B7280',
+    minWidth: '90px',
+  },
+  checkinWeight: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#1F2937',
+    minWidth: '70px',
+  },
+  checkinNotes: {
+    fontSize: '12px',
+    color: '#888',
+    flex: 1,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  activityList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  activityItem: {
+    display: 'flex',
+    gap: '12px',
+    padding: '12px',
+    background: '#F9FAFB',
+    borderRadius: '8px',
+  },
+  activityIcon: {
+    fontSize: '16px',
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityType: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  activityNotes: {
+    fontSize: '12px',
+    color: '#6B7280',
+    marginTop: '4px',
+  },
+  activityDate: {
+    fontSize: '11px',
+    color: '#9CA3AF',
+    marginTop: '4px',
+  },
+  protocolNotes: {
+    fontSize: '13px',
+    color: '#4B5563',
+    lineHeight: '1.5',
+    background: '#F9FAFB',
+    padding: '12px',
+    borderRadius: '8px',
+    whiteSpace: 'pre-wrap',
   },
 
   // Injections Tab Styles

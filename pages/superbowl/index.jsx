@@ -165,47 +165,71 @@ export default function SuperBowlGiveaway() {
             <h2>Two Winners, One Pick</h2>
             <p className="sb-prize-intro">
               Pick the winning team. If you win, <strong>both you AND your referrer</strong> get a FREE Elite Panel —
-              our most comprehensive lab panel with <strong>50+ biomarkers</strong>.
+              our most comprehensive lab panel.
             </p>
 
-            <div className="sb-categories">
-              <div className="sb-category">
-                <svg className="sb-cat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                </svg>
-                <span>Complete Hormone Panel</span>
+            <div className="sb-biomarkers">
+              <div className="sb-biomarker-section">
+                <h4>Hormones</h4>
+                <ul>
+                  <li>Testosterone, Total & Free</li>
+                  <li>Estradiol</li>
+                  <li>DHEA-S</li>
+                  <li>Cortisol</li>
+                  <li>SHBG</li>
+                  <li>FSH & LH</li>
+                  <li>IGF-1</li>
+                </ul>
               </div>
-              <div className="sb-category">
-                <svg className="sb-cat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 20V10M12 20V4M6 20v-6"/>
-                </svg>
-                <span>Metabolic Health</span>
+              <div className="sb-biomarker-section">
+                <h4>Thyroid</h4>
+                <ul>
+                  <li>TSH</li>
+                  <li>T3, Free</li>
+                  <li>T4, Total & Free</li>
+                  <li>TPO Antibodies</li>
+                  <li>Thyroglobulin Antibodies</li>
+                </ul>
               </div>
-              <div className="sb-category">
-                <svg className="sb-cat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 6v6l4 2"/>
-                </svg>
-                <span>Inflammation Markers</span>
+              <div className="sb-biomarker-section">
+                <h4>Metabolic</h4>
+                <ul>
+                  <li>Complete Metabolic Panel</li>
+                  <li>HbA1c</li>
+                  <li>Insulin, Fasting</li>
+                  <li>Lipid Panel</li>
+                  <li>Uric Acid</li>
+                  <li>GGT</li>
+                </ul>
               </div>
-              <div className="sb-category">
-                <svg className="sb-cat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-                <span>Organ Function</span>
+              <div className="sb-biomarker-section">
+                <h4>Cardiovascular</h4>
+                <ul>
+                  <li>Apolipoprotein A-1 & B</li>
+                  <li>Lipoprotein(a)</li>
+                  <li>CRP-HS (Inflammation)</li>
+                  <li>Homocysteine</li>
+                </ul>
               </div>
-              <div className="sb-category">
-                <svg className="sb-cat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2v20M2 12h20"/>
-                </svg>
-                <span>Nutrient Status</span>
+              <div className="sb-biomarker-section">
+                <h4>Blood & Nutrients</h4>
+                <ul>
+                  <li>CBC with Differential</li>
+                  <li>Iron & TIBC</li>
+                  <li>Ferritin</li>
+                  <li>Vitamin D, 25-OH</li>
+                  <li>Vitamin B-12</li>
+                  <li>Folate</li>
+                  <li>Magnesium</li>
+                </ul>
               </div>
-              <div className="sb-category">
-                <svg className="sb-cat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <circle cx="12" cy="12" r="4"/>
-                </svg>
-                <span>Blood Health</span>
+              <div className="sb-biomarker-section">
+                <h4>Other</h4>
+                <ul>
+                  <li>PSA (Men)</li>
+                  <li>Progesterone (Women)</li>
+                  <li>Sed Rate</li>
+                </ul>
               </div>
             </div>
 
@@ -489,28 +513,53 @@ export default function SuperBowlGiveaway() {
           color: #171717;
         }
 
-        .sb-categories {
+        .sb-biomarkers {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 0.75rem;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
           margin-bottom: 2rem;
         }
 
-        .sb-category {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
+        .sb-biomarker-section {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
-          padding: 1rem;
-          font-size: 0.875rem;
-          color: #404040;
+          border-radius: 10px;
+          padding: 1.25rem;
         }
 
-        .sb-cat-icon {
-          color: #737373;
-          flex-shrink: 0;
+        .sb-biomarker-section h4 {
+          font-size: 0.8125rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #171717;
+          margin: 0 0 0.75rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid #e5e5e5;
+        }
+
+        .sb-biomarker-section ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .sb-biomarker-section li {
+          font-size: 0.8125rem;
+          color: #525252;
+          padding: 0.25rem 0;
+          padding-left: 1rem;
+          position: relative;
+          line-height: 1.4;
+        }
+
+        .sb-biomarker-section li::before {
+          content: "✓";
+          position: absolute;
+          left: 0;
+          color: #22c55e;
+          font-weight: 700;
+          font-size: 0.6875rem;
         }
 
         .sb-prize-highlight {
@@ -787,6 +836,12 @@ export default function SuperBowlGiveaway() {
           margin: 0;
         }
 
+        @media (max-width: 900px) {
+          .sb-biomarkers {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
         @media (max-width: 640px) {
           .sb-trust-inner {
             gap: 1rem;
@@ -796,7 +851,7 @@ export default function SuperBowlGiveaway() {
             font-size: 1.875rem;
           }
 
-          .sb-categories {
+          .sb-biomarkers {
             grid-template-columns: 1fr;
           }
 

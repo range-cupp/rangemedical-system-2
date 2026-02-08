@@ -187,7 +187,17 @@ export default async function handler(req, res) {
 
         const teamName = team_pick === 'patriots' ? 'Patriots' : 'Seahawks';
         const referrerNote = referred_by ? ` If you win, ${referred_by} wins too.` : '';
-        const smsMessage = `You are in! Your pick: ${teamName}.${referrerNote} We will text you after the game if you are our winner. Good luck! - Range Medical`;
+
+        // Multiple message variations to avoid spam filters
+        const messageVariations = [
+          `You are in! Your pick: ${teamName}.${referrerNote} We will text you after the game if you are our winner. Good luck! - Range Medical`,
+          `Entry confirmed! You picked the ${teamName}.${referrerNote} Watch for our text after the game. Best of luck! - Range Medical`,
+          `Got it! ${teamName} is your pick.${referrerNote} We will reach out after the game if you won. - Range Medical`,
+          `All set! You are backing the ${teamName}.${referrerNote} Stay tuned after the game for results. - Range Medical`,
+          `Confirmed! Your Super Bowl pick: ${teamName}.${referrerNote} Winners notified after the game. - Range Medical`
+        ];
+
+        const smsMessage = messageVariations[Math.floor(Math.random() * messageVariations.length)];
 
         const smsResponse = await fetch(
           `https://services.leadconnectorhq.com/conversations/messages`,

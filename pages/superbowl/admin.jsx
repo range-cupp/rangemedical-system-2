@@ -11,6 +11,8 @@ export default function SuperBowlAdmin() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [contestOpen, setContestOpen] = useState(true);
+  const [toggling, setToggling] = useState(false);
 
   const fetchEntries = async (secret) => {
     setLoading(true);
@@ -26,6 +28,15 @@ export default function SuperBowlAdmin() {
         const result = await res.json();
         setData(result);
         setAuthenticated(true);
+
+        // Also fetch contest status
+        const settingsRes = await fetch('/api/superbowl/settings', {
+          headers: { 'x-admin-secret': secret }
+        });
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          setContestOpen(settingsData.contest_open);
+        }
       } else {
         setError('Invalid password');
         setAuthenticated(false);
@@ -34,6 +45,27 @@ export default function SuperBowlAdmin() {
       setError('Failed to load data');
     }
     setLoading(false);
+  };
+
+  const toggleContest = async () => {
+    setToggling(true);
+    try {
+      const res = await fetch('/api/superbowl/settings', {
+        method: 'POST',
+        headers: {
+          'x-admin-secret': password,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ contest_open: !contestOpen })
+      });
+
+      if (res.ok) {
+        setContestOpen(!contestOpen);
+      }
+    } catch (err) {
+      console.error('Toggle error:', err);
+    }
+    setToggling(false);
   };
 
   const handleSubmit = (e) => {
@@ -132,10 +164,23 @@ export default function SuperBowlAdmin() {
       <div className="admin-page">
         <header className="admin-header">
           <h1>Super Bowl LX Giveaway</h1>
-          <button onClick={refresh} disabled={loading}>
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          <div className="admin-actions">
+            <button
+              onClick={toggleContest}
+              disabled={toggling}
+              className={contestOpen ? 'btn-close' : 'btn-open'}
+            >
+              {toggling ? 'Updating...' : contestOpen ? 'Close Contest' : 'Open Contest'}
+            </button>
+            <button onClick={refresh} disabled={loading}>
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </header>
+
+        <div className={`contest-status ${contestOpen ? 'status-open' : 'status-closed'}`}>
+          {contestOpen ? 'Contest is OPEN - Accepting entries' : 'Contest is CLOSED - No new entries'}
+        </div>
 
         {data && (
           <>
@@ -208,6 +253,10 @@ export default function SuperBowlAdmin() {
           color: #171717;
           margin: 0;
         }
+        .admin-actions {
+          display: flex;
+          gap: 0.75rem;
+        }
         .admin-header button {
           padding: 0.625rem 1.25rem;
           background: #171717;
@@ -220,6 +269,29 @@ export default function SuperBowlAdmin() {
         }
         .admin-header button:disabled {
           opacity: 0.6;
+        }
+        .btn-close {
+          background: #dc2626 !important;
+        }
+        .btn-open {
+          background: #22c55e !important;
+        }
+        .contest-status {
+          padding: 1rem;
+          border-radius: 8px;
+          text-align: center;
+          font-weight: 600;
+          margin-bottom: 1.5rem;
+        }
+        .status-open {
+          background: #f0fdf4;
+          color: #166534;
+          border: 1px solid #bbf7d0;
+        }
+        .status-closed {
+          background: #fef2f2;
+          color: #dc2626;
+          border: 1px solid #fecaca;
         }
         .stats-grid {
           display: grid;

@@ -43,6 +43,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Check if contest is still open
+    const { data: settings } = await supabase
+      .from('superbowl_settings')
+      .select('contest_open')
+      .single();
+
+    if (settings && settings.contest_open === false) {
+      return res.status(400).json({ error: 'Sorry, the contest has ended. Thanks for your interest!' });
+    }
     // Format phone to E.164
     const formattedPhone = `+1${phone_number}`;
 

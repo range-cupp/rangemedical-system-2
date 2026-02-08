@@ -171,7 +171,9 @@ export default async function handler(req, res) {
 
       // Send confirmation SMS
       if (ghlContactId) {
-        const smsMessage = `You're in! 🏈 You've been entered into the Range Medical Super Bowl Giveaway. Good luck! We'll text you after the game if you're our winner. — Range Medical (949) 997-3988`;
+        const teamName = team_pick === 'patriots' ? 'Patriots' : 'Seahawks';
+        const referrerNote = referred_by ? ` If you win, ${referred_by} wins too!` : '';
+        const smsMessage = `You're in! 🏈 Your pick: ${teamName}.${referrerNote} We'll text you after the game if you're our winner. Good luck! — Range Medical (949) 997-3988`;
 
         const smsResponse = await fetch(
           `https://services.leadconnectorhq.com/conversations/messages`,

@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
     if (patientsError) console.error('Patients error:', patientsError);
 
-    // 2. Get all protocols with patient info
+    // 2. Get all protocols with patient info (exclude merged protocols)
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select(`
@@ -47,6 +47,7 @@ export default async function handler(req, res) {
           ghl_contact_id
         )
       `)
+      .neq('status', 'merged')
       .order('start_date', { ascending: false });
 
     if (protocolsError) console.error('Protocols error:', protocolsError);

@@ -450,6 +450,8 @@ export default function CommandCenter() {
 
     const extendableWLProtocol = (selectedPatient?.protocols || []).find(p => {
       if (p.program_type !== 'weight_loss') return false;
+      // Skip merged or deleted protocols
+      if (p.status === 'merged' || p.status === 'deleted') return false;
       if (p.status === 'active') return true;
       if (p.end_date) {
         const endDate = new Date(p.end_date + 'T12:00:00');

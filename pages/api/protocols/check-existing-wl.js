@@ -51,6 +51,11 @@ export default async function handler(req, res) {
     let reason = '';
 
     for (const protocol of protocols) {
+      // Skip merged or deleted protocols
+      if (protocol.status === 'merged' || protocol.status === 'deleted') {
+        continue;
+      }
+
       // Check if medication matches (if specified)
       if (medication && protocol.medication !== medication) {
         continue;
@@ -79,8 +84,10 @@ export default async function handler(req, res) {
     // If no matching protocol found with same medication, check for different medication
     if (!matchingProtocol && medication) {
       const differentMedProtocol = protocols.find(p =>
-        p.status === 'active' ||
-        (p.end_date && new Date(p.end_date + 'T12:00:00') >= thirtyDaysAgo)
+        p.status !== 'merged' && p.status !== 'deleted' && (
+          p.status === 'active' ||
+          (p.end_date && new Date(p.end_date + 'T12:00:00') >= thirtyDaysAgo)
+        )
       );
 
       if (differentMedProtocol) {

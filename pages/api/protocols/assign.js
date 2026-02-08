@@ -283,6 +283,78 @@ export default async function handler(req, res) {
     }
 
     // ============================================
+    // CHECK FOR PAST APPOINTMENTS (for package protocols)
+    // Automatically sync sessions_used from past "showed" appointments
+    // ============================================
+    const packageTypes = ['hbot', 'rlt', 'red_light', 'iv', 'iv_therapy', 'injection', 'injection_pack'];
+    if (packageTypes.includes(programType) && finalTotalSessions && finalGhlContactId) {
+      console.log('Checking for past appointments for package protocol:', programType);
+
+      try {
+        // Map protocol type to calendar names
+        const calendarMappings = {
+          'hbot': ['Hyperbaric Oxygen Therapy', 'HBOT'],
+          'rlt': ['Red Light Therapy', 'RLT'],
+          'red_light': ['Red Light Therapy', 'RLT'],
+          'iv': ['Range IV', 'NAD+ IV', 'Vitamin C IV', 'Glutathione IV', 'Methylene Blue IV', 'Hydration IV', 'Exosome IV', 'BYO IV', 'BYO - IV'],
+          'iv_therapy': ['Range IV', 'NAD+ IV', 'Vitamin C IV', 'Glutathione IV', 'Methylene Blue IV', 'Hydration IV', 'Exosome IV', 'BYO IV', 'BYO - IV'],
+          'injection': ['Range Injections', 'NAD+ Injection', 'Glutathione Injection', 'B12 Injection', 'Vitamin Injection'],
+          'injection_pack': ['Range Injections', 'NAD+ Injection', 'Glutathione Injection', 'B12 Injection', 'Vitamin Injection']
+        };
+
+        const targetCalendars = calendarMappings[programType] || [];
+
+        // Fetch past appointments with status "showed" or "completed"
+        const { data: pastAppointments, error: aptError } = await supabase
+          .from('clinic_appointments')
+          .select('*')
+          .eq('ghl_contact_id', finalGhlContactId)
+          .in('status', ['showed', 'completed'])
+          .order('appointment_date', { ascending: true });
+
+        if (!aptError && pastAppointments && pastAppointments.length > 0) {
+          // Filter appointments that match this protocol type
+          const matchingAppointments = pastAppointments.filter(apt => {
+            const calName = apt.calendar_name || '';
+            // Partial match for calendar names
+            return targetCalendars.some(target =>
+              calName.toLowerCase().includes(target.toLowerCase()) ||
+              target.toLowerCase().includes(calName.toLowerCase())
+            );
+          });
+
+          if (matchingAppointments.length > 0) {
+            console.log(`Found ${matchingAppointments.length} past ${programType} appointments`);
+
+            // Update protocol with sessions_used
+            const sessionsUsed = Math.min(matchingAppointments.length, finalTotalSessions);
+            const newStatus = sessionsUsed >= finalTotalSessions ? 'completed' : 'active';
+
+            const { error: updateError } = await supabase
+              .from('protocols')
+              .update({
+                sessions_used: sessionsUsed,
+                status: newStatus,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', protocol.id);
+
+            if (updateError) {
+              console.error('Error updating sessions from past appointments:', updateError);
+            } else {
+              console.log(`Updated protocol: ${sessionsUsed}/${finalTotalSessions} sessions from past appointments`);
+              // Update protocol object for response
+              protocol.sessions_used = sessionsUsed;
+              protocol.status = newStatus;
+            }
+          }
+        }
+      } catch (syncError) {
+        console.error('Past appointment sync error (non-fatal):', syncError);
+      }
+    }
+
+    // ============================================
     // SYNC TO GHL
     // ============================================
     if (finalGhlContactId) {

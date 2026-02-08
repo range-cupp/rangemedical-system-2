@@ -1585,6 +1585,35 @@ export default function CommandCenter() {
                 </div>
               )}
 
+              {/* Pickup Frequency for take-home weight loss */}
+              {editingProtocol.program_type === 'weight_loss' && editingProtocol.delivery_method === 'take_home' && (
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Supply Duration</label>
+                  <select
+                    value={editingProtocol.pickup_frequency || ''}
+                    onChange={e => {
+                      const days = parseInt(e.target.value);
+                      const newEndDate = editingProtocol.start_date ?
+                        new Date(new Date(editingProtocol.start_date).getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                        : editingProtocol.end_date;
+                      setEditingProtocol({...editingProtocol, pickup_frequency: e.target.value, end_date: newEndDate});
+                    }}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select duration...</option>
+                    <option value="7">1 Week</option>
+                    <option value="14">2 Weeks</option>
+                    <option value="21">3 Weeks</option>
+                    <option value="28">4 Weeks (Monthly)</option>
+                  </select>
+                  {editingProtocol.end_date && (
+                    <div style={{ fontSize: '12px', color: '#059669', marginTop: '6px' }}>
+                      Next pickup: {new Date(editingProtocol.end_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Peptide selection for peptide protocols */}
               {editingProtocol.program_type === 'peptide' && (
                 <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>

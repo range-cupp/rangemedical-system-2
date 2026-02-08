@@ -429,16 +429,18 @@ export default function CommandCenter() {
   };
 
   // Protocol assignment handlers
-  const openAssignModal = (purchase = null) => {
+  const openAssignModal = (purchase = null, patientOverride = null) => {
     // Use passed purchase or fall back to selectedPurchase state
     const purchaseToUse = purchase || selectedPurchase;
-    console.log('Opening assign modal for patient:', selectedPatient?.id, selectedPatient?.name);
+    // Use patientOverride if provided (for when called before state updates)
+    const patientToUse = patientOverride || selectedPatient;
+    console.log('Opening assign modal for patient:', patientToUse?.id, patientToUse?.name);
     console.log('Templates available:', Object.keys(templates.grouped || {}).length, 'categories');
     console.log('Selected purchase:', purchaseToUse?.id, purchaseToUse?.item_name);
 
     // Get all protocols for this patient from the main data object
     const patientProtocols = (data?.protocols || []).filter(p =>
-      p.patient_id === selectedPatient?.id
+      p.patient_id === patientToUse?.id
     );
 
     // Check for existing HRT protocols for this patient
@@ -968,17 +970,8 @@ export default function CommandCenter() {
                 const patient = data.patients?.find(p => p.id === purchase.patient_id);
                 if (patient) {
                   setSelectedPatient(patient);
-                  setAssignForm({
-                    templateId: '',
-                    peptideId: '',
-                    selectedDose: '',
-                    frequency: '',
-                    startDate: new Date().toISOString().split('T')[0],
-                    notes: '',
-                    purchaseId: purchase.id,
-                    purchaseItem: purchase.item_name
-                  });
-                  setShowAssignModal(true);
+                  setSelectedPurchase(purchase);
+                  openAssignModal(purchase, patient); // Use openAssignModal for proper protocol detection
                 } else {
                   alert('Patient not found. Please assign from the Patients tab.');
                 }
@@ -1002,7 +995,7 @@ export default function CommandCenter() {
                 if (patient) {
                   setSelectedPatient(patient);
                   setSelectedPurchase(purchase);
-                  openAssignModal(purchase);
+                  openAssignModal(purchase, patient); // Pass patient directly
                 } else {
                   alert('Patient "' + purchase.patient_name + '" not found in system. They may need to be added first.');
                 }

@@ -9,6 +9,45 @@ import { useRouter } from 'next/router';
 
 export default function SuperBowlGiveaway() {
   const router = useRouter();
+  const [expandedCategory, setExpandedCategory] = useState(null);
+
+  const biomarkerCategories = [
+    {
+      id: 'hormones',
+      name: 'Hormones',
+      markers: ['Testosterone, Total & Free', 'Estradiol', 'DHEA-S', 'Cortisol', 'SHBG', 'FSH & LH', 'IGF-1']
+    },
+    {
+      id: 'thyroid',
+      name: 'Thyroid',
+      markers: ['TSH', 'T3, Free', 'T4, Total & Free', 'TPO Antibodies', 'Thyroglobulin Antibodies']
+    },
+    {
+      id: 'metabolic',
+      name: 'Metabolic',
+      markers: ['Complete Metabolic Panel', 'HbA1c', 'Insulin, Fasting', 'Lipid Panel', 'Uric Acid', 'GGT']
+    },
+    {
+      id: 'cardiovascular',
+      name: 'Cardiovascular',
+      markers: ['Apolipoprotein A-1 & B', 'Lipoprotein(a)', 'CRP-HS (Inflammation)', 'Homocysteine']
+    },
+    {
+      id: 'blood',
+      name: 'Blood & Nutrients',
+      markers: ['CBC with Differential', 'Iron & TIBC', 'Ferritin', 'Vitamin D, 25-OH', 'Vitamin B-12', 'Folate', 'Magnesium']
+    },
+    {
+      id: 'other',
+      name: 'Other',
+      markers: ['PSA (Men)', 'Progesterone (Women)', 'Sed Rate']
+    }
+  ];
+
+  const toggleCategory = (id) => {
+    setExpandedCategory(expandedCategory === id ? null : id);
+  };
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -174,74 +213,49 @@ export default function SuperBowlGiveaway() {
               our most comprehensive lab panel.
             </p>
 
-            <div className="sb-biomarkers">
-              <div className="sb-biomarker-section">
-                <h4>Hormones</h4>
-                <ul>
-                  <li>Testosterone, Total & Free</li>
-                  <li>Estradiol</li>
-                  <li>DHEA-S</li>
-                  <li>Cortisol</li>
-                  <li>SHBG</li>
-                  <li>FSH & LH</li>
-                  <li>IGF-1</li>
-                </ul>
+            <div className="sb-panel-card">
+              <div className="sb-panel-header">
+                <div>
+                  <h3>Elite Panel</h3>
+                  <p>36 biomarkers across 6 categories</p>
+                </div>
+                <div className="sb-panel-price">
+                  <span className="sb-price-amount">$750</span>
+                  <span className="sb-price-label">value</span>
+                </div>
               </div>
-              <div className="sb-biomarker-section">
-                <h4>Thyroid</h4>
-                <ul>
-                  <li>TSH</li>
-                  <li>T3, Free</li>
-                  <li>T4, Total & Free</li>
-                  <li>TPO Antibodies</li>
-                  <li>Thyroglobulin Antibodies</li>
-                </ul>
-              </div>
-              <div className="sb-biomarker-section">
-                <h4>Metabolic</h4>
-                <ul>
-                  <li>Complete Metabolic Panel</li>
-                  <li>HbA1c</li>
-                  <li>Insulin, Fasting</li>
-                  <li>Lipid Panel</li>
-                  <li>Uric Acid</li>
-                  <li>GGT</li>
-                </ul>
-              </div>
-              <div className="sb-biomarker-section">
-                <h4>Cardiovascular</h4>
-                <ul>
-                  <li>Apolipoprotein A-1 & B</li>
-                  <li>Lipoprotein(a)</li>
-                  <li>CRP-HS (Inflammation)</li>
-                  <li>Homocysteine</li>
-                </ul>
-              </div>
-              <div className="sb-biomarker-section">
-                <h4>Blood & Nutrients</h4>
-                <ul>
-                  <li>CBC with Differential</li>
-                  <li>Iron & TIBC</li>
-                  <li>Ferritin</li>
-                  <li>Vitamin D, 25-OH</li>
-                  <li>Vitamin B-12</li>
-                  <li>Folate</li>
-                  <li>Magnesium</li>
-                </ul>
-              </div>
-              <div className="sb-biomarker-section">
-                <h4>Other</h4>
-                <ul>
-                  <li>PSA (Men)</li>
-                  <li>Progesterone (Women)</li>
-                  <li>Sed Rate</li>
-                </ul>
+
+              <p className="sb-panel-hint">Tap a category to see what's included</p>
+
+              <div className="sb-accordion">
+                {biomarkerCategories.map((category) => (
+                  <div key={category.id} className={`sb-accordion-item ${expandedCategory === category.id ? 'sb-accordion-open' : ''}`}>
+                    <button
+                      type="button"
+                      className="sb-accordion-header"
+                      onClick={() => toggleCategory(category.id)}
+                    >
+                      <span className="sb-accordion-name">{category.name}</span>
+                      <span className="sb-accordion-count">{category.markers.length}</span>
+                      <svg className="sb-accordion-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d={expandedCategory === category.id ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
+                      </svg>
+                    </button>
+                    <div className="sb-accordion-content">
+                      <ul>
+                        {category.markers.map((marker, idx) => (
+                          <li key={idx}>{marker}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="sb-prize-highlight">
-              <span className="sb-prize-amount">$750</span>
-              <span className="sb-prize-each">value each — $1,500 total if you win!</span>
+              <span className="sb-prize-label-sm">If you win, you AND your referrer each get this panel</span>
+              <span className="sb-prize-total">$1,500 total value</span>
             </div>
           </div>
         </section>
@@ -534,74 +548,187 @@ export default function SuperBowlGiveaway() {
           color: #171717;
         }
 
-        .sb-biomarkers {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 2rem;
-        }
-
-        .sb-biomarker-section {
+        .sb-panel-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 10px;
-          padding: 1.25rem;
+          border: 2px solid #171717;
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
         }
 
-        .sb-biomarker-section h4 {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #171717;
-          margin: 0 0 0.75rem;
-          padding-bottom: 0.5rem;
+        .sb-panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 1rem;
+          padding-bottom: 1rem;
           border-bottom: 1px solid #e5e5e5;
         }
 
-        .sb-biomarker-section ul {
-          list-style: none;
-          padding: 0;
+        .sb-panel-header h3 {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #171717;
+          margin: 0 0 0.25rem;
+        }
+
+        .sb-panel-header p {
+          font-size: 0.875rem;
+          color: #737373;
           margin: 0;
         }
 
-        .sb-biomarker-section li {
+        .sb-panel-price {
+          text-align: right;
+        }
+
+        .sb-price-amount {
+          display: block;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #171717;
+        }
+
+        .sb-price-label {
+          font-size: 0.75rem;
+          color: #737373;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .sb-panel-hint {
+          font-size: 0.8125rem;
+          color: #737373;
+          text-align: center;
+          margin: 0 0 1rem;
+        }
+
+        .sb-accordion {
+          border: 1px solid #e5e5e5;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .sb-accordion-item {
+          border-bottom: 1px solid #e5e5e5;
+        }
+
+        .sb-accordion-item:last-child {
+          border-bottom: none;
+        }
+
+        .sb-accordion-header {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.875rem 1rem;
+          background: #fafafa;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+          transition: background 0.15s;
+        }
+
+        .sb-accordion-header:hover {
+          background: #f0f0f0;
+        }
+
+        .sb-accordion-name {
+          flex: 1;
+          font-size: 0.9375rem;
+          font-weight: 600;
+          color: #171717;
+        }
+
+        .sb-accordion-count {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #737373;
+          background: #e5e5e5;
+          padding: 0.125rem 0.5rem;
+          border-radius: 10px;
+        }
+
+        .sb-accordion-icon {
+          color: #737373;
+          transition: transform 0.2s;
+        }
+
+        .sb-accordion-open .sb-accordion-header {
+          background: #171717;
+        }
+
+        .sb-accordion-open .sb-accordion-name {
+          color: #ffffff;
+        }
+
+        .sb-accordion-open .sb-accordion-count {
+          background: #404040;
+          color: #ffffff;
+        }
+
+        .sb-accordion-open .sb-accordion-icon {
+          color: #ffffff;
+        }
+
+        .sb-accordion-content {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease;
+        }
+
+        .sb-accordion-open .sb-accordion-content {
+          max-height: 300px;
+        }
+
+        .sb-accordion-content ul {
+          list-style: none;
+          padding: 1rem;
+          margin: 0;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.25rem 1rem;
+        }
+
+        .sb-accordion-content li {
           font-size: 0.8125rem;
           color: #525252;
           padding: 0.25rem 0;
-          padding-left: 1rem;
+          padding-left: 1.25rem;
           position: relative;
-          line-height: 1.4;
         }
 
-        .sb-biomarker-section li::before {
+        .sb-accordion-content li::before {
           content: "✓";
           position: absolute;
           left: 0;
           color: #22c55e;
           font-weight: 700;
-          font-size: 0.6875rem;
+          font-size: 0.75rem;
         }
 
         .sb-prize-highlight {
           display: flex;
-          align-items: baseline;
-          justify-content: center;
-          gap: 0.5rem;
-          background: #171717;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.25rem;
+          background: #22c55e;
           color: #ffffff;
-          padding: 1.25rem 1.5rem;
-          border-radius: 12px;
+          padding: 1rem 1.5rem;
+          border-radius: 8px;
+          text-align: center;
         }
 
-        .sb-prize-amount {
-          font-size: 1.5rem;
+        .sb-prize-label-sm {
+          font-size: 0.8125rem;
+          opacity: 0.9;
+        }
+
+        .sb-prize-total {
+          font-size: 1.25rem;
           font-weight: 700;
-        }
-
-        .sb-prize-each {
-          font-size: 0.9375rem;
-          color: #a3a3a3;
         }
 
         /* Form Section */
@@ -883,12 +1010,6 @@ export default function SuperBowlGiveaway() {
           margin: 0;
         }
 
-        @media (max-width: 900px) {
-          .sb-biomarkers {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
         @media (max-width: 640px) {
           .sb-trust-inner {
             gap: 1rem;
@@ -898,7 +1019,16 @@ export default function SuperBowlGiveaway() {
             font-size: 1.875rem;
           }
 
-          .sb-biomarkers {
+          .sb-panel-header {
+            flex-direction: column;
+            gap: 1rem;
+          }
+
+          .sb-panel-price {
+            text-align: left;
+          }
+
+          .sb-accordion-content ul {
             grid-template-columns: 1fr;
           }
 
@@ -908,12 +1038,6 @@ export default function SuperBowlGiveaway() {
 
           .sb-teams {
             grid-template-columns: 1fr;
-          }
-
-          .sb-prize-highlight {
-            flex-direction: column;
-            gap: 0.25rem;
-            text-align: center;
           }
         }
       `}</style>

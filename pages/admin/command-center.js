@@ -1,6 +1,6 @@
 // /pages/admin/command-center.js
 // Range Medical Command Center - Unified Admin Dashboard
-// 6 tabs: Overview, Leads, Protocols, Patients, Injections, Send Forms
+// 7 tabs: Overview, Leads, Due Soon, Protocols, Patients, Injections, Send Forms
 
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
@@ -885,7 +885,8 @@ export default function CommandCenter() {
           {[
             { id: 'overview', label: 'Overview', icon: '📊' },
             { id: 'leads', label: 'Leads', icon: '🎯', badge: data?.stats?.needsProtocol },
-            { id: 'protocols', label: 'Protocols', icon: '💊', badge: data?.stats?.endingSoon },
+            { id: 'due-soon', label: 'Due Soon', icon: '⏰', badge: data?.stats?.endingSoon },
+            { id: 'protocols', label: 'Protocols', icon: '💊' },
             { id: 'patients', label: 'Patients', icon: '👥' },
             { id: 'injections', label: 'Injections', icon: '💉' },
             { id: 'forms', label: 'Send Forms', icon: '📤' },
@@ -955,6 +956,12 @@ export default function CommandCenter() {
                   alert('Patient "' + purchase.patient_name + '" not found in system. They may need to be added first.');
                 }
               }}
+            />
+          )}
+          {activeTab === 'due-soon' && (
+            <DueSoonTab
+              data={data}
+              onEdit={handleEditProtocol}
             />
           )}
           {activeTab === 'protocols' && (
@@ -2196,6 +2203,340 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
     </div>
   );
 }
+
+function DueSoonTab({ data, onEdit }) {
+  const protocols = data?.protocols || [];
+
+  // Filter to only show protocols that are due soon (expired, critical, warning)
+  const dueSoonProtocols = protocols.filter(p =>
+    ['expired', 'critical', 'warning'].includes(p.urgency) && p.status === 'active'
+  );
+
+  // Group by urgency level
+  const expired = dueSoonProtocols.filter(p => p.urgency === 'expired');
+  const critical = dueSoonProtocols.filter(p => p.urgency === 'critical');
+  const warning = dueSoonProtocols.filter(p => p.urgency === 'warning');
+
+  // Get days/sessions remaining info
+  const getTimeInfo = (protocol) => {
+    const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date } = protocol;
+
+    // Session-based (in-clinic)
+    if (delivery_method === 'in_clinic' && total_sessions > 0) {
+      const used = sessions_used || 0;
+      const remaining = total_sessions - used;
+      return {
+        label: remaining <= 0 ? 'Out of sessions' : `${remaining} session${remaining !== 1 ? 's' : ''} left`,
+        value: remaining,
+        type: 'sessions'
+      };
+    }
+
+    // Date-based
+    let endDateObj = null;
+    if (end_date) {
+      endDateObj = new Date(end_date + 'T12:00:00');
+    } else if (program_type === 'weight_loss' && start_date && total_sessions) {
+      endDateObj = new Date(start_date + 'T12:00:00');
+      endDateObj.setDate(endDateObj.getDate() + (total_sessions * 7));
+    }
+
+    if (endDateObj) {
+      const now = new Date();
+      const daysLeft = Math.floor((endDateObj - now) / (1000 * 60 * 60 * 24));
+      return {
+        label: daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : daysLeft === 0 ? 'Ends today' : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`,
+        value: daysLeft,
+        type: 'days'
+      };
+    }
+
+    return { label: 'Active', value: null, type: 'unknown' };
+  };
+
+  const renderProtocolCard = (protocol) => {
+    const patientName = protocol.patients?.name ||
+      `${protocol.patients?.first_name || ''} ${protocol.patients?.last_name || ''}`.trim() || 'Unknown';
+    const phone = protocol.patients?.phone;
+    const timeInfo = getTimeInfo(protocol);
+
+    return (
+      <div key={protocol.id} style={dueSoonStyles.card}>
+        <div style={dueSoonStyles.cardHeader}>
+          <div style={dueSoonStyles.patientInfo}>
+            <span style={dueSoonStyles.patientName}>{patientName}</span>
+            {phone && <span style={dueSoonStyles.phone}>{phone}</span>}
+          </div>
+          <div style={{
+            ...dueSoonStyles.urgencyBadge,
+            background: URGENCY_COLORS[protocol.urgency] || '#888'
+          }}>
+            {timeInfo.label}
+          </div>
+        </div>
+
+        <div style={dueSoonStyles.cardBody}>
+          <div style={dueSoonStyles.protocolInfo}>
+            <span style={{
+              ...dueSoonStyles.categoryBadge,
+              background: CATEGORY_COLORS[protocol.program_type] || '#888'
+            }}>
+              {CATEGORY_LABELS[protocol.program_type] || protocol.program_type}
+            </span>
+            <span style={dueSoonStyles.programName}>
+              {protocol.program_name || protocol.medication || 'Protocol'}
+            </span>
+            {protocol.selected_dose && (
+              <span style={dueSoonStyles.dose}>{protocol.selected_dose}</span>
+            )}
+          </div>
+
+          <div style={dueSoonStyles.deliveryInfo}>
+            <span style={dueSoonStyles.deliveryBadge}>
+              {protocol.delivery_method === 'in_clinic' ? '🏥 In Clinic' : '🏠 Take Home'}
+            </span>
+            {protocol.end_date && (
+              <span style={dueSoonStyles.endDate}>
+                Ends: {formatDate(protocol.end_date)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div style={dueSoonStyles.cardActions}>
+          {phone && (
+            <>
+              <a href={`sms:${phone}`} style={dueSoonStyles.actionBtn}>📱 Text</a>
+              <a href={`tel:${phone}`} style={dueSoonStyles.actionBtn}>📞 Call</a>
+            </>
+          )}
+          <button
+            style={dueSoonStyles.actionBtn}
+            onClick={() => openGHL(protocol.patients?.ghl_contact_id)}
+          >
+            🔗 GHL
+          </button>
+          <button
+            style={{ ...dueSoonStyles.actionBtn, background: '#3B82F6', color: '#fff' }}
+            onClick={() => onEdit(protocol)}
+          >
+            Edit
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSection = (title, protocols, color, icon) => {
+    if (protocols.length === 0) return null;
+    return (
+      <div style={dueSoonStyles.section}>
+        <div style={{ ...dueSoonStyles.sectionHeader, borderLeftColor: color }}>
+          <span style={dueSoonStyles.sectionIcon}>{icon}</span>
+          <span style={dueSoonStyles.sectionTitle}>{title}</span>
+          <span style={{ ...dueSoonStyles.sectionCount, background: color }}>{protocols.length}</span>
+        </div>
+        <div style={dueSoonStyles.cardList}>
+          {protocols.map(renderProtocolCard)}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={dueSoonStyles.container}>
+      {dueSoonProtocols.length === 0 ? (
+        <div style={dueSoonStyles.emptyState}>
+          <span style={dueSoonStyles.emptyIcon}>✨</span>
+          <span style={dueSoonStyles.emptyText}>All protocols are in good standing!</span>
+          <span style={dueSoonStyles.emptySubtext}>No medications running low or protocols ending soon</span>
+        </div>
+      ) : (
+        <>
+          <div style={dueSoonStyles.summary}>
+            <span style={dueSoonStyles.summaryText}>
+              {dueSoonProtocols.length} protocol{dueSoonProtocols.length !== 1 ? 's' : ''} need attention
+            </span>
+          </div>
+
+          {renderSection('Expired / Out of Supply', expired, '#DC2626', '🚨')}
+          {renderSection('Critical - Action Needed', critical, '#FF4444', '⚠️')}
+          {renderSection('Coming Up Soon', warning, '#FF8C00', '⏰')}
+        </>
+      )}
+    </div>
+  );
+}
+
+const dueSoonStyles = {
+  container: {
+    padding: '16px',
+  },
+  summary: {
+    padding: '12px 16px',
+    background: '#FEF3C7',
+    borderRadius: '8px',
+    marginBottom: '20px',
+  },
+  summaryText: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  section: {
+    marginBottom: '24px',
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    background: '#F9FAFB',
+    borderRadius: '6px',
+    borderLeft: '4px solid',
+    marginBottom: '12px',
+  },
+  sectionIcon: {
+    fontSize: '16px',
+  },
+  sectionTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151',
+    flex: 1,
+  },
+  sectionCount: {
+    padding: '2px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#fff',
+  },
+  cardList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  card: {
+    background: '#fff',
+    border: '1px solid #E5E7EB',
+    borderRadius: '8px',
+    padding: '16px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '12px',
+  },
+  patientInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  patientName: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#111827',
+  },
+  phone: {
+    fontSize: '13px',
+    color: '#6B7280',
+  },
+  urgencyBadge: {
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#fff',
+  },
+  cardBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    marginBottom: '12px',
+  },
+  protocolInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  categoryBadge: {
+    padding: '3px 8px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#fff',
+  },
+  programName: {
+    fontSize: '14px',
+    color: '#374151',
+  },
+  dose: {
+    fontSize: '13px',
+    color: '#6B7280',
+    background: '#F3F4F6',
+    padding: '2px 6px',
+    borderRadius: '4px',
+  },
+  deliveryInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  deliveryBadge: {
+    fontSize: '12px',
+    color: '#6B7280',
+  },
+  endDate: {
+    fontSize: '12px',
+    color: '#9CA3AF',
+  },
+  cardActions: {
+    display: 'flex',
+    gap: '8px',
+    paddingTop: '12px',
+    borderTop: '1px solid #F3F4F6',
+  },
+  actionBtn: {
+    padding: '6px 12px',
+    background: '#F3F4F6',
+    color: '#374151',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 20px',
+    textAlign: 'center',
+  },
+  emptyIcon: {
+    fontSize: '48px',
+    marginBottom: '16px',
+  },
+  emptyText: {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: '8px',
+  },
+  emptySubtext: {
+    fontSize: '14px',
+    color: '#6B7280',
+  },
+};
 
 function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase }) {
   const [expandedLead, setExpandedLead] = useState(null);

@@ -229,6 +229,7 @@ export default async function handler(req, res) {
         program_type: programType,
         medication: medicationName,
         selected_dose: selectedDose || null,
+        starting_dose: selectedDose || null, // Track initial dose for WL protocols
         frequency: frequency || template?.frequency,
         delivery_method: deliveryMethod || null,
         start_date: startDate,

@@ -320,6 +320,10 @@ export default function CommandCenter() {
   const [existingHRTProtocols, setExistingHRTProtocols] = useState([]);
   const [addToExistingProtocol, setAddToExistingProtocol] = useState(null);
 
+  // Add to existing protocol state (for Weight Loss)
+  const [existingWLProtocol, setExistingWLProtocol] = useState(null);
+  const [extendExistingWL, setExtendExistingWL] = useState(false);
+
   // Fetch data
   useEffect(() => {
     fetchData();
@@ -438,6 +442,23 @@ export default function CommandCenter() {
     ) || [];
     setExistingHRTProtocols(activeHRTProtocols);
     setAddToExistingProtocol(null);
+
+    // Check for existing WL protocols for this patient (active or expired within 30 days)
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const extendableWLProtocol = (selectedPatient?.protocols || []).find(p => {
+      if (p.program_type !== 'weight_loss') return false;
+      if (p.status === 'active') return true;
+      if (p.end_date) {
+        const endDate = new Date(p.end_date + 'T12:00:00');
+        return endDate >= thirtyDaysAgo;
+      }
+      return false;
+    });
+    setExistingWLProtocol(extendableWLProtocol || null);
+    setExtendExistingWL(false);
 
     setAssignForm({
       templateId: '',
@@ -590,6 +611,20 @@ export default function CommandCenter() {
             notes: assignForm.notes
           })
         });
+      } else if (extendExistingWL && existingWLProtocol) {
+        // Extending existing WL protocol
+        res = await fetch(`/api/protocols/${existingWLProtocol.id}/extend-wl`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            purchaseId: assignForm.purchaseId || null,
+            newDose: assignForm.selectedDose && assignForm.selectedDose !== existingWLProtocol.selected_dose
+              ? assignForm.selectedDose
+              : null,
+            extensionDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
+            notes: assignForm.notes
+          })
+        });
       } else {
         // Create new protocol
         res = await fetch('/api/protocols/assign', {
@@ -631,6 +666,8 @@ export default function CommandCenter() {
         setShowAssignModal(false);
         setSelectedPurchase(null);
         setAddToExistingProtocol(null);
+        setExtendExistingWL(false);
+        setExistingWLProtocol(null);
         // Refresh data in background
         fetchPatientDetails(selectedPatient.id);
         fetchData();
@@ -1144,6 +1181,48 @@ export default function CommandCenter() {
               </div>
             )}
 
+            {/* Add to existing Weight Loss protocol option */}
+            {isWeightLossTemplate() && existingWLProtocol && (
+              <div style={{ padding: '16px 24px', background: '#FFF7ED', borderBottom: '1px solid #E5E5E5' }}>
+                <label style={{ ...styles.formLabel, marginBottom: '12px', display: 'block' }}>
+                  This patient has an existing weight loss protocol. Would you like to:
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="wlAction"
+                      checked={!extendExistingWL}
+                      onChange={() => setExtendExistingWL(false)}
+                    />
+                    <span style={{ fontSize: '14px' }}>Create new protocol (different medication or starting fresh)</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="wlAction"
+                      checked={extendExistingWL}
+                      onChange={() => setExtendExistingWL(true)}
+                    />
+                    <span style={{ fontSize: '14px' }}>
+                      Continue existing: <strong>{existingWLProtocol.medication || 'Weight Loss'}</strong>
+                      {existingWLProtocol.selected_dose && ` @ ${existingWLProtocol.selected_dose}`}
+                      {existingWLProtocol.starting_dose && existingWLProtocol.starting_dose !== existingWLProtocol.selected_dose &&
+                        ` (started at ${existingWLProtocol.starting_dose})`}
+                      <span style={{ color: '#6B7280', marginLeft: '8px' }}>
+                        {existingWLProtocol.status === 'active' ? '(Active)' : `(Ended ${formatDate(existingWLProtocol.end_date)})`}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+                {extendExistingWL && (
+                  <div style={{ marginTop: '12px', padding: '12px', background: '#FEF3C7', borderRadius: '6px', fontSize: '13px', color: '#92400E' }}>
+                    <strong>Continuing protocol:</strong> Select dose below if titrating up. The protocol end date will be extended based on pickup frequency.
+                  </div>
+                )}
+              </div>
+            )}
+
             {isPeptideTemplate() && (
               <>
                 <div style={styles.modalFormGroup}>
@@ -1544,7 +1623,9 @@ export default function CommandCenter() {
                 onClick={handleAssignProtocol}
                 disabled={!assignForm.templateId || isAssigning}
               >
-                {isAssigning ? (addToExistingProtocol ? 'Adding...' : 'Creating...') : (addToExistingProtocol ? 'Add Supply' : 'Assign Protocol')}
+                {isAssigning
+                  ? (addToExistingProtocol || extendExistingWL ? 'Extending...' : 'Creating...')
+                  : (addToExistingProtocol ? 'Add Supply' : extendExistingWL ? 'Extend Protocol' : 'Assign Protocol')}
               </button>
             </div>
           </div>
@@ -2307,7 +2388,12 @@ function DueSoonTab({ data, onEdit }) {
               {protocol.program_name || protocol.medication || 'Protocol'}
             </span>
             {protocol.selected_dose && (
-              <span style={dueSoonStyles.dose}>{protocol.selected_dose}</span>
+              <span style={dueSoonStyles.dose}>
+                {protocol.selected_dose}
+                {protocol.starting_dose && protocol.starting_dose !== protocol.selected_dose &&
+                  <span style={{ color: '#9CA3AF', marginLeft: '4px' }}>(started at {protocol.starting_dose})</span>
+                }
+              </span>
             )}
           </div>
 

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS superbowl_giveaway_entries (
   winner_notified BOOLEAN DEFAULT FALSE,
   winner_selected_at TIMESTAMPTZ,
   utm_source TEXT DEFAULT 'instagram',
+  sms_consent BOOLEAN DEFAULT FALSE,
   ghl_contact_id TEXT
 );
 

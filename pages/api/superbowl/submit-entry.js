@@ -25,7 +25,8 @@ export default async function handler(req, res) {
     team_pick,
     health_interests,
     other_interest,
-    utm_source
+    utm_source,
+    sms_consent
   } = req.body;
 
   // Validation
@@ -75,7 +76,8 @@ export default async function handler(req, res) {
         referred_by: referred_by || null,
         team_pick,
         health_interests: interests,
-        utm_source: utm_source || 'instagram'
+        utm_source: utm_source || 'instagram',
+        sms_consent: sms_consent || false
       })
       .select()
       .single();
@@ -119,6 +121,15 @@ export default async function handler(req, res) {
         }
       }
 
+      // Build tags array
+      const ghlTags = ['superbowl-2026-entry', `sb-pick-${team_pick}`];
+      if (sms_consent) {
+        ghlTags.push('sms-consent');
+      }
+      if (utm_source) {
+        ghlTags.push(`source-${utm_source}`);
+      }
+
       // If no contact found, create one
       if (!ghlContactId) {
         const createResponse = await fetch(
@@ -136,8 +147,8 @@ export default async function handler(req, res) {
               phone: formattedPhone,
               firstName: first_name,
               lastName: last_name,
-              source: 'Super Bowl Giveaway',
-              tags: ['superbowl-giveaway', `pick-${team_pick}`, 'instagram-lead']
+              source: 'Super Bowl 2026 Giveaway',
+              tags: ghlTags
             })
           }
         );
@@ -163,7 +174,7 @@ export default async function handler(req, res) {
               'Accept': 'application/json'
             },
             body: JSON.stringify({
-              tags: ['superbowl-giveaway', `pick-${team_pick}`, 'instagram-lead']
+              tags: ghlTags
             })
           }
         );

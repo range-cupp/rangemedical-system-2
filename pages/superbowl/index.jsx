@@ -16,7 +16,8 @@ export default function SuperBowlGiveaway() {
     referredBy: '',
     teamPick: '',
     healthInterests: [],
-    otherInterest: ''
+    otherInterest: '',
+    smsConsent: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -84,6 +85,10 @@ export default function SuperBowlGiveaway() {
       setError('Please pick a team to win');
       return;
     }
+    if (!formData.smsConsent) {
+      setError('Please agree to receive text messages to enter');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -99,7 +104,8 @@ export default function SuperBowlGiveaway() {
           team_pick: formData.teamPick,
           health_interests: formData.healthInterests,
           other_interest: formData.otherInterest.trim(),
-          utm_source: router.query.utm_source || 'instagram'
+          utm_source: router.query.utm_source || 'instagram',
+          sms_consent: formData.smsConsent
         })
       });
 
@@ -358,6 +364,21 @@ export default function SuperBowlGiveaway() {
                     {formData.teamPick === 'seahawks' && <span className="sb-team-check">✓</span>}
                   </button>
                 </div>
+              </div>
+
+              <div className="sb-consent">
+                <label className="sb-consent-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.smsConsent}
+                    onChange={(e) => setFormData(prev => ({ ...prev, smsConsent: e.target.checked }))}
+                    className="sb-consent-checkbox"
+                  />
+                  <span className="sb-consent-text">
+                    I agree to receive text messages from Range Medical about this giveaway and future health tips.
+                    Message frequency varies. Reply STOP to opt out. Message & data rates may apply.
+                  </span>
+                </label>
               </div>
 
               <button
@@ -771,6 +792,32 @@ export default function SuperBowlGiveaway() {
           justify-content: center;
           font-size: 0.75rem;
           font-weight: 700;
+        }
+
+        .sb-consent {
+          margin-bottom: 1.5rem;
+        }
+
+        .sb-consent-label {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          cursor: pointer;
+        }
+
+        .sb-consent-checkbox {
+          width: 20px;
+          height: 20px;
+          margin-top: 2px;
+          flex-shrink: 0;
+          accent-color: #22c55e;
+          cursor: pointer;
+        }
+
+        .sb-consent-text {
+          font-size: 0.8125rem;
+          color: #525252;
+          line-height: 1.5;
         }
 
         .sb-submit {

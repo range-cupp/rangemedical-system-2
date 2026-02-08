@@ -9,6 +9,10 @@
       "schedule": "0 7 * * *"
     },
     {
+      "path": "/api/cron/wl-midpoint-reminder",
+      "schedule": "0 15 * * *"
+    },
+    {
       "path": "/api/cron/weekly-checkin-reminder",
       "schedule": "0 17 * * *"
     }

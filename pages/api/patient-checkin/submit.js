@@ -180,6 +180,43 @@ Weight: ${parsedWeight} lbs`;
 
     await addGHLNote(contact_id, ghlNote);
 
+    // Send SMS notification to clinic when patient completes check-in
+    const ghlApiKey = process.env.GHL_API_KEY;
+    const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+
+    if (ghlApiKey) {
+      let smsMessage = `📱 WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;
+      if (weightChange) smsMessage += ` (${weightChange})`;
+      smsMessage += `\nInjection: ${newSessionsUsed}/${totalSessions}`;
+
+      if (side_effects && side_effects.length > 0) {
+        smsMessage += `\n⚠️ Side effects: ${side_effects.join(', ')}`;
+      }
+
+      if (isPaymentDue) {
+        smsMessage += `\n\n💰 PAYMENT DUE`;
+      }
+
+      try {
+        await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ghlApiKey}`,
+            'Version': '2021-04-15',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'SMS',
+            contactId: notifyContactId,
+            message: smsMessage
+          })
+        });
+        console.log('✓ Check-in SMS notification sent');
+      } catch (smsError) {
+        console.error('SMS notification error:', smsError);
+      }
+    }
+
     console.log('✓ Patient check-in logged:', patient.name, parsedWeight, 'lbs', `(Injection ${newSessionsUsed}/${totalSessions})`);
 
     return res.status(200).json({

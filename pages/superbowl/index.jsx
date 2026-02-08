@@ -177,6 +177,11 @@ export default function SuperBowlGiveaway() {
       </Head>
 
       <div className="sb-page">
+        {/* Deadline Banner */}
+        <div className="sb-deadline-banner">
+          Entries close 5 minutes into the 1st quarter — don't wait!
+        </div>
+
         {/* Trust Bar */}
         <div className="sb-trust-bar">
           <div className="sb-trust-inner">
@@ -422,6 +427,16 @@ export default function SuperBowlGiveaway() {
           background: #ffffff;
           color: #171717;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Deadline Banner */
+        .sb-deadline-banner {
+          background: #dc2626;
+          color: #ffffff;
+          text-align: center;
+          padding: 0.75rem 1rem;
+          font-size: 0.875rem;
+          font-weight: 600;
         }
 
         .sb-container {

@@ -1536,27 +1536,37 @@ export default function CommandCenter() {
                 />
               </div>
 
-              <div style={styles.modalFormGroup}>
-                <label style={styles.formLabel}>Total Sessions</label>
-                <input
-                  type="number"
-                  value={editingProtocol.total_sessions || ''}
-                  onChange={e => setEditingProtocol({...editingProtocol, total_sessions: e.target.value})}
-                  style={styles.formInput}
-                  min="0"
-                />
-              </div>
+              {/* Sessions - only show for HBOT, RLT, IV, NAD+, Injection, and Weight Loss In-Clinic */}
+              {(['hbot', 'rlt', 'iv', 'injection'].includes(editingProtocol.program_type) ||
+                (editingProtocol.program_type === 'weight_loss' && editingProtocol.delivery_method === 'in_clinic')) && (
+                <>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>
+                      {editingProtocol.program_type === 'weight_loss' ? 'Total Injections' : 'Total Sessions'}
+                    </label>
+                    <input
+                      type="number"
+                      value={editingProtocol.total_sessions || ''}
+                      onChange={e => setEditingProtocol({...editingProtocol, total_sessions: e.target.value})}
+                      style={styles.formInput}
+                      min="0"
+                    />
+                  </div>
 
-              <div style={styles.modalFormGroup}>
-                <label style={styles.formLabel}>Sessions Used</label>
-                <input
-                  type="number"
-                  value={editingProtocol.sessions_used || 0}
-                  onChange={e => setEditingProtocol({...editingProtocol, sessions_used: e.target.value})}
-                  style={styles.formInput}
-                  min="0"
-                />
-              </div>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>
+                      {editingProtocol.program_type === 'weight_loss' ? 'Injections Used' : 'Sessions Used'}
+                    </label>
+                    <input
+                      type="number"
+                      value={editingProtocol.sessions_used || 0}
+                      onChange={e => setEditingProtocol({...editingProtocol, sessions_used: e.target.value})}
+                      style={styles.formInput}
+                      min="0"
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Medication field for weight loss */}
               {editingProtocol.program_type === 'weight_loss' && (

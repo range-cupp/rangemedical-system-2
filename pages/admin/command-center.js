@@ -2205,6 +2205,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
 }
 
 function DueSoonTab({ data, onEdit }) {
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const protocols = data?.protocols || [];
 
   // Filter to only show protocols that are due soon (expired, critical, warning)
@@ -2212,10 +2213,29 @@ function DueSoonTab({ data, onEdit }) {
     ['expired', 'critical', 'warning'].includes(p.urgency) && p.status === 'active'
   );
 
-  // Group by urgency level
-  const expired = dueSoonProtocols.filter(p => p.urgency === 'expired');
-  const critical = dueSoonProtocols.filter(p => p.urgency === 'critical');
-  const warning = dueSoonProtocols.filter(p => p.urgency === 'warning');
+  // Apply category filter
+  const filteredProtocols = categoryFilter === 'all'
+    ? dueSoonProtocols
+    : dueSoonProtocols.filter(p => p.program_type === categoryFilter);
+
+  // Get unique categories that have due soon protocols
+  const categoriesWithProtocols = [...new Set(dueSoonProtocols.map(p => p.program_type))];
+
+  // Group filtered protocols by category for display
+  const protocolsByCategory = {};
+  filteredProtocols.forEach(p => {
+    const cat = p.program_type || 'other';
+    if (!protocolsByCategory[cat]) protocolsByCategory[cat] = [];
+    protocolsByCategory[cat].push(p);
+  });
+
+  // Sort protocols within each category by urgency (expired first, then critical, then warning)
+  const urgencyOrder = { expired: 0, critical: 1, warning: 2 };
+  Object.keys(protocolsByCategory).forEach(cat => {
+    protocolsByCategory[cat].sort((a, b) =>
+      (urgencyOrder[a.urgency] || 3) - (urgencyOrder[b.urgency] || 3)
+    );
+  });
 
   // Get days/sessions remaining info
   const getTimeInfo = (protocol) => {
@@ -2327,13 +2347,16 @@ function DueSoonTab({ data, onEdit }) {
     );
   };
 
-  const renderSection = (title, protocols, color, icon) => {
+  const renderCategorySection = (category, protocols) => {
     if (protocols.length === 0) return null;
+    const color = CATEGORY_COLORS[category] || '#888';
+    const label = CATEGORY_LABELS[category] || category;
+
     return (
-      <div style={dueSoonStyles.section}>
+      <div key={category} style={dueSoonStyles.section}>
         <div style={{ ...dueSoonStyles.sectionHeader, borderLeftColor: color }}>
-          <span style={dueSoonStyles.sectionIcon}>{icon}</span>
-          <span style={dueSoonStyles.sectionTitle}>{title}</span>
+          <span style={{ ...dueSoonStyles.categoryDot, background: color }} />
+          <span style={dueSoonStyles.sectionTitle}>{label}</span>
           <span style={{ ...dueSoonStyles.sectionCount, background: color }}>{protocols.length}</span>
         </div>
         <div style={dueSoonStyles.cardList}>
@@ -2342,6 +2365,9 @@ function DueSoonTab({ data, onEdit }) {
       </div>
     );
   };
+
+  // Define category order for consistent display
+  const categoryOrder = ['weight_loss', 'hrt', 'peptide', 'hbot', 'iv', 'rlt', 'injection', 'labs', 'other'];
 
   return (
     <div style={dueSoonStyles.container}>
@@ -2353,15 +2379,52 @@ function DueSoonTab({ data, onEdit }) {
         </div>
       ) : (
         <>
+          {/* Category Filter Pills */}
+          <div style={dueSoonStyles.filterRow}>
+            <button
+              style={{
+                ...dueSoonStyles.filterPill,
+                ...(categoryFilter === 'all' ? dueSoonStyles.filterPillActive : {}),
+              }}
+              onClick={() => setCategoryFilter('all')}
+            >
+              All ({dueSoonProtocols.length})
+            </button>
+            {categoryOrder.filter(cat => categoriesWithProtocols.includes(cat)).map(cat => {
+              const count = dueSoonProtocols.filter(p => p.program_type === cat).length;
+              return (
+                <button
+                  key={cat}
+                  style={{
+                    ...dueSoonStyles.filterPill,
+                    ...(categoryFilter === cat ? { ...dueSoonStyles.filterPillActive, background: CATEGORY_COLORS[cat] } : {}),
+                  }}
+                  onClick={() => setCategoryFilter(cat)}
+                >
+                  {CATEGORY_LABELS[cat] || cat} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Summary */}
           <div style={dueSoonStyles.summary}>
             <span style={dueSoonStyles.summaryText}>
-              {dueSoonProtocols.length} protocol{dueSoonProtocols.length !== 1 ? 's' : ''} need attention
+              {filteredProtocols.length} protocol{filteredProtocols.length !== 1 ? 's' : ''} need attention
+              {categoryFilter !== 'all' && ` in ${CATEGORY_LABELS[categoryFilter] || categoryFilter}`}
             </span>
           </div>
 
-          {renderSection('Expired / Out of Supply', expired, '#DC2626', '🚨')}
-          {renderSection('Critical - Action Needed', critical, '#FF4444', '⚠️')}
-          {renderSection('Coming Up Soon', warning, '#FF8C00', '⏰')}
+          {/* Protocols grouped by category */}
+          {categoryFilter === 'all' ? (
+            categoryOrder
+              .filter(cat => protocolsByCategory[cat]?.length > 0)
+              .map(cat => renderCategorySection(cat, protocolsByCategory[cat]))
+          ) : (
+            <div style={dueSoonStyles.cardList}>
+              {filteredProtocols.map(renderProtocolCard)}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -2371,6 +2434,32 @@ function DueSoonTab({ data, onEdit }) {
 const dueSoonStyles = {
   container: {
     padding: '16px',
+  },
+  filterRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    marginBottom: '16px',
+  },
+  filterPill: {
+    padding: '6px 14px',
+    background: '#F3F4F6',
+    color: '#374151',
+    border: 'none',
+    borderRadius: '16px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  filterPillActive: {
+    background: '#1A1A1A',
+    color: '#fff',
+  },
+  categoryDot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
   },
   summary: {
     padding: '12px 16px',

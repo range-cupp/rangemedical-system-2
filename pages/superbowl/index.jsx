@@ -217,7 +217,7 @@ export default function SuperBowlGiveaway() {
               <div className="sb-panel-header">
                 <div>
                   <h3>Elite Panel</h3>
-                  <p>36 biomarkers across 6 categories</p>
+                  <p>Our most comprehensive lab panel</p>
                 </div>
                 <div className="sb-panel-price">
                   <span className="sb-price-amount">$750</span>
@@ -225,7 +225,7 @@ export default function SuperBowlGiveaway() {
                 </div>
               </div>
 
-              <p className="sb-panel-hint">Tap a category to see what's included</p>
+              <p className="sb-panel-hint">Click on Hormones, Thyroid, or any category to see which markers we test.</p>
 
               <div className="sb-accordion">
                 {biomarkerCategories.map((category) => (
@@ -236,7 +236,6 @@ export default function SuperBowlGiveaway() {
                       onClick={() => toggleCategory(category.id)}
                     >
                       <span className="sb-accordion-name">{category.name}</span>
-                      <span className="sb-accordion-count">{category.markers.length}</span>
                       <svg className="sb-accordion-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d={expandedCategory === category.id ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
                       </svg>
@@ -642,15 +641,6 @@ export default function SuperBowlGiveaway() {
           color: #171717;
         }
 
-        .sb-accordion-count {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: #737373;
-          background: #e5e5e5;
-          padding: 0.125rem 0.5rem;
-          border-radius: 10px;
-        }
-
         .sb-accordion-icon {
           color: #737373;
           transition: transform 0.2s;
@@ -661,11 +651,6 @@ export default function SuperBowlGiveaway() {
         }
 
         .sb-accordion-open .sb-accordion-name {
-          color: #ffffff;
-        }
-
-        .sb-accordion-open .sb-accordion-count {
-          background: #404040;
           color: #ffffff;
         }
 

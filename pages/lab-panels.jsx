@@ -57,6 +57,54 @@ export default function LabPanels() {
     }
   ];
 
+  const [expandedMarker, setExpandedMarker] = useState(null);
+
+  const toggleMarker = (markerId) => {
+    setExpandedMarker(expandedMarker === markerId ? null : markerId);
+  };
+
+  // Biomarker descriptions - what we're looking for and why
+  const biomarkerInfo = {
+    "Complete Metabolic Panel (CMP)": "Evaluates kidney and liver function, blood sugar, and electrolyte balance. Helps detect diabetes, kidney disease, and liver problems early.",
+    "Lipid Panel": "Measures cholesterol and triglycerides. Essential for assessing cardiovascular risk and guiding heart health strategies.",
+    "CBC with Differential": "Counts red cells, white cells, and platelets. Detects anemia, infection, immune issues, and blood disorders.",
+    "Estradiol": "The primary estrogen hormone. In men, high levels can cause fatigue and weight gain. In women, it's key for reproductive and bone health.",
+    "HbA1c": "Shows your average blood sugar over 3 months. The gold standard for detecting pre-diabetes and diabetes risk.",
+    "Insulin, Fasting": "Reveals how well your body manages blood sugar. High fasting insulin is an early warning sign of metabolic dysfunction.",
+    "PSA, Total": "Prostate-specific antigen screening. Important for monitoring prostate health and detecting issues early.",
+    "SHBG": "Sex hormone binding globulin affects how much testosterone is available to your body. Key for understanding hormone balance.",
+    "T3, Free": "The active thyroid hormone. Low T3 causes fatigue, weight gain, and brain fog even when TSH looks normal.",
+    "T4, Total": "The main thyroid hormone your body converts to T3. Helps assess overall thyroid function.",
+    "Testosterone, Free": "The testosterone actually available for your body to use. More clinically relevant than total testosterone alone.",
+    "Testosterone, Total": "Your overall testosterone production. Low levels cause fatigue, low libido, muscle loss, and mood changes.",
+    "TPO Antibodies": "Detects autoimmune thyroid disease (Hashimoto's). Often elevated years before thyroid numbers go abnormal.",
+    "TSH": "Thyroid-stimulating hormone. The first-line thyroid test, but doesn't tell the whole story on its own.",
+    "Vitamin D, 25-OH": "Critical for immune function, mood, bone health, and hormone production. Most people are deficient.",
+    "Apolipoprotein A-1": "The protein in 'good' HDL cholesterol. Higher levels are protective against heart disease.",
+    "Apolipoprotein B": "The protein in 'bad' LDL particles. A better predictor of heart disease risk than standard cholesterol.",
+    "CRP-HS (Inflammation)": "High-sensitivity inflammation marker. Elevated CRP indicates systemic inflammation linked to heart disease and chronic illness.",
+    "Cortisol": "Your primary stress hormone. Chronic high or low cortisol affects energy, sleep, weight, and immune function.",
+    "DHEA-S": "A precursor hormone that declines with age. Supports energy, mood, immune function, and hormone balance.",
+    "Ferritin": "Your iron storage protein. Low ferritin causes fatigue even when iron looks normal. High levels indicate inflammation.",
+    "Folate": "Essential B-vitamin for DNA synthesis and methylation. Low levels linked to fatigue, mood issues, and heart disease.",
+    "FSH": "Follicle-stimulating hormone. Helps assess fertility, menopause status, and pituitary function.",
+    "GGT": "A sensitive liver enzyme. Elevated early in liver stress, alcohol use, or bile duct issues.",
+    "Homocysteine": "An amino acid linked to heart disease and stroke when elevated. Also indicates B-vitamin status.",
+    "IGF-1": "Insulin-like growth factor reflects growth hormone status. Important for metabolism, muscle, and longevity.",
+    "Iron & TIBC": "Measures iron levels and binding capacity. Helps diagnose anemia and iron overload conditions.",
+    "LH": "Luteinizing hormone. Works with FSH to regulate reproductive function and hormone production.",
+    "Lipoprotein(a)": "A genetic cardiovascular risk factor. High Lp(a) significantly increases heart attack and stroke risk.",
+    "Magnesium": "Essential mineral for 300+ body functions. Deficiency causes muscle cramps, anxiety, sleep issues, and fatigue.",
+    "PSA, Free & Total": "More detailed prostate screening. The free-to-total ratio helps distinguish cancer from benign conditions.",
+    "Sed Rate": "Erythrocyte sedimentation rate measures inflammation. Elevated in autoimmune conditions and infections.",
+    "T4, Free": "The unbound, active form of T4. More accurate than total T4 for assessing thyroid function.",
+    "Thyroglobulin Antibodies": "Another marker for autoimmune thyroid disease. Often tested alongside TPO antibodies.",
+    "Uric Acid": "High levels cause gout and are linked to metabolic syndrome, kidney stones, and heart disease.",
+    "Vitamin B-12": "Essential for energy, nerve function, and red blood cell production. Deficiency is common and often missed.",
+    "Progesterone": "Balances estrogen and supports mood, sleep, and reproductive health. Important throughout the menstrual cycle.",
+    "DHT": "Dihydrotestosterone, a potent androgen. Relevant for hair loss, acne, and hormone balance assessment."
+  };
+
   const menEssential = [
     "Complete Metabolic Panel (CMP)",
     "Lipid Panel",
@@ -355,20 +403,52 @@ export default function LabPanels() {
                   </div>
                 </div>
 
+                {/* Instruction */}
+                <div className="lab-chart-hint">
+                  <span className="lab-chart-hint-icon">ℹ️</span>
+                  <span>Tap any biomarker to learn why we test it</span>
+                </div>
+
                 {/* Rows */}
                 <div className="lab-chart-body">
                   {(activeTab === 'men' ? menEssential : womenEssential).map((marker, index) => (
-                    <div key={index} className="lab-chart-row">
-                      <div className="lab-chart-marker-col">{marker}</div>
-                      <div className="lab-chart-panel-col"><span className="lab-check">✓</span></div>
-                      <div className="lab-chart-panel-col lab-chart-panel-featured"><span className="lab-check">✓</span></div>
+                    <div key={index}>
+                      <div
+                        className={`lab-chart-row lab-chart-row-clickable ${expandedMarker === `essential-${index}` ? 'lab-chart-row-expanded' : ''}`}
+                        onClick={() => toggleMarker(`essential-${index}`)}
+                      >
+                        <div className="lab-chart-marker-col">
+                          <span className="lab-marker-name">{marker}</span>
+                          <span className={`lab-marker-arrow ${expandedMarker === `essential-${index}` ? 'lab-marker-arrow-up' : ''}`}>›</span>
+                        </div>
+                        <div className="lab-chart-panel-col"><span className="lab-check">✓</span></div>
+                        <div className="lab-chart-panel-col lab-chart-panel-featured"><span className="lab-check">✓</span></div>
+                      </div>
+                      {expandedMarker === `essential-${index}` && biomarkerInfo[marker] && (
+                        <div className="lab-chart-description">
+                          <p>{biomarkerInfo[marker]}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {(activeTab === 'men' ? menEliteExtra : womenEliteExtra).map((marker, index) => (
-                    <div key={`elite-${index}`} className="lab-chart-row lab-chart-row-elite">
-                      <div className="lab-chart-marker-col">{marker}</div>
-                      <div className="lab-chart-panel-col"><span className="lab-dash">—</span></div>
-                      <div className="lab-chart-panel-col lab-chart-panel-featured"><span className="lab-check">✓</span></div>
+                    <div key={`elite-${index}`}>
+                      <div
+                        className={`lab-chart-row lab-chart-row-elite lab-chart-row-clickable ${expandedMarker === `elite-${index}` ? 'lab-chart-row-expanded' : ''}`}
+                        onClick={() => toggleMarker(`elite-${index}`)}
+                      >
+                        <div className="lab-chart-marker-col">
+                          <span className="lab-marker-name">{marker}</span>
+                          <span className={`lab-marker-arrow ${expandedMarker === `elite-${index}` ? 'lab-marker-arrow-up' : ''}`}>›</span>
+                        </div>
+                        <div className="lab-chart-panel-col"><span className="lab-dash">—</span></div>
+                        <div className="lab-chart-panel-col lab-chart-panel-featured"><span className="lab-check">✓</span></div>
+                      </div>
+                      {expandedMarker === `elite-${index}` && biomarkerInfo[marker] && (
+                        <div className="lab-chart-description lab-chart-description-elite">
+                          <p>{biomarkerInfo[marker]}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -800,8 +880,24 @@ export default function LabPanels() {
             color: #ffffff;
           }
 
+          .lab-chart-hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: #f0f9ff;
+            border-bottom: 1px solid #bae6fd;
+            font-size: 0.8125rem;
+            color: #0369a1;
+          }
+
+          .lab-chart-hint-icon {
+            font-size: 1rem;
+          }
+
           .lab-chart-body {
-            max-height: 500px;
+            max-height: 600px;
             overflow-y: auto;
           }
 
@@ -809,6 +905,27 @@ export default function LabPanels() {
             display: grid;
             grid-template-columns: 1fr 100px 100px;
             border-bottom: 1px solid #f0f0f0;
+          }
+
+          .lab-chart-row-clickable {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+          }
+
+          .lab-chart-row-clickable:hover {
+            background-color: #f5f5f5;
+          }
+
+          .lab-chart-row-elite.lab-chart-row-clickable:hover {
+            background-color: #f0f0f0;
+          }
+
+          .lab-chart-row-expanded {
+            background-color: #fefce8 !important;
+          }
+
+          .lab-chart-row-elite.lab-chart-row-expanded {
+            background-color: #fef9c3 !important;
           }
 
           .lab-chart-row:last-child {
@@ -823,6 +940,43 @@ export default function LabPanels() {
             padding: 0.875rem 1.5rem;
             font-size: 0.9375rem;
             color: #171717;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+
+          .lab-marker-name {
+            flex: 1;
+          }
+
+          .lab-marker-arrow {
+            color: #a3a3a3;
+            font-size: 1.25rem;
+            font-weight: 600;
+            transform: rotate(90deg);
+            transition: transform 0.2s ease;
+            margin-left: 0.5rem;
+          }
+
+          .lab-marker-arrow-up {
+            transform: rotate(-90deg);
+          }
+
+          .lab-chart-description {
+            padding: 1rem 1.5rem;
+            background: #fefce8;
+            border-bottom: 1px solid #fde68a;
+          }
+
+          .lab-chart-description-elite {
+            background: #fef9c3;
+          }
+
+          .lab-chart-description p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: #525252;
+            line-height: 1.6;
           }
 
           .lab-chart-panel-col {
@@ -1321,6 +1475,23 @@ export default function LabPanels() {
 
             .lab-chart-panel-price {
               font-size: 0.75rem;
+            }
+
+            .lab-chart-hint {
+              font-size: 0.75rem;
+              padding: 0.625rem 0.75rem;
+            }
+
+            .lab-chart-description {
+              padding: 0.875rem 1rem;
+            }
+
+            .lab-chart-description p {
+              font-size: 0.8125rem;
+            }
+
+            .lab-marker-arrow {
+              font-size: 1rem;
             }
 
             .lab-process-grid {

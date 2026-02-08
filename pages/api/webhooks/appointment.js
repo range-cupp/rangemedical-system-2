@@ -56,6 +56,7 @@ const APPOINTMENT_MAPPING = {
   // In-Clinic Injection Tracking (updates protocol visit dates and sessions)
   'Injection - Testosterone': { type: 'hrt', action: 'track_visit' },
   'Injection - Weight Loss': { type: 'weight_loss', action: 'track_visit' },
+  'Injection - Peptide': { type: 'peptide', action: 'track_visit' },
 
   // Log only (no session decrement or tracking)
   'Initial Consultation': { type: 'consult', action: 'log' },
@@ -207,7 +208,7 @@ export default async function handler(req, res) {
           .eq('patient_id', patient.id)
           .eq('delivery_method', 'in_clinic')
           .eq('status', 'active')
-          .in('program_type', ['weight_loss', 'hrt'])
+          .in('program_type', ['weight_loss', 'hrt', 'peptide'])
           .order('created_at', { ascending: false })
           .limit(1);
 
@@ -319,6 +320,8 @@ export default async function handler(req, res) {
       // Find active protocol for this patient
       const protocolTypes = mapping.type === 'hrt'
         ? ['hrt']
+        : mapping.type === 'peptide'
+        ? ['peptide']
         : ['weight_loss'];
 
       // Find patient by ghl_contact_id first
@@ -339,7 +342,7 @@ export default async function handler(req, res) {
 
       // Find protocol by patient_id
       // For weight_loss, include both in_clinic and take_home (weekly pickups)
-      // For HRT, only in_clinic
+      // For HRT and peptide, only in_clinic
       const deliveryMethods = mapping.type === 'weight_loss'
         ? ['in_clinic', 'take_home']
         : ['in_clinic'];

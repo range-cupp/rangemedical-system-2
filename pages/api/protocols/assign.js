@@ -191,6 +191,11 @@ export default async function handler(req, res) {
         const start = new Date(startDate);
         start.setDate(start.getDate() + peptideDurationDays);
         endDate = start.toISOString().split('T')[0];
+
+        // For in-clinic peptides, set total_sessions based on duration (1 injection per day)
+        if (deliveryMethod === 'in_clinic') {
+          finalTotalSessions = peptideDurationDays;
+        }
       }
     }
 

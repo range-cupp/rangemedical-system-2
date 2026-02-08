@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     first_name,
     last_name,
     phone_number,
+    referred_by,
     team_pick,
     health_interests,
     other_interest,
@@ -71,6 +72,7 @@ export default async function handler(req, res) {
         first_name,
         last_name,
         phone_number,
+        referred_by: referred_by || null,
         team_pick,
         health_interests: interests,
         utm_source: utm_source || 'instagram'
@@ -208,7 +210,7 @@ export default async function handler(req, res) {
               'Accept': 'application/json'
             },
             body: JSON.stringify({
-              body: `🏈 SUPER BOWL GIVEAWAY ENTRY\n\nTeam Pick: ${team_pick === 'patriots' ? 'New England Patriots' : 'Seattle Seahawks'}\nHealth Interests: ${interests.length > 0 ? interests.join(', ') : 'None specified'}\nSource: ${utm_source || 'instagram'}\n\nEntry ID: ${entry.id}`
+              body: `🏈 SUPER BOWL GIVEAWAY ENTRY\n\nTeam Pick: ${team_pick === 'patriots' ? 'New England Patriots' : 'Seattle Seahawks'}${referred_by ? `\nReferred By: ${referred_by}` : ''}\nHealth Interests: ${interests.length > 0 ? interests.join(', ') : 'None specified'}\nSource: ${utm_source || 'instagram'}\n\nEntry ID: ${entry.id}`
             })
           }
         );

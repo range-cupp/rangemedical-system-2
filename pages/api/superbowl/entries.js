@@ -57,6 +57,10 @@ export default async function handler(req, res) {
     });
     stats.health_interests = interestCounts;
 
+    // Referral stats
+    stats.entries_with_referrer = entries.filter(e => e.referred_by).length;
+    stats.entries_without_referrer = entries.filter(e => !e.referred_by).length;
+
     return res.status(200).json({
       success: true,
       stats,

@@ -156,8 +156,11 @@ export default async function handler(req, res) {
           }
         );
 
-        // Send winner SMS
-        const winnerMessage = `Congratulations! 🏆🏈 You won the Range Medical Super Bowl Giveaway! You've won a FREE Elite Panel Lab Draw valued at $750. Call us at (949) 997-3988 or reply to this text to schedule your appointment. — Range Medical, Newport Beach`;
+        // Send winner SMS - include referrer if they had one
+        const referrerNote = winner.referred_by
+          ? ` And great news — ${winner.referred_by} who referred you wins one too!`
+          : '';
+        const winnerMessage = `Congratulations! 🏆🏈 You won the Range Medical Super Bowl Giveaway! You've won a FREE Elite Panel Lab Draw valued at $750.${referrerNote} Call us at (949) 997-3988 or reply to this text to schedule your appointment. — Range Medical, Newport Beach`;
 
         const smsResponse = await fetch(
           `https://services.leadconnectorhq.com/conversations/messages`,
@@ -192,6 +195,9 @@ export default async function handler(req, res) {
         }
 
         // Add note to contact
+        const referrerNoteText = winner.referred_by
+          ? `\n\n⚠️ REFERRER ALSO WINS: ${winner.referred_by}\nPlease locate this person in the system and notify them that they also won a FREE Elite Panel.`
+          : '';
         await fetch(
           `https://services.leadconnectorhq.com/contacts/${ghlContactId}/notes`,
           {
@@ -203,7 +209,7 @@ export default async function handler(req, res) {
               'Accept': 'application/json'
             },
             body: JSON.stringify({
-              body: `🏆 SUPER BOWL GIVEAWAY WINNER!\n\nThis patient won the Range Medical Super Bowl LX Giveaway!\n\nPrize: FREE Elite Panel Lab Draw ($750 value)\n\nPlease schedule their appointment when they call/text.`
+              body: `🏆 SUPER BOWL GIVEAWAY WINNER!\n\nThis patient won the Range Medical Super Bowl LX Giveaway!\n\nPrize: FREE Elite Panel Lab Draw ($750 value)${referrerNoteText}\n\nPlease schedule their appointment when they call/text.`
             })
           }
         );
@@ -234,8 +240,10 @@ export default async function handler(req, res) {
         first_name: winner.first_name,
         last_name: winner.last_name,
         phone_number: winner.phone_number,
+        referred_by: winner.referred_by,
         health_interests: winner.health_interests
       },
+      referrer_also_wins: winner.referred_by ? true : false,
       notification_sent: smsSent,
       stats
     });

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS superbowl_giveaway_entries (
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   phone_number TEXT NOT NULL UNIQUE,
+  referred_by TEXT,
   team_pick TEXT NOT NULL CHECK (team_pick IN ('patriots', 'seahawks')),
   health_interests TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -47,4 +48,5 @@ GRANT ALL ON superbowl_giveaway_entries TO service_role;
 -- Comments
 COMMENT ON TABLE superbowl_giveaway_entries IS 'Super Bowl LX Giveaway entries - Feb 2026';
 COMMENT ON COLUMN superbowl_giveaway_entries.team_pick IS 'patriots or seahawks';
+COMMENT ON COLUMN superbowl_giveaway_entries.referred_by IS 'Full name of person who referred this entry - they also win if entry wins';
 COMMENT ON COLUMN superbowl_giveaway_entries.health_interests IS 'Array of health goals for remarketing';

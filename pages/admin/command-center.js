@@ -431,6 +431,7 @@ export default function CommandCenter() {
       templateId: '',
       peptideId: '',
       selectedDose: '',
+      customDose: null,
       frequency: '',
       deliveryMethod: '',
       startDate: new Date().toISOString().split('T')[0],
@@ -572,7 +573,7 @@ export default function CommandCenter() {
           patientName: selectedPatient.name || `${selectedPatient.first_name || ''} ${selectedPatient.last_name || ''}`.trim(),
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
-          selectedDose: assignForm.selectedDose,
+          selectedDose: assignForm.customDose || (assignForm.selectedDose === 'Custom' ? '' : assignForm.selectedDose),
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes,
@@ -1094,13 +1095,22 @@ export default function CommandCenter() {
                   <div style={styles.modalFormGroup}>
                     <label style={styles.formLabel}>Dose</label>
                     <select
-                      value={assignForm.selectedDose}
-                      onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}
+                      value={assignForm.selectedDose === 'Custom' || (assignForm.selectedDose && !getSelectedPeptide()?.dose_options?.includes(assignForm.selectedDose)) ? 'Custom' : assignForm.selectedDose}
+                      onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value, customDose: e.target.value === 'Custom' ? '' : null})}
                       style={styles.formSelect}
                     >
                       <option value="">Select dose...</option>
                       {getSelectedPeptide().dose_options.map(dose => <option key={dose} value={dose}>{dose}</option>)}
                     </select>
+                    {(assignForm.selectedDose === 'Custom' || assignForm.customDose !== undefined && assignForm.customDose !== null) && (
+                      <input
+                        type="text"
+                        placeholder="Enter custom dose (e.g., 350mcg)"
+                        value={assignForm.customDose || ''}
+                        onChange={e => setAssignForm({...assignForm, customDose: e.target.value, selectedDose: e.target.value || 'Custom'})}
+                        style={{ ...styles.formInput, marginTop: '8px' }}
+                      />
+                    )}
                   </div>
                 )}
 

@@ -645,12 +645,15 @@ export default function CommandCenter() {
           end_date: editingProtocol.end_date || null,
           total_sessions: editingProtocol.total_sessions ? parseInt(editingProtocol.total_sessions) : null,
           sessions_used: parseInt(editingProtocol.sessions_used) || 0,
-          selected_dose: editingProtocol.selected_dose || null,
+          selected_dose: editingProtocol.selected_dose === 'Custom' ? editingProtocol.customDose : editingProtocol.selected_dose || null,
           delivery_method: editingProtocol.delivery_method || null,
           status: editingProtocol.status,
           notes: editingProtocol.notes || null,
           injection_day: editingProtocol.injection_day || null,
-          checkin_reminder_enabled: editingProtocol.checkin_reminder_enabled || false
+          checkin_reminder_enabled: editingProtocol.checkin_reminder_enabled || false,
+          medication: editingProtocol.medication || null,
+          frequency: editingProtocol.frequency || null,
+          pickup_frequency: editingProtocol.pickup_frequency || null
         })
       });
 
@@ -1555,18 +1558,112 @@ export default function CommandCenter() {
                 />
               </div>
 
-              <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
+              {/* Medication field for weight loss */}
+              {editingProtocol.program_type === 'weight_loss' && (
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Medication</label>
+                  <select
+                    value={editingProtocol.medication || ''}
+                    onChange={e => setEditingProtocol({...editingProtocol, medication: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select medication...</option>
+                    <option value="Tirzepatide">Tirzepatide</option>
+                    <option value="Retatrutide">Retatrutide</option>
+                    <option value="Semaglutide">Semaglutide</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Peptide selection for peptide protocols */}
+              {editingProtocol.program_type === 'peptide' && (
+                <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
+                  <label style={styles.formLabel}>Peptide</label>
+                  <select
+                    value={editingProtocol.medication || ''}
+                    onChange={e => {
+                      const selectedPeptide = peptides.find(p => p.name === e.target.value);
+                      setEditingProtocol({
+                        ...editingProtocol,
+                        medication: e.target.value,
+                        frequency: selectedPeptide?.frequency || editingProtocol.frequency,
+                        selected_dose: ''
+                      });
+                    }}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select peptide...</option>
+                    {peptides.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {/* Dose - dropdown for known types, text for others */}
+              <div style={editingProtocol.program_type === 'weight_loss' ? styles.modalFormGroup : { ...styles.modalFormGroup, gridColumn: 'span 2' }}>
                 <label style={styles.formLabel}>Dose</label>
-                <input
-                  type="text"
-                  value={editingProtocol.selected_dose || ''}
-                  onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
-                  style={styles.formInput}
-                  placeholder="e.g., 100mg"
-                />
+                {editingProtocol.program_type === 'weight_loss' ? (
+                  <select
+                    value={editingProtocol.selected_dose || ''}
+                    onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select dose...</option>
+                    {WEIGHT_LOSS_DOSES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                    <option value="Custom">Custom</option>
+                  </select>
+                ) : editingProtocol.program_type === 'peptide' ? (
+                  <>
+                    <select
+                      value={editingProtocol.selected_dose === 'Custom' ? 'Custom' : (
+                        peptides.find(p => p.name === editingProtocol.medication)?.dose_options?.includes(editingProtocol.selected_dose)
+                          ? editingProtocol.selected_dose
+                          : 'Custom'
+                      )}
+                      onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
+                      style={styles.formSelect}
+                    >
+                      <option value="">Select dose...</option>
+                      {(peptides.find(p => p.name === editingProtocol.medication)?.dose_options || ['250mcg', '500mcg', '750mcg', '1mg']).map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                    {editingProtocol.selected_dose === 'Custom' && (
+                      <input
+                        type="text"
+                        placeholder="Enter custom dose"
+                        value={editingProtocol.customDose || ''}
+                        onChange={e => setEditingProtocol({...editingProtocol, customDose: e.target.value})}
+                        style={{ ...styles.formInput, marginTop: '8px' }}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <input
+                    type="text"
+                    value={editingProtocol.selected_dose || ''}
+                    onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
+                    style={styles.formInput}
+                    placeholder="e.g., 100mg"
+                  />
+                )}
               </div>
 
-              {/* Weight Loss Check-in Reminder Fields */}
+              {/* Frequency */}
+              <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
+                <label style={styles.formLabel}>Frequency</label>
+                <select
+                  value={editingProtocol.frequency || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, frequency: e.target.value})}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select frequency...</option>
+                  {FREQUENCY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Weight Loss specific fields */}
               {editingProtocol.program_type === 'weight_loss' && (
                 <>
                   <div style={styles.modalFormGroup}>

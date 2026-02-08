@@ -238,6 +238,51 @@ export default async function handler(req, res) {
           .eq('id', entry.id);
       }
 
+      // Send notification SMS to Chris
+      try {
+        // Find Chris's contact by phone
+        const chrisSearchResponse = await fetch(
+          `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=9496900339&limit=1`,
+          {
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28',
+              'Accept': 'application/json'
+            }
+          }
+        );
+
+        if (chrisSearchResponse.ok) {
+          const chrisSearchData = await chrisSearchResponse.json();
+          if (chrisSearchData.contacts && chrisSearchData.contacts.length > 0) {
+            const chrisContactId = chrisSearchData.contacts[0].id;
+            const teamName = team_pick === 'patriots' ? 'Patriots' : 'Seahawks';
+            const notifyMessage = `New SB entry: ${first_name} ${last_name} picked ${teamName}.${referred_by ? ` Referred by: ${referred_by}.` : ''}`;
+
+            await fetch(
+              `https://services.leadconnectorhq.com/conversations/messages`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${GHL_API_KEY}`,
+                  'Version': '2021-07-28',
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                  type: 'SMS',
+                  contactId: chrisContactId,
+                  message: notifyMessage
+                })
+              }
+            );
+            console.log('Admin notification sent');
+          }
+        }
+      } catch (notifyError) {
+        console.error('Admin notify error (non-fatal):', notifyError);
+      }
+
     } catch (ghlError) {
       console.error('GHL error (non-fatal):', ghlError);
       // Continue - entry was still saved

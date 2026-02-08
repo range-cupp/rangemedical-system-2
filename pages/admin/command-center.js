@@ -436,10 +436,15 @@ export default function CommandCenter() {
     console.log('Templates available:', Object.keys(templates.grouped || {}).length, 'categories');
     console.log('Selected purchase:', purchaseToUse?.id, purchaseToUse?.item_name);
 
+    // Get all protocols for this patient from the main data object
+    const patientProtocols = (data?.protocols || []).filter(p =>
+      p.patient_id === selectedPatient?.id
+    );
+
     // Check for existing HRT protocols for this patient
-    const activeHRTProtocols = selectedPatient?.protocols?.filter(p =>
+    const activeHRTProtocols = patientProtocols.filter(p =>
       p.program_type === 'hrt' && p.status === 'active'
-    ) || [];
+    );
     setExistingHRTProtocols(activeHRTProtocols);
     setAddToExistingProtocol(null);
 
@@ -448,7 +453,7 @@ export default function CommandCenter() {
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const extendableWLProtocol = (selectedPatient?.protocols || []).find(p => {
+    const extendableWLProtocol = patientProtocols.find(p => {
       if (p.program_type !== 'weight_loss') return false;
       // Skip merged or deleted protocols
       if (p.status === 'merged' || p.status === 'deleted') return false;
@@ -461,6 +466,9 @@ export default function CommandCenter() {
     });
     setExistingWLProtocol(extendableWLProtocol || null);
     setExtendExistingWL(false);
+
+    console.log('Patient protocols found:', patientProtocols.length);
+    console.log('Extendable WL protocol:', extendableWLProtocol?.id);
 
     setAssignForm({
       templateId: '',

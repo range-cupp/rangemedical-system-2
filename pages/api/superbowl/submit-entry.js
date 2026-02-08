@@ -187,7 +187,7 @@ export default async function handler(req, res) {
 
         const teamName = team_pick === 'patriots' ? 'Patriots' : 'Seahawks';
         const referrerNote = referred_by ? ` If you win, ${referred_by} wins too.` : '';
-        const smsMessage = `You are in! Your pick: ${teamName}.${referrerNote} We will text you after the game if you are our winner. Good luck! - Range Medical (949) 997-3988`;
+        const smsMessage = `You are in! Your pick: ${teamName}.${referrerNote} We will text you after the game if you are our winner. Good luck! - Range Medical`;
 
         const smsResponse = await fetch(
           `https://services.leadconnectorhq.com/conversations/messages`,

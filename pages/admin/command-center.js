@@ -1114,6 +1114,20 @@ export default function CommandCenter() {
                   </div>
                 )}
 
+                {/* Delivery method for all peptide protocols */}
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Delivery Method *</label>
+                  <select
+                    value={assignForm.deliveryMethod || ''}
+                    onChange={e => setAssignForm({...assignForm, deliveryMethod: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select delivery...</option>
+                    <option value="in_clinic">In Clinic</option>
+                    <option value="take_home">Take Home</option>
+                  </select>
+                </div>
+
                 {/* Only show vial options for Peptide Therapy - Vial */}
                 {isPeptideVialTemplate() && (
                   <>

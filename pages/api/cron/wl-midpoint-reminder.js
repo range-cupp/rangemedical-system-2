@@ -49,9 +49,10 @@ async function sendClinicSMS(message) {
 }
 
 export default async function handler(req, res) {
-  // Verify cron secret for security
+  // Verify cron secret for security (skip if CRON_SECRET not configured)
   const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (cronSecret !== process.env.CRON_SECRET && process.env.NODE_ENV === 'production') {
+  const expectedSecret = process.env.CRON_SECRET;
+  if (expectedSecret && cronSecret !== expectedSecret) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

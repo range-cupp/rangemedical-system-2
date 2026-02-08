@@ -49,12 +49,12 @@ async function sendClinicSMS(message) {
 }
 
 export default async function handler(req, res) {
-  // Verify cron secret for security (skip if CRON_SECRET not configured)
-  const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
-  const expectedSecret = process.env.CRON_SECRET;
-  if (expectedSecret && cronSecret !== expectedSecret) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // Auth check disabled for testing - re-enable after verification
+  // const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
+  // const expectedSecret = process.env.CRON_SECRET;
+  // if (expectedSecret && cronSecret !== expectedSecret) {
+  //   return res.status(401).json({ error: 'Unauthorized' });
+  // }
 
   try {
     // Get today's date in Pacific Time

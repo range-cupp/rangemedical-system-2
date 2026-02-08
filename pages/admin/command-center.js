@@ -316,6 +316,10 @@ export default function CommandCenter() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  // Add to existing protocol state (for HRT)
+  const [existingHRTProtocols, setExistingHRTProtocols] = useState([]);
+  const [addToExistingProtocol, setAddToExistingProtocol] = useState(null);
+
   // Fetch data
   useEffect(() => {
     fetchData();
@@ -427,6 +431,14 @@ export default function CommandCenter() {
     console.log('Opening assign modal for patient:', selectedPatient?.id, selectedPatient?.name);
     console.log('Templates available:', Object.keys(templates.grouped || {}).length, 'categories');
     console.log('Selected purchase:', purchaseToUse?.id, purchaseToUse?.item_name);
+
+    // Check for existing HRT protocols for this patient
+    const activeHRTProtocols = selectedPatient?.protocols?.filter(p =>
+      p.program_type === 'hrt' && p.status === 'active'
+    ) || [];
+    setExistingHRTProtocols(activeHRTProtocols);
+    setAddToExistingProtocol(null);
+
     setAssignForm({
       templateId: '',
       peptideId: '',
@@ -467,6 +479,7 @@ export default function CommandCenter() {
   const isNADTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('nad+');
   const isInjectionTemplate = () => getSelectedTemplate()?.category === 'injection';
   const isWeightLossTemplate = () => getSelectedTemplate()?.category === 'weight_loss';
+  const isHRTTemplate = () => getSelectedTemplate()?.category === 'hrt';
 
   const NAD_DOSE_OPTIONS = ['25mg', '50mg', '100mg', '125mg', '150mg'];
   const DELIVERY_METHOD_OPTIONS = [
@@ -565,43 +578,59 @@ export default function CommandCenter() {
     setIsAssigning(true);
 
     try {
-      const res = await fetch('/api/protocols/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientId: selectedPatient.id,
-          patientName: selectedPatient.name || `${selectedPatient.first_name || ''} ${selectedPatient.last_name || ''}`.trim(),
-          templateId: assignForm.templateId,
-          peptideId: assignForm.peptideId,
-          selectedDose: assignForm.customDose || (assignForm.selectedDose === 'Custom' ? '' : assignForm.selectedDose),
-          frequency: assignForm.frequency,
-          startDate: assignForm.startDate,
-          notes: assignForm.notes,
-          purchaseId: assignForm.purchaseId || null,
-          deliveryMethod: assignForm.deliveryMethod || null,
-          // Weight loss flag
-          isWeightLoss: isWeightLossTemplate(),
-          // Peptide vial specific fields
-          numVials: assignForm.numVials ? parseInt(assignForm.numVials) : null,
-          reconstitutionMl: assignForm.reconstitutionMl || null,
-          peptideDose: assignForm.peptideDose || null,
-          peptideDurationDays: assignForm.numVials && assignForm.reconstitutionMl && assignForm.peptideDose && assignForm.frequency
-            ? calculatePeptideVialInfo(assignForm.numVials, assignForm.reconstitutionMl, parseInt(assignForm.peptideDose), assignForm.frequency)?.durationDays
-            : null,
-          // Weight loss specific fields
-          wlMedication: assignForm.wlMedication || null,
-          medication: assignForm.wlMedication || null,
-          pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
-          injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
-          injectionDay: assignForm.injectionDay || null,
-          checkinReminderEnabled: assignForm.checkinReminderEnabled || false
-        })
-      });
+      let res;
+
+      // If adding to existing HRT protocol
+      if (addToExistingProtocol) {
+        res = await fetch(`/api/protocols/${addToExistingProtocol}/add-supply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            purchaseId: assignForm.purchaseId || null,
+            notes: assignForm.notes
+          })
+        });
+      } else {
+        // Create new protocol
+        res = await fetch('/api/protocols/assign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientId: selectedPatient.id,
+            patientName: selectedPatient.name || `${selectedPatient.first_name || ''} ${selectedPatient.last_name || ''}`.trim(),
+            templateId: assignForm.templateId,
+            peptideId: assignForm.peptideId,
+            selectedDose: assignForm.customDose || (assignForm.selectedDose === 'Custom' ? '' : assignForm.selectedDose),
+            frequency: assignForm.frequency,
+            startDate: assignForm.startDate,
+            notes: assignForm.notes,
+            purchaseId: assignForm.purchaseId || null,
+            deliveryMethod: assignForm.deliveryMethod || null,
+            // Weight loss flag
+            isWeightLoss: isWeightLossTemplate(),
+            // Peptide vial specific fields
+            numVials: assignForm.numVials ? parseInt(assignForm.numVials) : null,
+            reconstitutionMl: assignForm.reconstitutionMl || null,
+            peptideDose: assignForm.peptideDose || null,
+            peptideDurationDays: assignForm.numVials && assignForm.reconstitutionMl && assignForm.peptideDose && assignForm.frequency
+              ? calculatePeptideVialInfo(assignForm.numVials, assignForm.reconstitutionMl, parseInt(assignForm.peptideDose), assignForm.frequency)?.durationDays
+              : null,
+            // Weight loss specific fields
+            wlMedication: assignForm.wlMedication || null,
+            medication: assignForm.wlMedication || null,
+            pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
+            injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
+            injectionDay: assignForm.injectionDay || null,
+            checkinReminderEnabled: assignForm.checkinReminderEnabled || false
+          })
+        });
+      }
 
       if (res.ok) {
         // Close modal immediately
         setShowAssignModal(false);
         setSelectedPurchase(null);
+        setAddToExistingProtocol(null);
         // Refresh data in background
         fetchPatientDetails(selectedPatient.id);
         fetchData();
@@ -1073,6 +1102,41 @@ export default function CommandCenter() {
               )}
             </div>
 
+            {/* Add to existing HRT protocol option */}
+            {isHRTTemplate() && existingHRTProtocols.length > 0 && (
+              <div style={{ padding: '16px 24px', background: '#F0F9FF', borderBottom: '1px solid #E5E5E5' }}>
+                <label style={{ ...styles.formLabel, marginBottom: '12px', display: 'block' }}>
+                  This patient has an active HRT protocol. Would you like to:
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="hrtAction"
+                      checked={addToExistingProtocol === null}
+                      onChange={() => setAddToExistingProtocol(null)}
+                    />
+                    <span style={{ fontSize: '14px' }}>Create new protocol</span>
+                  </label>
+                  {existingHRTProtocols.map(protocol => (
+                    <label key={protocol.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="hrtAction"
+                        checked={addToExistingProtocol === protocol.id}
+                        onChange={() => setAddToExistingProtocol(protocol.id)}
+                      />
+                      <span style={{ fontSize: '14px' }}>
+                        Add to: <strong>{protocol.program_name}</strong>
+                        {protocol.medication && ` (${protocol.medication})`}
+                        {protocol.delivery_method && ` - ${protocol.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home'}`}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {isPeptideTemplate() && (
               <>
                 <div style={styles.modalFormGroup}>
@@ -1424,15 +1488,27 @@ export default function CommandCenter() {
               </div>
             )}
 
-            <div style={styles.modalFormGroup}>
-              <label style={styles.formLabel}>Start Date</label>
-              <input
-                type="date"
-                value={assignForm.startDate}
-                onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
-                style={styles.formInput}
-              />
-            </div>
+            {/* Hide Start Date when adding to existing protocol */}
+            {!addToExistingProtocol && (
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Start Date</label>
+                <input
+                  type="date"
+                  value={assignForm.startDate}
+                  onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
+                  style={styles.formInput}
+                />
+              </div>
+            )}
+
+            {/* Show info when adding to existing */}
+            {addToExistingProtocol && (
+              <div style={{ padding: '16px 24px', background: '#FEF3C7', borderRadius: '6px', margin: '0 24px 16px' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#92400E' }}>
+                  This will extend the protocol by 30 days and mark the purchase as fulfilled.
+                </p>
+              </div>
+            )}
 
             <div style={styles.modalFormGroup}>
               <label style={styles.formLabel}>Notes</label>
@@ -1441,7 +1517,7 @@ export default function CommandCenter() {
                 onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
                 style={{ ...styles.formInput, minHeight: '60px', resize: 'vertical' }}
                 rows={2}
-                placeholder="Optional notes..."
+                placeholder={addToExistingProtocol ? "Notes about this refill..." : "Optional notes..."}
               />
             </div>
 
@@ -1461,7 +1537,7 @@ export default function CommandCenter() {
                 onClick={handleAssignProtocol}
                 disabled={!assignForm.templateId || isAssigning}
               >
-                {isAssigning ? 'Creating...' : 'Assign Protocol'}
+                {isAssigning ? (addToExistingProtocol ? 'Adding...' : 'Creating...') : (addToExistingProtocol ? 'Add Supply' : 'Assign Protocol')}
               </button>
             </div>
           </div>

@@ -385,13 +385,13 @@ export default function CommandCenter() {
   const fetchInjectionLogs = async () => {
     setInjectionLoading(true);
     try {
-      const res = await fetch(`/api/injection-logs?category=${injectionCategory}&limit=100`);
+      const res = await fetch(`/api/service-log?category=${injectionCategory}&limit=100`);
       const result = await res.json();
       if (result.success) {
         setInjectionLogs(result.logs || []);
       }
     } catch (err) {
-      console.error('Error fetching injection logs:', err);
+      console.error('Error fetching service logs:', err);
     }
     setInjectionLoading(false);
   };
@@ -1072,7 +1072,7 @@ export default function CommandCenter() {
             { id: 'due-soon', label: 'Due Soon', icon: '⏰', badge: data?.stats?.endingSoon },
             { id: 'protocols', label: 'Protocols', icon: '💊' },
             { id: 'patients', label: 'Patients', icon: '👥' },
-            { id: 'injections', label: 'Injections', icon: '💉' },
+            { id: 'injections', label: 'Service Log', icon: '📋' },
             { id: 'forms', label: 'Send Forms', icon: '📤' },
           ].map(tab => (
             <button
@@ -3818,6 +3818,10 @@ function InjectionsTab({
       case 'testosterone': return 'Testosterone';
       case 'weight_loss': return 'Weight Loss';
       case 'vitamin': return 'Vitamin Injection';
+      case 'peptide': return 'Peptide';
+      case 'iv_therapy': return 'IV Therapy';
+      case 'hbot': return 'HBOT Session';
+      case 'red_light': return 'Red Light Session';
       default: return category;
     }
   };
@@ -3910,7 +3914,7 @@ function InjectionsTab({
     }
 
     try {
-      const res = await fetch('/api/injection-logs', {
+      const res = await fetch('/api/service-log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -3921,9 +3925,16 @@ function InjectionsTab({
       if (data.success) {
         closeModal();
         fetchLogs();
-        if (data.protocol_update?.updated) {
-          alert(`✓ Entry saved!\n\nProtocol updated:\n- Last refill: ${data.protocol_update.new_last_refill_date || 'updated'}`);
+        let message = '✓ Entry saved!';
+        if (data.package_update?.decremented) {
+          message += `\n\n📦 Package updated: ${data.package_update.remaining} sessions remaining`;
+        } else if (data.package_update?.no_package) {
+          message += '\n\n⚠️ No package found - bill separately';
         }
+        if (data.protocol_update?.updated || data.protocol_update?.created) {
+          message += '\n\n📋 Protocol updated';
+        }
+        alert(message);
       } else {
         alert('Error: ' + (data.error || 'Failed to save'));
       }
@@ -3936,7 +3947,7 @@ function InjectionsTab({
   const deleteLog = async (id) => {
     if (!confirm('Delete this entry?')) return;
     try {
-      const res = await fetch(`/api/injection-logs?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/service-log?id=${id}`, { method: 'DELETE' });
       if (res.ok) fetchLogs();
     } catch (err) {
       console.error('Delete error:', err);
@@ -3948,9 +3959,13 @@ function InjectionsTab({
       {/* Category Tabs */}
       <div style={styles.injectionTabs}>
         {[
-          { id: 'testosterone', label: 'Testosterone' },
-          { id: 'weight_loss', label: 'Weight Loss' },
-          { id: 'vitamin', label: 'Vitamin Injections' }
+          { id: 'testosterone', label: '💉 Testosterone' },
+          { id: 'weight_loss', label: '📉 Weight Loss' },
+          { id: 'vitamin', label: '💊 Vitamins' },
+          { id: 'peptide', label: '🧬 Peptides' },
+          { id: 'iv_therapy', label: '💧 IV' },
+          { id: 'hbot', label: '🫁 HBOT' },
+          { id: 'red_light', label: '🔴 Red Light' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -3963,6 +3978,12 @@ function InjectionsTab({
             {tab.label}
           </button>
         ))}
+        <a
+          href="/admin/service-log"
+          style={styles.fullServiceLogLink}
+        >
+          Open Full Service Log →
+        </a>
       </div>
 
       {/* Actions Bar */}
@@ -5635,11 +5656,13 @@ const styles = {
   // Injections Tab Styles
   injectionTabs: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: '8px',
     marginBottom: '20px',
+    alignItems: 'center',
   },
   injectionTab: {
-    padding: '10px 20px',
+    padding: '8px 14px',
     background: '#FFFFFF',
     border: '1px solid #D1D5DB',
     borderRadius: '6px',
@@ -5653,6 +5676,16 @@ const styles = {
     background: '#1A1A1A',
     color: '#FFFFFF',
     borderColor: '#1A1A1A',
+  },
+  fullServiceLogLink: {
+    marginLeft: 'auto',
+    padding: '10px 16px',
+    color: '#059669',
+    fontSize: '14px',
+    fontWeight: '500',
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center',
   },
   injectionActions: {
     display: 'flex',

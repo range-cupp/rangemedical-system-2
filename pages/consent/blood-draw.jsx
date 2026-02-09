@@ -1,791 +1,320 @@
+// pages/consent/blood-draw.js
+// Blood Draw / Venipuncture Consent Form
+// Range Medical — Professional Consent with Full PDF Generation
+
 import Head from 'next/head';
-import { useEffect, useRef, useState } from 'react';
-import Script from 'next/script';
+import { useEffect } from 'react';
 
-export default function BloodDrawConsent() {
-  const [scriptsLoaded, setScriptsLoaded] = useState(0);
-  const formInitialized = useRef(false);
-
+export default function BloodDrawConsentPage() {
   useEffect(() => {
-    if (scriptsLoaded >= 4 && !formInitialized.current) {
-      formInitialized.current = true;
-      initializeForm();
-    }
-  }, [scriptsLoaded]);
+    const SUPABASE_URL = 'https://teivfptpozltpqwahgdl.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc';
+    const CONSENT_API = 'https://rangemedical-system-2.vercel.app/api/consent-to-ghl';
+    const urlParams = new URLSearchParams(window.location.search);
+    const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const handleScriptLoad = () => {
-    setScriptsLoaded(prev => prev + 1);
-  };
+    // Signature pad
+    const canvas = document.getElementById('signaturePad');
+    const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)', penColor: 'rgb(0, 0, 0)' });
+    function resizeCanvas() {
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const container = canvas.parentElement;
+      canvas.width = container.offsetWidth * ratio;
+      canvas.height = 150 * ratio;
+      canvas.getContext('2d').scale(ratio, ratio);
+      canvas.style.width = '100%';
+      canvas.style.height = '150px';
+      signaturePad.clear();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    document.getElementById('clearSignature').addEventListener('click', () => signaturePad.clear());
+
+    // Conditional fields
+    document.querySelectorAll('.screening-radio').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const detailsEl = document.getElementById(this.name + '-details');
+        if (detailsEl) detailsEl.style.display = (this.value === 'Yes') ? 'block' : 'none';
+      });
+    });
+
+    function dataURLtoBlob(dataurl) {
+      const arr = dataurl.split(','); const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      return new Blob([u8arr], { type: mime });
+    }
+
+    // Form submission
+    document.getElementById('consentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      const statusMsg = document.getElementById('statusMessage');
+
+      if (signaturePad.isEmpty()) { document.getElementById('signatureError').style.display = 'block'; return; }
+      document.getElementById('signatureError').style.display = 'none';
+
+      const ackBoxes = document.querySelectorAll('.ack-checkbox');
+      let allChecked = true;
+      ackBoxes.forEach(cb => {
+        if (!cb.checked) { allChecked = false; cb.closest('.ack-item').style.borderColor = '#dc2626'; }
+        else { cb.closest('.ack-item').style.borderColor = '#e5e7eb'; }
+      });
+      if (!allChecked) { statusMsg.textContent = 'Please check all acknowledgment boxes to proceed.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; return; }
+
+      submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; statusMsg.style.display = 'none';
+
+      try {
+        const getValue = (id) => (document.getElementById(id)?.value || '').trim();
+        const getRadio = (name) => { const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : ''; };
+
+        const formData = {
+          firstName: getValue('firstName'), lastName: getValue('lastName'),
+          email: getValue('email'), phone: getValue('phone'),
+          dateOfBirth: getValue('dateOfBirth'),
+          consentDate: new Date().toLocaleDateString('en-US'),
+          signatureData: signaturePad.toDataURL(),
+          bleedingDisorder: getRadio('bleedingDisorder'), bleedingDetails: getValue('bleedingDetails'),
+          bloodThinners: getRadio('bloodThinners'), bloodThinnerDetails: getValue('bloodThinnerDetails'),
+          allergiesLatex: getRadio('allergiesLatex'), allergyDetails: getValue('allergyDetails'),
+          faintingHistory: getRadio('faintingHistory'),
+        };
+
+        const acknowledgments = [];
+        ackBoxes.forEach(cb => { acknowledgments.push({ id: cb.id, text: cb.closest('.ack-item').querySelector('.ack-text').textContent.trim(), checked: cb.checked }); });
+        formData.acknowledgments = acknowledgments;
+
+        const pdfBlob = await generatePDF(formData);
+        const sigFileName = `${formData.firstName}-${formData.lastName}-${Date.now()}.jpg`;
+        const { error: sigError } = await supabaseClient.storage.from('medical-documents').upload(`signatures/${sigFileName}`, dataURLtoBlob(formData.signatureData), { contentType: 'image/jpeg' });
+        const signatureUrl = sigError ? '' : `${SUPABASE_URL}/storage/v1/object/public/medical-documents/signatures/${sigFileName}`;
+
+        const pdfFileName = `blood-draw-consent-${formData.firstName}-${formData.lastName}-${Date.now()}.pdf`;
+        const { error: pdfError } = await supabaseClient.storage.from('medical-documents').upload(`consents/${pdfFileName}`, pdfBlob, { contentType: 'application/pdf' });
+        const pdfUrl = pdfError ? '' : `${SUPABASE_URL}/storage/v1/object/public/medical-documents/consents/${pdfFileName}`;
+
+        await supabaseClient.from('consents').insert({
+          consent_type: 'blood_draw', first_name: formData.firstName, last_name: formData.lastName,
+          email: formData.email, phone: formData.phone, date_of_birth: formData.dateOfBirth || null,
+          consent_date: new Date().toISOString().split('T')[0], consent_given: true,
+          signature_url: signatureUrl, pdf_url: pdfUrl,
+          additional_data: { ghl_contact_id: ghlContactId, health_screening: { bleedingDisorder: formData.bleedingDisorder, bleedingDetails: formData.bleedingDetails, bloodThinners: formData.bloodThinners, bloodThinnerDetails: formData.bloodThinnerDetails, allergiesLatex: formData.allergiesLatex, allergyDetails: formData.allergyDetails, faintingHistory: formData.faintingHistory }, acknowledgments }
+        });
+
+        try { await fetch(CONSENT_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'blood-draw', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: formData.consentDate, pdfUrl, signatureUrl, ghlContactId }) }); } catch(e) { console.error('GHL sync error:', e); }
+
+        statusMsg.textContent = 'Consent form submitted successfully. Thank you!'; statusMsg.className = 'status-message success'; statusMsg.style.display = 'block';
+        submitBtn.textContent = '✓ Submitted'; document.getElementById('consentForm').style.opacity = '0.6'; document.getElementById('consentForm').style.pointerEvents = 'none';
+      } catch (err) {
+        console.error('Submission error:', err); statusMsg.textContent = 'Error submitting form. Please try again.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block';
+        submitBtn.disabled = false; submitBtn.textContent = 'Submit Consent';
+      }
+    });
+
+    // PDF Generation
+    async function generatePDF(formData) {
+      const jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+      const doc = new jsPDF({ compress: true });
+      let yPos = 15; const leftMargin = 15; const pageWidth = doc.internal.pageSize.getWidth(); const pageHeight = doc.internal.pageSize.getHeight(); const contentWidth = pageWidth - 30;
+
+      function checkPageBreak(needed = 20) { if (yPos + needed > pageHeight - 25) { doc.addPage(); yPos = 15; } }
+      function addText(text, fontSize = 9, isBold = false) { doc.setFontSize(fontSize); doc.setFont('helvetica', isBold ? 'bold' : 'normal'); doc.setTextColor(0); const lines = doc.splitTextToSize(text, contentWidth); checkPageBreak(lines.length * (fontSize * 0.45) + 4); doc.text(lines, leftMargin, yPos); yPos += lines.length * (fontSize * 0.45) + 2; }
+      function addSectionHeader(text) { checkPageBreak(15); yPos += 4; doc.setFillColor(0); doc.rect(leftMargin, yPos - 4, contentWidth, 8, 'F'); doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(255); doc.text(text.toUpperCase(), leftMargin + 3, yPos + 1); doc.setTextColor(0); yPos += 8; }
+      function addLabelValue(label, value) { checkPageBreak(8); doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.text(label, leftMargin, yPos); doc.setFont('helvetica', 'normal'); doc.text(value || 'N/A', leftMargin + doc.getTextWidth(label) + 2, yPos); yPos += 5; }
+      function addCheckboxLine(text, isChecked = true) { const lines = doc.splitTextToSize(text, contentWidth - 10); checkPageBreak(lines.length * 4.5 + 3); doc.setDrawColor(0); doc.rect(leftMargin, yPos - 3, 3.5, 3.5); if (isChecked) { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('✓', leftMargin + 0.3, yPos); } doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text(lines, leftMargin + 6, yPos); yPos += lines.length * 4 + 2; }
+
+      // Header
+      doc.setFillColor(0); doc.rect(0, 0, pageWidth, 22, 'F');
+      doc.setTextColor(255); doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text('RANGE MEDICAL', leftMargin, 10);
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.text('Blood Draw / Venipuncture — Informed Consent', leftMargin, 16);
+      doc.setFontSize(8); doc.text(`Document Date: ${formData.consentDate}`, pageWidth - 15, 10, { align: 'right' });
+      doc.text('1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660', pageWidth - 15, 16, { align: 'right' });
+      doc.setTextColor(0); yPos = 28;
+
+      // Patient info
+      addSectionHeader('Patient Information');
+      addLabelValue('Patient Name: ', `${formData.firstName} ${formData.lastName}`);
+      addLabelValue('Date of Birth: ', formData.dateOfBirth);
+      addLabelValue('Email: ', formData.email);
+      addLabelValue('Phone: ', formData.phone);
+      addLabelValue('Consent Date: ', formData.consentDate);
+
+      // Description
+      addSectionHeader('Description of Blood Draw / Venipuncture');
+      addText('Venipuncture is a routine medical procedure involving the insertion of a needle into a vein, typically in the arm, for the purpose of obtaining blood specimens for laboratory analysis. Blood specimens may be used for diagnostic testing, baseline health assessments, hormone panels, metabolic panels, and ongoing monitoring of treatment protocols.', 8.5);
+      addText('Blood draw services provided by Range Medical support clinical decision-making and treatment monitoring. Laboratory results are interpreted by qualified medical providers and used to guide individualized wellness and treatment plans.', 8.5);
+
+      // Health screening
+      addSectionHeader('Health Screening Responses');
+      addLabelValue('Bleeding Disorder: ', formData.bleedingDisorder + (formData.bleedingDetails ? ` — ${formData.bleedingDetails}` : ''));
+      addLabelValue('Blood Thinners: ', formData.bloodThinners + (formData.bloodThinnerDetails ? ` — ${formData.bloodThinnerDetails}` : ''));
+      addLabelValue('Allergies (Latex/Adhesive): ', formData.allergiesLatex + (formData.allergyDetails ? ` — ${formData.allergyDetails}` : ''));
+      addLabelValue('History of Fainting: ', formData.faintingHistory || 'N/A');
+
+      // Risks
+      addSectionHeader('Risks & Potential Complications');
+      addText('The following risks associated with venipuncture have been disclosed:', 8.5);
+      const risks = [
+        'Pain, bruising, swelling, or tenderness at the puncture site',
+        'Hematoma (collection of blood under the skin)',
+        'Infection at the puncture site (rare with proper sterile technique)',
+        'Vasovagal response (lightheadedness, dizziness, nausea, or fainting)',
+        'Nerve irritation or injury near the venipuncture site',
+        'Excessive bleeding (particularly in patients on anticoagulants)',
+        'Phlebitis (inflammation of the vein)',
+        'Arterial puncture (rare)',
+        'Need for multiple needle insertions if initial attempt is unsuccessful',
+        'Unforeseen complications not listed above'
+      ];
+      risks.forEach(r => { checkPageBreak(8); doc.setFontSize(8); doc.setFont('helvetica', 'normal'); const lines = doc.splitTextToSize(`• ${r}`, contentWidth - 5); doc.text(lines, leftMargin + 3, yPos); yPos += lines.length * 3.8 + 1; });
+
+      // Acknowledgments
+      addSectionHeader('Patient Acknowledgments & Agreement');
+      addText('By signing below, the patient affirms that each of the following statements has been read, understood, and individually acknowledged:', 8.5);
+      yPos += 2;
+      if (formData.acknowledgments) { formData.acknowledgments.forEach(ack => { addCheckboxLine(ack.text, ack.checked); }); }
+
+      // Signature
+      addSectionHeader('Patient Signature');
+      addLabelValue('Signed by: ', `${formData.firstName} ${formData.lastName}`);
+      addLabelValue('Date: ', formData.consentDate);
+      if (formData.signatureData && formData.signatureData.startsWith('data:')) { checkPageBreak(35); try { doc.addImage(formData.signatureData, 'PNG', leftMargin, yPos, 60, 25); yPos += 28; } catch(e) {} }
+
+      // Footers
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) { doc.setPage(i); doc.setFontSize(7); doc.setTextColor(130); doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 4, { align: 'right' }); doc.text('Range Medical | 1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660 | (949) 997-3988', pageWidth / 2, pageHeight - 8, { align: 'center' }); doc.text('CONFIDENTIAL — Blood Draw / Venipuncture Informed Consent', pageWidth / 2, pageHeight - 4, { align: 'center' }); }
+      return doc.output('blob');
+    }
+  }, []);
 
   return (
     <>
       <Head>
-        <title>Blood Draw Consent Form | Range Medical</title>
-        <meta name="description" content="Blood draw consent form for Range Medical laboratory services." />
+        <title>Blood Draw Consent | Range Medical</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="robots" content="noindex, nofollow" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
       </Head>
+      <div className="consent-page">
+        <header className="consent-header"><div className="header-inner"><h1>RANGE MEDICAL</h1><p>Blood Draw / Venipuncture — Informed Consent</p></div></header>
+        <form id="consentForm" className="consent-form">
+          <div className="section">
+            <h2 className="section-title">Patient Information</h2>
+            <div className="form-row"><div className="form-group"><label htmlFor="firstName">First Name <span className="req">*</span></label><input type="text" id="firstName" required /></div><div className="form-group"><label htmlFor="lastName">Last Name <span className="req">*</span></label><input type="text" id="lastName" required /></div></div>
+            <div className="form-row"><div className="form-group"><label htmlFor="email">Email <span className="req">*</span></label><input type="email" id="email" required /></div><div className="form-group"><label htmlFor="phone">Phone <span className="req">*</span></label><input type="tel" id="phone" required /></div></div>
+            <div className="form-row"><div className="form-group"><label htmlFor="dateOfBirth">Date of Birth <span className="req">*</span></label><input type="date" id="dateOfBirth" required /></div></div>
+          </div>
 
-      <Script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onLoad={handleScriptLoad} />
+          <div className="section">
+            <h2 className="section-title">Description of Blood Draw / Venipuncture</h2>
+            <div className="info-block">
+              <p>Venipuncture is a routine medical procedure involving the insertion of a needle into a vein, typically in the arm, for the purpose of obtaining blood specimens for laboratory analysis. Blood specimens may be used for diagnostic testing, baseline health assessments, hormone panels, metabolic panels, and ongoing monitoring of treatment protocols.</p>
+              <p>Blood draw services provided by Range Medical support clinical decision-making and treatment monitoring. Laboratory results are interpreted by qualified medical providers and used to guide individualized wellness and treatment plans.</p>
+            </div>
+          </div>
 
-      <style jsx global>{`
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        :root{--black:#000;--white:#fff;--gray-50:#fafafa;--gray-100:#f5f5f5;--gray-200:#e5e5e5;--gray-300:#d4d4d4;--gray-400:#a3a3a3;--gray-500:#737373;--gray-600:#525252;--gray-700:#404040;--gray-800:#262626;--gray-900:#171717;--error:#dc2626;--success:#16a34a}
-        html{font-size:16px}
-        body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background-color:var(--gray-100);color:var(--gray-900);line-height:1.6;min-height:100vh}
-        .consent-container{max-width:800px;margin:0 auto;padding:2rem 1.5rem}
-        .consent-header{text-align:center;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:2px solid var(--black)}
-        .clinic-name{font-size:2.5rem;font-weight:700;letter-spacing:.15em;margin-bottom:.5rem;color:var(--black)}
-        .form-title{font-size:1.25rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-top:.5rem;color:var(--gray-700)}
-        .consent-header p{color:var(--gray-600);font-size:.875rem;margin-top:.5rem}
-        .form-container{background:var(--white);border:2px solid var(--black);padding:2rem}
-        .section{margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--gray-200)}
-        .section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
-        .section-title{font-size:1.125rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.5rem;padding-bottom:.75rem;border-bottom:2px solid var(--black);display:inline-block}
-        .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;margin-bottom:1.25rem}
-        .form-row:last-child{margin-bottom:0}
-        .form-group{display:flex;flex-direction:column}
-        .form-group.full-width{grid-column:1/-1}
-        .consent-container label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:var(--gray-700)}
-        .consent-container label .required{color:var(--error);margin-left:2px}
-        .consent-container input[type="text"],.consent-container input[type="email"],.consent-container input[type="tel"],.consent-container input[type="date"],.consent-container select,.consent-container textarea{width:100%;padding:.75rem 1rem;font-size:1rem;font-family:inherit;border:1.5px solid var(--gray-300);background:var(--white);color:var(--gray-900);transition:border-color .2s ease,box-shadow .2s ease;border-radius:0}
-        .consent-container input:focus,.consent-container select:focus,.consent-container textarea:focus{outline:none;border-color:var(--black);box-shadow:0 0 0 3px rgba(0,0,0,.1)}
-        .consent-container input.error,.consent-container select.error,.consent-container textarea.error{border-color:var(--error)}
-        .consent-text{background:var(--gray-50);border:1.5px solid var(--gray-300);padding:1.5rem;margin-bottom:1.5rem;line-height:1.8}
-        .consent-text h4{font-size:.9375rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;color:var(--gray-800)}
-        .consent-text p{margin-bottom:1rem;color:var(--gray-800)}
-        .consent-text p:last-child{margin-bottom:0}
-        .consent-text ul{margin-left:1.5rem;margin-bottom:1rem}
-        .consent-text li{margin-bottom:.5rem;color:var(--gray-800)}
-        .checkbox-consent{display:flex;align-items:flex-start;gap:.75rem;margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border:1.5px solid var(--gray-300)}
-        .checkbox-consent input[type="checkbox"]{width:1.5rem;height:1.5rem;margin-top:.25rem;cursor:pointer;accent-color:var(--black);flex-shrink:0}
-        .checkbox-consent label{font-size:.9375rem;font-weight:500;text-transform:none;letter-spacing:normal;margin-bottom:0;cursor:pointer;color:var(--gray-900);line-height:1.6}
-        .checkbox-consent.error{border-color:var(--error);background:#fef2f2}
-        .signature-wrapper{margin-bottom:1.5rem}
-        .signature-label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;color:var(--gray-700);display:block}
-        .signature-pad-container{border:2px solid var(--gray-300);background:var(--white);position:relative;margin-bottom:.75rem}
-        .signature-pad-container.error{border-color:var(--error)}
-        #signaturePad{display:block;width:100%;height:200px;cursor:crosshair}
-        .signature-placeholder{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--gray-400);font-size:.875rem;pointer-events:none;text-align:center}
-        .signature-controls{display:flex;gap:1rem}
-        .btn-clear{padding:.625rem 1.25rem;font-size:.875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border:1.5px solid var(--gray-300);background:var(--white);color:var(--gray-700);cursor:pointer;transition:all .2s ease;font-family:inherit}
-        .btn-clear:hover{border-color:var(--black);background:var(--gray-50)}
-        .field-error{font-size:.8125rem;color:var(--error);margin-top:.5rem;display:none}
-        .field-error.visible{display:block}
-        .submit-section{margin-top:2rem;padding-top:2rem;border-top:2px solid var(--gray-200);text-align:center}
-        .btn-submit{padding:1rem 3rem;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border:2px solid var(--black);background:var(--black);color:var(--white);cursor:pointer;transition:all .2s ease;font-family:inherit;min-width:250px}
-        .btn-submit:hover:not(:disabled){background:var(--white);color:var(--black)}
-        .btn-submit:disabled{opacity:.6;cursor:not-allowed}
-        .status-message{padding:1rem 1.5rem;margin-bottom:1.5rem;font-size:.9375rem;font-weight:500;text-align:center;display:none}
-        .status-message.visible{display:block}
-        .status-message.error{background:#fef2f2;color:var(--error);border:1.5px solid var(--error)}
-        .status-message.success{background:#f0fdf4;color:var(--success);border:1.5px solid var(--success)}
-        .status-message.loading{background:var(--gray-100);color:var(--gray-700);border:1.5px solid var(--gray-300)}
-        .thank-you-page{background:var(--white);border:2px solid var(--black);padding:3rem 2rem;text-align:center}
-        .thank-you-icon{width:80px;height:80px;background:var(--black);color:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 2rem}
-        .thank-you-page h1{font-size:2rem;font-weight:700;margin-bottom:1rem;color:var(--black)}
-        .thank-you-subtitle{font-size:1.125rem;color:var(--gray-600);margin-bottom:2rem}
-        .thank-you-details{padding:2rem;background:var(--gray-50);border:1.5px solid var(--gray-200);margin-bottom:2rem}
-        .thank-you-details p{margin-bottom:.75rem;color:var(--gray-700)}
-        .thank-you-details p:last-child{margin-bottom:0}
-        .thank-you-footer{padding-top:2rem;border-top:2px solid var(--gray-200)}
-        .thank-you-footer p{font-size:1.5rem;font-weight:700;letter-spacing:.15em;color:var(--black)}
-        @media(max-width:640px){.clinic-name{font-size:2rem}.form-container{padding:1.5rem}.form-row{grid-template-columns:1fr}}
-      `}</style>
+          <div className="section">
+            <h2 className="section-title">Health Screening</h2>
+            <div className="screening-item"><label className="screening-label">Do you have a known bleeding disorder (e.g., hemophilia, von Willebrand disease)? <span className="req">*</span></label><div className="radio-row"><label><input type="radio" name="bleedingDisorder" value="Yes" required className="screening-radio" /> Yes</label><label><input type="radio" name="bleedingDisorder" value="No" className="screening-radio" /> No</label></div><div id="bleedingDisorder-details" className="details-field" style={{display:'none'}}><label htmlFor="bleedingDetails">Please describe:</label><textarea id="bleedingDetails" rows="2"></textarea></div></div>
+            <div className="screening-item"><label className="screening-label">Are you currently taking blood thinners or anticoagulants? <span className="req">*</span></label><div className="radio-row"><label><input type="radio" name="bloodThinners" value="Yes" required className="screening-radio" /> Yes</label><label><input type="radio" name="bloodThinners" value="No" className="screening-radio" /> No</label></div><div id="bloodThinners-details" className="details-field" style={{display:'none'}}><label htmlFor="bloodThinnerDetails">Please list medications:</label><textarea id="bloodThinnerDetails" rows="2"></textarea></div></div>
+            <div className="screening-item"><label className="screening-label">Do you have any allergies to latex, adhesive tape, or bandages? <span className="req">*</span></label><div className="radio-row"><label><input type="radio" name="allergiesLatex" value="Yes" required className="screening-radio" /> Yes</label><label><input type="radio" name="allergiesLatex" value="No" className="screening-radio" /> No</label></div><div id="allergiesLatex-details" className="details-field" style={{display:'none'}}><label htmlFor="allergyDetails">Please describe:</label><textarea id="allergyDetails" rows="2"></textarea></div></div>
+            <div className="screening-item"><label className="screening-label">Have you ever fainted during or after a blood draw? <span className="req">*</span></label><div className="radio-row"><label><input type="radio" name="faintingHistory" value="Yes" required className="screening-radio" /> Yes</label><label><input type="radio" name="faintingHistory" value="No" className="screening-radio" /> No</label></div></div>
+          </div>
 
-      <div className="consent-container" id="consentContainer">
-        <div className="consent-header">
-          <h1 className="clinic-name">RANGE MEDICAL</h1>
-          <h2 className="form-title">Blood Draw Consent Form</h2>
-          <p>Please read carefully and provide your consent</p>
-        </div>
-        
-        <div className="form-container">
-          <div id="statusMessage" className="status-message"></div>
-          
-          <form id="consentForm">
-            {/* Patient Information */}
-            <div className="section">
-              <h3 className="section-title">Patient Information</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="firstName">First Name <span className="required">*</span></label>
-                  <input type="text" id="firstName" name="firstName" required />
-                  <div className="field-error" id="firstNameError">Please enter your first name</div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="lastName">Last Name <span className="required">*</span></label>
-                  <input type="text" id="lastName" name="lastName" required />
-                  <div className="field-error" id="lastNameError">Please enter your last name</div>
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="email">Email <span className="required">*</span></label>
-                  <input type="email" id="email" name="email" required />
-                  <div className="field-error" id="emailError">Please enter a valid email</div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="phone">Phone <span className="required">*</span></label>
-                  <input type="tel" id="phone" name="phone" required />
-                  <div className="field-error" id="phoneError">Please enter your phone number</div>
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="dateOfBirth">Date of Birth <span className="required">*</span></label>
-                  <input type="text" id="dateOfBirth" name="dateOfBirth" placeholder="MM/DD/YYYY" maxLength="10" required />
-                  <div className="field-error" id="dateOfBirthError">Please enter a valid date (MM/DD/YYYY)</div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="consentDate">Today's Date <span className="required">*</span></label>
-                  <input type="date" id="consentDate" name="consentDate" required />
-                  <div className="field-error" id="consentDateError">Please enter today's date</div>
-                </div>
-              </div>
+          <div className="section">
+            <h2 className="section-title">Risks & Potential Complications</h2>
+            <div className="info-block">
+              <p>Venipuncture, while routine, carries inherent medical risks including but not limited to:</p>
+              <ul className="risk-list">
+                <li>Pain, bruising, swelling, or tenderness at the puncture site</li>
+                <li>Hematoma (collection of blood under the skin)</li>
+                <li>Infection at the puncture site (rare with proper sterile technique)</li>
+                <li>Vasovagal response (lightheadedness, dizziness, nausea, or fainting)</li>
+                <li>Nerve irritation or injury near the venipuncture site</li>
+                <li>Excessive bleeding (particularly in patients on anticoagulants)</li>
+                <li>Phlebitis (inflammation of the vein)</li>
+                <li>Arterial puncture (rare)</li>
+                <li>Need for multiple needle insertions if initial attempt is unsuccessful</li>
+                <li>Unforeseen complications not listed above</li>
+              </ul>
             </div>
-            
-            {/* Consent Information */}
-            <div className="section">
-              <h3 className="section-title">Consent for Blood Draw</h3>
-              
-              <div className="consent-text">
-                <h4>Purpose</h4>
-                <p>I understand that I am voluntarily ordering blood to be drawn from my vein for laboratory testing. I am obtaining these tests on my own initiative to discuss treatment options with Range Medical. These tests will provide information about my health status to support consultation and treatment planning.</p>
-                
-                <h4>Procedure</h4>
-                <p>I understand that the blood draw procedure will involve:</p>
-                <ul>
-                  <li>Cleansing the skin with an antiseptic</li>
-                  <li>Inserting a sterile needle into a vein, usually in my arm</li>
-                  <li>Collecting blood into one or more tubes</li>
-                  <li>Removing the needle and applying pressure to stop bleeding</li>
-                  <li>Placing a bandage over the puncture site</li>
-                </ul>
-                
-                <h4>Risks and Discomfort</h4>
-                <p>I understand that blood draws are generally safe but may involve the following risks:</p>
-                <ul>
-                  <li>Temporary pain, discomfort, or bruising at the puncture site</li>
-                  <li>Lightheadedness or fainting</li>
-                  <li>Bleeding or hematoma (blood collecting under the skin)</li>
-                  <li>Infection at the puncture site (rare)</li>
-                  <li>Multiple needle sticks if a vein is difficult to access</li>
-                </ul>
-                
-                <h4>Benefits</h4>
-                <p>The blood tests I am ordering will provide important information about my health status and help support informed discussions with Range Medical about potential treatment options and health optimization strategies.</p>
-                
-                <h4>Alternatives</h4>
-                <p>I understand that this blood draw is voluntary and that I am ordering these tests on my own initiative. I have the right to decline or postpone the blood draw at any time. However, choosing not to obtain these tests may limit the information available for my consultation with Range Medical.</p>
-                
-                <h4>Questions and Right to Refuse</h4>
-                <p>I have been given the opportunity to ask questions about the blood draw procedure, and my questions have been answered to my satisfaction. I understand that I may withdraw my consent at any time before the procedure begins.</p>
-              </div>
-              
-              <div className="checkbox-consent" id="consentCheckbox">
-                <input type="checkbox" id="consentGiven" name="consentGiven" required />
-                <label htmlFor="consentGiven">
-                  <strong>I have read and understand the above information.</strong> I voluntarily consent to have blood drawn for laboratory testing that I am ordering for the purpose of consultation with Range Medical. I acknowledge that the procedure, risks, benefits, and alternatives have been explained to me.
-                </label>
-              </div>
-              <div className="field-error" id="consentError">You must provide consent to continue</div>
-            </div>
-            
-            {/* Signature */}
-            <div className="section">
-              <h3 className="section-title">Patient Signature</h3>
-              <div className="signature-wrapper">
-                <span className="signature-label">Sign Below <span className="required">*</span></span>
-                <div className="signature-pad-container" id="signatureContainer">
-                  <canvas id="signaturePad"></canvas>
-                  <div className="signature-placeholder" id="signaturePlaceholder">Sign here using your mouse or touchscreen</div>
-                </div>
-                <div className="field-error" id="signatureError">Please provide your signature</div>
-                <div className="signature-controls">
-                  <button type="button" className="btn-clear" id="clearSignature">Clear Signature</button>
-                </div>
-              </div>
-              <p style={{ fontSize: '.875rem', color: 'var(--gray-600)', marginTop: '1rem' }}>By signing above, I certify that I am the patient (or authorized representative) and that the information provided is accurate.</p>
-            </div>
-            
-            {/* Submit */}
-            <div className="submit-section">
-              <button type="submit" className="btn-submit" id="submitBtn">Submit Consent Form</button>
-            </div>
-          </form>
-        </div>
+          </div>
+
+          <div className="section">
+            <h2 className="section-title">Patient Acknowledgments & Agreement</h2>
+            <p className="section-desc">Please read each statement carefully and check the box to confirm your understanding and agreement. <strong>All boxes must be checked to proceed.</strong></p>
+            <div className="ack-item"><label><input type="checkbox" id="ack1" className="ack-checkbox" required /><span className="ack-text">I consent to the collection of blood specimens by venipuncture for the purpose of laboratory testing and analysis as ordered by Range Medical's clinical staff. I understand that one or more vials of blood may be drawn depending on the tests ordered.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack2" className="ack-checkbox" required /><span className="ack-text">I have been informed of the risks and potential complications associated with venipuncture, as detailed in the Risks & Potential Complications section above. I accept these risks voluntarily.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack3" className="ack-checkbox" required /><span className="ack-text">I confirm that I have disclosed all relevant medical information, including bleeding disorders, current medications (particularly anticoagulants), known allergies, and any history of fainting during blood draws. I understand that failure to disclose accurate information may compromise the safety of the procedure.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack4" className="ack-checkbox" required /><span className="ack-text">I understand that laboratory results are used for clinical guidance and may require follow-up testing, additional evaluation, or referral to a specialist. Lab results do not constitute a diagnosis on their own and must be interpreted within the context of a complete clinical picture.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack5" className="ack-checkbox" required /><span className="ack-text">I understand that I should continue to see my primary care physician and any specialists for the management of existing health conditions. Blood draw services at Range Medical do not replace routine medical care.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack6" className="ack-checkbox" required /><span className="ack-text">I voluntarily assume full responsibility for any risks associated with venipuncture. I release, discharge, and hold harmless Range Medical, its medical director, physicians, nurse practitioners, registered nurses, medical assistants, staff, and affiliated entities from any and all claims, liabilities, damages, or causes of action arising out of or related to the blood draw procedure, except in cases of gross negligence or willful misconduct.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack7" className="ack-checkbox" required /><span className="ack-text">I acknowledge that I am financially responsible for all services rendered, including laboratory processing fees. I understand that some lab panels may not be covered by insurance.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack8" className="ack-checkbox" required /><span className="ack-text">I authorize Range Medical to contact me via phone, text message, and/or email for purposes related to my care, including lab results and follow-up communications.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack9" className="ack-checkbox" required /><span className="ack-text">I confirm that I am at least 18 years of age (or that a parent/legal guardian has consented), that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing voluntarily.</span></label></div>
+          </div>
+
+          <div className="section">
+            <h2 className="section-title">Patient Signature</h2>
+            <p className="section-desc">By signing below, I certify that I have read, understood, and agree to all statements contained in this Informed Consent for Blood Draw / Venipuncture.</p>
+            <div className="signature-container"><canvas id="signaturePad" className="signature-pad"></canvas></div>
+            <div className="signature-actions"><button type="button" className="btn-clear" id="clearSignature">Clear Signature</button></div>
+            <span className="field-error" id="signatureError" style={{display:'none'}}>Signature is required</span>
+          </div>
+          <div className="submit-section"><button type="submit" className="btn-submit" id="submitBtn">Submit Consent</button><div className="status-message" id="statusMessage" style={{display:'none'}}></div></div>
+        </form>
+        <footer className="consent-footer"><p>&copy; 2026 Range Medical. All rights reserved.</p><p>Your information is protected and kept confidential.</p></footer>
       </div>
+      <style jsx global>{`
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f9f9f9; color: #111; }
+        .consent-page { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; }
+        .consent-header { background: #000; color: #fff; padding: 24px 28px; }
+        .consent-header h1 { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+        .consent-header p { font-size: 14px; opacity: 0.85; }
+        .consent-form { padding: 0 28px 40px; }
+        .section { border-bottom: 1px solid #e5e5e5; padding: 28px 0; }
+        .section:last-of-type { border-bottom: none; }
+        .section-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #000; }
+        .section-desc { font-size: 14px; color: #444; margin-bottom: 16px; line-height: 1.5; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .form-group input:focus, .form-group textarea:focus { border-color: #000; outline: none; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
+        .req { color: #dc2626; }
+        .info-block { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 20px; }
+        .info-block p { font-size: 14px; line-height: 1.6; color: #333; margin-bottom: 12px; }
+        .info-block p:last-child { margin-bottom: 0; }
+        .risk-list { padding-left: 20px; margin-top: 8px; }
+        .risk-list li { font-size: 13px; line-height: 1.5; color: #444; margin-bottom: 6px; }
+        .screening-item { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+        .screening-label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px; }
+        .radio-row { display: flex; gap: 20px; margin-top: 4px; }
+        .radio-row label { font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .details-field { margin-top: 10px; }
+        .details-field label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px; }
+        .details-field textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; resize: vertical; }
+        .ack-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+        .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
+        .ack-checkbox { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: #000; }
+        .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
+        .signature-container { border: 2px solid #000; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+        .signature-pad { width: 100%; height: 150px; cursor: crosshair; }
+        .signature-actions { text-align: right; }
+        .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .field-error { color: #dc2626; font-size: 12px; display: block; margin-top: 4px; }
+        .submit-section { padding-top: 20px; text-align: center; }
+        .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-submit:disabled { background: #999; cursor: not-allowed; }
+        .status-message { margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; }
+        .status-message.success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+        .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .consent-footer { text-align: center; padding: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }
+        @media (max-width: 640px) { .form-row { flex-direction: column; gap: 12px; } .consent-form { padding: 0 16px 30px; } .consent-header { padding: 20px 16px; } .radio-row { flex-wrap: wrap; } }
+      `}</style>
     </>
   );
-}
-
-function initializeForm() {
-  if (typeof window === 'undefined') return;
-
-  // ============================================
-  // CONFIGURATION
-  // ============================================
-  const CONFIG = {
-    consentType: 'blood_draw',
-    consentTitle: 'Blood Draw Consent',
-    emailjs: {
-      publicKey: 'ZeNFfwJ37Uhd6E1vp',
-      serviceId: 'service_pyl6wra',
-      templateId: 'template_ecqidtm'
-    },
-    supabase: {
-      url: 'https://teivfptpozltpqwahgdl.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
-    },
-    api: {
-      consents: '/api/consent-forms',
-      ghl: '/api/consent-to-ghl'
-    },
-    ghl: {
-      customFieldKey: 'blood_work_consent',
-      customFieldValue: 'Complete',
-      tags: ['blood-draw-consent-signed', 'consent-completed']
-    },
-    recipientEmail: 'cupp@range-medical.com, intake@range-medical.com'
-  };
-
-  // ============================================
-  // SUPABASE CLIENT
-  // ============================================
-  const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
-
-  // ============================================
-  // SIGNATURE PAD SETUP
-  // ============================================
-  let signaturePad;
-  const canvas = document.getElementById('signaturePad');
-  if (!canvas) return;
-
-  function initSignaturePad() {
-    const container = canvas.parentElement;
-    
-    function resizeCanvas() {
-      const ratio = 1;
-      canvas.width = container.offsetWidth * ratio;
-      canvas.height = 200 * ratio;
-      canvas.style.width = container.offsetWidth + 'px';
-      canvas.style.height = '200px';
-      canvas.getContext('2d').scale(ratio, ratio);
-      if (signaturePad && !signaturePad.isEmpty()) {
-        const data = signaturePad.toData();
-        signaturePad.fromData(data);
-      }
-    }
-    
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    signaturePad = new window.SignaturePad(canvas, {
-      backgroundColor: 'rgb(255, 255, 255)',
-      penColor: 'rgb(0, 0, 0)',
-      minWidth: 1,
-      maxWidth: 2.5
-    });
-    
-    signaturePad.addEventListener('beginStroke', () => {
-      document.getElementById('signaturePlaceholder').style.display = 'none';
-      document.getElementById('signatureContainer').classList.remove('error');
-      document.getElementById('signatureError').classList.remove('visible');
-    });
-    
-    document.getElementById('clearSignature').addEventListener('click', () => {
-      signaturePad.clear();
-      document.getElementById('signaturePlaceholder').style.display = 'block';
-    });
-  }
-
-  initSignaturePad();
-  
-  // Set today's date
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('consentDate').value = today;
-  
-  // ============================================
-  // DATE OF BIRTH AUTO-FORMATTING
-  // ============================================
-  const dobInput = document.getElementById('dateOfBirth');
-  dobInput.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-    
-    if (value.length >= 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2);
-    }
-    if (value.length >= 5) {
-      value = value.slice(0, 5) + '/' + value.slice(5);
-    }
-    if (value.length > 10) {
-      value = value.slice(0, 10);
-    }
-    
-    e.target.value = value;
-  });
-
-  // Validate DOB format
-  function isValidDOB(dateStr) {
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return false;
-    
-    const [month, day, year] = dateStr.split('/').map(Number);
-    const date = new Date(year, month - 1, day);
-    
-    return date.getFullYear() === year && 
-           date.getMonth() === month - 1 && 
-           date.getDate() === day &&
-           year >= 1900 && year <= new Date().getFullYear();
-  }
-  
-  // Clear errors on input
-  document.querySelectorAll('input[required]').forEach(input => {
-    input.addEventListener('input', () => {
-      input.classList.remove('error');
-      const errorEl = document.getElementById(input.id + 'Error');
-      if (errorEl) errorEl.classList.remove('visible');
-    });
-  });
-  
-  document.getElementById('consentGiven').addEventListener('change', () => {
-    document.getElementById('consentCheckbox').classList.remove('error');
-    document.getElementById('consentError').classList.remove('visible');
-  });
-
-  // ============================================
-  // FORM VALIDATION
-  // ============================================
-  function validateForm() {
-    let isValid = true;
-    
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'consentDate'];
-    requiredFields.forEach(fieldId => {
-      const field = document.getElementById(fieldId);
-      const error = document.getElementById(fieldId + 'Error');
-      if (!field.value.trim()) {
-        field.classList.add('error');
-        if (error) error.classList.add('visible');
-        isValid = false;
-      } else {
-        field.classList.remove('error');
-        if (error) error.classList.remove('visible');
-      }
-    });
-    
-    // Validate DOB separately
-    const dob = document.getElementById('dateOfBirth');
-    const dobError = document.getElementById('dateOfBirthError');
-    if (!dob.value.trim() || !isValidDOB(dob.value)) {
-      dob.classList.add('error');
-      if (dobError) dobError.classList.add('visible');
-      isValid = false;
-    } else {
-      dob.classList.remove('error');
-      if (dobError) dobError.classList.remove('visible');
-    }
-    
-    const consentCheckbox = document.getElementById('consentGiven');
-    if (!consentCheckbox.checked) {
-      document.getElementById('consentCheckbox').classList.add('error');
-      document.getElementById('consentError').classList.add('visible');
-      isValid = false;
-    }
-    
-    if (signaturePad.isEmpty()) {
-      document.getElementById('signatureContainer').classList.add('error');
-      document.getElementById('signatureError').classList.add('visible');
-      isValid = false;
-    }
-    
-    return isValid;
-  }
-
-  // ============================================
-  // COLLECT FORM DATA
-  // ============================================
-  function collectFormData() {
-    return {
-      firstName: document.getElementById('firstName').value.trim(),
-      lastName: document.getElementById('lastName').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
-      dateOfBirth: document.getElementById('dateOfBirth').value,
-      consentDate: document.getElementById('consentDate').value,
-      consentGiven: document.getElementById('consentGiven').checked,
-      signature: signaturePad.toDataURL('image/jpeg', 0.5),
-      submissionDate: new Date().toLocaleString('en-US', {
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      })
-    };
-  }
-
-  // ============================================
-  // UPLOAD TO SUPABASE STORAGE
-  // ============================================
-  async function uploadBase64ToStorage(base64Data, folder, patientName, extension = 'png') {
-    try {
-      const timestamp = Date.now();
-      const safeName = patientName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-      const fileName = `${safeName}-${timestamp}.${extension}`;
-      const filePath = `${folder}/${fileName}`;
-      
-      const base64Content = base64Data.split(',')[1];
-      const mimeType = base64Data.split(';')[0].split(':')[1] || 'image/png';
-      const byteCharacters = atob(base64Content);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: mimeType });
-      
-      const { data, error } = await supabaseClient.storage
-        .from('medical-documents')
-        .upload(filePath, blob, { contentType: mimeType, cacheControl: '3600', upsert: false });
-      
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabaseClient.storage
-        .from('medical-documents')
-        .getPublicUrl(filePath);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error(`Error uploading ${folder}:`, error);
-      return null;
-    }
-  }
-
-  async function uploadPDFToStorage(pdfBlob, formData) {
-    try {
-      const timestamp = Date.now();
-      const fileName = `blood-draw-consent-${formData.firstName}-${formData.lastName}-${timestamp}.pdf`;
-      const filePath = `consents/${fileName}`;
-      
-      const { data, error } = await supabaseClient.storage
-        .from('medical-documents')
-        .upload(filePath, pdfBlob, { contentType: 'application/pdf', cacheControl: '3600', upsert: false });
-      
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabaseClient.storage
-        .from('medical-documents')
-        .getPublicUrl(filePath);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading PDF:', error);
-      throw error;
-    }
-  }
-
-  // ============================================
-  // GENERATE PDF
-  // ============================================
-  function generatePDF(formData) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ compress: true });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    let yPos = margin;
-    
-    // Header
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('RANGE MEDICAL', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 10;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Blood Draw Consent Form', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    
-    // Patient Info
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PATIENT INFORMATION', margin, yPos);
-    yPos += 10;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Name: ${formData.firstName} ${formData.lastName}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Email: ${formData.email}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Phone: ${formData.phone}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date of Birth: ${formData.dateOfBirth}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date: ${formData.consentDate}`, margin, yPos);
-    
-    // Consent sections
-    yPos += 15;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('CONSENT FOR BLOOD DRAW', margin, yPos);
-    
-    yPos += 10;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('Purpose', margin, yPos);
-    yPos += 6;
-    doc.setFont('helvetica', 'normal');
-    const purposeText = 'I understand that I am voluntarily ordering blood to be drawn from my vein for laboratory testing. I am obtaining these tests on my own initiative to discuss treatment options with Range Medical.';
-    const purposeLines = doc.splitTextToSize(purposeText, pageWidth - 2 * margin);
-    doc.text(purposeLines, margin, yPos);
-    yPos += purposeLines.length * 5 + 5;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Procedure', margin, yPos);
-    yPos += 6;
-    doc.setFont('helvetica', 'normal');
-    const procedureText = 'The blood draw procedure involves: cleansing the skin, inserting a sterile needle into a vein, collecting blood, removing the needle and applying pressure, and placing a bandage.';
-    const procedureLines = doc.splitTextToSize(procedureText, pageWidth - 2 * margin);
-    doc.text(procedureLines, margin, yPos);
-    yPos += procedureLines.length * 5 + 5;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Risks', margin, yPos);
-    yPos += 6;
-    doc.setFont('helvetica', 'normal');
-    const risksText = 'Possible risks include: temporary pain or bruising, lightheadedness or fainting, bleeding or hematoma, infection (rare), and multiple needle sticks if vein is difficult to access.';
-    const risksLines = doc.splitTextToSize(risksText, pageWidth - 2 * margin);
-    doc.text(risksLines, margin, yPos);
-    yPos += risksLines.length * 5 + 10;
-    
-    if (yPos > pageHeight - 70) {
-      doc.addPage();
-      yPos = margin;
-    }
-    
-    // Consent statement
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    const consentStatement = 'I have read and understand the above information. I voluntarily consent to have blood drawn for laboratory testing for consultation with Range Medical.';
-    const consentLines = doc.splitTextToSize(consentStatement, pageWidth - 2 * margin);
-    doc.text(consentLines, margin, yPos);
-    yPos += consentLines.length * 5 + 10;
-    
-    // Signature
-    doc.setFont('helvetica', 'bold');
-    doc.text('Patient Signature:', margin, yPos);
-    if (formData.signature) {
-      yPos += 5;
-      doc.addImage(formData.signature, 'JPEG', margin, yPos, 60, 22);
-      yPos += 27;
-    }
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`Signed on: ${formData.consentDate}`, margin, yPos);
-    
-    // Footer
-    yPos = pageHeight - 15;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text('© 2025 Range Medical. All rights reserved. | Confidential Patient Information', pageWidth / 2, yPos, { align: 'center' });
-    
-    return doc.output('blob');
-  }
-
-  // ============================================
-  // SAVE TO DATABASE
-  // ============================================
-  async function saveToDatabase(formData, urls) {
-    try {
-      const response = await fetch(CONFIG.api.consents, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          consentType: CONFIG.consentType,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          dateOfBirth: formData.dateOfBirth,
-          consentDate: formData.consentDate,
-          consentGiven: formData.consentGiven,
-          signatureUrl: urls.signatureUrl,
-          pdfUrl: urls.pdfUrl
-        })
-      });
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error saving to database:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // ============================================
-  // SEND TO GOHIGHLEVEL
-  // ============================================
-  async function sendToGoHighLevel(formData, urls) {
-    try {
-      const response = await fetch(CONFIG.api.ghl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          dateOfBirth: formData.dateOfBirth,
-          consentType: CONFIG.consentType,
-          consentDate: formData.consentDate,
-          customFieldKey: CONFIG.ghl.customFieldKey,
-          customFieldValue: CONFIG.ghl.customFieldValue,
-          tags: CONFIG.ghl.tags,
-          pdfUrl: urls.pdfUrl,
-          signatureUrl: urls.signatureUrl
-        })
-      });
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error sending to GHL:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // ============================================
-  // SEND EMAIL
-  // ============================================
-  async function sendEmail(formData, pdfBlob) {
-    window.emailjs.init(CONFIG.emailjs.publicKey);
-    
-    const base64PDF = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(pdfBlob);
-    });
-    
-    const messageBody = `
-BLOOD DRAW CONSENT FORM SUBMISSION
-===================================
-
-PATIENT INFORMATION
--------------------
-Name: ${formData.firstName} ${formData.lastName}
-Email: ${formData.email}
-Phone: ${formData.phone}
-Date of Birth: ${formData.dateOfBirth}
-Date of Consent: ${formData.consentDate}
-
-CONSENT
--------
-Consent Given: ${formData.consentGiven ? 'Yes' : 'No'}
-Signature: Provided electronically
-Submitted: ${formData.submissionDate}
-
-===================================
-PDF consent form is attached.
-`;
-    
-    const templateParams = {
-      to_email: CONFIG.recipientEmail,
-      from_name: `${formData.firstName} ${formData.lastName}`,
-      patient_name: `${formData.firstName} ${formData.lastName}`,
-      patient_email: formData.email,
-      patient_phone: formData.phone,
-      submission_date: formData.submissionDate,
-      message: messageBody,
-      content: base64PDF,
-      filename: `RangeMedical_BloodDrawConsent_${formData.lastName}_${formData.firstName}.pdf`
-    };
-    
-    return await window.emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, templateParams);
-  }
-
-  // ============================================
-  // FORM SUBMISSION
-  // ============================================
-  function showStatus(message, type) {
-    const statusEl = document.getElementById('statusMessage');
-    statusEl.textContent = message;
-    statusEl.className = 'status-message visible ' + type;
-  }
-
-  function showThankYouPage(formData) {
-    document.getElementById('consentContainer').innerHTML = `
-      <div class="thank-you-page">
-        <div class="thank-you-icon">✓</div>
-        <h1>Thank You, ${formData.firstName}!</h1>
-        <p class="thank-you-subtitle">Your consent form has been successfully submitted.</p>
-        <div class="thank-you-details">
-          <p>Your blood draw consent form has been submitted to Range Medical.</p>
-          <p>Our team will review your consent before your appointment.</p>
-        </div>
-        <div class="thank-you-footer">
-          <p>RANGE MEDICAL</p>
-        </div>
-      </div>
-    `;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  document.getElementById('consentForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      showStatus('Please complete all required fields.', 'error');
-      const firstError = document.querySelector('.field-error.visible');
-      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Processing...';
-    
-    try {
-      showStatus('Collecting form data...', 'loading');
-      const formData = collectFormData();
-      const patientName = `${formData.firstName}-${formData.lastName}`;
-      
-      showStatus('Uploading signature...', 'loading');
-      let signatureUrl = null;
-      if (formData.signature && formData.signature.startsWith('data:')) {
-        signatureUrl = await uploadBase64ToStorage(formData.signature, 'signatures', patientName, 'jpg');
-      }
-      
-      showStatus('Generating PDF...', 'loading');
-      const pdfBlob = generatePDF(formData);
-      
-      showStatus('Uploading consent form...', 'loading');
-      const pdfUrl = await uploadPDFToStorage(pdfBlob, formData);
-      
-      const urls = { signatureUrl, pdfUrl };
-      
-      showStatus('Sending to Range Medical...', 'loading');
-      try {
-        await sendEmail(formData, pdfBlob);
-      } catch (emailError) {
-        console.warn('Email error (non-critical):', emailError);
-      }
-      
-      showStatus('Saving consent record...', 'loading');
-      await saveToDatabase(formData, urls);
-      
-      showStatus('Updating patient record...', 'loading');
-      await sendToGoHighLevel(formData, urls);
-      
-      showThankYouPage(formData);
-      
-    } catch (error) {
-      console.error('Submission error:', error);
-      showStatus('Error: ' + (error.message || 'Unknown error'), 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Consent Form';
-    }
-  });
 }

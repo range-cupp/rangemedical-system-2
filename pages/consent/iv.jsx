@@ -1,1157 +1,869 @@
+// pages/consent/iv.js
+// IV & Injection Therapy Consent Form
+// Range Medical — Professional Consent with Full PDF Generation
+// All acknowledgments appear individually on the generated PDF
+
 import Head from 'next/head';
-import { useEffect, useRef, useState } from 'react';
-import Script from 'next/script';
+import { useEffect } from 'react';
 
-export default function IVInjectionConsent() {
-  const [scriptsLoaded, setScriptsLoaded] = useState(0);
-  const formInitialized = useRef(false);
-
+export default function IVConsentPage() {
   useEffect(() => {
-    if (scriptsLoaded >= 4 && !formInitialized.current) {
-      formInitialized.current = true;
-      initializeForm();
-    }
-  }, [scriptsLoaded]);
+    // ============================================
+    // CONFIGURATION
+    // ============================================
+    const SUPABASE_URL = 'https://teivfptpozltpqwahgdl.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc';
+    const CONSENT_API = 'https://rangemedical-system-2.vercel.app/api/consent-to-ghl';
 
-  const handleScriptLoad = () => {
-    setScriptsLoaded(prev => prev + 1);
-  };
+    const urlParams = new URLSearchParams(window.location.search);
+    const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ============================================
+    // SIGNATURE PAD
+    // ============================================
+    const canvas = document.getElementById('signaturePad');
+    const signaturePad = new SignaturePad(canvas, {
+      backgroundColor: 'rgb(255, 255, 255)',
+      penColor: 'rgb(0, 0, 0)'
+    });
+
+    function resizeCanvas() {
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const container = canvas.parentElement;
+      canvas.width = container.offsetWidth * ratio;
+      canvas.height = 150 * ratio;
+      canvas.getContext('2d').scale(ratio, ratio);
+      canvas.style.width = '100%';
+      canvas.style.height = '150px';
+      signaturePad.clear();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    document.getElementById('clearSignature').addEventListener('click', () => signaturePad.clear());
+
+    // ============================================
+    // FORM SUBMISSION
+    // ============================================
+    document.getElementById('consentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      const statusMsg = document.getElementById('statusMessage');
+
+      // Validate signature
+      if (signaturePad.isEmpty()) {
+        document.getElementById('signatureError').style.display = 'block';
+        return;
+      }
+      document.getElementById('signatureError').style.display = 'none';
+
+      // Validate all acknowledgment checkboxes
+      const ackBoxes = document.querySelectorAll('.ack-checkbox');
+      let allChecked = true;
+      ackBoxes.forEach(cb => {
+        if (!cb.checked) {
+          allChecked = false;
+          cb.closest('.ack-item').style.borderColor = '#dc2626';
+        } else {
+          cb.closest('.ack-item').style.borderColor = '#e5e7eb';
+        }
+      });
+      if (!allChecked) {
+        statusMsg.textContent = 'Please check all acknowledgment boxes to proceed.';
+        statusMsg.className = 'status-message error';
+        statusMsg.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+      statusMsg.style.display = 'none';
+
+      try {
+        const getValue = (id) => (document.getElementById(id)?.value || '').trim();
+        const getRadio = (name) => {
+          const r = document.querySelector(`input[name="${name}"]:checked`);
+          return r ? r.value : '';
+        };
+
+        const formData = {
+          firstName: getValue('firstName'),
+          lastName: getValue('lastName'),
+          email: getValue('email'),
+          phone: getValue('phone'),
+          dateOfBirth: getValue('dateOfBirth'),
+          consentDate: new Date().toLocaleDateString('en-US'),
+          signatureData: signaturePad.toDataURL(),
+          // Health screening
+          g6pd: getRadio('g6pd'),
+          g6pdDetails: getValue('g6pdDetails'),
+          allergies: getRadio('allergies'),
+          allergyDetails: getValue('allergyDetails'),
+          pregnant: getRadio('pregnant'),
+          medications: getRadio('medications'),
+          medicationDetails: getValue('medicationDetails'),
+          heartCondition: getRadio('heartCondition'),
+          heartDetails: getValue('heartDetails'),
+          kidneyLiver: getRadio('kidneyLiver'),
+          kidneyLiverDetails: getValue('kidneyLiverDetails'),
+          diabetes: getRadio('diabetes'),
+          diabetesDetails: getValue('diabetesDetails'),
+          bleeding: getRadio('bleeding'),
+          bleedingDetails: getValue('bleedingDetails'),
+          recentSurgery: getRadio('recentSurgery'),
+          surgeryDetails: getValue('surgeryDetails'),
+        };
+
+        // Collect acknowledgments
+        const acknowledgments = [];
+        ackBoxes.forEach(cb => {
+          acknowledgments.push({
+            id: cb.id,
+            text: cb.closest('.ack-item').querySelector('.ack-text').textContent.trim(),
+            checked: cb.checked
+          });
+        });
+        formData.acknowledgments = acknowledgments;
+
+        // Generate PDF
+        const pdfBlob = await generatePDF(formData);
+
+        // Upload signature
+        const sigFileName = `${formData.firstName}-${formData.lastName}-${Date.now()}.jpg`;
+        const { data: sigData, error: sigError } = await supabaseClient.storage
+          .from('medical-documents')
+          .upload(`signatures/${sigFileName}`, dataURLtoBlob(formData.signatureData), { contentType: 'image/jpeg' });
+
+        const signatureUrl = sigError ? '' :
+          `${SUPABASE_URL}/storage/v1/object/public/medical-documents/signatures/${sigFileName}`;
+
+        // Upload PDF
+        const pdfFileName = `iv-injection-consent-${formData.firstName}-${formData.lastName}-${Date.now()}.pdf`;
+        const { data: pdfData, error: pdfError } = await supabaseClient.storage
+          .from('medical-documents')
+          .upload(`consents/${pdfFileName}`, pdfBlob, { contentType: 'application/pdf' });
+
+        const pdfUrl = pdfError ? '' :
+          `${SUPABASE_URL}/storage/v1/object/public/medical-documents/consents/${pdfFileName}`;
+
+        // Save to database
+        const { error: dbError } = await supabaseClient.from('consents').insert({
+          consent_type: 'iv-injection',
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          date_of_birth: formData.dateOfBirth || null,
+          consent_date: new Date().toISOString().split('T')[0],
+          consent_given: true,
+          signature_url: signatureUrl,
+          pdf_url: pdfUrl,
+          additional_data: {
+            ghl_contact_id: ghlContactId,
+            health_screening: {
+              g6pd: formData.g6pd,
+              g6pdDetails: formData.g6pdDetails,
+              allergies: formData.allergies,
+              allergyDetails: formData.allergyDetails,
+              pregnant: formData.pregnant,
+              medications: formData.medications,
+              medicationDetails: formData.medicationDetails,
+              heartCondition: formData.heartCondition,
+              heartDetails: formData.heartDetails,
+              kidneyLiver: formData.kidneyLiver,
+              kidneyLiverDetails: formData.kidneyLiverDetails,
+              diabetes: formData.diabetes,
+              diabetesDetails: formData.diabetesDetails,
+              bleeding: formData.bleeding,
+              bleedingDetails: formData.bleedingDetails,
+              recentSurgery: formData.recentSurgery,
+              surgeryDetails: formData.surgeryDetails,
+              g6pdCritical: formData.g6pd === 'Yes' || formData.g6pd === 'Unsure'
+            },
+            acknowledgments: formData.acknowledgments
+          }
+        });
+
+        if (dbError) console.error('DB save error:', dbError);
+
+        // Sync to GHL
+        try {
+          await fetch(CONSENT_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              consentType: 'iv',
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              phone: formData.phone,
+              dateOfBirth: formData.dateOfBirth,
+              consentDate: formData.consentDate,
+              pdfUrl: pdfUrl,
+              signatureUrl: signatureUrl,
+              ghlContactId: ghlContactId,
+              healthScreening: {
+                g6pd: formData.g6pd,
+                g6pdDetails: formData.g6pdDetails,
+                g6pdCritical: formData.g6pd === 'Yes' || formData.g6pd === 'Unsure'
+              }
+            })
+          });
+        } catch (ghlErr) {
+          console.error('GHL sync error:', ghlErr);
+        }
+
+        // Success
+        statusMsg.textContent = 'Consent form submitted successfully. Thank you!';
+        statusMsg.className = 'status-message success';
+        statusMsg.style.display = 'block';
+        submitBtn.textContent = '✓ Submitted';
+        document.getElementById('consentForm').style.opacity = '0.6';
+        document.getElementById('consentForm').style.pointerEvents = 'none';
+
+      } catch (err) {
+        console.error('Submission error:', err);
+        statusMsg.textContent = 'Error submitting form. Please try again.';
+        statusMsg.className = 'status-message error';
+        statusMsg.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Consent';
+      }
+    });
+
+    // ============================================
+    // HELPER: dataURL to Blob
+    // ============================================
+    function dataURLtoBlob(dataurl) {
+      const arr = dataurl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      return new Blob([u8arr], { type: mime });
+    }
+
+    // ============================================
+    // CONDITIONAL FIELDS
+    // ============================================
+    document.querySelectorAll('.screening-radio').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const detailsEl = document.getElementById(this.name + '-details');
+        if (detailsEl) {
+          detailsEl.style.display = (this.value === 'Yes' || this.value === 'Unsure') ? 'block' : 'none';
+        }
+      });
+    });
+
+    // ============================================
+    // GENERATE PDF — ALL CONTENT INCLUDED
+    // ============================================
+    async function generatePDF(formData) {
+      let jsPDF;
+      if (window.jspdf && window.jspdf.jsPDF) {
+        jsPDF = window.jspdf.jsPDF;
+      } else if (window.jsPDF) {
+        jsPDF = window.jsPDF;
+      } else {
+        throw new Error('jsPDF not loaded');
+      }
+
+      const doc = new jsPDF({ compress: true });
+      let yPos = 15;
+      const leftMargin = 15;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const contentWidth = pageWidth - 30;
+
+      function checkPageBreak(needed = 20) {
+        if (yPos + needed > pageHeight - 25) {
+          doc.addPage();
+          yPos = 15;
+          addFooter();
+        }
+      }
+
+      function addFooter() {
+        doc.setFontSize(7);
+        doc.setTextColor(130);
+        doc.text('Range Medical | 1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660 | (949) 997-3988', pageWidth / 2, pageHeight - 8, { align: 'center' });
+        doc.text('CONFIDENTIAL — IV & Injection Therapy Consent', pageWidth / 2, pageHeight - 4, { align: 'center' });
+        doc.setTextColor(0);
+      }
+
+      function addText(text, fontSize = 9, isBold = false, color = [0, 0, 0]) {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setTextColor(...color);
+        const lines = doc.splitTextToSize(text, contentWidth);
+        checkPageBreak(lines.length * (fontSize * 0.45) + 4);
+        doc.text(lines, leftMargin, yPos);
+        yPos += lines.length * (fontSize * 0.45) + 2;
+      }
+
+      function addSectionHeader(text) {
+        checkPageBreak(15);
+        yPos += 4;
+        doc.setFillColor(0, 0, 0);
+        doc.rect(leftMargin, yPos - 4, contentWidth, 8, 'F');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text(text.toUpperCase(), leftMargin + 3, yPos + 1);
+        doc.setTextColor(0, 0, 0);
+        yPos += 8;
+      }
+
+      function addLabelValue(label, value) {
+        checkPageBreak(8);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(label, leftMargin, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.text(value || 'N/A', leftMargin + doc.getTextWidth(label) + 2, yPos);
+        yPos += 5;
+      }
+
+      function addCheckboxLine(text, isChecked = true) {
+        const lines = doc.splitTextToSize(text, contentWidth - 10);
+        checkPageBreak(lines.length * 4.5 + 3);
+        // Draw checkbox
+        doc.setDrawColor(0);
+        doc.rect(leftMargin, yPos - 3, 3.5, 3.5);
+        if (isChecked) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          doc.text('✓', leftMargin + 0.3, yPos);
+        }
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(lines, leftMargin + 6, yPos);
+        yPos += lines.length * 4 + 2;
+      }
+
+      // ========== HEADER ==========
+      doc.setFillColor(0, 0, 0);
+      doc.rect(0, 0, pageWidth, 22, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('RANGE MEDICAL', leftMargin, 10);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('IV & Injection Therapy — Informed Consent', leftMargin, 16);
+      doc.setFontSize(8);
+      doc.text(`Document Date: ${formData.consentDate}`, pageWidth - 15, 10, { align: 'right' });
+      doc.text('1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660', pageWidth - 15, 16, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+      yPos = 28;
+
+      // ========== PATIENT INFORMATION ==========
+      addSectionHeader('Patient Information');
+      addLabelValue('Patient Name: ', `${formData.firstName} ${formData.lastName}`);
+      addLabelValue('Date of Birth: ', formData.dateOfBirth);
+      addLabelValue('Email: ', formData.email);
+      addLabelValue('Phone: ', formData.phone);
+      addLabelValue('Consent Date: ', formData.consentDate);
+      yPos += 2;
+
+      // ========== TREATMENT DESCRIPTION ==========
+      addSectionHeader('Description of IV & Injection Therapy');
+      addText('Intravenous (IV) therapy involves the administration of fluids, vitamins, minerals, amino acids, and other therapeutic substances directly into the bloodstream through a peripheral venous catheter. Injection therapy involves the intramuscular (IM) or subcutaneous (SubQ) administration of vitamins, peptides, medications, or other therapeutic agents.', 8.5);
+      yPos += 2;
+      addText('These therapies are provided for wellness optimization, nutrient repletion, hydration support, immune function, athletic recovery, and general well-being. IV and injection therapies offered by Range Medical are classified as elective wellness services and are not intended to diagnose, treat, cure, or prevent any disease.', 8.5);
+      yPos += 2;
+
+      // ========== HEALTH SCREENING ==========
+      addSectionHeader('Health Screening Responses');
+      const screeningItems = [
+        { label: 'G6PD Deficiency', value: formData.g6pd, details: formData.g6pdDetails },
+        { label: 'Known Allergies', value: formData.allergies, details: formData.allergyDetails },
+        { label: 'Pregnant or Nursing', value: formData.pregnant, details: '' },
+        { label: 'Current Medications', value: formData.medications, details: formData.medicationDetails },
+        { label: 'Heart Condition', value: formData.heartCondition, details: formData.heartDetails },
+        { label: 'Kidney/Liver Disease', value: formData.kidneyLiver, details: formData.kidneyLiverDetails },
+        { label: 'Diabetes', value: formData.diabetes, details: formData.diabetesDetails },
+        { label: 'Bleeding Disorder', value: formData.bleeding, details: formData.bleedingDetails },
+        { label: 'Recent Surgery (past 30 days)', value: formData.recentSurgery, details: formData.surgeryDetails },
+      ];
+      screeningItems.forEach(item => {
+        let val = item.value || 'Not answered';
+        if (item.details) val += ` — ${item.details}`;
+        addLabelValue(`${item.label}: `, val);
+      });
+
+      // G6PD Alert
+      if (formData.g6pd === 'Yes' || formData.g6pd === 'Unsure') {
+        yPos += 2;
+        doc.setFillColor(254, 226, 226);
+        doc.rect(leftMargin, yPos - 4, contentWidth, 12, 'F');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(185, 28, 28);
+        doc.text('⚠ G6PD ALERT: Patient reported G6PD deficiency or uncertain status. High-dose Vitamin C IV is contraindicated. Staff must confirm G6PD status via lab work before administering any Vitamin C-containing IV formulations.', leftMargin + 3, yPos, { maxWidth: contentWidth - 6 });
+        doc.setTextColor(0, 0, 0);
+        yPos += 14;
+      }
+      yPos += 2;
+
+      // ========== RISKS AND POTENTIAL COMPLICATIONS ==========
+      addSectionHeader('Risks & Potential Complications');
+      addText('The following risks and potential complications have been disclosed to the patient. IV and injection therapy, while generally well-tolerated, carries inherent medical risks including but not limited to:', 8.5);
+      yPos += 1;
+      const risks = [
+        'Pain, bruising, swelling, redness, or tenderness at the injection or IV insertion site',
+        'Infiltration or extravasation (leakage of fluid into surrounding tissue)',
+        'Phlebitis (inflammation of the vein), thrombophlebitis, or localized infection',
+        'Hematoma formation at the venipuncture site',
+        'Allergic or hypersensitivity reactions to administered substances, including anaphylaxis in rare cases',
+        'Vasovagal response (lightheadedness, dizziness, nausea, or fainting)',
+        'Air embolism (extremely rare with standard protocols)',
+        'Nerve irritation or injury near the injection site',
+        'Fluid overload, electrolyte imbalance, or alterations in blood chemistry',
+        'Hemolytic crisis in patients with undiagnosed or undisclosed G6PD deficiency receiving high-dose Vitamin C',
+        'Adverse drug interactions with current medications or supplements',
+        'Cardiac arrhythmia associated with rapid electrolyte infusion (rare)',
+        'Systemic infection or sepsis if sterile technique is compromised (extremely rare)',
+        'Unforeseen complications or side effects not listed above'
+      ];
+      risks.forEach(r => {
+        checkPageBreak(8);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        const lines = doc.splitTextToSize(`• ${r}`, contentWidth - 5);
+        doc.text(lines, leftMargin + 3, yPos);
+        yPos += lines.length * 3.8 + 1;
+      });
+      yPos += 2;
+
+      // ========== PATIENT ACKNOWLEDGMENTS ==========
+      addSectionHeader('Patient Acknowledgments & Agreement');
+      addText('By signing below, the patient affirms that each of the following statements has been read, understood, and individually acknowledged:', 8.5);
+      yPos += 3;
+
+      if (formData.acknowledgments && formData.acknowledgments.length > 0) {
+        formData.acknowledgments.forEach(ack => {
+          addCheckboxLine(ack.text, ack.checked);
+        });
+      }
+      yPos += 4;
+
+      // ========== SIGNATURE ==========
+      addSectionHeader('Patient Signature');
+      addText('By affixing my signature below, I certify that I have read this consent form in its entirety, that all of my questions have been answered to my satisfaction, and that I voluntarily consent to the IV and/or injection therapy services described herein.', 8.5);
+      yPos += 3;
+      addLabelValue('Signed by: ', `${formData.firstName} ${formData.lastName}`);
+      addLabelValue('Date: ', formData.consentDate);
+      yPos += 2;
+
+      // Signature image
+      if (formData.signatureData && formData.signatureData.startsWith('data:')) {
+        checkPageBreak(35);
+        try {
+          doc.addImage(formData.signatureData, 'PNG', leftMargin, yPos, 60, 25);
+          yPos += 28;
+        } catch (e) {
+          console.error('Error adding signature:', e);
+        }
+      }
+
+      // Footer on all pages
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(130);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 4, { align: 'right' });
+        doc.text('Range Medical | 1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660 | (949) 997-3988', pageWidth / 2, pageHeight - 8, { align: 'center' });
+        doc.text('CONFIDENTIAL — IV & Injection Therapy Informed Consent', pageWidth / 2, pageHeight - 4, { align: 'center' });
+      }
+
+      return doc.output('blob');
+    }
+
+  }, []);
 
   return (
     <>
       <Head>
         <title>IV & Injection Therapy Consent | Range Medical</title>
-        <meta name="description" content="IV and injection therapy consent form for Range Medical." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="robots" content="noindex, nofollow" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
       </Head>
 
-      <Script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onLoad={handleScriptLoad} />
+      <div className="consent-page">
+        <header className="consent-header">
+          <div className="header-inner">
+            <h1>RANGE MEDICAL</h1>
+            <p>IV & Injection Therapy — Informed Consent</p>
+          </div>
+        </header>
+
+        <form id="consentForm" className="consent-form">
+          {/* ===== PATIENT INFORMATION ===== */}
+          <div className="section">
+            <h2 className="section-title">Patient Information</h2>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="firstName">First Name <span className="req">*</span></label>
+                <input type="text" id="firstName" name="firstName" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="lastName">Last Name <span className="req">*</span></label>
+                <input type="text" id="lastName" name="lastName" required />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="email">Email <span className="req">*</span></label>
+                <input type="email" id="email" name="email" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="phone">Phone <span className="req">*</span></label>
+                <input type="tel" id="phone" name="phone" required />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="dateOfBirth">Date of Birth <span className="req">*</span></label>
+                <input type="date" id="dateOfBirth" name="dateOfBirth" required />
+              </div>
+            </div>
+          </div>
+
+          {/* ===== TREATMENT DESCRIPTION ===== */}
+          <div className="section">
+            <h2 className="section-title">Description of IV & Injection Therapy</h2>
+            <div className="info-block">
+              <p>Intravenous (IV) therapy involves the administration of fluids, vitamins, minerals, amino acids, and other therapeutic substances directly into the bloodstream through a peripheral venous catheter. Injection therapy involves the intramuscular (IM) or subcutaneous (SubQ) administration of vitamins, peptides, medications, or other therapeutic agents.</p>
+              <p>These therapies are provided for wellness optimization, nutrient repletion, hydration support, immune function, athletic recovery, and general well-being. IV and injection therapies offered by Range Medical are classified as <strong>elective wellness services</strong> and are not intended to diagnose, treat, cure, or prevent any disease.</p>
+            </div>
+          </div>
+
+          {/* ===== HEALTH SCREENING ===== */}
+          <div className="section">
+            <h2 className="section-title">Health Screening</h2>
+            <p className="section-desc">Please answer the following questions truthfully. Incomplete or inaccurate responses may compromise the safety of your treatment.</p>
+
+            {/* G6PD */}
+            <div className="screening-item critical">
+              <label className="screening-label">Do you have G6PD (Glucose-6-Phosphate Dehydrogenase) deficiency? <span className="req">*</span></label>
+              <p className="screening-note">This is critical for your safety. High-dose Vitamin C is contraindicated in patients with G6PD deficiency and may cause a life-threatening hemolytic crisis.</p>
+              <div className="radio-row">
+                <label><input type="radio" name="g6pd" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="g6pd" value="No" className="screening-radio" /> No</label>
+                <label><input type="radio" name="g6pd" value="Unsure" className="screening-radio" /> Unsure</label>
+              </div>
+              <div id="g6pd-details" className="details-field" style={{display:'none'}}>
+                <label htmlFor="g6pdDetails">Please provide details:</label>
+                <textarea id="g6pdDetails" rows="2"></textarea>
+              </div>
+            </div>
+
+            {/* Allergies */}
+            <div className="screening-item">
+              <label className="screening-label">Do you have any known allergies to medications, vitamins, minerals, foods, latex, or adhesives? <span className="req">*</span></label>
+              <div className="radio-row">
+                <label><input type="radio" name="allergies" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="allergies" value="No" className="screening-radio" /> No</label>
+              </div>
+              <div id="allergies-details" className="details-field" style={{display:'none'}}>
+                <label htmlFor="allergyDetails">Please list all allergies and reactions:</label>
+                <textarea id="allergyDetails" rows="2"></textarea>
+              </div>
+            </div>
+
+            {/* Pregnant */}
+            <div className="screening-item">
+              <label className="screening-label">Are you currently pregnant or nursing? <span className="req">*</span></label>
+              <div className="radio-row">
+                <label><input type="radio" name="pregnant" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="pregnant" value="No" className="screening-radio" /> No</label>
+                <label><input type="radio" name="pregnant" value="N/A" className="screening-radio" /> N/A</label>
+              </div>
+            </div>
+
+            {/* Medications */}
+            <div className="screening-item">
+              <label className="screening-label">Are you currently taking any prescription medications, over-the-counter medications, or supplements? <span className="req">*</span></label>
+              <div className="radio-row">
+                <label><input type="radio" name="medications" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="medications" value="No" className="screening-radio" /> No</label>
+              </div>
+              <div id="medications-details" className="details-field" style={{display:'none'}}>
+                <label htmlFor="medicationDetails">Please list all medications and supplements:</label>
+                <textarea id="medicationDetails" rows="2"></textarea>
+              </div>
+            </div>
+
+            {/* Heart */}
+            <div className="screening-item">
+              <label className="screening-label">Have you been diagnosed with any heart or cardiovascular condition? <span className="req">*</span></label>
+              <div className="radio-row">
+                <label><input type="radio" name="heartCondition" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="heartCondition" value="No" className="screening-radio" /> No</label>
+              </div>
+              <div id="heartCondition-details" className="details-field" style={{display:'none'}}>
+                <label htmlFor="heartDetails">Please describe:</label>
+                <textarea id="heartDetails" rows="2"></textarea>
+              </div>
+            </div>
+
+            {/* Kidney/Liver */}
+            <div className="screening-item">
+              <label className="screening-label">Have you been diagnosed with kidney disease or liver disease? <span className="req">*</span></label>
+              <div className="radio-row">
+                <label><input type="radio" name="kidneyLiver" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="kidneyLiver" value="No" className="screening-radio" /> No</label>
+              </div>
+              <div id="kidneyLiver-details" className="details-field" style={{display:'none'}}>
+                <label htmlFor="kidneyLiverDetails">Please describe:</label>
+                <textarea id="kidneyLiverDetails" rows="2"></textarea>
+              </div>
+            </div>
+
+            {/* Diabetes */}
+            <div className="screening-item">
+              <label className="screening-label">Have you been diagnosed with diabetes (Type 1, Type 2, or gestational)? <span className="req">*</span></label>
+              <div className="radio-row">
+                <label><input type="radio" name="diabetes" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="diabetes" value="No" className="screening-radio" /> No</label>
+              </div>
+              <div id="diabetes-details" className="details-field" style={{display:'none'}}>
+                <label htmlFor="diabetesDetails">Please describe:</label>
+                <textarea id="diabetesDetails" rows="2"></textarea>
+              </div>
+            </div>
+
+            {/* Bleeding */}
+            <div className="screening-item">
+              <label className="screening-label">Do you have a known bleeding disorder or are you taking blood thinners (e.g., warfarin, Eliquis, Xarelto)? <span className="req">*</span></label>
+              <div className="radio-row">
+                <label><input type="radio" name="bleeding" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="bleeding" value="No" className="screening-radio" /> No</label>
+              </div>
+              <div id="bleeding-details" className="details-field" style={{display:'none'}}>
+                <label htmlFor="bleedingDetails">Please describe:</label>
+                <textarea id="bleedingDetails" rows="2"></textarea>
+              </div>
+            </div>
+
+            {/* Recent Surgery */}
+            <div className="screening-item">
+              <label className="screening-label">Have you had any surgical procedure within the past 30 days? <span className="req">*</span></label>
+              <div className="radio-row">
+                <label><input type="radio" name="recentSurgery" value="Yes" required className="screening-radio" /> Yes</label>
+                <label><input type="radio" name="recentSurgery" value="No" className="screening-radio" /> No</label>
+              </div>
+              <div id="recentSurgery-details" className="details-field" style={{display:'none'}}>
+                <label htmlFor="surgeryDetails">Please describe:</label>
+                <textarea id="surgeryDetails" rows="2"></textarea>
+              </div>
+            </div>
+          </div>
+
+          {/* ===== RISKS & COMPLICATIONS ===== */}
+          <div className="section">
+            <h2 className="section-title">Risks & Potential Complications</h2>
+            <div className="info-block">
+              <p>IV and injection therapy, while generally well-tolerated, carries inherent medical risks. The following potential risks and complications have been disclosed to you:</p>
+              <ul className="risk-list">
+                <li>Pain, bruising, swelling, redness, or tenderness at the injection or IV insertion site</li>
+                <li>Infiltration or extravasation (leakage of fluid into surrounding tissue)</li>
+                <li>Phlebitis (inflammation of the vein), thrombophlebitis, or localized infection</li>
+                <li>Hematoma formation at the venipuncture site</li>
+                <li>Allergic or hypersensitivity reactions to administered substances, including anaphylaxis in rare cases</li>
+                <li>Vasovagal response (lightheadedness, dizziness, nausea, or fainting)</li>
+                <li>Air embolism (extremely rare with standard protocols)</li>
+                <li>Nerve irritation or injury near the injection site</li>
+                <li>Fluid overload, electrolyte imbalance, or alterations in blood chemistry</li>
+                <li>Hemolytic crisis in patients with undiagnosed G6PD deficiency receiving high-dose Vitamin C</li>
+                <li>Adverse drug interactions with current medications or supplements</li>
+                <li>Cardiac arrhythmia associated with rapid electrolyte infusion (rare)</li>
+                <li>Systemic infection or sepsis if sterile technique is compromised (extremely rare)</li>
+                <li>Unforeseen complications or side effects not listed above</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* ===== ACKNOWLEDGMENTS ===== */}
+          <div className="section">
+            <h2 className="section-title">Patient Acknowledgments & Agreement</h2>
+            <p className="section-desc">Please read each statement carefully and check the box to confirm your understanding and agreement. <strong>All boxes must be checked to proceed.</strong></p>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack1" className="ack-checkbox" required />
+                <span className="ack-text">I understand that IV and injection therapies provided by Range Medical are elective wellness services. These services are not intended to diagnose, treat, cure, or prevent any disease, medical condition, or pathology. I acknowledge that these therapies do not replace evaluation, diagnosis, or treatment by my primary care physician or any specialist.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack2" className="ack-checkbox" required />
+                <span className="ack-text">I understand that individual results from IV and injection therapy vary and are not guaranteed. Range Medical makes no representations, warranties, or guarantees regarding the specific outcomes, efficacy, or therapeutic benefit of any treatment administered.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack3" className="ack-checkbox" required />
+                <span className="ack-text">I have been informed of the risks and potential complications associated with IV and injection therapy, as detailed in the Risks & Potential Complications section above. I accept these risks voluntarily and understand that complications may occur even when all procedures are performed correctly and with appropriate medical oversight.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack4" className="ack-checkbox" required />
+                <span className="ack-text">I confirm that I have disclosed all relevant medical history, current medications (including over-the-counter drugs and supplements), known allergies, and pre-existing health conditions to Range Medical staff. I understand that failure to disclose accurate and complete medical information may compromise the safety of my treatment and that Range Medical shall not be held liable for complications arising from undisclosed medical information.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack5" className="ack-checkbox" required />
+                <span className="ack-text">I understand that some substances administered via IV or injection may be used in an off-label capacity. Off-label use refers to the medically accepted practice of using FDA-approved substances for purposes, dosages, or routes of administration not specifically included in the FDA-approved labeling. I consent to such off-label use when recommended by Range Medical's clinical staff.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack6" className="ack-checkbox" required />
+                <span className="ack-text">I acknowledge that IV and injection therapy is not a substitute for routine medical care. I understand that I should continue to see my primary care physician and any specialists for the management of existing health conditions, preventive care, and medical concerns unrelated to the wellness services provided by Range Medical.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack7" className="ack-checkbox" required />
+                <span className="ack-text">I agree to immediately notify Range Medical staff during or after treatment if I experience any adverse reaction, unusual symptoms, discomfort, or change in my condition, including but not limited to difficulty breathing, chest pain, severe headache, swelling, rash, or any symptom that concerns me.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack8" className="ack-checkbox" required />
+                <span className="ack-text">I understand that I have the right to refuse or discontinue treatment at any time without penalty. I acknowledge that refusing or discontinuing treatment may affect the anticipated outcome of the therapy.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack9" className="ack-checkbox" required />
+                <span className="ack-text">I voluntarily assume full responsibility for any risks associated with the IV and/or injection therapy services I receive at Range Medical. I release, discharge, and hold harmless Range Medical, its medical director, physicians, nurse practitioners, registered nurses, medical assistants, staff, and affiliated entities from any and all claims, liabilities, damages, or causes of action arising out of or related to the services provided, except in cases of gross negligence or willful misconduct.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack10" className="ack-checkbox" required />
+                <span className="ack-text">I acknowledge that I am financially responsible for all services rendered. I understand that IV and injection therapy services are generally not covered by health insurance, and that payment is due at the time of service. Refunds are not provided for completed treatments.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack11" className="ack-checkbox" required />
+                <span className="ack-text">I authorize Range Medical to contact me via phone, text message, and/or email at the contact information provided above for purposes related to my care, including appointment reminders, follow-up communications, and health-related information.</span>
+              </label>
+            </div>
+
+            <div className="ack-item">
+              <label>
+                <input type="checkbox" id="ack12" className="ack-checkbox" required />
+                <span className="ack-text">I confirm that I am at least 18 years of age (or that the consent of a parent/legal guardian has been obtained), that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing this form voluntarily and of my own free will.</span>
+              </label>
+            </div>
+          </div>
+
+          {/* ===== SIGNATURE ===== */}
+          <div className="section">
+            <h2 className="section-title">Patient Signature</h2>
+            <p className="section-desc">By signing below, I certify that I have read, understood, and agree to all statements contained in this Informed Consent for IV & Injection Therapy.</p>
+            <div className="signature-container">
+              <canvas id="signaturePad" className="signature-pad"></canvas>
+            </div>
+            <div className="signature-actions">
+              <button type="button" className="btn-clear" id="clearSignature">Clear Signature</button>
+            </div>
+            <span className="field-error" id="signatureError" style={{display:'none'}}>Signature is required</span>
+          </div>
+
+          <div className="submit-section">
+            <button type="submit" className="btn-submit" id="submitBtn">Submit Consent</button>
+            <div className="status-message" id="statusMessage" style={{display:'none'}}></div>
+          </div>
+        </form>
+
+        <footer className="consent-footer">
+          <p>&copy; 2026 Range Medical. All rights reserved.</p>
+          <p>Your information is protected and kept confidential.</p>
+        </footer>
+      </div>
 
       <style jsx global>{`
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        :root{--black:#000;--white:#fff;--gray-50:#fafafa;--gray-100:#f5f5f5;--gray-200:#e5e5e5;--gray-300:#d4d4d4;--gray-400:#a3a3a3;--gray-500:#737373;--gray-600:#525252;--gray-700:#404040;--gray-800:#262626;--gray-900:#171717;--error:#dc2626;--success:#16a34a;--warning:#f59e0b;--danger:#dc2626}
-        html{font-size:16px}
-        body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background-color:var(--gray-100);color:var(--gray-900);line-height:1.6;min-height:100vh}
-        .consent-container{max-width:800px;margin:0 auto;padding:2rem 1.5rem}
-        .consent-header{text-align:center;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:2px solid var(--black)}
-        .clinic-name{font-size:2.5rem;font-weight:700;letter-spacing:.15em;margin-bottom:.5rem;color:var(--black)}
-        .form-title{font-size:1.25rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-top:.5rem;color:var(--gray-700)}
-        .consent-header p{color:var(--gray-600);font-size:.875rem;margin-top:.5rem}
-        .form-container{background:var(--white);border:2px solid var(--black);padding:2rem}
-        .section{margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--gray-200)}
-        .section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
-        .section-title{font-size:1.125rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.5rem;padding-bottom:.75rem;border-bottom:2px solid var(--black);display:inline-block}
-        .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;margin-bottom:1.25rem}
-        .form-row:last-child{margin-bottom:0}
-        .form-group{display:flex;flex-direction:column}
-        .form-group.full-width{grid-column:1/-1}
-        .consent-container label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:var(--gray-700)}
-        .consent-container label .required{color:var(--error);margin-left:2px}
-        .consent-container input[type="text"],.consent-container input[type="email"],.consent-container input[type="tel"],.consent-container input[type="date"],.consent-container select,.consent-container textarea{width:100%;padding:.75rem 1rem;font-size:1rem;font-family:inherit;border:1.5px solid var(--gray-300);background:var(--white);color:var(--gray-900);transition:border-color .2s ease,box-shadow .2s ease;border-radius:0}
-        .consent-container input:focus,.consent-container select:focus,.consent-container textarea:focus{outline:none;border-color:var(--black);box-shadow:0 0 0 3px rgba(0,0,0,.1)}
-        .consent-container input.error,.consent-container select.error,.consent-container textarea.error{border-color:var(--error)}
-        .health-question{background:var(--gray-50);border:1.5px solid var(--gray-300);padding:1.25rem;margin-bottom:1.25rem}
-        .health-question.warning{background:#fff7ed;border-color:var(--warning)}
-        .health-question.critical{background:#fef2f2;border-color:var(--danger)}
-        .health-question-text{font-size:1rem;font-weight:500;margin-bottom:.75rem;color:var(--gray-900);line-height:1.6}
-        .health-question-note{font-size:.875rem;color:var(--gray-600);font-style:italic;margin-bottom:.75rem}
-        .radio-group{display:flex;gap:2rem}
-        .radio-item{display:flex;align-items:center;gap:.5rem;cursor:pointer}
-        .radio-item input[type="radio"]{width:1.25rem;height:1.25rem;cursor:pointer;accent-color:var(--black)}
-        .radio-item label{font-size:1rem;font-weight:500;text-transform:none;letter-spacing:normal;margin-bottom:0;cursor:pointer;color:var(--gray-800)}
-        .warning-alert{background:#fef3c7;border:2px solid var(--warning);padding:1.5rem;margin-bottom:1.5rem;display:none}
-        .warning-alert.visible{display:block}
-        .warning-alert h4{font-size:1rem;font-weight:700;color:#92400e;margin-bottom:.5rem}
-        .warning-alert p{font-size:.9375rem;color:#78350f;line-height:1.6}
-        .critical-alert{background:#fef2f2;border:3px solid var(--danger);padding:1.5rem;margin-bottom:1.5rem;display:none}
-        .critical-alert.visible{display:block}
-        .critical-alert h4{font-size:1.125rem;font-weight:700;color:var(--danger);margin-bottom:.75rem}
-        .critical-alert p{font-size:1rem;color:#991b1b;line-height:1.6;margin-bottom:.5rem}
-        .critical-alert p:last-child{margin-bottom:0}
-        .consent-text{background:var(--gray-50);border:1.5px solid var(--gray-300);padding:1.5rem;margin-bottom:1.5rem;line-height:1.8}
-        .consent-text h4{font-size:.9375rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;color:var(--gray-800)}
-        .consent-text p{margin-bottom:1rem;color:var(--gray-800);font-size:.9375rem}
-        .consent-text p:last-child{margin-bottom:0}
-        .consent-text ul{margin-left:1.5rem;margin-bottom:1rem}
-        .consent-text li{margin-bottom:.5rem;color:var(--gray-800)}
-        .consent-text strong{font-weight:600}
-        .checkbox-consent{display:flex;align-items:flex-start;gap:.75rem;margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border:1.5px solid var(--gray-300)}
-        .checkbox-consent input[type="checkbox"]{width:1.5rem;height:1.5rem;margin-top:.25rem;cursor:pointer;accent-color:var(--black);flex-shrink:0}
-        .checkbox-consent label{font-size:.9375rem;font-weight:500;text-transform:none;letter-spacing:normal;margin-bottom:0;cursor:pointer;color:var(--gray-900);line-height:1.6}
-        .checkbox-consent.error{border-color:var(--error);background:#fef2f2}
-        .signature-wrapper{margin-bottom:1.5rem}
-        .signature-label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;color:var(--gray-700);display:block}
-        .signature-pad-container{border:2px solid var(--gray-300);background:var(--white);position:relative;margin-bottom:.75rem}
-        .signature-pad-container.error{border-color:var(--error)}
-        #signaturePad{display:block;width:100%;height:200px;cursor:crosshair}
-        .signature-placeholder{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--gray-400);font-size:.875rem;pointer-events:none;text-align:center}
-        .signature-controls{display:flex;gap:1rem}
-        .btn-clear{padding:.625rem 1.25rem;font-size:.875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border:1.5px solid var(--gray-300);background:var(--white);color:var(--gray-700);cursor:pointer;transition:all .2s ease;font-family:inherit}
-        .btn-clear:hover{border-color:var(--black);background:var(--gray-50)}
-        .field-error{font-size:.8125rem;color:var(--error);margin-top:.5rem;display:none}
-        .field-error.visible{display:block}
-        .submit-section{margin-top:2rem;padding-top:2rem;border-top:2px solid var(--gray-200);text-align:center}
-        .btn-submit{padding:1rem 3rem;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border:2px solid var(--black);background:var(--black);color:var(--white);cursor:pointer;transition:all .2s ease;font-family:inherit;min-width:250px}
-        .btn-submit:hover:not(:disabled){background:var(--white);color:var(--black)}
-        .btn-submit:disabled{opacity:.6;cursor:not-allowed}
-        .status-message{padding:1rem 1.5rem;margin-bottom:1.5rem;font-size:.9375rem;font-weight:500;text-align:center;display:none}
-        .status-message.visible{display:block}
-        .status-message.error{background:#fef2f2;color:var(--error);border:1.5px solid var(--error)}
-        .status-message.success{background:#f0fdf4;color:var(--success);border:1.5px solid var(--success)}
-        .status-message.loading{background:var(--gray-100);color:var(--gray-700);border:1.5px solid var(--gray-300)}
-        .thank-you-page{background:var(--white);border:2px solid var(--black);padding:3rem 2rem;text-align:center}
-        .thank-you-icon{width:80px;height:80px;background:var(--black);color:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 2rem}
-        .thank-you-page h1{font-size:2rem;font-weight:700;margin-bottom:1rem;color:var(--black)}
-        .thank-you-subtitle{font-size:1.125rem;color:var(--gray-600);margin-bottom:2rem}
-        .thank-you-details{padding:2rem;background:var(--gray-50);border:1.5px solid var(--gray-200);margin-bottom:2rem}
-        .thank-you-details p{margin-bottom:.75rem;color:var(--gray-700)}
-        .thank-you-details p:last-child{margin-bottom:0}
-        .thank-you-contact{margin-bottom:2rem}
-        .thank-you-contact h3{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:var(--gray-800)}
-        .thank-you-contact a{color:var(--black);text-decoration:underline}
-        .thank-you-footer{padding-top:2rem;border-top:2px solid var(--gray-200)}
-        .thank-you-footer p{font-size:1.5rem;font-weight:700;letter-spacing:.15em;color:var(--black)}
-        @media(max-width:640px){.clinic-name{font-size:2rem}.form-container{padding:1.5rem}.form-row{grid-template-columns:1fr}.radio-group{flex-direction:column;gap:1rem}}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f9f9f9; color: #111; }
+        .consent-page { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; }
+        .consent-header { background: #000; color: #fff; padding: 24px 28px; }
+        .consent-header h1 { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+        .consent-header p { font-size: 14px; opacity: 0.85; }
+        .consent-form { padding: 0 28px 40px; }
+        .section { border-bottom: 1px solid #e5e5e5; padding: 28px 0; }
+        .section:last-of-type { border-bottom: none; }
+        .section-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #000; }
+        .section-desc { font-size: 14px; color: #444; margin-bottom: 16px; line-height: 1.5; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; }
+        .form-group input:focus, .form-group textarea:focus { border-color: #000; outline: none; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
+        .req { color: #dc2626; }
+        .info-block { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 20px; }
+        .info-block p { font-size: 14px; line-height: 1.6; color: #333; margin-bottom: 12px; }
+        .info-block p:last-child { margin-bottom: 0; }
+        .risk-list { padding-left: 20px; margin-top: 8px; }
+        .risk-list li { font-size: 13px; line-height: 1.5; color: #444; margin-bottom: 6px; }
+        .screening-item { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+        .screening-item.critical { background: #fef2f2; border-color: #fecaca; }
+        .screening-label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px; }
+        .screening-note { font-size: 12px; color: #b91c1c; font-style: italic; margin-bottom: 8px; }
+        .radio-row { display: flex; gap: 20px; margin-top: 4px; }
+        .radio-row label { font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .details-field { margin-top: 10px; }
+        .details-field label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px; }
+        .details-field textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; resize: vertical; }
+        .ack-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+        .ack-item:hover { border-color: #999; }
+        .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
+        .ack-checkbox { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: #000; }
+        .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
+        .signature-container { border: 2px solid #000; border-radius: 6px; margin-bottom: 8px; overflow: hidden; background: #fff; }
+        .signature-pad { width: 100%; height: 150px; cursor: crosshair; }
+        .signature-actions { text-align: right; }
+        .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-clear:hover { background: #f5f5f5; }
+        .field-error { color: #dc2626; font-size: 12px; display: block; margin-top: 4px; }
+        .submit-section { padding-top: 20px; text-align: center; }
+        .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 6px; cursor: pointer; letter-spacing: 0.5px; }
+        .btn-submit:hover { background: #222; }
+        .btn-submit:disabled { background: #999; cursor: not-allowed; }
+        .status-message { margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; }
+        .status-message.success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+        .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .consent-footer { text-align: center; padding: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }
+        .consent-footer p { margin-bottom: 4px; }
+        @media (max-width: 640px) {
+          .form-row { flex-direction: column; gap: 12px; }
+          .consent-form { padding: 0 16px 30px; }
+          .consent-header { padding: 20px 16px; }
+          .radio-row { flex-wrap: wrap; gap: 12px; }
+        }
       `}</style>
-
-      <div className="consent-container" id="consentContainer">
-        <div className="consent-header">
-          <h1 className="clinic-name">RANGE MEDICAL</h1>
-          <h2 className="form-title">IV & Injection Therapy Consent</h2>
-          <p>Please answer all questions and read carefully before signing</p>
-        </div>
-        
-        <div className="form-container">
-          <div id="statusMessage" className="status-message"></div>
-          
-          <form id="consentForm">
-            {/* Patient Information */}
-            <div className="section">
-              <h3 className="section-title">Your Information</h3>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="firstName">First Name <span className="required">*</span></label>
-                  <input type="text" id="firstName" name="firstName" required />
-                  <div className="field-error" id="firstNameError">Please enter your first name</div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="lastName">Last Name <span className="required">*</span></label>
-                  <input type="text" id="lastName" name="lastName" required />
-                  <div className="field-error" id="lastNameError">Please enter your last name</div>
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="email">Email <span className="required">*</span></label>
-                  <input type="email" id="email" name="email" required />
-                  <div className="field-error" id="emailError">Please enter a valid email</div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="phone">Phone <span className="required">*</span></label>
-                  <input type="tel" id="phone" name="phone" required />
-                  <div className="field-error" id="phoneError">Please enter your phone number</div>
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="dateOfBirth">Date of Birth <span className="required">*</span></label>
-                  <input type="text" id="dateOfBirth" name="dateOfBirth" placeholder="MM/DD/YYYY" maxLength="10" required />
-                  <div className="field-error" id="dateOfBirthError">Please enter a valid date (MM/DD/YYYY)</div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="consentDate">Today's Date <span className="required">*</span></label>
-                  <input type="date" id="consentDate" name="consentDate" required />
-                  <div className="field-error" id="consentDateError">Please enter today's date</div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Health Screening Questions */}
-            <div className="section">
-              <h3 className="section-title">Health Questions</h3>
-              
-              <p style={{ marginBottom: '1.5rem', color: 'var(--gray-700)' }}>Please answer these questions. They help us keep you safe.</p>
-              
-              <div className="warning-alert" id="warningAlert">
-                <h4>⚠️ Important</h4>
-                <p>Based on your answers, please talk to our staff before your treatment. We want to make sure this treatment is safe for you.</p>
-              </div>
-              
-              <div className="critical-alert" id="g6pdAlert">
-                <h4>🚨 CRITICAL ALERT - G6PD DEFICIENCY</h4>
-                <p>You said you have G6PD deficiency AND you are getting Methylene Blue or High Dose Vitamin C.</p>
-                <p><strong>This is VERY dangerous and can make you very sick.</strong></p>
-                <p>You MUST talk to our staff before we can give you this treatment. We need to see your lab tests first.</p>
-              </div>
-              
-              {/* Question 1 - G6PD */}
-              <div className="health-question" id="q1">
-                <div className="health-question-text">Do you have G6PD deficiency?</div>
-                <div className="health-question-note">(This is a blood condition. You would know if you have it.)</div>
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="q1-yes" name="q1" value="yes" required />
-                    <label htmlFor="q1-yes">Yes</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q1-no" name="q1" value="no" />
-                    <label htmlFor="q1-no">No</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q1-unknown" name="q1" value="unknown" />
-                    <label htmlFor="q1-unknown">I don't know</label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Question 2 - Methylene Blue */}
-              <div className="health-question" id="q2">
-                <div className="health-question-text">Are you getting Methylene Blue today?</div>
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="q2-yes" name="q2" value="yes" required />
-                    <label htmlFor="q2-yes">Yes</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q2-no" name="q2" value="no" />
-                    <label htmlFor="q2-no">No</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q2-unknown" name="q2" value="unknown" />
-                    <label htmlFor="q2-unknown">I don't know</label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Question 3 - High Dose Vitamin C */}
-              <div className="health-question" id="q3">
-                <div className="health-question-text">Are you getting High Dose Vitamin C today?</div>
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="q3-yes" name="q3" value="yes" required />
-                    <label htmlFor="q3-yes">Yes</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q3-no" name="q3" value="no" />
-                    <label htmlFor="q3-no">No</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q3-unknown" name="q3" value="unknown" />
-                    <label htmlFor="q3-unknown">I don't know</label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Question 4 - Allergies */}
-              <div className="health-question" id="q4">
-                <div className="health-question-text">Are you allergic to any vitamins or medicines?</div>
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="q4-yes" name="q4" value="yes" required />
-                    <label htmlFor="q4-yes">Yes</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q4-no" name="q4" value="no" />
-                    <label htmlFor="q4-no">No</label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Question 5 - Kidney */}
-              <div className="health-question" id="q5">
-                <div className="health-question-text">Do you have kidney problems?</div>
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="q5-yes" name="q5" value="yes" required />
-                    <label htmlFor="q5-yes">Yes</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q5-no" name="q5" value="no" />
-                    <label htmlFor="q5-no">No</label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Question 6 - Heart */}
-              <div className="health-question" id="q6">
-                <div className="health-question-text">Do you have heart problems?</div>
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="q6-yes" name="q6" value="yes" required />
-                    <label htmlFor="q6-yes">Yes</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q6-no" name="q6" value="no" />
-                    <label htmlFor="q6-no">No</label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Question 7 - Pregnant */}
-              <div className="health-question" id="q7">
-                <div className="health-question-text">Are you pregnant or breastfeeding?</div>
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="q7-yes" name="q7" value="yes" required />
-                    <label htmlFor="q7-yes">Yes</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q7-no" name="q7" value="no" />
-                    <label htmlFor="q7-no">No</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q7-na" name="q7" value="n/a" />
-                    <label htmlFor="q7-na">Does not apply</label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Question 8 - Previous Reaction */}
-              <div className="health-question" id="q8">
-                <div className="health-question-text">Have you ever had a bad reaction to an IV or injection before?</div>
-                <div className="radio-group">
-                  <div className="radio-item">
-                    <input type="radio" id="q8-yes" name="q8" value="yes" required />
-                    <label htmlFor="q8-yes">Yes</label>
-                  </div>
-                  <div className="radio-item">
-                    <input type="radio" id="q8-no" name="q8" value="no" />
-                    <label htmlFor="q8-no">No</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Consent Information */}
-            <div className="section">
-              <h3 className="section-title">Treatment Information</h3>
-              
-              <div className="consent-text">
-                <h4>What This Treatment Does</h4>
-                <p>IV therapy and injections give your body vitamins and nutrients. The medicine goes right into your blood or muscle. This can help you feel better and stay healthy.</p>
-                
-                <h4>Important Things To Know</h4>
-                <p><strong>This is NOT medicine to cure sickness.</strong> We give you vitamins and nutrients to help you feel good and stay healthy. This is not a cure for cancer or other big health problems. You still need to see your regular doctor.</p>
-                
-                <h4>Things That Might Happen</h4>
-                <p>Most people feel fine. But some things might happen:</p>
-                <ul>
-                  <li>Your arm might hurt where we put the needle</li>
-                  <li>You might get a bruise</li>
-                  <li>The area might look red or swollen</li>
-                  <li>You might be allergic to something in the IV</li>
-                  <li>Rarely: You might get an infection where the needle went in</li>
-                  <li>For IV: You might get too much fluid in your body</li>
-                </ul>
-                <p>Tell our staff right away if something doesn't feel right.</p>
-                
-                <h4>Your Choice</h4>
-                <p>You are choosing to get this treatment. You can stop any time you want. We have not promised that this will fix any health problem. You are doing this at your own choice.</p>
-              </div>
-              
-              <div className="checkbox-consent" id="consentCheckbox">
-                <input type="checkbox" id="consentGiven" name="consentGiven" required />
-                <label htmlFor="consentGiven">
-                  <strong>I understand and agree:</strong> I have read this form (or someone read it to me). I understand what IV and injection therapy is. I know this is not medicine to cure sickness. I know it might not work for me. I can ask questions if I want. I agree to get IV or injection treatment at Range Medical. I will not blame Range Medical if something goes wrong, unless they did something very bad on purpose.
-                </label>
-              </div>
-              <div className="field-error" id="consentError">You must agree to continue</div>
-            </div>
-            
-            {/* Signature */}
-            <div className="section">
-              <h3 className="section-title">Your Signature</h3>
-              
-              <div className="signature-wrapper">
-                <span className="signature-label">Sign Below <span className="required">*</span></span>
-                <div className="signature-pad-container" id="signatureContainer">
-                  <canvas id="signaturePad"></canvas>
-                  <div className="signature-placeholder" id="signaturePlaceholder">Sign here with your mouse or finger</div>
-                </div>
-                <div className="field-error" id="signatureError">Please sign your name</div>
-                <div className="signature-controls">
-                  <button type="button" className="btn-clear" id="clearSignature">Clear Signature</button>
-                </div>
-              </div>
-              
-              <p style={{ fontSize: '0.875rem', color: 'var(--gray-600)', marginTop: '1rem' }}>
-                By signing, I agree that I read and understand this form. I agree to get IV or injection therapy at Range Medical.
-              </p>
-            </div>
-            
-            {/* Submit */}
-            <div className="submit-section">
-              <button type="submit" className="btn-submit" id="submitBtn">Submit Form</button>
-            </div>
-          </form>
-        </div>
-      </div>
     </>
   );
-}
-
-function initializeForm() {
-  if (typeof window === 'undefined') return;
-
-  // ============================================
-  // CONFIGURATION
-  // ============================================
-  const CONFIG = {
-    emailjs: {
-      publicKey: 'ZeNFfwJ37Uhd6E1vp',
-      serviceId: 'service_pyl6wra',
-      templateId: 'template_emi2tju'
-    },
-    supabase: {
-      url: 'https://teivfptpozltpqwahgdl.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
-    },
-    api: {
-      consents: '/api/consent-forms',
-      ghl: '/api/consent-to-ghl'
-    },
-    ghl: {
-      customFieldKey: 'iv__injection_consent',
-      tags: ['iv-injection-consent-signed', 'consent-completed']
-    },
-    consentType: 'iv-injection',
-    recipientEmail: 'cupp@range-medical.com, intake@range-medical.com'
-  };
-
-  const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
-
-  // ============================================
-  // SIGNATURE PAD
-  // ============================================
-  let signaturePad;
-  const canvas = document.getElementById('signaturePad');
-  if (!canvas) return;
-
-  function initSignaturePad() {
-    const container = canvas.parentElement;
-    
-    function resizeCanvas() {
-      const ratio = 1;
-      canvas.width = container.offsetWidth * ratio;
-      canvas.height = 200 * ratio;
-      canvas.style.width = container.offsetWidth + 'px';
-      canvas.style.height = '200px';
-      canvas.getContext('2d').scale(ratio, ratio);
-      if (signaturePad && !signaturePad.isEmpty()) {
-        const data = signaturePad.toData();
-        signaturePad.fromData(data);
-      }
-    }
-    
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    signaturePad = new window.SignaturePad(canvas, {
-      backgroundColor: 'rgb(255, 255, 255)',
-      penColor: 'rgb(0, 0, 0)',
-      minWidth: 1,
-      maxWidth: 2.5
-    });
-    
-    signaturePad.addEventListener('beginStroke', () => {
-      document.getElementById('signaturePlaceholder').style.display = 'none';
-      document.getElementById('signatureContainer').classList.remove('error');
-      document.getElementById('signatureError').classList.remove('visible');
-    });
-    
-    document.getElementById('clearSignature').addEventListener('click', () => {
-      signaturePad.clear();
-      document.getElementById('signaturePlaceholder').style.display = 'block';
-    });
-  }
-
-  initSignaturePad();
-
-  // ============================================
-  // DATE OF BIRTH AUTO-FORMATTING
-  // ============================================
-  const dobInput = document.getElementById('dateOfBirth');
-  dobInput.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    
-    if (value.length >= 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2);
-    }
-    if (value.length >= 5) {
-      value = value.slice(0, 5) + '/' + value.slice(5);
-    }
-    if (value.length > 10) {
-      value = value.slice(0, 10);
-    }
-    
-    e.target.value = value;
-  });
-
-  function isValidDOB(dateStr) {
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return false;
-    
-    const [month, day, year] = dateStr.split('/').map(Number);
-    const date = new Date(year, month - 1, day);
-    
-    return date.getFullYear() === year && 
-           date.getMonth() === month - 1 && 
-           date.getDate() === day &&
-           year >= 1900 && year <= new Date().getFullYear();
-  }
-
-  // Set today's date
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('consentDate').value = today;
-
-  // ============================================
-  // HEALTH SCREENING LOGIC
-  // ============================================
-  function checkHealthQuestions() {
-    const warningQuestions = ['q4', 'q5', 'q6', 'q7', 'q8'];
-    let showWarning = false;
-    
-    warningQuestions.forEach(questionName => {
-      const yesRadio = document.getElementById(questionName + '-yes');
-      if (yesRadio && yesRadio.checked) {
-        showWarning = true;
-        document.getElementById(questionName).classList.add('warning');
-      } else {
-        document.getElementById(questionName).classList.remove('warning');
-      }
-    });
-    
-    const warningAlert = document.getElementById('warningAlert');
-    if (showWarning) {
-      warningAlert.classList.add('visible');
-    } else {
-      warningAlert.classList.remove('visible');
-    }
-    
-    checkG6PDCritical();
-  }
-
-  function checkG6PDCritical() {
-    const hasG6PD = document.getElementById('q1-yes')?.checked || 
-                   document.getElementById('q1-unknown')?.checked;
-    const gettingMB = document.getElementById('q2-yes')?.checked;
-    const gettingVC = document.getElementById('q3-yes')?.checked;
-    
-    const g6pdAlert = document.getElementById('g6pdAlert');
-    
-    if (hasG6PD && (gettingMB || gettingVC)) {
-      g6pdAlert.classList.add('visible');
-      document.getElementById('q1').classList.add('critical');
-      if (gettingMB) document.getElementById('q2').classList.add('critical');
-      if (gettingVC) document.getElementById('q3').classList.add('critical');
-    } else {
-      g6pdAlert.classList.remove('visible');
-      document.getElementById('q1').classList.remove('critical');
-      document.getElementById('q2').classList.remove('critical');
-      document.getElementById('q3').classList.remove('critical');
-    }
-  }
-
-  // Add listeners to health questions
-  for (let i = 1; i <= 8; i++) {
-    const radios = document.querySelectorAll(`input[name="q${i}"]`);
-    radios.forEach(radio => {
-      radio.addEventListener('change', checkHealthQuestions);
-    });
-  }
-
-  // Clear errors on input
-  document.querySelectorAll('input[required]').forEach(input => {
-    input.addEventListener('input', () => {
-      input.classList.remove('error');
-      const errorEl = document.getElementById(input.id + 'Error');
-      if (errorEl) errorEl.classList.remove('visible');
-    });
-  });
-
-  document.getElementById('consentGiven').addEventListener('change', () => {
-    document.getElementById('consentCheckbox').classList.remove('error');
-    document.getElementById('consentError').classList.remove('visible');
-  });
-
-  // ============================================
-  // FORM VALIDATION
-  // ============================================
-  function validateForm() {
-    let isValid = true;
-    
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'consentDate'];
-    requiredFields.forEach(fieldId => {
-      const field = document.getElementById(fieldId);
-      const error = document.getElementById(fieldId + 'Error');
-      if (!field.value.trim()) {
-        field.classList.add('error');
-        if (error) error.classList.add('visible');
-        isValid = false;
-      } else {
-        field.classList.remove('error');
-        if (error) error.classList.remove('visible');
-      }
-    });
-    
-    // Validate DOB
-    const dob = document.getElementById('dateOfBirth');
-    const dobError = document.getElementById('dateOfBirthError');
-    if (!dob.value.trim() || !isValidDOB(dob.value)) {
-      dob.classList.add('error');
-      if (dobError) dobError.classList.add('visible');
-      isValid = false;
-    } else {
-      dob.classList.remove('error');
-      if (dobError) dobError.classList.remove('visible');
-    }
-    
-    // Validate all health questions
-    for (let i = 1; i <= 8; i++) {
-      const radios = document.querySelectorAll(`input[name="q${i}"]`);
-      const anyChecked = Array.from(radios).some(radio => radio.checked);
-      if (!anyChecked) {
-        isValid = false;
-        alert('Please answer all health questions.');
-        return false;
-      }
-    }
-    
-    // Validate consent
-    const consentCheckbox = document.getElementById('consentGiven');
-    if (!consentCheckbox.checked) {
-      document.getElementById('consentCheckbox').classList.add('error');
-      document.getElementById('consentError').classList.add('visible');
-      isValid = false;
-    }
-    
-    // Validate signature
-    if (signaturePad.isEmpty()) {
-      document.getElementById('signatureContainer').classList.add('error');
-      document.getElementById('signatureError').classList.add('visible');
-      isValid = false;
-    }
-    
-    return isValid;
-  }
-
-  // ============================================
-  // COLLECT FORM DATA
-  // ============================================
-  function collectFormData() {
-    const healthAnswers = {};
-    for (let i = 1; i <= 8; i++) {
-      const checked = document.querySelector(`input[name="q${i}"]:checked`);
-      healthAnswers[`q${i}`] = checked ? checked.value : 'not answered';
-    }
-    
-    return {
-      firstName: document.getElementById('firstName').value.trim(),
-      lastName: document.getElementById('lastName').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
-      dateOfBirth: document.getElementById('dateOfBirth').value,
-      consentDate: document.getElementById('consentDate').value,
-      healthAnswers: healthAnswers,
-      consentGiven: document.getElementById('consentGiven').checked,
-      signature: signaturePad.toDataURL('image/jpeg', 0.5),
-      submissionDate: new Date().toLocaleString('en-US', {
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      })
-    };
-  }
-
-  // ============================================
-  // UPLOAD FUNCTIONS
-  // ============================================
-  async function uploadSignatureToSupabase(base64Data, patientName) {
-    const timestamp = Date.now();
-    const safeName = patientName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-    const fileName = `${safeName}-${timestamp}.jpg`;
-    const filePath = `signatures/iv-injection-consent/${fileName}`;
-    
-    const base64Content = base64Data.split(',')[1];
-    const mimeType = 'image/jpeg';
-    const byteCharacters = atob(base64Content);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType });
-    
-    const { data, error } = await supabaseClient.storage
-      .from('medical-documents')
-      .upload(filePath, blob, { contentType: mimeType, cacheControl: '3600', upsert: false });
-    
-    if (error) throw new Error('Failed to upload signature: ' + error.message);
-    
-    const { data: urlData } = supabaseClient.storage
-      .from('medical-documents')
-      .getPublicUrl(filePath);
-    
-    return urlData.publicUrl;
-  }
-
-  async function uploadPDFToSupabase(pdfBlob, patientName) {
-    const timestamp = Date.now();
-    const safeName = patientName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-    const fileName = `${safeName}-${timestamp}.pdf`;
-    const filePath = `consents/iv-injection-consent/${fileName}`;
-    
-    const { data, error } = await supabaseClient.storage
-      .from('medical-documents')
-      .upload(filePath, pdfBlob, { contentType: 'application/pdf', cacheControl: '3600', upsert: false });
-    
-    if (error) throw new Error('Failed to upload PDF: ' + error.message);
-    
-    const { data: urlData } = supabaseClient.storage
-      .from('medical-documents')
-      .getPublicUrl(filePath);
-    
-    return urlData.publicUrl;
-  }
-
-  // ============================================
-  // SAVE TO DATABASE
-  // ============================================
-  async function saveToDatabase(formData, signatureUrl, pdfUrl) {
-    const payload = {
-      consentType: CONFIG.consentType,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      dateOfBirth: formData.dateOfBirth,
-      consentDate: formData.consentDate,
-      signatureUrl: signatureUrl,
-      pdfUrl: pdfUrl,
-      consentGiven: formData.consentGiven,
-      healthAnswers: formData.healthAnswers
-    };
-    
-    const response = await fetch(CONFIG.api.consents, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    
-    return await response.json();
-  }
-
-  // ============================================
-  // SEND TO GHL
-  // ============================================
-  async function sendToGHL(formData, signatureUrl, pdfUrl) {
-    const questions = [
-      'G6PD deficiency', 'Getting Methylene Blue', 'Getting High Dose Vitamin C',
-      'Allergies to vitamins/medicines', 'Kidney problems', 'Heart problems',
-      'Pregnant or breastfeeding', 'Previous bad reaction to IV/injection'
-    ];
-    
-    const yesAnswers = [];
-    questions.forEach((question, index) => {
-      const answer = formData.healthAnswers[`q${index + 1}`];
-      if (answer === 'yes') yesAnswers.push(question);
-    });
-    
-    const hasG6PD = formData.healthAnswers['q1'] === 'yes' || formData.healthAnswers['q1'] === 'unknown';
-    const gettingMB = formData.healthAnswers['q2'] === 'yes';
-    const gettingVC = formData.healthAnswers['q3'] === 'yes';
-    const g6pdCritical = hasG6PD && (gettingMB || gettingVC);
-    
-    const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      dateOfBirth: formData.dateOfBirth,
-      consentType: CONFIG.consentType,
-      consentDate: formData.consentDate,
-      customFieldKey: CONFIG.ghl.customFieldKey,
-      customFieldValue: 'Complete',
-      tags: CONFIG.ghl.tags,
-      signatureUrl: signatureUrl,
-      pdfUrl: pdfUrl,
-      healthScreening: {
-        yesAnswers: yesAnswers,
-        g6pdCritical: g6pdCritical,
-        gettingMB: gettingMB,
-        gettingVC: gettingVC
-      }
-    };
-    
-    const response = await fetch(CONFIG.api.ghl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    
-    return await response.json();
-  }
-
-  // ============================================
-  // GENERATE PDF
-  // ============================================
-  function generatePDF(formData) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ compress: true });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    let yPos = margin;
-    
-    // Header
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('RANGE MEDICAL', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 10;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'normal');
-    doc.text('IV & Injection Therapy Consent', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    
-    // Patient Info
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PATIENT INFORMATION', margin, yPos);
-    yPos += 10;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Name: ${formData.firstName} ${formData.lastName}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Email: ${formData.email}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Phone: ${formData.phone}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date of Birth: ${formData.dateOfBirth}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date: ${formData.consentDate}`, margin, yPos);
-    
-    // Health Screening
-    yPos += 15;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('HEALTH SCREENING ANSWERS', margin, yPos);
-    
-    const questions = [
-      'G6PD deficiency', 'Getting Methylene Blue', 'Getting High Dose Vitamin C',
-      'Allergies to vitamins/medicines', 'Kidney problems', 'Heart problems',
-      'Pregnant or breastfeeding', 'Previous bad reaction to IV/injection'
-    ];
-    
-    const yesAnswers = [];
-    questions.forEach((question, index) => {
-      const answer = formData.healthAnswers[`q${index + 1}`];
-      if (answer === 'yes') yesAnswers.push(question);
-    });
-    
-    // G6PD Critical Check
-    const hasG6PD = formData.healthAnswers['q1'] === 'yes' || formData.healthAnswers['q1'] === 'unknown';
-    const gettingMB = formData.healthAnswers['q2'] === 'yes';
-    const gettingVC = formData.healthAnswers['q3'] === 'yes';
-    const g6pdCritical = hasG6PD && (gettingMB || gettingVC);
-    
-    // Critical G6PD warning
-    if (g6pdCritical) {
-      yPos += 10;
-      doc.setFillColor(254, 242, 242);
-      const criticalText = [
-        '🚨 CRITICAL: Patient has G6PD deficiency and is receiving',
-        gettingMB ? '  • Methylene Blue' : '',
-        gettingVC ? '  • High Dose Vitamin C' : '',
-        'LAB TESTING REQUIRED BEFORE TREATMENT'
-      ].filter(line => line !== '');
-      
-      const boxHeight = 8 + (criticalText.length * 6);
-      doc.rect(margin, yPos - 5, pageWidth - 2 * margin, boxHeight, 'F');
-      doc.setDrawColor(220, 38, 38);
-      doc.setLineWidth(2);
-      doc.rect(margin, yPos - 5, pageWidth - 2 * margin, boxHeight, 'S');
-      
-      doc.setTextColor(153, 27, 27);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      
-      criticalText.forEach(line => {
-        doc.text(line, margin + 5, yPos);
-        yPos += 6;
-      });
-      
-      doc.setTextColor(0, 0, 0);
-      yPos += 5;
-    }
-    
-    // Warning box for other yes answers
-    if (yesAnswers.length > 0) {
-      yPos += 10;
-      doc.setFillColor(255, 243, 205);
-      const boxHeight = 8 + (yesAnswers.length * 6);
-      doc.rect(margin, yPos - 5, pageWidth - 2 * margin, boxHeight, 'F');
-      doc.setDrawColor(245, 158, 11);
-      doc.setLineWidth(1);
-      doc.rect(margin, yPos - 5, pageWidth - 2 * margin, boxHeight, 'S');
-      
-      doc.setTextColor(146, 64, 14);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('⚠ ATTENTION: Patient answered YES to:', margin + 5, yPos);
-      yPos += 6;
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      yesAnswers.forEach(q => {
-        doc.text(`• ${q}`, margin + 10, yPos);
-        yPos += 6;
-      });
-      
-      doc.setTextColor(0, 0, 0);
-      yPos += 5;
-    }
-    
-    yPos += 10;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    
-    questions.forEach((question, index) => {
-      const answer = formData.healthAnswers[`q${index + 1}`];
-      doc.text(`${index + 1}. ${question}: ${answer.toUpperCase()}`, margin, yPos);
-      yPos += 6;
-      if (yPos > pageHeight - 40) {
-        doc.addPage();
-        yPos = margin;
-      }
-    });
-    
-    // Consent
-    yPos += 10;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('PATIENT CONSENT', margin, yPos);
-    yPos += 8;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    const consent = 'I have read and understand the treatment information. I agree to receive IV or injection therapy at Range Medical.';
-    const consentLines = doc.splitTextToSize(consent, pageWidth - 2 * margin);
-    doc.text(consentLines, margin, yPos);
-    yPos += consentLines.length * 5 + 10;
-    
-    if (yPos > pageHeight - 60) {
-      doc.addPage();
-      yPos = margin;
-    }
-    
-    // Signature
-    doc.setFont('helvetica', 'bold');
-    doc.text('Patient Signature:', margin, yPos);
-    if (formData.signature) {
-      yPos += 5;
-      doc.addImage(formData.signature, 'JPEG', margin, yPos, 60, 22);
-      yPos += 27;
-    }
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`Signed on: ${formData.consentDate}`, margin, yPos);
-    
-    // Footer
-    yPos = pageHeight - 15;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text('© 2025 Range Medical. All rights reserved. | Confidential Patient Information', pageWidth / 2, yPos, { align: 'center' });
-    
-    return doc.output('blob');
-  }
-
-  // ============================================
-  // SEND EMAIL
-  // ============================================
-  async function sendEmail(formData, pdfBlob) {
-    window.emailjs.init(CONFIG.emailjs.publicKey);
-    
-    const base64PDF = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(pdfBlob);
-    });
-    
-    const questions = [
-      'G6PD deficiency', 'Getting Methylene Blue', 'Getting High Dose Vitamin C',
-      'Allergies to vitamins/medicines', 'Kidney problems', 'Heart problems',
-      'Pregnant or breastfeeding', 'Previous bad reaction to IV/injection'
-    ];
-    
-    const yesAnswers = [];
-    questions.forEach((question, index) => {
-      const answer = formData.healthAnswers[`q${index + 1}`];
-      if (answer === 'yes') yesAnswers.push(`  - ${question}`);
-    });
-    
-    const hasG6PD = formData.healthAnswers['q1'] === 'yes' || formData.healthAnswers['q1'] === 'unknown';
-    const gettingMB = formData.healthAnswers['q2'] === 'yes';
-    const gettingVC = formData.healthAnswers['q3'] === 'yes';
-    const g6pdCritical = hasG6PD && (gettingMB || gettingVC);
-    
-    const g6pdWarning = g6pdCritical ? `
-🚨🚨🚨 CRITICAL ALERT - G6PD DEFICIENCY 🚨🚨🚨
-Patient has G6PD deficiency and is receiving:
-${gettingMB ? '  - METHYLENE BLUE' : ''}
-${gettingVC ? '  - HIGH DOSE VITAMIN C' : ''}
-
-*** LAB TESTING REQUIRED BEFORE TREATMENT ***
-*** DO NOT PROCEED WITHOUT G6PD LAB RESULTS ***
-
-` : '';
-    
-    const warningSection = yesAnswers.length > 0 ? `
-⚠️ WARNING - PATIENT ANSWERED YES TO:
-${yesAnswers.join('\n')}
-
-PLEASE REVIEW BEFORE TREATMENT
-` : '';
-    
-    const healthSummary = Object.entries(formData.healthAnswers)
-      .map(([q, answer]) => `${q}: ${answer}`)
-      .join('\n');
-    
-    const messageBody = `
-IV & INJECTION THERAPY CONSENT FORM SUBMISSION
-===============================================
-${g6pdWarning}${warningSection}
-PATIENT INFORMATION
--------------------
-Name: ${formData.firstName} ${formData.lastName}
-Email: ${formData.email}
-Phone: ${formData.phone}
-Date of Birth: ${formData.dateOfBirth}
-Date of Consent: ${formData.consentDate}
-
-HEALTH SCREENING ANSWERS
--------------------------
-${healthSummary}
-
-CONSENT
--------
-Consent Given: ${formData.consentGiven ? 'Yes' : 'No'}
-Signature: Provided electronically
-Submitted: ${formData.submissionDate}
-
-===============================================
-PDF consent form is attached to this email.
-`;
-    
-    const templateParams = {
-      to_email: CONFIG.recipientEmail,
-      from_name: `${formData.firstName} ${formData.lastName}`,
-      patient_name: `${formData.firstName} ${formData.lastName}`,
-      patient_email: formData.email,
-      patient_phone: formData.phone,
-      submission_date: formData.submissionDate,
-      message: messageBody,
-      content: base64PDF,
-      filename: `RangeMedical_IVConsent_${formData.lastName}_${formData.firstName}.pdf`
-    };
-    
-    return await window.emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, templateParams);
-  }
-
-  // ============================================
-  // FORM SUBMISSION
-  // ============================================
-  function showStatus(message, type) {
-    const statusEl = document.getElementById('statusMessage');
-    statusEl.textContent = message;
-    statusEl.className = 'status-message visible ' + type;
-  }
-
-  function showThankYouPage(formData) {
-    document.getElementById('consentContainer').innerHTML = `
-      <div class="thank-you-page">
-        <div class="thank-you-icon">✓</div>
-        <h1>Thank You, ${formData.firstName}!</h1>
-        <p class="thank-you-subtitle">Your form has been sent.</p>
-        <div class="thank-you-details">
-          <p>We got your IV and injection therapy consent form.</p>
-          <p>Our team will look at it before your treatment.</p>
-        </div>
-        <div class="thank-you-contact">
-          <h3>Have Questions?</h3>
-          <p>Email us at <a href="mailto:info@range-medical.com">info@range-medical.com</a></p>
-        </div>
-        <div class="thank-you-footer">
-          <p>RANGE MEDICAL</p>
-        </div>
-      </div>
-    `;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  document.getElementById('consentForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      showStatus('Please fill in all information.', 'error');
-      return;
-    }
-    
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Sending...';
-    showStatus('Sending your form...', 'loading');
-    
-    try {
-      const formData = collectFormData();
-      const patientName = `${formData.firstName} ${formData.lastName}`;
-      
-      showStatus('Uploading signature...', 'loading');
-      const signatureUrl = await uploadSignatureToSupabase(formData.signature, patientName);
-      
-      showStatus('Making PDF...', 'loading');
-      const pdfBlob = generatePDF(formData);
-      
-      showStatus('Uploading PDF...', 'loading');
-      const pdfUrl = await uploadPDFToSupabase(pdfBlob, patientName);
-      
-      showStatus('Saving to database...', 'loading');
-      try {
-        await saveToDatabase(formData, signatureUrl, pdfUrl);
-      } catch (dbError) {
-        console.error('Database save failed:', dbError);
-      }
-      
-      showStatus('Updating patient record...', 'loading');
-      try {
-        await sendToGHL(formData, signatureUrl, pdfUrl);
-      } catch (ghlError) {
-        console.error('GHL update failed:', ghlError);
-      }
-      
-      showStatus('Sending to Range Medical...', 'loading');
-      try {
-        await sendEmail(formData, pdfBlob);
-      } catch (emailError) {
-        console.error('Email failed:', emailError);
-      }
-      
-      showThankYouPage(formData);
-      
-    } catch (error) {
-      console.error('Error:', error);
-      showStatus('Error: ' + error.message, 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Form';
-    }
-  });
 }

@@ -8,6 +8,7 @@ export default async function handler(req, res) {
 
   const GHL_API_KEY = process.env.GHL_API_KEY;
   const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
   if (!GHL_API_KEY || !GHL_LOCATION_ID) {
     console.error('Missing GHL credentials');
@@ -412,6 +413,144 @@ export default async function handler(req, res) {
       }
     } catch (tagError) {
       console.error('⚠️ Failed to remove pending tag:', tagError);
+    }
+
+    // ============================================
+    // SEND EMAIL NOTIFICATION VIA RESEND
+    // ============================================
+    if (RESEND_API_KEY) {
+      try {
+        console.log('📧 Sending consent email notification via Resend...');
+
+        const pstDate = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', dateStyle: 'long' });
+        const pstTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', timeStyle: 'short' });
+
+        // Build health screening HTML
+        let healthHtml = '';
+        if (healthScreening) {
+          if (healthScreening.g6pdCritical) {
+            healthHtml += `
+            <div style="background: #fef2f2; padding: 12px; border-left: 4px solid #dc2626; margin: 10px 0;">
+              <strong>🚨 CRITICAL: G6PD Deficiency Detected</strong><br>
+              ${healthScreening.gettingMB ? '<div>- Getting Methylene Blue: YES</div>' : ''}
+              ${healthScreening.gettingVC ? '<div>- Getting High Dose Vitamin C: YES</div>' : ''}
+              <div style="margin-top: 6px; font-weight: bold;">⚠️ LAB TESTING REQUIRED BEFORE TREATMENT</div>
+            </div>`;
+          }
+          if (healthScreening.yesAnswers && healthScreening.yesAnswers.length > 0) {
+            healthHtml += `
+            <div style="background: #fffbcc; padding: 12px; border-left: 4px solid #f0c000; margin: 10px 0;">
+              <strong>⚠️ Health Screening Flags:</strong>
+              <ul style="margin: 5px 0 0 20px;">${healthScreening.yesAnswers.map(a => `<li>${a}</li>`).join('')}</ul>
+            </div>`;
+          }
+        }
+
+        const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #000; color: #fff; padding: 20px; text-align: center; }
+    .section { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
+    .section-title { font-weight: bold; color: #000; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+    .field { margin: 8px 0; }
+    .label { font-weight: 600; color: #555; }
+    .value { color: #000; }
+    .btn { display: inline-block; background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 10px 5px 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">✅ Consent Signed</h1>
+      <p style="margin: 5px 0 0 0; font-size: 18px;">${consentName}</p>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Patient Information</div>
+      <div class="field"><span class="label">Name:</span> <span class="value">${firstName} ${lastName}</span></div>
+      <div class="field"><span class="label">Email:</span> <span class="value">${email || 'N/A'}</span></div>
+      <div class="field"><span class="label">Phone:</span> <span class="value">${phone || 'N/A'}</span></div>
+      <div class="field"><span class="label">DOB:</span> <span class="value">${dateOfBirth || 'N/A'}</span></div>
+    </div>
+
+    ${healthHtml}
+
+    ${(pdfUrl || signatureUrl) ? `
+    <div class="section">
+      <div class="section-title">Documents</div>
+      ${pdfUrl ? `<div class="field"><a href="${pdfUrl}" style="color: #0066cc;">📄 View Consent PDF</a></div>` : ''}
+      ${signatureUrl ? `<div class="field"><a href="${signatureUrl}" style="color: #0066cc;">✍️ View Signature</a></div>` : ''}
+    </div>
+    ` : ''}
+
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="tel:${phone?.replace(/\D/g, '')}" class="btn">📞 Call Patient</a>
+      ${finalContactId ? `<a href="https://app.gohighlevel.com/contacts/detail/${finalContactId}" class="btn">View in GHL</a>` : ''}
+    </div>
+
+    <p style="text-align: center; color: #888; font-size: 12px; margin-top: 30px;">
+      Submitted: ${pstDate} at ${pstTime} PST
+    </p>
+  </div>
+</body>
+</html>`;
+
+        const emailPayload = {
+          from: 'Range Medical <notifications@range-medical.com>',
+          to: ['intake@range-medical.com', 'cupp@range-medical.com'],
+          subject: `✅ Consent Signed: ${consentName} — ${firstName} ${lastName}`,
+          html: emailHtml
+        };
+
+        // Fetch and attach consent PDF
+        if (pdfUrl) {
+          try {
+            console.log('📥 Fetching consent PDF for attachment...');
+            const pdfResponse = await fetch(pdfUrl);
+            if (pdfResponse.ok) {
+              const pdfBuffer = await pdfResponse.arrayBuffer();
+              const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
+              emailPayload.attachments = [
+                {
+                  filename: `consent-${consentType}-${lastName}-${firstName}.pdf`,
+                  content: pdfBase64
+                }
+              ];
+              console.log('📎 PDF attachment added to consent email');
+            } else {
+              console.log('⚠️ Could not fetch consent PDF:', pdfResponse.status);
+            }
+          } catch (pdfError) {
+            console.log('⚠️ Error fetching consent PDF for attachment:', pdfError.message);
+          }
+        }
+
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(emailPayload)
+        });
+
+        const emailResult = await emailResponse.json();
+
+        if (emailResponse.ok) {
+          console.log('✅ Consent email sent successfully:', emailResult.id);
+        } else {
+          console.error('❌ Consent email failed:', emailResult);
+        }
+      } catch (emailError) {
+        console.error('📧 Email error (non-blocking):', emailError);
+        // Don't fail the consent flow if email fails
+      }
+    } else {
+      console.log('⚠️ RESEND_API_KEY not configured - skipping consent email');
     }
 
     console.log('✅ GHL sync complete for:', finalContactId);

@@ -2,7 +2,7 @@
 // Range Medical Super Bowl LX Giveaway Landing Page
 // Created: 2026-02-08
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -10,6 +10,21 @@ import { useRouter } from 'next/router';
 export default function SuperBowlGiveaway() {
   const router = useRouter();
   const [expandedCategory, setExpandedCategory] = useState(null);
+  const [contestOpen, setContestOpen] = useState(true);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+
+  useEffect(() => {
+    // Check if contest is open
+    fetch('/api/superbowl/status')
+      .then(res => res.json())
+      .then(data => {
+        setContestOpen(data.contest_open);
+        setCheckingStatus(false);
+      })
+      .catch(() => {
+        setCheckingStatus(false);
+      });
+  }, []);
 
   const biomarkerCategories = [
     {
@@ -166,6 +181,153 @@ export default function SuperBowlGiveaway() {
 
     setIsSubmitting(false);
   };
+
+  // Show loading state while checking contest status
+  if (checkingStatus) {
+    return (
+      <>
+        <Head>
+          <title>Super Bowl LX Giveaway | Range Medical</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
+        <div className="sb-loading">
+          <p>Loading...</p>
+        </div>
+        <style jsx>{`
+          .sb-loading {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          }
+        `}</style>
+      </>
+    );
+  }
+
+  // Show contest closed message
+  if (!contestOpen) {
+    return (
+      <>
+        <Head>
+          <title>Contest Closed | Super Bowl LX Giveaway | Range Medical</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
+        <div className="sb-closed-page">
+          <header className="sb-closed-header">
+            <Link href="/" className="sb-logo">RANGE MEDICAL</Link>
+          </header>
+          <div className="sb-closed-content">
+            <span className="sb-closed-badge">Super Bowl LX Giveaway</span>
+            <h1>Contest Closed</h1>
+            <p>Thanks for your interest! Entries are no longer being accepted.</p>
+            <p className="sb-closed-note">Winners will be notified after the game.</p>
+            <Link href="/" className="sb-closed-btn">Visit Range Medical</Link>
+          </div>
+          <footer className="sb-closed-footer">
+            <p>Range Medical</p>
+            <p>1901 Westcliff Dr, Suite 10 · Newport Beach, CA</p>
+            <a href="tel:9499973988">(949) 997-3988</a>
+          </footer>
+        </div>
+        <style jsx>{`
+          .sb-closed-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          }
+          .sb-closed-header {
+            padding: 1.25rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid #e5e5e5;
+          }
+          .sb-logo {
+            font-size: 0.875rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: #171717;
+            text-decoration: none;
+          }
+          .sb-closed-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            text-align: center;
+          }
+          .sb-closed-badge {
+            display: inline-block;
+            background: #171717;
+            color: #ffffff;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            margin-bottom: 1.5rem;
+          }
+          .sb-closed-content h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #171717;
+            margin: 0 0 1rem;
+          }
+          .sb-closed-content p {
+            font-size: 1.125rem;
+            color: #525252;
+            margin: 0 0 0.5rem;
+            max-width: 400px;
+          }
+          .sb-closed-note {
+            font-size: 1rem !important;
+            color: #737373 !important;
+            margin-top: 1rem !important;
+          }
+          .sb-closed-btn {
+            display: inline-block;
+            margin-top: 2rem;
+            background: #171717;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: background 0.2s;
+          }
+          .sb-closed-btn:hover {
+            background: #333333;
+          }
+          .sb-closed-footer {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            background: #fafafa;
+            border-top: 1px solid #e5e5e5;
+          }
+          .sb-closed-footer p {
+            margin: 0 0 0.25rem;
+            font-size: 0.875rem;
+            color: #737373;
+          }
+          .sb-closed-footer p:first-child {
+            font-weight: 600;
+            color: #171717;
+          }
+          .sb-closed-footer a {
+            color: #171717;
+            text-decoration: none;
+            font-weight: 500;
+          }
+        `}</style>
+      </>
+    );
+  }
 
   return (
     <>

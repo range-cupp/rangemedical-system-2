@@ -9,7 +9,7 @@ export default function PeptideConsentPage() {
   useEffect(() => {
     const SUPABASE_URL = 'https://teivfptpozltpqwahgdl.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc';
-    const CONSENT_API = 'https://rangemedical-system-2.vercel.app/api/consent-to-ghl';
+    const CONSENT_API = '/api/consent-to-ghl';
     const urlParams = new URLSearchParams(window.location.search);
     const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

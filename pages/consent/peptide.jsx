@@ -37,12 +37,54 @@ export default function PeptideConsentPage() {
       e.preventDefault();
       const submitBtn = document.getElementById('submitBtn');
       const statusMsg = document.getElementById('statusMessage');
-      if (signaturePad.isEmpty()) { document.getElementById('signatureError').style.display = 'block'; return; }
+      // Validation
+      const missingFields = [];
+      const summaryEl = document.getElementById('validationSummary');
+      const listEl = document.getElementById('validationList');
+      summaryEl.classList.remove('visible');
+      listEl.innerHTML = '';
       document.getElementById('signatureError').style.display = 'none';
+
+      const fields = [
+        { id: 'firstName', label: 'First Name' },
+        { id: 'lastName', label: 'Last Name' },
+        { id: 'email', label: 'Email' },
+        { id: 'phone', label: 'Phone' },
+        { id: 'dateOfBirth', label: 'Date of Birth' }
+      ];
+      fields.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (!el || !el.value.trim()) { if (el) el.style.borderColor = '#dc2626'; missingFields.push(f.label); }
+        else { el.style.borderColor = ''; }
+      });
+
+      const screeningQuestions = [
+        { name: 'allergies', label: 'Allergies question' },
+        { name: 'pregnant', label: 'Pregnant/nursing question' },
+        { name: 'medications', label: 'Medications question' },
+        { name: 'autoimmune', label: 'Autoimmune disorder question' },
+        { name: 'cancer', label: 'Cancer history question' },
+        { name: 'selfInjecting', label: 'Self-injecting question' }
+      ];
+      screeningQuestions.forEach(q => {
+        const checked = document.querySelector(`input[name="${q.name}"]:checked`);
+        if (!checked) missingFields.push(q.label);
+      });
+
       const ackBoxes = document.querySelectorAll('.ack-checkbox');
       let allChecked = true;
       ackBoxes.forEach(cb => { if (!cb.checked) { allChecked = false; cb.closest('.ack-item').style.borderColor = '#dc2626'; } else { cb.closest('.ack-item').style.borderColor = '#e5e7eb'; } });
-      if (!allChecked) { statusMsg.textContent = 'Please check all acknowledgment boxes to proceed.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; return; }
+      if (!allChecked) missingFields.push('All acknowledgment checkboxes');
+
+      if (signaturePad.isEmpty()) { document.getElementById('signatureError').style.display = 'block'; missingFields.push('Signature'); }
+
+      if (missingFields.length > 0) {
+        listEl.innerHTML = missingFields.map(f => '<li>' + f + '</li>').join('');
+        summaryEl.classList.add('visible');
+        summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
       submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; statusMsg.style.display = 'none';
 
       try {
@@ -178,11 +220,16 @@ export default function PeptideConsentPage() {
           </div>
 
           <div className="section"><h2 className="section-title">Patient Signature</h2><p className="section-desc">By signing below, I certify that I have read, understood, and agree to all statements contained in this Informed Consent for Peptide Therapy.</p><div className="signature-container"><canvas id="signaturePad" className="signature-pad"></canvas></div><div className="signature-actions"><button type="button" className="btn-clear" id="clearSignature">Clear Signature</button></div><span className="field-error" id="signatureError" style={{display:'none'}}>Signature is required</span></div>
-          <div className="submit-section"><button type="submit" className="btn-submit" id="submitBtn">Submit Consent</button><div className="status-message" id="statusMessage" style={{display:'none'}}></div></div>
+          <div className="submit-section"><div className="validation-summary" id="validationSummary"><h3>Please complete the following required fields:</h3><ul id="validationList"></ul></div><button type="submit" className="btn-submit" id="submitBtn">Submit Consent</button><div className="status-message" id="statusMessage" style={{display:'none'}}></div></div>
         </form>
         <footer className="consent-footer"><p>&copy; 2026 Range Medical. All rights reserved.</p><p>Your information is protected and kept confidential.</p></footer>
       </div>
-      <style jsx global>{`*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#f9f9f9;color:#111}.consent-page{max-width:720px;margin:0 auto;background:#fff;min-height:100vh}.consent-header{background:#000;color:#fff;padding:24px 28px}.consent-header h1{font-size:22px;font-weight:700;letter-spacing:2px;margin-bottom:4px;color:#fff}.consent-header p{font-size:14px;opacity:.85;color:#fff}.consent-form{padding:0 28px 40px}.section{border-bottom:1px solid #e5e5e5;padding:28px 0}.section:last-of-type{border-bottom:none}.section-title{font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000}.section-desc{font-size:14px;color:#444;margin-bottom:16px;line-height:1.5}.form-row{display:flex;gap:16px;margin-bottom:16px}.form-group{flex:1}.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#333}.form-group input,.form-group textarea{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:4px;font-size:14px}.form-group input:focus,.form-group textarea:focus{border-color:#000;outline:none;box-shadow:0 0 0 2px rgba(0,0,0,.1)}.req{color:#dc2626}.info-block{background:#fafafa;border:1px solid #e5e5e5;border-radius:6px;padding:20px}.info-block p{font-size:14px;line-height:1.6;color:#333;margin-bottom:12px}.info-block p:last-child{margin-bottom:0}.risk-list{padding-left:20px;margin-top:8px}.risk-list li{font-size:13px;line-height:1.5;color:#444;margin-bottom:6px}.screening-item{background:#fafafa;border:1px solid #e5e5e5;border-radius:6px;padding:16px;margin-bottom:12px}.screening-label{font-size:14px;font-weight:600;display:block;margin-bottom:6px}.radio-row{display:flex;gap:20px;margin-top:4px}.radio-row label{font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px}.details-field{margin-top:10px}.details-field label{font-size:13px;font-weight:500;display:block;margin-bottom:4px}.details-field textarea{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;font-size:13px;resize:vertical}.ack-item{border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s}.ack-item label{display:flex;gap:12px;cursor:pointer;align-items:flex-start}.ack-checkbox{margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:#000}.ack-text{font-size:13px;line-height:1.55;color:#333}.signature-container{border:2px solid #000;border-radius:6px;margin-bottom:8px;overflow:hidden}.signature-pad{width:100%;height:150px;cursor:crosshair}.signature-actions{text-align:right}.btn-clear{background:none;border:1px solid #ccc;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px}.field-error{color:#dc2626;font-size:12px;display:block;margin-top:4px}.submit-section{padding-top:20px;text-align:center}.btn-submit{background:#000;color:#fff;border:none;padding:14px 48px;font-size:16px;font-weight:600;border-radius:6px;cursor:pointer}.btn-submit:disabled{background:#999;cursor:not-allowed}.status-message{margin-top:16px;padding:12px;border-radius:6px;font-size:14px;text-align:center}.status-message.success{background:#f0fdf4;color:#15803d;border:1px solid #86efac}.status-message.error{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}.consent-footer{text-align:center;padding:20px;border-top:1px solid #e5e5e5;font-size:12px;color:#999}.thank-you-page{background:#fff;border:2px solid #000;padding:3rem 2rem;text-align:center;max-width:720px;margin:40px auto}.thank-you-icon{width:80px;height:80px;background:#000;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 2rem}.thank-you-page h1{font-size:2rem;font-weight:700;margin-bottom:1rem;color:#000}.thank-you-subtitle{font-size:1.125rem;color:#525252;margin-bottom:2rem}.thank-you-details{padding:2rem;background:#fafafa;border:1.5px solid #e5e5e5;margin-bottom:2rem}.thank-you-details p{margin-bottom:.75rem;color:#404040}.thank-you-contact{margin-bottom:2rem}.thank-you-contact h3{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:#262626}.thank-you-contact a{color:#000;text-decoration:underline}.thank-you-footer{padding-top:2rem;border-top:2px solid #e5e5e5}.thank-you-footer p{font-size:1.5rem;font-weight:700;letter-spacing:.15em;color:#000}@media(max-width:640px){.form-row{flex-direction:column;gap:12px}.consent-form{padding:0 16px 30px}.consent-header{padding:20px 16px}.radio-row{flex-wrap:wrap}}`}</style>
+      <style jsx global>{`*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#f9f9f9;color:#111}.consent-page{max-width:720px;margin:0 auto;background:#fff;min-height:100vh}.consent-header{background:#000;color:#fff;padding:24px 28px}.consent-header h1{font-size:22px;font-weight:700;letter-spacing:2px;margin-bottom:4px;color:#fff}.consent-header p{font-size:14px;opacity:.85;color:#fff}.consent-form{padding:0 28px 40px}.section{border-bottom:1px solid #e5e5e5;padding:28px 0}.section:last-of-type{border-bottom:none}.section-title{font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000}.section-desc{font-size:14px;color:#444;margin-bottom:16px;line-height:1.5}.form-row{display:flex;gap:16px;margin-bottom:16px}.form-group{flex:1}.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#333}.form-group input,.form-group textarea{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:4px;font-size:14px}.form-group input:focus,.form-group textarea:focus{border-color:#000;outline:none;box-shadow:0 0 0 2px rgba(0,0,0,.1)}.req{color:#dc2626}.info-block{background:#fafafa;border:1px solid #e5e5e5;border-radius:6px;padding:20px}.info-block p{font-size:14px;line-height:1.6;color:#333;margin-bottom:12px}.info-block p:last-child{margin-bottom:0}.risk-list{padding-left:20px;margin-top:8px}.risk-list li{font-size:13px;line-height:1.5;color:#444;margin-bottom:6px}.screening-item{background:#fafafa;border:1px solid #e5e5e5;border-radius:6px;padding:16px;margin-bottom:12px}.screening-label{font-size:14px;font-weight:600;display:block;margin-bottom:6px}.radio-row{display:flex;gap:20px;margin-top:4px}.radio-row label{font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px}.details-field{margin-top:10px}.details-field label{font-size:13px;font-weight:500;display:block;margin-bottom:4px}.details-field textarea{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:4px;font-size:13px;resize:vertical}.ack-item{border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s}.ack-item label{display:flex;gap:12px;cursor:pointer;align-items:flex-start}.ack-checkbox{margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:#000}.ack-text{font-size:13px;line-height:1.55;color:#333}.signature-container{border:2px solid #000;border-radius:6px;margin-bottom:8px;overflow:hidden}.signature-pad{width:100%;height:150px;cursor:crosshair}.signature-actions{text-align:right}.btn-clear{background:none;border:1px solid #ccc;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px}.field-error{color:#dc2626;font-size:12px;display:block;margin-top:4px}.submit-section{padding-top:20px;text-align:center}.btn-submit{background:#000;color:#fff;border:none;padding:14px 48px;font-size:16px;font-weight:600;border-radius:6px;cursor:pointer}.btn-submit:disabled{background:#999;cursor:not-allowed}
+        .validation-summary{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1rem;display:none}
+        .validation-summary.visible{display:block}
+        .validation-summary h3{color:#991b1b;font-size:.9375rem;margin-bottom:.5rem}
+        .validation-summary ul{margin:0;padding-left:1.25rem;color:#dc2626;font-size:.875rem}
+        .validation-summary ul li{margin-bottom:.25rem}.status-message{margin-top:16px;padding:12px;border-radius:6px;font-size:14px;text-align:center}.status-message.success{background:#f0fdf4;color:#15803d;border:1px solid #86efac}.status-message.error{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}.consent-footer{text-align:center;padding:20px;border-top:1px solid #e5e5e5;font-size:12px;color:#999}.thank-you-page{background:#fff;border:2px solid #000;padding:3rem 2rem;text-align:center;max-width:720px;margin:40px auto}.thank-you-icon{width:80px;height:80px;background:#000;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 2rem}.thank-you-page h1{font-size:2rem;font-weight:700;margin-bottom:1rem;color:#000}.thank-you-subtitle{font-size:1.125rem;color:#525252;margin-bottom:2rem}.thank-you-details{padding:2rem;background:#fafafa;border:1.5px solid #e5e5e5;margin-bottom:2rem}.thank-you-details p{margin-bottom:.75rem;color:#404040}.thank-you-contact{margin-bottom:2rem}.thank-you-contact h3{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:#262626}.thank-you-contact a{color:#000;text-decoration:underline}.thank-you-footer{padding-top:2rem;border-top:2px solid #e5e5e5}.thank-you-footer p{font-size:1.5rem;font-weight:700;letter-spacing:.15em;color:#000}@media(max-width:640px){.form-row{flex-direction:column;gap:12px}.consent-form{padding:0 16px 30px}.consent-header{padding:20px 16px}.radio-row{flex-wrap:wrap}}`}</style>
     </>
   );
 }

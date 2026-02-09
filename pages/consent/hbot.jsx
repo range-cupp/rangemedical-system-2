@@ -95,6 +95,12 @@ export default function HBOTConsent() {
         .btn-submit{padding:1rem 3rem;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border:2px solid var(--black);background:var(--black);color:var(--white);cursor:pointer;transition:all .2s ease;font-family:inherit;min-width:250px}
         .btn-submit:hover:not(:disabled){background:var(--white);color:var(--black)}
         .btn-submit:disabled{opacity:.6;cursor:not-allowed}
+        .validation-summary{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1rem;display:none}
+        .validation-summary.visible{display:block}
+        .validation-summary h3{color:#991b1b;font-size:.9375rem;margin-bottom:.5rem}
+        .validation-summary ul{margin:0;padding-left:1.25rem;color:#dc2626;font-size:.875rem}
+        .validation-summary ul li{margin-bottom:.25rem}
+        .health-question.has-error{border-color:#dc2626;background:#fef2f2}
         .status-message{padding:1rem 1.5rem;margin-bottom:1.5rem;font-size:.9375rem;font-weight:500;text-align:center;display:none}
         .status-message.visible{display:block}
         .status-message.error{background:#fef2f2;color:var(--error);border:1.5px solid var(--error)}
@@ -436,6 +442,10 @@ export default function HBOTConsent() {
             
             {/* Submit */}
             <div className="submit-section">
+              <div className="validation-summary" id="validationSummary">
+                <h3>Please complete the following required fields:</h3>
+                <ul id="validationList"></ul>
+              </div>
               <button type="submit" className="btn-submit" id="submitBtn">Submit Form</button>
             </div>
           </form>
@@ -605,7 +615,16 @@ function initializeForm() {
   // ============================================
   function validateForm() {
     let isValid = true;
-    
+    const missingFields = [];
+
+    // Clear previous validation summary
+    const summaryEl = document.getElementById('validationSummary');
+    const listEl = document.getElementById('validationList');
+    summaryEl.classList.remove('visible');
+    listEl.innerHTML = '';
+    document.querySelectorAll('.health-question.has-error').forEach(el => el.classList.remove('has-error'));
+
+    const fieldLabels = { firstName: 'First Name', lastName: 'Last Name', email: 'Email', phone: 'Phone', consentDate: 'Consent Date' };
     const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'consentDate'];
     requiredFields.forEach(fieldId => {
       const field = document.getElementById(fieldId);
@@ -614,50 +633,71 @@ function initializeForm() {
         field.classList.add('error');
         if (error) error.classList.add('visible');
         isValid = false;
+        missingFields.push(fieldLabels[fieldId]);
       } else {
         field.classList.remove('error');
         if (error) error.classList.remove('visible');
       }
     });
-    
-    // Validate DOB
+
     const dob = document.getElementById('dateOfBirth');
     const dobError = document.getElementById('dateOfBirthError');
     if (!dob.value.trim() || !isValidDOB(dob.value)) {
       dob.classList.add('error');
       if (dobError) dobError.classList.add('visible');
       isValid = false;
+      missingFields.push('Date of Birth');
     } else {
       dob.classList.remove('error');
       if (dobError) dobError.classList.remove('visible');
     }
-    
+
     // Validate all health questions
+    const questionLabels = {
+      q1: 'Collapsed lung', q2: 'Cold/flu/sinus infection', q3: 'Lung problems',
+      q4: 'High fever', q5: 'Seizures', q6: 'Recent ear surgery',
+      q7: 'Pregnant', q8: 'Medical device', q9: 'Chemotherapy',
+      q10: 'Antabuse/disulfiram', q11: 'Claustrophobia'
+    };
+    const unanswered = [];
     for (let i = 1; i <= 11; i++) {
-      const radios = document.querySelectorAll(`input[name="q${i}"]`);
+      const name = 'q' + i;
+      const radios = document.querySelectorAll(`input[name="${name}"]`);
       const anyChecked = Array.from(radios).some(radio => radio.checked);
       if (!anyChecked) {
         isValid = false;
-        alert('Please answer all health questions.');
-        return false;
+        unanswered.push(questionLabels[name]);
+        const questionEl = document.getElementById(name);
+        if (questionEl) questionEl.classList.add('has-error');
       }
     }
-    
+    if (unanswered.length > 0) {
+      missingFields.push('Health Questions: ' + unanswered.join(', '));
+    }
+
     // Validate consent
     const consentCheckbox = document.getElementById('consentGiven');
     if (!consentCheckbox.checked) {
       document.getElementById('consentCheckbox').classList.add('error');
       document.getElementById('consentError').classList.add('visible');
       isValid = false;
+      missingFields.push('Consent Checkbox');
     }
-    
+
     // Validate signature
     if (signaturePad.isEmpty()) {
       document.getElementById('signatureContainer').classList.add('error');
       document.getElementById('signatureError').classList.add('visible');
       isValid = false;
+      missingFields.push('Signature');
     }
-    
+
+    if (!isValid) {
+      listEl.innerHTML = missingFields.map(f => '<li>' + f + '</li>').join('');
+      summaryEl.classList.add('visible');
+      summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     return isValid;
   }
 
@@ -973,7 +1013,6 @@ function initializeForm() {
     e.preventDefault();
     
     if (!validateForm()) {
-      showStatus('Please fill in all information.', 'error');
       return;
     }
     

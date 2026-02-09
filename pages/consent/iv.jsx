@@ -61,14 +61,46 @@ export default function IVConsentPage() {
       const submitBtn = document.getElementById('submitBtn');
       const statusMsg = document.getElementById('statusMessage');
 
-      // Validate signature
-      if (signaturePad.isEmpty()) {
-        document.getElementById('signatureError').style.display = 'block';
-        return;
-      }
+      // Validation
+      const missingFields = [];
+      const summaryEl = document.getElementById('validationSummary');
+      const listEl = document.getElementById('validationList');
+      summaryEl.classList.remove('visible');
+      listEl.innerHTML = '';
       document.getElementById('signatureError').style.display = 'none';
 
-      // Validate all acknowledgment checkboxes
+      // Required text fields
+      const fields = [
+        { id: 'firstName', label: 'First Name' },
+        { id: 'lastName', label: 'Last Name' },
+        { id: 'email', label: 'Email' },
+        { id: 'phone', label: 'Phone' },
+        { id: 'dateOfBirth', label: 'Date of Birth' }
+      ];
+      fields.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (!el || !el.value.trim()) { if (el) el.style.borderColor = '#dc2626'; missingFields.push(f.label); }
+        else { el.style.borderColor = ''; }
+      });
+
+      // Health screening radios
+      const screeningQuestions = [
+        { name: 'g6pd', label: 'G6PD deficiency question' },
+        { name: 'allergies', label: 'Allergies question' },
+        { name: 'pregnant', label: 'Pregnant/nursing question' },
+        { name: 'medications', label: 'Medications question' },
+        { name: 'heartCondition', label: 'Heart condition question' },
+        { name: 'kidneyLiver', label: 'Kidney/liver question' },
+        { name: 'diabetes', label: 'Diabetes question' },
+        { name: 'bleeding', label: 'Bleeding disorder question' },
+        { name: 'recentSurgery', label: 'Recent surgery question' }
+      ];
+      screeningQuestions.forEach(q => {
+        const checked = document.querySelector(`input[name="${q.name}"]:checked`);
+        if (!checked) missingFields.push(q.label);
+      });
+
+      // Acknowledgments
       const ackBoxes = document.querySelectorAll('.ack-checkbox');
       let allChecked = true;
       ackBoxes.forEach(cb => {
@@ -79,10 +111,15 @@ export default function IVConsentPage() {
           cb.closest('.ack-item').style.borderColor = '#e5e7eb';
         }
       });
-      if (!allChecked) {
-        statusMsg.textContent = 'Please check all acknowledgment boxes to proceed.';
-        statusMsg.className = 'status-message error';
-        statusMsg.style.display = 'block';
+      if (!allChecked) missingFields.push('All acknowledgment checkboxes');
+
+      // Signature
+      if (signaturePad.isEmpty()) { document.getElementById('signatureError').style.display = 'block'; missingFields.push('Signature'); }
+
+      if (missingFields.length > 0) {
+        listEl.innerHTML = missingFields.map(f => '<li>' + f + '</li>').join('');
+        summaryEl.classList.add('visible');
+        summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
 
@@ -823,6 +860,10 @@ export default function IVConsentPage() {
           </div>
 
           <div className="submit-section">
+            <div className="validation-summary" id="validationSummary">
+              <h3>Please complete the following required fields:</h3>
+              <ul id="validationList"></ul>
+            </div>
             <button type="submit" className="btn-submit" id="submitBtn">Submit Consent</button>
             <div className="status-message" id="statusMessage" style={{display:'none'}}></div>
           </div>
@@ -881,6 +922,11 @@ export default function IVConsentPage() {
         .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 6px; cursor: pointer; letter-spacing: 0.5px; }
         .btn-submit:hover { background: #222; }
         .btn-submit:disabled { background: #999; cursor: not-allowed; }
+        .validation-summary{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1rem;display:none}
+        .validation-summary.visible{display:block}
+        .validation-summary h3{color:#991b1b;font-size:.9375rem;margin-bottom:.5rem}
+        .validation-summary ul{margin:0;padding-left:1.25rem;color:#dc2626;font-size:.875rem}
+        .validation-summary ul li{margin-bottom:.25rem}
         .status-message { margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; }
         .status-message.success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
         .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }

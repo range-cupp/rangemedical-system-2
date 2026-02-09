@@ -33,6 +33,7 @@ export default function RedLightConsentForm() {
     consentGiven: false
   });
   const [errors, setErrors] = useState({});
+  const [validationMessages, setValidationMessages] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
@@ -105,20 +106,25 @@ export default function RedLightConsentForm() {
 
   const validateForm = () => {
     const newErrors = {};
+    const missing = [];
+    const fieldLabels = { firstName: 'First Name', lastName: 'Last Name', email: 'Email', phone: 'Phone', dateOfBirth: 'Date of Birth', consentDate: 'Consent Date' };
     const required = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'consentDate'];
-    
+
     required.forEach(field => {
-      if (!formData[field]?.trim()) newErrors[field] = true;
+      if (!formData[field]?.trim()) { newErrors[field] = true; missing.push(fieldLabels[field]); }
     });
 
+    const unanswered = [];
     HEALTH_QUESTIONS.forEach(q => {
-      if (!formData[q.id]) newErrors[q.id] = true;
+      if (!formData[q.id]) { newErrors[q.id] = true; unanswered.push(q.label); }
     });
+    if (unanswered.length > 0) missing.push('Health Questions: ' + unanswered.join(', '));
 
-    if (!formData.consentGiven) newErrors.consentGiven = true;
-    if (signaturePadRef.current?.isEmpty()) newErrors.signature = true;
+    if (!formData.consentGiven) { newErrors.consentGiven = true; missing.push('Consent Checkbox'); }
+    if (signaturePadRef.current?.isEmpty()) { newErrors.signature = true; missing.push('Signature'); }
 
     setErrors(newErrors);
+    setValidationMessages(missing);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -318,7 +324,10 @@ export default function RedLightConsentForm() {
     e.preventDefault();
     
     if (!validateForm()) {
-      setStatus({ type: 'error', message: 'Please fill in all required fields.' });
+      setTimeout(() => {
+        const summaryEl = document.getElementById('validationSummary');
+        if (summaryEl) summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
       return;
     }
 
@@ -555,6 +564,14 @@ export default function RedLightConsentForm() {
 
             {/* Submit */}
             <div className="submit-section">
+              {validationMessages.length > 0 && (
+                <div className="validation-summary" id="validationSummary">
+                  <h3>Please complete the following required fields:</h3>
+                  <ul>
+                    {validationMessages.map((msg, i) => <li key={i}>{msg}</li>)}
+                  </ul>
+                </div>
+              )}
               <button type="submit" className="btn-submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Submit Form'}
               </button>
@@ -842,7 +859,12 @@ const styles = `
   .btn-submit:hover:not(:disabled) { background: #fff; color: #000; }
   
   .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-  
+
+  .validation-summary { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1rem; }
+  .validation-summary h3 { color: #991b1b; font-size: 0.9375rem; margin-bottom: 0.5rem; }
+  .validation-summary ul { margin: 0; padding-left: 1.25rem; color: #dc2626; font-size: 0.875rem; }
+  .validation-summary ul li { margin-bottom: 0.25rem; }
+
   .status-message {
     padding: 1rem 1.5rem;
     margin-bottom: 1.5rem;

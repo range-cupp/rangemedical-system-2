@@ -13,6 +13,9 @@ export default function SuperBowlAdmin() {
   const [error, setError] = useState('');
   const [contestOpen, setContestOpen] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [winningTeam, setWinningTeam] = useState('');
+  const [winner, setWinner] = useState(null);
+  const [pickingWinner, setPickingWinner] = useState(false);
 
   const fetchEntries = async (secret) => {
     setLoading(true);
@@ -66,6 +69,38 @@ export default function SuperBowlAdmin() {
       console.error('Toggle error:', err);
     }
     setToggling(false);
+  };
+
+  const pickRandomWinner = () => {
+    if (!winningTeam || !data) return;
+
+    setPickingWinner(true);
+
+    // Filter entries to those who picked the winning team
+    const correctPicks = data.entries.filter(e => e.team_pick === winningTeam);
+
+    if (correctPicks.length === 0) {
+      setWinner({ error: 'No entries picked this team!' });
+      setPickingWinner(false);
+      return;
+    }
+
+    // Random selection with animation effect
+    let iterations = 0;
+    const maxIterations = 20;
+    const interval = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * correctPicks.length);
+      setWinner(correctPicks[randomIndex]);
+      iterations++;
+
+      if (iterations >= maxIterations) {
+        clearInterval(interval);
+        // Final random pick
+        const finalIndex = Math.floor(Math.random() * correctPicks.length);
+        setWinner(correctPicks[finalIndex]);
+        setPickingWinner(false);
+      }
+    }, 100);
   };
 
   const handleSubmit = (e) => {
@@ -201,6 +236,57 @@ export default function SuperBowlAdmin() {
                 <span className="stat-number">{data.stats.entries_with_referrer || 0}</span>
                 <span className="stat-label">With Referrer</span>
               </div>
+            </div>
+
+            {/* Winner Picker */}
+            <div className="winner-section">
+              <h2>Pick a Winner</h2>
+              <div className="winner-controls">
+                <label>Who won the Super Bowl?</label>
+                <div className="team-select">
+                  <button
+                    type="button"
+                    className={`team-btn ${winningTeam === 'patriots' ? 'team-btn-selected team-btn-patriots' : ''}`}
+                    onClick={() => { setWinningTeam('patriots'); setWinner(null); }}
+                  >
+                    Patriots
+                  </button>
+                  <button
+                    type="button"
+                    className={`team-btn ${winningTeam === 'seahawks' ? 'team-btn-selected team-btn-seahawks' : ''}`}
+                    onClick={() => { setWinningTeam('seahawks'); setWinner(null); }}
+                  >
+                    Seahawks
+                  </button>
+                </div>
+                <button
+                  className="pick-winner-btn"
+                  onClick={pickRandomWinner}
+                  disabled={!winningTeam || pickingWinner}
+                >
+                  {pickingWinner ? 'Picking...' : 'Pick Random Winner'}
+                </button>
+              </div>
+
+              {winner && !winner.error && (
+                <div className="winner-result">
+                  <div className="winner-banner">WINNER!</div>
+                  <div className="winner-name">{winner.first_name} {winner.last_name}</div>
+                  <div className="winner-phone">{winner.phone_number}</div>
+                  <div className="winner-pick">Picked: {winner.team_pick === 'patriots' ? 'Patriots' : 'Seahawks'}</div>
+                  {winner.referred_by && (
+                    <div className="winner-referrer">
+                      <span className="referrer-label">Referred by:</span>
+                      <span className="referrer-name">{winner.referred_by}</span>
+                      <span className="referrer-note">Both win an Elite Panel!</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {winner && winner.error && (
+                <div className="winner-error">{winner.error}</div>
+              )}
             </div>
 
             <div className="entries-section">
@@ -373,6 +459,143 @@ export default function SuperBowlAdmin() {
         .pick-seahawks {
           color: #69be28;
           font-weight: 600;
+        }
+        /* Winner Picker */
+        .winner-section {
+          background: #fff;
+          border: 2px solid #171717;
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+        }
+        .winner-section h2 {
+          font-size: 1.25rem;
+          color: #171717;
+          margin: 0 0 1rem;
+        }
+        .winner-controls {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .winner-controls label {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #525252;
+        }
+        .team-select {
+          display: flex;
+          gap: 0.75rem;
+        }
+        .team-btn {
+          flex: 1;
+          padding: 0.875rem 1rem;
+          background: #fff;
+          border: 2px solid #e5e5e5;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .team-btn:hover {
+          border-color: #171717;
+        }
+        .team-btn-selected {
+          color: #fff;
+        }
+        .team-btn-patriots {
+          background: #c8102e;
+          border-color: #c8102e;
+        }
+        .team-btn-seahawks {
+          background: #69be28;
+          border-color: #69be28;
+        }
+        .pick-winner-btn {
+          padding: 1rem;
+          background: #171717;
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .pick-winner-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .winner-result {
+          margin-top: 1.5rem;
+          padding: 1.5rem;
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          border: 2px solid #f59e0b;
+          border-radius: 12px;
+          text-align: center;
+        }
+        .winner-banner {
+          display: inline-block;
+          background: #f59e0b;
+          color: #fff;
+          font-size: 0.875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          padding: 0.375rem 1rem;
+          border-radius: 100px;
+          margin-bottom: 1rem;
+        }
+        .winner-name {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.25rem;
+        }
+        .winner-phone {
+          font-size: 1.25rem;
+          color: #525252;
+          margin-bottom: 0.5rem;
+        }
+        .winner-pick {
+          font-size: 0.875rem;
+          color: #737373;
+          margin-bottom: 1rem;
+        }
+        .winner-referrer {
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid #f59e0b;
+        }
+        .referrer-label {
+          display: block;
+          font-size: 0.75rem;
+          color: #737373;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 0.25rem;
+        }
+        .referrer-name {
+          display: block;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.25rem;
+        }
+        .referrer-note {
+          display: block;
+          font-size: 0.875rem;
+          color: #166534;
+          font-weight: 600;
+        }
+        .winner-error {
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 8px;
+          color: #dc2626;
+          text-align: center;
         }
         @media (max-width: 768px) {
           .stats-grid {

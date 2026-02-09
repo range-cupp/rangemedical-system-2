@@ -1163,6 +1163,10 @@ export default function ServiceLog() {
                               <option value="1">1 injection</option>
                               <option value="2">2 injections</option>
                               <option value="3">3 injections</option>
+                              <option value="4">4 pack</option>
+                              <option value="8">8 pack</option>
+                              <option value="10">10 pack</option>
+                              <option value="12">12 pack</option>
                             </select>
                           </div>
 

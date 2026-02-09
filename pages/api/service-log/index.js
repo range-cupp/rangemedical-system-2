@@ -52,6 +52,7 @@ async function handleGet(req, res) {
   const { category, patient_id, limit = 100 } = req.query;
 
   try {
+    // Try service_logs first
     let query = supabase
       .from('service_logs')
       .select('*')
@@ -76,6 +77,11 @@ async function handleGet(req, res) {
       }
       console.error('Error fetching service logs:', error);
       return res.status(500).json({ success: false, error: error.message });
+    }
+
+    // If service_logs is empty, also check injection_logs for this category
+    if (!logs || logs.length === 0) {
+      return await handleGetFallback(req, res);
     }
 
     // Get patient names for logs without them

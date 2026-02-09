@@ -24,9 +24,6 @@ export default function HBOTConsent() {
         <meta name="description" content="HBOT consent form for Range Medical hyperbaric oxygen therapy services." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex, nofollow" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
       <Script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onLoad={handleScriptLoad} />
@@ -35,97 +32,95 @@ export default function HBOTConsent() {
       <Script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onLoad={handleScriptLoad} />
 
       <style jsx global>{`
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        :root{--black:#000;--white:#fff;--gray-50:#fafafa;--gray-100:#f5f5f5;--gray-200:#e5e5e5;--gray-300:#d4d4d4;--gray-400:#a3a3a3;--gray-500:#737373;--gray-600:#525252;--gray-700:#404040;--gray-800:#262626;--gray-900:#171717;--error:#dc2626;--success:#16a34a;--warning:#f59e0b}
-        html{font-size:16px}
-        body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background-color:var(--gray-100);color:var(--gray-900);line-height:1.6;min-height:100vh}
-        .consent-container{max-width:800px;margin:0 auto;padding:2rem 1.5rem}
-        .consent-header{text-align:center;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:2px solid var(--black)}
-        .clinic-name{font-size:2.5rem;font-weight:700;letter-spacing:.15em;margin-bottom:.5rem;color:var(--black)}
-        .form-title{font-size:1.25rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-top:.5rem;color:var(--gray-700)}
-        .consent-header p{color:var(--gray-600);font-size:.875rem;margin-top:.5rem}
-        .form-container{background:var(--white);border:2px solid var(--black);padding:2rem}
-        .section{margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--gray-200)}
-        .section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
-        .section-title{font-size:1.125rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.5rem;padding-bottom:.75rem;border-bottom:2px solid var(--black);display:inline-block}
-        .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;margin-bottom:1.25rem}
-        .form-row:last-child{margin-bottom:0}
-        .form-group{display:flex;flex-direction:column}
-        .form-group.full-width{grid-column:1/-1}
-        .consent-container label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:var(--gray-700)}
-        .consent-container label .required{color:var(--error);margin-left:2px}
-        .consent-container input[type="text"],.consent-container input[type="email"],.consent-container input[type="tel"],.consent-container input[type="date"],.consent-container select,.consent-container textarea{width:100%;padding:.75rem 1rem;font-size:1rem;font-family:inherit;border:1.5px solid var(--gray-300);background:var(--white);color:var(--gray-900);transition:border-color .2s ease,box-shadow .2s ease;border-radius:0}
-        .consent-container input:focus,.consent-container select:focus,.consent-container textarea:focus{outline:none;border-color:var(--black);box-shadow:0 0 0 3px rgba(0,0,0,.1)}
-        .consent-container input.error,.consent-container select.error,.consent-container textarea.error{border-color:var(--error)}
-        .health-question{background:var(--gray-50);border:1.5px solid var(--gray-300);padding:1.25rem;margin-bottom:1.25rem}
-        .health-question.warning{background:#fff7ed;border-color:var(--warning)}
-        .health-question-text{font-size:1rem;font-weight:500;margin-bottom:.75rem;color:var(--gray-900);line-height:1.6}
-        .health-question-note{font-size:.875rem;color:var(--gray-600);font-style:italic;margin-bottom:.75rem}
-        .radio-group{display:flex;gap:2rem}
-        .radio-item{display:flex;align-items:center;gap:.5rem;cursor:pointer}
-        .radio-item input[type="radio"]{width:1.25rem;height:1.25rem;cursor:pointer;accent-color:var(--black)}
-        .radio-item label{font-size:1rem;font-weight:500;text-transform:none;letter-spacing:normal;margin-bottom:0;cursor:pointer;color:var(--gray-800)}
-        .warning-alert{background:#fef3c7;border:2px solid var(--warning);padding:1.5rem;margin-bottom:1.5rem;display:none}
-        .warning-alert.visible{display:block}
-        .warning-alert h4{font-size:1rem;font-weight:700;color:#92400e;margin-bottom:.5rem}
-        .warning-alert p{font-size:.9375rem;color:#78350f;line-height:1.6}
-        .consent-text{background:var(--gray-50);border:1.5px solid var(--gray-300);padding:1.5rem;margin-bottom:1.5rem;line-height:1.8}
-        .consent-text h4{font-size:.9375rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;color:var(--gray-800)}
-        .consent-text p{margin-bottom:1rem;color:var(--gray-800);font-size:.9375rem}
-        .consent-text p:last-child{margin-bottom:0}
-        .consent-text ul{margin-left:1.5rem;margin-bottom:1rem}
-        .consent-text li{margin-bottom:.5rem;color:var(--gray-800)}
-        .consent-text strong{font-weight:600}
-        .checkbox-consent{display:flex;align-items:flex-start;gap:.75rem;margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border:1.5px solid var(--gray-300)}
-        .checkbox-consent input[type="checkbox"]{width:1.5rem;height:1.5rem;margin-top:.25rem;cursor:pointer;accent-color:var(--black);flex-shrink:0}
-        .checkbox-consent label{font-size:.9375rem;font-weight:500;text-transform:none;letter-spacing:normal;margin-bottom:0;cursor:pointer;color:var(--gray-900);line-height:1.6}
-        .checkbox-consent.error{border-color:var(--error);background:#fef2f2}
-        .signature-wrapper{margin-bottom:1.5rem}
-        .signature-label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;color:var(--gray-700);display:block}
-        .signature-pad-container{border:2px solid var(--gray-300);background:var(--white);position:relative;margin-bottom:.75rem}
-        .signature-pad-container.error{border-color:var(--error)}
-        #signaturePad{display:block;width:100%;height:200px;cursor:crosshair}
-        .signature-placeholder{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--gray-400);font-size:.875rem;pointer-events:none;text-align:center}
-        .signature-controls{display:flex;gap:1rem}
-        .btn-clear{padding:.625rem 1.25rem;font-size:.875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border:1.5px solid var(--gray-300);background:var(--white);color:var(--gray-700);cursor:pointer;transition:all .2s ease;font-family:inherit}
-        .btn-clear:hover{border-color:var(--black);background:var(--gray-50)}
-        .field-error{font-size:.8125rem;color:var(--error);margin-top:.5rem;display:none}
-        .field-error.visible{display:block}
-        .submit-section{margin-top:2rem;padding-top:2rem;border-top:2px solid var(--gray-200);text-align:center}
-        .btn-submit{padding:1rem 3rem;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border:2px solid var(--black);background:var(--black);color:var(--white);cursor:pointer;transition:all .2s ease;font-family:inherit;min-width:250px}
-        .btn-submit:hover:not(:disabled){background:var(--white);color:var(--black)}
-        .btn-submit:disabled{opacity:.6;cursor:not-allowed}
-        .validation-summary{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1rem;display:none}
-        .validation-summary.visible{display:block}
-        .validation-summary h3{color:#991b1b;font-size:.9375rem;margin-bottom:.5rem}
-        .validation-summary ul{margin:0;padding-left:1.25rem;color:#dc2626;font-size:.875rem}
-        .validation-summary ul li{margin-bottom:.25rem}
-        .health-question.has-error{border-color:#dc2626;background:#fef2f2}
-        .status-message{padding:1rem 1.5rem;margin-bottom:1.5rem;font-size:.9375rem;font-weight:500;text-align:center;display:none}
-        .status-message.visible{display:block}
-        .status-message.error{background:#fef2f2;color:var(--error);border:1.5px solid var(--error)}
-        .status-message.success{background:#f0fdf4;color:var(--success);border:1.5px solid var(--success)}
-        .status-message.loading{background:var(--gray-100);color:var(--gray-700);border:1.5px solid var(--gray-300)}
-        .thank-you-page{background:var(--white);border:2px solid var(--black);padding:3rem 2rem;text-align:center}
-        .thank-you-icon{width:80px;height:80px;background:var(--black);color:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 2rem}
-        .thank-you-page h1{font-size:2rem;font-weight:700;margin-bottom:1rem;color:var(--black)}
-        .thank-you-subtitle{font-size:1.125rem;color:var(--gray-600);margin-bottom:2rem}
-        .thank-you-details{padding:2rem;background:var(--gray-50);border:1.5px solid var(--gray-200);margin-bottom:2rem}
-        .thank-you-details p{margin-bottom:.75rem;color:var(--gray-700)}
-        .thank-you-details p:last-child{margin-bottom:0}
-        .thank-you-contact{margin-bottom:2rem}
-        .thank-you-contact h3{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:var(--gray-800)}
-        .thank-you-contact a{color:var(--black);text-decoration:underline}
-        .thank-you-footer{padding-top:2rem;border-top:2px solid var(--gray-200)}
-        .thank-you-footer p{font-size:1.5rem;font-weight:700;letter-spacing:.15em;color:var(--black)}
-        @media(max-width:640px){.clinic-name{font-size:2rem}.form-container{padding:1.5rem}.form-row{grid-template-columns:1fr}.radio-group{flex-direction:column;gap:1rem}}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f9f9f9; color: #111; }
+        .consent-container { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; }
+        .consent-header { background: #000; color: #fff; padding: 24px 28px; }
+        .clinic-name { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; color: #fff; }
+        .form-title { font-size: 14px; font-weight: 400; opacity: 0.85; color: #fff; text-transform: none; letter-spacing: normal; margin-top: 0; }
+        .form-container { background: #fff; border: none; padding: 0 28px 40px; }
+        .section { border-bottom: 1px solid #e5e5e5; padding: 28px 0; margin-bottom: 0; }
+        .section:last-of-type { border-bottom: none; padding-bottom: 0; }
+        .section-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #000; display: block; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-group { flex: 1; display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .consent-container label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; text-transform: none; letter-spacing: normal; }
+        .consent-container label .required { color: #dc2626; margin-left: 2px; }
+        .consent-container input[type="text"],.consent-container input[type="email"],.consent-container input[type="tel"],.consent-container input[type="date"],.consent-container select,.consent-container textarea { width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 1px solid #ccc; background: #fff; color: #111; border-radius: 4px; transition: border-color 0.2s ease; }
+        .consent-container input:focus,.consent-container select:focus,.consent-container textarea:focus { outline: none; border-color: #000; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
+        .consent-container input.error,.consent-container select.error,.consent-container textarea.error { border-color: #dc2626; }
+        .health-question { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+        .health-question.warning { background: #fff7ed; border-color: #f59e0b; }
+        .health-question-text { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #111; line-height: 1.5; }
+        .health-question-note { font-size: 12px; color: #666; font-style: italic; margin-bottom: 8px; }
+        .radio-group { display: flex; gap: 20px; }
+        .radio-item { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .radio-item input[type="radio"] { width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: #000; }
+        .radio-item label { font-size: 14px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; }
+        .warning-alert { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 6px; padding: 16px; margin-bottom: 16px; display: none; }
+        .warning-alert.visible { display: block; }
+        .warning-alert h4 { font-size: 14px; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+        .warning-alert p { font-size: 13px; color: #78350f; line-height: 1.5; }
+        .consent-text { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 20px; margin-bottom: 16px; line-height: 1.6; }
+        .consent-text h4 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; color: #262626; }
+        .consent-text p { margin-bottom: 12px; color: #333; font-size: 14px; line-height: 1.6; }
+        .consent-text p:last-child { margin-bottom: 0; }
+        .consent-text ul { margin-left: 1.5rem; margin-bottom: 12px; }
+        .consent-text li { margin-bottom: 6px; color: #333; font-size: 14px; line-height: 1.5; }
+        .consent-text strong { font-weight: 600; }
+        .checkbox-consent { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; padding: 14px 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; }
+        .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
+        .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
+        .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
+        .signature-wrapper { margin-bottom: 16px; }
+        .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
+        .signature-pad-container { border: 2px solid #000; border-radius: 6px; background: #fff; position: relative; margin-bottom: 8px; overflow: hidden; }
+        .signature-pad-container.error { border-color: #dc2626; }
+        #signaturePad { display: block; width: 100%; height: 150px; cursor: crosshair; touch-action: none; }
+        .signature-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #a3a3a3; font-size: 14px; pointer-events: none; text-align: center; }
+        .signature-controls { text-align: right; }
+        .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: inherit; }
+        .btn-clear:hover { background: #f5f5f5; }
+        .field-error { font-size: 12px; color: #dc2626; margin-top: 4px; display: none; }
+        .field-error.visible { display: block; }
+        .submit-section { padding-top: 20px; text-align: center; }
+        .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 6px; cursor: pointer; letter-spacing: 0.5px; font-family: inherit; min-width: 250px; }
+        .btn-submit:hover:not(:disabled) { background: #222; }
+        .btn-submit:disabled { background: #999; cursor: not-allowed; }
+        .validation-summary { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1rem; display: none; }
+        .validation-summary.visible { display: block; }
+        .validation-summary h3 { color: #991b1b; font-size: 0.9375rem; margin-bottom: 0.5rem; }
+        .validation-summary ul { margin: 0; padding-left: 1.25rem; color: #dc2626; font-size: 0.875rem; }
+        .validation-summary ul li { margin-bottom: 0.25rem; }
+        .health-question.has-error { border-color: #dc2626; background: #fef2f2; }
+        .status-message { margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; display: none; }
+        .status-message.visible { display: block; }
+        .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .status-message.success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+        .status-message.loading { background: #f5f5f5; color: #404040; border: 1px solid #d4d4d4; }
+        .consent-footer { text-align: center; padding: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }
+        .consent-footer p { margin-bottom: 4px; }
+        .thank-you-page { background: #fff; border: 2px solid #000; padding: 3rem 2rem; text-align: center; max-width: 720px; margin: 40px auto; }
+        .thank-you-icon { width: 80px; height: 80px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 2rem; }
+        .thank-you-page h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: #000; }
+        .thank-you-subtitle { font-size: 1.125rem; color: #525252; margin-bottom: 2rem; }
+        .thank-you-details { padding: 2rem; background: #fafafa; border: 1.5px solid #e5e5e5; margin-bottom: 2rem; }
+        .thank-you-details p { margin-bottom: 0.75rem; color: #404040; }
+        .thank-you-details p:last-child { margin-bottom: 0; }
+        .thank-you-contact { margin-bottom: 2rem; }
+        .thank-you-contact h3 { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; color: #262626; }
+        .thank-you-contact a { color: #000; text-decoration: underline; }
+        .thank-you-footer { padding-top: 2rem; border-top: 2px solid #e5e5e5; }
+        .thank-you-footer p { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.15em; color: #000; }
+        @media (max-width: 640px) { .consent-header { padding: 20px 16px; } .form-container { padding: 0 16px 30px; } .form-row { flex-direction: column; gap: 12px; } .radio-group { flex-direction: column; gap: 10px; } }
       `}</style>
 
       <div className="consent-container" id="consentContainer">
         <div className="consent-header">
           <h1 className="clinic-name">RANGE MEDICAL</h1>
-          <h2 className="form-title">Hyperbaric Oxygen Therapy Consent</h2>
-          <p>Please answer all questions and read carefully before signing</p>
+          <p className="form-title">Hyperbaric Oxygen Therapy — Informed Consent</p>
         </div>
         
         <div className="form-container">
@@ -450,6 +445,11 @@ export default function HBOTConsent() {
             </div>
           </form>
         </div>
+
+        <footer className="consent-footer">
+          <p>&copy; 2026 Range Medical. All rights reserved.</p>
+          <p>Your information is protected and kept confidential.</p>
+        </footer>
       </div>
     </>
   );
@@ -845,136 +845,216 @@ function initializeForm() {
   function generatePDF(formData) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ compress: true });
+    const leftMargin = 15;
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    let yPos = margin;
-    
-    // Header
-    doc.setFontSize(24);
+    const contentWidth = pageWidth - 30;
+    let yPos = 15;
+
+    function checkPageBreak(needed) {
+      if (yPos + needed > pageHeight - 25) {
+        doc.addPage();
+        yPos = 15;
+      }
+    }
+
+    function addText(text, fontSize, isBold, color) {
+      fontSize = fontSize || 9;
+      isBold = isBold || false;
+      color = color || [0, 0, 0];
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+      doc.setTextColor(color[0], color[1], color[2]);
+      var lines = doc.splitTextToSize(text, contentWidth);
+      checkPageBreak(lines.length * (fontSize * 0.45) + 4);
+      doc.text(lines, leftMargin, yPos);
+      yPos += lines.length * (fontSize * 0.45) + 2;
+    }
+
+    function addSectionHeader(text) {
+      checkPageBreak(15);
+      yPos += 4;
+      doc.setFillColor(0, 0, 0);
+      doc.rect(leftMargin, yPos - 4, contentWidth, 8, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(text.toUpperCase(), leftMargin + 3, yPos + 1);
+      doc.setTextColor(0, 0, 0);
+      yPos += 8;
+    }
+
+    function addLabelValue(label, value) {
+      checkPageBreak(8);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, leftMargin, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(value || 'N/A', leftMargin + doc.getTextWidth(label) + 2, yPos);
+      yPos += 5;
+    }
+
+    function addBullet(text) {
+      checkPageBreak(8);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      var lines = doc.splitTextToSize('• ' + text, contentWidth - 5);
+      doc.text(lines, leftMargin + 3, yPos);
+      yPos += lines.length * 3.8 + 1;
+    }
+
+    // ========== BLACK HEADER BAR ==========
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, pageWidth, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('RANGE MEDICAL', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 10;
-    doc.setFontSize(14);
+    doc.text('RANGE MEDICAL', leftMargin, 10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('Hyperbaric Oxygen Therapy Consent', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    
-    // Patient Info
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PATIENT INFORMATION', margin, yPos);
-    yPos += 10;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Name: ${formData.firstName} ${formData.lastName}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Email: ${formData.email}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Phone: ${formData.phone}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date of Birth: ${formData.dateOfBirth}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date: ${formData.consentDate}`, margin, yPos);
-    
-    // Health Screening
-    yPos += 15;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('HEALTH SCREENING ANSWERS', margin, yPos);
-    
-    const questions = [
-      'Collapsed lung', 'Cold/flu/sinus infection', 'Severe lung problems',
-      'High fever', 'Uncontrolled seizures', 'Recent ear surgery',
-      'Pregnancy', 'Implanted medical device', 'Chemotherapy medication',
-      'Taking Antabuse', 'Claustrophobia'
+    doc.text('Hyperbaric Oxygen Therapy — Informed Consent', leftMargin, 16);
+    doc.setFontSize(8);
+    doc.text('Document Date: ' + formData.consentDate, pageWidth - 15, 10, { align: 'right' });
+    doc.text('1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660', pageWidth - 15, 16, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    yPos = 28;
+
+    // ========== PATIENT INFORMATION ==========
+    addSectionHeader('Patient Information');
+    addLabelValue('Patient Name: ', formData.firstName + ' ' + formData.lastName);
+    addLabelValue('Date of Birth: ', formData.dateOfBirth);
+    addLabelValue('Email: ', formData.email);
+    addLabelValue('Phone: ', formData.phone);
+    addLabelValue('Consent Date: ', formData.consentDate);
+    yPos += 2;
+
+    // ========== TREATMENT DESCRIPTION ==========
+    addSectionHeader('What This Treatment Does');
+    addText('Hyperbaric Oxygen Therapy (HBOT) means breathing pure oxygen inside a special room. The room has more air pressure than normal. This helps your body get more oxygen. More oxygen can help your body heal and feel better.', 8.5);
+    yPos += 2;
+    addText('How It Works:', 9, true);
+    addText('You will sit or lie down in a special chamber. The air pressure will be higher than normal. This lets your lungs take in more oxygen. The extra oxygen goes all through your body and can help you heal.', 8.5);
+    yPos += 2;
+    addText('What It Might Help With:', 9, true);
+    addBullet('Heal faster');
+    addBullet('Have less swelling');
+    addBullet('Get more oxygen to hurt or sick parts of your body');
+    addBullet('Have more energy and think more clearly');
+    addBullet('Feel better after surgery');
+    yPos += 1;
+    addText('Important: This treatment works differently for everyone. We cannot promise it will cure any sickness.', 8.5, true);
+    yPos += 2;
+
+    // ========== HEALTH SCREENING ==========
+    addSectionHeader('Health Screening Responses');
+
+    var questions = [
+      'Collapsed lung (pneumothorax)',
+      'Cold, flu, or sinus infection',
+      'Severe lung problems (COPD/uncontrolled asthma)',
+      'High fever (over 102°F / 39°C)',
+      'Uncontrolled seizures',
+      'Ear surgery in the last 3 months',
+      'Pregnant',
+      'Implanted medical device (pacemaker, insulin pump, etc.)',
+      'Taking chemotherapy medication',
+      'Taking Antabuse (disulfiram)',
+      'Claustrophobia'
     ];
-    
-    const yesAnswers = [];
-    questions.forEach((question, index) => {
-      const answer = formData.healthAnswers[`q${index + 1}`];
+
+    var yesAnswers = [];
+    questions.forEach(function(question, index) {
+      var answer = formData.healthAnswers['q' + (index + 1)];
       if (answer === 'yes') yesAnswers.push(question);
     });
-    
+
     if (yesAnswers.length > 0) {
-      yPos += 10;
-      doc.setFillColor(255, 243, 205);
-      const boxHeight = 8 + (yesAnswers.length * 6);
-      doc.rect(margin, yPos - 5, pageWidth - 2 * margin, boxHeight, 'F');
+      checkPageBreak(12 + yesAnswers.length * 5);
+      doc.setFillColor(254, 243, 199);
+      var boxHeight = 10 + (yesAnswers.length * 5);
+      doc.rect(leftMargin, yPos - 3, contentWidth, boxHeight, 'F');
       doc.setDrawColor(245, 158, 11);
-      doc.setLineWidth(1);
-      doc.rect(margin, yPos - 5, pageWidth - 2 * margin, boxHeight, 'S');
-      
+      doc.setLineWidth(0.5);
+      doc.rect(leftMargin, yPos - 3, contentWidth, boxHeight, 'S');
       doc.setTextColor(146, 64, 14);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('⚠ ATTENTION: Patient answered YES to:', margin + 5, yPos);
+      doc.setFontSize(8.5);
+      doc.text('ATTENTION: Patient answered YES to:', leftMargin + 3, yPos + 2);
       yPos += 6;
-      
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      yesAnswers.forEach(q => {
-        doc.text(`• ${q}`, margin + 10, yPos);
-        yPos += 6;
+      doc.setFontSize(8);
+      yesAnswers.forEach(function(q) {
+        doc.text('• ' + q, leftMargin + 6, yPos);
+        yPos += 4.5;
       });
-      
       doc.setTextColor(0, 0, 0);
-      yPos += 5;
+      doc.setDrawColor(0);
+      yPos += 4;
     }
-    
-    yPos += 10;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    
-    questions.forEach((question, index) => {
-      const answer = formData.healthAnswers[`q${index + 1}`];
-      doc.text(`${index + 1}. ${question}: ${answer.toUpperCase()}`, margin, yPos);
-      yPos += 6;
-      if (yPos > pageHeight - 40) {
-        doc.addPage();
-        yPos = margin;
-      }
+
+    questions.forEach(function(question, index) {
+      var answer = formData.healthAnswers['q' + (index + 1)];
+      addLabelValue((index + 1) + '. ' + question + ': ', (answer || 'not answered').toUpperCase());
     });
-    
-    // Consent
-    yPos += 10;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('PATIENT CONSENT', margin, yPos);
-    yPos += 8;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    const consent = 'I have read and understand the treatment information. I agree to receive Hyperbaric Oxygen Therapy at Range Medical.';
-    const consentLines = doc.splitTextToSize(consent, pageWidth - 2 * margin);
-    doc.text(consentLines, margin, yPos);
-    yPos += consentLines.length * 5 + 10;
-    
-    if (yPos > pageHeight - 60) {
-      doc.addPage();
-      yPos = margin;
+    yPos += 2;
+
+    // ========== RISKS ==========
+    addSectionHeader('Things That Might Happen');
+    addText('Most people do fine with this treatment. But some things might happen:', 8.5);
+    addBullet('Your ears might hurt (like when you fly in a plane)');
+    addBullet('Your eyes might change for a little while (things might look blurry)');
+    addBullet('You might feel nervous in the chamber');
+    addBullet('You might feel tired after treatment');
+    addBullet('Very rare: lung problems or seizures');
+    yPos += 1;
+    addText('Our staff will teach you how to make your ears feel better. Tell us right away if something hurts or feels wrong.', 8.5);
+    yPos += 2;
+
+    // ========== PATIENT RESPONSIBILITIES ==========
+    addSectionHeader('What You Need To Do');
+    addBullet('Come on time for your appointments');
+    addBullet('Take off anything that could catch fire (no oils, lotions, or hair products)');
+    addBullet('Do not bring phones or electronics into the chamber');
+    addBullet('Tell us if something feels wrong during treatment');
+    addBullet('Follow all safety rules');
+    yPos += 1;
+    addText('How Long Treatment Takes: Each treatment takes about 60 to 90 minutes. Your doctor will tell you how many treatments you need. You can do normal things after treatment unless your doctor says not to.', 8.5);
+    yPos += 4;
+
+    // ========== CONSENT ACKNOWLEDGMENT ==========
+    addSectionHeader('Consent Acknowledgment');
+    addText('I understand and agree: I have read this form (or someone read it to me). I understand what HBOT is and what might happen. I know it might not work for me. I can ask questions if I want. I agree to get HBOT treatment at Range Medical. I will not blame Range Medical if something goes wrong, unless they did something very bad on purpose.', 8.5, true);
+    yPos += 4;
+
+    // ========== PATIENT SIGNATURE ==========
+    addSectionHeader('Patient Signature');
+    addText('By affixing my signature below, I certify that I have read this consent form in its entirety, that all of my questions have been answered to my satisfaction, and that I voluntarily consent to Hyperbaric Oxygen Therapy at Range Medical.', 8.5);
+    yPos += 3;
+    addLabelValue('Signed by: ', formData.firstName + ' ' + formData.lastName);
+    addLabelValue('Date: ', formData.consentDate);
+    yPos += 2;
+
+    if (formData.signature && formData.signature.startsWith('data:')) {
+      checkPageBreak(35);
+      try {
+        doc.addImage(formData.signature, 'JPEG', leftMargin, yPos, 60, 25);
+        yPos += 28;
+      } catch (e) {
+        console.error('Error adding signature:', e);
+      }
     }
-    
-    // Signature
-    doc.setFont('helvetica', 'bold');
-    doc.text('Patient Signature:', margin, yPos);
-    if (formData.signature) {
-      yPos += 5;
-      doc.addImage(formData.signature, 'JPEG', margin, yPos, 60, 22);
-      yPos += 27;
+
+    // ========== FOOTER ON ALL PAGES ==========
+    var totalPages = doc.internal.getNumberOfPages();
+    for (var i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(130);
+      doc.text('Page ' + i + ' of ' + totalPages, pageWidth - 15, pageHeight - 4, { align: 'right' });
+      doc.text('Range Medical | 1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660 | (949) 997-3988', pageWidth / 2, pageHeight - 8, { align: 'center' });
+      doc.text('CONFIDENTIAL — HBOT Consent', pageWidth / 2, pageHeight - 4, { align: 'center' });
     }
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`Signed on: ${formData.consentDate}`, margin, yPos);
-    
-    // Footer
-    yPos = pageHeight - 15;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text('© 2025 Range Medical. All rights reserved. | Confidential Patient Information', pageWidth / 2, yPos, { align: 'center' });
-    
+
     return doc.output('blob');
   }
 

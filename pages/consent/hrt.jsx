@@ -35,85 +35,84 @@ export default function HRTConsent() {
       <Script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onLoad={handleScriptLoad} />
 
       <style jsx global>{`
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        :root{--black:#000;--white:#fff;--gray-50:#fafafa;--gray-100:#f5f5f5;--gray-200:#e5e5e5;--gray-300:#d4d4d4;--gray-400:#a3a3a3;--gray-500:#737373;--gray-600:#525252;--gray-700:#404040;--gray-800:#262626;--gray-900:#171717;--error:#dc2626;--success:#16a34a}
-        html{font-size:16px}
-        body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background-color:var(--gray-100);color:var(--gray-900);line-height:1.6;min-height:100vh}
-        .consent-container{max-width:800px;margin:0 auto;padding:2rem 1.5rem}
-        .consent-header{text-align:center;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:2px solid var(--black)}
-        .clinic-name{font-size:2.5rem;font-weight:700;letter-spacing:.15em;margin-bottom:.5rem;color:var(--black)}
-        .form-title{font-size:1.25rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-top:.5rem;color:var(--gray-700)}
-        .consent-header p{color:var(--gray-600);font-size:.875rem;margin-top:.5rem}
-        .form-container{background:var(--white);border:2px solid var(--black);padding:2rem}
-        .section{margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--gray-200)}
-        .section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
-        .section-title{font-size:1.125rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.5rem;padding-bottom:.75rem;border-bottom:2px solid var(--black);display:inline-block}
-        .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;margin-bottom:1.25rem}
-        .form-row:last-child{margin-bottom:0}
-        .form-group{display:flex;flex-direction:column}
-        .form-group.full-width{grid-column:1/-1}
-        .consent-container label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:var(--gray-700)}
-        .consent-container label .required{color:var(--error);margin-left:2px}
-        .consent-container input[type="text"],.consent-container input[type="email"],.consent-container input[type="tel"],.consent-container input[type="date"],.consent-container select,.consent-container textarea{width:100%;padding:.75rem 1rem;font-size:1rem;font-family:inherit;border:1.5px solid var(--gray-300);background:var(--white);color:var(--gray-900);transition:border-color .2s ease,box-shadow .2s ease;border-radius:0}
-        .consent-container input:focus,.consent-container select:focus,.consent-container textarea:focus{outline:none;border-color:var(--black);box-shadow:0 0 0 3px rgba(0,0,0,.1)}
-        .consent-container input.error,.consent-container select.error,.consent-container textarea.error{border-color:var(--error)}
-        .consent-text{background:var(--gray-50);border:1.5px solid var(--gray-300);padding:1.5rem;margin-bottom:1.5rem;line-height:1.8}
-        .consent-text h4{font-size:.9375rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;color:var(--gray-800)}
-        .consent-text p{margin-bottom:1rem;color:var(--gray-800)}
-        .consent-text p:last-child{margin-bottom:0}
-        .consent-text ol{margin-left:1.5rem;margin-bottom:1rem}
-        .consent-text li{margin-bottom:1rem;color:var(--gray-800);padding-left:.5rem}
-        .consent-text li:last-child{margin-bottom:0}
-        .consent-text strong{font-weight:600}
-        .checkbox-consent{display:flex;align-items:flex-start;gap:.75rem;margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border:1.5px solid var(--gray-300)}
-        .checkbox-consent input[type="checkbox"]{width:1.5rem;height:1.5rem;margin-top:.25rem;cursor:pointer;accent-color:var(--black);flex-shrink:0}
-        .checkbox-consent label{font-size:.9375rem;font-weight:500;text-transform:none;letter-spacing:normal;margin-bottom:0;cursor:pointer;color:var(--gray-900);line-height:1.6}
-        .checkbox-consent.error{border-color:var(--error);background:#fef2f2}
-        .signature-wrapper{margin-bottom:1.5rem}
-        .signature-label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;color:var(--gray-700);display:block}
-        .signature-pad-container{border:2px solid var(--gray-300);background:var(--white);position:relative;margin-bottom:.75rem}
-        .signature-pad-container.error{border-color:var(--error)}
-        #signaturePad{display:block;width:100%;height:200px;cursor:crosshair;touch-action:none}
-        .signature-placeholder{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--gray-400);font-size:.875rem;pointer-events:none;text-align:center}
-        .signature-controls{display:flex;gap:1rem}
-        .btn-clear{padding:.625rem 1.25rem;font-size:.875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border:1.5px solid var(--gray-300);background:var(--white);color:var(--gray-700);cursor:pointer;transition:all .2s ease;font-family:inherit}
-        .btn-clear:hover{border-color:var(--black);background:var(--gray-50)}
-        .field-error{font-size:.8125rem;color:var(--error);margin-top:.5rem;display:none}
-        .field-error.visible{display:block}
-        .submit-section{margin-top:2rem;padding-top:2rem;border-top:2px solid var(--gray-200);text-align:center}
-        .btn-submit{padding:1rem 3rem;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border:2px solid var(--black);background:var(--black);color:var(--white);cursor:pointer;transition:all .2s ease;font-family:inherit;min-width:250px}
-        .btn-submit:hover:not(:disabled){background:var(--white);color:var(--black)}
-        .btn-submit:disabled{opacity:.6;cursor:not-allowed}
-        .validation-summary{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1rem;display:none}
-        .validation-summary.visible{display:block}
-        .validation-summary h3{color:#991b1b;font-size:.9375rem;margin-bottom:.5rem}
-        .validation-summary ul{margin:0;padding-left:1.25rem;color:#dc2626;font-size:.875rem}
-        .validation-summary ul li{margin-bottom:.25rem}
-        .status-message{padding:1rem 1.5rem;margin-bottom:1.5rem;font-size:.9375rem;font-weight:500;text-align:center;display:none}
-        .status-message.visible{display:block}
-        .status-message.error{background:#fef2f2;color:var(--error);border:1.5px solid var(--error)}
-        .status-message.success{background:#f0fdf4;color:var(--success);border:1.5px solid var(--success)}
-        .status-message.loading{background:var(--gray-100);color:var(--gray-700);border:1.5px solid var(--gray-300)}
-        .thank-you-page{background:var(--white);border:2px solid var(--black);padding:3rem 2rem;text-align:center}
-        .thank-you-icon{width:80px;height:80px;background:var(--black);color:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 2rem}
-        .thank-you-page h1{font-size:2rem;font-weight:700;margin-bottom:1rem;color:var(--black)}
-        .thank-you-subtitle{font-size:1.125rem;color:var(--gray-600);margin-bottom:2rem}
-        .thank-you-details{padding:2rem;background:var(--gray-50);border:1.5px solid var(--gray-200);margin-bottom:2rem}
-        .thank-you-details p{margin-bottom:.75rem;color:var(--gray-700)}
-        .thank-you-details p:last-child{margin-bottom:0}
-        .thank-you-contact{margin-bottom:2rem}
-        .thank-you-contact h3{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;color:var(--gray-800)}
-        .thank-you-contact a{color:var(--black);text-decoration:underline}
-        .thank-you-footer{padding-top:2rem;border-top:2px solid var(--gray-200)}
-        .thank-you-footer p{font-size:1.5rem;font-weight:700;letter-spacing:.15em;color:var(--black)}
-        @media(max-width:640px){.clinic-name{font-size:2rem}.form-container{padding:1.5rem}.form-row{grid-template-columns:1fr}}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f9f9f9; color: #111; }
+        .consent-container { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; }
+        .consent-header { background: #000; color: #fff; padding: 24px 28px; }
+        .clinic-name { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; color: #fff; }
+        .form-title { font-size: 14px; font-weight: 400; opacity: 0.85; color: #fff; text-transform: none; letter-spacing: normal; margin-top: 0; }
+        .consent-header p { font-size: 13px; opacity: 0.7; color: #fff; margin-top: 4px; }
+        .form-container { background: #fff; border: none; padding: 0 28px 40px; }
+        .section { border-bottom: 1px solid #e5e5e5; padding: 28px 0; margin-bottom: 0; }
+        .section:last-of-type { border-bottom: none; padding-bottom: 0; }
+        .section-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #000; display: block; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-group { flex: 1; display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .consent-container label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; text-transform: none; letter-spacing: normal; }
+        .consent-container label .required { color: #dc2626; margin-left: 2px; }
+        .consent-container input[type="text"],.consent-container input[type="email"],.consent-container input[type="tel"],.consent-container input[type="date"],.consent-container select,.consent-container textarea { width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 1px solid #ccc; background: #fff; color: #111; border-radius: 4px; transition: border-color 0.2s ease; }
+        .consent-container input:focus,.consent-container select:focus,.consent-container textarea:focus { outline: none; border-color: #000; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
+        .consent-container input.error,.consent-container select.error,.consent-container textarea.error { border-color: #dc2626; }
+        .consent-text { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 20px; margin-bottom: 16px; line-height: 1.6; }
+        .consent-text h4 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; color: #262626; }
+        .consent-text p { margin-bottom: 12px; color: #333; font-size: 14px; line-height: 1.6; }
+        .consent-text p:last-child { margin-bottom: 0; }
+        .consent-text ol { margin-left: 1.5rem; margin-bottom: 12px; }
+        .consent-text li { margin-bottom: 12px; color: #333; font-size: 14px; line-height: 1.6; padding-left: 0.25rem; }
+        .consent-text li:last-child { margin-bottom: 0; }
+        .consent-text strong { font-weight: 600; }
+        .checkbox-consent { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; padding: 14px 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; }
+        .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
+        .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
+        .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
+        .signature-wrapper { margin-bottom: 16px; }
+        .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
+        .signature-pad-container { border: 2px solid #000; border-radius: 6px; background: #fff; position: relative; margin-bottom: 8px; overflow: hidden; }
+        .signature-pad-container.error { border-color: #dc2626; }
+        #signaturePad { display: block; width: 100%; height: 150px; cursor: crosshair; touch-action: none; }
+        .signature-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #a3a3a3; font-size: 14px; pointer-events: none; text-align: center; }
+        .signature-controls { text-align: right; }
+        .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: inherit; }
+        .btn-clear:hover { background: #f5f5f5; }
+        .field-error { font-size: 12px; color: #dc2626; margin-top: 4px; display: none; }
+        .field-error.visible { display: block; }
+        .submit-section { padding-top: 20px; text-align: center; }
+        .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 6px; cursor: pointer; letter-spacing: 0.5px; font-family: inherit; min-width: 250px; }
+        .btn-submit:hover:not(:disabled) { background: #222; }
+        .btn-submit:disabled { background: #999; cursor: not-allowed; }
+        .validation-summary { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1rem; display: none; }
+        .validation-summary.visible { display: block; }
+        .validation-summary h3 { color: #991b1b; font-size: 0.9375rem; margin-bottom: 0.5rem; }
+        .validation-summary ul { margin: 0; padding-left: 1.25rem; color: #dc2626; font-size: 0.875rem; }
+        .validation-summary ul li { margin-bottom: 0.25rem; }
+        .status-message { margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; display: none; }
+        .status-message.visible { display: block; }
+        .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .status-message.success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+        .status-message.loading { background: #f5f5f5; color: #404040; border: 1px solid #d4d4d4; }
+        .consent-footer { text-align: center; padding: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }
+        .consent-footer p { margin-bottom: 4px; }
+        .thank-you-page { background: #fff; border: 2px solid #000; padding: 3rem 2rem; text-align: center; max-width: 720px; margin: 40px auto; }
+        .thank-you-icon { width: 80px; height: 80px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 2rem; }
+        .thank-you-page h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: #000; }
+        .thank-you-subtitle { font-size: 1.125rem; color: #525252; margin-bottom: 2rem; }
+        .thank-you-details { padding: 2rem; background: #fafafa; border: 1.5px solid #e5e5e5; margin-bottom: 2rem; }
+        .thank-you-details p { margin-bottom: 0.75rem; color: #404040; }
+        .thank-you-details p:last-child { margin-bottom: 0; }
+        .thank-you-contact { margin-bottom: 2rem; }
+        .thank-you-contact h3 { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; color: #262626; }
+        .thank-you-contact a { color: #000; text-decoration: underline; }
+        .thank-you-footer { padding-top: 2rem; border-top: 2px solid #e5e5e5; }
+        .thank-you-footer p { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.15em; color: #000; }
+        @media (max-width: 640px) { .consent-header { padding: 20px 16px; } .form-container { padding: 0 16px 30px; } .form-row { flex-direction: column; gap: 12px; } }
       `}</style>
 
       <div className="consent-container" id="consentContainer">
         <div className="consent-header">
           <h1 className="clinic-name">RANGE MEDICAL</h1>
-          <h2 className="form-title">Hormone Replacement Therapy Consent</h2>
-          <p>Please read carefully and provide your consent</p>
+          <p className="form-title">Hormone Replacement Therapy — Informed Consent</p>
         </div>
         
         <div className="form-container">
@@ -223,6 +222,11 @@ export default function HRTConsent() {
             </div>
           </form>
         </div>
+
+        <footer className="consent-footer">
+          <p>&copy; 2026 Range Medical. All rights reserved.</p>
+          <p>Your information is protected and kept confidential.</p>
+        </footer>
       </div>
     </>
   );
@@ -507,127 +511,137 @@ function initializeForm() {
   function generatePDF(formData) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ compress: true });
+    const leftMargin = 15;
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    let yPos = margin;
-    
-    // Header
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('RANGE MEDICAL', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 10;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Hormone Replacement Therapy Consent', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    
-    // Patient Info
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PATIENT INFORMATION', margin, yPos);
-    yPos += 10;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Name: ${formData.firstName} ${formData.lastName}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Email: ${formData.email}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Phone: ${formData.phone}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date of Birth: ${formData.dateOfBirth}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date: ${formData.consentDate}`, margin, yPos);
-    
-    // New page for consent
-    doc.addPage();
-    yPos = margin;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('PATIENT ACKNOWLEDGMENTS & CONSENT', margin, yPos);
-    
-    yPos += 12;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('1. Treatment Benefits and Risks', margin, yPos);
-    yPos += 6;
-    doc.setFont('helvetica', 'normal');
-    const stmt1 = 'I understand that along with the benefits of hormone replacement therapy and any medical treatments provided by Range Medical, there are both risks and potential complications to treatment, as well as risks associated with not receiving treatment. These risks and potential complications have been clearly explained to me.';
-    const stmt1Lines = doc.splitTextToSize(stmt1, pageWidth - 2 * margin);
-    doc.text(stmt1Lines, margin, yPos);
-    yPos += stmt1Lines.length * 5 + 8;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('2. Ongoing Monitoring and Testing', margin, yPos);
-    yPos += 6;
-    doc.setFont('helvetica', 'normal');
-    const stmt2 = 'I agree to comply with ongoing testing and evaluations necessary to monitor my treatment progress and safety. These evaluations may include laboratory tests or other diagnostic procedures as recommended by my treating physician.';
-    const stmt2Lines = doc.splitTextToSize(stmt2, pageWidth - 2 * margin);
-    doc.text(stmt2Lines, margin, yPos);
-    yPos += stmt2Lines.length * 5 + 8;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('3. Reporting Adverse Events', margin, yPos);
-    yPos += 6;
-    doc.setFont('helvetica', 'normal');
-    const stmt3 = 'I agree to immediately report any adverse reactions, side effects, or complications potentially related to my therapy to Range Medical.';
-    const stmt3Lines = doc.splitTextToSize(stmt3, pageWidth - 2 * margin);
-    doc.text(stmt3Lines, margin, yPos);
-    yPos += stmt3Lines.length * 5 + 8;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('4. Financial Responsibility', margin, yPos);
-    yPos += 6;
-    doc.setFont('helvetica', 'normal');
-    const stmt4 = 'I acknowledge that insurance providers may not cover physician evaluations, laboratory testing, medications, or therapies provided by Range Medical. I agree to assume full financial responsibility for all charges.';
-    const stmt4Lines = doc.splitTextToSize(stmt4, pageWidth - 2 * margin);
-    doc.text(stmt4Lines, margin, yPos);
-    yPos += stmt4Lines.length * 5 + 8;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('5. Informed Consent Certification', margin, yPos);
-    yPos += 6;
-    doc.setFont('helvetica', 'normal');
-    const stmt5 = 'I certify that I have read this entire consent form. I have been educated about the benefits, risks, and potential complications associated with hormone replacement therapy. All my questions have been answered to my complete satisfaction.';
-    const stmt5Lines = doc.splitTextToSize(stmt5, pageWidth - 2 * margin);
-    doc.text(stmt5Lines, margin, yPos);
-    yPos += stmt5Lines.length * 5 + 10;
-    
-    if (yPos > pageHeight - 70) {
-      doc.addPage();
-      yPos = margin;
+    const contentWidth = pageWidth - 30;
+    let yPos = 15;
+
+    function checkPageBreak(needed) {
+      if (yPos + needed > pageHeight - 25) {
+        doc.addPage();
+        yPos = 15;
+      }
     }
-    
-    // Consent Statement
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    const consentStatement = 'I have read and fully understand the above patient acknowledgments. I consent to participate in hormone replacement therapy under the clinical supervision of the medical team at Range Medical.';
-    const consentLines = doc.splitTextToSize(consentStatement, pageWidth - 2 * margin);
-    doc.text(consentLines, margin, yPos);
-    yPos += consentLines.length * 5 + 10;
-    
-    // Signature
-    doc.setFont('helvetica', 'bold');
-    doc.text('Patient Signature:', margin, yPos);
-    if (formData.signature) {
+
+    function addText(text, fontSize, isBold, color) {
+      fontSize = fontSize || 9;
+      isBold = isBold || false;
+      color = color || [0, 0, 0];
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+      doc.setTextColor(color[0], color[1], color[2]);
+      var lines = doc.splitTextToSize(text, contentWidth);
+      checkPageBreak(lines.length * (fontSize * 0.45) + 4);
+      doc.text(lines, leftMargin, yPos);
+      yPos += lines.length * (fontSize * 0.45) + 2;
+    }
+
+    function addSectionHeader(text) {
+      checkPageBreak(15);
+      yPos += 4;
+      doc.setFillColor(0, 0, 0);
+      doc.rect(leftMargin, yPos - 4, contentWidth, 8, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(text.toUpperCase(), leftMargin + 3, yPos + 1);
+      doc.setTextColor(0, 0, 0);
+      yPos += 8;
+    }
+
+    function addLabelValue(label, value) {
+      checkPageBreak(8);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, leftMargin, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(value || 'N/A', leftMargin + doc.getTextWidth(label) + 2, yPos);
       yPos += 5;
-      doc.addImage(formData.signature, 'JPEG', margin, yPos, 60, 22);
-      yPos += 27;
     }
+
+    // ========== BLACK HEADER BAR ==========
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, pageWidth, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RANGE MEDICAL', leftMargin, 10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`Signed on: ${formData.consentDate}`, margin, yPos);
-    
-    // Footer
-    yPos = pageHeight - 15;
+    doc.text('Hormone Replacement Therapy — Informed Consent', leftMargin, 16);
     doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text('© 2025 Range Medical. All rights reserved. | Confidential Patient Information', pageWidth / 2, yPos, { align: 'center' });
-    
+    doc.text('Document Date: ' + formData.consentDate, pageWidth - 15, 10, { align: 'right' });
+    doc.text('1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660', pageWidth - 15, 16, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    yPos = 28;
+
+    // ========== PATIENT INFORMATION ==========
+    addSectionHeader('Patient Information');
+    addLabelValue('Patient Name: ', formData.firstName + ' ' + formData.lastName);
+    addLabelValue('Date of Birth: ', formData.dateOfBirth);
+    addLabelValue('Email: ', formData.email);
+    addLabelValue('Phone: ', formData.phone);
+    addLabelValue('Consent Date: ', formData.consentDate);
+    yPos += 2;
+
+    // ========== UNDERSTANDING OF TREATMENT ==========
+    addSectionHeader('Understanding of Treatment');
+
+    addText('1. Treatment Benefits and Risks', 9, true);
+    addText('I understand that along with the benefits of hormone replacement therapy and any medical treatments provided by Range Medical, there are both risks and potential complications to treatment, as well as risks associated with not receiving treatment. These risks and potential complications have been clearly explained to me. I have not been promised or guaranteed any specific results from these therapies, and I agree to comply with the recommended treatment dosages and protocols.', 8.5);
+    yPos += 2;
+
+    addText('2. Ongoing Monitoring and Testing', 9, true);
+    addText('I agree to comply with ongoing testing and evaluations necessary to monitor my treatment progress and safety. These evaluations may include laboratory tests or other diagnostic procedures as recommended by my treating physician, primary care physician, or other specialists. I agree to maintain regular check-ups and preventive screenings, which may include complete physical examinations, EKGs, mammograms, pelvic and breast examinations, pap smears, prostate exams, PSA tests, colonoscopies, and any other medically appropriate examinations.', 8.5);
+    yPos += 2;
+
+    addText('3. Reporting Adverse Events', 9, true);
+    addText('I agree to immediately report any adverse reactions, side effects, or complications potentially related to my therapy to Range Medical. I acknowledge that the benefits, risks, and potential complications of treatments provided by Range Medical have been fully explained to me. I confirm that I have received all necessary information, have had all my questions answered to my satisfaction, and understand that no guarantees or promises regarding treatment outcomes have been made.', 8.5);
+    yPos += 2;
+
+    addText('4. Financial Responsibility', 9, true);
+    addText('I acknowledge that insurance providers may not cover physician evaluations, laboratory testing, medications, or therapies provided by Range Medical. I agree to assume full financial responsibility for all charges associated with these services, understanding that reimbursement from my insurance provider is not guaranteed and that payment is my sole responsibility regardless of insurance coverage.', 8.5);
+    yPos += 2;
+
+    addText('5. Informed Consent Certification', 9, true);
+    addText('I certify that I have read (or have had read to me) this entire consent form in its entirety. I have been educated about the benefits, risks, and potential complications associated with hormone replacement therapy and other treatments offered by Range Medical. All my questions have been answered to my complete satisfaction, and I freely and voluntarily consent to treatment without coercion or undue influence.', 8.5);
+    yPos += 4;
+
+    // ========== CONSENT ACKNOWLEDGMENT ==========
+    addSectionHeader('Consent Acknowledgment');
+    addText('I acknowledge and consent: I have read and fully understand the above patient acknowledgments. I consent to participate in hormone replacement therapy under the clinical supervision of the medical team at Range Medical. I understand my rights, responsibilities, and the nature of the treatment I am receiving.', 8.5, true);
+    yPos += 4;
+
+    // ========== PATIENT SIGNATURE ==========
+    addSectionHeader('Patient Signature');
+    addText('By affixing my signature below, I certify that I have read this consent form in its entirety, that all of my questions have been answered to my satisfaction, and that I voluntarily consent to hormone replacement therapy at Range Medical.', 8.5);
+    yPos += 3;
+    addLabelValue('Signed by: ', formData.firstName + ' ' + formData.lastName);
+    addLabelValue('Date: ', formData.consentDate);
+    yPos += 2;
+
+    if (formData.signature && formData.signature.startsWith('data:')) {
+      checkPageBreak(35);
+      try {
+        doc.addImage(formData.signature, 'JPEG', leftMargin, yPos, 60, 25);
+        yPos += 28;
+      } catch (e) {
+        console.error('Error adding signature:', e);
+      }
+    }
+
+    // ========== FOOTER ON ALL PAGES ==========
+    var totalPages = doc.internal.getNumberOfPages();
+    for (var i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(130);
+      doc.text('Page ' + i + ' of ' + totalPages, pageWidth - 15, pageHeight - 4, { align: 'right' });
+      doc.text('Range Medical | 1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660 | (949) 997-3988', pageWidth / 2, pageHeight - 8, { align: 'center' });
+      doc.text('CONFIDENTIAL — HRT Consent', pageWidth / 2, pageHeight - 4, { align: 'center' });
+    }
+
     return doc.output('blob');
   }
 

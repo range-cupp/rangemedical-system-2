@@ -105,6 +105,8 @@ const AVAILABLE_FORMS = [
   { id: 'hbot', name: 'HBOT Consent', icon: '🫁', time: '5 min' },
   { id: 'weight-loss', name: 'Weight Loss Consent', icon: '⚖️', time: '5 min' },
   { id: 'red-light', name: 'Red Light Therapy', icon: '🔴', time: '5 min' },
+  { id: 'prp', name: 'PRP Consent', icon: '🩸', time: '5 min' },
+  { id: 'exosome-iv', name: 'Exosome IV Consent', icon: '🧬', time: '5 min' },
 ];
 
 const QUICK_SELECTIONS = [
@@ -115,6 +117,8 @@ const QUICK_SELECTIONS = [
   { label: 'Peptides', forms: ['intake', 'hipaa', 'peptide'] },
   { label: 'HBOT', forms: ['intake', 'hipaa', 'hbot'] },
   { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
+  { label: 'PRP', forms: ['intake', 'hipaa', 'prp', 'blood-draw'] },
+  { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
 ];
 
 const URGENCY_COLORS = {

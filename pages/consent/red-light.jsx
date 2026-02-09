@@ -170,101 +170,197 @@ export default function RedLightConsentForm() {
 
   const generatePDF = () => {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
+    const leftMargin = 15;
     const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    let yPos = margin;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const contentWidth = pageWidth - 30;
+    let yPos = 15;
 
-    doc.setFontSize(24);
+    function checkPageBreak(needed) {
+      if (yPos + needed > pageHeight - 25) {
+        doc.addPage();
+        yPos = 15;
+      }
+    }
+
+    function addText(text, fontSize, isBold, color) {
+      fontSize = fontSize || 9;
+      isBold = isBold || false;
+      color = color || [0, 0, 0];
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+      doc.setTextColor(color[0], color[1], color[2]);
+      const lines = doc.splitTextToSize(text, contentWidth);
+      checkPageBreak(lines.length * (fontSize * 0.45) + 4);
+      doc.text(lines, leftMargin, yPos);
+      yPos += lines.length * (fontSize * 0.45) + 2;
+    }
+
+    function addSectionHeader(text) {
+      checkPageBreak(15);
+      yPos += 4;
+      doc.setFillColor(0, 0, 0);
+      doc.rect(leftMargin, yPos - 4, contentWidth, 8, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(text.toUpperCase(), leftMargin + 3, yPos + 1);
+      doc.setTextColor(0, 0, 0);
+      yPos += 8;
+    }
+
+    function addLabelValue(label, value) {
+      checkPageBreak(8);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, leftMargin, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(value || 'N/A', leftMargin + doc.getTextWidth(label) + 2, yPos);
+      yPos += 5;
+    }
+
+    function addBullet(text) {
+      checkPageBreak(8);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize('• ' + text, contentWidth - 5);
+      doc.text(lines, leftMargin + 3, yPos);
+      yPos += lines.length * 3.8 + 1;
+    }
+
+    // ========== BLACK HEADER BAR ==========
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, pageWidth, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('RANGE MEDICAL', pageWidth / 2, yPos, { align: 'center' });
-
-    yPos += 10;
-    doc.setFontSize(14);
+    doc.text('RANGE MEDICAL', leftMargin, 10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('Red Light Therapy Consent', pageWidth / 2, yPos, { align: 'center' });
+    doc.text('Red Light Therapy — Informed Consent', leftMargin, 16);
+    doc.setFontSize(8);
+    doc.text('Document Date: ' + formData.consentDate, pageWidth - 15, 10, { align: 'right' });
+    doc.text('1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660', pageWidth - 15, 16, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    yPos = 28;
 
-    yPos += 15;
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
+    // ========== PATIENT INFORMATION ==========
+    addSectionHeader('Patient Information');
+    addLabelValue('Patient Name: ', formData.firstName + ' ' + formData.lastName);
+    addLabelValue('Date of Birth: ', formData.dateOfBirth);
+    addLabelValue('Email: ', formData.email);
+    addLabelValue('Phone: ', formData.phone);
+    addLabelValue('Consent Date: ', formData.consentDate);
+    yPos += 2;
 
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PATIENT INFORMATION', margin, yPos);
+    // ========== TREATMENT DESCRIPTION ==========
+    addSectionHeader('What This Treatment Does');
+    addText('Red Light Therapy uses special red light that goes into your skin. The light helps your cells work better and heal faster. It can help reduce pain, make your skin look better, and give you more energy.', 8.5);
+    yPos += 2;
+    addText('How It Works:', 9, true);
+    addText('The red light goes through your skin to reach your cells. Your cells use the light to make more energy. More energy helps your body heal and feel better.', 8.5);
+    yPos += 2;
+    addText('What It Might Help With:', 9, true);
+    addBullet('Have more energy and feel less tired');
+    addBullet('Heal faster from injuries');
+    addBullet('Have less pain in your joints');
+    addBullet('Make your skin look younger and healthier');
+    addBullet('Help your muscles feel better after exercise');
+    yPos += 1;
+    addText('Important: Everyone is different. The treatment might work better for some people than others.', 8.5, true);
+    yPos += 2;
 
-    yPos += 10;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Name: ${formData.firstName} ${formData.lastName}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Email: ${formData.email}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Phone: ${formData.phone}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date of Birth: ${formData.dateOfBirth}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date: ${formData.consentDate}`, margin, yPos);
-
-    yPos += 15;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('HEALTH SCREENING ANSWERS', margin, yPos);
+    // ========== HEALTH SCREENING ==========
+    addSectionHeader('Health Screening Responses');
 
     const yesAnswers = HEALTH_QUESTIONS.filter(q => formData[q.id] === 'yes').map(q => q.label);
 
     if (yesAnswers.length > 0) {
-      yPos += 10;
-      doc.setFillColor(255, 243, 205);
-      const boxHeight = 10 + (yesAnswers.length * 6);
-      doc.rect(margin, yPos - 5, pageWidth - 2 * margin, boxHeight, 'F');
+      checkPageBreak(12 + yesAnswers.length * 5);
+      doc.setFillColor(254, 243, 199);
+      const boxHeight = 10 + (yesAnswers.length * 5);
+      doc.rect(leftMargin, yPos - 3, contentWidth, boxHeight, 'F');
+      doc.setDrawColor(245, 158, 11);
+      doc.setLineWidth(0.5);
+      doc.rect(leftMargin, yPos - 3, contentWidth, boxHeight, 'S');
       doc.setTextColor(146, 64, 14);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('ATTENTION: Patient answered YES to:', margin + 5, yPos);
+      doc.setFontSize(8.5);
+      doc.text('ATTENTION: Patient answered YES to:', leftMargin + 3, yPos + 2);
       yPos += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
       yesAnswers.forEach(q => {
-        doc.text(`• ${q}`, margin + 10, yPos);
-        yPos += 6;
+        doc.text('• ' + q, leftMargin + 6, yPos);
+        yPos += 4.5;
       });
       doc.setTextColor(0, 0, 0);
-      yPos += 5;
+      doc.setDrawColor(0);
+      yPos += 4;
     }
 
-    yPos += 10;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
     HEALTH_QUESTIONS.forEach((q, i) => {
-      doc.text(`${i + 1}. ${q.label}: ${formData[q.id]?.toUpperCase() || 'NOT ANSWERED'}`, margin, yPos);
-      yPos += 6;
+      addLabelValue((i + 1) + '. ' + q.label + ': ', (formData[q.id] || 'not answered').toUpperCase());
     });
+    yPos += 2;
 
-    yPos += 10;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('PATIENT CONSENT', margin, yPos);
+    // ========== RISKS ==========
+    addSectionHeader('Things That Might Happen');
+    addText('This treatment is very safe. Most people feel fine. But a few things might happen:', 8.5);
+    addBullet('Your skin might feel warm or look a little red');
+    addBullet('You might feel tired after treatment');
+    addBullet('Your eyes might be sensitive to light for a bit');
+    addBullet('Rarely: You might get a mild headache');
+    yPos += 1;
+    addText('Tell our staff right away if something doesn\'t feel right.', 8.5);
+    yPos += 2;
 
-    yPos += 8;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    const consent = 'I have read and understand the treatment information. I agree to receive Red Light Therapy at Range Medical.';
-    const consentLines = doc.splitTextToSize(consent, pageWidth - 2 * margin);
-    doc.text(consentLines, margin, yPos);
-    yPos += consentLines.length * 5 + 10;
+    // ========== PATIENT RESPONSIBILITIES ==========
+    addSectionHeader('What You Need To Do');
+    addBullet('Wear the special eye protection we give you');
+    addBullet('Don\'t put lotion, oil, or makeup on the area before treatment');
+    addBullet('Tell us about any new medicines you take');
+    addBullet('Tell us if you notice any strange skin changes');
+    addBullet('Follow all safety rules');
+    yPos += 1;
+    addText('How Long Treatment Takes: Each treatment takes about 10 to 20 minutes. Your doctor will tell you how many treatments you need. You can do normal things right after treatment.', 8.5);
+    yPos += 4;
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('Patient Signature:', margin, yPos);
+    // ========== CONSENT ACKNOWLEDGMENT ==========
+    addSectionHeader('Consent Acknowledgment');
+    addText('I understand and agree: I have read this form (or someone read it to me). I understand what Red Light Therapy is and what might happen. I know it might not work for me. I can ask questions if I want. I agree to get Red Light Therapy at Range Medical. I will not blame Range Medical if something goes wrong, unless they did something very bad on purpose.', 8.5, true);
+    yPos += 4;
+
+    // ========== PATIENT SIGNATURE ==========
+    addSectionHeader('Patient Signature');
+    addText('By affixing my signature below, I certify that I have read this consent form in its entirety, that all of my questions have been answered to my satisfaction, and that I voluntarily consent to Red Light Therapy at Range Medical.', 8.5);
+    yPos += 3;
+    addLabelValue('Signed by: ', formData.firstName + ' ' + formData.lastName);
+    addLabelValue('Date: ', formData.consentDate);
+    yPos += 2;
 
     if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-      yPos += 5;
-      const sigData = signaturePadRef.current.toDataURL('image/png');
-      doc.addImage(sigData, 'PNG', margin, yPos, 60, 22);
-      yPos += 27;
+      checkPageBreak(35);
+      try {
+        const sigData = signaturePadRef.current.toDataURL('image/png');
+        doc.addImage(sigData, 'PNG', leftMargin, yPos, 60, 25);
+        yPos += 28;
+      } catch (e) {
+        console.error('Error adding signature:', e);
+      }
     }
 
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Signed on: ${formData.consentDate}`, margin, yPos);
+    // ========== FOOTER ON ALL PAGES ==========
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(130);
+      doc.text('Page ' + i + ' of ' + totalPages, pageWidth - 15, pageHeight - 4, { align: 'right' });
+      doc.text('Range Medical | 1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660 | (949) 997-3988', pageWidth / 2, pageHeight - 8, { align: 'center' });
+      doc.text('CONFIDENTIAL — Red Light Therapy Consent', pageWidth / 2, pageHeight - 4, { align: 'center' });
+    }
 
     return doc.output('blob');
   };
@@ -406,8 +502,7 @@ export default function RedLightConsentForm() {
       <div className="container">
         <div className="header">
           <h1 className="clinic-name">RANGE MEDICAL</h1>
-          <h2 className="form-title">Red Light Therapy Consent</h2>
-          <p>Please answer all questions and read carefully before signing</p>
+          <p className="form-title">Red Light Therapy — Informed Consent</p>
         </div>
 
         <div className="form-container">
@@ -578,6 +673,11 @@ export default function RedLightConsentForm() {
             </div>
           </form>
         </div>
+
+        <footer className="consent-footer">
+          <p>&copy; 2026 Range Medical. All rights reserved.</p>
+          <p>Your information is protected and kept confidential.</p>
+        </footer>
       </div>
     </>
   );
@@ -585,354 +685,80 @@ export default function RedLightConsentForm() {
 
 const styles = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  
-  body {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: #f5f5f5;
-    color: #171717;
-    line-height: 1.6;
-    min-height: 100vh;
-  }
-  
-  .container { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
-  
-  .header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-    padding-bottom: 2rem;
-    border-bottom: 2px solid #000;
-  }
-  
-  .clinic-name {
-    font-size: 2.5rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    margin-bottom: 0.5rem;
-    color: #000;
-  }
-  
-  .form-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-top: 0.5rem;
-    color: #404040;
-  }
-  
-  .header p { color: #525252; font-size: 0.875rem; margin-top: 0.5rem; }
-  
-  .form-container { background: #fff; border: 2px solid #000; padding: 2rem; }
-  
-  .section {
-    margin-bottom: 2.5rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid #e5e5e5;
-  }
-  
-  .section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-  
-  .section-title {
-    font-size: 1.125rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid #000;
-    display: inline-block;
-  }
-  
-  .form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 1.25rem;
-  }
-  
-  .form-group { display: flex; flex-direction: column; }
-  
-  label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
-    color: #404040;
-  }
-  
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f9f9f9; color: #111; }
+  .container { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; }
+  .header { background: #000; color: #fff; padding: 24px 28px; }
+  .clinic-name { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; color: #fff; }
+  .form-title { font-size: 14px; font-weight: 400; opacity: 0.85; color: #fff; text-transform: none; letter-spacing: normal; margin-top: 0; }
+  .header p { font-size: 13px; opacity: 0.7; color: #fff; margin-top: 4px; }
+  .form-container { background: #fff; border: none; padding: 0 28px 40px; }
+  .section { border-bottom: 1px solid #e5e5e5; padding: 28px 0; margin-bottom: 0; }
+  .section:last-of-type { border-bottom: none; padding-bottom: 0; }
+  .section-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #000; display: block; }
+  .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+  .form-row:last-child { margin-bottom: 0; }
+  .form-group { flex: 1; display: flex; flex-direction: column; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; text-transform: none; letter-spacing: normal; }
   .required { color: #dc2626; margin-left: 2px; }
-  
-  input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select, textarea {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    font-family: inherit;
-    border: 1.5px solid #d4d4d4;
-    background: #fff;
-    color: #171717;
-    transition: border-color 0.2s ease;
-  }
-  
-  input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: #000;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
-  }
-  
+  input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select, textarea { width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 1px solid #ccc; background: #fff; color: #111; border-radius: 4px; transition: border-color 0.2s ease; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #000; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
   input.error, select.error, textarea.error { border-color: #dc2626; }
-  
-  .health-question {
-    background: #fafafa;
-    border: 1.5px solid #d4d4d4;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-  }
-  
+  .health-question { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 16px; margin-bottom: 12px; }
   .health-question.warning { background: #fff7ed; border-color: #f59e0b; }
-  
-  .health-question-text {
-    font-size: 1rem;
-    font-weight: 500;
-    margin-bottom: 0.75rem;
-    color: #171717;
-  }
-  
-  .health-question-note {
-    font-size: 0.875rem;
-    color: #525252;
-    font-style: italic;
-    margin-bottom: 0.75rem;
-  }
-  
-  .radio-group { display: flex; gap: 2rem; flex-wrap: wrap; }
-  
-  .radio-item { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
-  
-  .radio-item input[type="radio"] {
-    width: 1.25rem;
-    height: 1.25rem;
-    cursor: pointer;
-    accent-color: #000;
-  }
-  
-  .radio-item label {
-    font-size: 1rem;
-    font-weight: 500;
-    text-transform: none;
-    letter-spacing: normal;
-    margin-bottom: 0;
-    cursor: pointer;
-    color: #262626;
-  }
-  
-  .warning-alert {
-    background: #fef3c7;
-    border: 2px solid #f59e0b;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    display: none;
-  }
-  
+  .health-question-text { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #111; line-height: 1.5; }
+  .health-question-note { font-size: 12px; color: #666; font-style: italic; margin-bottom: 8px; }
+  .radio-group { display: flex; gap: 20px; flex-wrap: wrap; }
+  .radio-item { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .radio-item input[type="radio"] { width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: #000; }
+  .radio-item label { font-size: 14px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; }
+  .warning-alert { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 6px; padding: 16px; margin-bottom: 16px; display: none; }
   .warning-alert.visible { display: block; }
-  
-  .warning-alert h4 { font-size: 1rem; font-weight: 700; color: #92400e; margin-bottom: 0.5rem; }
-  
-  .warning-alert p { font-size: 0.9375rem; color: #78350f; }
-  
-  .consent-text {
-    background: #fafafa;
-    border: 1.5px solid #d4d4d4;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    line-height: 1.8;
-  }
-  
-  .consent-text h4 {
-    font-size: 0.9375rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 1rem;
-    margin-top: 1.5rem;
-    color: #262626;
-  }
-  
+  .warning-alert h4 { font-size: 14px; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+  .warning-alert p { font-size: 13px; color: #78350f; line-height: 1.5; }
+  .consent-text { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 20px; margin-bottom: 16px; line-height: 1.6; }
+  .consent-text h4 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; margin-top: 16px; color: #262626; }
   .consent-text h4:first-child { margin-top: 0; }
-  
-  .consent-text p { margin-bottom: 1rem; color: #262626; font-size: 0.9375rem; }
-  
-  .consent-text ul { margin-left: 1.5rem; margin-bottom: 1rem; }
-  
-  .consent-text li { margin-bottom: 0.5rem; color: #262626; }
-  
-  .checkbox-consent {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: #fafafa;
-    border: 1.5px solid #d4d4d4;
-  }
-  
-  .checkbox-consent input[type="checkbox"] {
-    width: 1.5rem;
-    height: 1.5rem;
-    margin-top: 0.25rem;
-    cursor: pointer;
-    accent-color: #000;
-    flex-shrink: 0;
-  }
-  
-  .checkbox-consent label {
-    font-size: 0.9375rem;
-    font-weight: 500;
-    text-transform: none;
-    letter-spacing: normal;
-    margin-bottom: 0;
-    cursor: pointer;
-    color: #171717;
-    line-height: 1.6;
-  }
-  
+  .consent-text p { margin-bottom: 12px; color: #333; font-size: 14px; line-height: 1.6; }
+  .consent-text p:last-child { margin-bottom: 0; }
+  .consent-text ul { margin-left: 1.5rem; margin-bottom: 12px; }
+  .consent-text li { margin-bottom: 6px; color: #333; font-size: 14px; line-height: 1.5; }
+  .consent-text strong { font-weight: 600; }
+  .checkbox-consent { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; padding: 14px 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; }
+  .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
+  .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
   .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
-  
-  .signature-wrapper { margin-bottom: 1.5rem; }
-  
-  .signature-label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.75rem;
-    color: #404040;
-    display: block;
-  }
-  
-  .signature-pad-container {
-    border: 2px solid #d4d4d4;
-    background: #fff;
-    margin-bottom: 0.75rem;
-  }
-  
+  .signature-wrapper { margin-bottom: 16px; }
+  .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
+  .signature-pad-container { border: 2px solid #000; border-radius: 6px; background: #fff; margin-bottom: 8px; overflow: hidden; }
   .signature-pad-container.error { border-color: #dc2626; }
-  
-  .signature-controls { display: flex; gap: 1rem; }
-  
-  .btn-clear {
-    padding: 0.625rem 1.25rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border: 1.5px solid #d4d4d4;
-    background: #fff;
-    color: #404040;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  
-  .btn-clear:hover { border-color: #000; background: #fafafa; }
-  
-  .submit-section {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 2px solid #e5e5e5;
-    text-align: center;
-  }
-  
-  .btn-submit {
-    padding: 1rem 3rem;
-    font-size: 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    border: 2px solid #000;
-    background: #000;
-    color: #fff;
-    cursor: pointer;
-    font-family: inherit;
-    min-width: 250px;
-  }
-  
-  .btn-submit:hover:not(:disabled) { background: #fff; color: #000; }
-  
-  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-
+  .signature-controls { text-align: right; }
+  .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: inherit; }
+  .btn-clear:hover { background: #f5f5f5; }
+  .submit-section { padding-top: 20px; text-align: center; }
+  .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 6px; cursor: pointer; letter-spacing: 0.5px; font-family: inherit; min-width: 250px; }
+  .btn-submit:hover:not(:disabled) { background: #222; }
+  .btn-submit:disabled { background: #999; cursor: not-allowed; }
   .validation-summary { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1rem; }
   .validation-summary h3 { color: #991b1b; font-size: 0.9375rem; margin-bottom: 0.5rem; }
   .validation-summary ul { margin: 0; padding-left: 1.25rem; color: #dc2626; font-size: 0.875rem; }
   .validation-summary ul li { margin-bottom: 0.25rem; }
-
-  .status-message {
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 0.9375rem;
-    font-weight: 500;
-    text-align: center;
-  }
-  
-  .status-message.error { background: #fef2f2; color: #dc2626; border: 1.5px solid #dc2626; }
-  
-  .status-message.success { background: #f0fdf4; color: #16a34a; border: 1.5px solid #16a34a; }
-  
-  .status-message.loading { background: #f5f5f5; color: #404040; border: 1.5px solid #d4d4d4; }
-  
-  .thank-you-page {
-    background: #fff;
-    border: 2px solid #000;
-    padding: 3rem 2rem;
-    text-align: center;
-  }
-  
-  .thank-you-icon {
-    width: 80px;
-    height: 80px;
-    background: #000;
-    color: #fff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    margin: 0 auto 2rem;
-  }
-  
+  .status-message { margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; }
+  .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .status-message.success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+  .status-message.loading { background: #f5f5f5; color: #404040; border: 1px solid #d4d4d4; }
+  .consent-footer { text-align: center; padding: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }
+  .consent-footer p { margin-bottom: 4px; }
+  .thank-you-page { background: #fff; border: 2px solid #000; padding: 3rem 2rem; text-align: center; max-width: 720px; margin: 40px auto; }
+  .thank-you-icon { width: 80px; height: 80px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 2rem; }
   .thank-you-page h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: #000; }
-  
   .thank-you-subtitle { font-size: 1.125rem; color: #525252; margin-bottom: 2rem; }
-  
-  .thank-you-details {
-    padding: 2rem;
-    background: #fafafa;
-    border: 1.5px solid #e5e5e5;
-    margin-bottom: 2rem;
-  }
-  
+  .thank-you-details { padding: 2rem; background: #fafafa; border: 1.5px solid #e5e5e5; margin-bottom: 2rem; }
   .thank-you-details p { margin-bottom: 0.75rem; color: #404040; }
-  
+  .thank-you-details p:last-child { margin-bottom: 0; }
   .thank-you-contact { margin-bottom: 2rem; }
-  
-  .thank-you-contact h3 {
-    font-size: 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
-    color: #262626;
-  }
-  
+  .thank-you-contact h3 { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; color: #262626; }
   .thank-you-contact a { color: #000; text-decoration: underline; }
-  
   .thank-you-footer { padding-top: 2rem; border-top: 2px solid #e5e5e5; }
-  
   .thank-you-footer p { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.15em; color: #000; }
-  
-  @media (max-width: 640px) {
-    .clinic-name { font-size: 2rem; }
-    .form-container { padding: 1.5rem; }
-    .form-row { grid-template-columns: 1fr; }
-    .radio-group { flex-direction: column; gap: 1rem; }
-  }
+  @media (max-width: 640px) { .header { padding: 20px 16px; } .form-container { padding: 0 16px 30px; } .form-row { flex-direction: column; gap: 12px; } .radio-group { flex-direction: column; gap: 10px; } }
 `;

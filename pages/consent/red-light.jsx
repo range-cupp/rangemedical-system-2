@@ -93,6 +93,15 @@ export default function RedLightConsentForm() {
     }
   };
 
+  const handleDobChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length >= 2) value = value.slice(0, 2) + '/' + value.slice(2);
+    if (value.length >= 5) value = value.slice(0, 5) + '/' + value.slice(5);
+    if (value.length > 10) value = value.slice(0, 10);
+    setFormData(prev => ({ ...prev, dateOfBirth: value }));
+    if (errors.dateOfBirth) setErrors(prev => ({ ...prev, dateOfBirth: false }));
+  };
+
   const clearSignature = () => {
     if (signaturePadRef.current) {
       signaturePadRef.current.clear();
@@ -490,7 +499,7 @@ PDF consent form is attached to this email.
               <div className="form-row">
                 <div className="form-group">
                   <label>Date of Birth <span className="required">*</span></label>
-                  <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} className={errors.dateOfBirth ? 'error' : ''} />
+                  <input type="text" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleDobChange} placeholder="MM/DD/YYYY" maxLength="10" className={errors.dateOfBirth ? 'error' : ''} />
                 </div>
                 <div className="form-group">
                   <label>Today's Date <span className="required">*</span></label>

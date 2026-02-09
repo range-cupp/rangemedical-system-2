@@ -31,6 +31,16 @@ export default function BloodDrawConsentPage() {
     resizeCanvas();
     document.getElementById('clearSignature').addEventListener('click', () => signaturePad.clear());
 
+    // DOB auto-format (MM/DD/YYYY)
+    const dobInput = document.getElementById('dateOfBirth');
+    dobInput.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length >= 2) value = value.slice(0, 2) + '/' + value.slice(2);
+      if (value.length >= 5) value = value.slice(0, 5) + '/' + value.slice(5);
+      if (value.length > 10) value = value.slice(0, 10);
+      e.target.value = value;
+    });
+
     // Conditional fields
     document.querySelectorAll('.screening-radio').forEach(radio => {
       radio.addEventListener('change', function() {
@@ -104,13 +114,33 @@ export default function BloodDrawConsentPage() {
 
         try { await fetch(CONSENT_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'blood-draw', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: formData.consentDate, pdfUrl, signatureUrl, ghlContactId }) }); } catch(e) { console.error('GHL sync error:', e); }
 
-        statusMsg.textContent = 'Consent form submitted successfully. Thank you!'; statusMsg.className = 'status-message success'; statusMsg.style.display = 'block';
-        submitBtn.textContent = '✓ Submitted'; document.getElementById('consentForm').style.opacity = '0.6'; document.getElementById('consentForm').style.pointerEvents = 'none';
+        showThankYouPage(formData);
       } catch (err) {
         console.error('Submission error:', err); statusMsg.textContent = 'Error submitting form. Please try again.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block';
         submitBtn.disabled = false; submitBtn.textContent = 'Submit Consent';
       }
     });
+
+    function showThankYouPage(formData) {
+      document.getElementById('consentContainer').innerHTML = `
+        <div class="thank-you-page">
+          <div class="thank-you-icon">✓</div>
+          <h1>Thank You, ${formData.firstName}!</h1>
+          <p class="thank-you-subtitle">Your form has been sent.</p>
+          <div class="thank-you-details">
+            <p>We received your Blood Draw consent form.</p>
+            <p>Our team will review it before your appointment.</p>
+          </div>
+          <div class="thank-you-contact">
+            <h3>Have Questions?</h3>
+            <p>Email us at <a href="mailto:info@range-medical.com">info@range-medical.com</a></p>
+          </div>
+          <div class="thank-you-footer">
+            <p>RANGE MEDICAL</p>
+          </div>
+        </div>
+      `;
+    }
 
     // PDF Generation
     async function generatePDF(formData) {
@@ -197,14 +227,14 @@ export default function BloodDrawConsentPage() {
         <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
       </Head>
-      <div className="consent-page">
+      <div id="consentContainer" className="consent-page">
         <header className="consent-header"><div className="header-inner"><h1>RANGE MEDICAL</h1><p>Blood Draw / Venipuncture — Informed Consent</p></div></header>
         <form id="consentForm" className="consent-form">
           <div className="section">
             <h2 className="section-title">Patient Information</h2>
             <div className="form-row"><div className="form-group"><label htmlFor="firstName">First Name <span className="req">*</span></label><input type="text" id="firstName" required /></div><div className="form-group"><label htmlFor="lastName">Last Name <span className="req">*</span></label><input type="text" id="lastName" required /></div></div>
             <div className="form-row"><div className="form-group"><label htmlFor="email">Email <span className="req">*</span></label><input type="email" id="email" required /></div><div className="form-group"><label htmlFor="phone">Phone <span className="req">*</span></label><input type="tel" id="phone" required /></div></div>
-            <div className="form-row"><div className="form-group"><label htmlFor="dateOfBirth">Date of Birth <span className="req">*</span></label><input type="date" id="dateOfBirth" required /></div></div>
+            <div className="form-row"><div className="form-group"><label htmlFor="dateOfBirth">Date of Birth <span className="req">*</span></label><input type="text" id="dateOfBirth" placeholder="MM/DD/YYYY" maxLength="10" required /></div></div>
           </div>
 
           <div className="section">
@@ -313,6 +343,17 @@ export default function BloodDrawConsentPage() {
         .status-message.success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
         .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
         .consent-footer { text-align: center; padding: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }
+        .thank-you-page { background: #fff; border: 2px solid #000; padding: 3rem 2rem; text-align: center; max-width: 720px; margin: 40px auto; }
+        .thank-you-icon { width: 80px; height: 80px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 2rem; }
+        .thank-you-page h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: #000; }
+        .thank-you-subtitle { font-size: 1.125rem; color: #525252; margin-bottom: 2rem; }
+        .thank-you-details { padding: 2rem; background: #fafafa; border: 1.5px solid #e5e5e5; margin-bottom: 2rem; }
+        .thank-you-details p { margin-bottom: 0.75rem; color: #404040; }
+        .thank-you-contact { margin-bottom: 2rem; }
+        .thank-you-contact h3 { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; color: #262626; }
+        .thank-you-contact a { color: #000; text-decoration: underline; }
+        .thank-you-footer { padding-top: 2rem; border-top: 2px solid #e5e5e5; }
+        .thank-you-footer p { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.15em; color: #000; }
         @media (max-width: 640px) { .form-row { flex-direction: column; gap: 12px; } .consent-form { padding: 0 16px 30px; } .consent-header { padding: 20px 16px; } .radio-row { flex-wrap: wrap; } }
       `}</style>
     </>

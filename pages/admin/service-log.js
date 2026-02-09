@@ -1,37 +1,17 @@
-// /pages/admin/injection-logs.js
-// DEPRECATED - Redirects to /admin/service-log
+// /pages/admin/service-log.js
+// Unified Service Log - Track ALL services delivered
 // Range Medical - 2026-02-09
 //
-// This page is now replaced by the unified Service Log.
-// Keeping this file for backwards compatibility (redirects old bookmarks/links).
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
-
-export default function InjectionLogsRedirect() {
-  const router = useRouter();
-  const { patient_id, tab } = router.query;
-
-  useEffect(() => {
-    // Redirect to new service log with same params
-    const params = new URLSearchParams();
-    if (patient_id) params.set('patient_id', patient_id);
-    if (tab) params.set('tab', tab);
-
-    const queryString = params.toString();
-    router.replace(`/admin/service-log${queryString ? '?' + queryString : ''}`);
-  }, [router.isReady]);
-
-  return (
-    <div style={{ padding: '40px', textAlign: 'center', fontFamily: 'system-ui' }}>
-      <p>Redirecting to Service Log...</p>
-    </div>
-  );
-}
-
-/*
-// OLD CODE - PRESERVED FOR REFERENCE
-// The unified Service Log at /admin/service-log replaces this page.
+// This is the master log for everything that "leaves the building":
+// - Injections (testosterone, weight loss, vitamins, peptides)
+// - Medication pickups (testosterone vials, weight loss supplies, peptides)
+// - Sessions (IV therapy, HBOT, Red Light)
+//
+// When you log something here, the system automatically:
+// 1. Checks if patient has a package with credits for this service
+// 2. Decrements from package (or flags for billing if no package)
+// 3. Creates/updates protocol for tracking (refills, follow-ups)
+// 4. Syncs to GHL if applicable
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -39,8 +19,18 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 // ============================================
-// MEDICATION OPTIONS
+// SERVICE OPTIONS
 // ============================================
+
+const SERVICE_CATEGORIES = [
+  { id: 'testosterone', label: 'Testosterone', icon: '💉' },
+  { id: 'weight_loss', label: 'Weight Loss', icon: '📉' },
+  { id: 'vitamin', label: 'Vitamin Injections', icon: '💊' },
+  { id: 'peptide', label: 'Peptides', icon: '🧬' },
+  { id: 'iv_therapy', label: 'IV Therapy', icon: '💧' },
+  { id: 'hbot', label: 'HBOT', icon: '🫁' },
+  { id: 'red_light', label: 'Red Light', icon: '🔴' }
+];
 
 const TESTOSTERONE_OPTIONS = {
   male: {
@@ -71,17 +61,6 @@ const TESTOSTERONE_OPTIONS = {
   }
 };
 
-const TESTOSTERONE_PICKUP_OPTIONS = {
-  prefilled: {
-    label: 'Prefilled Syringes',
-    quantities: [4, 8]
-  },
-  vial: {
-    label: 'Vial',
-    quantities: [1]
-  }
-};
-
 const WEIGHT_LOSS_OPTIONS = {
   medications: [
     { value: 'Semaglutide', label: 'Semaglutide' },
@@ -96,37 +75,79 @@ const WEIGHT_LOSS_OPTIONS = {
 };
 
 const VITAMIN_OPTIONS = [
-  { value: 'B12', label: 'B12' },
-  { value: 'B-Complex', label: 'B-Complex' },
-  { value: 'Amino Blend', label: 'Amino Blend' },
-  { value: 'Biotin', label: 'Biotin' },
-  { value: 'Vitamin D3', label: 'Vitamin D3' },
-  { value: 'Glutathione', label: 'Glutathione' },
-  { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
-  { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
-  { value: 'L-Carnitine', label: 'L-Carnitine' },
-  { value: 'Lipo-C', label: 'Lipo-C' }
+  { value: 'B12', label: 'B12', price: 35 },
+  { value: 'B-Complex', label: 'B-Complex', price: 35 },
+  { value: 'Amino Blend', label: 'Amino Blend', price: 45 },
+  { value: 'Biotin', label: 'Biotin', price: 35 },
+  { value: 'Vitamin D3', label: 'Vitamin D3', price: 45 },
+  { value: 'Glutathione', label: 'Glutathione', price: 65 },
+  { value: 'NAD+ 50mg', label: 'NAD+ 50mg', price: 50 },
+  { value: 'NAD+ 100mg', label: 'NAD+ 100mg', price: 100 },
+  { value: 'L-Carnitine', label: 'L-Carnitine', price: 45 },
+  { value: 'Lipo-C', label: 'Lipo-C', price: 45 }
+];
+
+const PEPTIDE_OPTIONS = [
+  { value: 'BPC-157', label: 'BPC-157' },
+  { value: 'TB-500', label: 'TB-500' },
+  { value: 'BPC-157/TB-500', label: 'BPC-157 + TB-500' },
+  { value: 'Sermorelin', label: 'Sermorelin' },
+  { value: 'Tesamorelin', label: 'Tesamorelin' },
+  { value: 'CJC-1295/Ipamorelin', label: 'CJC-1295/Ipamorelin' },
+  { value: 'Semaglutide (peptide)', label: 'Semaglutide' },
+  { value: 'PT-141', label: 'PT-141' },
+  { value: 'Semax', label: 'Semax' },
+  { value: 'Selank', label: 'Selank' },
+  { value: 'MOTS-C', label: 'MOTS-C' },
+  { value: 'SS-31', label: 'SS-31' },
+  { value: 'Other', label: 'Other (specify in notes)' }
+];
+
+const IV_OPTIONS = [
+  { value: 'Energy IV', label: 'Energy IV', price: 225 },
+  { value: 'Hydration IV', label: 'Hydration IV', price: 175 },
+  { value: 'Immune IV', label: 'Immune IV', price: 225 },
+  { value: 'Glow IV', label: 'Glow IV', price: 275 },
+  { value: 'Brain IV', label: 'Brain IV', price: 275 },
+  { value: 'Performance IV', label: 'Performance IV', price: 275 },
+  { value: 'NAD+ IV 250mg', label: 'NAD+ IV 250mg', price: 375 },
+  { value: 'NAD+ IV 500mg', label: 'NAD+ IV 500mg', price: 525 },
+  { value: 'NAD+ IV 750mg', label: 'NAD+ IV 750mg', price: 650 },
+  { value: 'NAD+ IV 1000mg', label: 'NAD+ IV 1000mg', price: 775 },
+  { value: 'Methylene Blue IV', label: 'Methylene Blue IV', price: 197 },
+  { value: 'High-Dose Vitamin C', label: 'High-Dose Vitamin C', price: 225 },
+  { value: 'Custom Range IV', label: 'Custom Range IV', price: 275 }
+];
+
+const HBOT_OPTIONS = [
+  { value: 'HBOT Single Session', label: 'Single Session (60 min)', price: 185 },
+  { value: 'HBOT Package Session', label: 'Package Session', price: null }
+];
+
+const RED_LIGHT_OPTIONS = [
+  { value: 'Red Light Single', label: 'Single Session (15-20 min)', price: 85 },
+  { value: 'Red Light Package Session', label: 'Package Session', price: null }
 ];
 
 // ============================================
 // MAIN COMPONENT
 // ============================================
 
-export default function InjectionLogs() {
+export default function ServiceLog() {
   const router = useRouter();
-  const { patient_id } = router.query;
-  
-  const [activeTab, setActiveTab] = useState('testosterone');
+  const { patient_id, tab } = router.query;
+
+  const [activeTab, setActiveTab] = useState(tab || 'testosterone');
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Form state
   const [formData, setFormData] = useState({
     patient_id: '',
     patient_name: '',
-    log_type: 'injection',
+    log_type: 'injection', // injection, pickup, session
     category: 'testosterone',
     hrt_type: 'male',
     medication: '',
@@ -136,18 +157,30 @@ export default function InjectionLogs() {
     quantity: 1,
     week_supply: 4,
     weight: '',
+    duration: 60,
     entry_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
     notes: ''
   });
-  
+
   // Edit mode
   const [editingLog, setEditingLog] = useState(null);
-  
+
   // Patient search
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
+
+  // Package info for selected patient
+  const [patientPackages, setPatientPackages] = useState([]);
+  const [checkingPackages, setCheckingPackages] = useState(false);
+
+  // Update active tab from URL
+  useEffect(() => {
+    if (tab && SERVICE_CATEGORIES.find(c => c.id === tab)) {
+      setActiveTab(tab);
+    }
+  }, [tab]);
 
   // Load logs
   useEffect(() => {
@@ -160,12 +193,7 @@ export default function InjectionLogs() {
     if (patient_id && patients.length > 0) {
       const patient = patients.find(p => p.id === patient_id);
       if (patient) {
-        setFormData(prev => ({
-          ...prev,
-          patient_id: patient.id,
-          patient_name: `${patient.first_name || ''} ${patient.last_name || ''}`.trim()
-        }));
-        setPatientSearch(`${patient.first_name || ''} ${patient.last_name || ''}`.trim());
+        selectPatient(patient);
       }
     }
   }, [patient_id, patients]);
@@ -173,7 +201,7 @@ export default function InjectionLogs() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/injection-logs?category=${activeTab}&limit=100`);
+      const res = await fetch(`/api/service-log?category=${activeTab}&limit=100`);
       const data = await res.json();
       if (data.success) {
         setLogs(data.logs || []);
@@ -187,18 +215,32 @@ export default function InjectionLogs() {
 
   const fetchPatients = async () => {
     try {
-      console.log('Fetching patients...');
       const res = await fetch('/api/patients?limit=2000');
       const data = await res.json();
-      console.log('Patients response:', data);
       if (data.patients && data.patients.length > 0) {
         setPatients(data.patients);
-        console.log('Loaded', data.patients.length, 'patients');
-      } else if (data.error) {
-        console.error('API error:', data.error);
       }
     } catch (err) {
       console.error('Error fetching patients:', err);
+    }
+  };
+
+  // Check patient packages when patient is selected
+  const checkPatientPackages = async (patientId) => {
+    if (!patientId) return;
+
+    setCheckingPackages(true);
+    try {
+      const res = await fetch(`/api/service-log/check-packages?patient_id=${patientId}&category=${activeTab}`);
+      const data = await res.json();
+      if (data.success) {
+        setPatientPackages(data.packages || []);
+      }
+    } catch (err) {
+      console.error('Error checking packages:', err);
+      setPatientPackages([]);
+    } finally {
+      setCheckingPackages(false);
     }
   };
 
@@ -230,25 +272,65 @@ export default function InjectionLogs() {
     }));
     setPatientSearch(name);
     setShowPatientDropdown(false);
+
+    // Check for packages
+    checkPatientPackages(patient.id);
+  };
+
+  const getLogTypeOptions = () => {
+    switch (activeTab) {
+      case 'testosterone':
+      case 'weight_loss':
+      case 'peptide':
+        return [
+          { value: 'injection', label: '💉 In-Clinic Injection' },
+          { value: 'pickup', label: '📦 Medication Pickup' }
+        ];
+      case 'vitamin':
+        return [
+          { value: 'injection', label: '💉 Injection' }
+        ];
+      case 'iv_therapy':
+      case 'hbot':
+      case 'red_light':
+        return [
+          { value: 'session', label: '✅ Session Completed' }
+        ];
+      default:
+        return [{ value: 'injection', label: '💉 Injection' }];
+    }
   };
 
   const openModal = () => {
     setEditingLog(null);
-    // Make sure patients are loaded
-    if (patients.length === 0) {
-      fetchPatients();
-    }
+    if (patients.length === 0) fetchPatients();
+
     setPatientSearch('');
+    setPatientPackages([]);
+
+    // Set default log_type based on category
+    let defaultLogType = 'injection';
+    if (['iv_therapy', 'hbot', 'red_light'].includes(activeTab)) {
+      defaultLogType = 'session';
+    }
+
+    // Set default medication
+    let defaultMedication = '';
+    if (activeTab === 'weight_loss') defaultMedication = 'Semaglutide';
+    if (activeTab === 'iv_therapy') defaultMedication = 'Energy IV';
+    if (activeTab === 'hbot') defaultMedication = 'HBOT Single Session';
+    if (activeTab === 'red_light') defaultMedication = 'Red Light Single';
+
     setFormData(prev => ({
       ...prev,
       patient_id: '',
       patient_name: '',
       category: activeTab,
-      log_type: 'injection',
+      log_type: defaultLogType,
       dosage: '',
       custom_dosage: '',
       weight: '',
-      medication: activeTab === 'weight_loss' ? 'Semaglutide' : '',
+      medication: defaultMedication,
       notes: '',
       entry_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
     }));
@@ -257,11 +339,10 @@ export default function InjectionLogs() {
 
   const openEditModal = (log) => {
     setEditingLog(log);
-    
-    // Parse the log data to fill the form
+
     const isPickup = log.entry_type === 'pickup';
     const isMale = (log.medication || '').toLowerCase().includes('male');
-    
+
     setFormData({
       patient_id: log.patient_id,
       patient_name: log.patient_name || '',
@@ -275,6 +356,7 @@ export default function InjectionLogs() {
       quantity: log.quantity || 1,
       week_supply: log.quantity || 4,
       weight: log.weight || '',
+      duration: log.duration || 60,
       entry_date: (log.entry_date || log.created_at || '').split('T')[0],
       notes: log.notes || ''
     });
@@ -285,6 +367,7 @@ export default function InjectionLogs() {
   const closeModal = () => {
     setShowModal(false);
     setPatientSearch('');
+    setPatientPackages([]);
     setFormData(prev => ({
       ...prev,
       patient_id: '',
@@ -294,7 +377,7 @@ export default function InjectionLogs() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.patient_id) {
       alert('Please select a patient');
       return;
@@ -312,20 +395,18 @@ export default function InjectionLogs() {
     // Add category-specific fields
     if (activeTab === 'testosterone') {
       payload.medication = formData.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
-      
+
       if (formData.log_type === 'injection') {
         payload.dosage = formData.dosage === 'custom' ? formData.custom_dosage : formData.dosage;
       } else {
-        // Pickup
-        payload.supply_type = formData.pickup_type === 'vial' ? 'vial_10ml' : 
+        payload.supply_type = formData.pickup_type === 'vial' ? 'vial_10ml' :
           formData.quantity === 8 ? 'prefilled_4week' : 'prefilled_2week';
         payload.quantity = formData.quantity;
-        
+
         if (formData.pickup_type === 'vial') {
-          // Include dosage for vial so we can calculate duration
           const totalMg = formData.hrt_type === 'male' ? 2000 : 1000;
           const match = formData.dosage.match(/(\d+)mg/);
-          let weeks = 12; // default
+          let weeks = 12;
           if (match) {
             const dosePerInjection = parseInt(match[1]);
             const weeklyMg = dosePerInjection * 2;
@@ -338,7 +419,7 @@ export default function InjectionLogs() {
       }
     } else if (activeTab === 'weight_loss') {
       payload.medication = formData.medication;
-      
+
       if (formData.log_type === 'injection') {
         payload.dosage = formData.dosage;
         payload.weight = formData.weight ? parseFloat(formData.weight) : null;
@@ -349,34 +430,61 @@ export default function InjectionLogs() {
     } else if (activeTab === 'vitamin') {
       payload.medication = formData.medication;
       payload.dosage = 'Standard';
+    } else if (activeTab === 'peptide') {
+      payload.medication = formData.medication;
+      if (formData.log_type === 'injection') {
+        payload.dosage = formData.dosage || 'Standard';
+      } else {
+        payload.quantity = formData.quantity || 1;
+        payload.dosage = `${formData.quantity || 1} vial`;
+      }
+    } else if (activeTab === 'iv_therapy') {
+      payload.medication = formData.medication;
+      payload.duration = formData.duration || 60;
+    } else if (activeTab === 'hbot') {
+      payload.medication = formData.medication;
+      payload.duration = 60; // HBOT is always 60 min
+    } else if (activeTab === 'red_light') {
+      payload.medication = formData.medication;
+      payload.duration = formData.duration || 20;
     }
 
     try {
       const isEditing = !!editingLog;
-      const url = isEditing ? `/api/injection-logs?id=${editingLog.id}` : '/api/injection-logs';
+      const url = isEditing ? `/api/service-log?id=${editingLog.id}` : '/api/service-log';
       const method = isEditing ? 'PUT' : 'POST';
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       const data = await res.json();
-      
+
       if (data.success) {
         closeModal();
         setEditingLog(null);
         fetchLogs();
-        
-        // Show feedback about protocol sync
-        if (data.protocol_update?.updated) {
-          alert(`✓ Entry ${isEditing ? 'updated' : 'saved'}!\n\nProtocol updated:\n- Last refill: ${data.protocol_update.new_last_refill_date || 'updated'}\n- Supply type: ${data.protocol_update.changes?.supply_type || 'unchanged'}`);
-        } else if (data.protocol_update?.reason) {
-          alert(`✓ Entry ${isEditing ? 'updated' : 'saved'}.\n\n⚠️ Protocol not updated: ${data.protocol_update.reason}`);
-        } else {
-          // Just saved the log, no protocol sync attempted
+
+        // Show feedback
+        let message = `✓ Entry ${isEditing ? 'updated' : 'saved'}!`;
+
+        if (data.package_update) {
+          if (data.package_update.decremented) {
+            message += `\n\n📦 Package updated: ${data.package_update.remaining} sessions remaining`;
+          } else if (data.package_update.no_package) {
+            message += `\n\n⚠️ No package found - this should be billed separately`;
+          }
         }
+
+        if (data.protocol_update?.created) {
+          message += `\n\n📋 New protocol created for tracking`;
+        } else if (data.protocol_update?.updated) {
+          message += `\n\n📋 Protocol updated`;
+        }
+
+        alert(message);
       } else {
         alert('Error: ' + (data.error || 'Failed to save'));
       }
@@ -388,9 +496,9 @@ export default function InjectionLogs() {
 
   const deleteLog = async (id) => {
     if (!confirm('Delete this entry?')) return;
-    
+
     try {
-      const res = await fetch(`/api/injection-logs?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/service-log?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchLogs();
       }
@@ -401,17 +509,14 @@ export default function InjectionLogs() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    // Handle date-only strings (YYYY-MM-DD) as local time to avoid timezone shift
     let d;
     if (dateStr.length === 10 && dateStr.includes('-')) {
-      // Date only - treat as local time
       d = new Date(dateStr + 'T00:00:00');
     } else {
-      // Full timestamp - convert to Pacific
       d = new Date(dateStr);
     }
-    return d.toLocaleDateString('en-US', { 
-      month: 'short', 
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
       timeZone: 'America/Los_Angeles'
     });
@@ -420,9 +525,9 @@ export default function InjectionLogs() {
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
       hour12: true,
       timeZone: 'America/Los_Angeles'
     });
@@ -438,43 +543,59 @@ export default function InjectionLogs() {
   });
 
   const getCategoryLabel = () => {
-    switch(activeTab) {
-      case 'testosterone': return 'Testosterone';
-      case 'weight_loss': return 'Weight Loss';
-      case 'vitamin': return 'Vitamin Injections';
-      default: return activeTab;
+    const cat = SERVICE_CATEGORIES.find(c => c.id === activeTab);
+    return cat ? cat.label : activeTab;
+  };
+
+  const getCategoryIcon = () => {
+    const cat = SERVICE_CATEGORIES.find(c => c.id === activeTab);
+    return cat ? cat.icon : '📋';
+  };
+
+  const getTypeBadge = (entryType) => {
+    switch (entryType) {
+      case 'pickup':
+        return { label: '📦 Pickup', bg: '#dbeafe', color: '#1d4ed8' };
+      case 'session':
+        return { label: '✅ Session', bg: '#f3e8ff', color: '#7c3aed' };
+      case 'injection':
+      default:
+        return { label: '💉 Injection', bg: '#dcfce7', color: '#166534' };
     }
   };
 
   return (
     <>
       <Head>
-        <title>Injection Logs | Range Medical</title>
+        <title>Service Log | Range Medical</title>
       </Head>
 
       <div style={styles.container}>
         <Link href="/admin/pipeline" style={styles.backLink}>← Back to Pipeline</Link>
-        
-        <h1 style={styles.title}>Injection Logs</h1>
+
+        <h1 style={styles.title}>Service Log</h1>
+        <p style={styles.subtitle}>Log all services delivered — injections, pickups, and sessions</p>
 
         {/* Category Tabs */}
-        <div style={styles.tabs}>
-          {[
-            { id: 'testosterone', label: 'Testosterone' },
-            { id: 'weight_loss', label: 'Weight Loss' },
-            { id: 'vitamin', label: 'Vitamin Injections' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              style={{
-                ...styles.tab,
-                ...(activeTab === tab.id ? styles.tabActive : {})
-              }}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div style={styles.tabsWrapper}>
+          <div style={styles.tabs}>
+            {SERVICE_CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                style={{
+                  ...styles.tab,
+                  ...(activeTab === cat.id ? styles.tabActive : {})
+                }}
+                onClick={() => {
+                  setActiveTab(cat.id);
+                  router.push(`/admin/service-log?tab=${cat.id}`, undefined, { shallow: true });
+                }}
+              >
+                <span style={styles.tabIcon}>{cat.icon}</span>
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Actions Bar */}
@@ -487,7 +608,7 @@ export default function InjectionLogs() {
             style={styles.searchInput}
           />
           <button style={styles.newEntryBtn} onClick={openModal}>
-            + New Entry
+            + Log {getCategoryLabel()}
           </button>
         </div>
 
@@ -499,8 +620,8 @@ export default function InjectionLogs() {
                 <th style={styles.th}>DATE</th>
                 <th style={styles.th}>PATIENT</th>
                 <th style={styles.th}>TYPE</th>
-                <th style={styles.th}>MEDICATION</th>
-                <th style={styles.th}>DOSE/DETAILS</th>
+                <th style={styles.th}>SERVICE</th>
+                <th style={styles.th}>DETAILS</th>
                 <th style={styles.th}>NOTES</th>
                 <th style={styles.th}></th>
               </tr>
@@ -511,43 +632,56 @@ export default function InjectionLogs() {
               ) : filteredLogs.length === 0 ? (
                 <tr><td colSpan="7" style={styles.empty}>No entries found</td></tr>
               ) : (
-                filteredLogs.map(log => (
-                  <tr key={log.id} style={styles.tr}>
-                    <td style={styles.td}>
-                      <div>{formatDate(log.entry_date || log.created_at)}</div>
-                      <div style={styles.timeText}>{formatTime(log.created_at)}</div>
-                    </td>
-                    <td style={styles.td}>{log.patient_name || 'Unknown'}</td>
-                    <td style={styles.td}>
-                      <span style={{
-                        ...styles.typeBadge,
-                        background: log.entry_type === 'pickup' ? '#dbeafe' : '#dcfce7',
-                        color: log.entry_type === 'pickup' ? '#1d4ed8' : '#166534'
-                      }}>
-                        {log.entry_type === 'pickup' ? '📦 Pickup' : '💉 Injection'}
-                      </span>
-                    </td>
-                    <td style={styles.td}>{log.medication || '-'}</td>
-                    <td style={styles.td}>{log.dosage || '-'}</td>
-                    <td style={styles.td}>{log.notes || '-'}</td>
-                    <td style={styles.td}>
-                      <button 
-                        style={styles.editBtn}
-                        onClick={() => openEditModal(log)}
-                        title="Edit"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        style={styles.deleteBtn}
-                        onClick={() => deleteLog(log.id)}
-                        title="Delete"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filteredLogs.map(log => {
+                  const badge = getTypeBadge(log.entry_type);
+                  return (
+                    <tr key={log.id} style={styles.tr}>
+                      <td style={styles.td}>
+                        <div>{formatDate(log.entry_date || log.created_at)}</div>
+                        <div style={styles.timeText}>{formatTime(log.created_at)}</div>
+                      </td>
+                      <td style={styles.td}>
+                        <Link href={`/admin/patients/${log.patient_id}`} style={styles.patientLink}>
+                          {log.patient_name || 'Unknown'}
+                        </Link>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.typeBadge,
+                          background: badge.bg,
+                          color: badge.color
+                        }}>
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td style={styles.td}>{log.medication || '-'}</td>
+                      <td style={styles.td}>
+                        {log.dosage || '-'}
+                        {log.weight && <span style={styles.weightText}> • {log.weight} lbs</span>}
+                        {log.duration && ['iv_therapy', 'hbot', 'red_light'].includes(log.category) &&
+                          <span style={styles.durationText}> • {log.duration} min</span>
+                        }
+                      </td>
+                      <td style={styles.td}>{log.notes || '-'}</td>
+                      <td style={styles.td}>
+                        <button
+                          style={styles.editBtn}
+                          onClick={() => openEditModal(log)}
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          style={styles.deleteBtn}
+                          onClick={() => deleteLog(log.id)}
+                          title="Delete"
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -573,7 +707,9 @@ export default function InjectionLogs() {
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>
               <div style={styles.modalHeader}>
-                <h2 style={styles.modalTitle}>{editingLog ? 'Edit' : 'New'} {getCategoryLabel()} Entry</h2>
+                <h2 style={styles.modalTitle}>
+                  {getCategoryIcon()} {editingLog ? 'Edit' : 'Log'} {getCategoryLabel()}
+                </h2>
                 <button style={styles.closeBtn} onClick={closeModal}>×</button>
               </div>
 
@@ -588,6 +724,7 @@ export default function InjectionLogs() {
                       onChange={(e) => {
                         setPatientSearch(e.target.value);
                         setFormData(prev => ({ ...prev, patient_id: '', patient_name: '' }));
+                        setPatientPackages([]);
                       }}
                       placeholder="Type to search patient..."
                       style={styles.input}
@@ -603,9 +740,7 @@ export default function InjectionLogs() {
                               style={styles.dropdownItem}
                               onClick={() => selectPatient(p)}
                             >
-                              <div style={{ fontWeight: '500' }}>
-                                {displayName}
-                              </div>
+                              <div style={{ fontWeight: '500' }}>{displayName}</div>
                               <div style={{ fontSize: '12px', color: '#6b7280' }}>
                                 {p.phone || p.email || 'No contact'}
                               </div>
@@ -615,6 +750,26 @@ export default function InjectionLogs() {
                       </div>
                     )}
                   </div>
+
+                  {/* Package Status */}
+                  {formData.patient_id && (
+                    <div style={styles.packageStatus}>
+                      {checkingPackages ? (
+                        <span style={styles.packageChecking}>Checking packages...</span>
+                      ) : patientPackages.length > 0 ? (
+                        <div style={styles.packageFound}>
+                          ✅ Active package: {patientPackages[0].name || patientPackages[0].program_name}
+                          <span style={styles.packageCredits}>
+                            {patientPackages[0].sessions_remaining || (patientPackages[0].total_sessions - (patientPackages[0].sessions_used || 0))} sessions remaining
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={styles.packageNotFound}>
+                          ⚠️ No active package for {getCategoryLabel()} — will need to be billed
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Date */}
@@ -629,46 +784,38 @@ export default function InjectionLogs() {
                   />
                 </div>
 
-                {/* Type (Injection vs Pickup) */}
-                {activeTab !== 'vitamin' && (
+                {/* Type (Injection/Pickup/Session) */}
+                {getLogTypeOptions().length > 1 && (
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Type</label>
                     <div style={styles.radioGroup}>
-                      <label style={styles.radioLabel}>
-                        <input
-                          type="radio"
-                          name="log_type"
-                          value="injection"
-                          checked={formData.log_type === 'injection'}
-                          onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
-                        />
-                        💉 In-Clinic Injection
-                      </label>
-                      <label style={styles.radioLabel}>
-                        <input
-                          type="radio"
-                          name="log_type"
-                          value="pickup"
-                          checked={formData.log_type === 'pickup'}
-                          onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
-                        />
-                        📦 Medication Pickup
-                      </label>
+                      {getLogTypeOptions().map(opt => (
+                        <label key={opt.value} style={styles.radioLabel}>
+                          <input
+                            type="radio"
+                            name="log_type"
+                            value={opt.value}
+                            checked={formData.log_type === opt.value}
+                            onChange={(e) => setFormData(prev => ({ ...prev, log_type: e.target.value }))}
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {/* Testosterone Fields */}
+                {/* === TESTOSTERONE FIELDS === */}
                 {activeTab === 'testosterone' && (
                   <>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>HRT Type</label>
                       <select
                         value={formData.hrt_type}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
                           hrt_type: e.target.value,
-                          dosage: '' // Reset dosage when type changes
+                          dosage: ''
                         }))}
                         style={styles.select}
                       >
@@ -677,39 +824,39 @@ export default function InjectionLogs() {
                       </select>
                     </div>
 
-                    {formData.log_type === 'injection' ? (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Dosage *</label>
-                        <select
-                          value={formData.dosage}
-                          onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-                          style={styles.select}
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Dosage *</label>
+                      <select
+                        value={formData.dosage}
+                        onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                        style={styles.select}
+                        required
+                      >
+                        <option value="">Select dosage...</option>
+                        {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages.map(d => (
+                          <option key={d.value} value={d.value}>{d.label}</option>
+                        ))}
+                      </select>
+                      {formData.dosage === 'custom' && (
+                        <input
+                          type="text"
+                          placeholder="Enter custom dosage..."
+                          value={formData.custom_dosage}
+                          onChange={(e) => setFormData(prev => ({ ...prev, custom_dosage: e.target.value }))}
+                          style={{ ...styles.input, marginTop: '8px' }}
                           required
-                        >
-                          <option value="">Select dosage...</option>
-                          {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages.map(d => (
-                            <option key={d.value} value={d.value}>{d.label}</option>
-                          ))}
-                        </select>
-                        {formData.dosage === 'custom' && (
-                          <input
-                            type="text"
-                            placeholder="Enter custom dosage..."
-                            value={formData.custom_dosage}
-                            onChange={(e) => setFormData(prev => ({ ...prev, custom_dosage: e.target.value }))}
-                            style={{ ...styles.input, marginTop: '8px' }}
-                            required
-                          />
-                        )}
-                      </div>
-                    ) : (
+                        />
+                      )}
+                    </div>
+
+                    {formData.log_type === 'pickup' && (
                       <>
                         <div style={styles.formGroup}>
                           <label style={styles.label}>Pickup Type</label>
                           <select
                             value={formData.pickup_type}
-                            onChange={(e) => setFormData(prev => ({ 
-                              ...prev, 
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
                               pickup_type: e.target.value,
                               quantity: e.target.value === 'vial' ? 1 : 4
                             }))}
@@ -720,92 +867,49 @@ export default function InjectionLogs() {
                           </select>
                         </div>
 
-                        {formData.pickup_type === 'vial' && (
-                          <>
-                            <div style={styles.formGroup}>
-                              <label style={styles.label}>Patient's Weekly Dose *</label>
-                              <select
-                                value={formData.dosage}
-                                onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-                                style={styles.select}
-                                required
-                              >
-                                <option value="">Select dose...</option>
-                                {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages
-                                  .filter(d => d.value !== 'custom')
-                                  .map(d => (
-                                    <option key={d.value} value={d.value}>{d.label}</option>
-                                  ))
-                                }
-                              </select>
-                            </div>
-                            <div style={styles.infoBox}>
-                              <div>10ml vial @ {formData.hrt_type === 'male' ? '200mg/ml (2000mg total)' : '100mg/ml (1000mg total)'}</div>
-                              {formData.dosage && (
-                                <div style={{ marginTop: '8px', fontWeight: '600', color: '#059669' }}>
-                                  {(() => {
-                                    const totalMg = formData.hrt_type === 'male' ? 2000 : 1000;
-                                    const match = formData.dosage.match(/(\d+)mg/);
-                                    if (match) {
-                                      const dosePerInjection = parseInt(match[1]);
-                                      const weeklyMg = dosePerInjection * 2; // 2x per week
-                                      const weeks = Math.floor(totalMg / weeklyMg);
-                                      return `≈ ${weeks} weeks supply (at ${dosePerInjection}mg × 2/week)`;
-                                    }
-                                    return '';
-                                  })()}
-                                </div>
-                              )}
-                            </div>
-                          </>
+                        {formData.pickup_type === 'prefilled' && (
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Quantity</label>
+                            <select
+                              value={formData.quantity}
+                              onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                              style={styles.select}
+                            >
+                              <option value="4">4 syringes (2 week supply)</option>
+                              <option value="8">8 syringes (4 week supply)</option>
+                            </select>
+                          </div>
                         )}
 
-                        {formData.pickup_type === 'prefilled' && (
-                          <>
-                            <div style={styles.formGroup}>
-                              <label style={styles.label}>Dose per Syringe</label>
-                              <select
-                                value={formData.dosage}
-                                onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-                                style={styles.select}
-                                required
-                              >
-                                <option value="">Select dose...</option>
-                                {TESTOSTERONE_OPTIONS[formData.hrt_type].dosages
-                                  .filter(d => d.value !== 'custom')
-                                  .map(d => (
-                                    <option key={d.value} value={d.value}>{d.label}</option>
-                                  ))
-                                }
-                              </select>
-                            </div>
-                            <div style={styles.formGroup}>
-                              <label style={styles.label}>Quantity</label>
-                              <select
-                                value={formData.quantity}
-                                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                                style={styles.select}
-                              >
-                                <option value="4">4 syringes (2 week supply)</option>
-                                <option value="8">8 syringes (4 week supply)</option>
-                              </select>
-                            </div>
-                          </>
+                        {formData.pickup_type === 'vial' && formData.dosage && (
+                          <div style={styles.infoBox}>
+                            {(() => {
+                              const totalMg = formData.hrt_type === 'male' ? 2000 : 1000;
+                              const match = formData.dosage.match(/(\d+)mg/);
+                              if (match) {
+                                const dosePerInjection = parseInt(match[1]);
+                                const weeklyMg = dosePerInjection * 2;
+                                const weeks = Math.floor(totalMg / weeklyMg);
+                                return `📅 ≈ ${weeks} weeks supply (at ${dosePerInjection}mg × 2/week)`;
+                              }
+                              return '10ml vial';
+                            })()}
+                          </div>
                         )}
                       </>
                     )}
                   </>
                 )}
 
-                {/* Weight Loss Fields */}
+                {/* === WEIGHT LOSS FIELDS === */}
                 {activeTab === 'weight_loss' && (
                   <>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Medication</label>
                       <select
                         value={formData.medication}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
                           medication: e.target.value,
                           dosage: ''
                         }))}
@@ -862,7 +966,7 @@ export default function InjectionLogs() {
                   </>
                 )}
 
-                {/* Vitamin Fields */}
+                {/* === VITAMIN FIELDS === */}
                 {activeTab === 'vitamin' && (
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Injection Type</label>
@@ -878,6 +982,140 @@ export default function InjectionLogs() {
                       ))}
                     </select>
                   </div>
+                )}
+
+                {/* === PEPTIDE FIELDS === */}
+                {activeTab === 'peptide' && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Peptide</label>
+                      <select
+                        value={formData.medication}
+                        onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
+                        style={styles.select}
+                        required
+                      >
+                        <option value="">Select peptide...</option>
+                        {PEPTIDE_OPTIONS.map(p => (
+                          <option key={p.value} value={p.value}>{p.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {formData.log_type === 'injection' && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Dosage</label>
+                        <input
+                          type="text"
+                          value={formData.dosage}
+                          onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                          placeholder="e.g. 500mcg, 1mg..."
+                          style={styles.input}
+                        />
+                      </div>
+                    )}
+
+                    {formData.log_type === 'pickup' && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Quantity (vials)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.quantity}
+                          onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                          style={styles.input}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* === IV THERAPY FIELDS === */}
+                {activeTab === 'iv_therapy' && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>IV Type</label>
+                      <select
+                        value={formData.medication}
+                        onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
+                        style={styles.select}
+                        required
+                      >
+                        <option value="">Select IV...</option>
+                        {IV_OPTIONS.map(iv => (
+                          <option key={iv.value} value={iv.value}>{iv.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Duration (minutes)</label>
+                      <select
+                        value={formData.duration}
+                        onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
+                        style={styles.select}
+                      >
+                        <option value="30">30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">60 minutes</option>
+                        <option value="90">90 minutes</option>
+                        <option value="120">120 minutes</option>
+                        <option value="180">180 minutes (NAD+)</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* === HBOT FIELDS === */}
+                {activeTab === 'hbot' && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Session Type</label>
+                    <select
+                      value={formData.medication}
+                      onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
+                      style={styles.select}
+                      required
+                    >
+                      {HBOT_OPTIONS.map(h => (
+                        <option key={h.value} value={h.value}>{h.label}</option>
+                      ))}
+                    </select>
+                    <div style={styles.infoBox}>
+                      🫁 60-minute session at 2.0 ATA
+                    </div>
+                  </div>
+                )}
+
+                {/* === RED LIGHT FIELDS === */}
+                {activeTab === 'red_light' && (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Session Type</label>
+                      <select
+                        value={formData.medication}
+                        onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
+                        style={styles.select}
+                        required
+                      >
+                        {RED_LIGHT_OPTIONS.map(r => (
+                          <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Duration (minutes)</label>
+                      <select
+                        value={formData.duration}
+                        onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
+                        style={styles.select}
+                      >
+                        <option value="10">10 minutes</option>
+                        <option value="15">15 minutes</option>
+                        <option value="20">20 minutes</option>
+                      </select>
+                    </div>
+                  </>
                 )}
 
                 {/* Notes */}
@@ -912,7 +1150,7 @@ export default function InjectionLogs() {
 const styles = {
   container: {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    maxWidth: '1200px',
+    maxWidth: '1400px',
     margin: '0 auto',
     padding: '24px'
   },
@@ -926,28 +1164,45 @@ const styles = {
   title: {
     fontSize: '28px',
     fontWeight: '700',
-    marginBottom: '24px',
+    marginBottom: '4px',
     color: '#111'
+  },
+  subtitle: {
+    fontSize: '14px',
+    color: '#6b7280',
+    marginBottom: '24px'
+  },
+  tabsWrapper: {
+    overflowX: 'auto',
+    marginBottom: '24px',
+    paddingBottom: '4px'
   },
   tabs: {
     display: 'flex',
     gap: '8px',
-    marginBottom: '24px'
+    minWidth: 'max-content'
   },
   tab: {
-    padding: '12px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '10px 16px',
     border: 'none',
     background: '#f3f4f6',
     borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: '500',
     color: '#374151',
-    transition: 'all 0.15s'
+    transition: 'all 0.15s',
+    whiteSpace: 'nowrap'
   },
   tabActive: {
     background: '#111',
     color: 'white'
+  },
+  tabIcon: {
+    fontSize: '14px'
   },
   actionsBar: {
     display: 'flex',
@@ -1007,6 +1262,20 @@ const styles = {
     fontSize: '12px',
     color: '#9ca3af'
   },
+  weightText: {
+    fontSize: '12px',
+    color: '#059669',
+    fontWeight: '500'
+  },
+  durationText: {
+    fontSize: '12px',
+    color: '#6b7280'
+  },
+  patientLink: {
+    color: '#111',
+    textDecoration: 'none',
+    fontWeight: '500'
+  },
   typeBadge: {
     display: 'inline-block',
     padding: '4px 8px',
@@ -1061,7 +1330,7 @@ const styles = {
     background: 'white',
     borderRadius: '16px',
     padding: '24px',
-    width: '480px',
+    width: '500px',
     maxWidth: '95vw',
     maxHeight: '90vh',
     overflow: 'auto'
@@ -1125,7 +1394,8 @@ const styles = {
   },
   radioGroup: {
     display: 'flex',
-    gap: '16px'
+    gap: '16px',
+    flexWrap: 'wrap'
   },
   radioLabel: {
     display: 'flex',
@@ -1136,12 +1406,12 @@ const styles = {
   },
   infoBox: {
     padding: '12px 14px',
-    background: '#f3f4f6',
+    background: '#f0fdf4',
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '500',
-    color: '#374151',
-    marginBottom: '16px'
+    color: '#166534',
+    marginTop: '8px'
   },
   dropdown: {
     position: 'absolute',
@@ -1161,6 +1431,33 @@ const styles = {
     cursor: 'pointer',
     borderBottom: '1px solid #f3f4f6'
   },
+  packageStatus: {
+    marginTop: '8px',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    fontSize: '13px'
+  },
+  packageChecking: {
+    color: '#6b7280'
+  },
+  packageFound: {
+    background: '#f0fdf4',
+    color: '#166534',
+    padding: '10px 12px',
+    borderRadius: '8px'
+  },
+  packageCredits: {
+    display: 'block',
+    fontSize: '12px',
+    marginTop: '4px',
+    opacity: 0.8
+  },
+  packageNotFound: {
+    background: '#fef3c7',
+    color: '#92400e',
+    padding: '10px 12px',
+    borderRadius: '8px'
+  },
   submitBtn: {
     width: '100%',
     padding: '12px',
@@ -1174,4 +1471,3 @@ const styles = {
     marginTop: '8px'
   }
 };
-*/

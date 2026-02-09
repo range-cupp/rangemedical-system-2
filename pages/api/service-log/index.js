@@ -485,6 +485,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     // Update protocol with pickup info including medication details
     const updateData = {
       last_refill_date: logDate,
+      last_visit_date: logDate,
       updated_at: new Date().toISOString()
     };
 
@@ -498,6 +499,24 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     if (dosage) {
       updateData.selected_dose = dosage;
     }
+
+    // Calculate next_expected_date based on supply type
+    const pickupDate = new Date(logDate + 'T00:00:00');
+    let daysUntilNext = 14; // default 2 weeks
+
+    if (supply_type === 'prefilled_4week' || quantity === 8) {
+      daysUntilNext = 28; // 4 weeks
+    } else if (supply_type === 'prefilled_2week' || quantity === 4) {
+      daysUntilNext = 14; // 2 weeks
+    } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
+      // Vial typically lasts 8-12 weeks depending on dose
+      // Default to 10 weeks for vial
+      daysUntilNext = 70;
+    }
+
+    const nextDate = new Date(pickupDate);
+    nextDate.setDate(nextDate.getDate() + daysUntilNext);
+    updateData.next_expected_date = nextDate.toISOString().split('T')[0];
 
     const { error: updateError } = await supabase
       .from('protocols')
@@ -513,6 +532,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       updated: true,
       protocol_id: protocol.id,
       new_last_refill_date: logDate,
+      next_expected_date: updateData.next_expected_date,
       medication,
       dosage
     };
@@ -594,6 +614,21 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
 
 async function createProtocolFromPickup(patient_id, category, programType, logDate, supply_type, quantity, medication, dosage) {
   try {
+    // Calculate next_expected_date based on supply type
+    const pickupDate = new Date(logDate + 'T00:00:00');
+    let daysUntilNext = 14; // default 2 weeks
+
+    if (supply_type === 'prefilled_4week' || quantity === 8) {
+      daysUntilNext = 28;
+    } else if (supply_type === 'prefilled_2week' || quantity === 4) {
+      daysUntilNext = 14;
+    } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
+      daysUntilNext = 70;
+    }
+
+    const nextDate = new Date(pickupDate);
+    nextDate.setDate(nextDate.getDate() + daysUntilNext);
+
     const { data: protocol, error } = await supabase
       .from('protocols')
       .insert({
@@ -605,6 +640,8 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
         status: 'active',
         start_date: logDate,
         last_refill_date: logDate,
+        last_visit_date: logDate,
+        next_expected_date: nextDate.toISOString().split('T')[0],
         supply_type: supply_type || null,
         created_at: new Date().toISOString()
       })
@@ -619,6 +656,7 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
     return {
       created: true,
       protocol_id: protocol.id,
+      next_expected_date: nextDate.toISOString().split('T')[0],
       medication,
       dosage
     };

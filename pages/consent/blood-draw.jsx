@@ -56,6 +56,19 @@ export default function BloodDrawConsentPage() {
       return new Blob([u8arr], { type: mime });
     }
 
+    // ============================================
+    // INITIALS FOR ACKNOWLEDGMENTS
+    // ============================================
+    function updateInitials() {
+      const first = (document.getElementById('firstName')?.value || '').trim();
+      const last = (document.getElementById('lastName')?.value || '').trim();
+      const initials = ((first.charAt(0) || '') + (last.charAt(0) || '')).toUpperCase();
+      document.querySelectorAll('.ack-initials').forEach(el => { el.textContent = initials; });
+    }
+    document.getElementById('firstName')?.addEventListener('input', updateInitials);
+    document.getElementById('lastName')?.addEventListener('input', updateInitials);
+    updateInitials();
+
     // Form submission
     document.getElementById('consentForm').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -317,15 +330,15 @@ export default function BloodDrawConsentPage() {
           <div className="section">
             <h2 className="section-title">Patient Acknowledgments & Agreement</h2>
             <p className="section-desc">Please read each statement carefully and check the box to confirm your understanding and agreement. <strong>All boxes must be checked to proceed.</strong></p>
-            <div className="ack-item"><label><input type="checkbox" id="ack1" className="ack-checkbox" required /><span className="ack-text">I consent to the collection of blood specimens by venipuncture for the purpose of laboratory testing and analysis as ordered by Range Medical's clinical staff. I understand that one or more vials of blood may be drawn depending on the tests ordered.</span></label></div>
-            <div className="ack-item"><label><input type="checkbox" id="ack2" className="ack-checkbox" required /><span className="ack-text">I have been informed of the risks and potential complications associated with venipuncture, as detailed in the Risks & Potential Complications section above. I accept these risks voluntarily.</span></label></div>
-            <div className="ack-item"><label><input type="checkbox" id="ack3" className="ack-checkbox" required /><span className="ack-text">I confirm that I have disclosed all relevant medical information, including bleeding disorders, current medications (particularly anticoagulants), known allergies, and any history of fainting during blood draws. I understand that failure to disclose accurate information may compromise the safety of the procedure.</span></label></div>
-            <div className="ack-item"><label><input type="checkbox" id="ack4" className="ack-checkbox" required /><span className="ack-text">I understand that laboratory results are used for clinical guidance and may require follow-up testing, additional evaluation, or referral to a specialist. Lab results do not constitute a diagnosis on their own and must be interpreted within the context of a complete clinical picture.</span></label></div>
-            <div className="ack-item"><label><input type="checkbox" id="ack5" className="ack-checkbox" required /><span className="ack-text">I understand that I should continue to see my primary care physician and any specialists for the management of existing health conditions. Blood draw services at Range Medical do not replace routine medical care.</span></label></div>
-            <div className="ack-item"><label><input type="checkbox" id="ack6" className="ack-checkbox" required /><span className="ack-text">I voluntarily assume full responsibility for any risks associated with venipuncture. I release, discharge, and hold harmless Range Medical, its medical director, physicians, nurse practitioners, registered nurses, medical assistants, staff, and affiliated entities from any and all claims, liabilities, damages, or causes of action arising out of or related to the blood draw procedure, except in cases of gross negligence or willful misconduct.</span></label></div>
-            <div className="ack-item"><label><input type="checkbox" id="ack7" className="ack-checkbox" required /><span className="ack-text">I acknowledge that I am financially responsible for all services rendered, including laboratory processing fees. I understand that some lab panels may not be covered by insurance.</span></label></div>
-            <div className="ack-item"><label><input type="checkbox" id="ack8" className="ack-checkbox" required /><span className="ack-text">I authorize Range Medical to contact me via phone, text message, and/or email for purposes related to my care, including lab results and follow-up communications.</span></label></div>
-            <div className="ack-item"><label><input type="checkbox" id="ack9" className="ack-checkbox" required /><span className="ack-text">I confirm that I am at least 18 years of age (or that a parent/legal guardian has consented), that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing voluntarily.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack1" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I consent to the collection of blood specimens by venipuncture for the purpose of laboratory testing and analysis as ordered by Range Medical's clinical staff. I understand that one or more vials of blood may be drawn depending on the tests ordered.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack2" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I have been informed of the risks and potential complications associated with venipuncture, as detailed in the Risks & Potential Complications section above. I accept these risks voluntarily.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack3" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I have disclosed all relevant medical information, including bleeding disorders, current medications (particularly anticoagulants), known allergies, and any history of fainting during blood draws. I understand that failure to disclose accurate information may compromise the safety of the procedure.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack4" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I understand that laboratory results are used for clinical guidance and may require follow-up testing, additional evaluation, or referral to a specialist. Lab results do not constitute a diagnosis on their own and must be interpreted within the context of a complete clinical picture.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack5" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I understand that I should continue to see my primary care physician and any specialists for the management of existing health conditions. Blood draw services at Range Medical do not replace routine medical care.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack6" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I voluntarily assume full responsibility for any risks associated with venipuncture. I release, discharge, and hold harmless Range Medical, its medical director, physicians, nurse practitioners, registered nurses, medical assistants, staff, and affiliated entities from any and all claims, liabilities, damages, or causes of action arising out of or related to the blood draw procedure, except in cases of gross negligence or willful misconduct.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack7" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I acknowledge that I am financially responsible for all services rendered, including laboratory processing fees. I understand that some lab panels may not be covered by insurance.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack8" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I authorize Range Medical to contact me via phone, text message, and/or email for purposes related to my care, including lab results and follow-up communications.</span></label></div>
+            <div className="ack-item"><label><input type="checkbox" id="ack9" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I am at least 18 years of age (or that a parent/legal guardian has consented), that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing voluntarily.</span></label></div>
           </div>
 
           <div className="section">
@@ -371,7 +384,9 @@ export default function BloodDrawConsentPage() {
         .details-field textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; resize: vertical; }
         .ack-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
         .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
-        .ack-checkbox { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: #000; }
+        .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+        .ack-checkbox:checked + .ack-initials { background: #000; border-color: #000; color: #fff; }
         .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
         .signature-container { border: 2px solid #000; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
         .signature-pad { width: 100%; height: 150px; cursor: crosshair; }

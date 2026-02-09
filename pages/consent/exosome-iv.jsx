@@ -54,6 +54,19 @@ export default function ExosomeIVConsentPage() {
     });
 
     // ============================================
+    // INITIALS FOR ACKNOWLEDGMENTS
+    // ============================================
+    function updateInitials() {
+      const first = (document.getElementById('firstName')?.value || '').trim();
+      const last = (document.getElementById('lastName')?.value || '').trim();
+      const initials = ((first.charAt(0) || '') + (last.charAt(0) || '')).toUpperCase();
+      document.querySelectorAll('.ack-initials').forEach(el => { el.textContent = initials; });
+    }
+    document.getElementById('firstName')?.addEventListener('input', updateInitials);
+    document.getElementById('lastName')?.addEventListener('input', updateInitials);
+    updateInitials();
+
+    // ============================================
     // FORM SUBMISSION
     // ============================================
     document.getElementById('consentForm').addEventListener('submit', async function(e) {
@@ -703,6 +716,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack1" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I understand that exosome IV therapy is an elective wellness service and is not FDA-approved for the diagnosis, treatment, cure, or prevention of any specific disease. This therapy does not replace evaluation, diagnosis, or treatment by my primary care physician or any specialist.</span>
               </label>
             </div>
@@ -710,6 +724,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack2" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I understand that the exosomes used in this treatment are derived from screened donor tissue (such as umbilical cord or placental tissue) and are processed according to current safety and quality standards. I accept the inherent risks associated with receiving a biologic product derived from donor tissue.</span>
               </label>
             </div>
@@ -717,6 +732,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack3" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I acknowledge that exosome therapy is an emerging field of regenerative medicine. While supported by growing scientific research, long-term outcomes and effects are not yet fully established. I accept this uncertainty and have made an informed decision to proceed.</span>
               </label>
             </div>
@@ -724,6 +740,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack4" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I understand that individual results from exosome IV therapy vary and are not guaranteed. Therapeutic outcomes depend on many factors including overall health, individual biology, and the condition being addressed. Range Medical makes no representations or warranties regarding specific outcomes.</span>
               </label>
             </div>
@@ -731,6 +748,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack5" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I have been informed of the risks and potential complications associated with exosome IV therapy, as detailed in the Risks & Potential Complications section above. I accept these risks voluntarily and understand that complications may occur even when all procedures are performed correctly.</span>
               </label>
             </div>
@@ -738,6 +756,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack6" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I confirm that I have disclosed all relevant medical history, current medications (including over-the-counter drugs and supplements), known allergies, and pre-existing health conditions to Range Medical staff. I understand that failure to disclose accurate and complete medical information may compromise the safety of my treatment.</span>
               </label>
             </div>
@@ -745,6 +764,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack7" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I acknowledge that exosome IV therapy is not a substitute for routine medical care. I understand that I should continue to see my primary care physician and any specialists for the management of existing health conditions and preventive care.</span>
               </label>
             </div>
@@ -752,6 +772,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack8" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I agree to immediately notify Range Medical staff during or after treatment if I experience any adverse reaction, unusual symptoms, or discomfort, including but not limited to difficulty breathing, chest pain, severe headache, swelling, rash, fever, or any symptom that concerns me.</span>
               </label>
             </div>
@@ -759,6 +780,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack9" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I understand that I have the right to refuse or discontinue treatment at any time without penalty. I acknowledge that refusing or discontinuing treatment may affect the anticipated outcome of the therapy.</span>
               </label>
             </div>
@@ -766,6 +788,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack10" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I acknowledge that I am financially responsible for all services rendered. I understand that exosome IV therapy services are generally not covered by health insurance, and that payment is due at the time of service. Refunds are not provided for completed treatments.</span>
               </label>
             </div>
@@ -773,6 +796,7 @@ export default function ExosomeIVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack11" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I confirm that I am at least 18 years of age (or that the consent of a parent/legal guardian has been obtained), that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing this form voluntarily and of my own free will.</span>
               </label>
             </div>
@@ -842,7 +866,9 @@ export default function ExosomeIVConsentPage() {
         .ack-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
         .ack-item:hover { border-color: #999; }
         .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
-        .ack-checkbox { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: #000; }
+        .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+        .ack-checkbox:checked + .ack-initials { background: #000; border-color: #000; color: #fff; }
         .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
         .signature-container { border: 2px solid #000; border-radius: 6px; margin-bottom: 8px; overflow: hidden; background: #fff; }
         .signature-pad { width: 100%; height: 150px; cursor: crosshair; }

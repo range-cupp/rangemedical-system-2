@@ -54,6 +54,19 @@ export default function IVConsentPage() {
     });
 
     // ============================================
+    // INITIALS FOR ACKNOWLEDGMENTS
+    // ============================================
+    function updateInitials() {
+      const first = (document.getElementById('firstName')?.value || '').trim();
+      const last = (document.getElementById('lastName')?.value || '').trim();
+      const initials = ((first.charAt(0) || '') + (last.charAt(0) || '')).toUpperCase();
+      document.querySelectorAll('.ack-initials').forEach(el => { el.textContent = initials; });
+    }
+    document.getElementById('firstName')?.addEventListener('input', updateInitials);
+    document.getElementById('lastName')?.addEventListener('input', updateInitials);
+    updateInitials();
+
+    // ============================================
     // FORM SUBMISSION
     // ============================================
     document.getElementById('consentForm').addEventListener('submit', async function(e) {
@@ -764,6 +777,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack1" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I understand that IV and injection therapies provided by Range Medical are elective wellness services. These services are not intended to diagnose, treat, cure, or prevent any disease, medical condition, or pathology. I acknowledge that these therapies do not replace evaluation, diagnosis, or treatment by my primary care physician or any specialist.</span>
               </label>
             </div>
@@ -771,6 +785,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack2" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I understand that individual results from IV and injection therapy vary and are not guaranteed. Range Medical makes no representations, warranties, or guarantees regarding the specific outcomes, efficacy, or therapeutic benefit of any treatment administered.</span>
               </label>
             </div>
@@ -778,6 +793,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack3" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I have been informed of the risks and potential complications associated with IV and injection therapy, as detailed in the Risks & Potential Complications section above. I accept these risks voluntarily and understand that complications may occur even when all procedures are performed correctly and with appropriate medical oversight.</span>
               </label>
             </div>
@@ -785,6 +801,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack4" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I confirm that I have disclosed all relevant medical history, current medications (including over-the-counter drugs and supplements), known allergies, and pre-existing health conditions to Range Medical staff. I understand that failure to disclose accurate and complete medical information may compromise the safety of my treatment and that Range Medical shall not be held liable for complications arising from undisclosed medical information.</span>
               </label>
             </div>
@@ -792,6 +809,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack5" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I understand that some substances administered via IV or injection may be used in an off-label capacity. Off-label use refers to the medically accepted practice of using FDA-approved substances for purposes, dosages, or routes of administration not specifically included in the FDA-approved labeling. I consent to such off-label use when recommended by Range Medical's clinical staff.</span>
               </label>
             </div>
@@ -799,6 +817,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack6" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I acknowledge that IV and injection therapy is not a substitute for routine medical care. I understand that I should continue to see my primary care physician and any specialists for the management of existing health conditions, preventive care, and medical concerns unrelated to the wellness services provided by Range Medical.</span>
               </label>
             </div>
@@ -806,6 +825,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack7" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I agree to immediately notify Range Medical staff during or after treatment if I experience any adverse reaction, unusual symptoms, discomfort, or change in my condition, including but not limited to difficulty breathing, chest pain, severe headache, swelling, rash, or any symptom that concerns me.</span>
               </label>
             </div>
@@ -813,6 +833,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack8" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I understand that I have the right to refuse or discontinue treatment at any time without penalty. I acknowledge that refusing or discontinuing treatment may affect the anticipated outcome of the therapy.</span>
               </label>
             </div>
@@ -820,6 +841,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack9" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I voluntarily assume full responsibility for any risks associated with the IV and/or injection therapy services I receive at Range Medical. I release, discharge, and hold harmless Range Medical, its medical director, physicians, nurse practitioners, registered nurses, medical assistants, staff, and affiliated entities from any and all claims, liabilities, damages, or causes of action arising out of or related to the services provided, except in cases of gross negligence or willful misconduct.</span>
               </label>
             </div>
@@ -827,6 +849,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack10" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I acknowledge that I am financially responsible for all services rendered. I understand that IV and injection therapy services are generally not covered by health insurance, and that payment is due at the time of service. Refunds are not provided for completed treatments.</span>
               </label>
             </div>
@@ -834,6 +857,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack11" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I authorize Range Medical to contact me via phone, text message, and/or email at the contact information provided above for purposes related to my care, including appointment reminders, follow-up communications, and health-related information.</span>
               </label>
             </div>
@@ -841,6 +865,7 @@ export default function IVConsentPage() {
             <div className="ack-item">
               <label>
                 <input type="checkbox" id="ack12" className="ack-checkbox" required />
+                <span className="ack-initials"></span>
                 <span className="ack-text">I confirm that I am at least 18 years of age (or that the consent of a parent/legal guardian has been obtained), that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing this form voluntarily and of my own free will.</span>
               </label>
             </div>
@@ -910,7 +935,9 @@ export default function IVConsentPage() {
         .ack-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
         .ack-item:hover { border-color: #999; }
         .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
-        .ack-checkbox { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: #000; }
+        .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+        .ack-checkbox:checked + .ack-initials { background: #000; border-color: #000; color: #fff; }
         .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
         .signature-container { border: 2px solid #000; border-radius: 6px; margin-bottom: 8px; overflow: hidden; background: #fff; }
         .signature-pad { width: 100%; height: 150px; cursor: crosshair; }

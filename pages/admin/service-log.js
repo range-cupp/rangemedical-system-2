@@ -247,10 +247,37 @@ export default function ServiceLog() {
   const fetchPatientProtocols = async (patientId) => {
     setLoadingProtocols(true);
     try {
-      const res = await fetch(`/api/service-log/patient-protocols?patient_id=${patientId}`);
+      // Use the same Command Center endpoint as the main dashboard
+      // This ensures both views show the same protocol data
+      const res = await fetch('/api/admin/command-center');
       const data = await res.json();
-      if (data.success) {
-        setPatientProtocols(data.protocols || []);
+      if (data.success && data.protocols) {
+        // Filter active protocols for this patient
+        const patientActiveProtocols = data.protocols
+          .filter(p => p.patient_id === patientId && p.status === 'active')
+          .map(p => {
+            // Normalize program_type to match SERVICE_TYPES
+            let normalizedType = p.program_type?.toLowerCase() || '';
+            if (normalizedType === 'hrt' || normalizedType.includes('testosterone')) {
+              normalizedType = 'hrt';
+            } else if (normalizedType.includes('weight') || normalizedType.includes('semaglutide') || normalizedType.includes('tirzepatide')) {
+              normalizedType = 'weight_loss';
+            } else if (normalizedType.includes('vitamin') || normalizedType.includes('b12')) {
+              normalizedType = 'vitamin';
+            } else if (normalizedType.includes('peptide') || normalizedType.includes('bpc') || normalizedType.includes('tb-500')) {
+              normalizedType = 'peptide';
+            } else if (normalizedType.includes('iv') || normalizedType.includes('infusion')) {
+              normalizedType = 'iv_therapy';
+            } else if (normalizedType.includes('hbot') || normalizedType.includes('hyperbaric')) {
+              normalizedType = 'hbot';
+            } else if (normalizedType.includes('red') || normalizedType.includes('light') || normalizedType.includes('rlt')) {
+              normalizedType = 'red_light';
+            }
+            return { ...p, program_type: normalizedType };
+          });
+        setPatientProtocols(patientActiveProtocols);
+      } else {
+        setPatientProtocols([]);
       }
     } catch (err) {
       console.error('Error fetching protocols:', err);

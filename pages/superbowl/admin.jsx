@@ -85,9 +85,9 @@ export default function SuperBowlAdmin() {
       return;
     }
 
-    // Random selection with animation effect
+    // Random selection with animation effect - 5 seconds total
     let iterations = 0;
-    const maxIterations = 20;
+    const maxIterations = 50;
     const interval = setInterval(() => {
       const randomIndex = Math.floor(Math.random() * correctPicks.length);
       setWinner(correctPicks[randomIndex]);

@@ -52,8 +52,11 @@ async function handleGet(req, res) {
   const { category, patient_id, limit = 100 } = req.query;
 
   try {
-    // Try service_logs first
-    let query = supabase
+    // Fetch from BOTH tables and merge results
+    let allLogs = [];
+
+    // 1. Try service_logs
+    let serviceQuery = supabase
       .from('service_logs')
       .select('*')
       .order('entry_date', { ascending: false, nullsFirst: false })
@@ -61,31 +64,52 @@ async function handleGet(req, res) {
       .limit(parseInt(limit));
 
     if (category) {
-      query = query.eq('category', category);
+      serviceQuery = serviceQuery.eq('category', category);
     }
-
     if (patient_id) {
-      query = query.eq('patient_id', patient_id);
+      serviceQuery = serviceQuery.eq('patient_id', patient_id);
     }
 
-    const { data: logs, error } = await query;
+    const { data: serviceLogs, error: serviceError } = await serviceQuery;
 
-    if (error) {
-      // Table might not exist yet, try injection_logs as fallback
-      if (error.code === '42P01') {
-        return await handleGetFallback(req, res);
-      }
-      console.error('Error fetching service logs:', error);
-      return res.status(500).json({ success: false, error: error.message });
+    if (!serviceError && serviceLogs) {
+      allLogs = [...serviceLogs];
     }
 
-    // If service_logs is empty, also check injection_logs for this category
-    if (!logs || logs.length === 0) {
-      return await handleGetFallback(req, res);
+    // 2. Also fetch from injection_logs (historical data)
+    let injectionQuery = supabase
+      .from('injection_logs')
+      .select('*')
+      .order('entry_date', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (category) {
+      injectionQuery = injectionQuery.eq('category', category);
     }
+    if (patient_id) {
+      injectionQuery = injectionQuery.eq('patient_id', patient_id);
+    }
+
+    const { data: injectionLogs, error: injectionError } = await injectionQuery;
+
+    if (!injectionError && injectionLogs) {
+      // Add injection_logs entries, marking source for deduplication
+      allLogs = [...allLogs, ...injectionLogs];
+    }
+
+    // Sort combined results by date (most recent first)
+    allLogs.sort((a, b) => {
+      const dateA = new Date(a.entry_date || a.created_at);
+      const dateB = new Date(b.entry_date || b.created_at);
+      return dateB - dateA;
+    });
+
+    // Limit to requested amount
+    allLogs = allLogs.slice(0, parseInt(limit));
 
     // Get patient names for logs without them
-    const formattedLogs = await enrichLogsWithPatientNames(logs || []);
+    const formattedLogs = await enrichLogsWithPatientNames(allLogs);
 
     return res.status(200).json({ success: true, logs: formattedLogs });
   } catch (err) {

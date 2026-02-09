@@ -81,6 +81,7 @@ const PEPTIDE_OPTIONS = [
   { value: 'BPC-157', label: 'BPC-157' },
   { value: 'TB-500', label: 'TB-500' },
   { value: 'BPC-157/TB-500', label: 'BPC-157 + TB-500' },
+  { value: 'BPC-157/Thymosin Beta 4', label: 'BPC-157 + Thymosin Beta 4' },
   { value: 'Sermorelin', label: 'Sermorelin' },
   { value: 'Tesamorelin', label: 'Tesamorelin' },
   { value: 'CJC-1295/Ipamorelin', label: 'CJC-1295/Ipamorelin' },

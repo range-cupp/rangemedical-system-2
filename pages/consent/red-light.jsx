@@ -3,11 +3,6 @@ import Script from 'next/script';
 import { useState, useEffect, useRef } from 'react';
 
 const CONFIG = {
-  emailjs: {
-    publicKey: 'ZeNFfwJ37Uhd6E1vp',
-    serviceId: 'service_pyl6wra',
-    templateId: 'template_7yvc578'
-  },
   supabase: {
     url: 'https://teivfptpozltpqwahgdl.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
@@ -77,7 +72,7 @@ export default function RedLightConsentForm() {
   };
 
   const handleScriptLoad = () => {
-    if (typeof window !== 'undefined' && window.supabase && window.SignaturePad && window.jspdf && window.emailjs) {
+    if (typeof window !== 'undefined' && window.supabase && window.SignaturePad && window.jspdf) {
       initializeForm();
     }
   };
@@ -319,61 +314,6 @@ export default function RedLightConsentForm() {
     });
   };
 
-  const sendEmail = async (pdfBlob) => {
-    window.emailjs.init(CONFIG.emailjs.publicKey);
-
-    const base64PDF = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(pdfBlob);
-    });
-
-    const yesAnswers = HEALTH_QUESTIONS.filter(q => formData[q.id] === 'yes').map(q => q.label);
-    const warningSection = yesAnswers.length > 0 
-      ? `⚠️ WARNING - PATIENT ANSWERED YES TO:\n${yesAnswers.map(a => `  - ${a}`).join('\n')}\n\nPLEASE REVIEW BEFORE TREATMENT\n` 
-      : '';
-
-    const healthSummary = HEALTH_QUESTIONS.map(q => `${q.id}: ${formData[q.id]}`).join('\n');
-
-    const messageBody = `
-RED LIGHT THERAPY CONSENT FORM SUBMISSION
-==========================================
-${warningSection}
-PATIENT INFORMATION
--------------------
-Name: ${formData.firstName} ${formData.lastName}
-Email: ${formData.email}
-Phone: ${formData.phone}
-Date of Birth: ${formData.dateOfBirth}
-Date of Consent: ${formData.consentDate}
-
-HEALTH SCREENING ANSWERS
--------------------------
-${healthSummary}
-
-CONSENT
--------
-Consent Given: ${formData.consentGiven ? 'Yes' : 'No'}
-Signature: Provided electronically
-Submitted: ${new Date().toLocaleString()}
-
-==========================================
-PDF consent form is attached to this email.
-`;
-
-    await window.emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, {
-      to_email: CONFIG.recipientEmail,
-      from_name: `${formData.firstName} ${formData.lastName}`,
-      patient_name: `${formData.firstName} ${formData.lastName}`,
-      patient_email: formData.email,
-      patient_phone: formData.phone,
-      submission_date: new Date().toLocaleString(),
-      message: messageBody,
-      content: base64PDF,
-      filename: `RangeMedical_RedLightConsent_${formData.lastName}_${formData.firstName}.pdf`
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -402,9 +342,6 @@ PDF consent form is attached to this email.
 
       setStatus({ type: 'loading', message: 'Updating patient record...' });
       await sendToGHL(signatureUrl, pdfUrl);
-
-      setStatus({ type: 'loading', message: 'Sending email...' });
-      await sendEmail(pdfBlob);
 
       setShowThankYou(true);
     } catch (error) {
@@ -451,7 +388,7 @@ PDF consent form is attached to this email.
       </Head>
 
       <Script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" onLoad={handleScriptLoad} />
+
       <Script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" onLoad={handleScriptLoad} />
       <Script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onLoad={handleScriptLoad} />
 

@@ -7,7 +7,7 @@ export default function HRTConsent() {
   const formInitialized = useRef(false);
 
   useEffect(() => {
-    if (scriptsLoaded >= 4 && !formInitialized.current) {
+    if (scriptsLoaded >= 3 && !formInitialized.current) {
       formInitialized.current = true;
       initializeForm();
     }
@@ -30,7 +30,7 @@ export default function HRTConsent() {
       </Head>
 
       <Script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" onLoad={handleScriptLoad} />
+
       <Script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" onLoad={handleScriptLoad} />
       <Script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onLoad={handleScriptLoad} />
 
@@ -228,11 +228,6 @@ function initializeForm() {
   const CONFIG = {
     consentType: 'hrt',
     consentTitle: 'HRT Consent',
-    emailjs: {
-      publicKey: 'ZeNFfwJ37Uhd6E1vp',
-      serviceId: 'service_pyl6wra',
-      templateId: 'template_q7my0uf'
-    },
     supabase: {
       url: 'https://teivfptpozltpqwahgdl.supabase.co',
       anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
@@ -669,55 +664,6 @@ function initializeForm() {
   }
 
   // ============================================
-  // SEND EMAIL
-  // ============================================
-  async function sendEmail(formData, pdfBlob) {
-    window.emailjs.init(CONFIG.emailjs.publicKey);
-    
-    const base64PDF = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(pdfBlob);
-    });
-    
-    const messageBody = `
-HORMONE REPLACEMENT THERAPY CONSENT FORM SUBMISSION
-===================================================
-
-PATIENT INFORMATION
--------------------
-Name: ${formData.firstName} ${formData.lastName}
-Email: ${formData.email}
-Phone: ${formData.phone}
-Date of Birth: ${formData.dateOfBirth}
-Date of Consent: ${formData.consentDate}
-
-CONSENT
--------
-Consent Given: ${formData.consentGiven ? 'Yes' : 'No'}
-Signature: Provided electronically
-Submitted: ${formData.submissionDate}
-
-===================================================
-PDF consent form is attached to this email.
-`;
-    
-    const templateParams = {
-      to_email: CONFIG.recipientEmail,
-      from_name: `${formData.firstName} ${formData.lastName}`,
-      patient_name: `${formData.firstName} ${formData.lastName}`,
-      patient_email: formData.email,
-      patient_phone: formData.phone,
-      submission_date: formData.submissionDate,
-      message: messageBody,
-      content: base64PDF,
-      filename: `RangeMedical_HRTConsent_${formData.lastName}_${formData.firstName}.pdf`
-    };
-    
-    return await window.emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, templateParams);
-  }
-
-  // ============================================
   // FORM SUBMISSION
   // ============================================
   function showStatus(message, type) {
@@ -780,13 +726,6 @@ PDF consent form is attached to this email.
       const pdfUrl = await uploadPDFToStorage(pdfBlob, formData);
       
       const urls = { signatureUrl, pdfUrl };
-      
-      showStatus('Sending to Range Medical...', 'loading');
-      try {
-        await sendEmail(formData, pdfBlob);
-      } catch (emailError) {
-        console.warn('Email error (non-critical):', emailError);
-      }
       
       showStatus('Saving consent record...', 'loading');
       await saveToDatabase(formData, urls);

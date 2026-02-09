@@ -7,7 +7,7 @@ export default function WeightLossConsent() {
   const formInitialized = useRef(false);
 
   useEffect(() => {
-    if (scriptsLoaded >= 4 && !formInitialized.current) {
+    if (scriptsLoaded >= 3 && !formInitialized.current) {
       formInitialized.current = true;
       initializeForm();
     }
@@ -30,7 +30,7 @@ export default function WeightLossConsent() {
       </Head>
 
       <Script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" onLoad={handleScriptLoad} />
+
       <Script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" onLoad={handleScriptLoad} />
       <Script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onLoad={handleScriptLoad} />
 
@@ -285,11 +285,6 @@ function initializeForm() {
   // CONFIGURATION
   // ============================================
   const CONFIG = {
-    emailjs: {
-      publicKey: 'ZeNFfwJ37Uhd6E1vp',
-      serviceId: 'service_pyl6wra',
-      templateId: 'template_67a68ws'
-    },
     supabase: {
       url: 'https://teivfptpozltpqwahgdl.supabase.co',
       anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
@@ -709,66 +704,6 @@ function initializeForm() {
   }
 
   // ============================================
-  // SEND EMAIL
-  // ============================================
-  async function sendEmail(formData, pdfBlob) {
-    window.emailjs.init(CONFIG.emailjs.publicKey);
-    
-    const base64PDF = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(pdfBlob);
-    });
-    
-    const messageBody = `
-COMPOUNDED WEIGHT MANAGEMENT PROGRAM CONSENT
-============================================
-
-PATIENT INFORMATION
--------------------
-Name: ${formData.firstName} ${formData.lastName}
-Email: ${formData.email}
-Phone: ${formData.phone}
-Date of Birth: ${formData.dateOfBirth}
-Date of Consent: ${formData.consentDate}
-
-CONSENT
--------
-Consent Given: ${formData.consentGiven ? 'Yes' : 'No'}
-Signature: Provided electronically
-Submitted: ${formData.submissionDate}
-
-PROGRAM ACKNOWLEDGMENTS
------------------------
-Patient has acknowledged understanding of:
-- Treatment purpose and administration
-- Expected outcomes and timeline
-- Diet and lifestyle requirements
-- Common and serious side effects
-- Contraindications and cautions
-- Long-term maintenance needs
-- Financial responsibility (self-pay, no refunds)
-
-============================================
-PDF consent form is attached to this email.
-`;
-    
-    const templateParams = {
-      to_email: CONFIG.recipientEmail,
-      from_name: `${formData.firstName} ${formData.lastName}`,
-      patient_name: `${formData.firstName} ${formData.lastName}`,
-      patient_email: formData.email,
-      patient_phone: formData.phone,
-      submission_date: formData.submissionDate,
-      message: messageBody,
-      content: base64PDF,
-      filename: `RangeMedical_WeightManagementConsent_${formData.lastName}_${formData.firstName}.pdf`
-    };
-    
-    return await window.emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, templateParams);
-  }
-
-  // ============================================
   // FORM SUBMISSION
   // ============================================
   function showStatus(message, type) {
@@ -840,13 +775,6 @@ PDF consent form is attached to this email.
         await sendToGHL(formData, signatureUrl, pdfUrl);
       } catch (ghlError) {
         console.error('GHL update failed:', ghlError);
-      }
-      
-      showStatus('Sending to Range Medical...', 'loading');
-      try {
-        await sendEmail(formData, pdfBlob);
-      } catch (emailError) {
-        console.error('Email failed:', emailError);
       }
       
       showThankYouPage(formData);

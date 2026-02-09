@@ -501,7 +501,7 @@ export default async function handler(req, res) {
 
         const emailPayload = {
           from: 'Range Medical <notifications@range-medical.com>',
-          to: ['intake@range-medical.com', 'cupp@range-medical.com'],
+          to: 'intake@range-medical.com',
           subject: `✅ Consent Signed: ${consentName} — ${firstName} ${lastName}`,
           html: emailHtml
         };

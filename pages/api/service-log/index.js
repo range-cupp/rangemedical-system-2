@@ -255,11 +255,11 @@ async function handlePost(req, res) {
     let protocolUpdate = { updated: false };
 
     if (entry_type === 'pickup') {
-      // For pickups, update last_refill_date on protocol
-      protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity);
+      // For pickups, update last_refill_date and medication details on protocol
+      protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage);
     } else if (entry_type === 'injection' || entry_type === 'session') {
-      // For injections/sessions, try to increment session count
-      protocolUpdate = await incrementOrCreateProtocol(patient_id, category, logDate, medication);
+      // For injections/sessions, increment session count and update medication details
+      protocolUpdate = await incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage);
     }
 
     return res.status(200).json({
@@ -454,7 +454,7 @@ async function checkAndDecrementPackage(patient_id, category, entry_type) {
 // PROTOCOL SYNCING
 // ============================================
 
-async function syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity) {
+async function syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage) {
   const programType = CATEGORY_TO_PROGRAM_TYPE[category];
   if (!programType) {
     return { updated: false, reason: 'Category not trackable' };
@@ -477,12 +477,12 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
 
     if (!protocols || protocols.length === 0) {
       // No protocol exists, create one
-      return await createProtocolFromPickup(patient_id, category, programType, logDate, supply_type, quantity);
+      return await createProtocolFromPickup(patient_id, category, programType, logDate, supply_type, quantity, medication, dosage);
     }
 
     const protocol = protocols[0];
 
-    // Update protocol with pickup info
+    // Update protocol with pickup info including medication details
     const updateData = {
       last_refill_date: logDate,
       updated_at: new Date().toISOString()
@@ -490,6 +490,13 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
 
     if (supply_type) {
       updateData.supply_type = supply_type;
+    }
+    if (medication) {
+      updateData.medication = medication;
+      updateData.program_name = medication;
+    }
+    if (dosage) {
+      updateData.selected_dose = dosage;
     }
 
     const { error: updateError } = await supabase
@@ -505,7 +512,9 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     return {
       updated: true,
       protocol_id: protocol.id,
-      new_last_refill_date: logDate
+      new_last_refill_date: logDate,
+      medication,
+      dosage
     };
   } catch (err) {
     console.error('Error syncing pickup:', err);
@@ -513,7 +522,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
   }
 }
 
-async function incrementOrCreateProtocol(patient_id, category, logDate, medication) {
+async function incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage) {
   const programType = CATEGORY_TO_PROGRAM_TYPE[category];
   if (!programType) {
     return { updated: false, reason: 'Category not trackable' };
@@ -536,22 +545,33 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
 
     if (!protocols || protocols.length === 0) {
       // No protocol exists, create one
-      return await createProtocolFromSession(patient_id, category, programType, logDate, medication);
+      return await createProtocolFromSession(patient_id, category, programType, logDate, medication, dosage);
     }
 
     const protocol = protocols[0];
 
-    // Increment appropriate counter
+    // Increment appropriate counter and update medication details
     const currentSessions = protocol.sessions_used || protocol.injections_completed || 0;
     const newCount = currentSessions + 1;
 
+    const updateData = {
+      sessions_used: newCount,
+      injections_completed: newCount,
+      updated_at: new Date().toISOString()
+    };
+
+    // Also update medication and dosage if provided
+    if (medication) {
+      updateData.medication = medication;
+      updateData.program_name = medication;
+    }
+    if (dosage) {
+      updateData.selected_dose = dosage;
+    }
+
     const { error: updateError } = await supabase
       .from('protocols')
-      .update({
-        sessions_used: newCount,
-        injections_completed: newCount,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', protocol.id);
 
     if (updateError) {
@@ -562,7 +582,9 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     return {
       updated: true,
       protocol_id: protocol.id,
-      sessions_used: newCount
+      sessions_used: newCount,
+      medication,
+      dosage
     };
   } catch (err) {
     console.error('Error incrementing protocol:', err);
@@ -570,14 +592,16 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
   }
 }
 
-async function createProtocolFromPickup(patient_id, category, programType, logDate, supply_type, quantity) {
+async function createProtocolFromPickup(patient_id, category, programType, logDate, supply_type, quantity, medication, dosage) {
   try {
     const { data: protocol, error } = await supabase
       .from('protocols')
       .insert({
         patient_id,
         program_type: programType,
-        program_name: getCategoryDisplayName(category),
+        program_name: medication || getCategoryDisplayName(category),
+        medication: medication || null,
+        selected_dose: dosage || null,
         status: 'active',
         start_date: logDate,
         last_refill_date: logDate,
@@ -594,7 +618,9 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
 
     return {
       created: true,
-      protocol_id: protocol.id
+      protocol_id: protocol.id,
+      medication,
+      dosage
     };
   } catch (err) {
     console.error('Error creating protocol from pickup:', err);
@@ -602,7 +628,7 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
   }
 }
 
-async function createProtocolFromSession(patient_id, category, programType, logDate, medication) {
+async function createProtocolFromSession(patient_id, category, programType, logDate, medication, dosage) {
   try {
     const { data: protocol, error } = await supabase
       .from('protocols')
@@ -610,6 +636,8 @@ async function createProtocolFromSession(patient_id, category, programType, logD
         patient_id,
         program_type: programType,
         program_name: medication || getCategoryDisplayName(category),
+        medication: medication || null,
+        selected_dose: dosage || null,
         status: 'active',
         start_date: logDate,
         sessions_used: 1,
@@ -626,7 +654,9 @@ async function createProtocolFromSession(patient_id, category, programType, logD
 
     return {
       created: true,
-      protocol_id: protocol.id
+      protocol_id: protocol.id,
+      medication,
+      dosage
     };
   } catch (err) {
     console.error('Error creating protocol from session:', err);

@@ -192,6 +192,44 @@ export default function IntakeForm() {
           display: block;
         }
 
+        .validation-summary {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 8px;
+          padding: 1rem 1.5rem;
+          margin-bottom: 1rem;
+          display: none;
+        }
+
+        .validation-summary.visible {
+          display: block;
+        }
+
+        .validation-summary h3 {
+          color: #991b1b;
+          font-size: 0.9375rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .validation-summary ul {
+          margin: 0;
+          padding-left: 1.25rem;
+          color: #dc2626;
+          font-size: 0.875rem;
+        }
+
+        .validation-summary ul li {
+          margin-bottom: 0.25rem;
+        }
+
+        .condition-item.has-error {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 4px;
+          padding: 0.5rem;
+          margin-bottom: 0.75rem;
+        }
+
         .field-hint {
           font-size: 0.75rem;
           font-weight: 400;
@@ -1559,6 +1597,11 @@ export default function IntakeForm() {
               </div>
             </div>
 
+            <div className="validation-summary" id="validationSummary">
+              <h3>Please complete the following required fields:</h3>
+              <ul id="validationList"></ul>
+            </div>
+
             <button type="submit" className="btn-submit" id="submitBtn">Submit Medical Intake Form</button>
           </form>
         </div>
@@ -2096,87 +2139,122 @@ function initializeForm() {
     // Clear previous errors
     document.querySelectorAll('.field-error').forEach(el => el.classList.remove('visible'));
     document.querySelectorAll('input.error, select.error, textarea.error').forEach(el => el.classList.remove('error'));
+    document.querySelectorAll('.condition-item.has-error').forEach(el => el.classList.remove('has-error'));
+    const summaryEl = document.getElementById('validationSummary');
+    const listEl = document.getElementById('validationList');
+    summaryEl.classList.remove('visible');
+    listEl.innerHTML = '';
 
     let hasErrors = false;
+    const missingFields = [];
 
-    const validateField = (id, errorId) => {
+    const validateField = (id, errorId, label) => {
       const field = document.getElementById(id);
       const error = document.getElementById(errorId);
       if (field && !field.value.trim()) {
         field.classList.add('error');
         if (error) error.classList.add('visible');
         hasErrors = true;
+        if (label) missingFields.push(label);
       }
     };
 
-    const validateRadio = (name, errorId) => {
+    const validateRadio = (name, errorId, label) => {
       const radios = document.querySelectorAll(`input[name="${name}"]`);
       const checked = Array.from(radios).some(r => r.checked);
       if (!checked) {
         const error = document.getElementById(errorId);
         if (error) error.classList.add('visible');
         hasErrors = true;
+        if (label) missingFields.push(label);
       }
     };
 
     // Validations
-    validateField('firstName', 'firstNameError');
-    validateField('lastName', 'lastNameError');
-    validateField('gender', 'genderError');
-    validateField('dob', 'dobError');
-    validateField('phone', 'phoneError');
-    validateField('email', 'emailError');
-    validateField('streetAddress', 'streetAddressError');
-    validateField('city', 'cityError');
-    validateField('state', 'stateError');
-    validateField('postalCode', 'postalCodeError');
-    validateField('country', 'countryError');
-    validateField('howHeardAboutUs', 'howHeardAboutUsError');
+    validateField('firstName', 'firstNameError', 'First Name');
+    validateField('lastName', 'lastNameError', 'Last Name');
+    validateField('gender', 'genderError', 'Gender');
+    validateField('dob', 'dobError', 'Date of Birth');
+    validateField('phone', 'phoneError', 'Phone Number');
+    validateField('email', 'emailError', 'Email Address');
+    validateField('streetAddress', 'streetAddressError', 'Street Address');
+    validateField('city', 'cityError', 'City');
+    validateField('state', 'stateError', 'State');
+    validateField('postalCode', 'postalCodeError', 'Postal Code');
+    validateField('country', 'countryError', 'Country');
+    validateField('howHeardAboutUs', 'howHeardAboutUsError', 'How did you hear about us');
 
-    validateRadio('injured', 'injuredError');
-    validateRadio('interestedInOptimization', 'interestedInOptimizationError');
-    validateRadio('hasPCP', 'hasPCPError');
-    validateRadio('recentHospitalization', 'recentHospitalizationError');
-    validateRadio('onHRT', 'onHRTError');
-    validateRadio('onMedications', 'onMedicationsError');
-    validateRadio('hasAllergies', 'hasAllergiesError');
+    validateRadio('injured', 'injuredError', 'Are you dealing with an injury?');
+    validateRadio('interestedInOptimization', 'interestedInOptimizationError', 'Interested in energy & optimization?');
+    validateRadio('hasPCP', 'hasPCPError', 'Do you have a Primary Care Physician?');
+    validateRadio('recentHospitalization', 'recentHospitalizationError', 'Hospitalized in the past year?');
+    validateRadio('onHRT', 'onHRTError', 'Currently on HRT?');
+    validateRadio('onMedications', 'onMedicationsError', 'Currently taking medications?');
+    validateRadio('hasAllergies', 'hasAllergiesError', 'Any known allergies?');
 
-    ['hypertension', 'highCholesterol', 'heartDisease', 'diabetes', 'thyroid', 
-     'depression', 'eatingDisorder', 'kidney', 'liver', 'autoimmune', 'cancer'].forEach(condition => {
-      validateRadio(condition, null);
+    // Medical conditions validation
+    const conditionLabels = {
+      hypertension: 'High Blood Pressure',
+      highCholesterol: 'High Cholesterol',
+      heartDisease: 'Heart Disease',
+      diabetes: 'Diabetes',
+      thyroid: 'Thyroid Disorder',
+      depression: 'Depression / Anxiety',
+      eatingDisorder: 'Eating Disorder',
+      kidney: 'Kidney Disease',
+      liver: 'Liver Disease',
+      autoimmune: 'Autoimmune Disorder',
+      cancer: 'Cancer'
+    };
+    const unanswered = [];
+    Object.entries(conditionLabels).forEach(([condition, label]) => {
+      const radios = document.querySelectorAll(`input[name="${condition}"]`);
+      const checked = Array.from(radios).some(r => r.checked);
+      if (!checked) {
+        hasErrors = true;
+        unanswered.push(label);
+        const radioEl = document.getElementById(condition + '_yes');
+        if (radioEl) {
+          const condItem = radioEl.closest('.condition-item');
+          if (condItem) condItem.classList.add('has-error');
+        }
+      }
     });
+    if (unanswered.length > 0) {
+      missingFields.push('Medical History: ' + unanswered.join(', '));
+    }
 
     // Conditional validations
     const injured = document.querySelector('input[name="injured"]:checked');
     if (injured && injured.value === 'Yes') {
-      validateField('injuryDescription', 'injuryDescriptionError');
-      validateField('injuryLocation', 'injuryLocationError');
+      validateField('injuryDescription', 'injuryDescriptionError', 'Injury Description');
+      validateField('injuryLocation', 'injuryLocationError', 'Injury Location');
     }
 
     const hasPCP = document.querySelector('input[name="hasPCP"]:checked');
     if (hasPCP && hasPCP.value === 'Yes') {
-      validateField('pcpName', 'pcpNameError');
+      validateField('pcpName', 'pcpNameError', 'Physician Name');
     }
 
     const recentHospital = document.querySelector('input[name="recentHospitalization"]:checked');
     if (recentHospital && recentHospital.value === 'Yes') {
-      validateField('hospitalizationReason', 'hospitalizationReasonError');
+      validateField('hospitalizationReason', 'hospitalizationReasonError', 'Hospitalization Reason');
     }
 
     const onMedications = document.querySelector('input[name="onMedications"]:checked');
     if (onMedications && onMedications.value === 'Yes') {
-      validateField('currentMedications', 'currentMedicationsError');
+      validateField('currentMedications', 'currentMedicationsError', 'Current Medications List');
     }
 
     const hasAllergies = document.querySelector('input[name="hasAllergies"]:checked');
     if (hasAllergies && hasAllergies.value === 'Yes') {
-      validateField('allergiesList', 'allergiesListError');
+      validateField('allergiesList', 'allergiesListError', 'Allergies List');
     }
 
     const isMinor = document.querySelector('input[name="isMinor"]:checked');
     if (isMinor && isMinor.value === 'Yes') {
-      validateField('guardianName', 'guardianNameError');
-      validateField('guardianRelationship', 'guardianRelationshipError');
+      validateField('guardianName', 'guardianNameError', 'Parent/Guardian Name');
+      validateField('guardianRelationship', 'guardianRelationshipError', 'Relationship to Patient');
     }
 
     // Photo ID validation
@@ -2184,19 +2262,20 @@ function initializeForm() {
     if (!photoIdInput.files || !photoIdInput.files[0]) {
       document.getElementById('photoIdError').classList.add('visible');
       hasErrors = true;
+      missingFields.push('Photo ID');
     }
 
     // Signature validation
     if (window.signaturePad.isEmpty()) {
       document.getElementById('signatureError').classList.add('visible');
       hasErrors = true;
+      missingFields.push('Signature');
     }
 
     if (hasErrors) {
-      const firstError = document.querySelector('.field-error.visible');
-      if (firstError) {
-        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      listEl.innerHTML = missingFields.map(f => '<li>' + f + '</li>').join('');
+      summaryEl.classList.add('visible');
+      summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 

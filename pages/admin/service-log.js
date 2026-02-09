@@ -624,116 +624,123 @@ export default function ServiceLog() {
       </Head>
 
       <div style={styles.container}>
-        <Link href="/admin/command-center" style={styles.backLink}>← Back to Command Center</Link>
-
+        {/* Header */}
         <div style={styles.header}>
-          <div>
+          <div style={styles.headerLeft}>
+            <Link href="/admin/command-center" style={styles.backLink}>← Command Center</Link>
             <h1 style={styles.title}>Service Log</h1>
-            <p style={styles.subtitle}>Track all services delivered</p>
+            <span style={styles.subtitle}>Track all services delivered</span>
           </div>
           <button style={styles.newEntryBtn} onClick={openModal}>
             + New Entry
           </button>
         </div>
 
-        {/* Filter Tabs */}
-        <div style={styles.filterTabs}>
-          <button
-            style={{ ...styles.filterTab, ...(viewCategory === 'all' ? styles.filterTabActive : {}) }}
-            onClick={() => setViewCategory('all')}
-          >
-            All
-          </button>
-          {SERVICE_TYPES.map(st => (
-            <button
-              key={st.id}
-              style={{ ...styles.filterTab, ...(viewCategory === st.id ? styles.filterTabActive : {}) }}
-              onClick={() => setViewCategory(st.id)}
-            >
-              {st.icon} {st.label}
-            </button>
-          ))}
-        </div>
+        {/* Main Content */}
+        <div style={styles.main}>
+          <div style={styles.content}>
+            {/* Filters */}
+            <div style={styles.filters}>
+              <div style={styles.filterTabs}>
+                <button
+                  style={{ ...styles.filterTab, ...(viewCategory === 'all' ? styles.filterTabActive : {}) }}
+                  onClick={() => setViewCategory('all')}
+                >
+                  All
+                </button>
+                {SERVICE_TYPES.map(st => (
+                  <button
+                    key={st.id}
+                    style={{ ...styles.filterTab, ...(viewCategory === st.id ? styles.filterTabActive : {}) }}
+                    onClick={() => setViewCategory(st.id)}
+                  >
+                    {st.icon} {st.label}
+                  </button>
+                ))}
+              </div>
 
-        {/* Search */}
-        <div style={styles.searchBar}>
-          <input
-            type="text"
-            placeholder="Search by patient or medication..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
+              {/* Search */}
+              <div style={styles.searchBar}>
+                <input
+                  type="text"
+                  placeholder="Search by patient or medication..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={styles.searchInput}
+                />
+              </div>
+            </div>
 
-        {/* Logs Table */}
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Date</th>
-                <th style={styles.th}>Patient</th>
-                <th style={styles.th}>Service</th>
-                <th style={styles.th}>Type</th>
-                <th style={styles.th}>Details</th>
-                <th style={styles.th}>Notes</th>
-                <th style={styles.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan="7" style={styles.emptyState}>Loading...</td></tr>
-              ) : filteredLogs.length === 0 ? (
-                <tr><td colSpan="7" style={styles.emptyState}>No entries found</td></tr>
-              ) : (
-                filteredLogs.map(log => {
-                  const badge = getTypeBadge(log.entry_type);
-                  return (
-                    <tr key={log.id} style={styles.tr}>
-                      <td style={styles.td}>{formatDate(log.entry_date || log.created_at)}</td>
-                      <td style={styles.td}>
-                        <Link href={`/admin/patients/${log.patient_id}`} style={styles.patientLink}>
-                          {log.patient_name || 'Unknown'}
-                        </Link>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={styles.serviceLabel}>
-                          {getServiceIcon(log.category)} {getServiceLabel(log.category)}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={{ ...styles.badge, background: badge.bg, color: badge.color }}>
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        {log.medication && <span>{log.medication}</span>}
-                        {log.dosage && <span style={styles.doseText}> • {log.dosage}</span>}
-                        {log.weight && <span style={styles.weightText}> • {log.weight} lbs</span>}
-                      </td>
-                      <td style={styles.td}>{log.notes || '-'}</td>
-                      <td style={styles.td}>
-                        <button style={styles.deleteBtn} onClick={() => deleteLog(log.id)}>×</button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+            {/* Logs Table */}
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Date</th>
+                    <th style={styles.th}>Patient</th>
+                    <th style={styles.th}>Service</th>
+                    <th style={styles.th}>Type</th>
+                    <th style={styles.th}>Details</th>
+                    <th style={styles.th}>Notes</th>
+                    <th style={styles.th}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan="7" style={styles.emptyState}>Loading...</td></tr>
+                  ) : filteredLogs.length === 0 ? (
+                    <tr><td colSpan="7" style={styles.emptyState}>No entries found</td></tr>
+                  ) : (
+                    filteredLogs.map(log => {
+                      const badge = getTypeBadge(log.entry_type);
+                      return (
+                        <tr key={log.id} style={styles.tr}>
+                          <td style={styles.td}>{formatDate(log.entry_date || log.created_at)}</td>
+                          <td style={styles.td}>
+                            <Link href={`/admin/patients/${log.patient_id}`} style={styles.patientLink}>
+                              {log.patient_name || 'Unknown'}
+                            </Link>
+                          </td>
+                          <td style={styles.td}>
+                            <span style={styles.serviceLabel}>
+                              {getServiceIcon(log.category)} {getServiceLabel(log.category)}
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{ ...styles.badge, background: badge.bg, color: badge.color }}>
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            {log.medication && <span>{log.medication}</span>}
+                            {log.dosage && <span style={styles.doseText}> • {log.dosage}</span>}
+                            {log.weight && <span style={styles.weightText}> • {log.weight} lbs</span>}
+                          </td>
+                          <td style={styles.td}>{log.notes || '-'}</td>
+                          <td style={styles.td}>
+                            <button style={styles.deleteBtn} onClick={() => deleteLog(log.id)}>×</button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-        {/* Stats */}
-        <div style={styles.stats}>
-          Today: <strong>{logs.filter(l => {
-            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-            return (l.entry_date || '').split('T')[0] === today;
-          }).length}</strong>
-          <span style={{ marginLeft: '24px' }}>This Week: <strong>{logs.filter(l => {
-            const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
-            return new Date(l.entry_date || l.created_at) >= weekAgo;
-          }).length}</strong></span>
-        </div>
+            {/* Stats */}
+            <div style={styles.stats}>
+              Today: <strong>{logs.filter(l => {
+                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+                return (l.entry_date || '').split('T')[0] === today;
+              }).length}</strong>
+              <span style={{ marginLeft: '24px' }}>This Week: <strong>{logs.filter(l => {
+                const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+                return new Date(l.entry_date || l.created_at) >= weekAgo;
+              }).length}</strong></span>
+            </div>
+          </div>{/* end content */}
+        </div>{/* end main */}
 
         {/* ===== NEW ENTRY MODAL ===== */}
         {showModal && (
@@ -1448,143 +1455,178 @@ export default function ServiceLog() {
 
 const styles = {
   container: {
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '24px'
-  },
-  backLink: {
-    color: '#6b7280',
-    textDecoration: 'none',
-    fontSize: '14px'
+    minHeight: '100vh',
+    background: '#FFFFFF',
+    color: '#1A1A1A',
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: '16px',
-    marginBottom: '24px'
+    alignItems: 'center',
+    padding: '20px 24px',
+    borderBottom: '1px solid #E5E5E5',
+    background: '#FAFAFA',
+  },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '12px',
+  },
+  backLink: {
+    color: '#666',
+    textDecoration: 'none',
+    fontSize: '14px',
+    marginRight: '16px',
   },
   title: {
-    fontSize: '28px',
+    fontSize: '24px',
     fontWeight: '700',
-    margin: '0 0 4px'
+    margin: 0,
+    color: '#1A1A1A',
   },
   subtitle: {
     fontSize: '14px',
-    color: '#6b7280',
-    margin: 0
+    color: '#666',
+    margin: 0,
   },
   newEntryBtn: {
-    padding: '12px 24px',
+    padding: '10px 20px',
     background: '#059669',
-    color: '#fff',
+    color: '#FFFFFF',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '15px',
+    borderRadius: '6px',
+    fontSize: '14px',
     fontWeight: '600',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  main: {
+    padding: '24px',
+    background: '#F5F5F5',
+    minHeight: 'calc(100vh - 80px)',
+  },
+  content: {
+    maxWidth: '1400px',
+    margin: '0 auto',
+  },
+  filters: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    marginBottom: '20px',
   },
   filterTabs: {
     display: 'flex',
     flexWrap: 'wrap',
     gap: '8px',
-    marginBottom: '16px'
   },
   filterTab: {
-    padding: '8px 14px',
-    background: '#f3f4f6',
-    border: 'none',
-    borderRadius: '6px',
+    padding: '6px 14px',
+    background: '#FFFFFF',
+    border: '1px solid #D1D5DB',
+    borderRadius: '20px',
     fontSize: '13px',
     fontWeight: '500',
-    color: '#374151',
-    cursor: 'pointer'
+    color: '#555',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
   },
   filterTabActive: {
-    background: '#111',
-    color: '#fff'
+    background: '#1A1A1A',
+    color: '#FFFFFF',
+    borderColor: '#1A1A1A',
   },
   searchBar: {
-    marginBottom: '16px'
+    marginBottom: '0',
   },
   searchInput: {
+    padding: '10px 16px',
+    background: '#FFFFFF',
+    border: '1px solid #D1D5DB',
+    borderRadius: '6px',
+    color: '#1A1A1A',
+    fontSize: '14px',
     width: '100%',
-    maxWidth: '400px',
-    padding: '10px 14px',
-    border: '2px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '14px'
+    maxWidth: '300px',
   },
   tableContainer: {
-    background: '#fff',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    overflow: 'hidden'
+    overflowX: 'auto',
+    background: '#FFFFFF',
+    borderRadius: '8px',
+    border: '1px solid #E5E5E5',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
   table: {
     width: '100%',
-    borderCollapse: 'collapse'
+    borderCollapse: 'collapse',
+    fontSize: '14px',
   },
   th: {
     padding: '12px 16px',
     textAlign: 'left',
-    fontSize: '11px',
+    borderBottom: '1px solid #E5E5E5',
+    color: '#666',
     fontWeight: '600',
-    color: '#6b7280',
-    background: '#fafafa',
-    borderBottom: '2px solid #e5e7eb',
+    fontSize: '11px',
     textTransform: 'uppercase',
-    letterSpacing: '0.5px'
+    letterSpacing: '0.03em',
+    whiteSpace: 'nowrap',
+    background: '#F9FAFB',
   },
   tr: {
-    borderBottom: '1px solid #f3f4f6'
+    borderBottom: '1px solid #F3F4F6',
   },
   td: {
     padding: '12px 16px',
-    fontSize: '14px',
-    color: '#374151'
+    verticalAlign: 'middle',
+    color: '#1A1A1A',
   },
   patientLink: {
-    color: '#111',
+    color: '#1A1A1A',
     textDecoration: 'none',
-    fontWeight: '500'
+    fontWeight: '500',
   },
   serviceLabel: {
-    fontSize: '13px'
+    fontSize: '13px',
   },
   badge: {
     display: 'inline-block',
-    padding: '4px 8px',
-    borderRadius: '4px',
+    padding: '4px 10px',
+    borderRadius: '12px',
     fontSize: '11px',
-    fontWeight: '600'
+    fontWeight: '600',
   },
   doseText: {
-    color: '#6b7280',
-    fontSize: '13px'
+    color: '#666',
+    fontSize: '13px',
   },
   weightText: {
     color: '#059669',
     fontSize: '13px',
-    fontWeight: '500'
+    fontWeight: '500',
   },
   deleteBtn: {
     background: 'none',
     border: 'none',
     color: '#9ca3af',
     fontSize: '18px',
-    cursor: 'pointer'
+    cursor: 'pointer',
   },
   emptyState: {
     padding: '40px',
     textAlign: 'center',
-    color: '#9ca3af'
+    color: '#888',
+    fontSize: '14px',
   },
   stats: {
     marginTop: '16px',
+    padding: '12px 16px',
+    background: '#FFFFFF',
+    borderRadius: '8px',
+    border: '1px solid #E5E5E5',
     fontSize: '14px',
-    color: '#6b7280'
+    color: '#666',
   },
 
   // Modal

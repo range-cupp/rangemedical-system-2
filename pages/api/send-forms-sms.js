@@ -11,6 +11,8 @@ const FORM_DEFINITIONS = {
   'hbot': { name: 'HBOT Consent', path: '/consent/hbot' },
   'weight-loss': { name: 'Weight Loss Consent', path: '/consent/weight-loss' },
   'red-light': { name: 'Red Light Therapy Consent', path: '/consent/red-light' },
+  'prp': { name: 'PRP Consent', path: '/consent/prp' },
+  'exosome-iv': { name: 'Exosome IV Consent', path: '/consent/exosome-iv' },
 };
 
 export default async function handler(req, res) {

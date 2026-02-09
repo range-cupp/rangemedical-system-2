@@ -302,8 +302,8 @@ export default function BloodDrawConsentPage() {
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f9f9f9; color: #111; }
         .consent-page { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; }
         .consent-header { background: #000; color: #fff; padding: 24px 28px; }
-        .consent-header h1 { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
-        .consent-header p { font-size: 14px; opacity: 0.85; }
+        .consent-header h1 { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; color: #fff; }
+        .consent-header p { font-size: 14px; opacity: 0.85; color: #fff; }
         .consent-form { padding: 0 28px 40px; }
         .section { border-bottom: 1px solid #e5e5e5; padding: 28px 0; }
         .section:last-of-type { border-bottom: none; }

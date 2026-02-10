@@ -94,6 +94,7 @@ const IV_OPTIONS = [
   { value: 'NAD+ IV 1000mg', label: 'NAD+ IV 1000mg' },
   { value: 'Methylene Blue IV', label: 'Methylene Blue IV' },
   { value: 'High-Dose Vitamin C', label: 'High-Dose Vitamin C' },
+  { value: 'Magnesium IV', label: 'Magnesium IV' },
   { value: 'Custom Range IV', label: 'Custom Range IV' }
 ];
 

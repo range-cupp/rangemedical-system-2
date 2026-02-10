@@ -211,7 +211,7 @@ function getPatientName(protocol) {
 }
 
 function getProtocolStatus(protocol) {
-  const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date } = protocol;
+  const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date, next_expected_date } = protocol;
 
   // Session-based
   if (delivery_method === 'in_clinic' && total_sessions > 0) {
@@ -219,6 +219,9 @@ function getProtocolStatus(protocol) {
     const remaining = total_sessions - used;
     return `${used}/${total_sessions} sessions`;
   }
+
+  // Check if supply date extends beyond billing date (vial patients)
+  const hasLongerSupply = next_expected_date && end_date && next_expected_date > end_date;
 
   // Date-based
   let endDateObj = null;
@@ -233,6 +236,14 @@ function getProtocolStatus(protocol) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const daysLeft = Math.round((endDateObj - now) / (1000 * 60 * 60 * 24));
+
+    if (hasLongerSupply) {
+      const supplyDate = new Date(next_expected_date + 'T00:00:00');
+      const supplyDaysLeft = Math.round((supplyDate - now) / (1000 * 60 * 60 * 24));
+      const renewalLabel = daysLeft < 0 ? `Renewal ${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Renewal due' : `Renewal ${daysLeft}d`;
+      return `${renewalLabel} · Supply ${supplyDaysLeft}d`;
+    }
+
     if (daysLeft < 0) return `${Math.abs(daysLeft)} days overdue`;
     return `${daysLeft} days left`;
   }
@@ -2827,7 +2838,7 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
 
   // Get days/sessions remaining info
   const getTimeInfo = (protocol) => {
-    const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date } = protocol;
+    const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date, next_expected_date } = protocol;
 
     // Session-based (in-clinic)
     if (delivery_method === 'in_clinic' && total_sessions > 0) {
@@ -2839,6 +2850,9 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
         type: 'sessions'
       };
     }
+
+    // Check if supply date extends beyond billing date (vial patients)
+    const hasLongerSupply = next_expected_date && end_date && next_expected_date > end_date;
 
     // Date-based
     let endDateObj = null;
@@ -2853,6 +2867,19 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
       const now = new Date();
       now.setHours(0, 0, 0, 0);
       const daysLeft = Math.round((endDateObj - now) / (1000 * 60 * 60 * 24));
+
+      if (hasLongerSupply) {
+        // Vial patient: billing cycle ending but supply is good
+        const supplyDate = new Date(next_expected_date + 'T00:00:00');
+        const supplyDaysLeft = Math.round((supplyDate - now) / (1000 * 60 * 60 * 24));
+        const renewalLabel = daysLeft < 0 ? `Renewal ${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Renewal due' : `Renewal in ${daysLeft}d`;
+        return {
+          label: `${renewalLabel} · Supply ${supplyDaysLeft}d`,
+          value: daysLeft,
+          type: 'days'
+        };
+      }
+
       return {
         label: daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : daysLeft === 0 ? 'Ends today' : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`,
         value: daysLeft,
@@ -2929,7 +2956,14 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
             </span>
             {protocol.end_date && (
               <span style={dueSoonStyles.endDate}>
-                Ends: {formatDate(protocol.end_date)}
+                {protocol.next_expected_date && protocol.next_expected_date !== protocol.end_date
+                  ? `Renewal: ${formatDate(protocol.end_date)}`
+                  : `Ends: ${formatDate(protocol.end_date)}`}
+              </span>
+            )}
+            {protocol.next_expected_date && protocol.next_expected_date !== protocol.end_date && (
+              <span style={{ ...dueSoonStyles.endDate, color: '#10B981' }}>
+                Next Pickup: {formatDate(protocol.next_expected_date)}
               </span>
             )}
           </div>

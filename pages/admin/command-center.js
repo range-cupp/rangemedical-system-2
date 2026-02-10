@@ -853,6 +853,7 @@ export default function CommandCenter() {
       start_date: protocol.start_date || '',
       end_date: protocol.end_date || '',
       next_expected_date: protocol.next_expected_date || '',
+      last_refill_date: protocol.last_refill_date || '',
       total_sessions: protocol.total_sessions || '',
       sessions_used: protocol.sessions_used || 0,
       selected_dose: protocol.selected_dose || '',
@@ -874,6 +875,7 @@ export default function CommandCenter() {
           start_date: editingProtocol.start_date,
           end_date: editingProtocol.end_date || null,
           next_expected_date: editingProtocol.next_expected_date || null,
+          last_refill_date: editingProtocol.last_refill_date || null,
           total_sessions: editingProtocol.total_sessions ? parseInt(editingProtocol.total_sessions) : null,
           sessions_used: parseInt(editingProtocol.sessions_used) || 0,
           selected_dose: editingProtocol.selected_dose === 'Custom' ? editingProtocol.customDose : editingProtocol.selected_dose || null,
@@ -2236,6 +2238,16 @@ export default function CommandCenter() {
                   type="date"
                   value={editingProtocol.next_expected_date || ''}
                   onChange={e => setEditingProtocol({...editingProtocol, next_expected_date: e.target.value})}
+                  style={styles.formInput}
+                />
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Last Refill Date</label>
+                <input
+                  type="date"
+                  value={editingProtocol.last_refill_date || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, last_refill_date: e.target.value})}
                   style={styles.formInput}
                 />
               </div>

@@ -1123,6 +1123,7 @@ export default function CommandCenter() {
                   alert('Patient not found. Please assign from the Patients tab.');
                 }
               }}
+              onEditProtocol={handleEditProtocol}
             />
           )}
           {activeTab === 'leads' && (
@@ -1180,6 +1181,7 @@ export default function CommandCenter() {
               data={data}
               openPdf={(url, title) => setPdfSlideOut({ open: true, url, title })}
               onAssignProtocol={openAssignModal}
+              onEditProtocol={handleEditProtocol}
             />
           )}
           {activeTab === 'injections' && (
@@ -1279,7 +1281,15 @@ export default function CommandCenter() {
                   {CATEGORY_LABELS[protocolDetailPanel.protocol.program_type] || protocolDetailPanel.protocol.program_type}
                 </span>
               </div>
-              <button style={styles.pdfSlideOutClose} onClick={closeProtocolDetail}>×</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  style={{ padding: '6px 16px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+                  onClick={() => { handleEditProtocol(protocolDetailPanel.protocol); closeProtocolDetail(); }}
+                >
+                  Edit
+                </button>
+                <button style={styles.pdfSlideOutClose} onClick={closeProtocolDetail}>×</button>
+              </div>
             </div>
 
             <div style={styles.protocolDetailContent}>
@@ -2514,7 +2524,7 @@ export default function CommandCenter() {
 // TAB COMPONENTS
 // ============================================
 
-function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
+function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol }) {
   const stats = data?.stats || {};
   const recentPurchases = (data?.purchases || []).slice(0, 10);
   const endingSoon = (data?.protocols || []).filter(p =>
@@ -2676,13 +2686,19 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase }) {
             <h3 style={styles.cardTitle}>Ending Soon</h3>
             <div style={styles.protocolList}>
               {endingSoon.map((p, i) => (
-                <div key={p.id || i} style={styles.protocolRow}>
+                <div key={p.id || i} style={{ ...styles.protocolRow, alignItems: 'center' }}>
                   <span style={{ ...styles.urgencyDot, background: URGENCY_COLORS[p.urgency] }} />
                   <span style={styles.protocolName}>{getPatientName(p)}</span>
                   <span style={{ ...styles.categoryBadge, background: CATEGORY_COLORS[p.program_type] }}>
                     {CATEGORY_LABELS[p.program_type] || p.program_type}
                   </span>
-                  <span style={styles.protocolStatus}>{getProtocolStatus(p)}</span>
+                  <span style={{ ...styles.protocolStatus, flex: 1 }}>{getProtocolStatus(p)}</span>
+                  <button
+                    style={{ padding: '3px 10px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600', marginLeft: '6px', whiteSpace: 'nowrap' }}
+                    onClick={() => onEditProtocol && onEditProtocol(p)}
+                  >
+                    Edit
+                  </button>
                 </div>
               ))}
               {endingSoon.length === 0 && (
@@ -3588,7 +3604,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
   );
 }
 
-function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf, onAssignProtocol }) {
+function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf, onAssignProtocol, onEditProtocol }) {
   const CONSENT_ICONS = {
     hipaa: '🔒',
     hrt: '💉',
@@ -3770,12 +3786,18 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                 </button>
               </div>
               {(details?.protocols || []).map(p => (
-                <div key={p.id} style={styles.detailItem}>
+                <div key={p.id} style={{ ...styles.detailItem, alignItems: 'center' }}>
                   <span style={{ ...styles.categoryBadge, background: CATEGORY_COLORS[p.program_type] }}>
                     {CATEGORY_LABELS[p.program_type] || p.program_type}
                   </span>
                   <span style={styles.detailItemName}>{p.program_name || p.medication}</span>
-                  <span style={{ color: URGENCY_COLORS[p.urgency] }}>{getProtocolStatus(p)}</span>
+                  <span style={{ color: URGENCY_COLORS[p.urgency], flex: 1 }}>{getProtocolStatus(p)}</span>
+                  <button
+                    style={{ padding: '3px 10px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', marginLeft: '8px' }}
+                    onClick={() => onEditProtocol && onEditProtocol(p)}
+                  >
+                    Edit
+                  </button>
                 </div>
               ))}
               {(details?.protocols || []).length === 0 && (

@@ -1271,7 +1271,7 @@ export default function CommandCenter() {
                           </span>
                         </div>
                       )}
-                      {protocolDetailPanel.protocol.total_sessions > 0 && (
+                      {protocolDetailPanel.protocol.total_sessions > 0 && !(protocolDetailPanel.protocol.program_type === 'peptide' && protocolDetailPanel.protocol.delivery_method === 'take_home') && (
                         <div style={styles.protocolDetailItem}>
                           <span style={styles.protocolDetailLabel}>Sessions</span>
                           <span style={styles.protocolDetailValue}>

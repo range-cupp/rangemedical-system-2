@@ -96,7 +96,7 @@ export default async function handler(req, res) {
       frequency: frequency || getDefaultFrequency(program_type),
       delivery_method: delivery_method || 'in_clinic',
       supply_type: supply_type || null,
-      total_sessions: total_sessions ? parseInt(total_sessions) : null,
+      total_sessions: (program_type === 'peptide' && delivery_method === 'take_home') ? null : (total_sessions ? parseInt(total_sessions) : null),
       sessions_used: 0,
       start_date: startDateValue,
       end_date,

@@ -310,6 +310,19 @@ export default function CommandCenter() {
   const [existingWLProtocol, setExistingWLProtocol] = useState(null);
   const [extendExistingWL, setExtendExistingWL] = useState(false);
 
+  // Log first visit state (for new protocol assignment)
+  const [logFirstVisit, setLogFirstVisit] = useState(true);
+  const [firstVisitData, setFirstVisitData] = useState({
+    entryType: 'injection',
+    dosage: '',
+    weight: '',
+    quantity: 1,
+    supplyDuration: 2,
+    duration: 60,
+    hrtType: 'male',
+    pickupType: 'prefilled',
+  });
+
   // Protocol detail slide-out panel state
   const [protocolDetailPanel, setProtocolDetailPanel] = useState({
     open: false,
@@ -590,6 +603,17 @@ export default function CommandCenter() {
       injectionDay: '',
       checkinReminderEnabled: false
     });
+    setLogFirstVisit(true);
+    setFirstVisitData({
+      entryType: 'injection',
+      dosage: '',
+      weight: '',
+      quantity: 1,
+      supplyDuration: 2,
+      duration: 60,
+      hrtType: 'male',
+      pickupType: 'prefilled',
+    });
     setShowAssignModal(true);
   };
 
@@ -609,6 +633,97 @@ export default function CommandCenter() {
   const isInjectionTemplate = () => getSelectedTemplate()?.category === 'injection';
   const isWeightLossTemplate = () => getSelectedTemplate()?.category === 'weight_loss';
   const isHRTTemplate = () => getSelectedTemplate()?.category === 'hrt';
+
+  // Build service log payload from template category + firstVisitData
+  const buildServiceLogPayload = () => {
+    const template = getSelectedTemplate();
+    if (!template) return null;
+
+    const category = template.category;
+    const templateName = (template.name || '').toLowerCase();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Map template category to service log category
+    let logCategory;
+    if (category === 'hrt') {
+      logCategory = 'testosterone';
+    } else if (category === 'weight_loss') {
+      logCategory = 'weight_loss';
+    } else if (category === 'peptide') {
+      logCategory = 'peptide';
+    } else if (category === 'injection') {
+      logCategory = 'vitamin';
+    } else if (category === 'iv') {
+      logCategory = 'iv_therapy';
+    } else if (category === 'hbot') {
+      logCategory = 'hbot';
+    } else if (category === 'rlt') {
+      logCategory = 'red_light';
+    } else {
+      // Try to detect from template name for therapy templates
+      if (templateName.includes('iv')) logCategory = 'iv_therapy';
+      else if (templateName.includes('hbot') || templateName.includes('hyperbaric')) logCategory = 'hbot';
+      else if (templateName.includes('red light') || templateName.includes('rlt')) logCategory = 'red_light';
+      else logCategory = 'vitamin'; // fallback
+    }
+
+    const payload = {
+      patient_id: selectedPatient?.id,
+      category: logCategory,
+      entry_type: firstVisitData.entryType,
+      entry_date: assignForm.startDate || today,
+    };
+
+    // Category-specific fields
+    if (logCategory === 'testosterone') {
+      if (firstVisitData.entryType === 'injection') {
+        payload.medication = `Testosterone (${firstVisitData.hrtType === 'male' ? '200mg/ml' : '100mg/ml'})`;
+        payload.dosage = firstVisitData.dosage || assignForm.selectedDose || '';
+      } else {
+        // pickup
+        payload.medication = `Testosterone (${firstVisitData.hrtType === 'male' ? '200mg/ml' : '100mg/ml'})`;
+        payload.dosage = firstVisitData.dosage || assignForm.selectedDose || '';
+        payload.supply_type = firstVisitData.pickupType;
+        payload.quantity = firstVisitData.quantity;
+      }
+    } else if (logCategory === 'weight_loss') {
+      payload.medication = assignForm.wlMedication || '';
+      payload.dosage = assignForm.selectedDose || '';
+      if (firstVisitData.entryType === 'injection') {
+        payload.weight = firstVisitData.weight || null;
+      } else {
+        // pickup
+        const weeks = firstVisitData.supplyDuration || 2;
+        payload.supply_type = `prefilled_${weeks}week`;
+        payload.quantity = weeks;
+      }
+    } else if (logCategory === 'peptide') {
+      payload.medication = assignForm.peptideId
+        ? (peptides.find(p => p.id === assignForm.peptideId)?.name || '')
+        : '';
+      if (firstVisitData.entryType === 'injection') {
+        payload.dosage = firstVisitData.dosage || assignForm.selectedDose || '';
+      } else {
+        // pickup
+        payload.quantity = firstVisitData.quantity;
+      }
+    } else if (['iv_therapy', 'hbot', 'red_light'].includes(logCategory)) {
+      payload.entry_type = 'session';
+      payload.duration = firstVisitData.duration;
+      if (logCategory === 'iv_therapy') {
+        payload.medication = template.name || 'IV Therapy';
+      } else if (logCategory === 'hbot') {
+        payload.medication = 'HBOT Session';
+      } else {
+        payload.medication = 'Red Light Session';
+      }
+    } else if (logCategory === 'vitamin') {
+      payload.medication = template.name || 'Vitamin Injection';
+      payload.quantity = firstVisitData.quantity;
+    }
+
+    return payload;
+  };
 
   const NAD_DOSE_OPTIONS = ['25mg', '50mg', '100mg', '125mg', '150mg'];
   const DELIVERY_METHOD_OPTIONS = [
@@ -774,6 +889,26 @@ export default function CommandCenter() {
       }
 
       if (res.ok) {
+        // Log first visit if enabled and this is a new protocol (not extend/add-supply)
+        const isNewProtocol = !addToExistingProtocol && !extendExistingWL;
+        if (logFirstVisit && isNewProtocol) {
+          try {
+            const servicePayload = buildServiceLogPayload();
+            if (servicePayload) {
+              const logRes = await fetch('/api/service-log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(servicePayload)
+              });
+              if (!logRes.ok) {
+                console.error('Failed to create service log entry:', await logRes.text());
+              }
+            }
+          } catch (logError) {
+            console.error('Error creating service log entry (non-blocking):', logError);
+          }
+        }
+
         // Close modal immediately
         setShowAssignModal(false);
         setSelectedPurchase(null);
@@ -2056,6 +2191,250 @@ export default function CommandCenter() {
               />
             </div>
 
+            {/* Log First Visit - only for new protocols (not extend/add-supply) */}
+            {!addToExistingProtocol && !extendExistingWL && assignForm.templateId && (
+              <div style={{ padding: '0 24px', marginBottom: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: logFirstVisit ? '12px' : '0' }}>
+                  <input
+                    type="checkbox"
+                    checked={logFirstVisit}
+                    onChange={e => setLogFirstVisit(e.target.checked)}
+                    style={{ width: '18px', height: '18px' }}
+                  />
+                  <span style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>
+                    Also log first visit in Service Log
+                  </span>
+                </label>
+
+                {logFirstVisit && (() => {
+                  const template = getSelectedTemplate();
+                  const category = template?.category;
+                  const templateName = (template?.name || '').toLowerCase();
+                  const isSessionType = ['iv', 'hbot', 'rlt'].includes(category)
+                    || templateName.includes('iv') || templateName.includes('hbot')
+                    || templateName.includes('red light') || templateName.includes('rlt');
+
+                  return (
+                    <div style={{
+                      border: '2px solid #BBF7D0',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      background: '#F0FDF4'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#166534', fontWeight: '600', marginBottom: '12px' }}>
+                        First Visit Details
+                      </div>
+
+                      {/* HRT Fields */}
+                      {category === 'hrt' && (
+                        <>
+                          {/* Entry type toggle */}
+                          <div style={{ marginBottom: '12px' }}>
+                            <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Type</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              {['injection', 'pickup'].map(t => (
+                                <button key={t} type="button" onClick={() => setFirstVisitData(d => ({ ...d, entryType: t }))}
+                                  style={{
+                                    flex: 1, padding: '6px 12px', borderRadius: '6px', border: '1px solid',
+                                    borderColor: firstVisitData.entryType === t ? '#059669' : '#D1D5DB',
+                                    background: firstVisitData.entryType === t ? '#ECFDF5' : '#FFF',
+                                    color: firstVisitData.entryType === t ? '#059669' : '#6B7280',
+                                    fontWeight: firstVisitData.entryType === t ? '600' : '400',
+                                    fontSize: '13px', cursor: 'pointer'
+                                  }}
+                                >{t === 'injection' ? 'Injection' : 'Pickup'}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* HRT Type */}
+                          <div style={{ marginBottom: '12px' }}>
+                            <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>HRT Type</label>
+                            <select value={firstVisitData.hrtType} onChange={e => setFirstVisitData(d => ({ ...d, hrtType: e.target.value, dosage: '' }))}
+                              style={{ ...styles.formSelect, margin: 0 }}>
+                              <option value="male">Male HRT (200mg/ml)</option>
+                              <option value="female">Female HRT (100mg/ml)</option>
+                            </select>
+                          </div>
+
+                          {/* Dosage */}
+                          <div style={{ marginBottom: firstVisitData.entryType === 'pickup' ? '12px' : '0' }}>
+                            <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Dosage</label>
+                            <select value={firstVisitData.dosage} onChange={e => setFirstVisitData(d => ({ ...d, dosage: e.target.value }))}
+                              style={{ ...styles.formSelect, margin: 0 }}>
+                              <option value="">Select dosage...</option>
+                              {firstVisitData.hrtType === 'male'
+                                ? [
+                                  { value: '0.2ml/40mg', label: '0.2ml (40mg)' },
+                                  { value: '0.3ml/60mg', label: '0.3ml (60mg)' },
+                                  { value: '0.35ml/70mg', label: '0.35ml (70mg)' },
+                                  { value: '0.4ml/80mg', label: '0.4ml (80mg)' },
+                                  { value: '0.5ml/100mg', label: '0.5ml (100mg)' },
+                                ].map(d => <option key={d.value} value={d.value}>{d.label}</option>)
+                                : [
+                                  { value: '0.1ml/10mg', label: '0.1ml (10mg)' },
+                                  { value: '0.15ml/15mg', label: '0.15ml (15mg)' },
+                                  { value: '0.2ml/20mg', label: '0.2ml (20mg)' },
+                                  { value: '0.25ml/25mg', label: '0.25ml (25mg)' },
+                                  { value: '0.3ml/30mg', label: '0.3ml (30mg)' },
+                                  { value: '0.4ml/40mg', label: '0.4ml (40mg)' },
+                                  { value: '0.5ml/50mg', label: '0.5ml (50mg)' },
+                                ].map(d => <option key={d.value} value={d.value}>{d.label}</option>)
+                              }
+                            </select>
+                          </div>
+
+                          {/* Pickup-specific fields */}
+                          {firstVisitData.entryType === 'pickup' && (
+                            <>
+                              <div style={{ marginBottom: '12px' }}>
+                                <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Pickup Type</label>
+                                <select value={firstVisitData.pickupType} onChange={e => setFirstVisitData(d => ({ ...d, pickupType: e.target.value }))}
+                                  style={{ ...styles.formSelect, margin: 0 }}>
+                                  <option value="prefilled">Prefilled Syringes</option>
+                                  <option value="vial">Vial (10ml)</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Quantity</label>
+                                <select value={firstVisitData.quantity} onChange={e => setFirstVisitData(d => ({ ...d, quantity: parseInt(e.target.value) }))}
+                                  style={{ ...styles.formSelect, margin: 0 }}>
+                                  {[1, 2, 4, 8].map(n => <option key={n} value={n}>{n}</option>)}
+                                </select>
+                              </div>
+                            </>
+                          )}
+                        </>
+                      )}
+
+                      {/* Weight Loss Fields */}
+                      {category === 'weight_loss' && (
+                        <>
+                          <div style={{ marginBottom: '12px' }}>
+                            <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Type</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              {['injection', 'pickup'].map(t => (
+                                <button key={t} type="button" onClick={() => setFirstVisitData(d => ({ ...d, entryType: t }))}
+                                  style={{
+                                    flex: 1, padding: '6px 12px', borderRadius: '6px', border: '1px solid',
+                                    borderColor: firstVisitData.entryType === t ? '#059669' : '#D1D5DB',
+                                    background: firstVisitData.entryType === t ? '#ECFDF5' : '#FFF',
+                                    color: firstVisitData.entryType === t ? '#059669' : '#6B7280',
+                                    fontWeight: firstVisitData.entryType === t ? '600' : '400',
+                                    fontSize: '13px', cursor: 'pointer'
+                                  }}
+                                >{t === 'injection' ? 'Injection' : 'Pickup'}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Auto-filled info */}
+                          {assignForm.wlMedication && (
+                            <div style={{ fontSize: '12px', color: '#059669', marginBottom: '8px' }}>
+                              Medication: {assignForm.wlMedication} {assignForm.selectedDose ? `(${assignForm.selectedDose})` : ''}
+                            </div>
+                          )}
+
+                          {firstVisitData.entryType === 'injection' && (
+                            <div>
+                              <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Weight (lbs)</label>
+                              <input type="number" value={firstVisitData.weight}
+                                onChange={e => setFirstVisitData(d => ({ ...d, weight: e.target.value }))}
+                                placeholder="Patient weight..."
+                                style={{ ...styles.formInput, margin: 0 }} />
+                            </div>
+                          )}
+
+                          {firstVisitData.entryType === 'pickup' && (
+                            <div>
+                              <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Supply Duration</label>
+                              <select value={firstVisitData.supplyDuration}
+                                onChange={e => setFirstVisitData(d => ({ ...d, supplyDuration: parseInt(e.target.value) }))}
+                                style={{ ...styles.formSelect, margin: 0 }}>
+                                <option value={1}>1 Week</option>
+                                <option value={2}>2 Weeks</option>
+                                <option value={4}>4 Weeks</option>
+                              </select>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Peptide Fields */}
+                      {category === 'peptide' && (
+                        <>
+                          <div style={{ marginBottom: '12px' }}>
+                            <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Type</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              {['injection', 'pickup'].map(t => (
+                                <button key={t} type="button" onClick={() => setFirstVisitData(d => ({ ...d, entryType: t }))}
+                                  style={{
+                                    flex: 1, padding: '6px 12px', borderRadius: '6px', border: '1px solid',
+                                    borderColor: firstVisitData.entryType === t ? '#059669' : '#D1D5DB',
+                                    background: firstVisitData.entryType === t ? '#ECFDF5' : '#FFF',
+                                    color: firstVisitData.entryType === t ? '#059669' : '#6B7280',
+                                    fontWeight: firstVisitData.entryType === t ? '600' : '400',
+                                    fontSize: '13px', cursor: 'pointer'
+                                  }}
+                                >{t === 'injection' ? 'Injection' : 'Pickup'}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {firstVisitData.entryType === 'injection' && (
+                            <div>
+                              <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Dosage</label>
+                              <input type="text" value={firstVisitData.dosage}
+                                onChange={e => setFirstVisitData(d => ({ ...d, dosage: e.target.value }))}
+                                placeholder="e.g. 500mcg"
+                                style={{ ...styles.formInput, margin: 0 }} />
+                            </div>
+                          )}
+
+                          {firstVisitData.entryType === 'pickup' && (
+                            <div>
+                              <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Quantity</label>
+                              <select value={firstVisitData.quantity}
+                                onChange={e => setFirstVisitData(d => ({ ...d, quantity: parseInt(e.target.value) }))}
+                                style={{ ...styles.formSelect, margin: 0 }}>
+                                {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Session-based (IV, HBOT, Red Light) */}
+                      {isSessionType && (
+                        <div>
+                          <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>
+                            Duration (minutes)
+                          </label>
+                          <select value={firstVisitData.duration}
+                            onChange={e => setFirstVisitData(d => ({ ...d, duration: parseInt(e.target.value) }))}
+                            style={{ ...styles.formSelect, margin: 0 }}>
+                            {[15, 20, 30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} min</option>)}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Vitamin/Injection Fields */}
+                      {category === 'injection' && (
+                        <div>
+                          <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Quantity</label>
+                          <select value={firstVisitData.quantity}
+                            onChange={e => setFirstVisitData(d => ({ ...d, quantity: parseInt(e.target.value) }))}
+                            style={{ ...styles.formSelect, margin: 0 }}>
+                            {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             <div style={styles.modalFooter}>
               <button
                 style={styles.modalCancelBtn}
@@ -2074,7 +2453,7 @@ export default function CommandCenter() {
               >
                 {isAssigning
                   ? (addToExistingProtocol || extendExistingWL ? 'Extending...' : 'Creating...')
-                  : (addToExistingProtocol ? 'Add Supply' : extendExistingWL ? 'Extend Protocol' : 'Assign Protocol')}
+                  : (addToExistingProtocol ? 'Add Supply' : extendExistingWL ? 'Extend Protocol' : logFirstVisit && !addToExistingProtocol ? 'Assign Protocol & Log Visit' : 'Assign Protocol')}
               </button>
             </div>
           </div>

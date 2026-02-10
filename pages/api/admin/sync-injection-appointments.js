@@ -1,6 +1,7 @@
 // /pages/api/admin/sync-injection-appointments.js
-// Sync clinic_appointments data to protocol visit tracking
+// Sync clinic_appointments data to protocol visit tracking (dates only, no session counts)
 // Range Medical - 2026-02-05
+// UPDATED: 2026-02-10 - Removed sessions_used sync (now Service Log only)
 // GET = preview, POST = sync
 
 import { createClient } from '@supabase/supabase-js';
@@ -178,14 +179,7 @@ export default async function handler(req, res) {
             updateData.next_expected_date = lastDate.toISOString().split('T')[0];
           }
 
-          // For weight loss, only update sessions_used if it would increase
-          // This prevents regression when clinic_appointments might be incomplete
-          if (protocol.program_type === 'weight_loss' && completedAppointments.length > 0) {
-            const currentSessions = protocol.sessions_used || 0;
-            if (completedAppointments.length > currentSessions) {
-              updateData.sessions_used = completedAppointments.length;
-            }
-          }
+          // sessions_used sync removed - session counting now handled exclusively through Service Log
 
           const { error: updateError } = await supabase
             .from('protocols')

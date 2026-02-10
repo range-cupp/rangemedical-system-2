@@ -1,11 +1,11 @@
 // /pages/api/webhooks/appointment.js
 // Range Medical - Appointment Webhook Handler
-// Decrements sessions from protocols when appointments are completed
-// Services: HBOT, Red Light, IV Therapy, In-Clinic Injections
-// UPDATED: 2026-02-06 - Auto-decrement sessions for in-clinic HRT/WL with alerts
+// Logs appointments to clinic_appointments table for historical tracking
+// Session counting is handled exclusively through the Service Log
+// UPDATED: 2026-02-10 - Removed session decrement/tracking (now Service Log only)
 
 import { createClient } from '@supabase/supabase-js';
-import { addGHLNote, sendStaffSMS } from '../../../lib/ghl-sync';
+// addGHLNote/sendStaffSMS removed — session tracking now via Service Log only
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -304,334 +304,21 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
-    // TRACK IN-CLINIC VISIT (for HRT and Weight Loss injections)
+    // SESSION TRACKING REMOVED
+    // All session counting is now handled through the Service Log.
+    // This webhook only logs appointments for historical tracking.
     // =====================================================
 
-    if (mapping.action === 'track_visit') {
-      if (!contactId) {
-        console.log('⚠️ No contact ID - cannot track visit');
-        return res.status(200).json({
-          success: true,
-          message: 'No contact ID to match patient for visit tracking',
-          action: 'log_only'
-        });
-      }
-
-      // Find active protocol for this patient
-      const protocolTypes = mapping.type === 'hrt'
-        ? ['hrt']
-        : mapping.type === 'peptide'
-        ? ['peptide']
-        : ['weight_loss'];
-
-      // Find patient by ghl_contact_id first
-      const { data: patient, error: patientError } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('ghl_contact_id', contactId)
-        .single();
-
-      if (patientError || !patient) {
-        console.log(`⚠️ No patient found for contact ${contactId}`);
-        return res.status(200).json({
-          success: true,
-          message: 'No patient found for contact - appointment logged only',
-          action: 'log_only'
-        });
-      }
-
-      // Find protocol by patient_id
-      // For weight_loss, include both in_clinic and take_home (weekly pickups)
-      // For HRT and peptide, only in_clinic
-      const deliveryMethods = mapping.type === 'weight_loss'
-        ? ['in_clinic', 'take_home']
-        : ['in_clinic'];
-
-      const { data: protocols, error: findError } = await supabase
-        .from('protocols')
-        .select('*')
-        .eq('patient_id', patient.id)
-        .in('program_type', protocolTypes)
-        .eq('status', 'active')
-        .in('delivery_method', deliveryMethods)
-        .order('created_at', { ascending: false });
-
-      if (findError) {
-        console.error('❌ Error finding protocol for visit tracking:', findError);
-        return res.status(200).json({
-          success: false,
-          error: 'Database error finding protocol'
-        });
-      }
-
-      if (!protocols || protocols.length === 0) {
-        console.log(`⚠️ No active ${mapping.type} protocol found for contact ${contactId}`);
-        return res.status(200).json({
-          success: true,
-          message: `No active ${mapping.type} protocol - appointment logged only`,
-          action: 'log_only'
-        });
-      }
-
-      const protocol = protocols[0];
-      const visitDate = appointmentDate ? appointmentDate.split('T')[0] : new Date().toISOString().split('T')[0];
-
-      // Calculate next expected date based on visit frequency
-      let nextExpectedDate = null;
-      const visitFrequency = protocol.visit_frequency || (mapping.type === 'weight_loss' ? 'weekly' : 'twice_weekly');
-
-      const visitDateObj = new Date(visitDate + 'T12:00:00');
-      if (visitFrequency === 'weekly') {
-        visitDateObj.setDate(visitDateObj.getDate() + 7);
-      } else if (visitFrequency === 'twice_weekly') {
-        visitDateObj.setDate(visitDateObj.getDate() + 3); // ~3-4 days for twice weekly
-      } else if (visitFrequency === 'monthly') {
-        visitDateObj.setDate(visitDateObj.getDate() + 30);
-      } else {
-        visitDateObj.setDate(visitDateObj.getDate() + 7); // default to weekly
-      }
-      nextExpectedDate = visitDateObj.toISOString().split('T')[0];
-
-      // Update protocol with visit tracking
-      const updateData = {
-        last_visit_date: visitDate,
-        next_expected_date: nextExpectedDate,
-        updated_at: new Date().toISOString()
-      };
-
-      // For BOTH HRT and Weight Loss in-clinic, track sessions
-      // Always increment sessions_used, even if it exceeds total (to track overdraft)
-      const currentUsed = protocol.sessions_used || 0;
-      const totalSessions = protocol.total_sessions || 0;
-      const newSessionsUsed = currentUsed + 1;
-      const sessionsRemaining = totalSessions - newSessionsUsed;
-
-      // Only track sessions if total_sessions is set (> 0)
-      if (totalSessions > 0) {
-        updateData.sessions_used = newSessionsUsed;
-
-        console.log(`📊 Session tracking: ${currentUsed}/${totalSessions} → ${newSessionsUsed}/${totalSessions} (${sessionsRemaining} remaining)`);
-
-        // Check if sessions are exhausted or exceeded
-        if (newSessionsUsed >= totalSessions) {
-          const patientName = contactName || 'Patient';
-          const isOverdraft = newSessionsUsed > totalSessions;
-          const overdraftCount = isOverdraft ? newSessionsUsed - totalSessions : 0;
-
-          // Create alert in database
-          const alertMessage = isOverdraft
-            ? `${patientName} used ${overdraftCount} session(s) BEYOND their ${mapping.type.toUpperCase()} package limit. Sessions: ${newSessionsUsed}/${totalSessions}. Payment required for additional sessions.`
-            : `${patientName} has used all sessions in their ${mapping.type.toUpperCase()} package. Sessions: ${newSessionsUsed}/${totalSessions}. Ready for renewal.`;
-
-          const alertSeverity = isOverdraft ? 'high' : 'medium';
-          const alertType = isOverdraft ? 'sessions_exceeded' : 'sessions_exhausted';
-
-          const { error: alertError } = await supabase
-            .from('alerts')
-            .insert({
-              patient_id: patient.id,
-              alert_type: alertType,
-              message: alertMessage,
-              severity: alertSeverity,
-              status: 'active',
-              metadata: {
-                protocol_id: protocol.id,
-                program_type: mapping.type,
-                sessions_used: newSessionsUsed,
-                total_sessions: totalSessions,
-                overdraft_count: overdraftCount,
-                appointment_title: appointmentTitle,
-                appointment_date: visitDate
-              }
-            });
-
-          if (alertError) {
-            console.log('⚠️ Could not create alert:', alertError.message);
-          } else {
-            console.log(`🚨 Alert created: ${alertType} for ${patientName}`);
-          }
-
-          // Add note to GHL
-          const ghlNote = isOverdraft
-            ? `🚨 SESSIONS EXCEEDED - PAYMENT NEEDED
-
-${mapping.type.toUpperCase()} Injection appointment marked as showed.
-Patient has used ${overdraftCount} session(s) BEYOND their package limit.
-
-Package: ${protocol.program_name || mapping.type}
-Sessions Used: ${newSessionsUsed}/${totalSessions}
-Overdraft: ${overdraftCount} session(s)
-
-⚠️ Please collect payment for additional sessions or new package.`
-            : `⚠️ PACKAGE COMPLETE - RENEWAL NEEDED
-
-${mapping.type.toUpperCase()} Injection appointment marked as showed.
-Patient has used all sessions in their package.
-
-Package: ${protocol.program_name || mapping.type}
-Sessions Used: ${newSessionsUsed}/${totalSessions}
-
-📋 Patient may need to purchase a new package to continue treatment.`;
-
-          if (contactId) {
-            await addGHLNote(contactId, ghlNote);
-            console.log('📝 GHL note added for session alert');
-          }
-
-          // Send SMS to staff
-          const smsMessage = isOverdraft
-            ? `🚨 SESSIONS EXCEEDED: ${patientName} used ${overdraftCount} session(s) beyond their ${mapping.type.toUpperCase()} package (${newSessionsUsed}/${totalSessions}). Payment needed.`
-            : `⚠️ PACKAGE COMPLETE: ${patientName} used all ${totalSessions} sessions in their ${mapping.type.toUpperCase()} package. Ready for renewal.`;
-
-          await sendStaffSMS(smsMessage);
-          console.log('📱 Staff SMS sent for session alert');
-
-          // Mark protocol as completed only when EXACTLY at limit (not overdraft)
-          // EXCEPTION: Take-home weight loss stays active - they come back weekly for pickups
-          // For overdraft, keep it active so we can see the negative balance
-          const isTakeHomeWeightLoss = mapping.type === 'weight_loss' && protocol.delivery_method === 'take_home';
-
-          if (newSessionsUsed === totalSessions && !isTakeHomeWeightLoss) {
-            updateData.status = 'completed';
-            console.log(`✅ ${mapping.type} protocol completed - all sessions used`);
-          } else if (isTakeHomeWeightLoss) {
-            console.log(`📦 Take-home weight loss - keeping active for weekly pickups. Next expected: ${nextExpectedDate}`);
-          }
-        }
-      }
-
-      const { data: updatedProtocol, error: updateError } = await supabase
-        .from('protocols')
-        .update(updateData)
-        .eq('id', protocol.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error('❌ Error updating protocol visit:', updateError);
-        return res.status(200).json({
-          success: false,
-          error: 'Failed to update protocol visit tracking'
-        });
-      }
-
-      console.log(`✅ In-clinic visit tracked for ${mapping.type}: last_visit=${visitDate}, next_expected=${nextExpectedDate}`);
-      if (totalSessions > 0) {
-        console.log(`   Sessions: ${newSessionsUsed}/${totalSessions} (${sessionsRemaining} remaining)`);
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: 'In-clinic visit tracked',
-        protocol: {
-          id: protocol.id,
-          type: mapping.type,
-          last_visit_date: visitDate,
-          next_expected_date: nextExpectedDate,
-          sessions_used: newSessionsUsed,
-          total_sessions: totalSessions,
-          sessions_remaining: sessionsRemaining,
-          status: updateData.status || 'active',
-          alert_created: sessionsRemaining <= 0
-        }
-      });
-    }
-
-    // =====================================================
-    // DECREMENT SESSION (if action is 'decrement')
-    // =====================================================
-
-    if (mapping.action !== 'decrement') {
-      return res.status(200).json({
-        success: true,
-        message: `Appointment logged (no decrement for ${mapping.type})`,
-        action: 'log'
-      });
-    }
-
-    if (!contactId) {
-      console.log('⚠️ No contact ID - cannot find patient protocol');
-      return res.status(200).json({
-        success: false,
-        error: 'No contact ID to match patient'
-      });
-    }
-
-    // Find active protocol for this patient and service type
-    const protocolTypes = getProtocolTypesForService(mapping.type);
-    
-    const { data: protocols, error: protocolError } = await supabase
-      .from('protocols')
-      .select('*')
-      .eq('ghl_contact_id', contactId)
-      .in('program_type', protocolTypes)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
-
-    if (protocolError) {
-      console.error('❌ Error finding protocol:', protocolError);
-      return res.status(200).json({
-        success: false,
-        error: 'Database error finding protocol'
-      });
-    }
-
-    if (!protocols || protocols.length === 0) {
-      console.log(`⚠️ No active ${mapping.type} protocol found for contact ${contactId}`);
-      return res.status(200).json({
-        success: true,
-        message: `No active ${mapping.type} protocol - appointment logged but no session decremented`,
-        action: 'log_only'
-      });
-    }
-
-    // Use the most recent active protocol
-    const protocol = protocols[0];
-    const currentCompleted = protocol.sessions_completed || 0;
-    const totalSessions = protocol.total_sessions || 0;
-    const newCompleted = currentCompleted + 1;
-
-    console.log(`📊 Protocol ${protocol.id}: ${currentCompleted}/${totalSessions} → ${newCompleted}/${totalSessions}`);
-
-    // Update the protocol
-    const updateData = {
-      sessions_completed: newCompleted,
-      updated_at: new Date().toISOString()
-    };
-
-    // Auto-complete if all sessions used
-    if (newCompleted >= totalSessions) {
-      updateData.status = 'completed';
-      console.log('✅ Protocol completed - all sessions used');
-    }
-
-    const { data: updatedProtocol, error: updateError } = await supabase
-      .from('protocols')
-      .update(updateData)
-      .eq('id', protocol.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error('❌ Error updating protocol:', updateError);
-      return res.status(200).json({
-        success: false,
-        error: 'Failed to update protocol'
-      });
-    }
-
-    console.log(`✅ Session decremented: ${protocol.program_name} (${newCompleted}/${totalSessions})`);
+    console.log(`📋 Appointment logged for ${mapping.type} (action: ${mapping.action}) - no session tracking`);
 
     return res.status(200).json({
       success: true,
-      message: 'Session decremented',
-      protocol: {
-        id: protocol.id,
-        name: protocol.program_name,
-        sessions_completed: newCompleted,
-        total_sessions: totalSessions,
-        sessions_remaining: totalSessions - newCompleted,
-        status: updateData.status || 'active'
+      message: `Appointment logged for ${mapping.type} - session tracking handled via Service Log`,
+      action: 'log_only',
+      appointment: {
+        title: appointmentTitle,
+        status: appointmentStatus,
+        type: mapping.type
       }
     });
 
@@ -642,17 +329,4 @@ Sessions Used: ${newSessionsUsed}/${totalSessions}
       error: error.message
     });
   }
-}
-
-// =====================================================
-// HELPER: Get protocol types for a service
-// =====================================================
-function getProtocolTypesForService(serviceType) {
-  const mapping = {
-    'hbot': ['hbot', 'hbot_sessions', 'hyperbaric'],
-    'red_light': ['red_light', 'red_light_sessions', 'rlt'],
-    'iv_therapy': ['iv_therapy', 'iv', 'iv_sessions'],
-    'injection_pack': ['injection_pack', 'injection', 'single_injection']
-  };
-  return mapping[serviceType] || [serviceType];
 }

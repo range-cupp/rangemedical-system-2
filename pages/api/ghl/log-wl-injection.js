@@ -2,12 +2,12 @@
 // GHL Form Webhook - Log Weight Loss Injection
 // Range Medical
 // CREATED: 2026-01-04
+// UPDATED: 2026-02-10 - Removed session incrementing (now Service Log only)
 //
 // This endpoint receives form submissions from GHL and:
 // 1. Finds the patient's active Weight Loss protocol
 // 2. Logs the injection with weight/dose
 // 3. Updates GHL custom fields
-// 4. Creates task for next injection
 
 import { createClient } from '@supabase/supabase-js';
 import { syncWeightLossInjectionLogged } from '../../../lib/ghl-sync';
@@ -111,20 +111,10 @@ export default async function handler(req, res) {
       console.error('Error creating log:', logError);
     }
 
-    // Update protocol sessions
-    const newSessionsUsed = (protocol.sessions_used || 0) + 1;
-    const updates = {
-      sessions_used: newSessionsUsed,
-      updated_at: new Date().toISOString()
-    };
-
-    // Auto-complete if all sessions used
-    if (protocol.total_sessions && newSessionsUsed >= protocol.total_sessions) {
-      updates.status = 'completed';
-    }
-
-    // Update starting weight if first injection
-    if (newSessionsUsed === 1 && weight) {
+    // Session incrementing removed - now handled exclusively through Service Log
+    // Still update starting weight if first entry and weight provided
+    const updates = { updated_at: new Date().toISOString() };
+    if ((protocol.sessions_used || 0) === 0 && weight) {
       updates.starting_weight = parseFloat(weight);
     }
 
@@ -140,33 +130,29 @@ export default async function handler(req, res) {
     // Sync to GHL
     const updatedProtocol = {
       ...protocol,
-      sessions_used: newSessionsUsed,
-      starting_weight: updates.starting_weight || protocol.starting_weight,
-      status: updates.status || protocol.status,
+      ...updates,
       medication: medication || protocol.medication
     };
 
-    // Add medication to log for sync
     const logWithMedication = {
       ...(insertedLog || logEntry),
       medication: medication
     };
 
     await syncWeightLossInjectionLogged(
-      contactId, 
-      updatedProtocol, 
-      logWithMedication, 
+      contactId,
+      updatedProtocol,
+      logWithMedication,
       patient.name || contactName
     );
 
-    console.log('✓ Injection logged successfully');
+    console.log('✓ Injection logged (no session increment - handled via Service Log)');
 
     return res.status(200).json({
       success: true,
-      message: `Injection #${newSessionsUsed} logged`,
-      injections_used: newSessionsUsed,
-      injections_remaining: (protocol.total_sessions || 4) - newSessionsUsed,
-      protocol_status: updates.status || 'active'
+      message: 'Injection logged (session counting via Service Log)',
+      protocol_id: protocol.id,
+      protocol_status: protocol.status
     });
 
   } catch (error) {

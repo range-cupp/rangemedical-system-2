@@ -2,6 +2,7 @@
 // GHL Form Webhook - Log Session (IV, HBOT, RLT, Injection Packs)
 // Range Medical
 // CREATED: 2026-01-04
+// UPDATED: 2026-02-10 - Removed session incrementing (now Service Log only)
 
 import { createClient } from '@supabase/supabase-js';
 import { syncSessionLogToGHL } from '../../../lib/ghl-sync';
@@ -104,44 +105,22 @@ export default async function handler(req, res) {
       .select()
       .single();
 
-    // Update protocol sessions
-    const newSessionsUsed = (protocol.sessions_used || 0) + 1;
-    const updates = {
-      sessions_used: newSessionsUsed,
-      updated_at: new Date().toISOString()
-    };
-
-    if (protocol.total_sessions && newSessionsUsed >= protocol.total_sessions) {
-      updates.status = 'completed';
-    }
-
-    await supabase
-      .from('protocols')
-      .update(updates)
-      .eq('id', protocol.id);
-
-    // Sync to GHL
-    const updatedProtocol = {
-      ...protocol,
-      sessions_used: newSessionsUsed,
-      status: updates.status || protocol.status
-    };
-
+    // Session incrementing removed - now handled exclusively through Service Log
+    // Just sync the log entry to GHL for notes
     await syncSessionLogToGHL(
       contactId,
-      updatedProtocol,
+      protocol,
       insertedLog || logEntry,
       patient.name || contactName
     );
 
-    console.log('✓ Session logged');
+    console.log('✓ Session logged (no session increment - handled via Service Log)');
 
     return res.status(200).json({
       success: true,
-      message: `${sessionType.toUpperCase()} session #${newSessionsUsed} logged`,
-      sessions_used: newSessionsUsed,
-      sessions_remaining: (protocol.total_sessions || 0) - newSessionsUsed,
-      protocol_status: updates.status || 'active'
+      message: `${sessionType.toUpperCase()} session logged (session counting via Service Log)`,
+      protocol_id: protocol.id,
+      protocol_status: protocol.status
     });
 
   } catch (error) {

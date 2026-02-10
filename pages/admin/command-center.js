@@ -1339,6 +1339,22 @@ export default function CommandCenter() {
                           {formatDate(protocolDetailPanel.protocol.end_date)}
                         </span>
                       </div>
+                      {protocolDetailPanel.protocol.next_expected_date && protocolDetailPanel.protocol.next_expected_date !== protocolDetailPanel.protocol.end_date && (
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>Next Pickup</span>
+                          <span style={styles.protocolDetailValue}>
+                            {formatDate(protocolDetailPanel.protocol.next_expected_date)}
+                          </span>
+                        </div>
+                      )}
+                      {protocolDetailPanel.protocol.last_refill_date && (
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>Last Refill</span>
+                          <span style={styles.protocolDetailValue}>
+                            {formatDate(protocolDetailPanel.protocol.last_refill_date)}
+                          </span>
+                        </div>
+                      )}
                       {protocolDetailPanel.protocol.total_sessions > 0 && (
                         <div style={styles.protocolDetailItem}>
                           <span style={styles.protocolDetailLabel}>Sessions</span>

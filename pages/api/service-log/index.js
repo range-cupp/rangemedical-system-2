@@ -518,10 +518,14 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     nextDate.setDate(nextDate.getDate() + daysUntilNext);
     updateData.next_expected_date = nextDate.toISOString().split('T')[0];
 
-    // Extend end_date if the new supply period goes beyond the current end_date
-    const currentEndDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
-    if (!currentEndDate || nextDate > currentEndDate) {
-      updateData.end_date = updateData.next_expected_date;
+    // For prefilled pickups, extend end_date to match supply period (pickup = billing event)
+    // For vial pickups, don't touch end_date — billing cycle is separate from supply duration
+    const isVial = supply_type === 'vial_10ml' || supply_type === 'vial';
+    if (!isVial) {
+      const currentEndDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
+      if (!currentEndDate || nextDate > currentEndDate) {
+        updateData.end_date = updateData.next_expected_date;
+      }
     }
 
     const { error: updateError } = await supabase

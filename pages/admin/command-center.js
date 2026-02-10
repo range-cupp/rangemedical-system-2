@@ -152,6 +152,14 @@ function getPatientName(protocol) {
   return protocol.patient_name || 'Unknown';
 }
 
+function getDisplayProgramName(protocol) {
+  const name = protocol.program_name || protocol.medication || '-';
+  if (protocol.program_type === 'peptide' && /^(\d+\s*Day|Peptide\s*-\s*\d+\s*Day)$/i.test(name)) {
+    return 'Peptide Therapy';
+  }
+  return name;
+}
+
 function getProtocolStatus(protocol) {
   const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date, next_expected_date } = protocol;
 
@@ -1170,7 +1178,7 @@ export default function CommandCenter() {
                       <div style={styles.protocolDetailItem}>
                         <span style={styles.protocolDetailLabel}>Program</span>
                         <span style={styles.protocolDetailValue}>
-                          {protocolDetailPanel.protocol.program_name || protocolDetailPanel.protocol.medication || '-'}
+                          {getDisplayProgramName(protocolDetailPanel.protocol)}
                         </span>
                       </div>
                       <div style={styles.protocolDetailItem}>
@@ -2876,7 +2884,7 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
               {CATEGORY_LABELS[protocol.program_type] || protocol.program_type}
             </span>
             <span style={dueSoonStyles.programName}>
-              {protocol.program_name || protocol.medication || 'Protocol'}
+              {getDisplayProgramName(protocol)}
             </span>
             {protocol.selected_dose && (
               <span style={dueSoonStyles.dose}>
@@ -3489,7 +3497,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
                     {protocol.delivery_method === 'in_clinic' ? 'In Clinic' : 'Take Home'}
                   </span>
                 </td>
-                <td style={styles.td}>{protocol.program_name || protocol.medication || '-'}</td>
+                <td style={styles.td}>{getDisplayProgramName(protocol)}</td>
                 <td style={{ ...styles.td, color: URGENCY_COLORS[protocol.urgency] }}>
                   {getProtocolStatus(protocol)}
                 </td>
@@ -3712,7 +3720,7 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                   <span style={{ ...styles.categoryBadge, background: CATEGORY_COLORS[p.program_type] }}>
                     {CATEGORY_LABELS[p.program_type] || p.program_type}
                   </span>
-                  <span style={styles.detailItemName}>{p.program_name || p.medication}</span>
+                  <span style={styles.detailItemName}>{getDisplayProgramName(p)}</span>
                   <span style={{ color: URGENCY_COLORS[p.urgency], flex: 1 }}>{getProtocolStatus(p)}</span>
                   <button
                     style={{ padding: '3px 10px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', marginLeft: '8px' }}

@@ -46,11 +46,18 @@ export default async function handler(req, res) {
     let end_date = null;
     let duration_days = null;
 
+    // Resolve the display program name (may be normalized for peptides)
+    let resolved_program_name = program_name;
+
     if (program_name) {
       // Parse program name for duration (e.g., "7 Day", "10 Day", "30 Day")
       const match = program_name.match(/(\d+)\s*Day/i);
       if (match) {
         duration_days = parseInt(match[1]);
+        // Normalize bare duration names for peptide protocols
+        if (program_type === 'peptide' && /^(\d+\s*Day|Peptide\s*-\s*\d+\s*Day)$/i.test(program_name)) {
+          resolved_program_name = 'Peptide Therapy';
+        }
       }
     }
 
@@ -82,7 +89,7 @@ export default async function handler(req, res) {
     const protocolData = {
       patient_id,
       program_type,
-      program_name: program_name || getProgramName(program_type),
+      program_name: resolved_program_name || getProgramName(program_type),
       medication: medication || null,
       selected_dose: dose || null,
       starting_dose: dose || null,
@@ -156,7 +163,7 @@ export default async function handler(req, res) {
 function getProgramName(type) {
   const names = {
     weight_loss: 'Weight Loss Protocol',
-    peptide: 'Peptide Protocol',
+    peptide: 'Peptide Therapy',
     hrt: 'HRT Protocol',
     iv: 'IV Therapy',
     hbot: 'HBOT',

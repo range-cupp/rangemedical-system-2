@@ -475,7 +475,9 @@ export default function ServiceLogContent() {
             payload.supply_type = 'medication';
           } else {
             payload.quantity = item.formData.quantity || 1;
-            payload.dosage = `${item.formData.quantity} vial(s)`;
+            payload.dosage = item.formData.dosage
+              ? `${item.formData.quantity} vial(s) @ ${item.formData.dosage}`
+              : `${item.formData.quantity} vial(s)`;
           }
         } else if (item.serviceType.id === 'iv_therapy') {
           payload.medication = item.formData.medication;
@@ -1240,16 +1242,28 @@ export default function ServiceLogContent() {
                         )}
 
                         {entryType === 'pickup' && (
-                          <div style={slcStyles.formGroup}>
-                            <label style={slcStyles.label}>Quantity (vials)</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={formData.quantity}
-                              onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                              style={slcStyles.input}
-                            />
-                          </div>
+                          <>
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Dosage</label>
+                              <input
+                                type="text"
+                                value={formData.dosage}
+                                onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                                placeholder="e.g. 500mcg, 1mg..."
+                                style={slcStyles.input}
+                              />
+                            </div>
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Quantity (vials)</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={formData.quantity}
+                                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                                style={slcStyles.input}
+                              />
+                            </div>
+                          </>
                         )}
 
                         {entryType === 'med_pickup' && (

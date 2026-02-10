@@ -2379,6 +2379,9 @@ export default function CommandCenter() {
                     style={styles.formSelect}
                   >
                     <option value="">Select peptide...</option>
+                    {editingProtocol.medication && !peptides.find(p => p.name === editingProtocol.medication) && (
+                      <option value={editingProtocol.medication}>{editingProtocol.medication} (current)</option>
+                    )}
                     {peptides.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                   </select>
                 </div>
@@ -2399,20 +2402,28 @@ export default function CommandCenter() {
                   </select>
                 ) : editingProtocol.program_type === 'peptide' ? (
                   <>
-                    <select
-                      value={editingProtocol.selected_dose === 'Custom' ? 'Custom' : (
-                        peptides.find(p => p.name === editingProtocol.medication)?.dose_options?.includes(editingProtocol.selected_dose)
-                          ? editingProtocol.selected_dose
-                          : 'Custom'
-                      )}
-                      onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
-                      style={styles.formSelect}
-                    >
-                      <option value="">Select dose...</option>
-                      {(peptides.find(p => p.name === editingProtocol.medication)?.dose_options || ['250mcg', '500mcg', '750mcg', '1mg']).map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const matchedPeptide = peptides.find(p => p.name === editingProtocol.medication);
+                      const doseOptions = matchedPeptide?.dose_options || ['250mcg', '500mcg', '750mcg', '1mg'];
+                      const currentDose = editingProtocol.selected_dose;
+                      const isInList = doseOptions.includes(currentDose);
+                      return (
+                        <select
+                          value={currentDose === 'Custom' ? 'Custom' : (isInList ? currentDose : (currentDose ? currentDose : ''))}
+                          onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
+                          style={styles.formSelect}
+                        >
+                          <option value="">Select dose...</option>
+                          {currentDose && !isInList && currentDose !== 'Custom' && (
+                            <option value={currentDose}>{currentDose} (current)</option>
+                          )}
+                          {doseOptions.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                          <option value="Custom">Custom</option>
+                        </select>
+                      );
+                    })()}
                     {editingProtocol.selected_dose === 'Custom' && (
                       <input
                         type="text"

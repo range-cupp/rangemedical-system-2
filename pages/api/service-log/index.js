@@ -209,10 +209,12 @@ async function handlePost(req, res) {
 
   try {
     // 1. Create the log entry
+    // Session-based services default to 'session' type; others default to 'injection'
+    const resolvedEntryType = entry_type || (['hbot', 'iv_therapy', 'red_light'].includes(category) ? 'session' : 'injection');
     const logData = {
       patient_id,
       category,
-      entry_type: entry_type || 'injection',
+      entry_type: resolvedEntryType,
       entry_date: logDate,
       medication: medication || null,
       dosage: dosage || null,

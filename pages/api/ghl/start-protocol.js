@@ -182,6 +182,7 @@ export default async function handler(req, res) {
         const ivName = payload.therapy_type || 'Custom';
         protocolData = {
           ...protocolData,
+          program_type: 'iv', // Normalize iv_therapy → iv for command center
           program_name: ivSessions > 1 ? `${ivName} - ${ivSessions} Pack` : `${ivName}`,
           medication: payload.therapy_type,
           total_sessions: ivSessions,

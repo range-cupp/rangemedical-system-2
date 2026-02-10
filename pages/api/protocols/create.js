@@ -85,6 +85,11 @@ export default async function handler(req, res) {
       end_date = endD.toISOString().split('T')[0];
     }
 
+    // IV protocols: auto-generate program name as "Medication - X Pack"
+    if (program_type === 'iv' && medication && total_sessions) {
+      resolved_program_name = `${medication} - ${total_sessions} Pack`;
+    }
+
     // Build protocol record - only include columns that exist in the table
     const protocolData = {
       patient_id,

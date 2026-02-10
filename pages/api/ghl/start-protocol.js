@@ -179,9 +179,10 @@ export default async function handler(req, res) {
 
       case 'iv_therapy':
         const ivSessions = parseInt(payload.total_sessions) || 1;
+        const ivName = payload.therapy_type || 'Custom';
         protocolData = {
           ...protocolData,
-          program_name: `IV Therapy - ${payload.therapy_type || 'Custom'}`,
+          program_name: ivSessions > 1 ? `${ivName} - ${ivSessions} Pack` : `${ivName}`,
           medication: payload.therapy_type,
           total_sessions: ivSessions,
           sessions_used: 0,

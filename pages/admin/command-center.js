@@ -33,6 +33,22 @@ const CATEGORY_LABELS = {
   labs: 'Labs',
 };
 
+const IV_OPTIONS = [
+  { value: 'Energy IV', label: 'Energy IV' },
+  { value: 'Hydration IV', label: 'Hydration IV' },
+  { value: 'Immune IV', label: 'Immune IV' },
+  { value: 'Glow IV', label: 'Glow IV' },
+  { value: 'Brain IV', label: 'Brain IV' },
+  { value: 'Performance IV', label: 'Performance IV' },
+  { value: 'NAD+ IV 250mg', label: 'NAD+ IV 250mg' },
+  { value: 'NAD+ IV 500mg', label: 'NAD+ IV 500mg' },
+  { value: 'NAD+ IV 750mg', label: 'NAD+ IV 750mg' },
+  { value: 'NAD+ IV 1000mg', label: 'NAD+ IV 1000mg' },
+  { value: 'Methylene Blue IV', label: 'Methylene Blue IV' },
+  { value: 'High-Dose Vitamin C', label: 'High-Dose Vitamin C' },
+  { value: 'Custom Range IV', label: 'Custom Range IV' },
+];
+
 // ============================================
 // SEND FORMS CONSTANTS
 // ============================================
@@ -154,6 +170,10 @@ function getPatientName(protocol) {
 
 function getDisplayProgramName(protocol) {
   const name = protocol.program_name || protocol.medication || '-';
+  // IV protocols: show as "Medication - X Pack"
+  if (protocol.program_type === 'iv' && protocol.medication && protocol.total_sessions > 0) {
+    return `${protocol.medication} - ${protocol.total_sessions} Pack`;
+  }
   if (protocol.program_type === 'peptide' && protocol.delivery_method === 'take_home') {
     // Bare "7 Day" → "Peptide Therapy - 7 Days"
     const bareMatch = name.match(/^(\d+)\s*Day$/i);
@@ -2123,42 +2143,47 @@ export default function CommandCenter() {
                 />
               </div>
 
-              <div style={styles.modalFormGroup}>
-                <label style={styles.formLabel}>Next Pickup Date</label>
-                <input
-                  type="date"
-                  value={editingProtocol.next_expected_date || ''}
-                  onChange={e => setEditingProtocol({...editingProtocol, next_expected_date: e.target.value})}
-                  style={styles.formInput}
-                />
-              </div>
+              {/* Only show pickup/refill/supply fields for take-home protocol types */}
+              {!['iv', 'hbot', 'rlt', 'injection'].includes(editingProtocol.program_type) && (
+                <>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Next Pickup Date</label>
+                    <input
+                      type="date"
+                      value={editingProtocol.next_expected_date || ''}
+                      onChange={e => setEditingProtocol({...editingProtocol, next_expected_date: e.target.value})}
+                      style={styles.formInput}
+                    />
+                  </div>
 
-              <div style={styles.modalFormGroup}>
-                <label style={styles.formLabel}>Last Refill Date</label>
-                <input
-                  type="date"
-                  value={editingProtocol.last_refill_date || ''}
-                  onChange={e => setEditingProtocol({...editingProtocol, last_refill_date: e.target.value})}
-                  style={styles.formInput}
-                />
-              </div>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Last Refill Date</label>
+                    <input
+                      type="date"
+                      value={editingProtocol.last_refill_date || ''}
+                      onChange={e => setEditingProtocol({...editingProtocol, last_refill_date: e.target.value})}
+                      style={styles.formInput}
+                    />
+                  </div>
 
-              <div style={styles.modalFormGroup}>
-                <label style={styles.formLabel}>Supply Type</label>
-                <select
-                  value={editingProtocol.supply_type || ''}
-                  onChange={e => setEditingProtocol({...editingProtocol, supply_type: e.target.value})}
-                  style={styles.formInput}
-                >
-                  <option value="">None</option>
-                  <option value="prefilled_2week">Prefilled 2-Week (4 syringes)</option>
-                  <option value="prefilled_4week">Prefilled 4-Week (8 syringes)</option>
-                  <option value="vial_10ml">Vial (10ml)</option>
-                  <option value="vial">Vial</option>
-                  <option value="in_clinic">In Clinic</option>
-                  <option value="medication">Medication</option>
-                </select>
-              </div>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Supply Type</label>
+                    <select
+                      value={editingProtocol.supply_type || ''}
+                      onChange={e => setEditingProtocol({...editingProtocol, supply_type: e.target.value})}
+                      style={styles.formInput}
+                    >
+                      <option value="">None</option>
+                      <option value="prefilled_2week">Prefilled 2-Week (4 syringes)</option>
+                      <option value="prefilled_4week">Prefilled 4-Week (8 syringes)</option>
+                      <option value="vial_10ml">Vial (10ml)</option>
+                      <option value="vial">Vial</option>
+                      <option value="in_clinic">In Clinic</option>
+                      <option value="medication">Medication</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
               <div style={styles.modalFormGroup}>
                 <label style={styles.formLabel}>Program Name</label>
@@ -2181,7 +2206,15 @@ export default function CommandCenter() {
                     <input
                       type="number"
                       value={editingProtocol.total_sessions || ''}
-                      onChange={e => setEditingProtocol({...editingProtocol, total_sessions: e.target.value})}
+                      onChange={e => {
+                        const sessions = e.target.value;
+                        const updates = { ...editingProtocol, total_sessions: sessions };
+                        // Auto-update program_name for IV protocols
+                        if (editingProtocol.program_type === 'iv' && editingProtocol.medication && sessions) {
+                          updates.program_name = `${editingProtocol.medication} - ${sessions} Pack`;
+                        }
+                        setEditingProtocol(updates);
+                      }}
                       style={styles.formInput}
                       min="0"
                     />
@@ -2270,6 +2303,32 @@ export default function CommandCenter() {
                       <option value={editingProtocol.medication}>{editingProtocol.medication} (current)</option>
                     )}
                     {peptides.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {/* IV type selection for IV protocols */}
+              {editingProtocol.program_type === 'iv' && (
+                <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
+                  <label style={styles.formLabel}>IV Type</label>
+                  <select
+                    value={editingProtocol.medication || ''}
+                    onChange={e => {
+                      const ivType = e.target.value;
+                      const sessions = editingProtocol.total_sessions;
+                      setEditingProtocol({
+                        ...editingProtocol,
+                        medication: ivType,
+                        program_name: ivType && sessions ? `${ivType} - ${sessions} Pack` : editingProtocol.program_name
+                      });
+                    }}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select IV type...</option>
+                    {editingProtocol.medication && !IV_OPTIONS.find(iv => iv.value === editingProtocol.medication) && (
+                      <option value={editingProtocol.medication}>{editingProtocol.medication} (current)</option>
+                    )}
+                    {IV_OPTIONS.map(iv => <option key={iv.value} value={iv.value}>{iv.label}</option>)}
                   </select>
                 </div>
               )}

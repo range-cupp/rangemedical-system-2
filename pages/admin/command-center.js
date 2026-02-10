@@ -223,15 +223,16 @@ function getProtocolStatus(protocol) {
   // Date-based
   let endDateObj = null;
   if (end_date) {
-    endDateObj = new Date(end_date);
+    endDateObj = new Date(end_date + 'T00:00:00');
   } else if (program_type === 'weight_loss' && start_date && total_sessions) {
-    endDateObj = new Date(start_date);
+    endDateObj = new Date(start_date + 'T00:00:00');
     endDateObj.setDate(endDateObj.getDate() + (total_sessions * 7));
   }
 
   if (endDateObj) {
     const now = new Date();
-    const daysLeft = Math.floor((endDateObj - now) / (1000 * 60 * 60 * 24));
+    now.setHours(0, 0, 0, 0);
+    const daysLeft = Math.round((endDateObj - now) / (1000 * 60 * 60 * 24));
     if (daysLeft < 0) return `${Math.abs(daysLeft)} days overdue`;
     return `${daysLeft} days left`;
   }
@@ -2826,15 +2827,16 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
     // Date-based
     let endDateObj = null;
     if (end_date) {
-      endDateObj = new Date(end_date + 'T12:00:00');
+      endDateObj = new Date(end_date + 'T00:00:00');
     } else if (program_type === 'weight_loss' && start_date && total_sessions) {
-      endDateObj = new Date(start_date + 'T12:00:00');
+      endDateObj = new Date(start_date + 'T00:00:00');
       endDateObj.setDate(endDateObj.getDate() + (total_sessions * 7));
     }
 
     if (endDateObj) {
       const now = new Date();
-      const daysLeft = Math.floor((endDateObj - now) / (1000 * 60 * 60 * 24));
+      now.setHours(0, 0, 0, 0);
+      const daysLeft = Math.round((endDateObj - now) / (1000 * 60 * 60 * 24));
       return {
         label: daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : daysLeft === 0 ? 'Ends today' : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`,
         value: daysLeft,

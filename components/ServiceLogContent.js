@@ -1100,7 +1100,9 @@ export default function ServiceLogContent() {
                               onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
                               style={slcStyles.select}
                             >
+                              <option value="1">1 week</option>
                               <option value="2">2 weeks</option>
+                              <option value="3">3 weeks</option>
                               <option value="4">4 weeks</option>
                             </select>
                           </div>

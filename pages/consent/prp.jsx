@@ -396,19 +396,26 @@ export default function PRPConsentPage() {
         yPos += 5;
       }
 
+      const patientInitials = ((formData.firstName || '').charAt(0) + (formData.lastName || '').charAt(0)).toUpperCase();
+
       function addCheckboxLine(text, isChecked = true) {
         const lines = doc.splitTextToSize(text, contentWidth - 10);
         checkPageBreak(lines.length * 4.5 + 3);
         doc.setDrawColor(0);
-        doc.rect(leftMargin, yPos - 3, 3.5, 3.5);
         if (isChecked) {
+          doc.setFillColor(0, 0, 0);
+          doc.rect(leftMargin, yPos - 3, 5, 5, 'FD');
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(10);
-          doc.text('\u2713', leftMargin + 0.3, yPos);
+          doc.setFontSize(6);
+          doc.setTextColor(255, 255, 255);
+          doc.text(patientInitials, leftMargin + 2.5, yPos + 0.5, { align: 'center' });
+          doc.setTextColor(0, 0, 0);
+        } else {
+          doc.rect(leftMargin, yPos - 3, 5, 5);
         }
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
-        doc.text(lines, leftMargin + 6, yPos);
+        doc.text(lines, leftMargin + 8, yPos);
         yPos += lines.length * 4 + 2;
       }
 

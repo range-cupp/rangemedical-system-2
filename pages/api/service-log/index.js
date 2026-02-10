@@ -464,7 +464,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     // Find active protocol
     const { data: protocols, error: findError } = await supabase
       .from('protocols')
-      .select('id, last_refill_date, supply_type')
+      .select('id, last_refill_date, supply_type, end_date')
       .eq('patient_id', patient_id)
       .eq('program_type', programType)
       .eq('status', 'active')
@@ -517,6 +517,12 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     const nextDate = new Date(pickupDate);
     nextDate.setDate(nextDate.getDate() + daysUntilNext);
     updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+
+    // Extend end_date if the new supply period goes beyond the current end_date
+    const currentEndDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
+    if (!currentEndDate || nextDate > currentEndDate) {
+      updateData.end_date = updateData.next_expected_date;
+    }
 
     const { error: updateError } = await supabase
       .from('protocols')
@@ -577,6 +583,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     const updateData = {
       sessions_used: newCount,
       injections_completed: newCount,
+      last_visit_date: logDate,
       updated_at: new Date().toISOString()
     };
 
@@ -639,6 +646,7 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
         selected_dose: dosage || null,
         status: 'active',
         start_date: logDate,
+        end_date: nextDate.toISOString().split('T')[0],
         last_refill_date: logDate,
         last_visit_date: logDate,
         next_expected_date: nextDate.toISOString().split('T')[0],

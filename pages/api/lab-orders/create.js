@@ -44,15 +44,41 @@ export default async function handler(req, res) {
     // Mark the purchase as handled (so it leaves the pipeline)
     await supabase
       .from('purchases')
-      .update({ 
+      .update({
         protocol_created: true,
         updated_at: new Date().toISOString()
       })
       .eq('id', purchaseId);
 
-    return res.status(200).json({ 
-      success: true, 
-      labOrder 
+    // Auto-create lab journey so patient appears in Labs pipeline
+    let patientName = 'Unknown Patient';
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('first_name, last_name, ghl_contact_id')
+      .eq('id', patientId)
+      .single();
+
+    if (patient) {
+      patientName = [patient.first_name, patient.last_name].filter(Boolean).join(' ') || 'Unknown Patient';
+    }
+
+    const { error: journeyError } = await supabase
+      .from('lab_journeys')
+      .insert({
+        patient_id: patientId,
+        patient_name: patientName,
+        ghl_contact_id: patient?.ghl_contact_id || null,
+        journey_type: 'new_patient',
+        stage: 'scheduled',
+      });
+
+    if (journeyError) {
+      console.error('Error creating lab journey (non-blocking):', journeyError);
+    }
+
+    return res.status(200).json({
+      success: true,
+      labOrder
     });
 
   } catch (error) {

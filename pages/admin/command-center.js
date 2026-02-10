@@ -5,6 +5,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import ServiceLogContent from '../../components/ServiceLogContent';
+import LabsPipelineTab from '../../components/LabsPipelineTab';
 
 // ============================================
 // CONSTANTS
@@ -1022,6 +1023,7 @@ export default function CommandCenter() {
             { id: 'patients', label: 'Patients', icon: '👥' },
             { id: 'injections', label: 'Service Log', icon: '📋' },
             { id: 'forms', label: 'Send Forms', icon: '📤' },
+            { id: 'labs', label: 'Labs', icon: '🧪' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1144,6 +1146,9 @@ export default function CommandCenter() {
               showDropdown={showFormPatientDropdown}
               setShowDropdown={setShowFormPatientDropdown}
             />
+          )}
+          {activeTab === 'labs' && (
+            <LabsPipelineTab />
           )}
         </main>
       </div>

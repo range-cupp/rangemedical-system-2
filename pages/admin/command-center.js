@@ -852,6 +852,7 @@ export default function CommandCenter() {
       ...protocol,
       start_date: protocol.start_date || '',
       end_date: protocol.end_date || '',
+      next_expected_date: protocol.next_expected_date || '',
       total_sessions: protocol.total_sessions || '',
       sessions_used: protocol.sessions_used || 0,
       selected_dose: protocol.selected_dose || '',
@@ -872,6 +873,7 @@ export default function CommandCenter() {
         body: JSON.stringify({
           start_date: editingProtocol.start_date,
           end_date: editingProtocol.end_date || null,
+          next_expected_date: editingProtocol.next_expected_date || null,
           total_sessions: editingProtocol.total_sessions ? parseInt(editingProtocol.total_sessions) : null,
           sessions_used: parseInt(editingProtocol.sessions_used) || 0,
           selected_dose: editingProtocol.selected_dose === 'Custom' ? editingProtocol.customDose : editingProtocol.selected_dose || null,
@@ -2224,6 +2226,16 @@ export default function CommandCenter() {
                   type="date"
                   value={editingProtocol.end_date || ''}
                   onChange={e => setEditingProtocol({...editingProtocol, end_date: e.target.value})}
+                  style={styles.formInput}
+                />
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Next Pickup Date</label>
+                <input
+                  type="date"
+                  value={editingProtocol.next_expected_date || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, next_expected_date: e.target.value})}
                   style={styles.formInput}
                 />
               </div>

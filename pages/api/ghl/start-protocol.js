@@ -146,7 +146,7 @@ export default async function handler(req, res) {
         
         protocolData = {
           ...protocolData,
-          program_name: /^\d+\s*Day$/i.test(payload.program_name) ? 'Peptide Therapy' : `Peptide - ${payload.program_name}`,
+          program_name: /^\d+\s*Day$/i.test(payload.program_name) ? `Peptide Therapy - ${peptideDuration} Days` : `Peptide - ${payload.program_name}`,
           medication: payload.medication,
           selected_dose: payload.dosage,
           frequency: payload.frequency,

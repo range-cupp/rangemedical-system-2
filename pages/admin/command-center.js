@@ -154,8 +154,31 @@ function getPatientName(protocol) {
 
 function getDisplayProgramName(protocol) {
   const name = protocol.program_name || protocol.medication || '-';
-  if (protocol.program_type === 'peptide' && /^(\d+\s*Day|Peptide\s*-\s*\d+\s*Day)$/i.test(name)) {
-    return 'Peptide Therapy';
+  if (protocol.program_type === 'peptide' && protocol.delivery_method === 'take_home') {
+    // Bare "7 Day" → "Peptide Therapy - 7 Days"
+    const bareMatch = name.match(/^(\d+)\s*Day$/i);
+    if (bareMatch) return `Peptide Therapy - ${bareMatch[1]} Days`;
+    // "Peptide - 10 Day" → "Peptide Therapy - 10 Days"
+    const prefixMatch = name.match(/^Peptide\s*-\s*(\d+)\s*Day$/i);
+    if (prefixMatch) return `Peptide Therapy - ${prefixMatch[1]} Days`;
+    // "Peptide Therapy - 10 Day" (singular) → "Peptide Therapy - 10 Days"
+    const singularMatch = name.match(/^Peptide Therapy\s*-\s*(\d+)\s*Day$/i);
+    if (singularMatch) return `Peptide Therapy - ${singularMatch[1]} Days`;
+    // "Peptide Week" → "Peptide Therapy - 7 Days"
+    if (/^Peptide Week$/i.test(name)) return 'Peptide Therapy - 7 Days';
+    // "Peptide Month Program - X Day" → "Peptide Therapy - X Days"
+    const monthMatch = name.match(/^Peptide Month Program\s*-\s*(\d+)\s*Day$/i);
+    if (monthMatch) return `Peptide Therapy - ${monthMatch[1]} Days`;
+    // "X Day Program" → "Peptide Therapy - X Days"
+    const dayProgMatch = name.match(/^(\d+)\s*Day Program$/i);
+    if (dayProgMatch) return `Peptide Therapy - ${dayProgMatch[1]} Days`;
+    // "Peptide Therapy" alone — derive from start/end dates
+    if (name === 'Peptide Therapy' && protocol.start_date && protocol.end_date) {
+      const start = new Date(protocol.start_date + 'T12:00:00');
+      const end = new Date(protocol.end_date + 'T12:00:00');
+      const days = Math.round((end - start) / (1000 * 60 * 60 * 24));
+      if (days > 0) return `Peptide Therapy - ${days} Days`;
+    }
   }
   return name;
 }

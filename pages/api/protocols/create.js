@@ -54,9 +54,9 @@ export default async function handler(req, res) {
       const match = program_name.match(/(\d+)\s*Day/i);
       if (match) {
         duration_days = parseInt(match[1]);
-        // Normalize bare duration names for peptide protocols
+        // Normalize bare duration names for peptide protocols → "Peptide Therapy - X Days"
         if (program_type === 'peptide' && /^(\d+\s*Day|Peptide\s*-\s*\d+\s*Day)$/i.test(program_name)) {
-          resolved_program_name = 'Peptide Therapy';
+          resolved_program_name = `Peptide Therapy - ${match[1]} Days`;
         }
       }
     }

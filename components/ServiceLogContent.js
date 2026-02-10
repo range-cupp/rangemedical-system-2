@@ -456,7 +456,9 @@ export default function ServiceLogContent() {
             payload.weight = item.formData.weight ? parseFloat(item.formData.weight) : null;
           } else {
             payload.quantity = item.formData.quantity;
-            payload.dosage = `${item.formData.quantity} week supply`;
+            payload.dosage = item.formData.dosage
+              ? `${item.formData.quantity} week supply @ ${item.formData.dosage}`
+              : `${item.formData.quantity} week supply`;
           }
         } else if (item.serviceType.id === 'vitamin') {
           payload.medication = item.formData.medication;
@@ -1093,19 +1095,36 @@ export default function ServiceLogContent() {
                         )}
 
                         {entryType === 'pickup' && (
-                          <div style={slcStyles.formGroup}>
-                            <label style={slcStyles.label}>Supply Duration</label>
-                            <select
-                              value={formData.quantity}
-                              onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                              style={slcStyles.select}
-                            >
-                              <option value="1">1 week</option>
-                              <option value="2">2 weeks</option>
-                              <option value="3">3 weeks</option>
-                              <option value="4">4 weeks</option>
-                            </select>
-                          </div>
+                          <>
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Dosage</label>
+                              <select
+                                value={formData.dosage}
+                                onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                                style={slcStyles.select}
+                              >
+                                <option value="">Select dosage...</option>
+                                {Array.from({ length: 30 }, (_, i) => {
+                                  const mg = (i + 1) * 0.5;
+                                  const label = mg % 1 === 0 ? `${mg}mg` : `${mg.toFixed(1)}mg`;
+                                  return <option key={mg} value={label}>{label}</option>;
+                                })}
+                              </select>
+                            </div>
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Supply Duration</label>
+                              <select
+                                value={formData.quantity}
+                                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                                style={slcStyles.select}
+                              >
+                                <option value="1">1 week</option>
+                                <option value="2">2 weeks</option>
+                                <option value="3">3 weeks</option>
+                                <option value="4">4 weeks</option>
+                              </select>
+                            </div>
+                          </>
                         )}
                       </>
                     )}

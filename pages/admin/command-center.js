@@ -854,6 +854,8 @@ export default function CommandCenter() {
       end_date: protocol.end_date || '',
       next_expected_date: protocol.next_expected_date || '',
       last_refill_date: protocol.last_refill_date || '',
+      supply_type: protocol.supply_type || '',
+      program_name: protocol.program_name || '',
       total_sessions: protocol.total_sessions || '',
       sessions_used: protocol.sessions_used || 0,
       selected_dose: protocol.selected_dose || '',
@@ -876,6 +878,8 @@ export default function CommandCenter() {
           end_date: editingProtocol.end_date || null,
           next_expected_date: editingProtocol.next_expected_date || null,
           last_refill_date: editingProtocol.last_refill_date || null,
+          supply_type: editingProtocol.supply_type || null,
+          program_name: editingProtocol.program_name || null,
           total_sessions: editingProtocol.total_sessions ? parseInt(editingProtocol.total_sessions) : null,
           sessions_used: parseInt(editingProtocol.sessions_used) || 0,
           selected_dose: editingProtocol.selected_dose === 'Custom' ? editingProtocol.customDose : editingProtocol.selected_dose || null,
@@ -2248,6 +2252,33 @@ export default function CommandCenter() {
                   type="date"
                   value={editingProtocol.last_refill_date || ''}
                   onChange={e => setEditingProtocol({...editingProtocol, last_refill_date: e.target.value})}
+                  style={styles.formInput}
+                />
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Supply Type</label>
+                <select
+                  value={editingProtocol.supply_type || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, supply_type: e.target.value})}
+                  style={styles.formInput}
+                >
+                  <option value="">None</option>
+                  <option value="prefilled_2week">Prefilled 2-Week (4 syringes)</option>
+                  <option value="prefilled_4week">Prefilled 4-Week (8 syringes)</option>
+                  <option value="vial_10ml">Vial (10ml)</option>
+                  <option value="vial">Vial</option>
+                  <option value="in_clinic">In Clinic</option>
+                  <option value="medication">Medication</option>
+                </select>
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>Program Name</label>
+                <input
+                  type="text"
+                  value={editingProtocol.program_name || ''}
+                  onChange={e => setEditingProtocol({...editingProtocol, program_name: e.target.value})}
                   style={styles.formInput}
                 />
               </div>

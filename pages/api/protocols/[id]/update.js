@@ -27,6 +27,8 @@ export default async function handler(req, res) {
       end_date,
       next_expected_date,
       last_refill_date,
+      supply_type,
+      program_name,
       total_sessions,
       sessions_used,
       nad_dose,
@@ -48,6 +50,8 @@ export default async function handler(req, res) {
     if (end_date !== undefined) updateData.end_date = end_date || null;
     if (next_expected_date !== undefined) updateData.next_expected_date = next_expected_date || null;
     if (last_refill_date !== undefined) updateData.last_refill_date = last_refill_date || null;
+    if (supply_type !== undefined) updateData.supply_type = supply_type || null;
+    if (program_name !== undefined) updateData.program_name = program_name || null;
     if (total_sessions !== undefined) updateData.total_sessions = parseInt(total_sessions) || 0;
     if (sessions_used !== undefined) updateData.sessions_used = parseInt(sessions_used) || 0;
     if (nad_dose !== undefined) updateData.nad_dose = nad_dose || null;

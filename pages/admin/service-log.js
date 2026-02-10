@@ -490,6 +490,11 @@ export default function ServiceLog() {
           payload.medication = item.formData.medication;
           if (item.entryType === 'injection') {
             payload.dosage = item.formData.dosage || 'Standard';
+          } else if (item.entryType === 'med_pickup') {
+            payload.entry_type = 'pickup';
+            payload.quantity = item.formData.quantity || 1;
+            payload.dosage = item.formData.dosage || 'Standard';
+            payload.supply_type = 'medication';
           } else {
             payload.quantity = item.formData.quantity || 1;
             payload.dosage = `${item.formData.quantity} vial(s)`;
@@ -1218,6 +1223,12 @@ export default function ServiceLog() {
                               >
                                 📦 Vial Pickup
                               </button>
+                              <button
+                                style={{ ...styles.toggleBtn, ...(entryType === 'med_pickup' ? styles.toggleBtnActive : {}) }}
+                                onClick={() => setEntryType('med_pickup')}
+                              >
+                                💊 Medication Pickup
+                              </button>
                             </div>
                           </div>
 
@@ -1259,6 +1270,31 @@ export default function ServiceLog() {
                                 style={styles.input}
                               />
                             </div>
+                          )}
+
+                          {entryType === 'med_pickup' && (
+                            <>
+                              <div style={styles.formGroup}>
+                                <label style={styles.label}>Dosage</label>
+                                <input
+                                  type="text"
+                                  value={formData.dosage}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                                  placeholder="e.g. 500mcg, 1mg..."
+                                  style={styles.input}
+                                />
+                              </div>
+                              <div style={styles.formGroup}>
+                                <label style={styles.label}>Quantity</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={formData.quantity}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                                  style={styles.input}
+                                />
+                              </div>
+                            </>
                           )}
 
                           {/* Protocol fields for Peptides */}

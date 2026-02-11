@@ -3218,12 +3218,34 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol 
 
 function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [dismissedIds, setDismissedIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dueSoonDismissed') || '[]');
+    } catch { return []; }
+  });
+  const [showDismissed, setShowDismissed] = useState(false);
   const protocols = data?.protocols || [];
 
   // Filter to only show protocols that are due soon (expired, critical, warning)
-  const dueSoonProtocols = protocols.filter(p =>
+  const allDueSoonProtocols = protocols.filter(p =>
     ['expired', 'critical', 'warning'].includes(p.urgency) && p.status === 'active'
   );
+
+  // Separate dismissed and active
+  const dueSoonProtocols = allDueSoonProtocols.filter(p => !dismissedIds.includes(p.id));
+  const dismissedProtocols = allDueSoonProtocols.filter(p => dismissedIds.includes(p.id));
+
+  const handleDismiss = (protocolId) => {
+    const updated = [...dismissedIds, protocolId];
+    setDismissedIds(updated);
+    localStorage.setItem('dueSoonDismissed', JSON.stringify(updated));
+  };
+
+  const handleRestore = (protocolId) => {
+    const updated = dismissedIds.filter(id => id !== protocolId);
+    setDismissedIds(updated);
+    localStorage.setItem('dueSoonDismissed', JSON.stringify(updated));
+  };
 
   // Apply category filter
   const filteredProtocols = categoryFilter === 'all'
@@ -3233,6 +3255,32 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
   // Get unique categories that have due soon protocols
   const categoriesWithProtocols = [...new Set(dueSoonProtocols.map(p => p.program_type))];
 
+  // Helper: get days remaining for a protocol (lower = more urgent)
+  const getDaysRemaining = (protocol) => {
+    const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date } = protocol;
+
+    // Session-based: use negative remaining sessions as proxy
+    if (delivery_method === 'in_clinic' && total_sessions > 0) {
+      const remaining = total_sessions - (sessions_used || 0);
+      return remaining <= 0 ? -999 : remaining;
+    }
+
+    // Date-based
+    let endDateObj = null;
+    if (end_date) {
+      endDateObj = new Date(end_date + 'T00:00:00');
+    } else if (program_type === 'weight_loss' && start_date && total_sessions) {
+      endDateObj = new Date(start_date + 'T00:00:00');
+      endDateObj.setDate(endDateObj.getDate() + (total_sessions * 7));
+    }
+
+    if (!endDateObj) return 999;
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return Math.round((endDateObj - now) / (1000 * 60 * 60 * 24));
+  };
+
   // Group filtered protocols by category for display
   const protocolsByCategory = {};
   filteredProtocols.forEach(p => {
@@ -3241,12 +3289,9 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
     protocolsByCategory[cat].push(p);
   });
 
-  // Sort protocols within each category by urgency (expired first, then critical, then warning)
-  const urgencyOrder = { expired: 0, critical: 1, warning: 2 };
+  // Sort protocols within each category by days remaining (most overdue first, then soonest due)
   Object.keys(protocolsByCategory).forEach(cat => {
-    protocolsByCategory[cat].sort((a, b) =>
-      (urgencyOrder[a.urgency] || 3) - (urgencyOrder[b.urgency] || 3)
-    );
+    protocolsByCategory[cat].sort((a, b) => getDaysRemaining(a) - getDaysRemaining(b));
   });
 
   // Get days/sessions remaining info
@@ -3410,6 +3455,13 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
           >
             Edit
           </button>
+          <button
+            style={{ ...dueSoonStyles.actionBtn, background: '#E5E7EB', color: '#374151' }}
+            onClick={() => handleDismiss(protocol.id)}
+            title="Dismiss from Due Soon"
+          >
+            Dismiss
+          </button>
         </div>
       </div>
     );
@@ -3491,6 +3543,55 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
           ) : (
             <div style={dueSoonStyles.cardList}>
               {filteredProtocols.map(renderProtocolCard)}
+            </div>
+          )}
+
+          {/* Dismissed protocols section */}
+          {dismissedProtocols.length > 0 && (
+            <div style={{ marginTop: '24px', borderTop: '1px solid #E5E7EB', paddingTop: '16px' }}>
+              <button
+                onClick={() => setShowDismissed(!showDismissed)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '13px', color: '#6B7280', fontWeight: '500',
+                  display: 'flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                <span style={{ transform: showDismissed ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', display: 'inline-block' }}>▶</span>
+                {dismissedProtocols.length} dismissed
+              </button>
+              {showDismissed && (
+                <div style={{ ...dueSoonStyles.cardList, marginTop: '12px', opacity: 0.6 }}>
+                  {dismissedProtocols.map(protocol => (
+                    <div key={protocol.id} style={{ ...dueSoonStyles.card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{
+                          ...dueSoonStyles.categoryBadge,
+                          background: CATEGORY_COLORS[protocol.program_type] || '#888',
+                          padding: '2px 8px', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: '600'
+                        }}>
+                          {CATEGORY_LABELS[protocol.program_type] || protocol.program_type}
+                        </span>
+                        <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          {protocol.patients?.name || `${protocol.patients?.first_name || ''} ${protocol.patients?.last_name || ''}`.trim()}
+                        </span>
+                        <span style={{ fontSize: '13px', color: '#6B7280' }}>
+                          {getDisplayProgramName(protocol)}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleRestore(protocol.id)}
+                        style={{
+                          padding: '4px 12px', borderRadius: '6px', border: '1px solid #D1D5DB',
+                          background: '#fff', color: '#374151', fontSize: '12px', cursor: 'pointer', fontWeight: '500'
+                        }}
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </>

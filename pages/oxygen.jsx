@@ -375,7 +375,7 @@ export default function OxygenLanding() {
                 If you have questions or want to find out if hyperbaric oxygen therapy is right for you, we're here to help. No pressure — just the information you need.
               </p>
               <div className="cta-buttons">
-                <Link href="/range-assessment" className="btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment" className="btn-primary">Take Your Assessment</Link>
                 <div className="cta-or">or</div>
                 <a href="tel:9499973988" className="cta-phone">(949) 997-3988</a>
               </div>

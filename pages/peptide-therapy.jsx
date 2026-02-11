@@ -135,7 +135,7 @@ export default function PeptideTherapy() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Book your assessment", desc: "Start with a free Range Assessment. We'll discuss your goals, medical history, and determine which peptides might help your situation." },
+    { step: "Step 1", title: "Take your assessment", desc: "Start with a free Range Assessment. We'll discuss your goals, medical history, and determine which peptides might help your situation." },
     { step: "Step 2", title: "Get your protocol", desc: "Your provider designs a personalized peptide protocol — which peptides, what doses, and how long. We explain everything clearly." },
     { step: "Step 3", title: "Learn to inject", desc: "We teach you how to self-administer subcutaneous injections. It's easier than you think — most patients are comfortable immediately." },
     { step: "Step 4", title: "Track & adjust", desc: "Regular check-ins to monitor your progress. We adjust your protocol as needed to optimize results." }
@@ -471,7 +471,7 @@ export default function PeptideTherapy() {
                 Start with a free Range Assessment. We'll discuss your goals and design a peptide protocol for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="pep-cta-buttons">
-                <Link href="/range-assessment?path=injury" className="pep-btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment?path=injury" className="pep-btn-primary">Take Your Assessment</Link>
                 <div className="pep-cta-or">or</div>
                 <a href="tel:9499973988" className="pep-cta-phone">(949) 997-3988</a>
               </div>

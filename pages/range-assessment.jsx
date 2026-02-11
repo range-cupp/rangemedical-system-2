@@ -3,6 +3,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import InjuryIntakeForm from '../components/assessment/InjuryIntakeForm';
+import EnergyIntakeForm from '../components/assessment/EnergyIntakeForm';
 
 // Biomarker mapping - which markers are relevant for each symptom/goal
 const biomarkerMapping = {
@@ -126,6 +128,25 @@ export default function RangeAssessment() {
   const [showResults, setShowResults] = useState(false);
   const [showInjuryResults, setShowInjuryResults] = useState(false);
   const [recommendation, setRecommendation] = useState(null);
+  const [showInjuryIntake, setShowInjuryIntake] = useState(false);
+  const [showEnergyIntake, setShowEnergyIntake] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isCompletingIntake, setIsCompletingIntake] = useState(false);
+  const [leadId, setLeadId] = useState(null);
+  const [intakeData, setIntakeData] = useState({
+    medicalHistory: {},
+    medications: [],
+    noCurrentMedications: false,
+    knownAllergiesText: '',
+    noKnownAllergies: false,
+    surgicalHistory: [],
+    noPriorSurgeries: false,
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    emergencyContactRelationship: '',
+    currentMedicationsText: '',
+    diagnosedConditionsText: ''
+  });
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -307,6 +328,11 @@ export default function RangeAssessment() {
         throw new Error(data.error || 'Something went wrong');
       }
 
+      // Store leadId for completion endpoint
+      if (data.leadId) {
+        setLeadId(data.leadId);
+      }
+
       // For Energy path, show lab results. For Injury path, show peptide results
       if (selectedPath === 'energy') {
         const rec = calculateRecommendation();
@@ -333,6 +359,41 @@ export default function RangeAssessment() {
   const openPayment = (panelType) => {
     const url = PAYMENT_LINKS[panelType];
     window.open(url, '_blank');
+  };
+
+  // Handle intake form completion
+  const handleIntakeComplete = async () => {
+    setIsCompletingIntake(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/assessment/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId,
+          assessmentPath: selectedPath,
+          formData,
+          intakeData,
+          recommendation
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong');
+      }
+
+      setIsCompletingIntake(false);
+      setShowInjuryIntake(false);
+      setShowEnergyIntake(false);
+      setShowConfirmation(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(err.message);
+      setIsCompletingIntake(false);
+    }
   };
 
   // Get peptide benefits based on injury type and goal
@@ -391,6 +452,131 @@ export default function RangeAssessment() {
 
     return { bpcBenefits, tb4Benefits };
   };
+
+  // Confirmation screen (both paths)
+  if (showConfirmation) {
+    return (
+      <Layout>
+        <Head>
+          <title>You're All Set | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <div className="ra-page">
+          <section style={{ padding: '4rem 1.5rem', textAlign: 'center', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ maxWidth: 560, margin: '0 auto' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, background: '#22c55e', borderRadius: '50%', marginBottom: '1.5rem' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <h1 style={{ fontSize: '2.25rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>
+                You're All Set, {formData.firstName}
+              </h1>
+              <p style={{ fontSize: '1.0625rem', color: '#525252', lineHeight: 1.7, margin: '0 0 2rem' }}>
+                We've sent a complete summary to our team.
+              </p>
+
+              {selectedPath === 'injury' ? (
+                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
+                  <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>
+                    Our team will review your information and reach out to schedule your consultation. We'll create a personalized peptide protocol based on your assessment and medical history.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
+                    <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
+                      Book your recommended lab panel below and our team will reach out to schedule your blood draw.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <a
+                        href={PAYMENT_LINKS[recommendation?.panel || 'essential']}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: 'inline-block', background: '#000', color: '#fff', padding: '0.875rem 1.5rem', borderRadius: 8, fontWeight: 600, fontSize: '0.9375rem', textDecoration: 'none' }}
+                      >
+                        Pay & Book {recommendation?.panel === 'elite' ? 'Elite Panel — $750' : 'Essential Panel — $350'}
+                      </a>
+                      {recommendation?.panel === 'elite' && (
+                        <a
+                          href={PAYMENT_LINKS.essential}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: 'inline-block', background: '#fff', color: '#171717', padding: '0.875rem 1.5rem', borderRadius: 8, fontWeight: 600, fontSize: '0.9375rem', textDecoration: 'none', border: '1px solid #e5e5e5' }}
+                        >
+                          Essential Panel — $350
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <p style={{ fontSize: '0.9375rem', color: '#737373', margin: '1.5rem 0 0' }}>
+                Questions? Call us at{' '}
+                <a href="tel:9499973988" style={{ color: '#171717', fontWeight: 600 }}>(949) 997-3988</a>
+              </p>
+            </div>
+          </section>
+        </div>
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  // Injury Intake Form
+  if (showInjuryIntake) {
+    return (
+      <Layout>
+        <Head>
+          <title>Medical Intake | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <InjuryIntakeForm
+          intakeData={intakeData}
+          onIntakeChange={setIntakeData}
+          onSubmit={handleIntakeComplete}
+          onBack={() => {
+            setShowInjuryIntake(false);
+            setShowInjuryResults(true);
+          }}
+          isSubmitting={isCompletingIntake}
+          error={error}
+          patientName={formData.firstName}
+        />
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  // Energy Intake Form
+  if (showEnergyIntake) {
+    return (
+      <Layout>
+        <Head>
+          <title>Quick Intake | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <EnergyIntakeForm
+          intakeData={intakeData}
+          onIntakeChange={setIntakeData}
+          onSubmit={handleIntakeComplete}
+          onBack={() => {
+            setShowEnergyIntake(false);
+            setShowResults(true);
+          }}
+          isSubmitting={isCompletingIntake}
+          error={error}
+          patientName={formData.firstName}
+          recommendation={recommendation}
+        />
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
 
   // Injury Results screen
   if (showInjuryResults) {
@@ -551,9 +737,17 @@ export default function RangeAssessment() {
               <p>
                 To get started, we need a bit more medical history. This form takes about 5 minutes and helps our provider create your personalized protocol.
               </p>
-              <a href="https://app.range-medical.com/intake" className="inj-res-cta" target="_blank" rel="noopener noreferrer">
+              <button
+                className="inj-res-cta"
+                onClick={() => {
+                  setShowInjuryResults(false);
+                  setShowInjuryIntake(true);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
                 Continue to Medical Intake
-              </a>
+              </button>
               <p className="inj-res-contact">
                 Questions? Call us at <a href="tel:9499973988">(949) 997-3988</a>
               </p>
@@ -1003,6 +1197,24 @@ export default function RangeAssessment() {
                       Pay & Book Essential
                     </a>
                   </div>
+                </div>
+
+                {/* Quick Intake Prompt */}
+                <div style={{ background: '#000', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+                  <h3 style={{ color: '#fff', fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem' }}>Before You Book, Help Us Prepare</h3>
+                  <p style={{ color: '#a3a3a3', fontSize: '0.9375rem', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
+                    Takes about 1 minute — helps our team get ready for your visit.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowResults(false);
+                      setShowEnergyIntake(true);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    style={{ background: '#fff', color: '#000', padding: '0.875rem 2rem', borderRadius: 8, fontWeight: 600, fontSize: '0.9375rem', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Complete Quick Intake
+                  </button>
                 </div>
 
                 {/* Biomarkers */}

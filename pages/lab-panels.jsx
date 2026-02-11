@@ -570,7 +570,7 @@ export default function LabPanels() {
             <span className="lab-section-label-light">Get Started</span>
             <h2>Ready to See What's Really Going On?</h2>
             <p className="lab-cta-text">
-              Book an Assessment to discuss which panel is right for you and get the most value from your lab work.
+              Take an Assessment to discuss which panel is right for you and get the most value from your lab work.
             </p>
             <div className="lab-cta-buttons">
               <Link href="/range-assessment?path=energy" className="lab-btn-white">Take Assessment</Link>

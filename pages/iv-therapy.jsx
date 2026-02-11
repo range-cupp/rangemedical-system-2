@@ -402,7 +402,7 @@ export default function IVTherapy() {
                 Walk-ins welcome for established patients. New to Range? Book a quick screening to get started. Our Newport Beach team is ready to help.
               </p>
               <div className="iv-cta-buttons">
-                <Link href="/range-assessment" className="iv-btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment" className="iv-btn-primary">Take Your Assessment</Link>
                 <div className="iv-cta-or">or</div>
                 <a href="tel:9499973988" className="iv-cta-phone">(949) 997-3988</a>
               </div>

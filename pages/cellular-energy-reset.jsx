@@ -531,7 +531,7 @@ export default function CellularEnergyReset() {
               Start with a Range Assessment. Your provider will confirm if the Cellular
               Energy Reset is the right program for your situation.
             </p>
-            <Link href="/range-assessment" className="cer-btn-white">Book Range Assessment — free</Link>
+            <Link href="/range-assessment" className="cer-btn-white">Take Range Assessment</Link>
             <p className="cer-cta-location">
               Range Medical • 1901 Westcliff Dr, Newport Beach<br />
               <a href="tel:9499973988">(949) 997-3988</a>

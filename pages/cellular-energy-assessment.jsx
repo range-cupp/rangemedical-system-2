@@ -637,7 +637,7 @@ const CellularEnergyAssessment = () => {
           </a>
           <div className="cea-header-cta">
             <span className="cea-header-phone">Questions? <a href="tel:+19499973988">(949) 997-3988</a></span>
-            <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cea-btn-small">Book Now</a>
+            <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cea-btn-small">Take Now</a>
           </div>
         </div>
       </header>
@@ -655,11 +655,11 @@ const CellularEnergyAssessment = () => {
             <div className="cea-hero-credit">100% credits toward the 6-Week Reset</div>
           </div>
           <div>
-            <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cea-btn-primary">Book Your Assessment →</a>
+            <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cea-btn-primary">Take Your Assessment →</a>
           </div>
         </div>
       </section>
-      
+
       {/* Who It's For */}
       <section className="cea-section">
         <div className="cea-container">
@@ -793,7 +793,7 @@ const CellularEnergyAssessment = () => {
             <div className="cea-step">
               <div className="cea-step-number">1</div>
               <div className="cea-step-content">
-                <h4>Book Your Assessment</h4>
+                <h4>Take Your Assessment</h4>
                 <p>Text us or call to schedule. We'll send you the questionnaire to complete before your visit.</p>
               </div>
             </div>
@@ -859,7 +859,7 @@ const CellularEnergyAssessment = () => {
             </div>
             
             <div className="cea-pricing-cta">
-              <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cea-btn-primary">Book Your Assessment →</a>
+              <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cea-btn-primary">Take Your Assessment →</a>
             </div>
             
             <p className="cea-pricing-note">Questions? Call (949) 997-3988</p>

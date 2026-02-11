@@ -473,7 +473,7 @@ export default function NADTherapy() {
                 Start with a free Range Assessment. We'll discuss your goals and determine which NAD+ protocol is right for you. Our Newport Beach team is here to help.
               </p>
               <div className="nad-cta-buttons">
-                <Link href="/range-assessment" className="nad-btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment" className="nad-btn-primary">Take Your Assessment</Link>
                 <div className="nad-cta-or">or</div>
                 <a href="tel:9499973988" className="nad-cta-phone">(949) 997-3988</a>
               </div>

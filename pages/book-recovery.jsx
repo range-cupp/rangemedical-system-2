@@ -33,7 +33,7 @@ export default function BookRecovery() {
 
   return (
     <Layout 
-      title="Book Recovery Assessment | Range Medical"
+      title="Take Recovery Assessment | Range Medical"
       description="Schedule your Recovery Assessment at Range Medical in Newport Beach. Consultation for peptide therapy, PRP, and IV support. No labs required."
     >
       {/* Trust Bar */}
@@ -51,7 +51,7 @@ export default function BookRecovery() {
       <section className="hero">
         <div className="container">
           <span className="hero-badge">No Labs Required</span>
-          <h1>Book Your Recovery Assessment</h1>
+          <h1>Take Your Recovery Assessment</h1>
           <p className="hero-sub">A consultation to evaluate whether peptide therapy, PRP, IVs, or other tools can support your recovery.</p>
         </div>
       </section>
@@ -126,7 +126,7 @@ export default function BookRecovery() {
       <section className="section" id="book">
         <div className="container">
           <div className="section-kicker">Schedule Now</div>
-          <h2 className="section-title">Book Your Assessment</h2>
+          <h2 className="section-title">Take Your Assessment</h2>
           <p className="section-subtitle">Review the information below, then select a time that works for you.</p>
 
           {/* Prep Instructions */}
@@ -202,7 +202,7 @@ export default function BookRecovery() {
           </div>
 
           <div className="info-note">
-            <p><strong>Looking for hormone therapy, weight loss, or longevity services?</strong> <Link href="/range-assessment">Book a Range Assessment instead →</Link></p>
+            <p><strong>Looking for hormone therapy, weight loss, or longevity services?</strong> <Link href="/range-assessment">Take a Range Assessment instead →</Link></p>
           </div>
 
           {/* Calendar Container */}

@@ -83,7 +83,7 @@ export default async function handler(req, res) {
         recovery_goal: recoveryGoal || null,
         primary_symptom: symptoms && symptoms.length > 0 ? symptoms.join(', ') : null,
         symptom_duration: symptomDuration || null,
-        last_lab_work: lastLabWork || null,
+        has_recent_labs: lastLabWork || null,
         tried_hormone_therapy: triedHormoneTherapy || null,
         energy_goal: goals && goals.length > 0 ? goals.join(', ') : null,
         additional_info: additionalInfo || null,
@@ -236,14 +236,7 @@ export default async function handler(req, res) {
       console.error('Email notification error:', emailError);
     }
 
-    // 5. Send patient results email (for energy path)
-    if (assessmentPath === 'energy') {
-      try {
-        await sendPatientResultsEmail({ firstName, email, symptoms, goals, lastLabWork });
-      } catch (patientEmailError) {
-        console.error('Patient results email error:', patientEmailError);
-      }
-    }
+    // 5. Patient results email removed — now sent from /api/assessment/complete after intake
 
     return res.status(200).json({
       success: true,

@@ -104,3 +104,13 @@ scripts/                # One-off utility scripts
 ### Service Log
 - The Service Log is the **single source of truth** for all session tracking (IV, HBOT, RLT, injections, peptide pickups, weight loss pickups, HRT pickups)
 - Do not add session counting to GHL webhooks or other systems
+
+### Assessment Flow
+- Assessment is FREE — no pricing on the assessment itself
+- Lab panel pricing (Essential $350, Elite $750) stays on energy results screen
+- Flow: Door selector → Contact info → 5 questions → Results → Medical Intake → Confirmation
+- Injury path intake = full (medical history, meds, allergies, surgical, emergency contact)
+- Energy path intake = light (meds, allergies, conditions, emergency contact)
+- Initial submit (`/api/assessment/submit`) = creates GHL contact + sends SMS alert
+- Completion submit (`/api/assessment/complete`) = saves intake + generates PDF + sends consolidated email
+- One consolidated email per completed assessment (not separate emails per step)

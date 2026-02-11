@@ -15,7 +15,7 @@ export default function LabPanels() {
           <p className="hero-sub">A complete look at every biomarker in our Essential and Elite panels—and what each one tells us about your health.</p>
           
           <div className="hero-cta">
-            <Link href="/range-assessment" className="btn-primary">Book Your Range Assessment</Link>
+            <Link href="/range-assessment" className="btn-primary">Take Your Range Assessment</Link>
             <p className="hero-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a></p>
           </div>
         </div>
@@ -299,8 +299,8 @@ export default function LabPanels() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to See the Full Picture?</h2>
-          <p>Book your Range Assessment and get clarity on what's really going on inside.</p>
-          <Link href="/range-assessment" className="btn-white">Book Your Range Assessment</Link>
+          <p>Take your Range Assessment and get clarity on what's really going on inside.</p>
+          <Link href="/range-assessment" className="btn-white">Take Your Range Assessment</Link>
           <p className="cta-secondary">Already a patient? <a href="tel:+19499973988">Call or text to schedule</a></p>
         </div>
       </section>

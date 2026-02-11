@@ -369,7 +369,7 @@ export default function HRTMembership() {
             </div>
             <div className="faq-item">
               <h3>How do I get started?</h3>
-              <p>Book a free Range Assessment. We'll review your symptoms, order labs if needed, and determine if HRT is right for you. If it is, you'll start your membership when you begin your protocol.</p>
+              <p>Take a free Range Assessment. We'll review your symptoms, order labs if needed, and determine if HRT is right for you. If it is, you'll start your membership when you begin your protocol.</p>
             </div>
             <div className="faq-item">
               <h3>Is there a contract or commitment?</h3>

@@ -104,7 +104,7 @@ export default function HormoneOptimization() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Book your assessment", desc: "Start with a free Range Assessment. We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
+    { step: "Step 1", title: "Take your assessment", desc: "Start with a free Range Assessment. We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
     { step: "Step 2", title: "Run comprehensive labs", desc: "We check testosterone, estrogen, thyroid, metabolic markers, and more — not just the basics your regular doctor runs." },
     { step: "Step 3", title: "Review & start protocol", desc: "Your provider explains your results and designs a personalized protocol. You start your $250/month membership." },
     { step: "Step 4", title: "Ongoing optimization", desc: "Follow-up labs at 6-8 weeks, then quarterly. We adjust your protocol as needed. Direct access to your provider anytime." }
@@ -478,7 +478,7 @@ export default function HormoneOptimization() {
                 Start with a free Range Assessment. We'll review your symptoms, run comprehensive labs, and build a plan. Our Newport Beach team is here to help.
               </p>
               <div className="hrt-cta-buttons">
-                <Link href="/range-assessment?path=energy" className="hrt-btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment?path=energy" className="hrt-btn-primary">Take Your Assessment</Link>
                 <div className="hrt-cta-or">or</div>
                 <a href="tel:9499973988" className="hrt-cta-phone">(949) 997-3988</a>
               </div>

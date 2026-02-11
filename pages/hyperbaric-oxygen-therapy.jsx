@@ -461,7 +461,7 @@ export default function HyperbaricOxygenTherapy() {
                 If you have questions or want to find out if hyperbaric oxygen therapy is right for you, our Newport Beach team is here to help. No pressure — just the information you need.
               </p>
               <div className="hbot-cta-buttons">
-                <Link href="/range-assessment" className="hbot-btn-primary">Book Your Assessment</Link>
+                <Link href="/range-assessment" className="hbot-btn-primary">Take Your Assessment</Link>
                 <div className="hbot-cta-or">or</div>
                 <a href="tel:9499973988" className="hbot-cta-phone">(949) 997-3988</a>
               </div>

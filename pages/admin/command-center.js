@@ -35,19 +35,19 @@ const CATEGORY_LABELS = {
 };
 
 const IV_OPTIONS = [
-  { value: 'Energy IV', label: 'Energy IV' },
-  { value: 'Hydration IV', label: 'Hydration IV' },
-  { value: 'Immune IV', label: 'Immune IV' },
-  { value: 'Glow IV', label: 'Glow IV' },
-  { value: 'Brain IV', label: 'Brain IV' },
-  { value: 'Performance IV', label: 'Performance IV' },
-  { value: 'NAD+ IV 250mg', label: 'NAD+ IV 250mg' },
-  { value: 'NAD+ IV 500mg', label: 'NAD+ IV 500mg' },
-  { value: 'NAD+ IV 750mg', label: 'NAD+ IV 750mg' },
-  { value: 'NAD+ IV 1000mg', label: 'NAD+ IV 1000mg' },
-  { value: 'Methylene Blue IV', label: 'Methylene Blue IV' },
-  { value: 'High-Dose Vitamin C', label: 'High-Dose Vitamin C' },
-  { value: 'Magnesium IV', label: 'Magnesium IV' },
+  { value: 'Range Energy IV', label: 'Range Energy IV' },
+  { value: 'Range Hydration IV', label: 'Range Hydration IV' },
+  { value: 'Range Immune IV', label: 'Range Immune IV' },
+  { value: 'Range Glow IV', label: 'Range Glow IV' },
+  { value: 'Range Brain IV', label: 'Range Brain IV' },
+  { value: 'Range Performance IV', label: 'Range Performance IV' },
+  { value: 'Range NAD+ IV 250mg', label: 'Range NAD+ IV 250mg' },
+  { value: 'Range NAD+ IV 500mg', label: 'Range NAD+ IV 500mg' },
+  { value: 'Range NAD+ IV 750mg', label: 'Range NAD+ IV 750mg' },
+  { value: 'Range NAD+ IV 1000mg', label: 'Range NAD+ IV 1000mg' },
+  { value: 'Range Methylene Blue IV', label: 'Range Methylene Blue IV' },
+  { value: 'Range High-Dose Vitamin C', label: 'Range High-Dose Vitamin C' },
+  { value: 'Range Magnesium IV', label: 'Range Magnesium IV' },
   { value: 'Custom Range IV', label: 'Custom Range IV' },
 ];
 

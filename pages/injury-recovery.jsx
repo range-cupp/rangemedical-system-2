@@ -31,8 +31,8 @@ export default function InjuryRecovery() {
 
   const faqs = [
     {
-      question: "Do I need to be a patient at Range Sports Therapy?",
-      answer: "No. Anyone with an injury can book a Recovery Assessment. Many people are referred from Range Sports Therapy, but you can also book directly with us."
+      question: "Do I need a referral to get started?",
+      answer: "No. Anyone with an injury can take the online assessment and book treatment. Many patients are referred from physical therapists and chiropractors, but you can also come to us directly."
     },
     {
       question: "Does this replace my physical therapy or rehab?",
@@ -44,15 +44,15 @@ export default function InjuryRecovery() {
     },
     {
       question: "What kinds of injuries does this help with?",
-      answer: "Most orthopedic injuries — sprains, strains, tendon issues, ligament tears, post-surgical recovery, and chronic pain that's slow to heal. We'll confirm it's a good fit at your Assessment."
+      answer: "Most orthopedic injuries — sprains, strains, tendon issues, ligament tears, post-surgical recovery, and chronic pain that's slow to heal. The online assessment will help confirm it's a good fit."
     },
     {
       question: "How quickly will I see results?",
-      answer: "Many patients notice improvements within the first 1-2 weeks, though this varies based on injury severity and treatment protocol. Your provider will give you realistic expectations at your Assessment."
+      answer: "Many patients notice improvements within the first 1-2 weeks, though this varies based on injury severity and treatment protocol. Your provider will give you realistic expectations at your first visit."
     },
     {
       question: "What if I also want help with energy or hormones?",
-      answer: "We can discuss that at your Assessment. If energy optimization is your main concern, you might want to start with the Energy & Optimization pathway instead, or we can address both."
+      answer: "We can discuss that at your first visit. If energy optimization is your main concern, you might want to start with the Energy & Optimization pathway instead, or we can address both."
     }
   ];
 
@@ -274,35 +274,35 @@ export default function InjuryRecovery() {
         {/* Process Section */}
         <section id="inj-process" className={`inj-section inj-animate ${isVisible['inj-process'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
-            <span className="inj-section-label">Your Visit</span>
-            <h2>What Happens at Your Assessment</h2>
+            <span className="inj-section-label">How It Works</span>
+            <h2>From Assessment to Recovery Plan</h2>
             <p className="inj-section-intro">
-              A focused 30-minute visit to understand your injury and build the right recovery plan.
+              Start with a free online assessment. We'll match you with the right recovery tools — no guesswork.
             </p>
 
             <div className="inj-process-grid">
               <div className="inj-process-step">
                 <div className="inj-process-number">1</div>
-                <h4>Review Your Injury</h4>
-                <p>We go over your injury history, current rehab, imaging, and goals for getting back to normal.</p>
+                <h4>Take the Online Assessment</h4>
+                <p>Answer a few questions about your injury, timeline, and recovery goals. Takes about 2 minutes.</p>
               </div>
 
               <div className="inj-process-step">
                 <div className="inj-process-number">2</div>
-                <h4>Assess Key Movements</h4>
-                <p>We look at how the injured area responds and identify what might be slowing your recovery.</p>
+                <h4>Get Your Recommendation</h4>
+                <p>Based on your answers, we'll show you which recovery protocols fit your situation.</p>
               </div>
 
               <div className="inj-process-step">
                 <div className="inj-process-number">3</div>
-                <h4>Discuss Your History</h4>
-                <p>We talk through what you've already tried and what has or hasn't helped.</p>
+                <h4>Come In for Treatment</h4>
+                <p>Visit our Newport Beach clinic to start your protocol. Your provider will refine the plan based on your progress.</p>
               </div>
 
               <div className="inj-process-step">
                 <div className="inj-process-number">4</div>
-                <h4>Build Your Protocol</h4>
-                <p>Your provider recommends the right recovery tools based on your injury, timeline, and goals.</p>
+                <h4>Heal Faster</h4>
+                <p>Most patients notice improvements within the first 1-2 weeks. We adjust your protocol as you progress.</p>
               </div>
             </div>
           </div>
@@ -441,7 +441,7 @@ export default function InjuryRecovery() {
             <span className="inj-section-label-light">Get Started</span>
             <h2>Ready to Speed Up Your Recovery?</h2>
             <p className="inj-cta-text">
-              Book your Range Assessment. If you move forward with a program, the free is credited toward it.
+              Take the free online assessment. It takes 2 minutes and we'll show you exactly which recovery tools fit your situation.
             </p>
             <Link href="/range-assessment?path=injury" className="inj-btn-white">Take Assessment</Link>
             <p className="inj-cta-location">

@@ -2,18 +2,19 @@
 // Labs Pipeline Tab - New Patient Journeys & Follow-up Labs
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-01-27 - Added protocol linkage, move stage, delete functionality
+// UPDATED: 2026-02-10 - New 6-stage pipeline: draw_scheduled, draw_complete, provider_reviewed, consult_scheduled, need_follow_up, treatment_started
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-// Stage configurations
+// Stage configurations - 6 new clinical stages
 const NEW_PATIENT_STAGES = [
-  { id: 'scheduled', label: 'Blood Draw Scheduled', color: '#6366f1', icon: '📅' },
-  { id: 'outreach_due', label: 'Outreach Due', color: '#f59e0b', icon: '📞' },
-  { id: 'outreach_complete', label: 'Outreach Complete', color: '#10b981', icon: '✓' },
-  { id: 'review_scheduled', label: 'Lab Review Scheduled', color: '#8b5cf6', icon: '🗓️' },
-  { id: 'review_complete', label: 'Needs Outcome', color: '#ef4444', icon: '📋' }
+  { id: 'draw_scheduled', label: 'Blood Draw Scheduled', color: '#6366f1', icon: '📅' },
+  { id: 'draw_complete', label: 'Blood Draw Complete', color: '#f59e0b', icon: '🩸' },
+  { id: 'provider_reviewed', label: 'Provider Reviewed', color: '#10b981', icon: '👨‍⚕️' },
+  { id: 'consult_scheduled', label: 'Consultation Scheduled', color: '#8b5cf6', icon: '🗓️' },
+  { id: 'need_follow_up', label: 'Need to Follow Up', color: '#ef4444', icon: '📞' },
+  { id: 'treatment_started', label: 'Treatment Started', color: '#3b82f6', icon: '✅' }
 ];
 
 const FOLLOW_UP_STAGES = [
@@ -44,10 +45,10 @@ const PROTOCOL_COLORS = {
 export default function LabsPipelineTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [subTab, setSubTab] = useState('new_patient'); // 'new_patient' or 'follow_up'
+  const [subTab, setSubTab] = useState('new_patient');
   const [selectedJourney, setSelectedJourney] = useState(null);
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
-  const [showOutreachModal, setShowOutreachModal] = useState(false);
+  const [showFollowUpNotesModal, setShowFollowUpNotesModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [addForm, setAddForm] = useState({ patientName: '', bloodDrawDate: '' });
@@ -114,7 +115,7 @@ export default function LabsPipelineTab() {
         await fetchData();
         setSelectedJourney(null);
         setShowOutcomeModal(false);
-        setShowOutreachModal(false);
+        setShowFollowUpNotesModal(false);
       }
     } catch (err) {
       console.error('Error updating:', err);
@@ -143,34 +144,33 @@ export default function LabsPipelineTab() {
     }
   };
 
-  // Move to different stage
+  // Move to different stage with auto-filled dates
   const handleMoveStage = async (journey, newStage) => {
     const updates = { stage: newStage };
-    
-    // Set appropriate dates based on new stage
     const now = new Date().toISOString().split('T')[0];
-    if (newStage === 'outreach_due') {
+
+    if (newStage === 'draw_complete') {
       updates.blood_draw_completed_date = now;
-      updates.outreach_due_date = addBusinessDaysStr(now, 2);
-    } else if (newStage === 'outreach_complete') {
-      updates.outreach_completed_date = now;
-    } else if (newStage === 'review_scheduled') {
-      // Keep existing review date or set to null
-    } else if (newStage === 'review_complete') {
-      updates.lab_review_completed_date = now;
+    } else if (newStage === 'provider_reviewed') {
+      updates.provider_reviewed_date = now;
+    } else if (newStage === 'consult_scheduled') {
+      updates.consultation_scheduled_date = new Date().toISOString();
+    } else if (newStage === 'need_follow_up') {
+      updates.follow_up_flagged_date = now;
+    } else if (newStage === 'treatment_started') {
+      updates.treatment_started_date = now;
     }
-    
+
     await updateJourney(journey.id, updates);
   };
 
-  // Mark outreach complete
-  const handleOutreachComplete = async (method, notes) => {
+  // Save follow-up notes
+  const handleSaveFollowUpNotes = async (notes) => {
     if (!selectedJourney) return;
     await updateJourney(selectedJourney.id, {
-      stage: 'outreach_complete',
-      outreach_completed_date: new Date().toISOString().split('T')[0],
-      outreach_method: method,
-      outreach_notes: notes
+      stage: 'need_follow_up',
+      follow_up_flagged_date: new Date().toISOString().split('T')[0],
+      follow_up_notes: notes
     });
   };
 
@@ -225,12 +225,9 @@ export default function LabsPipelineTab() {
           onClick={() => setSubTab('new_patient')}
         >
           New Patient Journey
-          <span style={styles.badge(data.alerts.overdueOutreach > 0)}>
+          <span style={styles.badge(false)}>
             {totalNewPatient}
           </span>
-          {data.alerts.overdueOutreach > 0 && (
-            <span style={styles.alertBadge}>{data.alerts.overdueOutreach} overdue</span>
-          )}
         </button>
         <button
           style={styles.subTab(subTab === 'follow_up')}
@@ -261,7 +258,7 @@ export default function LabsPipelineTab() {
         </div>
       </div>
 
-      {/* New Patient Journey View */}
+      {/* New Patient Journey View - 6 columns */}
       {subTab === 'new_patient' && (
         <div style={styles.stagesContainer}>
           {NEW_PATIENT_STAGES.map(stage => {
@@ -282,12 +279,11 @@ export default function LabsPipelineTab() {
                       allStages={NEW_PATIENT_STAGES}
                       onAction={(action) => {
                         setSelectedJourney(item);
-                        if (action === 'outreach') setShowOutreachModal(true);
+                        if (action === 'follow_up_notes') setShowFollowUpNotesModal(true);
                         if (action === 'outcome') setShowOutcomeModal(true);
                       }}
                       onMoveStage={(newStage) => handleMoveStage(item, newStage)}
                       onDelete={() => setShowDeleteConfirm({ id: item.id, name: item.patient_name, type: 'journey' })}
-                      isOverdue={stage.id === 'outreach_due' && isOverdue(item.outreach_due_date)}
                       formatDate={formatDate}
                       formatDateTime={formatDateTime}
                     />
@@ -304,7 +300,7 @@ export default function LabsPipelineTab() {
 
       {/* Follow-up Labs View */}
       {subTab === 'follow_up' && (
-        <div style={styles.stagesContainer}>
+        <div style={styles.followUpStagesContainer}>
           {FOLLOW_UP_STAGES.map(stage => {
             const items = getFollowUpItems(data.followUp, stage.id);
             return (
@@ -336,12 +332,12 @@ export default function LabsPipelineTab() {
         </div>
       )}
 
-      {/* Outreach Modal */}
-      {showOutreachModal && selectedJourney && (
-        <OutreachModal
+      {/* Follow-Up Notes Modal */}
+      {showFollowUpNotesModal && selectedJourney && (
+        <FollowUpNotesModal
           journey={selectedJourney}
-          onComplete={handleOutreachComplete}
-          onClose={() => { setShowOutreachModal(false); setSelectedJourney(null); }}
+          onSave={handleSaveFollowUpNotes}
+          onClose={() => { setShowFollowUpNotesModal(false); setSelectedJourney(null); }}
           updating={updating}
         />
       )}
@@ -379,28 +375,15 @@ export default function LabsPipelineTab() {
   );
 }
 
-// Helper: Add business days to date string
-function addBusinessDaysStr(dateStr, days) {
-  let result = new Date(dateStr);
-  let added = 0;
-  while (added < days) {
-    result.setDate(result.getDate() + 1);
-    const dayOfWeek = result.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      added++;
-    }
-  }
-  return result.toISOString().split('T')[0];
-}
-
 // Helper: Get items for new patient stage
 function getNewPatientItems(data, stageId) {
   switch (stageId) {
-    case 'scheduled': return data.scheduled || [];
-    case 'outreach_due': return data.outreachDue || [];
-    case 'outreach_complete': return data.outreachComplete || [];
-    case 'review_scheduled': return data.reviewScheduled || [];
-    case 'review_complete': return data.reviewComplete || [];
+    case 'draw_scheduled': return data.drawScheduled || [];
+    case 'draw_complete': return data.drawComplete || [];
+    case 'provider_reviewed': return data.providerReviewed || [];
+    case 'consult_scheduled': return data.consultScheduled || [];
+    case 'need_follow_up': return data.needFollowUp || [];
+    case 'treatment_started': return data.treatmentStarted || [];
     default: return [];
   }
 }
@@ -429,15 +412,15 @@ function getProtocolTypeDisplay(type) {
   return typeMap[type.toLowerCase()] || type;
 }
 
-// Journey Card Component - Enhanced with protocol link, move stage, delete
-function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelete, isOverdue, formatDate, formatDateTime }) {
+// Journey Card Component
+function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelete, formatDate, formatDateTime }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const linkedProtocol = journey.linked_protocol;
   const hasProtocol = !!linkedProtocol;
   const protocolColors = PROTOCOL_COLORS[linkedProtocol?.program_type?.toLowerCase()] || PROTOCOL_COLORS.default;
-  
+
   return (
-    <div style={styles.card(isOverdue)}>
+    <div style={styles.card(false)}>
       <div style={styles.cardHeader}>
         <Link href={`/patients/${journey.patient_id}`} style={styles.patientName}>
           {journey.patient_name || 'Unknown'}
@@ -448,32 +431,32 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
           </a>
         )}
       </div>
-      
+
       <div style={styles.cardDetails}>
-        {stage === 'scheduled' && (
+        {stage === 'draw_scheduled' && (
           <div>Blood Draw: {formatDateTime(journey.blood_draw_scheduled_date)}</div>
         )}
-        {stage === 'outreach_due' && (
+        {stage === 'draw_complete' && (
+          <div>Drawn: {formatDate(journey.blood_draw_completed_date)}</div>
+        )}
+        {stage === 'provider_reviewed' && (
+          <div>Reviewed: {formatDate(journey.provider_reviewed_date)}</div>
+        )}
+        {stage === 'consult_scheduled' && (
+          <div>Consultation: {formatDateTime(journey.consultation_scheduled_date)}</div>
+        )}
+        {stage === 'need_follow_up' && (
           <>
-            <div>Drawn: {formatDate(journey.blood_draw_completed_date)}</div>
-            <div style={isOverdue ? styles.overdue : {}}>
-              Outreach Due: {formatDate(journey.outreach_due_date)}
-            </div>
+            <div>Flagged: {formatDate(journey.follow_up_flagged_date)}</div>
+            {journey.follow_up_notes && (
+              <div style={styles.followUpNotes}>{journey.follow_up_notes}</div>
+            )}
           </>
         )}
-        {stage === 'outreach_complete' && (
+        {stage === 'treatment_started' && (
           <>
-            <div>Contacted: {formatDate(journey.outreach_completed_date)}</div>
-            <div>Method: {journey.outreach_method || '-'}</div>
-          </>
-        )}
-        {stage === 'review_scheduled' && (
-          <div>Review: {formatDateTime(journey.lab_review_scheduled_date)}</div>
-        )}
-        {stage === 'review_complete' && (
-          <>
-            <div>Completed: {formatDate(journey.lab_review_completed_date)}</div>
-            
+            <div>Started: {formatDate(journey.treatment_started_date)}</div>
+
             {/* Show linked protocol if exists */}
             {hasProtocol && (
               <div style={styles.protocolLink}>
@@ -498,7 +481,7 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
                 </Link>
               </div>
             )}
-            
+
             {/* Show outcome if recorded but no protocol */}
             {!hasProtocol && journey.outcome && (
               <div style={styles.outcomeRecorded}>
@@ -515,21 +498,21 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
       </div>
 
       <div style={styles.cardActions}>
-        {stage === 'outreach_due' && (
-          <button style={styles.actionButton} onClick={() => onAction('outreach')}>
-            ✓ Mark Contacted
+        {stage === 'need_follow_up' && (
+          <button style={styles.actionButton} onClick={() => onAction('follow_up_notes')}>
+            📝 Edit Notes
           </button>
         )}
-        {stage === 'review_complete' && !hasProtocol && !journey.outcome && (
+        {stage === 'treatment_started' && !hasProtocol && !journey.outcome && (
           <button style={styles.actionButton} onClick={() => onAction('outcome')}>
             📋 Record Outcome
           </button>
         )}
-        
+
         {/* Move Stage & Delete Controls */}
         <div style={styles.cardControls}>
           <div style={styles.moveStageWrapper}>
-            <button 
+            <button
               style={styles.moveStageButton}
               onClick={() => setShowMoveMenu(!showMoveMenu)}
             >
@@ -561,11 +544,11 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
   );
 }
 
-// Follow-up Card Component - Enhanced with delete
+// Follow-up Card Component
 function FollowUpCard({ followUp, stage, isOverdue, formatDate, onMarkReviewed, onDelete }) {
   const protocolType = followUp.protocols?.program_type || followUp.protocol_type || 'Protocol';
   const protocolColors = PROTOCOL_COLORS[protocolType?.toLowerCase()] || PROTOCOL_COLORS.default;
-  
+
   return (
     <div style={styles.card(isOverdue)}>
       <div style={styles.cardHeader}>
@@ -580,7 +563,7 @@ function FollowUpCard({ followUp, stage, isOverdue, formatDate, onMarkReviewed, 
           {getProtocolTypeDisplay(protocolType)}
         </span>
       </div>
-      
+
       <div style={styles.cardDetails}>
         <div>{followUp.follow_up_type === 'first' ? '8-Week Follow-up' : `Quarterly #${followUp.follow_up_number || ''}`}</div>
         {stage === 'due' && (
@@ -612,50 +595,34 @@ function FollowUpCard({ followUp, stage, isOverdue, formatDate, onMarkReviewed, 
   );
 }
 
-// Outreach Modal
-function OutreachModal({ journey, onComplete, onClose, updating }) {
-  const [method, setMethod] = useState('call');
-  const [notes, setNotes] = useState('');
+// Follow-Up Notes Modal
+function FollowUpNotesModal({ journey, onSave, onClose, updating }) {
+  const [notes, setNotes] = useState(journey.follow_up_notes || '');
 
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
-        <h3 style={styles.modalTitle}>Mark Outreach Complete</h3>
+        <h3 style={styles.modalTitle}>Follow-Up Notes</h3>
         <p style={styles.modalSubtitle}>{journey.patient_name}</p>
-        
-        <div style={styles.formGroup}>
-          <label>Contact Method</label>
-          <div style={styles.methodButtons}>
-            {['call', 'text', 'email'].map(m => (
-              <button
-                key={m}
-                style={styles.methodButton(method === m)}
-                onClick={() => setMethod(m)}
-              >
-                {m === 'call' ? '📞' : m === 'text' ? '💬' : '📧'} {m.charAt(0).toUpperCase() + m.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div style={styles.formGroup}>
-          <label>Notes (optional)</label>
+          <label>Notes</label>
           <textarea
             style={styles.textarea}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Labs back? Scheduled review? Any concerns?"
+            placeholder="Why does this patient need follow-up? Any details..."
           />
         </div>
 
         <div style={styles.modalActions}>
           <button style={styles.cancelButton} onClick={onClose}>Cancel</button>
-          <button 
-            style={styles.submitButton} 
-            onClick={() => onComplete(method, notes)}
+          <button
+            style={styles.submitButton}
+            onClick={() => onSave(notes)}
             disabled={updating}
           >
-            {updating ? 'Saving...' : 'Mark Complete'}
+            {updating ? 'Saving...' : 'Save Notes'}
           </button>
         </div>
       </div>
@@ -673,7 +640,7 @@ function OutcomeModal({ journey, onRecord, onClose, updating }) {
       <div style={styles.modal}>
         <h3 style={styles.modalTitle}>Record Outcome</h3>
         <p style={styles.modalSubtitle}>{journey.patient_name}</p>
-        
+
         <div style={styles.formGroup}>
           <label>Patient Decision</label>
           <div style={styles.outcomeButtons}>
@@ -701,8 +668,8 @@ function OutcomeModal({ journey, onRecord, onClose, updating }) {
 
         <div style={styles.modalActions}>
           <button style={styles.cancelButton} onClick={onClose}>Cancel</button>
-          <button 
-            style={styles.submitButton} 
+          <button
+            style={styles.submitButton}
             onClick={() => onRecord(outcome, notes)}
             disabled={!outcome || updating}
           >
@@ -720,7 +687,7 @@ function AddJourneyModal({ form, setForm, onAdd, onClose }) {
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
         <h3 style={styles.modalTitle}>Add Lab Journey Manually</h3>
-        
+
         <div style={styles.formGroup}>
           <label>Patient Name *</label>
           <input
@@ -744,8 +711,8 @@ function AddJourneyModal({ form, setForm, onAdd, onClose }) {
 
         <div style={styles.modalActions}>
           <button style={styles.cancelButton} onClick={onClose}>Cancel</button>
-          <button 
-            style={styles.submitButton} 
+          <button
+            style={styles.submitButton}
             onClick={onAdd}
             disabled={!form.patientName}
           >
@@ -769,10 +736,10 @@ function DeleteConfirmModal({ name, onConfirm, onCancel, updating }) {
         <p style={{ color: '#6b7280', fontSize: '13px', marginTop: '8px' }}>
           This will not delete the patient or any protocols, only remove them from this tracking view.
         </p>
-        
+
         <div style={styles.modalActions}>
           <button style={styles.cancelButton} onClick={onCancel}>Cancel</button>
-          <button 
+          <button
             style={{ ...styles.submitButton, backgroundColor: '#dc2626' }}
             onClick={onConfirm}
             disabled={updating}
@@ -862,7 +829,13 @@ const styles = {
   },
   stagesContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(5, 1fr)',
+    gridTemplateColumns: 'repeat(6, 1fr)',
+    gap: '12px',
+    minHeight: '500px'
+  },
+  followUpStagesContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '12px',
     minHeight: '500px'
   },
@@ -947,6 +920,15 @@ const styles = {
     color: '#dc2626',
     fontWeight: '600'
   },
+  followUpNotes: {
+    marginTop: '4px',
+    padding: '6px 8px',
+    backgroundColor: '#fef2f2',
+    borderRadius: '4px',
+    fontSize: '11px',
+    color: '#991b1b',
+    fontStyle: 'italic'
+  },
   cardActions: {
     marginTop: '8px',
     paddingTop: '8px',
@@ -1017,7 +999,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '12px'
   },
-  // Protocol link styles for Needs Outcome column
+  // Protocol link styles for Treatment Started column
   protocolLink: {
     marginTop: '8px',
     padding: '8px',
@@ -1120,21 +1102,6 @@ const styles = {
   formGroup: {
     marginBottom: '16px'
   },
-  methodButtons: {
-    display: 'flex',
-    gap: '8px',
-    marginTop: '8px'
-  },
-  methodButton: (active) => ({
-    flex: 1,
-    padding: '10px',
-    border: active ? '2px solid #2563eb' : '1px solid #d1d5db',
-    borderRadius: '8px',
-    backgroundColor: active ? '#eff6ff' : 'white',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '13px'
-  }),
   outcomeButtons: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',

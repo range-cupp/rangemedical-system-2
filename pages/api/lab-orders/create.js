@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         patient_name: patientName,
         ghl_contact_id: patient?.ghl_contact_id || null,
         journey_type: 'new_patient',
-        stage: 'scheduled',
+        stage: 'draw_scheduled',
       });
 
     if (journeyError) {

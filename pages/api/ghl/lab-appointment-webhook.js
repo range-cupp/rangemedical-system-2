@@ -241,9 +241,6 @@ async function handleNewPatientBloodDraw(appointmentId, calendarId, contactId, p
   if (status === 'confirmed' || status === 'new' || status === 'booked') {
     // New appointment scheduled
     if (!existingJourney) {
-      // Create new journey
-      const outreachDueDate = addBusinessDays(appointmentDate, 2);
-      
       const { data: journey, error } = await supabase
         .from('lab_journeys')
         .insert({
@@ -253,11 +250,10 @@ async function handleNewPatientBloodDraw(appointmentId, calendarId, contactId, p
           patient_phone: contactPhone,
           patient_email: contactEmail,
           journey_type: 'new_patient',
-          stage: 'scheduled',
+          stage: 'draw_scheduled',
           blood_draw_appointment_id: appointmentId,
           blood_draw_calendar_id: calendarId,
-          blood_draw_scheduled_date: appointmentDate.toISOString(),
-          outreach_due_date: formatDate(outreachDueDate)
+          blood_draw_scheduled_date: appointmentDate.toISOString()
         })
         .select()
         .single();
@@ -271,23 +267,20 @@ async function handleNewPatientBloodDraw(appointmentId, calendarId, contactId, p
   } else if (status === 'showed' || status === 'completed') {
     // Patient showed up for blood draw
     const completedDate = new Date();
-    const outreachDueDate = addBusinessDays(completedDate, 2);
-    
+
     if (existingJourney) {
-      // Update existing journey
       await supabase
         .from('lab_journeys')
         .update({
-          stage: 'outreach_due',
+          stage: 'draw_complete',
           blood_draw_completed_date: completedDate.toISOString(),
-          outreach_due_date: formatDate(outreachDueDate),
           updated_at: new Date().toISOString()
         })
         .eq('id', existingJourney.id);
-      
-      console.log('Updated journey to outreach_due:', existingJourney.id);
+
+      console.log('Updated journey to draw_complete:', existingJourney.id);
     } else {
-      // Create journey in outreach_due stage (appointment wasn't tracked initially)
+      // Create journey in draw_complete stage (appointment wasn't tracked initially)
       await supabase
         .from('lab_journeys')
         .insert({
@@ -297,15 +290,14 @@ async function handleNewPatientBloodDraw(appointmentId, calendarId, contactId, p
           patient_phone: contactPhone,
           patient_email: contactEmail,
           journey_type: 'new_patient',
-          stage: 'outreach_due',
+          stage: 'draw_complete',
           blood_draw_appointment_id: appointmentId,
           blood_draw_calendar_id: calendarId,
           blood_draw_scheduled_date: appointmentDate.toISOString(),
-          blood_draw_completed_date: completedDate.toISOString(),
-          outreach_due_date: formatDate(outreachDueDate)
+          blood_draw_completed_date: completedDate.toISOString()
         });
-      
-      console.log('Created journey in outreach_due stage');
+
+      console.log('Created journey in draw_complete stage');
     }
   } else if (status === 'cancelled' || status === 'no_show' || status === 'noshow') {
     // Appointment cancelled or no-show
@@ -429,12 +421,12 @@ async function handleInitialLabReview(appointmentId, contactId, patientId, statu
   
   const appointmentDate = startTime ? new Date(startTime) : new Date();
   
-  // Find the journey for this patient that's awaiting lab review
+  // Find the journey for this patient that's awaiting consultation
   const { data: journey } = await supabase
     .from('lab_journeys')
     .select('id, stage')
     .or(`ghl_contact_id.eq.${contactId},patient_id.eq.${patientId}`)
-    .in('stage', ['outreach_due', 'outreach_complete'])
+    .in('stage', ['draw_complete', 'provider_reviewed'])
     .order('created_at', { ascending: false })
     .limit(1)
     .single();
@@ -444,14 +436,14 @@ async function handleInitialLabReview(appointmentId, contactId, patientId, statu
       await supabase
         .from('lab_journeys')
         .update({
-          stage: 'review_scheduled',
+          stage: 'consult_scheduled',
           lab_review_appointment_id: appointmentId,
-          lab_review_scheduled_date: appointmentDate.toISOString(),
+          consultation_scheduled_date: appointmentDate.toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', journey.id);
-      
-      console.log('Updated journey to review_scheduled');
+
+      console.log('Updated journey to consult_scheduled');
     }
   } else if (status === 'showed' || status === 'completed') {
     // Find journey with this review appointment
@@ -465,13 +457,13 @@ async function handleInitialLabReview(appointmentId, contactId, patientId, statu
       await supabase
         .from('lab_journeys')
         .update({
-          stage: 'review_complete',
-          lab_review_completed_date: new Date().toISOString(),
+          stage: 'treatment_started',
+          treatment_started_date: new Date().toISOString().split('T')[0],
           updated_at: new Date().toISOString()
         })
         .eq('id', reviewJourney.id);
-      
-      console.log('Updated journey to review_complete');
+
+      console.log('Updated journey to treatment_started');
     }
   }
 }

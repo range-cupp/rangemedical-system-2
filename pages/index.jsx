@@ -374,10 +374,19 @@ export default function Home() {
               Pick the door that fits your situation. Both start with a free Range Assessment.
             </p>
             <div className="home-cta-buttons">
-              <Link href="/range-assessment?path=injury" className="home-btn-white">
+              <Link href="/range-assessment?path=injury" style={{
+                display: 'inline-block', background: '#ffffff', color: '#000000',
+                padding: '1rem 2rem', borderRadius: '8px', fontWeight: 600,
+                fontSize: '0.9375rem', textDecoration: 'none'
+              }}>
                 Injury & Recovery
               </Link>
-              <Link href="/range-assessment?path=energy" className="home-btn-outline-white">
+              <Link href="/range-assessment?path=energy" style={{
+                display: 'inline-block', background: 'transparent', color: '#ffffff',
+                padding: '1rem 2rem', borderRadius: '8px', fontWeight: 600,
+                fontSize: '0.9375rem', textDecoration: 'none',
+                border: '1px solid rgba(255,255,255,0.7)'
+              }}>
                 Energy & Optimization
               </Link>
             </div>
@@ -863,7 +872,7 @@ export default function Home() {
             color: #ffffff;
             padding: 1rem 2rem;
             border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 1px solid rgba(255,255,255,0.7);
             font-weight: 600;
             font-size: 0.9375rem;
             text-decoration: none;
@@ -871,8 +880,8 @@ export default function Home() {
           }
 
           .home-btn-outline-white:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.15);
+            border-color: #ffffff;
           }
 
           .home-cta-location {

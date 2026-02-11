@@ -194,7 +194,7 @@ export default function ClinicTV() {
 
         .benefit-list { list-style: none; margin-top: 24px; text-align: left; padding: 0; }
         .benefit-list li { font-size: clamp(1rem, 1.6vw, 1.25rem); font-weight: 400; color: var(--color-text-body); padding: 8px 0 8px 28px; position: relative; line-height: 1.6; }
-        .benefit-list li::before { content: '\u2713'; position: absolute; left: 0; font-weight: 700; color: var(--color-primary); }
+        .benefit-list li::before { content: '✓'; position: absolute; left: 0; font-weight: 700; color: var(--color-primary); }
 
         .pricing-card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 32px 48px; margin-top: 24px; text-align: center; box-shadow: var(--shadow-sm); background: var(--color-bg); }
         .pricing-row { display: flex; align-items: baseline; justify-content: center; gap: 16px; margin: 8px 0; }

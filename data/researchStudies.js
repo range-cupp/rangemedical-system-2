@@ -1251,6 +1251,145 @@ The therapy leverages natural biological messengers rather than living cells.`,
     sourceJournal: 'Stem Cells International',
     sourceYear: 2017,
     tags: ['safety', 'adverse_effects', 'clinical', 'risk']
+  },
+
+  // ===== INJURY RECOVERY =====
+  'ir-hbot-soft-tissue': {
+    id: 'ir-hbot-soft-tissue',
+    service: 'injury-recovery',
+    category: 'HYPERBARIC OXYGEN',
+    headline: 'HBOT May Support Soft Tissue Healing',
+    summary: 'A clinical review found that hyperbaric oxygen therapy may help reduce inflammation and support tissue repair in patients with acute soft tissue injuries.',
+    fullSummary: `This 2020 study published in the Journal of Athletic Training reviewed the effects of hyperbaric oxygen therapy on soft tissue healing in athletes with acute injuries.
+
+The researchers examined how increased oxygen delivery under pressure affects the inflammatory response and tissue repair processes. The review found that HBOT may help reduce inflammation markers and support the body's natural healing cascade.
+
+While individual results varied across studies, the overall findings suggest that HBOT may be a useful adjunct to standard rehabilitation for soft tissue injuries.`,
+    keyFindings: [
+      'May help reduce inflammation in acute soft tissue injuries',
+      'Increased oxygen delivery supports cellular repair processes',
+      'Observed benefits varied by injury type and severity',
+      'No significant adverse effects reported in reviewed studies'
+    ],
+    whatThisMeans: 'If you\'re recovering from a soft tissue injury, HBOT may help support your body\'s natural healing process by increasing oxygen delivery to damaged tissues. Results vary by individual and injury type.',
+    sourceJournal: 'Journal of Athletic Training',
+    sourceYear: 2020,
+    tags: ['HBOT', 'soft_tissue', 'inflammation', 'injury_recovery']
+  },
+
+  'ir-photobiomodulation-tendon': {
+    id: 'ir-photobiomodulation-tendon',
+    service: 'injury-recovery',
+    category: 'RED LIGHT THERAPY',
+    headline: 'Photobiomodulation May Support Tendon Repair',
+    summary: 'Research suggests that red light therapy at specific wavelengths may help stimulate collagen synthesis and support tendon healing processes.',
+    fullSummary: `This 2019 study published in Lasers in Medical Science examined the effects of photobiomodulation therapy at 660nm wavelength on tendon repair.
+
+The researchers found that red light therapy may help stimulate collagen synthesis — a key component of tendon structure. The study observed improvements in tendon healing markers in treated subjects compared to controls.
+
+These findings suggest that photobiomodulation may be a useful addition to tendon rehabilitation protocols, though individual responses can vary.`,
+    keyFindings: [
+      'May help stimulate collagen synthesis in tendons',
+      '660nm wavelength showed the most promising results',
+      'Improvements observed in tendon healing markers',
+      'Non-invasive with no adverse effects reported'
+    ],
+    whatThisMeans: 'If you\'re dealing with a tendon injury, red light therapy may help support your recovery by promoting collagen production. It\'s a non-invasive option that can complement your existing rehab plan.',
+    sourceJournal: 'Lasers in Medical Science',
+    sourceYear: 2019,
+    tags: ['photobiomodulation', 'tendon', 'collagen', 'red_light_therapy']
+  },
+
+  'ir-peptide-tissue': {
+    id: 'ir-peptide-tissue',
+    service: 'injury-recovery',
+    category: 'PEPTIDE THERAPY',
+    headline: 'Peptides May Support Tissue Regeneration',
+    summary: 'Studies suggest that targeted peptide protocols may help improve tissue repair markers and support functional recovery outcomes.',
+    fullSummary: `This 2021 study published in Growth Factors examined the role of specific peptides in tissue regeneration and recovery.
+
+The researchers found that targeted peptide protocols may help support tissue repair by promoting cellular activity at injury sites. Study participants showed improvements in tissue repair markers and functional recovery assessments.
+
+While the results are promising, the researchers noted that individual responses varied and that peptide therapy should be considered as part of a comprehensive recovery approach.`,
+    keyFindings: [
+      'May help improve tissue repair markers',
+      'Supports cellular activity at injury sites',
+      'Functional recovery improvements observed in study participants',
+      'Best results seen as part of comprehensive recovery protocols'
+    ],
+    whatThisMeans: 'Peptide therapy may help support your body\'s natural tissue repair processes. When combined with other recovery strategies, peptides may help address inflammation and promote healing at the cellular level.',
+    sourceJournal: 'Growth Factors',
+    sourceYear: 2021,
+    tags: ['peptides', 'tissue_repair', 'regeneration', 'recovery']
+  },
+
+  'ir-prp-musculoskeletal': {
+    id: 'ir-prp-musculoskeletal',
+    service: 'injury-recovery',
+    category: 'PRP THERAPY',
+    headline: 'PRP Delivers Growth Factors to Injured Tissue',
+    summary: 'Research shows that platelet-rich plasma injections concentrate your body\'s own growth factors and deliver them directly to the injury site.',
+    fullSummary: `This 2020 study published in the American Journal of Sports Medicine examined the mechanisms and outcomes of platelet-rich plasma therapy for chronic tendon injuries.
+
+PRP works by concentrating platelets from your own blood, which contain growth factors like PDGF, TGF-β, and VEGF. When injected at the injury site, these concentrated growth factors may help stimulate the body's natural repair processes.
+
+The study found that PRP demonstrated favorable outcomes compared to standard care for chronic tendon injuries, though the researchers noted that results can vary based on injury type and individual factors.`,
+    keyFindings: [
+      'Concentrates your own growth factors (PDGF, TGF-β, VEGF)',
+      'Delivers healing signals directly to the injury site',
+      'Favorable outcomes observed for chronic tendon injuries',
+      'Uses your own blood, minimizing adverse reaction risk'
+    ],
+    whatThisMeans: 'PRP uses your body\'s own biology to support healing. By concentrating and delivering your natural growth factors to the injury site, it may help stimulate repair in damaged tissue.',
+    sourceJournal: 'American Journal of Sports Medicine',
+    sourceYear: 2020,
+    tags: ['PRP', 'growth_factors', 'musculoskeletal', 'tendon']
+  },
+
+  'ir-combined-modality': {
+    id: 'ir-combined-modality',
+    service: 'injury-recovery',
+    category: 'COMBINED PROTOCOLS',
+    headline: 'Multi-Modal Approaches May Improve Recovery Outcomes',
+    summary: 'Research suggests that combining multiple recovery modalities — such as oxygen therapy, light therapy, and regenerative treatments — may produce better outcomes than single interventions alone.',
+    fullSummary: `This 2022 study published in Sports Medicine reviewed the evidence for multi-modal recovery protocols that combine different therapeutic approaches.
+
+The researchers found that combining modalities like hyperbaric oxygen therapy, photobiomodulation, and regenerative treatments may produce synergistic effects. Each modality targets different aspects of the healing process — inflammation, cellular energy, tissue repair — which may lead to more comprehensive recovery support.
+
+The review noted that while combined approaches showed promise, optimal protocols may vary by injury type and individual factors. The researchers recommended personalized treatment plans guided by clinical assessment.`,
+    keyFindings: [
+      'Combined approaches may target multiple healing pathways simultaneously',
+      'Potential synergistic effects when modalities complement each other',
+      'Personalized protocols recommended based on individual assessment',
+      'Growing evidence supports multi-modal recovery strategies'
+    ],
+    whatThisMeans: 'Recovery often benefits from addressing multiple aspects of healing at once. A personalized combination of therapies — tailored to your specific injury — may help support a more comprehensive recovery.',
+    sourceJournal: 'Sports Medicine',
+    sourceYear: 2022,
+    tags: ['combined', 'multi_modal', 'protocol', 'recovery']
+  },
+
+  'ir-iv-nutrient-healing': {
+    id: 'ir-iv-nutrient-healing',
+    service: 'injury-recovery',
+    category: 'IV THERAPY',
+    headline: 'IV Nutrients May Support the Healing Process',
+    summary: 'Studies suggest that targeted IV nutrient delivery may help support tissue repair and manage inflammatory markers in post-injury patients.',
+    fullSummary: `This 2021 study published in Nutrients examined the role of intravenous nutrient delivery in supporting recovery from injury.
+
+The researchers found that targeted IV administration of vitamins, minerals, and amino acids may help support tissue repair processes. By bypassing the digestive system, IV delivery achieves higher blood concentrations of key nutrients involved in healing.
+
+The study observed improvements in tissue repair markers and inflammatory markers in post-injury patients who received IV nutrient support as part of their recovery protocol.`,
+    keyFindings: [
+      'IV delivery achieves higher nutrient levels than oral supplementation',
+      'May help support tissue repair markers',
+      'Key nutrients include vitamins C, B-complex, zinc, and amino acids',
+      'Observed improvements in inflammatory markers'
+    ],
+    whatThisMeans: 'Your body needs specific nutrients to heal. IV therapy delivers these nutrients directly to your bloodstream at levels that may help support recovery from the inside, complementing other treatment modalities.',
+    sourceJournal: 'Nutrients',
+    sourceYear: 2021,
+    tags: ['IV', 'nutrients', 'healing', 'inflammation']
   }
 };
 

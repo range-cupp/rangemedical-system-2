@@ -2,10 +2,15 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import ResearchModal from '../components/ResearchModal';
+import { getStudiesByService } from '../data/researchStudies';
 
 export default function InjuryRecovery() {
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const studies = getStudiesByService('injury-recovery');
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -29,6 +34,14 @@ export default function InjuryRecovery() {
     setOpenFaq(openFaq === index ? null : index);
   };
 
+  const handleResearchClick = (studyId) => {
+    const study = studies.find(s => s.id === studyId);
+    if (study) {
+      setSelectedStudy(study);
+      setIsModalOpen(true);
+    }
+  };
+
   const faqs = [
     {
       question: "Do I need a referral to get started?",
@@ -36,7 +49,7 @@ export default function InjuryRecovery() {
     },
     {
       question: "Does this replace my physical therapy or rehab?",
-      answer: "No. Our programs support and accelerate the recovery work you're already doing with your PT, chiropractor, or trainer. We work alongside your existing care team."
+      answer: "No. Our programs are designed to support the recovery work you're already doing with your PT, chiropractor, or trainer. We work alongside your existing care team."
     },
     {
       question: "Will I need labs or blood work?",
@@ -48,44 +61,11 @@ export default function InjuryRecovery() {
     },
     {
       question: "How quickly will I see results?",
-      answer: "Many patients notice improvements within the first 1-2 weeks, though this varies based on injury severity and treatment protocol. Your provider will give you realistic expectations at your first visit."
+      answer: "Recovery timelines vary by individual and injury type. Your provider will give you realistic expectations at your first visit."
     },
     {
       question: "What if I also want help with energy or hormones?",
       answer: "We can discuss that at your first visit. If energy optimization is your main concern, you might want to start with the Energy & Optimization pathway instead, or we can address both."
-    }
-  ];
-
-  const researchStudies = [
-    {
-      title: "Hyperbaric Oxygen for Soft Tissue Healing",
-      journal: "Journal of Athletic Training, 2020",
-      finding: "HBOT significantly accelerated soft tissue healing and reduced recovery time in athletes with acute injuries."
-    },
-    {
-      title: "Photobiomodulation for Tendon Repair",
-      journal: "Lasers in Medical Science, 2019",
-      finding: "Red light therapy at 660nm wavelength improved collagen synthesis and tendon healing by up to 30%."
-    },
-    {
-      title: "Peptide Therapy in Tissue Regeneration",
-      journal: "Growth Factors, 2021",
-      finding: "Targeted peptide protocols showed significant improvements in tissue repair markers and functional recovery outcomes."
-    },
-    {
-      title: "PRP for Musculoskeletal Injuries",
-      journal: "American Journal of Sports Medicine, 2020",
-      finding: "Platelet-rich plasma injections demonstrated superior outcomes compared to standard care for chronic tendon injuries."
-    },
-    {
-      title: "Combined Modality Recovery Protocols",
-      journal: "Sports Medicine, 2022",
-      finding: "Multi-modal recovery approaches combining oxygen therapy, light therapy, and regenerative treatments produced faster return-to-activity times."
-    },
-    {
-      title: "IV Nutrient Support for Healing",
-      journal: "Nutrients, 2021",
-      finding: "Targeted IV nutrient delivery improved tissue repair markers and reduced inflammatory markers in post-injury patients."
     }
   ];
 
@@ -197,7 +177,7 @@ export default function InjuryRecovery() {
           <h1>Your Guide to Injury Recovery</h1>
           <p className="inj-body-text">
             Healing feels slow because your body needs more than time. We use targeted recovery
-            protocols to help you get back to normal faster — whether you're post-surgery,
+            protocols that may help support your body's natural healing process — whether you're post-surgery,
             rehabbing an injury, or stuck in a healing plateau.
           </p>
           <div className="inj-hero-scroll">
@@ -212,7 +192,7 @@ export default function InjuryRecovery() {
             <span className="inj-section-label">Who It's For</span>
             <h2>Injuries We Help With</h2>
             <p className="inj-section-intro">
-              If healing feels slow or you've hit a plateau, our recovery protocols can help accelerate your progress.
+              If healing feels slow or you've hit a plateau, our recovery protocols may help support your progress.
             </p>
 
             <div className="inj-conditions">
@@ -301,8 +281,8 @@ export default function InjuryRecovery() {
 
               <div className="inj-process-step">
                 <div className="inj-process-number">4</div>
-                <h4>Heal Faster</h4>
-                <p>Most patients notice improvements within the first 1-2 weeks. We adjust your protocol as you progress.</p>
+                <h4>Track Your Progress</h4>
+                <p>We monitor your recovery and adjust your protocol based on how you're responding.</p>
               </div>
             </div>
           </div>
@@ -326,7 +306,7 @@ export default function InjuryRecovery() {
                   </svg>
                 </div>
                 <h4>Hyperbaric Oxygen</h4>
-                <p>Pressurized oxygen floods injured tissues with healing support, reducing inflammation and accelerating repair.</p>
+                <p>Pressurized oxygen floods injured tissues with healing support, which may help reduce inflammation and support tissue repair.</p>
               </Link>
 
               <Link href="/red-light-therapy" className="inj-tool-card">
@@ -340,7 +320,7 @@ export default function InjuryRecovery() {
                   </svg>
                 </div>
                 <h4>Red Light Therapy</h4>
-                <p>Specific wavelengths stimulate cellular repair, improve collagen production, and reduce pain.</p>
+                <p>Specific wavelengths may help stimulate cellular repair, support collagen production, and reduce discomfort.</p>
               </Link>
 
               <Link href="/peptide-therapy" className="inj-tool-card">
@@ -353,7 +333,7 @@ export default function InjuryRecovery() {
                   </svg>
                 </div>
                 <h4>Peptide Therapy</h4>
-                <p>Targeted peptides support tissue repair, reduce inflammation, and help your body heal itself.</p>
+                <p>Targeted peptides may support tissue repair and help manage inflammation.</p>
               </Link>
 
               <Link href="/prp-therapy" className="inj-tool-card">
@@ -374,7 +354,7 @@ export default function InjuryRecovery() {
                   </svg>
                 </div>
                 <h4>Exosome Therapy</h4>
-                <p>Cell-signaling molecules that communicate repair instructions to damaged tissue.</p>
+                <p>Cell-signaling molecules that may help support your body's natural repair signaling.</p>
               </Link>
 
               <Link href="/iv-therapy" className="inj-tool-card">
@@ -384,7 +364,7 @@ export default function InjuryRecovery() {
                   </svg>
                 </div>
                 <h4>IV Therapy</h4>
-                <p>Direct nutrient delivery supports healing from the inside with vitamins, minerals, and amino acids.</p>
+                <p>Direct nutrient delivery may support recovery from the inside with vitamins, minerals, and amino acids.</p>
               </Link>
             </div>
           </div>
@@ -396,18 +376,27 @@ export default function InjuryRecovery() {
             <span className="inj-section-label">The Evidence</span>
             <h2>Research Behind Recovery Protocols</h2>
             <p className="inj-section-intro">
-              Our approach is built on peer-reviewed research demonstrating the effectiveness of these recovery tools.
+              We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
             </p>
 
             <div className="inj-research-grid">
-              {researchStudies.map((study, index) => (
-                <div key={index} className="inj-research-card">
-                  <h4>{study.title}</h4>
-                  <span className="inj-research-journal">{study.journal}</span>
-                  <p>{study.finding}</p>
+              {studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="inj-research-card"
+                  onClick={() => handleResearchClick(study.id)}
+                >
+                  <span className="inj-research-category">{study.category}</span>
+                  <h4 className="inj-research-headline">{study.headline}</h4>
+                  <p className="inj-research-summary">{study.summary}</p>
+                  <p className="inj-research-source">{study.sourceJournal}, {study.sourceYear}</p>
                 </div>
               ))}
             </div>
+
+            <p className="inj-research-disclaimer">
+              These studies reflect published research findings. Individual results may vary. Recovery protocols at Range Medical are provided under licensed medical supervision.
+            </p>
           </div>
         </section>
 
@@ -453,6 +442,13 @@ export default function InjuryRecovery() {
             </p>
           </div>
         </section>
+
+        <ResearchModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          study={selectedStudy}
+          servicePage="injury-recovery"
+        />
 
         <style jsx>{`
           /* Hero Section */
@@ -786,28 +782,55 @@ export default function InjuryRecovery() {
             border: 1px solid #e5e5e5;
             border-radius: 12px;
             padding: 1.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
           }
 
-          .inj-research-card h4 {
-            font-size: 1rem;
+          .inj-research-card:hover {
+            border-color: #171717;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+          }
+
+          .inj-research-category {
+            display: inline-block;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #16a34a;
+            margin-bottom: 0.875rem;
+          }
+
+          .inj-research-headline {
+            font-size: 1.0625rem;
             font-weight: 700;
             color: #171717;
-            margin: 0 0 0.375rem;
+            margin: 0 0 0.75rem;
+            line-height: 1.4;
           }
 
-          .inj-research-journal {
+          .inj-research-summary {
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: #525252;
+            margin: 0 0 1rem;
+          }
+
+          .inj-research-source {
+            font-size: 0.8125rem;
+            font-style: italic;
+            color: #737373;
+            margin: 0;
+          }
+
+          .inj-research-disclaimer {
             font-size: 0.8125rem;
             color: #737373;
-            font-weight: 500;
-            display: block;
-            margin-bottom: 0.75rem;
-          }
-
-          .inj-research-card p {
-            font-size: 0.9375rem;
-            color: #525252;
-            line-height: 1.6;
-            margin: 0;
+            text-align: center;
+            max-width: 700px;
+            margin: 3rem auto 0;
+            line-height: 1.7;
           }
 
           /* FAQ */

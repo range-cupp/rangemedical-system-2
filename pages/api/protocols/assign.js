@@ -116,8 +116,7 @@ export default async function handler(req, res) {
       // Weight Loss Protocol - no template needed
       // Use pickupFrequencyDays as the payment period (determines protocol duration)
       const paymentPeriod = pickupFrequencyDays || wlDuration || 28;
-      const durationLabel = paymentPeriod === 7 ? 'Weekly' : paymentPeriod === 14 ? 'Every 2 Weeks' : 'Monthly';
-      programName = `Weight Loss - ${durationLabel}`;
+      programName = 'Weight Loss Program';
       programType = 'weight_loss';
 
       // Set total sessions based on payment period (weekly injections)

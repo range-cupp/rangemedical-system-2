@@ -58,9 +58,14 @@ export default async function handler(req, res) {
     startFrom.setDate(startFrom.getDate() + daysToExtend);
     const newEndDate = startFrom.toISOString().split('T')[0];
 
+    // Add sessions for the new period (weekly injections)
+    const additionalSessions = Math.floor(daysToExtend / 7);
+    const newTotalSessions = (protocol.total_sessions || 0) + additionalSessions;
+
     // Build update data
     const updateData = {
       end_date: newEndDate,
+      total_sessions: newTotalSessions,
       last_refill_date: new Date().toISOString().split('T')[0],
       status: 'active', // Reactivate if was expired
       updated_at: new Date().toISOString()
@@ -144,7 +149,7 @@ export default async function handler(req, res) {
         patient_id: protocol.patient_id,
         log_type: 'renewal',
         log_date: new Date().toISOString().split('T')[0],
-        notes: `Protocol renewed. New end date: ${newEndDate}${doseChanged ? `. Dose: ${oldDose} → ${newDose}` : ''}${notes ? `. ${notes}` : ''}`
+        notes: `Protocol renewed. New end date: ${newEndDate}. Sessions: ${protocol.total_sessions || 0} → ${newTotalSessions}${doseChanged ? `. Dose: ${oldDose} → ${newDose}` : ''}${notes ? `. ${notes}` : ''}`
       });
 
     if (logError) {
@@ -164,7 +169,7 @@ Dose: ${displayDose}${doseChanged ? ` (was: ${oldDose})` : ''}
 Previous End: ${protocol.end_date || 'Not set'}
 New End: ${newEndDate}
 
-Protocol extended for ${daysToExtend} days.${notes ? `\n\nNotes: ${notes}` : ''}`;
+Protocol extended for ${daysToExtend} days. Sessions: ${protocol.total_sessions || 0} → ${newTotalSessions}.${notes ? `\n\nNotes: ${notes}` : ''}`;
 
       try {
         await addGHLNote(ghlContactId, ghlNote);

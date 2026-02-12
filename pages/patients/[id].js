@@ -888,11 +888,29 @@ export default function PatientProfile() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {protocolLogs.map((log, i) => {
+                                    {protocolLogs.flatMap((log, i) => {
+                                      const rows = [];
+                                      // Check for missed weeks between entries
+                                      if (i > 0) {
+                                        const prevDate = new Date(protocolLogs[i - 1].entry_date + 'T00:00:00');
+                                        const curDate = new Date(log.entry_date + 'T00:00:00');
+                                        const daysBetween = Math.round((curDate - prevDate) / (1000 * 60 * 60 * 24));
+                                        const missedWeeks = Math.floor(daysBetween / 7) - 1;
+                                        for (let m = 1; m <= missedWeeks; m++) {
+                                          const missedDate = new Date(prevDate);
+                                          missedDate.setDate(missedDate.getDate() + (m * 7));
+                                          rows.push(
+                                            <tr key={'missed-' + i + '-' + m} style={{ background: '#fef2f2' }}>
+                                              <td style={{ color: '#dc2626' }}>{formatShortDate(missedDate.toISOString().split('T')[0])}</td>
+                                              <td colSpan={3} style={{ color: '#dc2626', fontStyle: 'italic', textAlign: 'center' }}>Missed</td>
+                                            </tr>
+                                          );
+                                        }
+                                      }
                                       const prevWeight = i > 0 && protocolLogs[i - 1].weight ? parseFloat(protocolLogs[i - 1].weight) : null;
                                       const curWeight = log.weight ? parseFloat(log.weight) : null;
                                       const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
-                                      return (
+                                      rows.push(
                                         <tr key={log.entry_date + i}>
                                           <td>{formatShortDate(log.entry_date)}</td>
                                           <td>{log.dosage || '—'}</td>
@@ -902,6 +920,7 @@ export default function PatientProfile() {
                                           </td>
                                         </tr>
                                       );
+                                      return rows;
                                     })}
                                   </tbody>
                                 </table>

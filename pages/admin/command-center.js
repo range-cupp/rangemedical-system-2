@@ -1554,32 +1554,53 @@ export default function CommandCenter() {
                   )}
 
                   {/* Weight Check-in History (for weight loss protocols) */}
-                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.weightCheckins.length > 0 && (
-                    <div style={styles.protocolDetailSection}>
-                      <h4 style={styles.protocolDetailSectionTitle}>
-                        Weight Check-ins ({protocolDetailPanel.weightCheckins.length})
-                      </h4>
-                      <div style={styles.checkinList}>
-                        {protocolDetailPanel.weightCheckins.slice(0, 10).map((checkin, idx) => (
-                          <div key={checkin.id || idx} style={styles.checkinItem}>
-                            <div style={styles.checkinDate}>{formatDate(checkin.log_date)}</div>
-                            <div style={styles.checkinWeight}>{checkin.weight ? `${checkin.weight} lbs` : '—'}</div>
-                            {checkin.dosage && (
-                              <div style={{ fontSize: '12px', color: '#6b7280' }}>{checkin.dosage}</div>
-                            )}
-                            {checkin.notes && (
-                              <div style={styles.checkinNotes}>{checkin.notes}</div>
-                            )}
-                          </div>
-                        ))}
-                        {protocolDetailPanel.weightCheckins.length > 10 && (
-                          <div style={{ color: '#888', fontSize: '12px', padding: '8px', textAlign: 'center' }}>
-                            + {protocolDetailPanel.weightCheckins.length - 10} more check-ins
-                          </div>
-                        )}
+                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.weightCheckins.length > 0 && (() => {
+                    // Build checkins list with missed week indicators
+                    const checkins = [...protocolDetailPanel.weightCheckins].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+                    const displayItems = [];
+                    checkins.forEach((checkin, idx) => {
+                      if (idx > 0) {
+                        const prevDate = new Date(checkins[idx - 1].log_date + 'T00:00:00');
+                        const curDate = new Date(checkin.log_date + 'T00:00:00');
+                        const daysBetween = Math.round((curDate - prevDate) / (1000 * 60 * 60 * 24));
+                        const missedWeeks = Math.floor(daysBetween / 7) - 1;
+                        for (let m = 1; m <= missedWeeks; m++) {
+                          const missedDate = new Date(prevDate);
+                          missedDate.setDate(missedDate.getDate() + (m * 7));
+                          displayItems.push({ type: 'missed', date: missedDate.toISOString().split('T')[0] });
+                        }
+                      }
+                      displayItems.push({ type: 'checkin', ...checkin });
+                    });
+                    return (
+                      <div style={styles.protocolDetailSection}>
+                        <h4 style={styles.protocolDetailSectionTitle}>
+                          Weight Check-ins ({checkins.length})
+                        </h4>
+                        <div style={styles.checkinList}>
+                          {displayItems.slice(0, 15).map((item, idx) => (
+                            item.type === 'missed' ? (
+                              <div key={'missed-' + idx} style={{ ...styles.checkinItem, background: '#fef2f2', borderLeft: '3px solid #dc2626' }}>
+                                <div style={{ ...styles.checkinDate, color: '#dc2626' }}>{formatDate(item.date)}</div>
+                                <div style={{ color: '#dc2626', fontStyle: 'italic', fontSize: '13px' }}>Missed</div>
+                              </div>
+                            ) : (
+                              <div key={item.id || idx} style={styles.checkinItem}>
+                                <div style={styles.checkinDate}>{formatDate(item.log_date)}</div>
+                                <div style={styles.checkinWeight}>{item.weight ? `${item.weight} lbs` : '—'}</div>
+                                {item.dosage && (
+                                  <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.dosage}</div>
+                                )}
+                                {item.notes && (
+                                  <div style={styles.checkinNotes}>{item.notes}</div>
+                                )}
+                              </div>
+                            )
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Email Sequence (weight loss only) */}
                   {protocolDetailPanel.protocol.program_type === 'weight_loss' && (() => {

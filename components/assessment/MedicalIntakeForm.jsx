@@ -161,15 +161,32 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
   const handlePhotoIdUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Max 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      setValidationError('Photo must be under 5MB');
+    if (file.size > 10 * 1024 * 1024) {
+      setValidationError('Photo must be under 10MB');
       return;
     }
+    // Resize and compress to JPEG to keep payload small
     const reader = new FileReader();
     reader.onload = (ev) => {
-      updateField('photoIdData', ev.target.result);
-      setValidationError('');
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1200;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        updateField('photoIdData', compressed);
+        setValidationError('');
+      };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   };

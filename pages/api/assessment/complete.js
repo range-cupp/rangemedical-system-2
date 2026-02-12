@@ -2,6 +2,11 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
+// Allow large payloads for photo ID uploads
+export const config = {
+  api: { bodyParser: { sizeLimit: '10mb' } }
+};
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -82,16 +82,14 @@ async function getProtocol(id, res) {
 
     if (serviceLogs && serviceLogs.length > 0) {
       // Convert service_logs to the same shape as protocol_logs check-ins
-      const serviceCheckins = serviceLogs
-        .filter(sl => sl.weight)
-        .map(sl => ({
-          id: sl.id,
-          log_date: sl.entry_date,
-          weight: parseFloat(sl.weight),
-          dosage: sl.dosage,
-          notes: sl.notes,
-          log_type: 'checkin'
-        }));
+      const serviceCheckins = serviceLogs.map(sl => ({
+        id: sl.id,
+        log_date: sl.entry_date,
+        weight: sl.weight ? parseFloat(sl.weight) : null,
+        dosage: sl.dosage,
+        notes: sl.notes,
+        log_type: 'checkin'
+      }));
 
       // Use service_logs if protocol_logs had no weight check-ins, or merge them
       if (weightCheckins.length === 0) {
@@ -103,9 +101,9 @@ async function getProtocol(id, res) {
   // Calculate weight progress for weight loss protocols
   let weightProgress = null;
   if (data.program_type === 'weight_loss' && weightCheckins.length > 0) {
-    const sortedCheckins = [...weightCheckins].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
-    const startingWeight = data.starting_weight || sortedCheckins[0]?.weight;
-    const currentWeight = sortedCheckins[sortedCheckins.length - 1]?.weight;
+    const checkinsWithWeight = [...weightCheckins].filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+    const startingWeight = data.starting_weight || checkinsWithWeight[0]?.weight;
+    const currentWeight = checkinsWithWeight[checkinsWithWeight.length - 1]?.weight;
 
     if (startingWeight && currentWeight) {
       const change = currentWeight - startingWeight;

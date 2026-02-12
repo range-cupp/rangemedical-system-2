@@ -1499,7 +1499,7 @@ export default function CommandCenter() {
                         {protocolDetailPanel.weightCheckins.slice(0, 10).map((checkin, idx) => (
                           <div key={checkin.id || idx} style={styles.checkinItem}>
                             <div style={styles.checkinDate}>{formatDate(checkin.log_date)}</div>
-                            <div style={styles.checkinWeight}>{checkin.weight} lbs</div>
+                            <div style={styles.checkinWeight}>{checkin.weight ? `${checkin.weight} lbs` : '—'}</div>
                             {checkin.dosage && (
                               <div style={{ fontSize: '12px', color: '#6b7280' }}>{checkin.dosage}</div>
                             )}

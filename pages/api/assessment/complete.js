@@ -4,7 +4,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey)
   : null;
@@ -33,16 +33,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { leadId, assessmentPath, formData, intakeData, recommendation } = req.body;
+    const { leadId: providedLeadId, assessmentPath, formData, intakeData, recommendation } = req.body;
 
-    if (!leadId || !assessmentPath || !formData || !intakeData) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!assessmentPath || !formData || !intakeData) {
+      const missing = [];
+      if (!assessmentPath) missing.push('assessmentPath');
+      if (!formData) missing.push('formData');
+      if (!intakeData) missing.push('intakeData');
+      return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
     }
 
     const { firstName, lastName, email, phone } = formData;
 
+    // Resolve leadId — use provided ID or fall back to lookup by email
+    let leadId = providedLeadId;
+    if (!leadId && supabase && email) {
+      const { data: existingLead } = await supabase
+        .from('assessment_leads')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (existingLead) {
+        leadId = existingLead.id;
+        console.log('Resolved leadId by email lookup:', leadId);
+      }
+    }
+
     // 1. Update assessment_leads with intake data
-    if (supabase) {
+    if (supabase && leadId) {
       // Store comprehensive intake data in medical_history JSONB
       const medicalHistoryData = {
         personalInfo: {
@@ -74,6 +94,28 @@ export default async function handler(req, res) {
           hrtDetails: intakeData.hrtDetails || null,
         },
       };
+
+      // Upload signature image if present
+      let signatureUrl = null;
+      if (intakeData.signatureData && supabase) {
+        try {
+          const base64Data = intakeData.signatureData.replace(/^data:image\/png;base64,/, '');
+          const sigBuffer = Buffer.from(base64Data, 'base64');
+          const sigFileName = `${leadId || 'unknown'}/${Date.now()}-signature.png`;
+          const { error: sigUploadErr } = await supabase.storage
+            .from('assessment-pdfs')
+            .upload(sigFileName, sigBuffer, { contentType: 'image/png', upsert: false });
+          if (!sigUploadErr) {
+            const { data: sigUrlData } = supabase.storage
+              .from('assessment-pdfs')
+              .getPublicUrl(sigFileName);
+            signatureUrl = sigUrlData?.publicUrl || null;
+          }
+        } catch (sigErr) {
+          console.error('Signature upload error:', sigErr);
+        }
+      }
+      medicalHistoryData.signatureUrl = signatureUrl;
 
       const updateData = {
         intake_completed_at: new Date().toISOString(),
@@ -110,7 +152,8 @@ export default async function handler(req, res) {
 
       // Upload to Supabase Storage
       if (supabase && pdfBytes) {
-        const fileName = `${leadId}/${Date.now()}-assessment-${assessmentPath}.pdf`;
+        const filePrefix = leadId || email?.replace(/[^a-z0-9]/gi, '_') || 'unknown';
+        const fileName = `${filePrefix}/${Date.now()}-assessment-${assessmentPath}.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('assessment-pdfs')
           .upload(fileName, pdfBytes, {
@@ -128,10 +171,12 @@ export default async function handler(req, res) {
           pdfUrl = urlData?.publicUrl || null;
 
           // Save URL to DB
-          await supabase
-            .from('assessment_leads')
-            .update({ pdf_url: pdfUrl })
-            .eq('id', leadId);
+          if (leadId) {
+            await supabase
+              .from('assessment_leads')
+              .update({ pdf_url: pdfUrl })
+              .eq('id', leadId);
+          }
         }
       }
     } catch (pdfError) {
@@ -145,7 +190,7 @@ export default async function handler(req, res) {
         assessmentPath, formData, intakeData, recommendation, pdfUrl
       });
 
-      if (supabase) {
+      if (supabase && leadId) {
         await supabase
           .from('assessment_leads')
           .update({ consolidated_email_sent: true })
@@ -237,7 +282,7 @@ function formatConditions(conditions) {
   return results;
 }
 
-// Generate PDF using pdf-lib
+// Generate PDF using pdf-lib — styled to match consent form PDFs
 async function generateAssessmentPDF({ firstName, lastName, email, phone, assessmentPath, formData, intakeData, recommendation }) {
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -245,52 +290,34 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
 
   const pageWidth = 612;
   const pageHeight = 792;
-  const margin = 50;
-  const contentWidth = pageWidth - margin * 2;
-  let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-  let y = pageHeight - margin;
+  // Margins match consent forms (15mm ≈ 42pt)
+  const leftMargin = 42;
+  const rightMargin = 42;
+  const contentWidth = pageWidth - leftMargin - rightMargin;
+  const bottomMargin = 55;
 
+  const white = rgb(1, 1, 1);
   const black = rgb(0, 0, 0);
-  const gray = rgb(0.45, 0.45, 0.45);
-  const lightGray = rgb(0.85, 0.85, 0.85);
+  const grayColor = rgb(0.51, 0.51, 0.51);
 
-  const addNewPage = () => {
-    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-    y = pageHeight - margin;
-    return currentPage;
-  };
+  let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+  let yPos;
 
-  const checkSpace = (needed) => {
-    if (y - needed < margin) {
-      addNewPage();
+  const checkPageBreak = (needed = 20) => {
+    if (yPos - needed < bottomMargin) {
+      currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+      yPos = pageHeight - 42;
     }
   };
 
-  const drawText = (text, options = {}) => {
-    const size = options.size || 10;
-    const f = options.bold ? fontBold : font;
-    const color = options.color || black;
-    checkSpace(size + 6);
-    currentPage.drawText(text, { x: options.x || margin, y, size, font: f, color });
-    y -= size + (options.spacing || 6);
-  };
-
-  const drawLine = () => {
-    checkSpace(12);
-    currentPage.drawLine({
-      start: { x: margin, y },
-      end: { x: pageWidth - margin, y },
-      thickness: 0.5,
-      color: lightGray
-    });
-    y -= 12;
-  };
-
+  // Wrapped text helper
   const drawWrappedText = (text, options = {}) => {
-    const size = options.size || 10;
+    const size = options.size || 9;
     const f = options.bold ? fontBold : font;
     const color = options.color || black;
-    const maxWidth = options.maxWidth || contentWidth;
+    const x = options.x || leftMargin;
+    const maxWidth = options.maxWidth || (contentWidth - (x - leftMargin));
+    const lineHeight = options.lineHeight || (size + 3);
     const words = (text || '').split(' ');
     let line = '';
 
@@ -298,55 +325,128 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
       const testLine = line ? `${line} ${word}` : word;
       const width = f.widthOfTextAtSize(testLine, size);
       if (width > maxWidth && line) {
-        checkSpace(size + 4);
-        currentPage.drawText(line, { x: options.x || margin, y, size, font: f, color });
-        y -= size + 4;
+        checkPageBreak(lineHeight);
+        currentPage.drawText(line, { x, y: yPos, size, font: f, color });
+        yPos -= lineHeight;
         line = word;
       } else {
         line = testLine;
       }
     }
     if (line) {
-      checkSpace(size + 4);
-      currentPage.drawText(line, { x: options.x || margin, y, size, font: f, color });
-      y -= size + (options.spacing || 6);
+      checkPageBreak(lineHeight);
+      currentPage.drawText(line, { x, y: yPos, size, font: f, color });
+      yPos -= (options.spacingAfter || lineHeight);
     }
   };
 
-  // Header
-  drawText('RANGE MEDICAL', { size: 18, bold: true, spacing: 4 });
-  drawText('Assessment & Medical Intake Summary', { size: 11, color: gray, spacing: 2 });
-  const date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  drawText(date, { size: 9, color: gray, spacing: 12 });
-  drawLine();
+  // ===== HEADER BAR (full-width black bar, matching consent forms) =====
+  const headerBarHeight = 55;
+  currentPage.drawRectangle({
+    x: 0, y: pageHeight - headerBarHeight,
+    width: pageWidth, height: headerBarHeight,
+    color: black
+  });
 
-  // Patient Info
-  y -= 4;
-  drawText('PATIENT INFORMATION', { size: 9, bold: true, color: gray, spacing: 10 });
-  drawText(`Name: ${firstName} ${lastName}`, { size: 10 });
-  if (intakeData.preferredName) drawText(`Preferred Name: ${intakeData.preferredName}`, { size: 10 });
-  drawText(`Email: ${email}`, { size: 10 });
-  drawText(`Phone: ${phone}`, { size: 10 });
-  if (intakeData.dob) drawText(`Date of Birth: ${intakeData.dob}`, { size: 10 });
-  if (intakeData.gender) drawText(`Gender: ${intakeData.gender}`, { size: 10 });
+  // Title — left
+  currentPage.drawText('RANGE MEDICAL', {
+    x: leftMargin, y: pageHeight - 24, size: 16, font: fontBold, color: white
+  });
+  // Subtitle — left
+  currentPage.drawText('Medical Intake Form', {
+    x: leftMargin, y: pageHeight - 40, size: 9, font, color: white
+  });
+
+  // Date — right
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const dateLabel = `Document Date: ${dateStr}`;
+  const dateLabelWidth = font.widthOfTextAtSize(dateLabel, 8);
+  currentPage.drawText(dateLabel, {
+    x: pageWidth - rightMargin - dateLabelWidth, y: pageHeight - 24, size: 8, font, color: white
+  });
+  // Address — right
+  const addressText = '1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660';
+  const addressWidth = font.widthOfTextAtSize(addressText, 8);
+  currentPage.drawText(addressText, {
+    x: pageWidth - rightMargin - addressWidth, y: pageHeight - 40, size: 8, font, color: white
+  });
+
+  yPos = pageHeight - headerBarHeight - 14;
+
+  // Section header helper (black bar with white text, matching consent forms)
+  const addSectionHeader = (text) => {
+    checkPageBreak(30);
+    yPos -= 8;
+    const barHeight = 16;
+    currentPage.drawRectangle({
+      x: leftMargin, y: yPos - 3,
+      width: contentWidth, height: barHeight,
+      color: black
+    });
+    currentPage.drawText(text.toUpperCase(), {
+      x: leftMargin + 6, y: yPos + 1, size: 9, font: fontBold, color: white
+    });
+    yPos -= 18;
+  };
+
+  // Label-value pair (bold label, normal value on same line)
+  const addLabelValue = (label, value) => {
+    checkPageBreak(14);
+    const valueStr = value || 'N/A';
+    const labelWidth = fontBold.widthOfTextAtSize(label, 9);
+    currentPage.drawText(label, {
+      x: leftMargin, y: yPos, size: 9, font: fontBold, color: black
+    });
+    const availWidth = contentWidth - labelWidth - 4;
+    const valueWidth = font.widthOfTextAtSize(valueStr, 9);
+    if (valueWidth <= availWidth) {
+      currentPage.drawText(valueStr, {
+        x: leftMargin + labelWidth + 2, y: yPos, size: 9, font, color: black
+      });
+      yPos -= 14;
+    } else {
+      // Value wraps to next line(s)
+      yPos -= 13;
+      drawWrappedText(valueStr, { size: 9, x: leftMargin + 8, spacingAfter: 14 });
+    }
+  };
+
+  // Simple text line
+  const addTextLine = (text, options = {}) => {
+    const size = options.size || 9;
+    const f = options.bold ? fontBold : font;
+    const color = options.color || black;
+    checkPageBreak(size + 6);
+    currentPage.drawText(text, {
+      x: options.x || leftMargin, y: yPos, size, font: f, color
+    });
+    yPos -= (options.spacingAfter || 14);
+  };
+
+  // ===== PATIENT INFORMATION =====
+  addSectionHeader('Patient Information');
+  addLabelValue('Name: ', `${firstName} ${lastName}`);
+  if (intakeData.preferredName) addLabelValue('Preferred Name: ', intakeData.preferredName);
+  if (intakeData.dob) addLabelValue('Date of Birth: ', intakeData.dob);
+  if (intakeData.gender) addLabelValue('Gender: ', intakeData.gender);
+  addLabelValue('Email: ', email);
+  addLabelValue('Phone: ', phone);
   if (intakeData.streetAddress) {
-    drawText(`Address: ${intakeData.streetAddress}, ${intakeData.city}, ${intakeData.state} ${intakeData.postalCode}`, { size: 10 });
+    addLabelValue('Address: ', `${intakeData.streetAddress}, ${intakeData.city}, ${intakeData.state} ${intakeData.postalCode}`);
   }
   if (intakeData.howHeardAboutUs) {
     let referral = intakeData.howHeardAboutUs;
     if (referral === 'Other' && intakeData.howHeardOther) referral = intakeData.howHeardOther;
     if (referral === 'Friend or Family Member' && intakeData.howHeardFriend) referral = `Friend/Family: ${intakeData.howHeardFriend}`;
-    drawText(`Referral Source: ${referral}`, { size: 10 });
+    addLabelValue('Referral Source: ', referral);
   }
   if (intakeData.isMinor === 'Yes') {
-    drawText(`Minor Patient — Guardian: ${intakeData.guardianName} (${intakeData.guardianRelationship})`, { size: 10 });
+    addLabelValue('Minor Patient: ', `Guardian: ${intakeData.guardianName} (${intakeData.guardianRelationship})`);
   }
-  drawText(`Assessment Path: ${assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization'}`, { size: 10, spacing: 8 });
-  drawLine();
 
-  // Assessment Answers
-  y -= 4;
-  drawText('ASSESSMENT ANSWERS', { size: 9, bold: true, color: gray, spacing: 10 });
+  // ===== ASSESSMENT PATH & ANSWERS =====
+  addSectionHeader('Assessment Path & Answers');
+  addLabelValue('Path: ', assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization');
 
   if (assessmentPath === 'injury') {
     const injuryTypeLabels = {
@@ -369,19 +469,11 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
       'reduce_pain': 'Reduce pain and inflammation', 'post_surgery': 'Recover faster after surgery'
     };
 
-    drawText(`Injury Type: ${injuryTypeLabels[formData.injuryType] || formData.injuryType || 'Not specified'}`, { size: 10 });
-    drawText(`Location: ${locationLabels[formData.injuryLocation] || formData.injuryLocation || 'Not specified'}`, { size: 10 });
-    drawText(`Duration: ${durationLabels[formData.injuryDuration] || formData.injuryDuration || 'Not specified'}`, { size: 10 });
+    addLabelValue('Injury Type: ', injuryTypeLabels[formData.injuryType] || formData.injuryType || 'Not specified');
+    addLabelValue('Location: ', locationLabels[formData.injuryLocation] || formData.injuryLocation || 'Not specified');
+    addLabelValue('Duration: ', durationLabels[formData.injuryDuration] || formData.injuryDuration || 'Not specified');
     const goals = (formData.recoveryGoal || []).map(g => goalLabels[g] || g).join(', ');
-    drawText(`Recovery Goals: ${goals || 'Not specified'}`, { size: 10, spacing: 8 });
-
-    drawLine();
-    y -= 4;
-    drawText('RECOMMENDED PROTOCOL', { size: 9, bold: true, color: gray, spacing: 10 });
-    drawText('BPC-157 + TB-4 Peptide Protocol', { size: 11, bold: true, spacing: 8 });
-    drawWrappedText('BPC-157 (Body Protection Compound) may support tissue repair at the injury site and improve blood flow to damaged tissue.', { size: 9, color: gray, spacing: 6 });
-    drawWrappedText('TB-4 (Thymosin Beta-4) may help reduce inflammation and swelling, and bring more blood flow to the injured area.', { size: 9, color: gray, spacing: 8 });
-
+    addLabelValue('Recovery Goals: ', goals || 'Not specified');
   } else {
     const symptomLabels = {
       'fatigue': 'Fatigue or low energy', 'brain_fog': 'Brain fog or poor focus',
@@ -396,93 +488,131 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
     };
 
     const symptoms = (formData.symptoms || []).map(s => symptomLabels[s] || s).join(', ');
-    drawText(`Symptoms: ${symptoms || 'Not specified'}`, { size: 10 });
+    addLabelValue('Symptoms: ', symptoms || 'Not specified');
     const goals = (formData.goals || []).map(g => goalLabels[g] || g).join(', ');
-    drawText(`Goals: ${goals || 'Not specified'}`, { size: 10, spacing: 8 });
+    addLabelValue('Goals: ', goals || 'Not specified');
+  }
 
-    if (recommendation) {
-      drawLine();
-      y -= 4;
-      drawText('RECOMMENDED LAB PANEL', { size: 9, bold: true, color: gray, spacing: 10 });
-      drawText(`${recommendation.panel === 'elite' ? 'Elite Panel ($750)' : 'Essential Panel ($350)'}`, { size: 11, bold: true, spacing: 8 });
-
-      if (recommendation.eliteReasons?.length > 0) {
-        drawText('Why we recommend this panel:', { size: 9, color: gray, spacing: 4 });
-        recommendation.eliteReasons.slice(0, 3).forEach(reason => {
-          drawWrappedText(`- ${reason}`, { size: 9, color: gray, spacing: 4 });
-        });
-      }
+  // ===== RECOMMENDED PROTOCOL / LAB PANEL =====
+  if (assessmentPath === 'injury') {
+    addSectionHeader('Recommended Protocol');
+    addTextLine('BPC-157 + TB-4 Peptide Protocol', { size: 11, bold: true, spacingAfter: 6 });
+    drawWrappedText('BPC-157 (Body Protection Compound) may support tissue repair at the injury site and improve blood flow to damaged tissue.', { size: 8.5, color: grayColor, spacingAfter: 6 });
+    drawWrappedText('TB-4 (Thymosin Beta-4) may help reduce inflammation and swelling, and bring more blood flow to the injured area.', { size: 8.5, color: grayColor, spacingAfter: 14 });
+  } else if (recommendation) {
+    addSectionHeader('Recommended Lab Panel');
+    addTextLine(recommendation.panel === 'elite' ? 'Elite Panel ($750)' : 'Essential Panel ($350)', { size: 11, bold: true, spacingAfter: 6 });
+    if (recommendation.eliteReasons?.length > 0) {
+      addTextLine('Why we recommend this panel:', { size: 8.5, color: grayColor, spacingAfter: 6 });
+      recommendation.eliteReasons.slice(0, 3).forEach(reason => {
+        drawWrappedText(`\u2022  ${reason}`, { size: 8.5, color: grayColor, spacingAfter: 6 });
+      });
+      yPos -= 4;
     }
   }
 
-  if (intakeData.additionalNotes) {
-    y -= 4;
-    drawText('Additional Notes:', { size: 10, bold: true, spacing: 4 });
-    drawWrappedText(intakeData.additionalNotes, { size: 9, color: gray });
-  }
+  // ===== HEALTHCARE PROVIDERS =====
+  addSectionHeader('Healthcare Providers');
+  addLabelValue('Primary Care Physician: ', `${intakeData.hasPCP || 'Not specified'}${intakeData.hasPCP === 'Yes' && intakeData.pcpName ? ` \u2014 ${intakeData.pcpName}` : ''}`);
+  addLabelValue('Recent Hospitalization: ', `${intakeData.recentHospitalization || 'Not specified'}${intakeData.recentHospitalization === 'Yes' && intakeData.hospitalizationReason ? ` \u2014 ${intakeData.hospitalizationReason}` : ''}`);
 
-  drawLine();
-
-  // Healthcare Providers
-  y -= 4;
-  drawText('HEALTHCARE PROVIDERS', { size: 9, bold: true, color: gray, spacing: 10 });
-  drawText(`Primary Care Physician: ${intakeData.hasPCP || 'Not specified'}${intakeData.hasPCP === 'Yes' && intakeData.pcpName ? ` — ${intakeData.pcpName}` : ''}`, { size: 10 });
-  drawText(`Recent Hospitalization: ${intakeData.recentHospitalization || 'Not specified'}${intakeData.recentHospitalization === 'Yes' && intakeData.hospitalizationReason ? ` — ${intakeData.hospitalizationReason}` : ''}`, { size: 10, spacing: 8 });
-  drawLine();
-
-  // Medical History
-  y -= 4;
-  drawText('MEDICAL HISTORY', { size: 9, bold: true, color: gray, spacing: 10 });
+  // ===== MEDICAL HISTORY =====
+  addSectionHeader('Medical History');
   const conditionLines = formatConditions(intakeData.conditions);
   if (conditionLines.length > 0) {
     conditionLines.forEach(line => {
-      drawWrappedText(line, { size: 9, spacing: 4 });
+      drawWrappedText(line, { size: 9, spacingAfter: 12 });
     });
   } else {
-    drawText('No conditions reported', { size: 10 });
-  }
-  y -= 4;
-  drawLine();
-
-  // Medications & Allergies
-  y -= 4;
-  drawText('MEDICATIONS & ALLERGIES', { size: 9, bold: true, color: gray, spacing: 10 });
-
-  // HRT
-  drawText(`On HRT: ${intakeData.onHRT || 'Not specified'}`, { size: 10 });
-  if (intakeData.onHRT === 'Yes' && intakeData.hrtDetails) {
-    drawWrappedText(`HRT Details: ${intakeData.hrtDetails}`, { size: 9, spacing: 4 });
+    addTextLine('No conditions reported');
   }
 
-  // Medications
+  // ===== MEDICATIONS & ALLERGIES =====
+  addSectionHeader('Medications & Allergies');
+  addLabelValue('On HRT: ', `${intakeData.onHRT || 'Not specified'}${intakeData.onHRT === 'Yes' && intakeData.hrtDetails ? ` \u2014 ${intakeData.hrtDetails}` : ''}`);
   if (intakeData.onMedications === 'No') {
-    drawText('Other Medications: None', { size: 10 });
+    addLabelValue('Other Medications: ', 'None');
   } else if (intakeData.onMedications === 'Yes' && intakeData.currentMedications) {
-    drawText('Other Medications:', { size: 10, bold: true, spacing: 4 });
-    drawWrappedText(intakeData.currentMedications, { size: 9, spacing: 4 });
+    addLabelValue('Other Medications: ', intakeData.currentMedications);
   }
-
-  // Allergies
   if (intakeData.hasAllergies === 'No') {
-    drawText('Allergies: None', { size: 10, spacing: 6 });
+    addLabelValue('Allergies: ', 'None');
   } else if (intakeData.hasAllergies === 'Yes' && intakeData.allergiesList) {
-    drawWrappedText(`Allergies: ${intakeData.allergiesList}`, { size: 10, spacing: 6 });
+    addLabelValue('Allergies: ', intakeData.allergiesList);
   }
-  drawLine();
 
-  // Emergency Contact
-  y -= 4;
-  drawText('EMERGENCY CONTACT', { size: 9, bold: true, color: gray, spacing: 10 });
-  drawText(`Name: ${intakeData.emergencyContactName || 'Not provided'}`, { size: 10 });
-  drawText(`Phone: ${intakeData.emergencyContactPhone || 'Not provided'}`, { size: 10 });
-  drawText(`Relationship: ${intakeData.emergencyContactRelationship || 'Not provided'}`, { size: 10, spacing: 12 });
+  // ===== EMERGENCY CONTACT =====
+  addSectionHeader('Emergency Contact');
+  addLabelValue('Name: ', intakeData.emergencyContactName || 'Not provided');
+  addLabelValue('Phone: ', intakeData.emergencyContactPhone || 'Not provided');
+  addLabelValue('Relationship: ', intakeData.emergencyContactRelationship || 'Not provided');
 
-  // Footer
-  drawLine();
-  y -= 4;
-  drawText(`Generated: ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}`, { size: 8, color: gray });
-  drawText('Range Medical — 1901 Westcliff Dr Suite 10, Newport Beach, CA 92660 — (949) 997-3988', { size: 8, color: gray });
-  drawText('This document is confidential and intended for Range Medical staff use only.', { size: 7, color: gray });
+  // ===== ADDITIONAL NOTES =====
+  if (intakeData.additionalNotes) {
+    addSectionHeader('Additional Notes');
+    drawWrappedText(intakeData.additionalNotes, { size: 9, spacingAfter: 14 });
+  }
+
+  // ===== PATIENT CERTIFICATION & SIGNATURE =====
+  addSectionHeader('Patient Certification & Signature');
+  drawWrappedText(
+    'I certify that the information provided in this medical intake form is true and accurate to the best of my knowledge. I understand that withholding or providing inaccurate information may affect my care and treatment at Range Medical.',
+    { size: 8.5, spacingAfter: 16 }
+  );
+  addLabelValue('Signed by: ', `${firstName} ${lastName}`);
+  addLabelValue('Date: ', dateStr);
+
+  // Embed signature image
+  if (intakeData.signatureData) {
+    try {
+      const base64Data = intakeData.signatureData.replace(/^data:image\/png;base64,/, '');
+      const sigBytes = Buffer.from(base64Data, 'base64');
+      const sigImage = await pdfDoc.embedPng(sigBytes);
+      const sigDims = sigImage.scale(1);
+      // Scale signature to fit: max 170pt wide, max 55pt tall
+      const maxSigWidth = 170;
+      const maxSigHeight = 55;
+      const scale = Math.min(maxSigWidth / sigDims.width, maxSigHeight / sigDims.height, 1);
+      const sigWidth = sigDims.width * scale;
+      const sigHeight = sigDims.height * scale;
+
+      checkPageBreak(sigHeight + 10);
+      currentPage.drawImage(sigImage, {
+        x: leftMargin,
+        y: yPos - sigHeight,
+        width: sigWidth,
+        height: sigHeight
+      });
+      yPos -= sigHeight + 8;
+    } catch (sigErr) {
+      console.error('Error embedding signature in PDF:', sigErr);
+      addTextLine('[Signature on file]', { size: 9, color: grayColor });
+    }
+  }
+
+  // ===== FOOTERS (applied to all pages after content is complete) =====
+  const pages = pdfDoc.getPages();
+  const totalPages = pages.length;
+  pages.forEach((page, i) => {
+    // Clinic info — centered
+    const footerLine1 = 'Range Medical | 1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660 | (949) 997-3988';
+    const f1Width = font.widthOfTextAtSize(footerLine1, 7);
+    page.drawText(footerLine1, {
+      x: (pageWidth - f1Width) / 2, y: 18, size: 7, font, color: grayColor
+    });
+    // Confidential — centered
+    const footerLine2 = 'CONFIDENTIAL \u2014 Medical Intake Form';
+    const f2Width = font.widthOfTextAtSize(footerLine2, 7);
+    page.drawText(footerLine2, {
+      x: (pageWidth - f2Width) / 2, y: 10, size: 7, font, color: grayColor
+    });
+    // Page number — right
+    const pageNum = `Page ${i + 1} of ${totalPages}`;
+    const pnWidth = font.widthOfTextAtSize(pageNum, 7);
+    page.drawText(pageNum, {
+      x: pageWidth - rightMargin - pnWidth, y: 10, size: 7, font, color: grayColor
+    });
+  });
 
   return await pdfDoc.save();
 }

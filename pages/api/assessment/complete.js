@@ -393,7 +393,7 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
   });
 
   // Date — right
-  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const dateStr = new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric' });
   const dateLabel = `Document Date: ${dateStr}`;
   const dateLabelWidth = font.widthOfTextAtSize(dateLabel, 8);
   currentPage.drawText(dateLabel, {
@@ -526,24 +526,6 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
     addLabelValue('Symptoms: ', symptoms || 'Not specified');
     const goals = (formData.goals || []).map(g => goalLabels[g] || g).join(', ');
     addLabelValue('Goals: ', goals || 'Not specified');
-  }
-
-  // ===== RECOMMENDED PROTOCOL / LAB PANEL =====
-  if (assessmentPath === 'injury') {
-    addSectionHeader('Recommended Protocol');
-    addTextLine('BPC-157 + TB-4 Peptide Protocol', { size: 11, bold: true, spacingAfter: 6 });
-    drawWrappedText('BPC-157 (Body Protection Compound) may support tissue repair at the injury site and improve blood flow to damaged tissue.', { size: 8.5, color: grayColor, spacingAfter: 6 });
-    drawWrappedText('TB-4 (Thymosin Beta-4) may help reduce inflammation and swelling, and bring more blood flow to the injured area.', { size: 8.5, color: grayColor, spacingAfter: 14 });
-  } else if (recommendation) {
-    addSectionHeader('Recommended Lab Panel');
-    addTextLine(recommendation.panel === 'elite' ? 'Elite Panel ($750)' : 'Essential Panel ($350)', { size: 11, bold: true, spacingAfter: 6 });
-    if (recommendation.eliteReasons?.length > 0) {
-      addTextLine('Why we recommend this panel:', { size: 8.5, color: grayColor, spacingAfter: 6 });
-      recommendation.eliteReasons.slice(0, 3).forEach(reason => {
-        drawWrappedText(`\u2022  ${reason}`, { size: 8.5, color: grayColor, spacingAfter: 6 });
-      });
-      yPos -= 4;
-    }
   }
 
   // ===== HEALTHCARE PROVIDERS =====

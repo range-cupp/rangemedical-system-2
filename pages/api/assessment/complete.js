@@ -12,6 +12,21 @@ const supabase = supabaseUrl && supabaseKey
 const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
 
+// Condition labels for display
+const CONDITION_LABELS = {
+  hypertension: 'High Blood Pressure',
+  highCholesterol: 'High Cholesterol',
+  heartDisease: 'Heart Disease',
+  diabetes: 'Diabetes',
+  thyroid: 'Thyroid Disorder',
+  depression: 'Depression/Anxiety',
+  eatingDisorder: 'Eating Disorder',
+  kidney: 'Kidney Disease',
+  liver: 'Liver Disease',
+  autoimmune: 'Autoimmune Disorder',
+  cancer: 'Cancer'
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -28,20 +43,49 @@ export default async function handler(req, res) {
 
     // 1. Update assessment_leads with intake data
     if (supabase) {
+      // Store comprehensive intake data in medical_history JSONB
+      const medicalHistoryData = {
+        personalInfo: {
+          dob: intakeData.dob || null,
+          gender: intakeData.gender || null,
+          preferredName: intakeData.preferredName || null,
+          address: {
+            street: intakeData.streetAddress || null,
+            city: intakeData.city || null,
+            state: intakeData.state || null,
+            postalCode: intakeData.postalCode || null,
+          },
+          howHeardAboutUs: intakeData.howHeardAboutUs || null,
+          howHeardOther: intakeData.howHeardOther || null,
+          howHeardFriend: intakeData.howHeardFriend || null,
+          isMinor: intakeData.isMinor || 'No',
+          guardianName: intakeData.guardianName || null,
+          guardianRelationship: intakeData.guardianRelationship || null,
+        },
+        healthcareProviders: {
+          hasPCP: intakeData.hasPCP || null,
+          pcpName: intakeData.pcpName || null,
+          recentHospitalization: intakeData.recentHospitalization || null,
+          hospitalizationReason: intakeData.hospitalizationReason || null,
+        },
+        conditions: intakeData.conditions || {},
+        hrt: {
+          onHRT: intakeData.onHRT || null,
+          hrtDetails: intakeData.hrtDetails || null,
+        },
+      };
+
       const updateData = {
         intake_completed_at: new Date().toISOString(),
         intake_status: 'completed',
-        medical_history: intakeData.medicalHistory || null,
-        medications: intakeData.medications || null,
-        allergies: intakeData.noKnownAllergies ? { none: true } : { text: intakeData.knownAllergiesText || '' },
-        surgical_history: intakeData.surgicalHistory || null,
+        medical_history: medicalHistoryData,
+        allergies: intakeData.hasAllergies === 'No' ? { none: true } : { text: intakeData.allergiesList || '' },
         emergency_contact_name: intakeData.emergencyContactName || null,
         emergency_contact_phone: intakeData.emergencyContactPhone || null,
         emergency_contact_relationship: intakeData.emergencyContactRelationship || null,
-        current_medications_text: intakeData.currentMedicationsText || null,
-        known_allergies_text: intakeData.knownAllergiesText || null,
-        no_known_allergies: !!intakeData.noKnownAllergies,
-        diagnosed_conditions_text: intakeData.diagnosedConditionsText || null,
+        current_medications_text: intakeData.onMedications === 'Yes' ? intakeData.currentMedications : null,
+        known_allergies_text: intakeData.hasAllergies === 'Yes' ? intakeData.allergiesList : null,
+        no_known_allergies: intakeData.hasAllergies === 'No',
         recommended_panel: recommendation?.panel || null,
         recommended_peptides: assessmentPath === 'injury' ? { bpc157: true, tb4: true } : null,
       };
@@ -114,7 +158,6 @@ export default async function handler(req, res) {
     // 4. Update GHL contact
     if (GHL_API_KEY) {
       try {
-        // Find the contact by email
         const searchResponse = await fetch(
           `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(email)}`,
           {
@@ -175,6 +218,23 @@ export default async function handler(req, res) {
     console.error('Assessment complete error:', error);
     return res.status(500).json({ error: 'Failed to complete assessment' });
   }
+}
+
+// Helper to format conditions for display
+function formatConditions(conditions) {
+  if (!conditions || Object.keys(conditions).length === 0) return [];
+  const results = [];
+  for (const [key, data] of Object.entries(conditions)) {
+    if (!data?.response) continue;
+    const label = CONDITION_LABELS[key] || key;
+    let text = `${label}: ${data.response}`;
+    if (data.response === 'Yes') {
+      if (data.type) text += ` (${data.type})`;
+      if (data.year) text += ` — diagnosed ${data.year}`;
+    }
+    results.push(text);
+  }
+  return results;
 }
 
 // Generate PDF using pdf-lib
@@ -264,8 +324,23 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
   y -= 4;
   drawText('PATIENT INFORMATION', { size: 9, bold: true, color: gray, spacing: 10 });
   drawText(`Name: ${firstName} ${lastName}`, { size: 10 });
+  if (intakeData.preferredName) drawText(`Preferred Name: ${intakeData.preferredName}`, { size: 10 });
   drawText(`Email: ${email}`, { size: 10 });
-  drawText(`Phone: ${phone}`, { size: 10, spacing: 12 });
+  drawText(`Phone: ${phone}`, { size: 10 });
+  if (intakeData.dob) drawText(`Date of Birth: ${intakeData.dob}`, { size: 10 });
+  if (intakeData.gender) drawText(`Gender: ${intakeData.gender}`, { size: 10 });
+  if (intakeData.streetAddress) {
+    drawText(`Address: ${intakeData.streetAddress}, ${intakeData.city}, ${intakeData.state} ${intakeData.postalCode}`, { size: 10 });
+  }
+  if (intakeData.howHeardAboutUs) {
+    let referral = intakeData.howHeardAboutUs;
+    if (referral === 'Other' && intakeData.howHeardOther) referral = intakeData.howHeardOther;
+    if (referral === 'Friend or Family Member' && intakeData.howHeardFriend) referral = `Friend/Family: ${intakeData.howHeardFriend}`;
+    drawText(`Referral Source: ${referral}`, { size: 10 });
+  }
+  if (intakeData.isMinor === 'Yes') {
+    drawText(`Minor Patient — Guardian: ${intakeData.guardianName} (${intakeData.guardianRelationship})`, { size: 10 });
+  }
   drawText(`Assessment Path: ${assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization'}`, { size: 10, spacing: 8 });
   drawLine();
 
@@ -340,76 +415,62 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
     }
   }
 
-  if (formData.additionalInfo) {
+  if (intakeData.additionalNotes) {
     y -= 4;
     drawText('Additional Notes:', { size: 10, bold: true, spacing: 4 });
-    drawWrappedText(formData.additionalInfo, { size: 9, color: gray });
+    drawWrappedText(intakeData.additionalNotes, { size: 9, color: gray });
   }
 
   drawLine();
 
-  // Medical Intake Section
+  // Healthcare Providers
   y -= 4;
-  drawText('MEDICAL INTAKE', { size: 9, bold: true, color: gray, spacing: 10 });
+  drawText('HEALTHCARE PROVIDERS', { size: 9, bold: true, color: gray, spacing: 10 });
+  drawText(`Primary Care Physician: ${intakeData.hasPCP || 'Not specified'}${intakeData.hasPCP === 'Yes' && intakeData.pcpName ? ` — ${intakeData.pcpName}` : ''}`, { size: 10 });
+  drawText(`Recent Hospitalization: ${intakeData.recentHospitalization || 'Not specified'}${intakeData.recentHospitalization === 'Yes' && intakeData.hospitalizationReason ? ` — ${intakeData.hospitalizationReason}` : ''}`, { size: 10, spacing: 8 });
+  drawLine();
 
-  // Medical History (injury path)
-  if (intakeData.medicalHistory && Object.keys(intakeData.medicalHistory).length > 0) {
-    drawText('Medical History:', { size: 10, bold: true, spacing: 4 });
-    Object.entries(intakeData.medicalHistory).forEach(([condition, info]) => {
-      let text = `- ${condition}`;
-      if (info.year) text += ` (diagnosed ${info.year})`;
-      if (info.detail) text += ` — ${info.detail}`;
-      drawWrappedText(text, { size: 9, spacing: 4 });
+  // Medical History
+  y -= 4;
+  drawText('MEDICAL HISTORY', { size: 9, bold: true, color: gray, spacing: 10 });
+  const conditionLines = formatConditions(intakeData.conditions);
+  if (conditionLines.length > 0) {
+    conditionLines.forEach(line => {
+      drawWrappedText(line, { size: 9, spacing: 4 });
     });
-    y -= 4;
-  } else if (assessmentPath === 'injury') {
-    drawText('Medical History: No conditions reported', { size: 10, spacing: 6 });
+  } else {
+    drawText('No conditions reported', { size: 10 });
+  }
+  y -= 4;
+  drawLine();
+
+  // Medications & Allergies
+  y -= 4;
+  drawText('MEDICATIONS & ALLERGIES', { size: 9, bold: true, color: gray, spacing: 10 });
+
+  // HRT
+  drawText(`On HRT: ${intakeData.onHRT || 'Not specified'}`, { size: 10 });
+  if (intakeData.onHRT === 'Yes' && intakeData.hrtDetails) {
+    drawWrappedText(`HRT Details: ${intakeData.hrtDetails}`, { size: 9, spacing: 4 });
   }
 
   // Medications
-  if (intakeData.noCurrentMedications) {
-    drawText('Medications: No current medications', { size: 10, spacing: 6 });
-  } else if (intakeData.medications && intakeData.medications.length > 0) {
-    drawText('Medications:', { size: 10, bold: true, spacing: 4 });
-    intakeData.medications.forEach(med => {
-      const parts = [med.name, med.dosage, med.frequency].filter(Boolean).join(' — ');
-      drawText(`- ${parts}`, { size: 9, spacing: 4 });
-    });
-    y -= 4;
-  } else if (intakeData.currentMedicationsText) {
-    drawText('Medications:', { size: 10, bold: true, spacing: 4 });
-    drawWrappedText(intakeData.currentMedicationsText, { size: 9, spacing: 4 });
-    y -= 4;
+  if (intakeData.onMedications === 'No') {
+    drawText('Other Medications: None', { size: 10 });
+  } else if (intakeData.onMedications === 'Yes' && intakeData.currentMedications) {
+    drawText('Other Medications:', { size: 10, bold: true, spacing: 4 });
+    drawWrappedText(intakeData.currentMedications, { size: 9, spacing: 4 });
   }
 
   // Allergies
-  if (intakeData.noKnownAllergies) {
-    drawText('Allergies: No known allergies', { size: 10, spacing: 6 });
-  } else if (intakeData.knownAllergiesText) {
-    drawText(`Allergies: ${intakeData.knownAllergiesText}`, { size: 10, spacing: 6 });
+  if (intakeData.hasAllergies === 'No') {
+    drawText('Allergies: None', { size: 10, spacing: 6 });
+  } else if (intakeData.hasAllergies === 'Yes' && intakeData.allergiesList) {
+    drawWrappedText(`Allergies: ${intakeData.allergiesList}`, { size: 10, spacing: 6 });
   }
-
-  // Diagnosed Conditions (energy path)
-  if (intakeData.diagnosedConditionsText) {
-    drawText('Diagnosed Conditions:', { size: 10, bold: true, spacing: 4 });
-    drawWrappedText(intakeData.diagnosedConditionsText, { size: 9, spacing: 4 });
-    y -= 4;
-  }
-
-  // Surgical History
-  if (intakeData.noPriorSurgeries) {
-    drawText('Surgical History: No prior surgeries', { size: 10, spacing: 6 });
-  } else if (intakeData.surgicalHistory && intakeData.surgicalHistory.length > 0) {
-    drawText('Surgical History:', { size: 10, bold: true, spacing: 4 });
-    intakeData.surgicalHistory.forEach(surgery => {
-      const text = surgery.year ? `- ${surgery.procedure} (${surgery.year})` : `- ${surgery.procedure}`;
-      drawText(text, { size: 9, spacing: 4 });
-    });
-    y -= 4;
-  }
+  drawLine();
 
   // Emergency Contact
-  drawLine();
   y -= 4;
   drawText('EMERGENCY CONTACT', { size: 9, bold: true, color: gray, spacing: 10 });
   drawText(`Name: ${intakeData.emergencyContactName || 'Not provided'}`, { size: 10 });
@@ -431,58 +492,64 @@ function buildIntakeNote(assessmentPath, formData, intakeData, recommendation) {
   const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const lines = [];
 
-  lines.push(`📋 Medical Intake Completed — ${date}`);
+  lines.push(`Medical Intake Completed — ${date}`);
   lines.push(`Path: ${assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization'}`);
   lines.push('');
 
-  // Medical history
-  if (intakeData.medicalHistory && Object.keys(intakeData.medicalHistory).length > 0) {
+  // Personal info
+  if (intakeData.dob) lines.push(`DOB: ${intakeData.dob}`);
+  if (intakeData.gender) lines.push(`Gender: ${intakeData.gender}`);
+  if (intakeData.streetAddress) {
+    lines.push(`Address: ${intakeData.streetAddress}, ${intakeData.city}, ${intakeData.state} ${intakeData.postalCode}`);
+  }
+  if (intakeData.howHeardAboutUs) {
+    let referral = intakeData.howHeardAboutUs;
+    if (referral === 'Other' && intakeData.howHeardOther) referral = intakeData.howHeardOther;
+    if (referral === 'Friend or Family Member' && intakeData.howHeardFriend) referral = `Friend/Family: ${intakeData.howHeardFriend}`;
+    lines.push(`Referral: ${referral}`);
+  }
+  lines.push('');
+
+  // Healthcare providers
+  lines.push(`PCP: ${intakeData.hasPCP || 'N/A'}${intakeData.hasPCP === 'Yes' && intakeData.pcpName ? ` — ${intakeData.pcpName}` : ''}`);
+  lines.push(`Recent Hospitalization: ${intakeData.recentHospitalization || 'N/A'}${intakeData.recentHospitalization === 'Yes' && intakeData.hospitalizationReason ? ` — ${intakeData.hospitalizationReason}` : ''}`);
+  lines.push('');
+
+  // Medical history conditions
+  const conditionLines = formatConditions(intakeData.conditions);
+  if (conditionLines.length > 0) {
     lines.push('Medical History:');
-    Object.entries(intakeData.medicalHistory).forEach(([condition, info]) => {
-      let text = `  - ${condition}`;
-      if (info.year) text += ` (${info.year})`;
-      if (info.detail) text += ` — ${info.detail}`;
-      lines.push(text);
-    });
+    conditionLines.forEach(line => lines.push(`  ${line}`));
     lines.push('');
   }
 
+  // HRT
+  lines.push(`On HRT: ${intakeData.onHRT || 'N/A'}`);
+  if (intakeData.onHRT === 'Yes' && intakeData.hrtDetails) {
+    lines.push(`  HRT Details: ${intakeData.hrtDetails}`);
+  }
+
   // Medications
-  if (intakeData.noCurrentMedications) {
-    lines.push('Medications: None');
-  } else if (intakeData.medications?.length > 0) {
-    lines.push('Medications:');
-    intakeData.medications.forEach(med => {
-      lines.push(`  - ${[med.name, med.dosage, med.frequency].filter(Boolean).join(' — ')}`);
-    });
-  } else if (intakeData.currentMedicationsText) {
-    lines.push(`Medications: ${intakeData.currentMedicationsText}`);
+  if (intakeData.onMedications === 'No') {
+    lines.push('Other Medications: None');
+  } else if (intakeData.onMedications === 'Yes' && intakeData.currentMedications) {
+    lines.push(`Other Medications: ${intakeData.currentMedications}`);
   }
 
   // Allergies
-  if (intakeData.noKnownAllergies) {
+  if (intakeData.hasAllergies === 'No') {
     lines.push('Allergies: None');
-  } else if (intakeData.knownAllergiesText) {
-    lines.push(`Allergies: ${intakeData.knownAllergiesText}`);
-  }
-
-  // Diagnosed conditions
-  if (intakeData.diagnosedConditionsText) {
-    lines.push(`Diagnosed Conditions: ${intakeData.diagnosedConditionsText}`);
-  }
-
-  // Surgical history
-  if (intakeData.noPriorSurgeries) {
-    lines.push('Surgical History: None');
-  } else if (intakeData.surgicalHistory?.length > 0) {
-    lines.push('Surgical History:');
-    intakeData.surgicalHistory.forEach(s => {
-      lines.push(`  - ${s.procedure}${s.year ? ` (${s.year})` : ''}`);
-    });
+  } else if (intakeData.hasAllergies === 'Yes' && intakeData.allergiesList) {
+    lines.push(`Allergies: ${intakeData.allergiesList}`);
   }
 
   lines.push('');
   lines.push(`Emergency Contact: ${intakeData.emergencyContactName || 'N/A'} — ${intakeData.emergencyContactPhone || 'N/A'} (${intakeData.emergencyContactRelationship || 'N/A'})`);
+
+  if (intakeData.additionalNotes) {
+    lines.push('');
+    lines.push(`Additional Notes: ${intakeData.additionalNotes}`);
+  }
 
   if (recommendation) {
     lines.push('');
@@ -499,61 +566,55 @@ async function sendConsolidatedEmail({ firstName, lastName, email, phone, assess
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
   });
 
-  // Build medical intake section
-  let intakeHtml = '';
-
-  // Medical history
-  if (intakeData.medicalHistory && Object.keys(intakeData.medicalHistory).length > 0) {
-    intakeHtml += '<tr><td style="padding: 8px 0; color: #737373; vertical-align: top;">Medical History:</td><td style="padding: 8px 0; color: #171717;">';
-    Object.entries(intakeData.medicalHistory).forEach(([condition, info]) => {
-      let text = condition;
-      if (info.year) text += ` (${info.year})`;
-      if (info.detail) text += ` — ${info.detail}`;
-      intakeHtml += `${text}<br/>`;
-    });
-    intakeHtml += '</td></tr>';
-  } else if (assessmentPath === 'injury') {
-    intakeHtml += '<tr><td style="padding: 8px 0; color: #737373;">Medical History:</td><td style="padding: 8px 0; color: #171717;">No conditions reported</td></tr>';
+  // Build personal info section
+  let personalHtml = '';
+  if (intakeData.dob) personalHtml += `<tr><td style="padding: 4px 0; color: #737373;">DOB:</td><td style="padding: 4px 0; color: #171717;">${intakeData.dob}</td></tr>`;
+  if (intakeData.gender) personalHtml += `<tr><td style="padding: 4px 0; color: #737373;">Gender:</td><td style="padding: 4px 0; color: #171717;">${intakeData.gender}</td></tr>`;
+  if (intakeData.streetAddress) {
+    personalHtml += `<tr><td style="padding: 4px 0; color: #737373;">Address:</td><td style="padding: 4px 0; color: #171717;">${intakeData.streetAddress}, ${intakeData.city}, ${intakeData.state} ${intakeData.postalCode}</td></tr>`;
+  }
+  if (intakeData.howHeardAboutUs) {
+    let referral = intakeData.howHeardAboutUs;
+    if (referral === 'Other' && intakeData.howHeardOther) referral = intakeData.howHeardOther;
+    if (referral === 'Friend or Family Member' && intakeData.howHeardFriend) referral = `Friend/Family: ${intakeData.howHeardFriend}`;
+    personalHtml += `<tr><td style="padding: 4px 0; color: #737373;">Referral:</td><td style="padding: 4px 0; color: #171717;">${referral}</td></tr>`;
+  }
+  if (intakeData.isMinor === 'Yes') {
+    personalHtml += `<tr><td style="padding: 4px 0; color: #737373;">Guardian:</td><td style="padding: 4px 0; color: #171717;">${intakeData.guardianName} (${intakeData.guardianRelationship})</td></tr>`;
   }
 
-  // Medications
-  if (intakeData.noCurrentMedications) {
-    intakeHtml += '<tr><td style="padding: 8px 0; color: #737373;">Medications:</td><td style="padding: 8px 0; color: #171717;">None</td></tr>';
-  } else if (intakeData.medications?.length > 0) {
-    intakeHtml += '<tr><td style="padding: 8px 0; color: #737373; vertical-align: top;">Medications:</td><td style="padding: 8px 0; color: #171717;">';
-    intakeData.medications.forEach(med => {
-      intakeHtml += `${[med.name, med.dosage, med.frequency].filter(Boolean).join(' — ')}<br/>`;
-    });
-    intakeHtml += '</td></tr>';
-  } else if (intakeData.currentMedicationsText) {
-    intakeHtml += `<tr><td style="padding: 8px 0; color: #737373;">Medications:</td><td style="padding: 8px 0; color: #171717;">${intakeData.currentMedicationsText}</td></tr>`;
+  // Build healthcare providers section
+  let providersHtml = '';
+  providersHtml += `<tr><td style="padding: 4px 0; color: #737373;">PCP:</td><td style="padding: 4px 0; color: #171717;">${intakeData.hasPCP || 'N/A'}${intakeData.hasPCP === 'Yes' && intakeData.pcpName ? ` — ${intakeData.pcpName}` : ''}</td></tr>`;
+  providersHtml += `<tr><td style="padding: 4px 0; color: #737373;">Hospitalization:</td><td style="padding: 4px 0; color: #171717;">${intakeData.recentHospitalization || 'N/A'}${intakeData.recentHospitalization === 'Yes' && intakeData.hospitalizationReason ? ` — ${intakeData.hospitalizationReason}` : ''}</td></tr>`;
+
+  // Build medical history section
+  let historyHtml = '';
+  const conditionLines = formatConditions(intakeData.conditions);
+  if (conditionLines.length > 0) {
+    historyHtml += '<tr><td style="padding: 4px 0; color: #737373; vertical-align: top;">Conditions:</td><td style="padding: 4px 0; color: #171717;">';
+    conditionLines.forEach(line => { historyHtml += `${line}<br/>`; });
+    historyHtml += '</td></tr>';
+  } else {
+    historyHtml += '<tr><td style="padding: 4px 0; color: #737373;">Conditions:</td><td style="padding: 4px 0; color: #171717;">No conditions reported</td></tr>';
   }
 
-  // Allergies
-  if (intakeData.noKnownAllergies) {
-    intakeHtml += '<tr><td style="padding: 8px 0; color: #737373;">Allergies:</td><td style="padding: 8px 0; color: #171717;">None</td></tr>';
-  } else if (intakeData.knownAllergiesText) {
-    intakeHtml += `<tr><td style="padding: 8px 0; color: #737373;">Allergies:</td><td style="padding: 8px 0; color: #171717;">${intakeData.knownAllergiesText}</td></tr>`;
+  // Build medications & allergies section
+  let medsHtml = '';
+  medsHtml += `<tr><td style="padding: 4px 0; color: #737373;">On HRT:</td><td style="padding: 4px 0; color: #171717;">${intakeData.onHRT || 'N/A'}${intakeData.onHRT === 'Yes' && intakeData.hrtDetails ? ` — ${intakeData.hrtDetails}` : ''}</td></tr>`;
+  if (intakeData.onMedications === 'No') {
+    medsHtml += '<tr><td style="padding: 4px 0; color: #737373;">Medications:</td><td style="padding: 4px 0; color: #171717;">None</td></tr>';
+  } else if (intakeData.onMedications === 'Yes' && intakeData.currentMedications) {
+    medsHtml += `<tr><td style="padding: 4px 0; color: #737373; vertical-align: top;">Medications:</td><td style="padding: 4px 0; color: #171717;">${intakeData.currentMedications}</td></tr>`;
   }
-
-  // Diagnosed conditions
-  if (intakeData.diagnosedConditionsText) {
-    intakeHtml += `<tr><td style="padding: 8px 0; color: #737373;">Diagnosed Conditions:</td><td style="padding: 8px 0; color: #171717;">${intakeData.diagnosedConditionsText}</td></tr>`;
-  }
-
-  // Surgical history
-  if (intakeData.noPriorSurgeries) {
-    intakeHtml += '<tr><td style="padding: 8px 0; color: #737373;">Surgical History:</td><td style="padding: 8px 0; color: #171717;">None</td></tr>';
-  } else if (intakeData.surgicalHistory?.length > 0) {
-    intakeHtml += '<tr><td style="padding: 8px 0; color: #737373; vertical-align: top;">Surgical History:</td><td style="padding: 8px 0; color: #171717;">';
-    intakeData.surgicalHistory.forEach(s => {
-      intakeHtml += `${s.procedure}${s.year ? ` (${s.year})` : ''}<br/>`;
-    });
-    intakeHtml += '</td></tr>';
+  if (intakeData.hasAllergies === 'No') {
+    medsHtml += '<tr><td style="padding: 4px 0; color: #737373;">Allergies:</td><td style="padding: 4px 0; color: #171717;">None</td></tr>';
+  } else if (intakeData.hasAllergies === 'Yes' && intakeData.allergiesList) {
+    medsHtml += `<tr><td style="padding: 4px 0; color: #737373;">Allergies:</td><td style="padding: 4px 0; color: #171717;">${intakeData.allergiesList}</td></tr>`;
   }
 
   // Emergency contact
-  intakeHtml += `<tr><td style="padding: 8px 0; color: #737373;">Emergency Contact:</td><td style="padding: 8px 0; color: #171717;">${intakeData.emergencyContactName || 'N/A'} — ${intakeData.emergencyContactPhone || 'N/A'} (${intakeData.emergencyContactRelationship || 'N/A'})</td></tr>`;
+  let emergencyHtml = `<tr><td style="padding: 4px 0; color: #737373;">Emergency Contact:</td><td style="padding: 4px 0; color: #171717;">${intakeData.emergencyContactName || 'N/A'} — ${intakeData.emergencyContactPhone || 'N/A'} (${intakeData.emergencyContactRelationship || 'N/A'})</td></tr>`;
 
   // Build assessment details section
   let detailsHtml = '';
@@ -579,11 +640,11 @@ async function sendConsolidatedEmail({ firstName, lastName, email, phone, assess
     };
 
     detailsHtml = `
-      <tr><td style="padding: 8px 0; color: #737373;">Injury Type:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${injuryTypeLabels[formData.injuryType] || 'Not specified'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #737373;">Location:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${locationLabels[formData.injuryLocation] || 'Not specified'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #737373;">Duration:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${durationLabels[formData.injuryDuration] || 'Not specified'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #737373;">Recovery Goals:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${(formData.recoveryGoal || []).map(g => goalLabels[g] || g).join(', ') || 'Not specified'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #737373;">Recommended:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">BPC-157 + TB-4 Protocol</td></tr>
+      <tr><td style="padding: 4px 0; color: #737373;">Injury Type:</td><td style="padding: 4px 0; color: #171717; font-weight: 500;">${injuryTypeLabels[formData.injuryType] || 'Not specified'}</td></tr>
+      <tr><td style="padding: 4px 0; color: #737373;">Location:</td><td style="padding: 4px 0; color: #171717; font-weight: 500;">${locationLabels[formData.injuryLocation] || 'Not specified'}</td></tr>
+      <tr><td style="padding: 4px 0; color: #737373;">Duration:</td><td style="padding: 4px 0; color: #171717; font-weight: 500;">${durationLabels[formData.injuryDuration] || 'Not specified'}</td></tr>
+      <tr><td style="padding: 4px 0; color: #737373;">Recovery Goals:</td><td style="padding: 4px 0; color: #171717; font-weight: 500;">${(formData.recoveryGoal || []).map(g => goalLabels[g] || g).join(', ') || 'Not specified'}</td></tr>
+      <tr><td style="padding: 4px 0; color: #737373;">Recommended:</td><td style="padding: 4px 0; color: #171717; font-weight: 500;">BPC-157 + TB-4 Protocol</td></tr>
     `;
   } else {
     const symptomLabels = {
@@ -598,9 +659,9 @@ async function sendConsolidatedEmail({ firstName, lastName, email, phone, assess
     };
 
     detailsHtml = `
-      <tr><td style="padding: 8px 0; color: #737373;">Symptoms:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${(formData.symptoms || []).map(s => symptomLabels[s] || s).join(', ') || 'Not specified'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #737373;">Goals:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${(formData.goals || []).map(g => goalLabels[g] || g).join(', ') || 'Not specified'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #737373;">Recommended Panel:</td><td style="padding: 8px 0; color: #171717; font-weight: 500;">${recommendation?.panel === 'elite' ? 'Elite Panel ($750)' : 'Essential Panel ($350)'}</td></tr>
+      <tr><td style="padding: 4px 0; color: #737373;">Symptoms:</td><td style="padding: 4px 0; color: #171717; font-weight: 500;">${(formData.symptoms || []).map(s => symptomLabels[s] || s).join(', ') || 'Not specified'}</td></tr>
+      <tr><td style="padding: 4px 0; color: #737373;">Goals:</td><td style="padding: 4px 0; color: #171717; font-weight: 500;">${(formData.goals || []).map(g => goalLabels[g] || g).join(', ') || 'Not specified'}</td></tr>
+      <tr><td style="padding: 4px 0; color: #737373;">Recommended Panel:</td><td style="padding: 4px 0; color: #171717; font-weight: 500;">${recommendation?.panel === 'elite' ? 'Elite Panel ($750)' : 'Essential Panel ($350)'}</td></tr>
     `;
   }
 
@@ -641,58 +702,87 @@ async function sendConsolidatedEmail({ firstName, lastName, email, phone, assess
           <tr>
             <td style="padding: 24px 32px;">
               <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Contact Information</h2>
-              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 15px;">
-                <tr><td style="padding: 8px 0; color: #737373;">Name:</td><td style="padding: 8px 0; color: #171717; font-weight: 600;">${firstName} ${lastName}</td></tr>
-                <tr><td style="padding: 8px 0; color: #737373;">Email:</td><td style="padding: 8px 0;"><a href="mailto:${email}" style="color: #171717;">${email}</a></td></tr>
-                <tr><td style="padding: 8px 0; color: #737373;">Phone:</td><td style="padding: 8px 0;"><a href="tel:${phone}" style="color: #171717;">${phone}</a></td></tr>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                <tr><td style="padding: 4px 0; color: #737373; width: 120px;">Name:</td><td style="padding: 4px 0; color: #171717; font-weight: 600;">${firstName} ${lastName}</td></tr>
+                <tr><td style="padding: 4px 0; color: #737373;">Email:</td><td style="padding: 4px 0;"><a href="mailto:${email}" style="color: #171717;">${email}</a></td></tr>
+                <tr><td style="padding: 4px 0; color: #737373;">Phone:</td><td style="padding: 4px 0;"><a href="tel:${phone}" style="color: #171717;">${phone}</a></td></tr>
+                ${personalHtml}
               </table>
             </td>
           </tr>
 
-          <!-- Divider -->
-          <tr>
-            <td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td>
-          </tr>
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
 
           <!-- Assessment Details -->
           <tr>
             <td style="padding: 24px 32px;">
               <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Assessment Details</h2>
-              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 15px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
                 ${detailsHtml}
               </table>
             </td>
           </tr>
 
-          <!-- Divider -->
-          <tr>
-            <td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td>
-          </tr>
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
 
-          <!-- Medical Intake -->
+          <!-- Healthcare Providers -->
           <tr>
             <td style="padding: 24px 32px;">
-              <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Medical Intake</h2>
-              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 15px;">
-                ${intakeHtml}
+              <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Healthcare Providers</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                ${providersHtml}
               </table>
             </td>
           </tr>
 
-          ${formData.additionalInfo ? `
-          <!-- Additional Notes -->
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
+
+          <!-- Medical History -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Medical History</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                ${historyHtml}
+              </table>
+            </td>
+          </tr>
+
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
+
+          <!-- Medications & Allergies -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Medications & Allergies</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                ${medsHtml}
+              </table>
+            </td>
+          </tr>
+
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
+
+          <!-- Emergency Contact -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Emergency Contact</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                ${emergencyHtml}
+              </table>
+            </td>
+          </tr>
+
+          ${intakeData.additionalNotes ? `
           <tr>
             <td style="padding: 0 32px 24px;">
               <div style="background: #fafafa; border-radius: 8px; padding: 16px;">
                 <h3 style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #737373; text-transform: uppercase;">Additional Notes</h3>
-                <p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.6;">${formData.additionalInfo}</p>
+                <p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.6;">${intakeData.additionalNotes}</p>
               </div>
             </td>
           </tr>
           ` : ''}
 
           ${pdfUrl ? `
-          <!-- PDF Link -->
           <tr>
             <td style="padding: 0 32px 24px; text-align: center;">
               <a href="${pdfUrl}" style="display: inline-block; background: #171717; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 14px;">

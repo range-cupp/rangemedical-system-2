@@ -3,8 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import InjuryIntakeForm from '../components/assessment/InjuryIntakeForm';
-import EnergyIntakeForm from '../components/assessment/EnergyIntakeForm';
+import MedicalIntakeForm from '../components/assessment/MedicalIntakeForm';
 
 // Biomarker mapping - which markers are relevant for each symptom/goal
 const biomarkerMapping = {
@@ -134,18 +133,39 @@ export default function RangeAssessment() {
   const [isCompletingIntake, setIsCompletingIntake] = useState(false);
   const [leadId, setLeadId] = useState(null);
   const [intakeData, setIntakeData] = useState({
-    medicalHistory: {},
-    medications: [],
-    noCurrentMedications: false,
-    knownAllergiesText: '',
-    noKnownAllergies: false,
-    surgicalHistory: [],
-    noPriorSurgeries: false,
+    // Personal Details
+    dob: '',
+    gender: '',
+    preferredName: '',
+    streetAddress: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    howHeardAboutUs: '',
+    howHeardOther: '',
+    howHeardFriend: '',
+    isMinor: 'No',
+    guardianName: '',
+    guardianRelationship: '',
+    // Healthcare Providers
+    hasPCP: '',
+    pcpName: '',
+    recentHospitalization: '',
+    hospitalizationReason: '',
+    // Medical History
+    conditions: {},
+    // Medications & Allergies
+    onHRT: '',
+    hrtDetails: '',
+    onMedications: '',
+    currentMedications: '',
+    hasAllergies: '',
+    allergiesList: '',
+    // Emergency Contact
     emergencyContactName: '',
     emergencyContactPhone: '',
     emergencyContactRelationship: '',
-    currentMedicationsText: '',
-    diagnosedConditionsText: ''
+    additionalNotes: ''
   });
 
   const [formData, setFormData] = useState({
@@ -527,51 +547,30 @@ export default function RangeAssessment() {
     );
   }
 
-  // Injury Intake Form
-  if (showInjuryIntake) {
+  // Medical Intake Form (both paths)
+  if (showInjuryIntake || showEnergyIntake) {
     return (
       <Layout>
         <Head>
           <title>Medical Intake | Range Medical</title>
           <meta name="robots" content="noindex, nofollow" />
         </Head>
-        <InjuryIntakeForm
+        <MedicalIntakeForm
           intakeData={intakeData}
           onIntakeChange={setIntakeData}
           onSubmit={handleIntakeComplete}
           onBack={() => {
-            setShowInjuryIntake(false);
-            setShowInjuryResults(true);
+            if (showInjuryIntake) {
+              setShowInjuryIntake(false);
+              setShowInjuryResults(true);
+            } else {
+              setShowEnergyIntake(false);
+              setShowResults(true);
+            }
           }}
           isSubmitting={isCompletingIntake}
           error={error}
           patientName={formData.firstName}
-        />
-        <style jsx>{styles}</style>
-      </Layout>
-    );
-  }
-
-  // Energy Intake Form
-  if (showEnergyIntake) {
-    return (
-      <Layout>
-        <Head>
-          <title>Quick Intake | Range Medical</title>
-          <meta name="robots" content="noindex, nofollow" />
-        </Head>
-        <EnergyIntakeForm
-          intakeData={intakeData}
-          onIntakeChange={setIntakeData}
-          onSubmit={handleIntakeComplete}
-          onBack={() => {
-            setShowEnergyIntake(false);
-            setShowResults(true);
-          }}
-          isSubmitting={isCompletingIntake}
-          error={error}
-          patientName={formData.firstName}
-          recommendation={recommendation}
         />
         <style jsx>{styles}</style>
       </Layout>

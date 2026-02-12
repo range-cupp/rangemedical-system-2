@@ -71,18 +71,34 @@ async function getProtocol(id, res) {
   let weightCheckins = allLogs.filter(log => log.log_type === 'checkin' && log.weight);
   const activityLogs = allLogs.filter(log => log.log_type !== 'checkin' || !log.weight);
 
-  // For weight loss protocols, also fetch from service_logs (the primary source of truth)
+  // For weight loss protocols, fetch from both service_logs and injection_logs
   if (data.program_type === 'weight_loss' && data.patient_id) {
-    const { data: serviceLogs } = await supabase
-      .from('service_logs')
-      .select('id, entry_date, medication, dosage, weight, notes')
-      .eq('patient_id', data.patient_id)
-      .eq('category', 'weight_loss')
-      .order('entry_date', { ascending: false });
+    const [{ data: serviceLogs }, { data: injectionLogs }] = await Promise.all([
+      supabase
+        .from('service_logs')
+        .select('id, entry_date, medication, dosage, weight, notes')
+        .eq('patient_id', data.patient_id)
+        .eq('category', 'weight_loss')
+        .order('entry_date', { ascending: false }),
+      supabase
+        .from('injection_logs')
+        .select('id, entry_date, medication, dosage, weight, notes')
+        .eq('patient_id', data.patient_id)
+        .eq('category', 'weight_loss')
+        .order('entry_date', { ascending: false })
+    ]);
 
-    if (serviceLogs && serviceLogs.length > 0) {
-      // Convert service_logs to the same shape as protocol_logs check-ins
-      const serviceCheckins = serviceLogs.map(sl => ({
+    // Merge and deduplicate by id
+    const allServiceEntries = [...(serviceLogs || []), ...(injectionLogs || [])];
+    const seen = new Set();
+    const uniqueEntries = allServiceEntries.filter(entry => {
+      if (seen.has(entry.id)) return false;
+      seen.add(entry.id);
+      return true;
+    });
+
+    if (uniqueEntries.length > 0) {
+      const serviceCheckins = uniqueEntries.map(sl => ({
         id: sl.id,
         log_date: sl.entry_date,
         weight: sl.weight ? parseFloat(sl.weight) : null,
@@ -91,7 +107,7 @@ async function getProtocol(id, res) {
         log_type: 'checkin'
       }));
 
-      // Use service_logs if protocol_logs had no weight check-ins, or merge them
+      // Use service entries if protocol_logs had no weight check-ins
       if (weightCheckins.length === 0) {
         weightCheckins = serviceCheckins;
       }

@@ -166,6 +166,7 @@ export default function RangeAssessment() {
     emergencyContactPhone: '',
     emergencyContactRelationship: '',
     additionalNotes: '',
+    photoIdData: null,
     signatureData: null
   });
 

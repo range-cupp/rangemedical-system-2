@@ -123,6 +123,30 @@ export default async function handler(req, res) {
       }
       medicalHistoryData.signatureUrl = signatureUrl;
 
+      // Upload photo ID if present
+      let photoIdUrl = null;
+      if (intakeData.photoIdData && supabase) {
+        try {
+          const photoBase64 = intakeData.photoIdData.replace(/^data:image\/\w+;base64,/, '');
+          const photoBuffer = Buffer.from(photoBase64, 'base64');
+          const photoContentType = intakeData.photoIdData.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+          const photoExt = photoContentType === 'image/png' ? 'png' : 'jpg';
+          const photoFileName = `${leadId || 'unknown'}/${Date.now()}-photo-id.${photoExt}`;
+          const { error: photoUploadErr } = await supabase.storage
+            .from('assessment-pdfs')
+            .upload(photoFileName, photoBuffer, { contentType: photoContentType, upsert: false });
+          if (!photoUploadErr) {
+            const { data: photoUrlData } = supabase.storage
+              .from('assessment-pdfs')
+              .getPublicUrl(photoFileName);
+            photoIdUrl = photoUrlData?.publicUrl || null;
+          }
+        } catch (photoErr) {
+          console.error('Photo ID upload error:', photoErr);
+        }
+      }
+      medicalHistoryData.photoIdUrl = photoIdUrl;
+
       const updateData = {
         intake_completed_at: new Date().toISOString(),
         intake_status: 'completed',
@@ -271,19 +295,19 @@ export default async function handler(req, res) {
   }
 }
 
-// Helper to format conditions for display
+// Helper to format conditions for display — always shows all 11 conditions with Yes/No
 function formatConditions(conditions) {
-  if (!conditions || Object.keys(conditions).length === 0) return [];
   const results = [];
-  for (const [key, data] of Object.entries(conditions)) {
-    if (!data?.response) continue;
-    const label = CONDITION_LABELS[key] || key;
-    let text = `${label}: ${data.response}`;
-    if (data.response === 'Yes') {
+  for (const [key, label] of Object.entries(CONDITION_LABELS)) {
+    const data = conditions?.[key];
+    if (data?.response === 'Yes') {
+      let text = `${label}: Yes`;
       if (data.type) text += ` (${data.type})`;
-      if (data.year) text += ` — diagnosed ${data.year}`;
+      if (data.year) text += ` \u2014 diagnosed ${data.year}`;
+      results.push(text);
+    } else {
+      results.push(`${label}: No`);
     }
-    results.push(text);
   }
   return results;
 }
@@ -525,13 +549,9 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
   // ===== MEDICAL HISTORY =====
   addSectionHeader('Medical History');
   const conditionLines = formatConditions(intakeData.conditions);
-  if (conditionLines.length > 0) {
-    conditionLines.forEach(line => {
-      drawWrappedText(line, { size: 9, spacingAfter: 12 });
-    });
-  } else {
-    addTextLine('No conditions reported');
-  }
+  conditionLines.forEach(line => {
+    drawWrappedText(line, { size: 9, spacingAfter: 12 });
+  });
 
   // ===== MEDICATIONS & ALLERGIES =====
   addSectionHeader('Medications & Allergies');
@@ -557,6 +577,38 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
   if (intakeData.additionalNotes) {
     addSectionHeader('Additional Notes');
     drawWrappedText(intakeData.additionalNotes, { size: 9, spacingAfter: 14 });
+  }
+
+  // ===== PHOTO IDENTIFICATION =====
+  if (intakeData.photoIdData) {
+    addSectionHeader('Photo Identification');
+    try {
+      const photoBase64 = intakeData.photoIdData.replace(/^data:image\/\w+;base64,/, '');
+      const photoBytes = Buffer.from(photoBase64, 'base64');
+      const isPng = intakeData.photoIdData.startsWith('data:image/png');
+      const photoImage = isPng
+        ? await pdfDoc.embedPng(photoBytes)
+        : await pdfDoc.embedJpg(photoBytes);
+      const photoDims = photoImage.scale(1);
+      // Scale to fit: max 250pt wide, max 180pt tall
+      const maxPhotoWidth = 250;
+      const maxPhotoHeight = 180;
+      const photoScale = Math.min(maxPhotoWidth / photoDims.width, maxPhotoHeight / photoDims.height, 1);
+      const photoWidth = photoDims.width * photoScale;
+      const photoHeight = photoDims.height * photoScale;
+
+      checkPageBreak(photoHeight + 10);
+      currentPage.drawImage(photoImage, {
+        x: leftMargin,
+        y: yPos - photoHeight,
+        width: photoWidth,
+        height: photoHeight
+      });
+      yPos -= photoHeight + 8;
+    } catch (photoErr) {
+      console.error('Error embedding photo ID in PDF:', photoErr);
+      addTextLine('[Photo ID on file]', { size: 9, color: grayColor });
+    }
   }
 
   // ===== PATIENT CERTIFICATION & SIGNATURE =====

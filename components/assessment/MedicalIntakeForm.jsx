@@ -150,11 +150,33 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
   const [step, setStep] = useState(1);
   const [validationError, setValidationError] = useState('');
   const canvasRef = useRef(null);
+  const photoInputRef = useRef(null);
   const isDrawingRef = useRef(false);
   const hasSignatureRef = useRef(false);
 
   const updateField = (field, value) => {
     onIntakeChange({ ...intakeData, [field]: value });
+  };
+
+  const handlePhotoIdUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Max 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      setValidationError('Photo must be under 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      updateField('photoIdData', ev.target.result);
+      setValidationError('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhotoId = () => {
+    updateField('photoIdData', null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
   };
 
   const handleDobChange = (e) => {
@@ -321,6 +343,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
       if (!intakeData.emergencyContactName?.trim()) return 'Emergency contact name is required';
       if (!intakeData.emergencyContactPhone?.trim()) return 'Emergency contact phone is required';
       if (!intakeData.emergencyContactRelationship?.trim()) return 'Emergency contact relationship is required';
+      if (!intakeData.photoIdData) return 'Please upload a photo of your government-issued ID';
       if (!hasSignatureRef.current) return 'Please provide your signature';
     }
     return null;
@@ -923,6 +946,92 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                     style={inputStyle}
                   />
                 </div>
+              </div>
+
+              {/* Photo ID Upload */}
+              <div style={{
+                marginTop: '1.5rem',
+                padding: '1.25rem',
+                background: '#f9fafb',
+                border: '2px solid #e5e5e5',
+                borderRadius: '8px'
+              }}>
+                <h4 style={{ ...sectionTitleStyle, margin: '0 0 0.25rem' }}>
+                  Photo ID <span style={requiredStar}>*</span>
+                </h4>
+                <p style={{ fontSize: '0.8125rem', color: '#737373', margin: '0 0 1rem' }}>
+                  Upload a photo of your government-issued ID (driver's license, passport, etc.)
+                </p>
+
+                {intakeData.photoIdData ? (
+                  <div>
+                    <div style={{
+                      border: '1px solid #e5e5e5',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      marginBottom: '0.75rem',
+                      background: '#fff'
+                    }}>
+                      <img
+                        src={intakeData.photoIdData}
+                        alt="Photo ID"
+                        style={{ width: '100%', maxHeight: 250, objectFit: 'contain', display: 'block' }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removePhotoId}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#dc2626',
+                        fontSize: '0.8125rem',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Remove & re-upload
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoIdUpload}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      style={{
+                        width: '100%',
+                        padding: '1.25rem',
+                        border: '2px dashed #d4d4d4',
+                        borderRadius: '8px',
+                        background: '#fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        color: '#525252',
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                      <span style={{ fontWeight: 600 }}>Take photo or upload file</span>
+                      <span style={{ fontSize: '0.75rem', color: '#a3a3a3' }}>JPG, PNG — max 5MB</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Additional Notes */}

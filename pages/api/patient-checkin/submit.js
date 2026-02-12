@@ -98,7 +98,7 @@ export default async function handler(req, res) {
       console.error('Error updating protocol sessions:', updateProtocolError);
     }
 
-    // Create log entry (checkin type for take-home injection tracking)
+    // Create log entry in protocol_logs (checkin type for take-home injection tracking)
     const logEntry = {
       protocol_id: protocol.id,
       patient_id: patient.id,
@@ -115,7 +115,26 @@ export default async function handler(req, res) {
       .single();
 
     if (logError) {
-      console.error('Error creating log:', logError);
+      console.error('Error creating protocol log:', logError);
+    }
+
+    // Also write to service_logs (single source of truth for all sessions)
+    const { error: serviceLogError } = await supabase
+      .from('service_logs')
+      .insert({
+        patient_id: patient.id,
+        protocol_id: protocol.id,
+        category: 'weight_loss',
+        entry_type: 'injection',
+        entry_date: today,
+        medication: protocol.medication || 'Weight Loss',
+        dosage: protocol.selected_dose || null,
+        weight: parsedWeight,
+        notes: logNotes
+      });
+
+    if (serviceLogError) {
+      console.error('Error creating service log:', serviceLogError);
     }
 
     // Calculate weight change

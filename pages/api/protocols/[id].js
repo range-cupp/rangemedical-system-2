@@ -107,10 +107,16 @@ async function getProtocol(id, res) {
         log_type: 'checkin'
       }));
 
-      // Use service entries if protocol_logs had no weight check-ins
-      if (weightCheckins.length === 0) {
-        weightCheckins = serviceCheckins;
+      // Merge all sources, deduplicate by date+weight to avoid double entries
+      const merged = [...weightCheckins, ...serviceCheckins];
+      const deduped = new Map();
+      for (const entry of merged) {
+        const key = `${entry.log_date}_${entry.weight || 'no-weight'}_${entry.id}`;
+        if (!deduped.has(key)) {
+          deduped.set(key, entry);
+        }
       }
+      weightCheckins = Array.from(deduped.values());
     }
   }
 

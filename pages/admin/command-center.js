@@ -1590,9 +1590,43 @@ export default function CommandCenter() {
                       { num: 3, subject: "Feeling Nauseous? Here's What Helps" },
                       { num: 4, subject: 'The Final Piece: Exercise & Supplements' }
                     ];
+                    const hasStarted = dripLogs.length > 0;
                     return (
                       <div style={styles.protocolDetailSection}>
-                        <h4 style={styles.protocolDetailSectionTitle}>Email Sequence</h4>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <h4 style={{ ...styles.protocolDetailSectionTitle, margin: 0 }}>Email Sequence</h4>
+                          {!hasStarted && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm('Start the 4-day email sequence for this patient? Email 1 will be sent immediately.')) return;
+                                try {
+                                  const resp = await fetch('/api/protocols/start-drip', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ protocolId: protocolDetailPanel.protocol.id })
+                                  });
+                                  const data = await resp.json();
+                                  if (data.success) {
+                                    alert(`Email 1 sent to ${data.email}. Emails 2-4 will follow over the next 3 days.`);
+                                    // Refresh the slide-out panel
+                                    openProtocolDetail(protocolDetailPanel.protocol);
+                                  } else {
+                                    alert('Error: ' + (data.error || 'Failed to start sequence'));
+                                  }
+                                } catch (err) {
+                                  alert('Error: ' + err.message);
+                                }
+                              }}
+                              style={{
+                                padding: '5px 12px', fontSize: '12px', fontWeight: 600,
+                                background: '#000', color: '#fff', border: 'none', borderRadius: '4px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Start Email Sequence
+                            </button>
+                          )}
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {emailSequence.map(email => {
                             const sent = dripLogs.find(l => l.notes && l.notes.includes(`Drip email ${email.num}:`));

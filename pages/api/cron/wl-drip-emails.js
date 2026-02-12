@@ -1,6 +1,7 @@
 // /pages/api/cron/wl-drip-emails.js
 // Daily cron to send weight loss drip email sequence
 // Sends 4 emails over 4 days to new weight loss patients via Resend
+// Also continues sequences started manually via start-drip endpoint
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -30,41 +31,35 @@ export default async function handler(req, res) {
     const pacificDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     const today = pacificDate.toISOString().split('T')[0];
 
-    // Find active weight loss protocols created in the last 5 days
-    const fiveDaysAgo = new Date(pacificDate);
-    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-    const cutoffDate = fiveDaysAgo.toISOString().split('T')[0];
+    console.log('WL Drip Emails - Checking active weight loss protocols');
 
-    console.log(`WL Drip Emails - Checking protocols created since ${cutoffDate}`);
-
+    // Fetch ALL active weight loss protocols (not just recent ones)
+    // The cron handles both new protocols and manually-started drip sequences
     const { data: protocols, error: protocolError } = await supabase
       .from('protocols')
       .select('id, patient_id, program_type, created_at, patients(id, name, first_name, last_name, email)')
       .eq('program_type', 'weight_loss')
-      .eq('status', 'active')
-      .gte('created_at', cutoffDate + 'T00:00:00');
+      .eq('status', 'active');
 
     if (protocolError) {
       console.error('Error fetching protocols:', protocolError);
       return res.status(500).json({ error: protocolError.message });
     }
 
-    console.log(`Found ${protocols?.length || 0} active WL protocols in range`);
+    console.log(`Found ${protocols?.length || 0} active WL protocols`);
 
     const results = [];
 
     for (const protocol of protocols || []) {
       const patient = protocol.patients;
       if (!patient?.email) {
-        console.log(`Skipping protocol ${protocol.id} - no patient email`);
-        results.push({ protocol_id: protocol.id, skipped: true, reason: 'no_email' });
         continue;
       }
 
-      // Check how many drip emails have already been sent
+      // Check drip emails already sent for this protocol
       const { data: sentLogs, error: logsError } = await supabase
         .from('protocol_logs')
-        .select('id, notes')
+        .select('id, notes, log_date')
         .eq('protocol_id', protocol.id)
         .eq('log_type', 'drip_email')
         .order('log_date', { ascending: true });
@@ -76,38 +71,74 @@ export default async function handler(req, res) {
 
       const emailsSent = sentLogs?.length || 0;
 
-      // All 4 emails already sent
+      // All 4 emails already sent — done
       if (emailsSent >= 4) {
         continue;
       }
 
-      // Calculate days since protocol creation
-      const createdDate = new Date(protocol.created_at);
-      const createdPacific = new Date(createdDate.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-      const daysSinceCreation = Math.floor((pacificDate - createdPacific) / (1000 * 60 * 60 * 24));
+      // No emails sent yet — only auto-start for protocols created in the last 2 days
+      // Older protocols need the admin to manually click "Start Email Sequence"
+      if (emailsSent === 0) {
+        const createdDate = new Date(protocol.created_at);
+        const createdPacific = new Date(createdDate.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        const daysSinceCreation = Math.floor((pacificDate - createdPacific) / (1000 * 60 * 60 * 24));
 
-      // Determine which email to send next
-      const nextEmailIndex = emailsSent; // 0-indexed
+        if (daysSinceCreation > 2) {
+          continue; // Too old for auto-start, needs manual trigger
+        }
+
+        // New protocol — send Email 1
+        const emailTemplate = WL_DRIP_EMAILS[0];
+        const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : null);
+        const personalizedHtml = personalizeEmail(emailTemplate.html, firstName);
+
+        console.log(`Sending email 1 to ${patient.email} (${patient.name}) - new protocol`);
+
+        const { error: sendError } = await resend.emails.send({
+          from: 'Range Medical <noreply@range-medical.com>',
+          to: patient.email,
+          subject: emailTemplate.subject,
+          html: personalizedHtml
+        });
+
+        if (sendError) {
+          console.error(`Error sending email 1 to ${patient.email}:`, sendError);
+          results.push({ protocol_id: protocol.id, patient: patient.name, email_number: 1, error: sendError.message });
+          continue;
+        }
+
+        await supabase.from('protocol_logs').insert({
+          protocol_id: protocol.id,
+          patient_id: protocol.patient_id,
+          log_type: 'drip_email',
+          log_date: today,
+          notes: `Drip email 1: ${emailTemplate.subject}`
+        });
+
+        results.push({ protocol_id: protocol.id, patient: patient.name, email: patient.email, email_number: 1, sent: true });
+        continue;
+      }
+
+      // Emails 1-3 sent — send the next one if at least 1 day has passed since the last
+      const lastSentDate = sentLogs[sentLogs.length - 1].log_date;
+      const lastSentPacific = new Date(lastSentDate + 'T12:00:00');
+      const daysSinceLastEmail = Math.floor((pacificDate - lastSentPacific) / (1000 * 60 * 60 * 24));
+
+      if (daysSinceLastEmail < 1) {
+        continue; // Wait at least 1 day between emails
+      }
+
+      // Send the next email in the sequence
+      const nextEmailIndex = emailsSent;
       const emailTemplate = WL_DRIP_EMAILS[nextEmailIndex];
 
       if (!emailTemplate) {
         continue;
       }
 
-      // Only send if enough days have passed
-      // Email 1 (index 0) sends on day 0, Email 2 on day 1, etc.
-      if (daysSinceCreation < emailTemplate.day) {
-        console.log(`Protocol ${protocol.id}: Day ${daysSinceCreation}, waiting for day ${emailTemplate.day} to send email ${emailTemplate.emailNumber}`);
-        continue;
-      }
-
-      // Get patient first name for personalization
       const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : null);
-
-      // Personalize the email HTML
       const personalizedHtml = personalizeEmail(emailTemplate.html, firstName);
 
-      // Send via Resend
       console.log(`Sending email ${emailTemplate.emailNumber} to ${patient.email} (${patient.name})`);
 
       const { error: sendError } = await resend.emails.send({
@@ -119,29 +150,17 @@ export default async function handler(req, res) {
 
       if (sendError) {
         console.error(`Error sending email ${emailTemplate.emailNumber} to ${patient.email}:`, sendError);
-        results.push({
-          protocol_id: protocol.id,
-          patient: patient.name,
-          email_number: emailTemplate.emailNumber,
-          error: sendError.message
-        });
+        results.push({ protocol_id: protocol.id, patient: patient.name, email_number: emailTemplate.emailNumber, error: sendError.message });
         continue;
       }
 
-      // Log the sent email in protocol_logs
-      const { error: logError } = await supabase
-        .from('protocol_logs')
-        .insert({
-          protocol_id: protocol.id,
-          patient_id: protocol.patient_id,
-          log_type: 'drip_email',
-          log_date: today,
-          notes: `Drip email ${emailTemplate.emailNumber}: ${emailTemplate.subject}`
-        });
-
-      if (logError) {
-        console.error('Error logging drip email:', logError);
-      }
+      await supabase.from('protocol_logs').insert({
+        protocol_id: protocol.id,
+        patient_id: protocol.patient_id,
+        log_type: 'drip_email',
+        log_date: today,
+        notes: `Drip email ${emailTemplate.emailNumber}: ${emailTemplate.subject}`
+      });
 
       console.log(`Sent email ${emailTemplate.emailNumber} to ${patient.name} (${patient.email})`);
 

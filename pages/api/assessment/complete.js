@@ -61,6 +61,12 @@ export default async function handler(req, res) {
       }
     }
 
+    // Ensure storage bucket exists and is public
+    if (supabase) {
+      await supabase.storage.createBucket('assessment-pdfs', { public: true }).catch(() => {});
+      await supabase.storage.updateBucket('assessment-pdfs', { public: true }).catch(() => {});
+    }
+
     // 1. Update assessment_leads with intake data
     if (supabase && leadId) {
       // Store comprehensive intake data in medical_history JSONB
@@ -94,9 +100,6 @@ export default async function handler(req, res) {
           hrtDetails: intakeData.hrtDetails || null,
         },
       };
-
-      // Ensure storage bucket exists (creates if missing, ignores if already exists)
-      await supabase.storage.createBucket('assessment-pdfs', { public: true }).catch(() => {});
 
       // Upload signature image if present
       let signatureUrl = null;

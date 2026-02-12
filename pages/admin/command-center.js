@@ -693,9 +693,8 @@ export default function CommandCenter() {
         payload.weight = firstVisitData.weight || null;
       } else {
         // pickup
-        const weeks = firstVisitData.supplyDuration || 2;
-        payload.supply_type = `prefilled_${weeks}week`;
-        payload.quantity = weeks;
+        payload.supply_type = firstVisitData.pickupType || 'prefilled';
+        payload.quantity = firstVisitData.quantity || 1;
       }
     } else if (logCategory === 'peptide') {
       payload.medication = assignForm.peptideId
@@ -705,6 +704,7 @@ export default function CommandCenter() {
         payload.dosage = firstVisitData.dosage || assignForm.selectedDose || '';
       } else {
         // pickup
+        payload.supply_type = firstVisitData.pickupType || 'prefilled';
         payload.quantity = firstVisitData.quantity;
       }
     } else if (['iv_therapy', 'hbot', 'red_light'].includes(logCategory)) {
@@ -2289,7 +2289,7 @@ export default function CommandCenter() {
                             <>
                               <div style={{ marginBottom: '12px' }}>
                                 <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Pickup Type</label>
-                                <select value={firstVisitData.pickupType} onChange={e => setFirstVisitData(d => ({ ...d, pickupType: e.target.value }))}
+                                <select value={firstVisitData.pickupType} onChange={e => setFirstVisitData(d => ({ ...d, pickupType: e.target.value, quantity: 1 }))}
                                   style={{ ...styles.formSelect, margin: 0 }}>
                                   <option value="prefilled">Prefilled Syringes</option>
                                   <option value="vial">Vial (10ml)</option>
@@ -2299,7 +2299,10 @@ export default function CommandCenter() {
                                 <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Quantity</label>
                                 <select value={firstVisitData.quantity} onChange={e => setFirstVisitData(d => ({ ...d, quantity: parseInt(e.target.value) }))}
                                   style={{ ...styles.formSelect, margin: 0 }}>
-                                  {[1, 2, 4, 8].map(n => <option key={n} value={n}>{n}</option>)}
+                                  {(firstVisitData.pickupType === 'vial'
+                                    ? [1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>)
+                                    : [1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} prefilled syringe{n > 1 ? 's' : ''}</option>)
+                                  )}
                                 </select>
                               </div>
                             </>
@@ -2346,16 +2349,28 @@ export default function CommandCenter() {
                           )}
 
                           {firstVisitData.entryType === 'pickup' && (
-                            <div>
-                              <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Supply Duration</label>
-                              <select value={firstVisitData.supplyDuration}
-                                onChange={e => setFirstVisitData(d => ({ ...d, supplyDuration: parseInt(e.target.value) }))}
-                                style={{ ...styles.formSelect, margin: 0 }}>
-                                <option value={1}>1 Week</option>
-                                <option value={2}>2 Weeks</option>
-                                <option value={4}>4 Weeks</option>
-                              </select>
-                            </div>
+                            <>
+                              <div style={{ marginBottom: '12px' }}>
+                                <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Pickup Type</label>
+                                <select value={firstVisitData.pickupType || 'prefilled'}
+                                  onChange={e => setFirstVisitData(d => ({ ...d, pickupType: e.target.value, quantity: 1 }))}
+                                  style={{ ...styles.formSelect, margin: 0 }}>
+                                  <option value="prefilled">Prefilled Syringes</option>
+                                  <option value="vial">Vial</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Quantity</label>
+                                <select value={firstVisitData.quantity}
+                                  onChange={e => setFirstVisitData(d => ({ ...d, quantity: parseInt(e.target.value) }))}
+                                  style={{ ...styles.formSelect, margin: 0 }}>
+                                  {(firstVisitData.pickupType === 'vial'
+                                    ? [1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>)
+                                    : [1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} prefilled syringe{n > 1 ? 's' : ''}</option>)
+                                  )}
+                                </select>
+                              </div>
+                            </>
                           )}
                         </>
                       )}
@@ -2392,14 +2407,28 @@ export default function CommandCenter() {
                           )}
 
                           {firstVisitData.entryType === 'pickup' && (
-                            <div>
-                              <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Quantity</label>
-                              <select value={firstVisitData.quantity}
-                                onChange={e => setFirstVisitData(d => ({ ...d, quantity: parseInt(e.target.value) }))}
-                                style={{ ...styles.formSelect, margin: 0 }}>
-                                {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>)}
-                              </select>
-                            </div>
+                            <>
+                              <div style={{ marginBottom: '12px' }}>
+                                <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Pickup Type</label>
+                                <select value={firstVisitData.pickupType || 'prefilled'}
+                                  onChange={e => setFirstVisitData(d => ({ ...d, pickupType: e.target.value, quantity: 1 }))}
+                                  style={{ ...styles.formSelect, margin: 0 }}>
+                                  <option value="prefilled">Prefilled Syringes</option>
+                                  <option value="vial">Vial</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '12px', color: '#374151', fontWeight: '500', display: 'block', marginBottom: '4px' }}>Quantity</label>
+                                <select value={firstVisitData.quantity}
+                                  onChange={e => setFirstVisitData(d => ({ ...d, quantity: parseInt(e.target.value) }))}
+                                  style={{ ...styles.formSelect, margin: 0 }}>
+                                  {(firstVisitData.pickupType === 'vial'
+                                    ? [1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>)
+                                    : [1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} prefilled syringe{n > 1 ? 's' : ''}</option>)
+                                  )}
+                                </select>
+                              </div>
+                            </>
                           )}
                         </>
                       )}

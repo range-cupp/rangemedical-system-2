@@ -153,6 +153,9 @@ export default function ServiceLogContent() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Edit log state
+  const [editingLog, setEditingLog] = useState(null);
+
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState(1);
@@ -558,6 +561,37 @@ export default function ServiceLogContent() {
     }
   };
 
+  const saveEditLog = async () => {
+    if (!editingLog) return;
+    try {
+      const res = await fetch(`/api/service-log?id=${editingLog.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entry_type: editingLog.entry_type,
+          entry_date: editingLog.entry_date,
+          medication: editingLog.medication || null,
+          dosage: editingLog.dosage || null,
+          weight: editingLog.weight ? parseFloat(editingLog.weight) : null,
+          quantity: editingLog.quantity ? parseInt(editingLog.quantity) : null,
+          supply_type: editingLog.supply_type || null,
+          duration: editingLog.duration ? parseInt(editingLog.duration) : null,
+          notes: editingLog.notes || null
+        })
+      });
+      if (res.ok) {
+        setEditingLog(null);
+        fetchLogs();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update');
+      }
+    } catch (err) {
+      console.error('Error saving log:', err);
+      alert('Error saving log');
+    }
+  };
+
   // Helpers
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -688,7 +722,8 @@ export default function ServiceLogContent() {
                       {log.weight && <span style={slcStyles.weightText}> • {log.weight} lbs</span>}
                     </td>
                     <td style={slcStyles.td}>{log.notes || '-'}</td>
-                    <td style={slcStyles.td}>
+                    <td style={{ ...slcStyles.td, whiteSpace: 'nowrap' }}>
+                      <button style={slcStyles.editBtn} onClick={() => setEditingLog({ ...log })} title="Edit">✏️</button>
                       <button style={slcStyles.deleteBtn} onClick={() => deleteLog(log.id)}>×</button>
                     </td>
                   </tr>
@@ -710,6 +745,58 @@ export default function ServiceLogContent() {
           return new Date(l.entry_date || l.created_at) >= weekAgo;
         }).length}</strong></span>
       </div>
+
+      {/* ===== EDIT LOG MODAL ===== */}
+      {editingLog && (
+        <div style={slcStyles.modalOverlay} onClick={() => setEditingLog(null)}>
+          <div style={{ ...slcStyles.modal, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <div style={slcStyles.modalHeader}>
+              <h2 style={slcStyles.modalTitle}>Edit Service Log</h2>
+              <button style={slcStyles.modalClose} onClick={() => setEditingLog(null)}>×</button>
+            </div>
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={slcStyles.editLabel}>Date</label>
+                  <input type="date" value={editingLog.entry_date?.split('T')[0] || ''} onChange={e => setEditingLog({ ...editingLog, entry_date: e.target.value })} style={slcStyles.editInput} />
+                </div>
+                <div>
+                  <label style={slcStyles.editLabel}>Type</label>
+                  <select value={editingLog.entry_type || 'injection'} onChange={e => setEditingLog({ ...editingLog, entry_type: e.target.value })} style={slcStyles.editInput}>
+                    <option value="injection">Injection</option>
+                    <option value="pickup">Pickup</option>
+                    <option value="session">Session</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={slcStyles.editLabel}>Medication</label>
+                  <input type="text" value={editingLog.medication || ''} onChange={e => setEditingLog({ ...editingLog, medication: e.target.value })} style={slcStyles.editInput} />
+                </div>
+                <div>
+                  <label style={slcStyles.editLabel}>Dosage</label>
+                  <input type="text" value={editingLog.dosage || ''} onChange={e => setEditingLog({ ...editingLog, dosage: e.target.value })} style={slcStyles.editInput} />
+                </div>
+                <div>
+                  <label style={slcStyles.editLabel}>Weight (lbs)</label>
+                  <input type="number" step="0.1" value={editingLog.weight || ''} onChange={e => setEditingLog({ ...editingLog, weight: e.target.value })} style={slcStyles.editInput} />
+                </div>
+                <div>
+                  <label style={slcStyles.editLabel}>Quantity</label>
+                  <input type="number" value={editingLog.quantity || ''} onChange={e => setEditingLog({ ...editingLog, quantity: e.target.value })} style={slcStyles.editInput} />
+                </div>
+              </div>
+              <div>
+                <label style={slcStyles.editLabel}>Notes</label>
+                <textarea value={editingLog.notes || ''} onChange={e => setEditingLog({ ...editingLog, notes: e.target.value })} rows={3} style={{ ...slcStyles.editInput, resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                <button onClick={() => setEditingLog(null)} style={{ padding: '8px 20px', border: '1px solid #D1D5DB', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+                <button onClick={saveEditLog} style={{ padding: '8px 20px', border: 'none', borderRadius: '6px', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== NEW ENTRY MODAL ===== */}
       {showModal && (
@@ -1599,12 +1686,34 @@ const slcStyles = {
     fontSize: '13px',
     fontWeight: '500',
   },
+  editBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '14px',
+    cursor: 'pointer',
+    padding: '2px 4px',
+  },
   deleteBtn: {
     background: 'none',
     border: 'none',
     color: '#9ca3af',
     fontSize: '18px',
     cursor: 'pointer',
+  },
+  editLabel: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: '4px',
+  },
+  editInput: {
+    width: '100%',
+    padding: '8px 12px',
+    border: '1px solid #D1D5DB',
+    borderRadius: '6px',
+    fontSize: '14px',
+    boxSizing: 'border-box',
   },
   emptyState: {
     padding: '40px',

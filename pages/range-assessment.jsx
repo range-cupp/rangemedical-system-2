@@ -630,9 +630,9 @@ export default function RangeAssessment() {
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
             </div>
-            <h1>Good News, {formData.firstName}</h1>
+            <h1>Thank You, {formData.firstName}</h1>
             <p className="inj-res-intro">
-              Based on what you told us about your {locationLabel.toLowerCase()} injury, we have a treatment that may help with your recovery.
+              Based on what you've shared about your {locationLabel.toLowerCase()} injury, there are treatment options that may be worth exploring. Please complete the medical intake form below so our provider can review your information and discuss the best approach for you.
             </p>
           </div>
         </section>
@@ -643,9 +643,9 @@ export default function RangeAssessment() {
 
             {/* Treatment Card */}
             <div className="inj-res-treatment-card">
-              <h2>Our Recovery Protocol: BPC-157 + TB-4</h2>
+              <h2>Recovery Options: BPC-157 + TB-4</h2>
               <p className="inj-res-treatment-desc">
-                These two peptides may work together to support your body's healing process. They're natural compounds that could help with your recovery.
+                Peptide therapy is one of the treatment options our providers may discuss with you. BPC-157 and TB-4 are naturally occurring compounds that have been studied for their potential role in supporting the body's healing process.
               </p>
 
               <div className="inj-res-peptide-grid">
@@ -670,8 +670,8 @@ export default function RangeAssessment() {
               </div>
 
               <div className="inj-res-why">
-                <h4>Why These Work Together</h4>
-                <p>BPC-157 may help repair damaged tissue directly. TB-4 could reduce swelling and bring more blood to the area. Together, they may support recovery from both angles.</p>
+                <h4>Why These Are Often Considered Together</h4>
+                <p>BPC-157 has been studied for its potential to support tissue repair. TB-4 has been researched for its possible role in reducing inflammation and promoting blood flow. Our provider will review your medical history and determine if these options are appropriate for you.</p>
               </div>
             </div>
 
@@ -707,7 +707,7 @@ export default function RangeAssessment() {
               <div className="inj-res-pt-card">
                 <h3>Physical Therapy Can Help</h3>
                 <p>
-                  You mentioned you're not currently in physical therapy. Combining peptide treatment with PT often leads to better results.
+                  You mentioned you're not currently in physical therapy. Many patients find that combining targeted treatment with physical therapy can support better outcomes.
                 </p>
                 <p className="inj-res-pt-question">
                   Would you like a recommendation from <strong>Range Sports Therapy</strong>? They work closely with us to help patients recover faster.
@@ -736,7 +736,7 @@ export default function RangeAssessment() {
             <div className="inj-res-next-card">
               <h3>Next Step: Complete Your Medical Intake</h3>
               <p>
-                To get started, we need a bit more medical history. This form takes about 5 minutes and helps our provider create your personalized protocol.
+                To learn more about your options, please complete your medical intake form. It takes about 5 minutes, and our provider will use this information to determine the best course of action for your situation.
               </p>
               <button
                 className="inj-res-cta"

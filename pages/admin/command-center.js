@@ -436,6 +436,27 @@ export default function CommandCenter() {
     });
   };
 
+  // Inline update protocol field from slide-out panel
+  const updateProtocolField = async (protocolId, fields) => {
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields)
+      });
+      if (res.ok) {
+        // Update local state in the slide-out panel
+        setProtocolDetailPanel(prev => ({
+          ...prev,
+          protocol: { ...prev.protocol, ...fields }
+        }));
+        fetchData(); // Refresh list in background
+      }
+    } catch (err) {
+      console.error('Error updating protocol field:', err);
+    }
+  };
+
   // SMS Check-in functions
   const getCheckinMessage = (protocol) => {
     const patientName = protocol.patients?.first_name ||
@@ -1442,6 +1463,49 @@ export default function CommandCenter() {
                       )}
                     </div>
                   </div>
+
+                  {/* Injection Reminders (take-home weight loss) */}
+                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.protocol.delivery_method === 'take_home' && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>Injection Reminders</h4>
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '140px' }}>
+                          <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '6px' }}>Injection Day</span>
+                          <select
+                            value={protocolDetailPanel.protocol.injection_day || ''}
+                            onChange={e => updateProtocolField(protocolDetailPanel.protocol.id, { injection_day: e.target.value || null })}
+                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', background: '#fff' }}
+                          >
+                            <option value="">Not set</option>
+                            <option value="Monday">Monday</option>
+                            <option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option>
+                            <option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option>
+                            <option value="Saturday">Saturday</option>
+                            <option value="Sunday">Sunday</option>
+                          </select>
+                        </div>
+                        <div style={{ flex: 1, minWidth: '160px' }}>
+                          <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '6px' }}>Weekly Check-in SMS</span>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', background: protocolDetailPanel.protocol.checkin_reminder_enabled ? '#F0FDF4' : '#fff' }}>
+                            <input
+                              type="checkbox"
+                              checked={protocolDetailPanel.protocol.checkin_reminder_enabled || false}
+                              onChange={e => updateProtocolField(protocolDetailPanel.protocol.id, { checkin_reminder_enabled: e.target.checked })}
+                              style={{ width: '18px', height: '18px', accentColor: '#16A34A' }}
+                            />
+                            <span style={{ fontSize: '14px', fontWeight: '500', color: protocolDetailPanel.protocol.checkin_reminder_enabled ? '#16A34A' : '#6B7280' }}>
+                              {protocolDetailPanel.protocol.checkin_reminder_enabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </label>
+                          <span style={{ fontSize: '11px', color: '#9CA3AF', display: 'block', marginTop: '4px' }}>
+                            Sends check-in link at 9 AM on injection day
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Weight Progress Section (for weight loss protocols) */}
                   {protocolDetailPanel.protocol.program_type === 'weight_loss' && (

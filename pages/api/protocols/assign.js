@@ -4,7 +4,9 @@
 // UPDATED: 2026-01-04 - Added comprehensive GHL sync for all protocol types
 
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 import { syncProtocolToGHL } from '../../../lib/ghl-sync';
+import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -370,11 +372,60 @@ export default async function handler(req, res) {
       console.log('No GHL contact ID - skipping GHL sync');
     }
 
-    res.status(200).json({ 
-      success: true, 
+    // ============================================
+    // SEND FIRST DRIP EMAIL (weight loss only)
+    // ============================================
+    let dripEmailSent = false;
+    if (programType === 'weight_loss') {
+      try {
+        // Look up patient email and first name
+        const { data: patientData } = await supabase
+          .from('patients')
+          .select('email, first_name, name')
+          .eq('id', finalPatientId)
+          .single();
+
+        if (patientData?.email) {
+          const firstName = patientData.first_name || (patientData.name ? patientData.name.split(' ')[0] : null);
+          const emailTemplate = WL_DRIP_EMAILS[0];
+          const personalizedHtml = personalizeEmail(emailTemplate.html, firstName);
+
+          const resend = new Resend(process.env.RESEND_API_KEY);
+          const { error: sendError } = await resend.emails.send({
+            from: 'Range Medical <noreply@range-medical.com>',
+            to: patientData.email,
+            subject: emailTemplate.subject,
+            html: personalizedHtml
+          });
+
+          if (sendError) {
+            console.error('Drip email 1 send error:', sendError);
+          } else {
+            // Log so the cron doesn't re-send it
+            await supabase.from('protocol_logs').insert({
+              protocol_id: protocol.id,
+              patient_id: finalPatientId,
+              log_type: 'drip_email',
+              log_date: new Date().toISOString().split('T')[0],
+              notes: `Drip email 1: ${emailTemplate.subject}`
+            });
+            dripEmailSent = true;
+            console.log('Drip email 1 sent to', patientData.email);
+          }
+        } else {
+          console.log('No patient email - skipping drip email 1');
+        }
+      } catch (dripError) {
+        console.error('Drip email error (non-fatal):', dripError);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
       protocol,
       purchaseUpdated: !!purchaseId,
       ghlSynced: !!finalGhlContactId,
+      dripEmailSent,
       message: `Protocol created: ${programName}`
     });
 

@@ -1581,14 +1581,60 @@ export default function CommandCenter() {
                     </div>
                   )}
 
+                  {/* Email Sequence (weight loss only) */}
+                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && (() => {
+                    const dripLogs = protocolDetailPanel.activityLogs.filter(l => l.log_type === 'drip_email');
+                    const emailSequence = [
+                      { num: 1, subject: 'Your Weight Loss Journey Starts Here' },
+                      { num: 2, subject: 'Fuel Your Weight Loss: What to Eat' },
+                      { num: 3, subject: "Feeling Nauseous? Here's What Helps" },
+                      { num: 4, subject: 'The Final Piece: Exercise & Supplements' }
+                    ];
+                    return (
+                      <div style={styles.protocolDetailSection}>
+                        <h4 style={styles.protocolDetailSectionTitle}>Email Sequence</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {emailSequence.map(email => {
+                            const sent = dripLogs.find(l => l.notes && l.notes.includes(`Drip email ${email.num}:`));
+                            return (
+                              <div key={email.num} style={{
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '8px 10px', background: sent ? '#f0fdf4' : '#fafafa',
+                                borderRadius: '6px', border: `1px solid ${sent ? '#bbf7d0' : '#e5e7eb'}`
+                              }}>
+                                <span style={{
+                                  width: '20px', height: '20px', borderRadius: '50%', display: 'flex',
+                                  alignItems: 'center', justifyContent: 'center', fontSize: '11px',
+                                  background: sent ? '#22c55e' : '#d1d5db', color: '#fff', flexShrink: 0
+                                }}>
+                                  {sent ? '✓' : email.num}
+                                </span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: '13px', color: sent ? '#166534' : '#6b7280', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {email.subject}
+                                  </div>
+                                  {sent && (
+                                    <div style={{ fontSize: '11px', color: '#4ade80' }}>
+                                      Delivered {formatDate(sent.log_date)}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Activity Logs */}
-                  {protocolDetailPanel.activityLogs.length > 0 && (
+                  {protocolDetailPanel.activityLogs.filter(l => l.log_type !== 'drip_email').length > 0 && (
                     <div style={styles.protocolDetailSection}>
                       <h4 style={styles.protocolDetailSectionTitle}>
-                        Activity Log ({protocolDetailPanel.activityLogs.length})
+                        Activity Log ({protocolDetailPanel.activityLogs.filter(l => l.log_type !== 'drip_email').length})
                       </h4>
                       <div style={styles.activityList}>
-                        {protocolDetailPanel.activityLogs.slice(0, 10).map((log, idx) => (
+                        {protocolDetailPanel.activityLogs.filter(l => l.log_type !== 'drip_email').slice(0, 10).map((log, idx) => (
                           <div key={log.id || idx} style={styles.activityItem}>
                             <div style={styles.activityIcon}>
                               {log.log_type === 'renewal' ? '🔄' :

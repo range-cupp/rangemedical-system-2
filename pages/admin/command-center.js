@@ -1418,7 +1418,7 @@ export default function CommandCenter() {
                       </div>
                       {protocolDetailPanel.protocol.next_expected_date && protocolDetailPanel.protocol.next_expected_date !== protocolDetailPanel.protocol.end_date && (
                         <div style={styles.protocolDetailItem}>
-                          <span style={styles.protocolDetailLabel}>Next Pickup</span>
+                          <span style={styles.protocolDetailLabel}>{protocolDetailPanel.protocol.delivery_method === 'in_clinic' ? 'Next Injection' : 'Next Pickup'}</span>
                           <span style={styles.protocolDetailValue}>
                             {formatDate(protocolDetailPanel.protocol.next_expected_date)}
                           </span>

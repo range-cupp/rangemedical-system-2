@@ -95,6 +95,9 @@ export default async function handler(req, res) {
         },
       };
 
+      // Ensure storage bucket exists (creates if missing, ignores if already exists)
+      await supabase.storage.createBucket('assessment-pdfs', { public: true }).catch(() => {});
+
       // Upload signature image if present
       let signatureUrl = null;
       if (intakeData.signatureData && supabase) {

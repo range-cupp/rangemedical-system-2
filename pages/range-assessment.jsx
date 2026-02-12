@@ -165,7 +165,8 @@ export default function RangeAssessment() {
     emergencyContactName: '',
     emergencyContactPhone: '',
     emergencyContactRelationship: '',
-    additionalNotes: ''
+    additionalNotes: '',
+    signatureData: null
   });
 
   const [formData, setFormData] = useState({
@@ -381,8 +382,8 @@ export default function RangeAssessment() {
     window.open(url, '_blank');
   };
 
-  // Handle intake form completion
-  const handleIntakeComplete = async () => {
+  // Handle intake form completion (finalIntakeData passed directly from form to avoid stale state)
+  const handleIntakeComplete = async (finalIntakeData) => {
     setIsCompletingIntake(true);
     setError('');
 
@@ -394,7 +395,7 @@ export default function RangeAssessment() {
           leadId,
           assessmentPath: selectedPath,
           formData,
-          intakeData,
+          intakeData: finalIntakeData || intakeData,
           recommendation
         })
       });

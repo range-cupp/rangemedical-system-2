@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 const CONDITION_CATEGORIES = [
   {
@@ -149,9 +149,124 @@ const conditionDetailsStyle = {
 export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit, onBack, isSubmitting, error, patientName }) {
   const [step, setStep] = useState(1);
   const [validationError, setValidationError] = useState('');
+  const canvasRef = useRef(null);
+  const isDrawingRef = useRef(false);
+  const hasSignatureRef = useRef(false);
 
   const updateField = (field, value) => {
     onIntakeChange({ ...intakeData, [field]: value });
+  };
+
+  const handleDobChange = (e) => {
+    let val = e.target.value;
+    const prev = intakeData.dob || '';
+    // Only allow digits and slashes
+    val = val.replace(/[^\d/]/g, '');
+    // If user is deleting, just set the raw value
+    if (val.length < prev.length) {
+      updateField('dob', val);
+      return;
+    }
+    // Strip slashes to work with raw digits
+    const digits = val.replace(/\//g, '');
+    // Auto-insert slashes: MM/DD/YYYY
+    let formatted = '';
+    for (let i = 0; i < digits.length && i < 8; i++) {
+      if (i === 2 || i === 4) formatted += '/';
+      formatted += digits[i];
+    }
+    updateField('dob', formatted);
+  };
+
+  // Signature canvas setup
+  const getCanvasPoint = (e, canvas) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if (e.touches) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY
+      };
+    }
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  };
+
+  const initCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    // Set canvas resolution
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    ctx.scale(2, 2);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#000';
+
+    const startDraw = (e) => {
+      e.preventDefault();
+      isDrawingRef.current = true;
+      const pt = getCanvasPoint(e, canvas);
+      ctx.beginPath();
+      ctx.moveTo(pt.x / 2, pt.y / 2);
+    };
+    const draw = (e) => {
+      if (!isDrawingRef.current) return;
+      e.preventDefault();
+      const pt = getCanvasPoint(e, canvas);
+      ctx.lineTo(pt.x / 2, pt.y / 2);
+      ctx.stroke();
+      hasSignatureRef.current = true;
+    };
+    const endDraw = () => {
+      isDrawingRef.current = false;
+    };
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', endDraw);
+
+    return () => {
+      canvas.removeEventListener('mousedown', startDraw);
+      canvas.removeEventListener('mousemove', draw);
+      canvas.removeEventListener('mouseup', endDraw);
+      canvas.removeEventListener('mouseleave', endDraw);
+      canvas.removeEventListener('touchstart', startDraw);
+      canvas.removeEventListener('touchmove', draw);
+      canvas.removeEventListener('touchend', endDraw);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (step === 5) {
+      // Small delay to ensure canvas is mounted
+      const timer = setTimeout(() => initCanvas(), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [step, initCanvas]);
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasSignatureRef.current = false;
+  };
+
+  const getSignatureData = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasSignatureRef.current) return null;
+    return canvas.toDataURL('image/png');
   };
 
   const updateCondition = (condKey, field, value) => {
@@ -206,6 +321,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
       if (!intakeData.emergencyContactName?.trim()) return 'Emergency contact name is required';
       if (!intakeData.emergencyContactPhone?.trim()) return 'Emergency contact phone is required';
       if (!intakeData.emergencyContactRelationship?.trim()) return 'Emergency contact relationship is required';
+      if (!hasSignatureRef.current) return 'Please provide your signature';
     }
     return null;
   };
@@ -238,7 +354,11 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
       return;
     }
     setValidationError('');
-    onSubmit();
+    // Attach signature data and pass directly to avoid state race condition
+    const sig = getSignatureData();
+    const finalData = sig ? { ...intakeData, signatureData: sig } : intakeData;
+    onIntakeChange(finalData);
+    onSubmit(finalData);
   };
 
   const renderRadioGroup = (name, value, onChange) => (
@@ -337,8 +457,10 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                   <input
                     type="text"
                     value={intakeData.dob || ''}
-                    onChange={(e) => updateField('dob', e.target.value)}
+                    onChange={handleDobChange}
                     placeholder="MM/DD/YYYY"
+                    maxLength={10}
+                    inputMode="numeric"
                     style={inputStyle}
                   />
                 </div>
@@ -830,6 +952,51 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                   <li style={{ marginBottom: '0.25rem' }}>I will inform Range Medical of any changes to my health status.</li>
                   <li>I authorize Range Medical to use this information to provide care.</li>
                 </ul>
+              </div>
+
+              {/* Signature */}
+              <div style={{ marginTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label style={fieldLabelStyle}>
+                    Signature <span style={requiredStar}>*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={clearSignature}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#737373',
+                      fontSize: '0.8125rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: 0
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div style={{
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  background: '#fff',
+                  touchAction: 'none'
+                }}>
+                  <canvas
+                    ref={canvasRef}
+                    style={{
+                      width: '100%',
+                      height: 150,
+                      display: 'block',
+                      cursor: 'crosshair',
+                      touchAction: 'none'
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#a3a3a3', margin: '0.5rem 0 0', textAlign: 'center' }}>
+                  Sign above using your mouse or finger
+                </p>
               </div>
 
               {error && <div className="ra-error" style={{ marginTop: '1rem' }}>{error}</div>}

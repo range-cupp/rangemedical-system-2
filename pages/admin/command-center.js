@@ -1500,6 +1500,9 @@ export default function CommandCenter() {
                           <div key={checkin.id || idx} style={styles.checkinItem}>
                             <div style={styles.checkinDate}>{formatDate(checkin.log_date)}</div>
                             <div style={styles.checkinWeight}>{checkin.weight} lbs</div>
+                            {checkin.dosage && (
+                              <div style={{ fontSize: '12px', color: '#6b7280' }}>{checkin.dosage}</div>
+                            )}
                             {checkin.notes && (
                               <div style={styles.checkinNotes}>{checkin.notes}</div>
                             )}

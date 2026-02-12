@@ -373,6 +373,14 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('uploaded_at', { ascending: false });
 
+      // ===== Weight loss service logs (for progress chart) =====
+      const { data: weightLossLogs } = await supabase
+        .from('service_logs')
+        .select('entry_date, medication, dosage, weight')
+        .eq('patient_id', id)
+        .eq('category', 'weight_loss')
+        .order('entry_date', { ascending: true });
+
       // ===== NEW: Get clinic appointments =====
       let appointments = [];
 
@@ -450,6 +458,7 @@ export default async function handler(req, res) {
         sessions: sessions || [],
         symptomResponses: symptomResponses || [],
         appointments: appointments || [],
+        weightLossLogs: weightLossLogs || [],
         stats
       });
 

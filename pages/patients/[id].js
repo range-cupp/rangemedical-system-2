@@ -7,6 +7,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 // Import unified protocol configuration
 import {
   CATEGORY_COLORS,
@@ -46,11 +48,13 @@ export default function PatientProfile() {
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [weightLossLogs, setWeightLossLogs] = useState([]);
   const [stats, setStats] = useState({});
 
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingDocs, setLoadingDocs] = useState(false);
+  const [expandedProtocols, setExpandedProtocols] = useState({});
 
   // Slide-out PDF viewer state
   const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '' });
@@ -146,6 +150,7 @@ export default function PatientProfile() {
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
         setAppointments(data.appointments || []);
+        setWeightLossLogs(data.weightLossLogs || []);
         setStats(data.stats || {});
       }
     } catch (error) {
@@ -775,6 +780,20 @@ export default function PatientProfile() {
                   <div className="protocol-list">
                     {activeProtocols.map(protocol => {
                       const cat = getCategoryStyle(protocol.category);
+                      const isExpanded = expandedProtocols[protocol.id];
+                      const isWeightLoss = protocol.category === 'weight_loss';
+                      const protocolLogs = isWeightLoss ? weightLossLogs.filter(l => !protocol.id || l) : [];
+                      const chartData = protocolLogs.filter(l => l.weight).map(l => ({
+                        date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        weight: parseFloat(l.weight),
+                        dose: l.dosage || ''
+                      }));
+                      const startingWeight = chartData.length > 0 ? chartData[0].weight : null;
+                      const currentWeight = chartData.length > 0 ? chartData[chartData.length - 1].weight : null;
+                      const totalLoss = startingWeight && currentWeight ? (startingWeight - currentWeight).toFixed(1) : null;
+                      const startingDose = protocolLogs.length > 0 ? protocolLogs[0].dosage : null;
+                      const currentDose = protocolLogs.length > 0 ? protocolLogs[protocolLogs.length - 1].dosage : null;
+
                       return (
                         <div key={protocol.id} className="protocol-card">
                           <div className="protocol-card-header">
@@ -795,8 +814,100 @@ export default function PatientProfile() {
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
                           <div className="protocol-footer">
                             <span className="status-badge">{protocol.status_text}</span>
-                            <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              {isWeightLoss && protocolLogs.length > 0 && (
+                                <button
+                                  onClick={() => setExpandedProtocols(prev => ({ ...prev, [protocol.id]: !prev[protocol.id] }))}
+                                  className="btn-secondary-sm"
+                                >{isExpanded ? 'Hide Progress' : 'View Progress'}</button>
+                              )}
+                              <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
+                            </div>
                           </div>
+
+                          {/* Weight Loss Progress Panel */}
+                          {isWeightLoss && isExpanded && protocolLogs.length > 0 && (
+                            <div className="wl-progress">
+                              {/* Stats Row */}
+                              <div className="wl-stats-row">
+                                <div className="wl-stat">
+                                  <span className="wl-stat-label">Starting Weight</span>
+                                  <span className="wl-stat-value">{startingWeight ? `${startingWeight} lbs` : '—'}</span>
+                                </div>
+                                <span className="wl-stat-arrow">→</span>
+                                <div className="wl-stat">
+                                  <span className="wl-stat-label">Current Weight</span>
+                                  <span className="wl-stat-value">{currentWeight ? `${currentWeight} lbs` : '—'}</span>
+                                  {totalLoss && <span className="wl-stat-delta">-{totalLoss} lbs</span>}
+                                </div>
+                                <div className="wl-stat-divider" />
+                                <div className="wl-stat">
+                                  <span className="wl-stat-label">Starting Dose</span>
+                                  <span className="wl-stat-value">{startingDose || '—'}</span>
+                                </div>
+                                <span className="wl-stat-arrow">→</span>
+                                <div className="wl-stat">
+                                  <span className="wl-stat-label">Current Dose</span>
+                                  <span className="wl-stat-value">{currentDose || '—'}</span>
+                                </div>
+                                <div className="wl-stat-divider" />
+                                <div className="wl-stat">
+                                  <span className="wl-stat-label">Sessions</span>
+                                  <span className="wl-stat-value">{protocolLogs.length}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
+                                </div>
+                              </div>
+
+                              {/* Weight Chart */}
+                              {chartData.length >= 2 && (
+                                <div className="wl-chart">
+                                  <ResponsiveContainer width="100%" height={200}>
+                                    <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                      <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                      <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 12 }} unit=" lbs" width={65} />
+                                      <Tooltip
+                                        formatter={(value) => [`${value} lbs`, 'Weight']}
+                                        labelFormatter={(label) => label}
+                                        contentStyle={{ fontSize: 13, borderRadius: 8 }}
+                                      />
+                                      <Line type="monotone" dataKey="weight" stroke="#1e40af" strokeWidth={2} dot={{ r: 4, fill: '#1e40af' }} activeDot={{ r: 6 }} />
+                                    </LineChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              )}
+
+                              {/* Injection History Table */}
+                              <div className="wl-history">
+                                <table className="wl-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Date</th>
+                                      <th>Dose</th>
+                                      <th>Weight</th>
+                                      <th>Change</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {protocolLogs.map((log, i) => {
+                                      const prevWeight = i > 0 && protocolLogs[i - 1].weight ? parseFloat(protocolLogs[i - 1].weight) : null;
+                                      const curWeight = log.weight ? parseFloat(log.weight) : null;
+                                      const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
+                                      return (
+                                        <tr key={log.entry_date + i}>
+                                          <td>{formatShortDate(log.entry_date)}</td>
+                                          <td>{log.dosage || '—'}</td>
+                                          <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
+                                          <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
+                                            {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : i === 0 ? '—' : '—'}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1988,6 +2099,84 @@ export default function PatientProfile() {
           align-items: center;
           margin-top: 12px;
         }
+
+        /* Weight Loss Progress */
+        .wl-progress {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #e5e7eb;
+        }
+        .wl-stats-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-bottom: 16px;
+        }
+        .wl-stat {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+        }
+        .wl-stat-label {
+          font-size: 11px;
+          color: #9ca3af;
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+        }
+        .wl-stat-value {
+          font-size: 16px;
+          font-weight: 600;
+          color: #111;
+        }
+        .wl-stat-delta {
+          font-size: 13px;
+          font-weight: 600;
+          color: #16a34a;
+        }
+        .wl-stat-arrow {
+          color: #9ca3af;
+          font-size: 18px;
+        }
+        .wl-stat-divider {
+          width: 1px;
+          height: 32px;
+          background: #e5e7eb;
+          margin: 0 4px;
+        }
+        .wl-chart {
+          margin-bottom: 16px;
+          background: #fafafa;
+          border-radius: 8px;
+          padding: 12px 4px;
+        }
+        .wl-history {
+          overflow-x: auto;
+        }
+        .wl-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 13px;
+        }
+        .wl-table th {
+          text-align: left;
+          padding: 8px 12px;
+          font-weight: 600;
+          color: #6b7280;
+          border-bottom: 2px solid #e5e7eb;
+          font-size: 12px;
+          text-transform: uppercase;
+        }
+        .wl-table td {
+          padding: 8px 12px;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .wl-table tr:last-child td {
+          border-bottom: none;
+        }
+
         .view-all {
           display: block;
           text-align: center;

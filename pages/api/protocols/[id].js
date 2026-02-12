@@ -68,8 +68,37 @@ async function getProtocol(id, res) {
 
   // Separate weight check-ins from other logs
   const allLogs = logs || [];
-  const weightCheckins = allLogs.filter(log => log.log_type === 'checkin' && log.weight);
+  let weightCheckins = allLogs.filter(log => log.log_type === 'checkin' && log.weight);
   const activityLogs = allLogs.filter(log => log.log_type !== 'checkin' || !log.weight);
+
+  // For weight loss protocols, also fetch from service_logs (the primary source of truth)
+  if (data.program_type === 'weight_loss' && data.patient_id) {
+    const { data: serviceLogs } = await supabase
+      .from('service_logs')
+      .select('id, entry_date, medication, dosage, weight, notes')
+      .eq('patient_id', data.patient_id)
+      .eq('category', 'weight_loss')
+      .order('entry_date', { ascending: false });
+
+    if (serviceLogs && serviceLogs.length > 0) {
+      // Convert service_logs to the same shape as protocol_logs check-ins
+      const serviceCheckins = serviceLogs
+        .filter(sl => sl.weight)
+        .map(sl => ({
+          id: sl.id,
+          log_date: sl.entry_date,
+          weight: parseFloat(sl.weight),
+          dosage: sl.dosage,
+          notes: sl.notes,
+          log_type: 'checkin'
+        }));
+
+      // Use service_logs if protocol_logs had no weight check-ins, or merge them
+      if (weightCheckins.length === 0) {
+        weightCheckins = serviceCheckins;
+      }
+    }
+  }
 
   // Calculate weight progress for weight loss protocols
   let weightProgress = null;

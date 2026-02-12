@@ -393,6 +393,7 @@ export default async function handler(req, res) {
           const resend = new Resend(process.env.RESEND_API_KEY);
           const { error: sendError } = await resend.emails.send({
             from: 'Range Medical <noreply@range-medical.com>',
+            replyTo: 'info@range-medical.com',
             to: patientData.email,
             subject: emailTemplate.subject,
             html: personalizedHtml

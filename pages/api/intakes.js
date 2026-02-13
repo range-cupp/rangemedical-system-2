@@ -54,17 +54,21 @@ export default async function handler(req, res) {
       return null;
     };
 
+    // Sanitize text inputs (trim whitespace, clean email)
+    const trimStr = (val) => val ? String(val).trim() : val;
+    const cleanEmail = (val) => val ? String(val).trim().replace(/\.+$/, '') : val;
+
     // Extract medical history
     const mh = formData.medicalHistory || {};
 
     // Build record matching EXACT table columns
     const intakeRecord = {
       // Required fields
-      first_name: formData.firstName || '',
-      last_name: formData.lastName || '',
-      
+      first_name: trimStr(formData.firstName) || '',
+      last_name: trimStr(formData.lastName) || '',
+
       // Contact info
-      email: formData.email || null,
+      email: cleanEmail(formData.email) || null,
       phone: formData.phone || null,
       date_of_birth: formatDate(formData.dateOfBirth),
       gender: formData.gender || null,

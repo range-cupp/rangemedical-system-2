@@ -24,9 +24,10 @@ export default async function handler(req, res) {
     const data = req.body;
     
     // Extract all fields - frontend sends them flat
-    const firstName = data.firstName;
-    const lastName = data.lastName;
-    const email = data.email;
+    // Trim whitespace and clean email (remove trailing periods)
+    const firstName = data.firstName ? String(data.firstName).trim() : data.firstName;
+    const lastName = data.lastName ? String(data.lastName).trim() : data.lastName;
+    const email = data.email ? String(data.email).trim().replace(/\.+$/, '') : data.email;
     const phone = data.phone;
     const dateOfBirth = data.dateOfBirth;
     const gender = data.gender;

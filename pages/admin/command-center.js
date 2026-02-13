@@ -4236,6 +4236,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
               <th style={styles.th}>Program</th>
               <th style={styles.th}>Progress</th>
               <th style={styles.th}>Started</th>
+              <th style={styles.th}>Next Expected</th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
@@ -4267,6 +4268,33 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
                   {getProtocolStatus(protocol)}
                 </td>
                 <td style={styles.td}>{formatDate(protocol.start_date)}</td>
+                <td style={styles.td}>
+                  {protocol.next_expected_date ? (() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const expected = new Date(protocol.next_expected_date + 'T12:00:00');
+                    const diffDays = Math.round((expected - today) / (1000 * 60 * 60 * 24));
+                    const isOverdue = diffDays < 0;
+                    const isToday = diffDays === 0;
+                    const isSoon = diffDays >= 1 && diffDays <= 2;
+                    const color = isOverdue ? '#EF4444' : isToday ? '#F59E0B' : isSoon ? '#3B82F6' : '#525252';
+                    const label = isOverdue
+                      ? `${Math.abs(diffDays)}d overdue`
+                      : isToday
+                        ? 'Today'
+                        : diffDays <= 7
+                          ? `In ${diffDays}d`
+                          : '';
+                    return (
+                      <span style={{ color, fontWeight: isOverdue || isToday ? 600 : 400, fontSize: '0.8125rem' }}>
+                        {formatDate(protocol.next_expected_date)}
+                        {label && <span style={{ display: 'block', fontSize: '0.6875rem', marginTop: '2px' }}>{label}</span>}
+                      </span>
+                    );
+                  })() : (
+                    <span style={{ color: '#a3a3a3', fontSize: '0.8125rem' }}>—</span>
+                  )}
+                </td>
                 <td style={{ ...styles.td, display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
                   <button
                     style={{ ...styles.smallBtn, background: '#3B82F6' }}

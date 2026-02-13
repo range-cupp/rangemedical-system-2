@@ -26,6 +26,18 @@ export default async function handler(req, res) {
       return false;
     };
 
+    // Helper to sanitize year fields (varchar(4) in DB)
+    const sanitizeYear = (val) => {
+      if (!val) return null;
+      const str = String(val).trim();
+      // Extract 4-digit year if present
+      const match = str.match(/\d{4}/);
+      if (match) return match[0];
+      // If it's 4 chars or less, keep it
+      if (str.length <= 4) return str;
+      return str.substring(0, 4);
+    };
+
     // Helper to format date for database (YYYY-MM-DD) or return null
     const formatDate = (dateStr) => {
       if (!dateStr) return null;
@@ -100,40 +112,40 @@ export default async function handler(req, res) {
       
       // Medical conditions - boolean columns
       high_blood_pressure: mh.hypertension?.response === 'Yes',
-      high_blood_pressure_year: mh.hypertension?.year || null,
+      high_blood_pressure_year: sanitizeYear(mh.hypertension?.year),
       
       high_cholesterol: mh.highCholesterol?.response === 'Yes',
-      high_cholesterol_year: mh.highCholesterol?.year || null,
+      high_cholesterol_year: sanitizeYear(mh.highCholesterol?.year),
       
       heart_disease: mh.heartDisease?.response === 'Yes',
-      heart_disease_year: mh.heartDisease?.year || null,
+      heart_disease_year: sanitizeYear(mh.heartDisease?.year),
       heart_disease_type: mh.heartDisease?.type || null,
       
       diabetes: mh.diabetes?.response === 'Yes',
-      diabetes_year: mh.diabetes?.year || null,
+      diabetes_year: sanitizeYear(mh.diabetes?.year),
       diabetes_type: mh.diabetes?.type || null,
       
       thyroid_disorder: mh.thyroid?.response === 'Yes',
-      thyroid_disorder_year: mh.thyroid?.year || null,
+      thyroid_disorder_year: sanitizeYear(mh.thyroid?.year),
       thyroid_disorder_type: mh.thyroid?.type || null,
       
       depression_anxiety: mh.depression?.response === 'Yes',
-      depression_anxiety_year: mh.depression?.year || null,
+      depression_anxiety_year: sanitizeYear(mh.depression?.year),
       
       kidney_disease: mh.kidney?.response === 'Yes',
-      kidney_disease_year: mh.kidney?.year || null,
+      kidney_disease_year: sanitizeYear(mh.kidney?.year),
       kidney_disease_type: mh.kidney?.type || null,
       
       liver_disease: mh.liver?.response === 'Yes',
-      liver_disease_year: mh.liver?.year || null,
+      liver_disease_year: sanitizeYear(mh.liver?.year),
       liver_disease_type: mh.liver?.type || null,
       
       autoimmune_disorder: mh.autoimmune?.response === 'Yes',
-      autoimmune_disorder_year: mh.autoimmune?.year || null,
+      autoimmune_disorder_year: sanitizeYear(mh.autoimmune?.year),
       autoimmune_disorder_type: mh.autoimmune?.type || null,
       
       cancer: mh.cancer?.response === 'Yes',
-      cancer_year: mh.cancer?.year || null,
+      cancer_year: sanitizeYear(mh.cancer?.year),
       cancer_type: mh.cancer?.type || null,
       
       // Store full medical history as JSONB

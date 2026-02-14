@@ -199,9 +199,10 @@ Weight: ${parsedWeight} lbs`;
 
     await addGHLNote(contact_id, ghlNote);
 
-    // Send SMS notification to clinic when patient completes check-in
+    // Send SMS notification to clinic staff when patient completes check-in
     const ghlApiKey = process.env.GHL_API_KEY;
     const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+    const nurseLilyContactId = 'tnHRcVjbvZv8A3bAU9Ev';
 
     if (ghlApiKey) {
       let smsMessage = `📱 WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;
@@ -216,23 +217,28 @@ Weight: ${parsedWeight} lbs`;
         smsMessage += `\n\n💰 PAYMENT DUE`;
       }
 
-      try {
-        await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${ghlApiKey}`,
-            'Version': '2021-04-15',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: notifyContactId,
-            message: smsMessage
-          })
-        });
-        console.log('✓ Check-in SMS notification sent');
-      } catch (smsError) {
-        console.error('SMS notification error:', smsError);
+      // Send to all clinic staff recipients
+      const notifyRecipients = [notifyContactId, nurseLilyContactId];
+
+      for (const recipientId of notifyRecipients) {
+        try {
+          await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${ghlApiKey}`,
+              'Version': '2021-04-15',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: recipientId,
+              message: smsMessage
+            })
+          });
+          console.log(`✓ Check-in SMS notification sent to ${recipientId}`);
+        } catch (smsError) {
+          console.error(`SMS notification error (${recipientId}):`, smsError);
+        }
       }
     }
 

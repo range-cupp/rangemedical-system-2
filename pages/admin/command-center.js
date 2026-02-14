@@ -342,6 +342,16 @@ export default function CommandCenter() {
     sending: false
   });
 
+  // Missed week modal state (weight loss)
+  const [missedModal, setMissedModal] = useState({
+    open: false,
+    protocol: null,
+    missedDate: new Date().toISOString().split('T')[0],
+    reason: '',
+    notes: '',
+    saving: false
+  });
+
   // Fetch data
   useEffect(() => {
     fetchData();
@@ -529,6 +539,64 @@ export default function CommandCenter() {
     }
 
     setSmsModal(prev => ({ ...prev, sending: false }));
+  };
+
+  const openMissedModal = (protocol) => {
+    setMissedModal({
+      open: true,
+      protocol,
+      missedDate: new Date().toISOString().split('T')[0],
+      reason: '',
+      notes: '',
+      saving: false
+    });
+  };
+
+  const closeMissedModal = () => {
+    setMissedModal({
+      open: false,
+      protocol: null,
+      missedDate: new Date().toISOString().split('T')[0],
+      reason: '',
+      notes: '',
+      saving: false
+    });
+  };
+
+  const handleSaveMissed = async () => {
+    if (!missedModal.protocol || !missedModal.reason) {
+      alert('Please select a reason');
+      return;
+    }
+
+    setMissedModal(prev => ({ ...prev, saving: true }));
+
+    try {
+      const res = await fetch(`/api/protocols/${missedModal.protocol.id}/log-missed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          missedDate: missedModal.missedDate,
+          reason: missedModal.reason,
+          notes: missedModal.notes
+        })
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        alert('Missed week logged successfully');
+        closeMissedModal();
+        fetchData();
+      } else {
+        alert('Failed to log missed week: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Error logging missed week:', err);
+      alert('Error logging missed week: ' + err.message);
+    }
+
+    setMissedModal(prev => ({ ...prev, saving: false }));
   };
 
   const fetchTemplates = async () => {
@@ -1248,6 +1316,7 @@ export default function CommandCenter() {
               onEdit={handleEditProtocol}
               onViewDetail={openProtocolDetail}
               onSendText={openSmsModal}
+              onMarkMissed={openMissedModal}
             />
           )}
           {activeTab === 'protocols' && (
@@ -1818,6 +1887,116 @@ export default function CommandCenter() {
                 disabled={smsModal.sending}
               >
                 {smsModal.sending ? 'Sending...' : 'Send Text'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Missed Week Modal (Weight Loss) */}
+      {missedModal.open && missedModal.protocol && (
+        <div style={styles.modalOverlay} onClick={closeMissedModal}>
+          <div style={{ ...styles.modal, maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={{ ...styles.modalTitle, color: '#DC2626' }}>Log Missed Week</h3>
+              <button style={styles.modalCloseBtn} onClick={closeMissedModal}>×</button>
+            </div>
+
+            <div style={{ padding: '20px 24px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <span style={{ fontSize: '13px', color: '#666' }}>Patient:</span>
+                <span style={{ marginLeft: '8px', fontWeight: '500' }}>
+                  {missedModal.protocol.patients?.name ||
+                   `${missedModal.protocol.patients?.first_name || ''} ${missedModal.protocol.patients?.last_name || ''}`.trim()}
+                </span>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <span style={{
+                  ...styles.categoryBadge,
+                  background: CATEGORY_COLORS.weight_loss,
+                  display: 'inline-block'
+                }}>
+                  Weight Loss
+                </span>
+                <span style={{ marginLeft: '8px', fontSize: '13px', color: '#666' }}>
+                  {missedModal.protocol.medication || missedModal.protocol.program_name}
+                  {missedModal.protocol.selected_dose && ` · ${missedModal.protocol.selected_dose}`}
+                </span>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Missed Date</label>
+                <input
+                  type="date"
+                  style={styles.formInput}
+                  value={missedModal.missedDate}
+                  onChange={e => setMissedModal(prev => ({ ...prev, missedDate: e.target.value }))}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Reason *</label>
+                <select
+                  style={styles.formSelect}
+                  value={missedModal.reason}
+                  onChange={e => setMissedModal(prev => ({ ...prev, reason: e.target.value }))}
+                >
+                  <option value="">Select reason...</option>
+                  <option value="No-show">No-show</option>
+                  <option value="Rescheduled">Rescheduled</option>
+                  <option value="Sick">Sick</option>
+                  <option value="Traveling">Traveling</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Notes (optional)</label>
+                <textarea
+                  style={{ ...styles.formInput, minHeight: '60px', resize: 'vertical' }}
+                  value={missedModal.notes}
+                  onChange={e => setMissedModal(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Additional details..."
+                />
+              </div>
+            </div>
+
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid #E5E5E5',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px'
+            }}>
+              <button
+                style={{
+                  padding: '10px 20px',
+                  background: '#F3F4F6',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+                onClick={closeMissedModal}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  padding: '10px 24px',
+                  background: missedModal.saving ? '#9CA3AF' : '#DC2626',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: missedModal.saving ? 'not-allowed' : 'pointer'
+                }}
+                onClick={handleSaveMissed}
+                disabled={missedModal.saving}
+              >
+                {missedModal.saving ? 'Saving...' : 'Log Missed Week'}
               </button>
             </div>
           </div>
@@ -3430,7 +3609,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol 
   );
 }
 
-function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
+function DueSoonTab({ data, onEdit, onViewDetail, onSendText, onMarkMissed }) {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dismissedIds, setDismissedIds] = useState(() => {
     try {
@@ -3649,6 +3828,15 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText }) {
               onClick={() => onSendText && onSendText(protocol)}
             >
               💬 Check-in
+            </button>
+          )}
+          {/* Missed week button for weight loss protocols */}
+          {protocol.program_type === 'weight_loss' && (
+            <button
+              style={{ ...dueSoonStyles.actionBtn, background: '#FEE2E2', color: '#DC2626' }}
+              onClick={() => onMarkMissed && onMarkMissed(protocol)}
+            >
+              Missed
             </button>
           )}
           {phone && (

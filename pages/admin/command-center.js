@@ -1328,6 +1328,7 @@ export default function CommandCenter() {
               onEdit={handleEditProtocol}
               onDelete={(protocol) => setDeleteConfirm(protocol)}
               onViewDetail={openProtocolDetail}
+              onMarkMissed={openMissedModal}
             />
           )}
           {activeTab === 'patients' && (
@@ -1429,6 +1430,14 @@ export default function CommandCenter() {
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {protocolDetailPanel.protocol.program_type === 'weight_loss' && (
+                  <button
+                    style={{ padding: '6px 16px', background: '#FEE2E2', color: '#DC2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+                    onClick={() => { openMissedModal(protocolDetailPanel.protocol); }}
+                  >
+                    Missed
+                  </button>
+                )}
                 <button
                   style={{ padding: '6px 16px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
                   onClick={() => { handleEditProtocol(protocolDetailPanel.protocol); closeProtocolDetail(); }}
@@ -4362,7 +4371,7 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase }) {
   );
 }
 
-function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, onViewDetail }) {
+function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, onViewDetail, onMarkMissed }) {
   return (
     <div style={styles.tabContent}>
       {/* Filters */}
@@ -4507,6 +4516,14 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
                   >
                     Edit
                   </button>
+                  {protocol.program_type === 'weight_loss' && (
+                    <button
+                      style={{ ...styles.smallBtn, background: '#FEE2E2', color: '#DC2626' }}
+                      onClick={() => onMarkMissed(protocol)}
+                    >
+                      Missed
+                    </button>
+                  )}
                   <button
                     style={{ ...styles.smallBtn, background: '#EF4444' }}
                     onClick={() => onDelete(protocol)}

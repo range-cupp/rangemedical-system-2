@@ -236,6 +236,44 @@ Weight: ${parsedWeight} lbs`;
       }
     }
 
+    // Send thank-you SMS to patient
+    if (ghlApiKey && contact_id) {
+      try {
+        const firstName = patient.name ? patient.name.split(' ')[0] : 'there';
+        let thankYouMsg = `Thanks for checking in, ${firstName}! 🎉 Your weight has been logged.`;
+
+        if (weightChange) {
+          thankYouMsg += `\n\nYou're ${weightChange} from your starting weight — `;
+          thankYouMsg += weightChange.startsWith('↓') ? 'keep up the great work!' : 'stay consistent, you\'ve got this!';
+        }
+
+        if (sessionsRemaining <= 0) {
+          thankYouMsg += `\n\nYou've completed your current protocol! We'll be in touch about next steps.`;
+        } else if (sessionsRemaining === 1) {
+          thankYouMsg += `\n\nYou have 1 injection remaining in this cycle.`;
+        }
+
+        thankYouMsg += `\n\n- Range Medical`;
+
+        await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ghlApiKey}`,
+            'Version': '2021-04-15',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'SMS',
+            contactId: contact_id,
+            message: thankYouMsg
+          })
+        });
+        console.log('✓ Thank-you SMS sent to patient');
+      } catch (thankYouError) {
+        console.error('Thank-you SMS error:', thankYouError);
+      }
+    }
+
     console.log('✓ Patient check-in logged:', patient.name, parsedWeight, 'lbs', `(Injection ${newSessionsUsed}/${totalSessions})`);
 
     return res.status(200).json({

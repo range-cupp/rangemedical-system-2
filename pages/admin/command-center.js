@@ -111,6 +111,7 @@ const FREQUENCY_OPTIONS = [
   { value: '3x per week', label: '3x per week' },
   { value: '2x per week', label: '2x per week' },
   { value: 'Weekly', label: 'Weekly' },
+  { value: 'Every 10 days', label: 'Every 10 days' },
   { value: 'Every 2 weeks', label: 'Every 2 weeks' },
   { value: 'PRN', label: 'PRN (as needed)' },
 ];
@@ -2729,7 +2730,7 @@ export default function CommandCenter() {
               {!['iv', 'hbot', 'rlt', 'injection'].includes(editingProtocol.program_type) && (
                 <>
                   <div style={styles.modalFormGroup}>
-                    <label style={styles.formLabel}>Next Pickup Date</label>
+                    <label style={styles.formLabel}>{editingProtocol.delivery_method === 'in_clinic' ? 'Next Injection Date' : 'Next Pickup Date'}</label>
                     <input
                       type="date"
                       value={editingProtocol.next_expected_date || ''}

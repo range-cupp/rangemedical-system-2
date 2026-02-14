@@ -64,6 +64,11 @@ function calculateNextExpectedDate(visitFrequency, scheduledDays, fromDate) {
       }
       break;
 
+    case 'every_10_days':
+    case 'Every 10 days':
+      nextDate.setDate(nextDate.getDate() + 10);
+      break;
+
     case 'biweekly':
       nextDate.setDate(nextDate.getDate() + 14);
       break;

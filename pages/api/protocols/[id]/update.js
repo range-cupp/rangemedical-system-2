@@ -38,7 +38,8 @@ export default async function handler(req, res) {
       checkin_reminder_enabled,
       medication,
       pickup_frequency,
-      frequency
+      frequency,
+      starting_weight
     } = req.body;
 
     const updateData = {};
@@ -62,6 +63,7 @@ export default async function handler(req, res) {
     if (medication !== undefined) updateData.medication = medication || null;
     if (pickup_frequency !== undefined) updateData.pickup_frequency = pickup_frequency || null;
     if (frequency !== undefined) updateData.frequency = frequency || null;
+    if (starting_weight !== undefined) updateData.starting_weight = starting_weight ? parseFloat(starting_weight) : null;
 
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();

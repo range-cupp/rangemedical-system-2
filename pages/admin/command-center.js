@@ -2818,6 +2818,22 @@ export default function CommandCenter() {
                 </>
               )}
 
+              {/* Starting Weight for weight loss */}
+              {editingProtocol.program_type === 'weight_loss' && (
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Starting Weight (lbs)</label>
+                  <input
+                    type="number"
+                    value={editingProtocol.starting_weight || ''}
+                    onChange={e => setEditingProtocol({...editingProtocol, starting_weight: e.target.value})}
+                    style={styles.formInput}
+                    placeholder="lbs"
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
+              )}
+
               {/* Medication field for weight loss */}
               {editingProtocol.program_type === 'weight_loss' && (
                 <div style={styles.modalFormGroup}>

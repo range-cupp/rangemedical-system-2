@@ -31,8 +31,8 @@ export default function CellularEnergyReset() {
 
   const faqs = [
     {
-      question: "Do I need a Range Assessment before starting this program?",
-      answer: "We recommend starting with a Range Assessment (free) so your provider can confirm this is the right program for your situation. The Assessment ensures we're not missing something else that might be causing your symptoms."
+      question: "How do I know if this is right for me?",
+      answer: "Take our free 2-minute assessment quiz. It asks about your symptoms, energy levels, and health history to determine if the Cellular Energy Reset is the right fit. If it is, we'll schedule a consultation to build your plan. If something else is going on, we'll point you in the right direction."
     },
     {
       question: "How long does each session take?",
@@ -217,84 +217,51 @@ export default function CellularEnergyReset() {
           </div>
         </section>
 
-        {/* What Is Section */}
+        {/* Benefits Section */}
         <section id="cer-what" className={`cer-section cer-animate ${isVisible['cer-what'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">The Science</span>
-            <h2>What Is Cellular Energy Reset?</h2>
-            <p className="cer-section-intro">
-              Your mitochondria are the power plants inside every cell, producing ATP — the energy
-              currency your body runs on. When mitochondria become dysfunctional from stress, aging,
-              or environmental factors, you feel it as persistent fatigue, brain fog, and slow recovery.
-            </p>
+            <span className="cer-section-label">The Benefits</span>
+            <h2>What Red Light + HBOT Does for Your Body</h2>
 
-            <div className="cer-what-grid">
-              <div className="cer-what-card">
-                <div className="cer-what-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 6v6l4 2"/>
-                  </svg>
-                </div>
-                <h3>The Problem</h3>
-                <p>
-                  Mitochondrial dysfunction affects up to 45% of chronically fatigued patients.
-                  Standard bloodwork often looks "normal" while cells struggle to produce energy efficiently.
-                </p>
+            <div className="cer-benefits-grid">
+              <div className="cer-benefit-card">
+                <h4>Restore Your Natural Energy</h4>
+                <p>HBOT floods cells with oxygen, Red Light activates the enzyme that drives ATP production. Real, sustained vitality — not caffeine.</p>
               </div>
 
-              <div className="cer-what-card">
-                <div className="cer-what-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                  </svg>
-                </div>
-                <h3>The Solution</h3>
-                <p>
-                  HBOT floods cells with oxygen while Red Light Therapy activates cytochrome c oxidase —
-                  the enzyme that drives mitochondrial ATP production. Together, they restore cellular function.
-                </p>
+              <div className="cer-benefit-card">
+                <h4>Clear the Brain Fog</h4>
+                <p>Your brain uses 20% of your body's energy. Restored cellular function means sharper thinking, better memory, and mental clarity that lasts.</p>
               </div>
 
-              <div className="cer-what-card">
-                <div className="cer-what-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                  </svg>
-                </div>
-                <h3>The Synergy</h3>
-                <p>
-                  HBOT delivers the oxygen. Red Light activates the machinery to use it.
-                  Neither is as effective alone — together, they produce compounding improvements
-                  that build through the 6-week protocol.
-                </p>
+              <div className="cer-benefit-card">
+                <h4>Sleep That Actually Restores You</h4>
+                <p>Improved mitochondrial function means your body repairs properly during sleep. Wake up feeling like sleep actually did something.</p>
+              </div>
+
+              <div className="cer-benefit-card">
+                <h4>Faster Physical Recovery</h4>
+                <p>Exercise, injury, daily wear and tear — when cells produce energy efficiently, your body repairs properly instead of falling behind.</p>
+              </div>
+
+              <div className="cer-benefit-card">
+                <h4>Reduced Inflammation</h4>
+                <p>Chronic low-grade inflammation drives fatigue, pain, and aging. HBOT and Red Light address it at the cellular level where it starts.</p>
+              </div>
+
+              <div className="cer-benefit-card">
+                <h4>Slow Down Aging at Its Root</h4>
+                <p>Mitochondrial dysfunction is a hallmark of aging. This protocol addresses it at the deepest biological level — where aging actually begins.</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Who It's For Section */}
+        {/* Is This You Section */}
         <section id="cer-who" className={`cer-section-alt cer-animate ${isVisible['cer-who'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
             <span className="cer-section-label">Is This You?</span>
-            <h2>Who This Program Is For</h2>
-            <p className="cer-section-intro">
-              This program was designed for people whose primary issue is cellular energy — not
-              hormones, not sleep disorders, not anemia — but true mitochondrial dysfunction.
-            </p>
-
-            <div className="cer-conditions">
-              <span className="cer-condition-tag">Chronic Fatigue</span>
-              <span className="cer-condition-tag">Brain Fog</span>
-              <span className="cer-condition-tag">Afternoon Crashes</span>
-              <span className="cer-condition-tag">Slow Recovery</span>
-              <span className="cer-condition-tag">Exercise Intolerance</span>
-              <span className="cer-condition-tag">Poor Sleep Quality</span>
-              <span className="cer-condition-tag">Mental Exhaustion</span>
-              <span className="cer-condition-tag">Caffeine Dependence</span>
-            </div>
+            <h2>Signs Your Cells Need a Reset</h2>
 
             <div className="cer-symptom-grid">
               <div className="cer-symptom-card">
@@ -304,8 +271,8 @@ export default function CellularEnergyReset() {
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                   </svg>
                 </div>
-                <h4>You Wake Up Tired</h4>
-                <p>8 hours of sleep but still need coffee to function. Your body isn't recovering.</p>
+                <h4>You're Tired All the Time</h4>
+                <p>Not lazy, not "just stressed." Persistent fatigue that sleep doesn't fix is a sign of mitochondrial dysfunction.</p>
               </div>
 
               <div className="cer-symptom-card">
@@ -316,8 +283,18 @@ export default function CellularEnergyReset() {
                     <path d="M12 8h.01"/>
                   </svg>
                 </div>
-                <h4>Labs Look "Normal"</h4>
-                <p>Doctors say you're fine, but you know something is wrong. Standard tests miss cellular dysfunction.</p>
+                <h4>Brain Fog is Your New Normal</h4>
+                <p>Forgetting words, losing focus, walking into rooms and forgetting why. Your brain runs on ATP — and it's running low.</p>
+              </div>
+
+              <div className="cer-symptom-card">
+                <div className="cer-symptom-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                  </svg>
+                </div>
+                <h4>Your Doctor Says You're "Fine"</h4>
+                <p>Labs look normal but you know something's off. Standard tests don't measure cellular energy production.</p>
               </div>
 
               <div className="cer-symptom-card">
@@ -328,8 +305,18 @@ export default function CellularEnergyReset() {
                     <path d="M12 2v2"/>
                   </svg>
                 </div>
-                <h4>Afternoon Crashes</h4>
-                <p>By 2pm, you're running on empty. Energy drinks create a cycle that makes it worse.</p>
+                <h4>The 2pm Crash Hits Every Day</h4>
+                <p>Afternoon energy tank. Energy drinks and coffee create a cycle that makes the underlying problem worse.</p>
+              </div>
+
+              <div className="cer-symptom-card">
+                <div className="cer-symptom-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                </div>
+                <h4>Sleep Doesn't Recharge You</h4>
+                <p>8 hours but still waking up tired. Your cells don't have the energy to repair overnight — so sleep feels pointless.</p>
               </div>
 
               <div className="cer-symptom-card">
@@ -340,8 +327,8 @@ export default function CellularEnergyReset() {
                     <path d="M6 20v-6"/>
                   </svg>
                 </div>
-                <h4>Workouts Drain You</h4>
-                <p>Exercise should energize you, but it wipes you out for days. Your cells can't keep up.</p>
+                <h4>Everything Aches</h4>
+                <p>Joint stiffness, general soreness, feeling older than you are. Chronic inflammation at the cellular level is the root cause.</p>
               </div>
             </div>
           </div>
@@ -498,6 +485,31 @@ export default function CellularEnergyReset() {
           </div>
         </section>
 
+        {/* Testimonials Section */}
+        <section id="cer-testimonials" className={`cer-section-alt cer-animate ${isVisible['cer-testimonials'] ? 'cer-visible' : ''}`}>
+          <div className="cer-container">
+            <span className="cer-section-label">Results</span>
+            <h2>What Patients Are Saying</h2>
+
+            <div className="cer-testimonial-grid">
+              <div className="cer-testimonial-card">
+                <p className="cer-testimonial-quote">"I thought being tired was just my life now. By week 3, I had energy I hadn't felt in years."</p>
+                <span className="cer-testimonial-author">— Patient Name, Age 45, Week 6 Result</span>
+              </div>
+
+              <div className="cer-testimonial-card">
+                <p className="cer-testimonial-quote">"The brain fog clearing was worth it alone. I can actually think through a full day without crashing."</p>
+                <span className="cer-testimonial-author">— Patient Name, Age 52, Week 7 Review</span>
+              </div>
+
+              <div className="cer-testimonial-card">
+                <p className="cer-testimonial-quote">"My doctor couldn't find anything wrong. This program found what labs missed — my cells were the problem."</p>
+                <span className="cer-testimonial-author">— Patient Name, Age 41, Week 5 Update</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ Section */}
         <section id="cer-faq" className={`cer-section cer-animate ${isVisible['cer-faq'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
@@ -526,12 +538,11 @@ export default function CellularEnergyReset() {
         <section className="cer-section-inverted">
           <div className="cer-container">
             <span className="cer-section-label-light">First Step</span>
-            <h2>Ready to Restore Your Energy?</h2>
+            <h2>Stop Guessing. Start Fixing.</h2>
             <p className="cer-cta-text">
-              Start with a Range Assessment. Your provider will confirm if the Cellular
-              Energy Reset is the right program for your situation.
+              Take the 2-minute assessment to see if the Cellular Energy Reset is right for you.
             </p>
-            <Link href="/range-assessment" className="cer-btn-white">Take Range Assessment</Link>
+            <Link href="/range-assessment" className="cer-btn-white">Take the Assessment</Link>
             <p className="cer-cta-location">
               Range Medical • 1901 Westcliff Dr, Newport Beach<br />
               <a href="tel:9499973988">(949) 997-3988</a>
@@ -724,6 +735,62 @@ export default function CellularEnergyReset() {
             margin: 0;
           }
 
+          /* Benefits Grid */
+          .cer-benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+          }
+
+          .cer-benefit-card {
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 2rem;
+          }
+
+          .cer-benefit-card h4 {
+            font-size: 1.0625rem;
+            font-weight: 700;
+            color: #171717;
+            margin: 0 0 0.5rem;
+          }
+
+          .cer-benefit-card p {
+            font-size: 0.9375rem;
+            color: #525252;
+            line-height: 1.6;
+            margin: 0;
+          }
+
+          /* Testimonials */
+          .cer-testimonial-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+          }
+
+          .cer-testimonial-card {
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 2rem;
+          }
+
+          .cer-testimonial-quote {
+            font-size: 1.0625rem;
+            color: #171717;
+            line-height: 1.7;
+            font-style: italic;
+            margin: 0 0 1.25rem;
+          }
+
+          .cer-testimonial-author {
+            font-size: 0.875rem;
+            color: #737373;
+            font-weight: 500;
+          }
+
           /* Conditions Tags */
           .cer-conditions {
             display: flex;
@@ -746,7 +813,7 @@ export default function CellularEnergyReset() {
           /* Symptom Grid */
           .cer-symptom-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 1.5rem;
           }
 
@@ -1166,8 +1233,16 @@ export default function CellularEnergyReset() {
               grid-template-columns: 1fr;
             }
 
+            .cer-benefits-grid {
+              grid-template-columns: repeat(2, 1fr);
+            }
+
             .cer-symptom-grid {
               grid-template-columns: repeat(2, 1fr);
+            }
+
+            .cer-testimonial-grid {
+              grid-template-columns: 1fr;
             }
 
             .cer-research-grid {
@@ -1196,6 +1271,10 @@ export default function CellularEnergyReset() {
             .cer-section-alt h2,
             .cer-section-inverted h2 {
               font-size: 1.75rem;
+            }
+
+            .cer-benefits-grid {
+              grid-template-columns: 1fr;
             }
 
             .cer-symptom-grid {

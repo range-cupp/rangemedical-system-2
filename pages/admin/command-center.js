@@ -1149,6 +1149,40 @@ export default function CommandCenter() {
           }
         }
 
+        // Auto-log medication pickup for take-home peptide protocols
+        // (if not already logged via first visit pickup entry type)
+        if (isNewProtocol && isPeptideTemplate() && (assignForm.deliveryMethod === 'take_home')) {
+          const alreadyLoggedPickup = logFirstVisit && (firstVisitData.entryType === 'pickup' || firstVisitData.entryType === 'med_pickup');
+          const alreadyLoggedInjectionPickup = logFirstVisit && firstVisitData.entryType === 'injection';
+          if (!alreadyLoggedPickup && !alreadyLoggedInjectionPickup) {
+            try {
+              const peptideName = assignForm.peptideId
+                ? (peptides.find(p => p.id === assignForm.peptideId)?.name || '')
+                : '';
+              const pickupRes = await fetch('/api/service-log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  patient_id: selectedPatient?.id,
+                  category: 'peptide',
+                  entry_type: 'pickup',
+                  supply_type: 'medication',
+                  entry_date: assignForm.startDate || new Date().toISOString().split('T')[0],
+                  medication: peptideName,
+                  dosage: assignForm.customDose || assignForm.selectedDose || '',
+                  quantity: 1,
+                  notes: 'Take-home medication pickup'
+                })
+              });
+              if (!pickupRes.ok) {
+                console.error('Failed to auto-log peptide pickup:', await pickupRes.text());
+              }
+            } catch (pickupErr) {
+              console.error('Error auto-logging peptide pickup (non-blocking):', pickupErr);
+            }
+          }
+        }
+
         // Close modal immediately
         setShowAssignModal(false);
         setSelectedPurchase(null);

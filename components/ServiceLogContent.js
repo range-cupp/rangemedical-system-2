@@ -360,11 +360,11 @@ export default function ServiceLogContent() {
     setShowProtocolForm(!protocol);
 
     if (serviceType.id === 'weight_loss') {
-      setFormData(prev => ({ ...prev, medication: 'Semaglutide' }));
+      setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Semaglutide', dosage: protocol?.selected_dose || '' }));
       setEntryType('injection');
       setProtocolData(prev => ({ ...prev, frequency: 'weekly' }));
     } else if (serviceType.id === 'iv_therapy') {
-      setFormData(prev => ({ ...prev, medication: 'Energy IV' }));
+      setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Energy IV' }));
       setEntryType('session');
       setProtocolData(prev => ({ ...prev, frequency: 'as_scheduled', totalSessions: '1' }));
     } else if (serviceType.id === 'hbot') {
@@ -379,10 +379,16 @@ export default function ServiceLogContent() {
       setEntryType('injection');
       setProtocolData(prev => ({ ...prev, frequency: 'weekly' }));
     } else if (serviceType.id === 'peptide') {
-      setEntryType('injection');
+      // Auto-fill from protocol if exists, default to med_pickup for take-home
+      if (protocol) {
+        setFormData(prev => ({ ...prev, medication: protocol.medication || '', dosage: protocol.selected_dose || '' }));
+        setEntryType(protocol.delivery_method === 'take_home' ? 'med_pickup' : 'injection');
+      } else {
+        setEntryType('injection');
+      }
       setProtocolData(prev => ({ ...prev, frequency: 'daily', duration: '30' }));
     } else if (serviceType.id === 'testosterone') {
-      setEntryType('injection');
+      setEntryType(protocol?.delivery_method === 'take_home' ? 'pickup' : 'injection');
       setProtocolData(prev => ({ ...prev, frequency: '2x_weekly', supplyType: 'prefilled' }));
     }
   };
@@ -1310,6 +1316,9 @@ export default function ServiceLogContent() {
                             style={slcStyles.select}
                           >
                             <option value="">Select peptide...</option>
+                            {formData.medication && !PEPTIDE_OPTIONS.find(p => p.value === formData.medication) && (
+                              <option value={formData.medication}>{formData.medication} (from protocol)</option>
+                            )}
                             {PEPTIDE_OPTIONS.map(p => (
                               <option key={p.value} value={p.value}>{p.label}</option>
                             ))}

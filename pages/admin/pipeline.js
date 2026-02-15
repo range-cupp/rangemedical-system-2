@@ -65,7 +65,7 @@ const PEPTIDE_OPTIONS = [
     options: [
       { value: 'GHK-Cu', startingDose: '1mg', maxDose: '2mg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
       { value: 'GHK-Cu Face Cream', startingDose: 'Apply thin layer', maxDose: '2x daily', frequency: 'Daily', notes: 'Topical application' },
-      { value: 'GLOW (GHK-Cu / BPC / TB500)', startingDose: '900mcg', maxDose: '1800mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
+      { value: 'GLOW (GHK-Cu / BPC / TB500)', startingDose: '1.67mg/333mcg/333mcg', maxDose: '1.67mg/333mcg/333mcg', frequency: 'Daily', notes: 'Reconstitute with 2mL BAC water' },
       { value: 'KLOW (GHK-Cu / KPV / BPC / TB)', startingDose: '1mg', maxDose: '3mg', frequency: 'Daily x 30 days', notes: 'Reconstitute with 2mL BAC water' },
       { value: 'Melanotan II', startingDose: '500mcg', maxDose: '1mg', frequency: 'Before tanning', notes: 'Reconstitute with 2mL BAC water' },
     ]

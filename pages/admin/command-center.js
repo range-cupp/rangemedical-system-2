@@ -762,7 +762,7 @@ export default function CommandCenter() {
   const isInjectionTemplate = () => getSelectedTemplate()?.category === 'injection';
   const isWeightLossTemplate = () => getSelectedTemplate()?.category === 'weight_loss';
   const isHRTTemplate = () => getSelectedTemplate()?.category === 'hrt';
-  const isIVTemplate = () => getSelectedTemplate()?.category === 'iv';
+  const isIVTemplate = () => ['iv', 'iv_therapy'].includes(getSelectedTemplate()?.category);
 
   // Build service log payload from template category + firstVisitData
   const buildServiceLogPayload = () => {
@@ -783,7 +783,7 @@ export default function CommandCenter() {
       logCategory = 'peptide';
     } else if (category === 'injection') {
       logCategory = 'vitamin';
-    } else if (category === 'iv') {
+    } else if (category === 'iv' || category === 'iv_therapy') {
       logCategory = 'iv_therapy';
     } else if (category === 'hbot') {
       logCategory = 'hbot';
@@ -835,7 +835,7 @@ export default function CommandCenter() {
       payload.entry_type = 'session';
       payload.duration = firstVisitData.duration;
       if (logCategory === 'iv_therapy') {
-        payload.medication = template.name || 'IV Therapy';
+        payload.medication = assignForm.ivType || template.name || 'IV Therapy';
       } else if (logCategory === 'hbot') {
         payload.medication = 'HBOT Session';
       } else {
@@ -2852,7 +2852,7 @@ export default function CommandCenter() {
                   const template = getSelectedTemplate();
                   const category = template?.category;
                   const templateName = (template?.name || '').toLowerCase();
-                  const isSessionType = ['iv', 'hbot', 'rlt'].includes(category)
+                  const isSessionType = ['iv', 'iv_therapy', 'hbot', 'rlt'].includes(category)
                     || templateName.includes('iv') || templateName.includes('hbot')
                     || templateName.includes('red light') || templateName.includes('rlt');
                   const selectedWLMed = SL_WEIGHT_LOSS_MEDS.find(m => m.value === (firstVisitData.medication || assignForm.wlMedication));

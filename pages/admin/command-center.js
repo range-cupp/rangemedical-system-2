@@ -219,7 +219,7 @@ function getDisplayProgramName(protocol) {
   return name;
 }
 
-function getProtocolStatus(protocol) {
+function getProtocolStatus(protocol, cycleInfo) {
   const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date, next_expected_date } = protocol;
 
   // Session-based
@@ -227,6 +227,11 @@ function getProtocolStatus(protocol) {
     const used = sessions_used || 0;
     const remaining = total_sessions - used;
     return `${used}/${total_sessions} sessions`;
+  }
+
+  // Recovery peptide cycle progress
+  if (cycleInfo) {
+    return `${cycleInfo.cycleDaysUsed}/${RECOVERY_CYCLE_MAX_DAYS} cycle days`;
   }
 
   // Check if supply date extends beyond billing date (vial patients)
@@ -4721,6 +4726,49 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase }) {
 }
 
 function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, onViewDetail, onMarkMissed }) {
+  // Compute cycle info for recovery peptide protocols
+  const cycleInfoMap = useMemo(() => {
+    if (!data) return {};
+    const allProtocols = [...(data.protocols || []), ...(data.completedProtocols || [])];
+    const recoveryProtocols = allProtocols.filter(p =>
+      p.program_type === 'peptide' && isRecoveryPeptideName(p.medication) && p.cycle_start_date
+    );
+
+    // Group by patient_id + cycle_start_date
+    const groups = {};
+    for (const p of recoveryProtocols) {
+      const key = `${p.patient_id}_${p.cycle_start_date}`;
+      if (!groups[key]) groups[key] = { cycleStartDate: p.cycle_start_date, protocols: [] };
+      groups[key].protocols.push(p);
+    }
+
+    // Build map: protocolId -> { cycleDaysUsed, cycleStartDate }
+    const map = {};
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    for (const group of Object.values(groups)) {
+      // Sum days used across all protocols in this cycle
+      let totalDays = 0;
+      for (const p of group.protocols) {
+        if (!p.start_date || !p.end_date) continue;
+        const start = new Date(p.start_date + 'T12:00:00');
+        const end = new Date(p.end_date + 'T12:00:00');
+        const effectiveEnd = end < now ? end : now;
+        if (effectiveEnd <= start) continue;
+        totalDays += Math.round((effectiveEnd - start) / (1000 * 60 * 60 * 24));
+      }
+
+      const cycleDaysUsed = Math.min(totalDays, RECOVERY_CYCLE_MAX_DAYS);
+
+      for (const p of group.protocols) {
+        map[p.id] = { cycleDaysUsed, cycleStartDate: group.cycleStartDate };
+      }
+    }
+
+    return map;
+  }, [data]);
+
   return (
     <div style={styles.tabContent}>
       {/* Filters */}
@@ -4828,7 +4876,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
                 </td>
                 <td style={styles.td}>{getDisplayProgramName(protocol)}</td>
                 <td style={{ ...styles.td, color: URGENCY_COLORS[protocol.urgency] }}>
-                  {getProtocolStatus(protocol)}
+                  {getProtocolStatus(protocol, cycleInfoMap[protocol.id])}
                 </td>
                 <td style={styles.td}>{formatDate(protocol.start_date)}</td>
                 <td style={styles.td}>

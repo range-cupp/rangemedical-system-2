@@ -13,6 +13,7 @@ const supabase = createClient(
 function frequencyToDays(frequency) {
   if (!frequency) return 7;
   const f = frequency.toLowerCase();
+  if (f.includes('daily') || f.includes('every day')) return 1;
   if (f.includes('10 day')) return 10;
   if (f.includes('2 week') || f.includes('every 2')) return 14;
   if (f.includes('every other day')) return 2;

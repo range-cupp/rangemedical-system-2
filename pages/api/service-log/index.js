@@ -596,10 +596,12 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     // Calculate next_expected_date based on frequency
     const freq = (protocol.frequency || '').toLowerCase();
     let dayInterval = 7; // default weekly
-    if (freq.includes('10 day')) dayInterval = 10;
+    if (freq.includes('daily') || freq.includes('every day')) dayInterval = 1;
+    else if (freq.includes('10 day')) dayInterval = 10;
     else if (freq.includes('2 week') || freq.includes('every 2')) dayInterval = 14;
     else if (freq.includes('monthly')) dayInterval = 28;
     else if (freq.includes('every other day')) dayInterval = 2;
+    else if (freq.includes('5 on')) dayInterval = 1; // 5 on / 2 off — next day during on phase
 
     const nextDate = new Date(logDate + 'T12:00:00');
     nextDate.setDate(nextDate.getDate() + dayInterval);

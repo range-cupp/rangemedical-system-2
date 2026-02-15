@@ -308,6 +308,7 @@ export default async function handler(req, res) {
         injection_frequency: injectionFrequencyDays || null,
         injection_day: injectionDay || null,
         checkin_reminder_enabled: checkinReminderEnabled || false,
+        peptide_reminders_enabled: (programType === 'peptide' && isRecoveryPeptide(medicationName)) ? true : false,
         // HRT vial-specific fields
         dose_per_injection: dosePerInjection ? parseFloat(dosePerInjection) : null,
         injections_per_week: injectionsPerWeek ? parseInt(injectionsPerWeek) : null,
@@ -484,12 +485,72 @@ export default async function handler(req, res) {
       }
     }
 
+    // ============================================
+    // SEND PEPTIDE GUIDE SMS (recovery peptides only)
+    // ============================================
+    let peptideGuideSent = false;
+    if (programType === 'peptide' && isRecoveryPeptide(medicationName) && finalGhlContactId) {
+      try {
+        // Look up patient first name
+        const { data: patientData } = await supabase
+          .from('patients')
+          .select('first_name, name')
+          .eq('id', finalPatientId)
+          .single();
+
+        const firstName = patientData?.first_name || (patientData?.name ? patientData.name.split(' ')[0] : 'there');
+
+        const guideMessage = `Hi ${firstName}! Here's your BPC-157 / TB-500 guide to get started: https://www.range-medical.com/bpc-tb4-guide - Range Medical`;
+
+        const smsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Version': '2021-04-15'
+          },
+          body: JSON.stringify({
+            type: 'SMS',
+            contactId: finalGhlContactId,
+            message: guideMessage
+          })
+        });
+
+        const smsData = await smsRes.json();
+
+        if (smsRes.ok) {
+          // Mark guide sent on protocol
+          await supabase
+            .from('protocols')
+            .update({ peptide_guide_sent: true })
+            .eq('id', protocol.id);
+
+          // Log to protocol_logs to prevent double-sends
+          await supabase.from('protocol_logs').insert({
+            protocol_id: protocol.id,
+            patient_id: finalPatientId,
+            log_type: 'peptide_guide_sent',
+            log_date: new Date().toISOString().split('T')[0],
+            notes: guideMessage
+          });
+
+          peptideGuideSent = true;
+          console.log('Peptide guide SMS sent to', finalGhlContactId);
+        } else {
+          console.error('Peptide guide SMS error:', smsData);
+        }
+      } catch (guideError) {
+        console.error('Peptide guide SMS error (non-fatal):', guideError);
+      }
+    }
+
     res.status(200).json({
       success: true,
       protocol,
       purchaseUpdated: !!purchaseId,
       ghlSynced: !!finalGhlContactId,
       dripEmailSent,
+      peptideGuideSent,
       message: `Protocol created: ${programName}`
     });
 

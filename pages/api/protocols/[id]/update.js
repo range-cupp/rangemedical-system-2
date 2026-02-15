@@ -36,6 +36,7 @@ export default async function handler(req, res) {
       notes,
       injection_day,
       checkin_reminder_enabled,
+      peptide_reminders_enabled,
       medication,
       pickup_frequency,
       frequency,
@@ -60,6 +61,7 @@ export default async function handler(req, res) {
     if (notes !== undefined) updateData.notes = notes || null;
     if (injection_day !== undefined) updateData.injection_day = injection_day || null;
     if (checkin_reminder_enabled !== undefined) updateData.checkin_reminder_enabled = checkin_reminder_enabled;
+    if (peptide_reminders_enabled !== undefined) updateData.peptide_reminders_enabled = peptide_reminders_enabled;
     if (medication !== undefined) updateData.medication = medication || null;
     if (pickup_frequency !== undefined) updateData.pickup_frequency = pickup_frequency || null;
     if (frequency !== undefined) updateData.frequency = frequency || null;

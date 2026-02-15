@@ -1769,6 +1769,32 @@ export default function CommandCenter() {
                     />
                   )}
 
+                  {/* Peptide SMS Automations (recovery peptides only) */}
+                  {protocolDetailPanel.protocol.program_type === 'peptide' && getCycleType(protocolDetailPanel.protocol.medication) === 'recovery' && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>Peptide SMS Automations</h4>
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                          <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '6px' }}>Check-in & Re-up Texts</span>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', background: protocolDetailPanel.protocol.peptide_reminders_enabled ? '#F0FDF4' : '#fff' }}>
+                            <input
+                              type="checkbox"
+                              checked={protocolDetailPanel.protocol.peptide_reminders_enabled || false}
+                              onChange={e => updateProtocolField(protocolDetailPanel.protocol.id, { peptide_reminders_enabled: e.target.checked })}
+                              style={{ width: '18px', height: '18px', accentColor: '#16A34A' }}
+                            />
+                            <span style={{ fontSize: '14px', fontWeight: '500', color: protocolDetailPanel.protocol.peptide_reminders_enabled ? '#16A34A' : '#6B7280' }}>
+                              {protocolDetailPanel.protocol.peptide_reminders_enabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </label>
+                          <span style={{ fontSize: '11px', color: '#9CA3AF', display: 'block', marginTop: '4px' }}>
+                            Sends check-in & re-up texts based on protocol duration
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Injection Reminders (take-home weight loss) */}
                   {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.protocol.delivery_method === 'take_home' && (
                     <div style={styles.protocolDetailSection}>

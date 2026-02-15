@@ -90,18 +90,15 @@ const URGENCY_COLORS = {
 };
 
 // Recovery peptide cycle tracking
-const RECOVERY_PEPTIDE_NAMES = [
-  'BPC-157',
-  'BPC-157/TB4 (Thymosin Beta 4)',
-  'Wolverine Blend (BPC-157/TB-500)',
-  'BPC-157/TB-500/KPV/MGF',
-  'TB500 (Thymosin Beta 4)',
-];
 const RECOVERY_CYCLE_MAX_DAYS = 84;
 const isRecoveryPeptideName = (name) => {
   if (!name) return false;
   const lower = name.toLowerCase();
-  return RECOVERY_PEPTIDE_NAMES.some(n => n.toLowerCase() === lower);
+  if (lower.includes('glow') || lower.includes('klow')) return false;
+  return lower.includes('bpc-157') || lower.includes('bpc 157') ||
+    lower.includes('wolverine') ||
+    lower.includes('tb-500') || lower.includes('tb500') || lower.includes('tb4') ||
+    lower.includes('thymosin beta');
 };
 
 const LEAD_STATUS_LABELS = {

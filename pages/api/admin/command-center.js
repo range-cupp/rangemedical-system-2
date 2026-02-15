@@ -202,7 +202,7 @@ export default async function handler(req, res) {
         new Date(p.created_at) >= sevenDaysAgo &&
         !activeProtocols.some(pr => pr.patient_id === p.id)
       ).length,
-      needsProtocol: (purchases || []).filter(p => !p.protocol_created).length,
+      needsProtocol: (purchases || []).filter(p => !p.protocol_created && !p.dismissed).length,
       endingSoon: processedProtocols.filter(p =>
         p.urgency === 'critical' || p.urgency === 'warning'
       ).length,
@@ -247,7 +247,7 @@ export default async function handler(req, res) {
       }));
 
     // Get purchases that need protocols assigned
-    const purchasesNeedingProtocol = (purchases || []).filter(p => !p.protocol_created);
+    const purchasesNeedingProtocol = (purchases || []).filter(p => !p.protocol_created && !p.dismissed);
 
     // In-clinic visit tracking data
     const inClinicProtocols = activeProtocols.filter(p =>

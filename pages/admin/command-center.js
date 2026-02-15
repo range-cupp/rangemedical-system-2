@@ -1483,6 +1483,7 @@ export default function CommandCenter() {
               leads={filteredLeads}
               filter={leadFilter}
               setFilter={setLeadFilter}
+              onRefresh={fetchData}
               onAssignFromPurchase={(purchase) => {
                 // Find patient by patient_id first, then fall back to name matching
                 const patient = (data?.patients || []).find(p =>
@@ -4561,11 +4562,29 @@ const dueSoonStyles = {
   },
 };
 
-function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase }) {
+function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase, onRefresh }) {
   const [expandedLead, setExpandedLead] = useState(null);
   const [showSection, setShowSection] = useState('purchases'); // 'purchases' or 'leads'
+  const [dismissingId, setDismissingId] = useState(null);
 
   const purchasesNeedingProtocol = data?.purchasesNeedingProtocol || [];
+
+  const handleDismissPurchase = async (purchaseId) => {
+    setDismissingId(purchaseId);
+    try {
+      const res = await fetch(`/api/purchases/${purchaseId}/dismiss`, { method: 'POST' });
+      if (res.ok) {
+        onRefresh && onRefresh();
+      } else {
+        alert('Failed to dismiss purchase');
+      }
+    } catch (err) {
+      console.error('Error dismissing purchase:', err);
+      alert('Error dismissing purchase');
+    } finally {
+      setDismissingId(null);
+    }
+  };
 
   return (
     <div style={styles.tabContent}>
@@ -4607,22 +4626,42 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase }) {
                   <div style={{ fontWeight: '600', color: '#059669' }}>${p.display_amount || p.amount}</div>
                   <div style={{ fontSize: '12px', color: '#9CA3AF' }}>{formatDate(p.purchase_date)}</div>
                 </div>
-                <button
-                  onClick={() => onAssignFromPurchase && onAssignFromPurchase(p)}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#059669',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  + Assign Protocol
-                </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => onAssignFromPurchase && onAssignFromPurchase(p)}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#059669',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    + Assign Protocol
+                  </button>
+                  <button
+                    onClick={() => handleDismissPurchase(p.id)}
+                    disabled={dismissingId === p.id}
+                    title="Dismiss — not a trackable protocol"
+                    style={{
+                      padding: '8px 12px',
+                      background: '#F3F4F6',
+                      color: '#6B7280',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      cursor: dismissingId === p.id ? 'wait' : 'pointer',
+                      whiteSpace: 'nowrap',
+                      opacity: dismissingId === p.id ? 0.5 : 1
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </div>
             ))
           )}

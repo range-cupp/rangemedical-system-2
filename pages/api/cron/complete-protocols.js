@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     // Find active protocols where end_date is yesterday or earlier
     const { data: expiredProtocols, error: fetchError } = await supabase
       .from('protocols')
-      .select('id, patient_name, program_name, end_date')
+      .select('id, program_name, end_date, patient_id')
       .eq('status', 'active')
       .lte('end_date', yesterdayStr);
 
@@ -59,9 +59,9 @@ export default async function handler(req, res) {
 
         if (updateError) {
           console.error(`Failed to complete protocol ${protocol.id}:`, updateError);
-          errors.push(`${protocol.patient_name}: ${updateError.message}`);
+          errors.push(`${protocol.program_name} (${protocol.id}): ${updateError.message}`);
         } else {
-          console.log(`Completed: ${protocol.patient_name} - ${protocol.program_name} (ended ${protocol.end_date})`);
+          console.log(`Completed: ${protocol.program_name} (ended ${protocol.end_date})`);
           completed++;
         }
       }
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     try {
       const { data: newExpired, error: newFetchError } = await supabase
         .from('patient_protocols')
-        .select('id, patient_name, protocol_name, end_date')
+        .select('id, protocol_name, end_date')
         .eq('status', 'active')
         .lte('end_date', yesterdayStr);
 

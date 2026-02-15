@@ -993,6 +993,37 @@ export default function CommandCenter() {
               if (!logRes.ok) {
                 console.error('Failed to create service log entry:', await logRes.text());
               }
+
+              // For take-home protocols where first visit is an injection,
+              // also log a medication pickup for the take-home supply
+              const delivMethod = assignForm.deliveryMethod || (addToExistingProtocol ? null : 'take_home');
+              const isTakeHome = delivMethod === 'take_home';
+              const isInjection = firstVisitData.entryType === 'injection';
+              const isPeptideOrWL = ['peptide', 'weight_loss'].includes(servicePayload.category);
+
+              if (isTakeHome && isInjection && isPeptideOrWL) {
+                try {
+                  const pickupPayload = {
+                    ...servicePayload,
+                    entry_type: 'pickup',
+                    supply_type: 'medication',
+                    quantity: 1,
+                    weight: undefined,
+                    notes: 'Take-home medication pickup (with first injection)'
+                  };
+                  delete pickupPayload.weight;
+                  const pickupRes = await fetch('/api/service-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pickupPayload)
+                  });
+                  if (!pickupRes.ok) {
+                    console.error('Failed to create pickup log entry:', await pickupRes.text());
+                  }
+                } catch (pickupError) {
+                  console.error('Error creating pickup log (non-blocking):', pickupError);
+                }
+              }
             }
           } catch (logError) {
             console.error('Error creating service log entry (non-blocking):', logError);

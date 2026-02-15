@@ -5,28 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restore Your Energy at the Cellular Level | Range Medical Newport Beach</title>
     <meta name="description" content="Tired all the time? It's not in your head — it's in your cells. The Six-Week Cellular Energy Reset restores mitochondrial function so you feel like yourself again.">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #1a1a1a;
-            --bg: #faf9f6;
+            --bg: #ffffff;
             --bg-white: #ffffff;
-            --bg-dark: #1a1a1a;
+            --bg-dark: #000000;
             --bg-card: #ffffff;
-            --text: #1a1a1a;
-            --text-muted: #71706e;
-            --text-light: #f5f5f0;
-            --accent: #1a1a1a;
-            --border: #e8e6e1;
-            --gold: #b8954e;
-            --green: #2d6a4f;
+            --text: #171717;
+            --text-muted: #525252;
+            --text-light: #ffffff;
+            --border: #e5e5e5;
+            --gold: #fbbf24;
+            --green: #22c55e;
             --radius: 12px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'DM Sans', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             color: var(--text);
             background: var(--bg);
             line-height: 1.6;
@@ -34,13 +32,13 @@
         }
 
         h1, h2, h3 {
-            font-family: 'DM Serif Display', Georgia, serif;
-            font-weight: 400;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 700;
             line-height: 1.2;
         }
 
         .container {
-            max-width: 1080px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
         }
@@ -48,16 +46,24 @@
         .nav {
             background: var(--bg-white);
             border-bottom: 1px solid var(--border);
-            padding: 16px 24px;
+            padding: 1rem 1.5rem;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .nav-logo img { height: 36px; }
+        .nav-inner {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo img { height: 80px; }
 
         .nav-right {
             display: flex;
@@ -66,9 +72,11 @@
         }
 
         .nav-link {
-            font-size: 14px;
-            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #404040;
             text-decoration: none;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         .nav-link:hover { color: var(--text); }
@@ -76,28 +84,29 @@
         .nav-cta {
             background: var(--bg-dark);
             color: var(--text-light);
-            padding: 10px 20px;
+            padding: 0.625rem 1.25rem;
             border: none;
-            border-radius: var(--radius);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 14px;
-            font-weight: 500;
+            border-radius: 6px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 0.875rem;
+            font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            transition: opacity 0.2s;
+            transition: background 0.2s;
         }
 
-        .nav-cta:hover { opacity: 0.85; }
+        .nav-cta:hover { background: #262626; }
 
         .trust-bar {
-            background: var(--bg-white);
+            background: #000000;
             border-bottom: 1px solid var(--border);
             padding: 10px 24px;
             display: flex;
             justify-content: center;
             gap: 24px;
-            font-size: 13px;
-            color: var(--text-muted);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #ffffff;
         }
 
         .trust-bar span {
@@ -109,30 +118,37 @@
         .trust-bar .stars { color: var(--gold); }
 
         .hero {
-            padding: 80px 0 60px;
+            background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+            padding: 4rem 1.5rem 3rem;
             text-align: center;
         }
 
         .hero-eyebrow {
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 1px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: var(--text-muted);
+            color: #737373;
             margin-bottom: 16px;
         }
 
         .hero h1 {
-            font-size: clamp(32px, 4.5vw, 52px);
+            font-size: 2.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
             max-width: 720px;
             margin: 0 auto 20px;
         }
 
-        .hero h1 em { font-style: italic; }
+        .hero h1 em {
+            font-style: normal;
+            font-weight: 700;
+        }
 
         .hero-sub {
-            font-size: 17px;
-            color: var(--text-muted);
+            font-size: 1.125rem;
+            color: #525252;
             max-width: 540px;
             margin: 0 auto 32px;
             line-height: 1.7;
@@ -148,11 +164,11 @@
 
         .btn {
             display: inline-block;
-            padding: 14px 28px;
-            border-radius: var(--radius);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 15px;
-            font-weight: 500;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 0.9375rem;
+            font-weight: 600;
             text-decoration: none;
             cursor: pointer;
             transition: all 0.2s;
@@ -160,11 +176,11 @@
         }
 
         .btn-dark {
-            background: var(--bg-dark);
-            color: var(--text-light);
+            background: #000;
+            color: #fff;
         }
 
-        .btn-dark:hover { opacity: 0.85; }
+        .btn-dark:hover { background: #262626; }
 
         .btn-outline {
             background: transparent;
@@ -184,27 +200,32 @@
         .scroll-indicator {
             text-align: center;
             padding: 20px 0 40px;
-            font-size: 13px;
-            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #737373;
         }
 
-        .section { padding: 72px 0; }
+        .section { padding: 5rem 1.5rem; }
         .section--white { background: var(--bg-white); }
-        .section--dark { background: var(--bg-dark); color: var(--text-light); }
+        .section--dark { background: #fafafa; color: var(--text); }
 
         .section-eyebrow {
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 1px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: var(--text-muted);
+            color: #737373;
             margin-bottom: 12px;
         }
 
-        .section--dark .section-eyebrow { color: rgba(255,255,255,0.5); }
+        .section--dark .section-eyebrow { color: #737373; }
 
         .section h2 {
-            font-size: clamp(26px, 3.5vw, 38px);
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
             margin-bottom: 40px;
         }
 
@@ -227,13 +248,14 @@
         .card:hover { border-color: #ccc; }
 
         .card h3 {
-            font-size: 18px;
+            font-size: 1.125rem;
+            font-weight: 700;
             margin-bottom: 8px;
         }
 
         .card p {
-            font-size: 14px;
-            color: var(--text-muted);
+            font-size: 0.9375rem;
+            color: #525252;
             line-height: 1.6;
         }
 
@@ -244,23 +266,23 @@
         }
 
         .symptom-card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: var(--radius);
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
             padding: 24px;
         }
 
         .symptom-card h4 {
-            font-family: 'DM Sans', sans-serif;
-            font-size: 15px;
-            font-weight: 600;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
             margin-bottom: 6px;
-            color: var(--text-light);
+            color: #171717;
         }
 
         .symptom-card p {
-            font-size: 13px;
-            color: rgba(255,255,255,0.55);
+            font-size: 0.875rem;
+            color: #525252;
             line-height: 1.6;
         }
 
@@ -279,14 +301,23 @@
         }
 
         .step-number {
-            font-family: 'DM Serif Display', serif;
-            font-size: 36px;
-            color: var(--border);
-            margin-bottom: 12px;
+            width: 48px;
+            height: 48px;
+            background: #000;
+            color: #fff;
+            border-radius: 50%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
         }
 
         .step-card h3 {
-            font-size: 18px;
+            font-size: 1.125rem;
+            font-weight: 700;
             margin-bottom: 8px;
         }
 
@@ -314,7 +345,7 @@
             top: -14px;
             left: 50%;
             transform: translateX(-50%);
-            background: var(--green);
+            background: #22c55e;
             color: white;
             padding: 5px 16px;
             border-radius: 20px;
@@ -326,8 +357,9 @@
         }
 
         .pricing-amount {
-            font-family: 'DM Serif Display', serif;
-            font-size: 48px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
             margin: 12px 0 4px;
         }
 
@@ -349,14 +381,14 @@
         }
 
         .pricing-list li::before {
-            content: '✓';
-            color: var(--green);
+            content: '\2713';
+            color: #22c55e;
             font-weight: 700;
             flex-shrink: 0;
         }
 
         .pricing-addon {
-            background: var(--bg);
+            background: #fafafa;
             border-radius: var(--radius);
             padding: 20px;
             margin-top: 20px;
@@ -364,7 +396,7 @@
         }
 
         .pricing-addon h4 {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 4px;
@@ -376,17 +408,18 @@
         }
 
         .pricing-addon-price {
-            font-family: 'DM Serif Display', serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 22px;
+            font-weight: 700;
             margin-top: 6px;
         }
 
         .pricing-guarantee {
             margin-top: 20px;
             padding: 16px 20px;
-            border: 1px solid var(--green);
+            border: 1px solid #22c55e;
             border-radius: var(--radius);
-            background: rgba(45, 106, 79, 0.04);
+            background: rgba(34, 197, 94, 0.04);
             text-align: left;
         }
 
@@ -418,7 +451,7 @@
         }
 
         .testimonial-stars {
-            color: var(--gold);
+            color: #fbbf24;
             font-size: 14px;
             letter-spacing: 1px;
             margin-bottom: 12px;
@@ -433,13 +466,13 @@
         }
 
         .testimonial-author {
-            font-size: 13px;
+            font-size: 0.875rem;
             font-weight: 600;
         }
 
         .testimonial-detail {
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: 0.75rem;
+            color: #737373;
             margin-top: 2px;
         }
 
@@ -460,10 +493,10 @@
             align-items: center;
             cursor: pointer;
             text-align: left;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 15px;
-            font-weight: 500;
-            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #171717;
         }
 
         .faq-q::after {
@@ -475,7 +508,7 @@
             margin-left: 16px;
         }
 
-        .faq-item.active .faq-q::after { content: '−'; }
+        .faq-item.active .faq-q::after { content: '\2212'; }
 
         .faq-a {
             max-height: 0;
@@ -493,20 +526,51 @@
         .faq-item.active .faq-a { max-height: 300px; }
 
         .cta-final {
+            background: #000000;
             text-align: center;
             padding: 80px 0;
         }
 
-        .cta-final h2 { margin-bottom: 12px; }
+        .cta-final .section-eyebrow { color: rgba(255,255,255,0.6); }
+
+        .cta-final h2 {
+            color: #ffffff;
+            margin-bottom: 12px;
+        }
+
+        .cta-final h2 em {
+            font-style: normal;
+            font-weight: 700;
+        }
 
         .cta-final p {
             font-size: 16px;
-            color: var(--text-muted);
+            color: rgba(255,255,255,0.8);
             margin-bottom: 32px;
             max-width: 480px;
             margin-left: auto;
             margin-right: auto;
         }
+
+        .cta-final .btn-dark {
+            background: #fff;
+            color: #000;
+            border-radius: 8px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+        }
+
+        .cta-final .btn-dark:hover { background: #f5f5f5; }
+
+        .cta-final .btn-outline {
+            border: 2px solid #fff;
+            color: #fff;
+            background: transparent;
+        }
+
+        .cta-final .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+        .cta-final .btn-sub { color: rgba(255,255,255,0.6); }
 
         .cta-buttons {
             display: flex;
@@ -516,8 +580,8 @@
         }
 
         .footer {
-            background: var(--bg-white);
-            border-top: 1px solid var(--border);
+            background: #ffffff;
+            border-top: 1px solid #e5e5e5;
             padding: 48px 24px;
         }
 
@@ -525,7 +589,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            max-width: 1080px;
+            max-width: 1200px;
             margin: 0 auto;
             flex-wrap: wrap;
             gap: 32px;
@@ -539,7 +603,6 @@
         .footer-brand p {
             font-size: 14px;
             color: var(--text-muted);
-            font-style: italic;
         }
 
         .footer-contact {
@@ -554,18 +617,18 @@
         }
 
         .footer-bottom {
-            max-width: 1080px;
+            max-width: 1200px;
             margin: 24px auto 0;
             padding-top: 20px;
-            border-top: 1px solid var(--border);
+            border-top: 1px solid #e5e5e5;
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: 0.8125rem;
+            color: #737373;
         }
 
         .footer-bottom a {
-            color: var(--text-muted);
+            color: #737373;
             text-decoration: none;
             margin-left: 16px;
         }
@@ -637,8 +700,9 @@
 
         .scale-value {
             text-align: center;
-            font-family: 'DM Serif Display', serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 44px;
+            font-weight: 700;
             margin: 20px 0 8px;
         }
 
@@ -697,7 +761,7 @@
         .quiz-back {
             background: none;
             border: none;
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 14px;
             color: var(--text-muted);
             cursor: pointer;
@@ -709,14 +773,14 @@
             border: none;
             padding: 12px 24px;
             border-radius: var(--radius);
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: background 0.2s;
         }
 
-        .quiz-next:hover { opacity: 0.85; }
+        .quiz-next:hover { background: #262626; }
 
         .form-group { margin-bottom: 16px; }
 
@@ -733,9 +797,9 @@
             padding: 12px 14px;
             border: 1px solid var(--border);
             border-radius: 8px;
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 14px;
-            background: var(--bg);
+            background: #fafafa;
             outline: none;
             transition: border 0.2s;
         }
@@ -752,10 +816,10 @@
         }
 
         .results-label { font-size: 14px; font-weight: 500; }
-        .results-score { font-family: 'DM Serif Display', serif; font-size: 18px; }
+        .results-score { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 18px; font-weight: 700; }
 
         .results-insight {
-            background: var(--bg);
+            background: #fafafa;
             border-radius: var(--radius);
             padding: 20px;
             margin: 16px 0;
@@ -763,7 +827,7 @@
         }
 
         .results-insight h4 {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 13px;
             font-weight: 600;
             margin-bottom: 6px;
@@ -791,7 +855,7 @@
         }
 
         .local-bar {
-            background: var(--bg-white);
+            background: #fafafa;
             border-bottom: 1px solid var(--border);
             padding: 48px 0;
         }
@@ -805,8 +869,13 @@
         }
 
         .local-item { text-align: center; }
-        .local-item strong { display: block; font-size: 14px; }
-        .local-item span { font-size: 13px; color: var(--text-muted); }
+        .local-item strong { display: block; font-size: 0.875rem; }
+        .local-item span { font-size: 0.8125rem; color: var(--text-muted); }
+
+        @media (max-width: 900px) {
+            .hero h1 { font-size: 2rem; }
+            .section h2 { font-size: 1.75rem; }
+        }
 
         @media (max-width: 768px) {
             .card-grid, .steps-grid, .testimonial-grid { grid-template-columns: 1fr; }
@@ -818,25 +887,32 @@
             .footer-bottom { flex-direction: column; gap: 8px; }
             .cta-buttons { flex-direction: column; align-items: center; }
         }
+
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 1.75rem; }
+            .section h2 { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
 
     <nav class="nav">
-        <a href="https://www.range-medical.com">
-            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" style="height:36px;">
-        </a>
-        <div class="nav-right">
-            <a href="tel:9499973988" class="nav-link">(949) 997-3988</a>
-            <a href="https://www.range-medical.com/range-assessment" class="nav-link">Take Assessment</a>
-            <button class="nav-cta" onclick="openQuiz()">See If You Qualify</button>
+        <div class="nav-inner">
+            <a href="https://www.range-medical.com">
+                <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" style="height:80px;">
+            </a>
+            <div class="nav-right">
+                <a href="tel:9499973988" class="nav-link">(949) 997-3988</a>
+                <a href="https://www.range-medical.com/range-assessment" class="nav-link">Take Assessment</a>
+                <button class="nav-cta" onclick="openQuiz()">See If You Qualify</button>
+            </div>
         </div>
     </nav>
 
     <div class="trust-bar">
-        <span><span class="stars">★★★★★</span> 5.0 on Google</span>
-        <span>📍 Newport Beach, CA</span>
-        <span>✓ Licensed Providers</span>
+        <span><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google</span>
+        <span>&#128205; Newport Beach, CA</span>
+        <span>&#10003; Licensed Providers</span>
     </div>
 
     <section class="hero">
@@ -845,12 +921,12 @@
             <h1>You're Not Lazy. You're Not Old. Your Cells Just Need <em>a Reset.</em></h1>
             <p class="hero-sub">Fatigue, brain fog, and slow recovery aren't normal — they're signs your mitochondria aren't producing enough energy. The Six-Week Cellular Reset fixes that at the source.</p>
             <a href="#" class="btn btn-dark" onclick="openQuiz(); return false;">See If You Qualify</a>
-            <span class="btn-sub">✓ Free Red Light + HBOT session for qualified candidates</span>
-            <p class="hero-location">📍 In-person at <strong>Range Medical</strong> · 1901 Westcliff Dr, Newport Beach</p>
+            <span class="btn-sub">&#10003; Free Red Light + HBOT session for qualified candidates</span>
+            <p class="hero-location">&#128205; In-person at <strong>Range Medical</strong> · 1901 Westcliff Dr, Newport Beach</p>
         </div>
     </section>
 
-    <div class="scroll-indicator">Scroll to explore ↓</div>
+    <div class="scroll-indicator">Scroll to explore &#8595;</div>
 
     <div class="local-bar">
         <div class="container">
@@ -937,8 +1013,8 @@
                 </div>
             </div>
             <div style="text-align:center; margin-top: 40px;">
-                <a href="#" class="btn btn-dark" style="background:#fff; color:#1a1a1a;" onclick="openQuiz(); return false;">Take the Assessment</a>
-                <span class="btn-sub" style="color:rgba(255,255,255,0.5);">✓ 2-minute quiz to see if you qualify for a free session</span>
+                <a href="#" class="btn btn-dark" style="background:#000; color:#fff;" onclick="openQuiz(); return false;">Take the Assessment</a>
+                <span class="btn-sub" style="color:#737373;">&#10003; 2-minute quiz to see if you qualify for a free session</span>
             </div>
         </div>
     </section>
@@ -995,7 +1071,7 @@
                     <p class="pricing-financing">Financing available through Affirm & Afterpay · HSA/FSA accepted</p>
                     <div style="margin-top:24px;">
                         <a href="#" class="btn btn-dark" style="width:100%; text-align:center; display:block;" onclick="openQuiz(); return false;">Start With a Free Session</a>
-                        <span class="btn-sub">✓ Qualify first — no commitment required</span>
+                        <span class="btn-sub">&#10003; Qualify first — no commitment required</span>
                     </div>
                 </div>
             </div>
@@ -1008,19 +1084,19 @@
             <h2>What Our Patients Are Saying</h2>
             <div class="testimonial-grid">
                 <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
+                    <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
                     <blockquote>"I thought feeling exhausted was just part of getting older. By week 3, I had energy I hadn't felt in years. I'm not dragging through my afternoons anymore."</blockquote>
                     <div class="testimonial-author">Sarah M.</div>
                     <div class="testimonial-detail">Age 45 · Newport Beach</div>
                 </div>
                 <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
+                    <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
                     <blockquote>"The brain fog was the worst part. I couldn't focus at work, forgot things constantly. After the protocol, my mental clarity is back. My wife noticed before I did."</blockquote>
                     <div class="testimonial-author">David R.</div>
                     <div class="testimonial-detail">Age 52 · Newport Beach</div>
                 </div>
                 <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
+                    <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
                     <blockquote>"I was skeptical, honestly. But the sleep improvement alone was worth it. I actually wake up feeling rested now — and my joint pain has noticeably decreased."</blockquote>
                     <div class="testimonial-author">Jennifer L.</div>
                     <div class="testimonial-detail">Age 41 · Newport Beach</div>
@@ -1071,7 +1147,7 @@
                 <a href="#" class="btn btn-dark" onclick="openQuiz(); return false;">See If You Qualify</a>
                 <a href="tel:9499973988" class="btn btn-outline">Call (949) 997-3988</a>
             </div>
-            <span class="btn-sub">📍 Range Medical · 1901 Westcliff Dr, Newport Beach, CA</span>
+            <span class="btn-sub">&#128205; Range Medical · 1901 Westcliff Dr, Newport Beach, CA</span>
         </div>
     </section>
 
@@ -1088,7 +1164,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <span>© 2026 Range Medical. All rights reserved.</span>
+            <span>&copy; 2026 Range Medical. All rights reserved.</span>
             <div>
                 <a href="https://www.range-medical.com/terms-of-use">Terms</a>
                 <a href="https://www.range-medical.com/privacy-policy">Privacy</a>
@@ -1099,7 +1175,7 @@
 
     <div class="quiz-overlay" id="quizOverlay">
         <div class="quiz-modal">
-            <button class="quiz-close" onclick="closeQuiz()">×</button>
+            <button class="quiz-close" onclick="closeQuiz()">&times;</button>
             <div class="quiz-progress" id="quizProgress">
                 <div class="quiz-progress-bar"></div>
                 <div class="quiz-progress-bar"></div>
@@ -1119,7 +1195,7 @@
                 <div class="scale-descriptor" id="desc1">Moderate — some good days, some bad</div>
                 <input type="range" min="1" max="10" value="5" class="scale-slider" id="slider1" oninput="updateSlider(1)">
                 <div class="scale-labels"><span>Completely drained</span><span>Fully energized</span></div>
-                <div class="quiz-nav"><div></div><button class="quiz-next" onclick="nextStep(2)">Next →</button></div>
+                <div class="quiz-nav"><div></div><button class="quiz-next" onclick="nextStep(2)">Next &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="2">
@@ -1130,7 +1206,7 @@
                 <div class="scale-descriptor" id="desc2">Moderate — some good days, some bad</div>
                 <input type="range" min="1" max="10" value="5" class="scale-slider" id="slider2" oninput="updateSlider(2)">
                 <div class="scale-labels"><span>Takes days to feel normal</span><span>Bounce back quickly</span></div>
-                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(1)">← Back</button><button class="quiz-next" onclick="nextStep(3)">Next →</button></div>
+                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(1)">&larr; Back</button><button class="quiz-next" onclick="nextStep(3)">Next &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="3">
@@ -1141,7 +1217,7 @@
                 <div class="scale-descriptor" id="desc3">Moderate — some good days, some bad</div>
                 <input type="range" min="1" max="10" value="5" class="scale-slider" id="slider3" oninput="updateSlider(3)">
                 <div class="scale-labels"><span>Wake up exhausted</span><span>Fully recharged</span></div>
-                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(2)">← Back</button><button class="quiz-next" onclick="nextStep(4)">Next →</button></div>
+                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(2)">&larr; Back</button><button class="quiz-next" onclick="nextStep(4)">Next &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="4">
@@ -1152,7 +1228,7 @@
                 <div class="scale-descriptor" id="desc4">Moderate — some good days, some bad</div>
                 <input type="range" min="1" max="10" value="5" class="scale-slider" id="slider4" oninput="updateSlider(4)">
                 <div class="scale-labels"><span>Constant brain fog</span><span>Razor sharp focus</span></div>
-                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(3)">← Back</button><button class="quiz-next" onclick="nextStep(5)">Next →</button></div>
+                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(3)">&larr; Back</button><button class="quiz-next" onclick="nextStep(5)">Next &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="5">
@@ -1163,7 +1239,7 @@
                 <div class="scale-descriptor" id="desc5">Moderate — some good days, some bad</div>
                 <input type="range" min="1" max="10" value="5" class="scale-slider" id="slider5" oninput="updateSlider(5)">
                 <div class="scale-labels"><span>Slow healing, dull skin</span><span>Excellent skin and healing</span></div>
-                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(4)">← Back</button><button class="quiz-next" onclick="nextStep(6)">Next →</button></div>
+                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(4)">&larr; Back</button><button class="quiz-next" onclick="nextStep(6)">Next &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="6">
@@ -1174,7 +1250,7 @@
                 <div class="scale-descriptor" id="desc6">Moderate — manageable but present</div>
                 <input type="range" min="1" max="10" value="5" class="scale-slider" id="slider6" oninput="updateSlider(6)">
                 <div class="scale-labels"><span>Severely limiting</span><span>No issues</span></div>
-                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(5)">← Back</button><button class="quiz-next" onclick="nextStep(7)">Next →</button></div>
+                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(5)">&larr; Back</button><button class="quiz-next" onclick="nextStep(7)">Next &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="7">
@@ -1202,14 +1278,14 @@
                         <option value="exploring">Just exploring</option>
                     </select>
                 </div>
-                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(6)">← Back</button><button class="quiz-next" onclick="showResults()">See My Results →</button></div>
+                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(6)">&larr; Back</button><button class="quiz-next" onclick="showResults()">See My Results &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="8">
                 <div class="section-eyebrow">Your Assessment</div>
                 <h2>Here's What We Found</h2>
                 <div id="resultsContainer"></div>
-                <div class="quiz-nav"><div></div><button class="quiz-next" onclick="nextStep(9)">Claim Your Free Session →</button></div>
+                <div class="quiz-nav"><div></div><button class="quiz-next" onclick="nextStep(9)">Claim Your Free Session &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="9">
@@ -1220,12 +1296,12 @@
                 <div class="form-group"><label>Last Name</label><input type="text" id="lastName" placeholder="Last name"></div>
                 <div class="form-group"><label>Email</label><input type="email" id="email" placeholder="your@email.com"></div>
                 <div class="form-group"><label>Phone</label><input type="tel" id="phone" placeholder="(555) 555-5555"></div>
-                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(8)">← Back</button><button class="quiz-next" onclick="submitQuiz()">Submit & Reserve →</button></div>
+                <div class="quiz-nav"><button class="quiz-back" onclick="prevStep(8)">&larr; Back</button><button class="quiz-next" onclick="submitQuiz()">Submit & Reserve &rarr;</button></div>
             </div>
 
             <div class="quiz-step" data-step="10">
                 <div class="thank-you">
-                    <div class="thank-you-icon">✓</div>
+                    <div class="thank-you-icon">&#10003;</div>
                     <h2>You're In.</h2>
                     <p style="color:var(--text-muted); margin-top:12px; font-size:15px; line-height:1.7;">We'll contact you within 24 hours to schedule your complimentary Red Light + HBOT session.</p>
                     <div class="results-insight" style="text-align:left; margin-top:24px;">

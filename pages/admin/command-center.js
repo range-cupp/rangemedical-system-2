@@ -757,6 +757,7 @@ export default function CommandCenter() {
   const isInjectionTemplate = () => getSelectedTemplate()?.category === 'injection';
   const isWeightLossTemplate = () => getSelectedTemplate()?.category === 'weight_loss';
   const isHRTTemplate = () => getSelectedTemplate()?.category === 'hrt';
+  const isIVTemplate = () => getSelectedTemplate()?.category === 'iv';
 
   // Build service log payload from template category + firstVisitData
   const buildServiceLogPayload = () => {
@@ -1089,7 +1090,7 @@ export default function CommandCenter() {
               : null,
             // Weight loss specific fields
             wlMedication: assignForm.wlMedication || null,
-            medication: assignForm.wlMedication || null,
+            medication: assignForm.wlMedication || assignForm.ivType || null,
             pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
             injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
             injectionDay: assignForm.injectionDay || null,
@@ -2238,7 +2239,7 @@ export default function CommandCenter() {
               ) : (
                 <select
                   value={assignForm.templateId}
-                  onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: ''})}
+                  onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: ''})}
                   style={styles.formSelect}
                 >
                   <option value="">Select template...</option>
@@ -2720,6 +2721,23 @@ export default function CommandCenter() {
                 >
                   <option value="">Select delivery method...</option>
                   {DELIVERY_METHOD_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* IV Type for IV Templates */}
+            {isIVTemplate() && (
+              <div style={styles.modalFormGroup}>
+                <label style={styles.formLabel}>IV Type *</label>
+                <select
+                  value={assignForm.ivType || ''}
+                  onChange={e => setAssignForm({...assignForm, ivType: e.target.value})}
+                  style={styles.formSelect}
+                >
+                  <option value="">Select IV type...</option>
+                  {IV_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>

@@ -22,14 +22,13 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    // Group by category
-    const grouped = {
-      peptide: templates.filter(t => t.category === 'peptide'),
-      weight_loss: templates.filter(t => t.category === 'weight_loss'),
-      hrt: templates.filter(t => t.category === 'hrt'),
-      injection: templates.filter(t => t.category === 'injection'),
-      therapy: templates.filter(t => t.category === 'therapy')
-    };
+    // Group by category dynamically
+    const grouped = {};
+    for (const t of templates) {
+      const cat = t.category || 'other';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(t);
+    }
 
     return res.status(200).json({ templates, grouped });
 

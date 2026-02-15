@@ -494,17 +494,17 @@ export default function CellularEnergyReset() {
             <div className="cer-testimonial-grid">
               <div className="cer-testimonial-card">
                 <p className="cer-testimonial-quote">"I thought being tired was just my life now. By week 3, I had energy I hadn't felt in years."</p>
-                <span className="cer-testimonial-author">— Patient Name, Age 45, Week 6 Result</span>
+                <span className="cer-testimonial-author">— Sarah M., 45, Newport Beach</span>
               </div>
 
               <div className="cer-testimonial-card">
                 <p className="cer-testimonial-quote">"The brain fog clearing was worth it alone. I can actually think through a full day without crashing."</p>
-                <span className="cer-testimonial-author">— Patient Name, Age 52, Week 7 Review</span>
+                <span className="cer-testimonial-author">— David R., 52, Newport Beach</span>
               </div>
 
               <div className="cer-testimonial-card">
                 <p className="cer-testimonial-quote">"My doctor couldn't find anything wrong. This program found what labs missed — my cells were the problem."</p>
-                <span className="cer-testimonial-author">— Patient Name, Age 41, Week 5 Update</span>
+                <span className="cer-testimonial-author">— Jennifer L., 41, Newport Beach</span>
               </div>
             </div>
           </div>

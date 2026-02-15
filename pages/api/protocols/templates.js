@@ -22,6 +22,20 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
+    // Reclassify "therapy" templates into proper categories based on name
+    for (const t of templates) {
+      if (t.category === 'therapy') {
+        const name = (t.name || '').toLowerCase();
+        if (name.includes('hbot') || name.includes('hyperbaric')) {
+          t.category = 'hbot';
+        } else if (name.includes('red light') || name.includes('rlt')) {
+          t.category = 'rlt';
+        } else if (name.includes('iv')) {
+          t.category = 'iv';
+        }
+      }
+    }
+
     // Group by category dynamically
     const grouped = {};
     for (const t of templates) {

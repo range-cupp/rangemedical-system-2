@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
+import { formatCategoryName } from '../../lib/protocol-config';
 
 // ============================================
 // CONSTANTS
@@ -2242,7 +2243,7 @@ export default function CommandCenter() {
                 >
                   <option value="">Select template...</option>
                   {Object.entries(templates.grouped || {}).map(([category, temps]) => (
-                    <optgroup key={category} label={category}>
+                    <optgroup key={category} label={formatCategoryName(category)}>
                       {temps.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </optgroup>
                   ))}

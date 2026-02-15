@@ -8,6 +8,7 @@ import { Resend } from 'resend';
 import { syncProtocolToGHL } from '../../../lib/ghl-sync';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
 import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, getCycleConfig } from '../../../lib/protocol-config';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -465,6 +466,7 @@ export default async function handler(req, res) {
 
           if (sendError) {
             console.error('Drip email 1 send error:', sendError);
+            await logComm({ channel: 'email', messageType: 'drip_email_1', message: `Drip email 1: ${emailTemplate.subject}`, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: patientData.email, subject: emailTemplate.subject, status: 'error', errorMessage: sendError.message });
           } else {
             // Log so the cron doesn't re-send it
             await supabase.from('protocol_logs').insert({
@@ -474,6 +476,7 @@ export default async function handler(req, res) {
               log_date: new Date().toISOString().split('T')[0],
               notes: `Drip email 1: ${emailTemplate.subject}`
             });
+            await logComm({ channel: 'email', messageType: 'drip_email_1', message: `Drip email 1: ${emailTemplate.subject}`, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: patientData.email, subject: emailTemplate.subject });
             dripEmailSent = true;
             console.log('Drip email 1 sent to', patientData.email);
           }
@@ -534,10 +537,13 @@ export default async function handler(req, res) {
             notes: guideMessage
           });
 
+          await logComm({ channel: 'sms', messageType: 'peptide_guide_sent', message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName });
+
           peptideGuideSent = true;
           console.log('Peptide guide SMS sent to', finalGhlContactId);
         } else {
           console.error('Peptide guide SMS error:', smsData);
+          await logComm({ channel: 'sms', messageType: 'peptide_guide_sent', message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: smsData?.message || 'SMS failed' });
         }
       } catch (guideError) {
         console.error('Peptide guide SMS error (non-fatal):', guideError);

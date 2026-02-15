@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -104,6 +105,7 @@ export default async function handler(req, res) {
 
         if (sendError) {
           console.error(`Error sending email 1 to ${patient.email}:`, sendError);
+          await logComm({ channel: 'email', messageType: 'drip_email_1', message: `Drip email 1: ${emailTemplate.subject}`, source: 'wl-drip-emails', patientId: protocol.patient_id, protocolId: protocol.id, patientName: patient.name, recipient: patient.email, subject: emailTemplate.subject, status: 'error', errorMessage: sendError.message });
           results.push({ protocol_id: protocol.id, patient: patient.name, email_number: 1, error: sendError.message });
           continue;
         }
@@ -115,6 +117,8 @@ export default async function handler(req, res) {
           log_date: today,
           notes: `Drip email 1: ${emailTemplate.subject}`
         });
+
+        await logComm({ channel: 'email', messageType: 'drip_email_1', message: `Drip email 1: ${emailTemplate.subject}`, source: 'wl-drip-emails', patientId: protocol.patient_id, protocolId: protocol.id, patientName: patient.name, recipient: patient.email, subject: emailTemplate.subject });
 
         results.push({ protocol_id: protocol.id, patient: patient.name, email: patient.email, email_number: 1, sent: true });
         continue;
@@ -152,6 +156,7 @@ export default async function handler(req, res) {
 
       if (sendError) {
         console.error(`Error sending email ${emailTemplate.emailNumber} to ${patient.email}:`, sendError);
+        await logComm({ channel: 'email', messageType: `drip_email_${emailTemplate.emailNumber}`, message: `Drip email ${emailTemplate.emailNumber}: ${emailTemplate.subject}`, source: 'wl-drip-emails', patientId: protocol.patient_id, protocolId: protocol.id, patientName: patient.name, recipient: patient.email, subject: emailTemplate.subject, status: 'error', errorMessage: sendError.message });
         results.push({ protocol_id: protocol.id, patient: patient.name, email_number: emailTemplate.emailNumber, error: sendError.message });
         continue;
       }
@@ -163,6 +168,8 @@ export default async function handler(req, res) {
         log_date: today,
         notes: `Drip email ${emailTemplate.emailNumber}: ${emailTemplate.subject}`
       });
+
+      await logComm({ channel: 'email', messageType: `drip_email_${emailTemplate.emailNumber}`, message: `Drip email ${emailTemplate.emailNumber}: ${emailTemplate.subject}`, source: 'wl-drip-emails', patientId: protocol.patient_id, protocolId: protocol.id, patientName: patient.name, recipient: patient.email, subject: emailTemplate.subject });
 
       console.log(`Sent email ${emailTemplate.emailNumber} to ${patient.name} (${patient.email})`);
 

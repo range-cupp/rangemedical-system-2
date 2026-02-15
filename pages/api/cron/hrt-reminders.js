@@ -6,6 +6,7 @@
 // =====================================================
 
 import { createClient } from '@supabase/supabase-js';
+import { logComm } from '../../../lib/comms-log';
 
 // Initialize Supabase
 const supabase = createClient(
@@ -85,6 +86,8 @@ async function sendIvReminders() {
           .eq('membership_id', patient.membership_id)
           .eq('period_label', patient.period_label);
 
+        await logComm({ channel: 'sms', messageType: 'hrt_iv_reminder', message: buildSMSMessage('iv_reminder', { urgent: patient.days_remaining <= 3, daysRemaining: patient.days_remaining, periodLabel: patient.period_label, patientName: patient.patient_name }), source: 'hrt-reminders', ghlContactId: patient.ghl_contact_id, patientName: patient.patient_name });
+
         results.sent++;
         console.log(`✓ IV reminder sent to ${patient.patient_name}`);
       } catch (err) {
@@ -94,6 +97,7 @@ async function sendIvReminders() {
           name: patient.patient_name,
           error: err.message
         });
+        await logComm({ channel: 'sms', messageType: 'hrt_iv_reminder', message: '', source: 'hrt-reminders', ghlContactId: patient.ghl_contact_id, patientName: patient.patient_name, status: 'error', errorMessage: err.message });
         console.error(`✗ Failed for ${patient.patient_name}:`, err.message);
       }
     }
@@ -136,6 +140,8 @@ async function sendLabReminders() {
           patientName: patient.patient_name
         });
 
+        await logComm({ channel: 'sms', messageType: 'hrt_lab_reminder', message: buildSMSMessage('lab_reminder', { overdue: isOverdue, labType: patient.next_lab_type, dueDate: patient.next_lab_due, daysUntilDue: patient.days_until_due, patientName: patient.patient_name }), source: 'hrt-reminders', ghlContactId: patient.ghl_contact_id, patientName: patient.patient_name });
+
         results.sent++;
         console.log(`✓ Lab reminder sent to ${patient.patient_name} (${isOverdue ? 'OVERDUE' : 'due soon'})`);
       } catch (err) {
@@ -145,6 +151,7 @@ async function sendLabReminders() {
           name: patient.patient_name,
           error: err.message
         });
+        await logComm({ channel: 'sms', messageType: 'hrt_lab_reminder', message: '', source: 'hrt-reminders', ghlContactId: patient.ghl_contact_id, patientName: patient.patient_name, status: 'error', errorMessage: err.message });
         console.error(`✗ Failed for ${patient.patient_name}:`, err.message);
       }
     }

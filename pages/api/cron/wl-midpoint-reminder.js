@@ -4,6 +4,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -105,6 +106,19 @@ export default async function handler(req, res) {
       const message = `📅 WL Mid-Point Check\n\n${patientName} is 2 weeks into their monthly ${medication} ${dose} supply.\n\n${daysRemaining} days until next pickup (${protocol.end_date}).\n\nConsider checking in with patient.`;
 
       const result = await sendClinicSMS(message);
+
+      await logComm({
+        channel: 'sms',
+        messageType: 'wl_midpoint',
+        message,
+        source: 'wl-midpoint-reminder',
+        patientId: protocol.patients?.id,
+        protocolId: protocol.id,
+        ghlContactId: protocol.patients?.ghl_contact_id,
+        patientName,
+        status: result.success ? 'sent' : 'error',
+        errorMessage: result.error || null,
+      });
 
       reminders.push({
         patient: patientName,

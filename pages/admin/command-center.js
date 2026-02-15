@@ -1,8 +1,8 @@
 // /pages/admin/command-center.js
 // Range Medical Command Center - Unified Admin Dashboard
-// 7 tabs: Overview, Leads, Due Soon, Protocols, Patients, Injections, Send Forms
+// 9 tabs: Overview, Leads, Due Soon, Protocols, Patients, Injections, Send Forms, Labs, Comms
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
@@ -1467,6 +1467,7 @@ export default function CommandCenter() {
             { id: 'injections', label: 'Service Log', icon: '📋' },
             { id: 'forms', label: 'Send Forms', icon: '📤' },
             { id: 'labs', label: 'Labs', icon: '🧪' },
+            { id: 'comms', label: 'Comms', icon: '📨' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1595,6 +1596,9 @@ export default function CommandCenter() {
           )}
           {activeTab === 'labs' && (
             <LabsPipelineTab />
+          )}
+          {activeTab === 'comms' && (
+            <CommsLogTab />
           )}
         </main>
       </div>
@@ -5642,6 +5646,216 @@ function StatCard({ label, value, color, onClick }) {
     >
       <div style={{ ...styles.statValue, color }}>{value}</div>
       <div style={styles.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+// ============================================
+// COMMS LOG TAB
+// ============================================
+
+function CommsLogTab() {
+  const [logs, setLogs] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [channelFilter, setChannelFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [days, setDays] = useState(30);
+  const [expandedId, setExpandedId] = useState(null);
+  const limit = 50;
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page, limit, days });
+      if (channelFilter !== 'all') params.set('channel', channelFilter);
+      if (search) params.set('search', search);
+
+      const res = await fetch('/api/admin/comms-log?' + params.toString());
+      const data = await res.json();
+      if (data.success) {
+        setLogs(data.logs);
+        setTotal(data.total);
+      }
+    } catch (err) {
+      console.error('Failed to fetch comms log:', err);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchLogs(); }, [page, channelFilter, search, days]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  const formatTime = (ts) => {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setPage(1);
+    setSearch(searchInput);
+  };
+
+  const channelBadge = (ch) => ({
+    display: 'inline-block',
+    padding: '2px 8px',
+    borderRadius: '10px',
+    fontSize: '11px',
+    fontWeight: '600',
+    background: ch === 'sms' ? '#E0F2FE' : '#F3E8FF',
+    color: ch === 'sms' ? '#0369A1' : '#7C3AED',
+  });
+
+  const statusBadge = (s) => ({
+    display: 'inline-block',
+    padding: '2px 8px',
+    borderRadius: '10px',
+    fontSize: '11px',
+    fontWeight: '600',
+    background: s === 'sent' ? '#DCFCE7' : '#FEE2E2',
+    color: s === 'sent' ? '#166534' : '#991B1B',
+  });
+
+  return (
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>Communications Log</h2>
+        <span style={{ color: '#666', fontSize: '14px' }}>{total} total</span>
+      </div>
+
+      {/* Filters row */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Channel pills */}
+        {['all', 'sms', 'email'].map(ch => (
+          <button
+            key={ch}
+            onClick={() => { setChannelFilter(ch); setPage(1); }}
+            style={{
+              padding: '6px 16px',
+              borderRadius: '20px',
+              border: '1px solid #E5E5E5',
+              background: channelFilter === ch ? '#1A1A1A' : '#fff',
+              color: channelFilter === ch ? '#fff' : '#333',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+            }}
+          >
+            {ch === 'all' ? 'All' : ch.toUpperCase()}
+          </button>
+        ))}
+
+        {/* Search */}
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+          <input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Search patient name..."
+            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E5E5E5', fontSize: '13px', width: '200px' }}
+          />
+          <button type="submit" style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E5E5E5', background: '#fff', cursor: 'pointer', fontSize: '13px' }}>Search</button>
+        </form>
+
+        {/* Days filter */}
+        <select
+          value={days}
+          onChange={e => { setDays(parseInt(e.target.value)); setPage(1); }}
+          style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E5E5E5', fontSize: '13px', background: '#fff' }}
+        >
+          <option value={7}>Last 7 days</option>
+          <option value={30}>Last 30 days</option>
+          <option value={90}>Last 90 days</option>
+          <option value={365}>Last year</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #E5E5E5', overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>Loading...</div>
+        ) : logs.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No communications found</div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #E5E5E5', background: '#FAFAFA' }}>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Time</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Patient</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Channel</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Type</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Message</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map(log => (
+                <React.Fragment key={log.id}>
+                  <tr
+                    onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                    style={{ borderBottom: '1px solid #F0F0F0', cursor: 'pointer', transition: 'background 0.1s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', color: '#666' }}>{formatTime(log.created_at)}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '500' }}>{log.patient_name || '—'}</td>
+                    <td style={{ padding: '10px 14px' }}><span style={channelBadge(log.channel)}>{log.channel.toUpperCase()}</span></td>
+                    <td style={{ padding: '10px 14px', color: '#666' }}>{log.message_type?.replace(/_/g, ' ')}</td>
+                    <td style={{ padding: '10px 14px', color: '#666', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.subject || (log.message?.slice(0, 80) + (log.message?.length > 80 ? '...' : '')) || '—'}</td>
+                    <td style={{ padding: '10px 14px' }}><span style={statusBadge(log.status)}>{log.status}</span></td>
+                  </tr>
+                  {expandedId === log.id && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '12px 14px 16px', background: '#F9FAFB', borderBottom: '1px solid #E5E5E5' }}>
+                        <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                          {log.subject && <div><strong>Subject:</strong> {log.subject}</div>}
+                          {log.recipient && <div><strong>To:</strong> {log.recipient}</div>}
+                          <div><strong>Source:</strong> {log.source || '—'}</div>
+                          <div style={{ marginTop: '8px', padding: '10px', background: '#fff', borderRadius: '6px', border: '1px solid #E5E5E5', whiteSpace: 'pre-wrap', maxHeight: '200px', overflow: 'auto' }}>
+                            {log.message || 'No message body'}
+                          </div>
+                          {log.error_message && (
+                            <div style={{ marginTop: '6px', color: '#DC2626', fontSize: '12px' }}>
+                              <strong>Error:</strong> {log.error_message}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #E5E5E5', background: page === 1 ? '#F5F5F5' : '#fff', cursor: page === 1 ? 'default' : 'pointer', fontSize: '13px', color: page === 1 ? '#999' : '#333' }}
+          >
+            Prev
+          </button>
+          <span style={{ fontSize: '13px', color: '#666' }}>Page {page} of {totalPages}</span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #E5E5E5', background: page === totalPages ? '#F5F5F5' : '#fff', cursor: page === totalPages ? 'default' : 'pointer', fontSize: '13px', color: page === totalPages ? '#999' : '#333' }}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -182,6 +183,7 @@ export default async function handler(req, res) {
           null,
           message
         );
+        await logComm({ channel: 'sms', messageType: 'wl_weekly_checkin', message, source: 'weekly-checkin-reminder', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
       } else {
         results.errors.push({
           patient: patient.name,
@@ -196,6 +198,7 @@ export default async function handler(req, res) {
           smsResult.error,
           message
         );
+        await logComm({ channel: 'sms', messageType: 'wl_weekly_checkin', message, source: 'weekly-checkin-reminder', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
       }
     }
 

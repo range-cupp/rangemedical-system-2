@@ -8,6 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS } from '../../../lib/protocol-config';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -197,9 +198,11 @@ export default async function handler(req, res) {
           const smsResult = await sendSMS(ghlContactId, message);
           if (smsResult.success) {
             await logSent(protocol.id, patient.id, 'peptide_followup', message);
+            await logComm({ channel: 'sms', messageType: 'peptide_followup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
             logSet.add(logKey);
             results.sent.push({ patient: patient.name, protocolId: protocol.id, type: 'followup' });
           } else {
+            await logComm({ channel: 'sms', messageType: 'peptide_followup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
             results.errors.push({ patient: patient.name, protocolId: protocol.id, type: 'followup', error: smsResult.error });
           }
           continue; // Only one text per protocol per run
@@ -225,9 +228,11 @@ export default async function handler(req, res) {
             const smsResult = await sendSMS(ghlContactId, message);
             if (smsResult.success) {
               await logSent(protocol.id, patient.id, logType, message);
+              await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
               logSet.add(logKey);
               results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}` });
             } else {
+              await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
               results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, error: smsResult.error });
             }
             continue;
@@ -260,9 +265,11 @@ export default async function handler(req, res) {
             const smsResult = await sendSMS(ghlContactId, message);
             if (smsResult.success) {
               await logSent(protocol.id, patient.id, 'peptide_reup', message);
+              await logComm({ channel: 'sms', messageType: 'peptide_reup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
               logSet.add(logKey);
               results.sent.push({ patient: patient.name, protocolId: protocol.id, type: 'reup' });
             } else {
+              await logComm({ channel: 'sms', messageType: 'peptide_reup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
               results.errors.push({ patient: patient.name, protocolId: protocol.id, type: 'reup', error: smsResult.error });
             }
           }

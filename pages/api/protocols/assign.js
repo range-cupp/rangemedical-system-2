@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { syncProtocolToGHL } from '../../../lib/ghl-sync';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
+import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -221,6 +222,62 @@ export default async function handler(req, res) {
       medicationName = wlMedication;
     }
 
+    // ============================================
+    // RECOVERY PEPTIDE CYCLE TRACKING
+    // ============================================
+    let cycleStartDate = null;
+    if (isRecoveryPeptide(medicationName)) {
+      // Query existing recovery peptide protocols with cycle_start_date for this patient
+      const { data: existingCycleProtocols } = await supabase
+        .from('protocols')
+        .select('id, medication, start_date, end_date, status, cycle_start_date')
+        .eq('patient_id', finalPatientId)
+        .eq('program_type', 'peptide')
+        .not('status', 'in', '("cancelled","merged")')
+        .not('cycle_start_date', 'is', null)
+        .order('cycle_start_date', { ascending: false });
+
+      // Filter to only recovery peptides
+      const recoveryProtocols = (existingCycleProtocols || []).filter(p => isRecoveryPeptide(p.medication));
+
+      if (recoveryProtocols.length === 0) {
+        // No prior cycle — start a new one
+        cycleStartDate = startDate;
+      } else {
+        // Find the latest cycle
+        const latestCycleDate = recoveryProtocols[0].cycle_start_date;
+        const cycleProtocols = recoveryProtocols.filter(p => p.cycle_start_date === latestCycleDate);
+
+        // Sum days used in this cycle
+        let cycleDaysUsed = 0;
+        for (const p of cycleProtocols) {
+          const s = new Date(p.start_date + 'T12:00:00');
+          const e = p.end_date ? new Date(p.end_date + 'T12:00:00') : new Date();
+          cycleDaysUsed += Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
+        }
+
+        if (cycleDaysUsed < RECOVERY_CYCLE_MAX_DAYS) {
+          // Cycle not exhausted — continue same cycle
+          cycleStartDate = latestCycleDate;
+        } else {
+          // Cycle exhausted — check if off period has passed
+          const latestEnd = cycleProtocols
+            .filter(p => p.end_date)
+            .map(p => new Date(p.end_date + 'T12:00:00'))
+            .sort((a, b) => b - a)[0];
+
+          if (latestEnd) {
+            const offEnd = new Date(latestEnd);
+            offEnd.setDate(offEnd.getDate() + RECOVERY_CYCLE_OFF_DAYS);
+            // Whether off period passed or not, start a new cycle (warning only, no block)
+            cycleStartDate = startDate;
+          } else {
+            cycleStartDate = startDate;
+          }
+        }
+      }
+    }
+
     // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
@@ -252,6 +309,7 @@ export default async function handler(req, res) {
         vial_size: vialSize ? parseFloat(vialSize) : null,
         supply_type: supplyType || null,
         last_refill_date: startDate, // Initialize refill date to start date
+        cycle_start_date: cycleStartDate,
         created_at: new Date().toISOString()
       })
       .select()

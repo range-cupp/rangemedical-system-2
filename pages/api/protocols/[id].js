@@ -175,7 +175,9 @@ async function updateProtocol(id, updates, res) {
     'visit_frequency',
     'scheduled_days',
     'last_visit_date',
-    'next_expected_date'
+    'next_expected_date',
+    // Recovery peptide cycle tracking
+    'cycle_start_date'
   ];
 
   // Date fields that need special handling (convert empty string to null)
@@ -184,7 +186,8 @@ async function updateProtocol(id, updates, res) {
     'end_date',
     'last_refill_date',
     'last_visit_date',
-    'next_expected_date'
+    'next_expected_date',
+    'cycle_start_date'
   ];
 
   // Filter to only allowed fields

@@ -89,6 +89,21 @@ const URGENCY_COLORS = {
   fresh: '#4488FF',
 };
 
+// Recovery peptide cycle tracking
+const RECOVERY_PEPTIDE_NAMES = [
+  'BPC-157',
+  'BPC-157/TB4 (Thymosin Beta 4)',
+  'Wolverine Blend (BPC-157/TB-500)',
+  'BPC-157/TB-500/KPV/MGF',
+  'TB500 (Thymosin Beta 4)',
+];
+const RECOVERY_CYCLE_MAX_DAYS = 84;
+const isRecoveryPeptideName = (name) => {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return RECOVERY_PEPTIDE_NAMES.some(n => n.toLowerCase() === lower);
+};
+
 const LEAD_STATUS_LABELS = {
   new: 'New',
   contacted: 'Contacted',
@@ -310,6 +325,9 @@ export default function CommandCenter() {
   // Add to existing protocol state (for Weight Loss)
   const [existingWLProtocol, setExistingWLProtocol] = useState(null);
   const [extendExistingWL, setExtendExistingWL] = useState(false);
+
+  // Recovery peptide cycle tracking state
+  const [recoveryCycleInfo, setRecoveryCycleInfo] = useState(null);
 
   // Log first visit state (for new protocol assignment)
   const [logFirstVisit, setLogFirstVisit] = useState(true);
@@ -708,7 +726,21 @@ export default function CommandCenter() {
       pickupType: 'prefilled',
       custom_dosage: '',
     });
+    setRecoveryCycleInfo(null);
     setShowAssignModal(true);
+  };
+
+  // Fetch recovery peptide cycle info for a patient
+  const fetchRecoveryCycleInfo = async (patientId) => {
+    try {
+      const res = await fetch(`/api/protocols/cycle-info?patientId=${patientId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRecoveryCycleInfo(data);
+      }
+    } catch (err) {
+      console.error('Error fetching cycle info:', err);
+    }
   };
 
   const getSelectedTemplate = () => {
@@ -1664,6 +1696,14 @@ export default function CommandCenter() {
                     </div>
                   </div>
 
+                  {/* Recovery Peptide Cycle Progress */}
+                  {protocolDetailPanel.protocol.cycle_start_date && isRecoveryPeptideName(protocolDetailPanel.protocol.medication) && (
+                    <CycleProgressSection
+                      protocol={protocolDetailPanel.protocol}
+                      formatDate={formatDate}
+                    />
+                  )}
+
                   {/* Injection Reminders (take-home weight loss) */}
                   {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.protocol.delivery_method === 'take_home' && (
                     <div style={styles.protocolDetailSection}>
@@ -2280,6 +2320,12 @@ export default function CommandCenter() {
                         frequency: selectedPeptide?.frequency || '',
                         selectedDose: ''
                       });
+                      // Fetch cycle info if this is a recovery peptide
+                      if (selectedPeptide && isRecoveryPeptideName(selectedPeptide.name) && selectedPatient?.id) {
+                        fetchRecoveryCycleInfo(selectedPatient.id);
+                      } else {
+                        setRecoveryCycleInfo(null);
+                      }
                     }}
                     style={styles.formSelect}
                   >
@@ -2323,6 +2369,68 @@ export default function CommandCenter() {
                     <option value="take_home">Take Home</option>
                   </select>
                 </div>
+
+                {/* Recovery Peptide Cycle Info Banner */}
+                {recoveryCycleInfo && recoveryCycleInfo.hasCycle && isRecoveryPeptideName(getSelectedPeptide()?.name) && (() => {
+                  const { cycleDaysUsed, daysRemaining, cycleExhausted, offPeriodEnds, subProtocols } = recoveryCycleInfo;
+                  const pct = Math.min(100, (cycleDaysUsed / RECOVERY_CYCLE_MAX_DAYS) * 100);
+                  const barColor = pct < 60 ? '#22C55E' : pct < 85 ? '#F59E0B' : '#EF4444';
+
+                  // Calculate if this new protocol would exceed the cycle
+                  const template = getSelectedTemplate();
+                  const templateName = (template?.name || '').toLowerCase();
+                  let newDays = 0;
+                  if (templateName.includes('30')) newDays = 30;
+                  else if (templateName.includes('20')) newDays = 20;
+                  else if (templateName.includes('10')) newDays = 10;
+                  else if (templateName.includes('14')) newDays = 14;
+                  else if (templateName.includes('7 day') || templateName.includes('7day')) newDays = 7;
+                  const wouldExceed = (cycleDaysUsed + newDays) > RECOVERY_CYCLE_MAX_DAYS;
+
+                  return (
+                    <div style={{ padding: '16px 24px', background: cycleExhausted ? '#FEF2F2' : '#F0FDF4', borderBottom: '1px solid #E5E5E5' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Recovery Peptide Cycle</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: barColor, background: barColor + '18', padding: '2px 10px', borderRadius: '10px' }}>
+                          {cycleDaysUsed} / {RECOVERY_CYCLE_MAX_DAYS} days used
+                        </span>
+                      </div>
+                      {/* Progress bar */}
+                      <div style={{ height: '8px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: '4px', transition: 'width 0.3s ease' }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6B7280', marginBottom: subProtocols.length > 0 ? '10px' : '0' }}>
+                        <span>{daysRemaining} days remaining</span>
+                        <span>Cycle start: {formatDate(recoveryCycleInfo.cycleStartDate)}</span>
+                      </div>
+                      {/* Sub-protocol breakdown */}
+                      {subProtocols.length > 0 && (
+                        <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '8px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Protocols in this cycle:</span>
+                          {subProtocols.map(sp => (
+                            <div key={sp.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#374151', marginTop: '4px' }}>
+                              <span>{sp.medication}</span>
+                              <span style={{ color: '#6B7280' }}>{sp.days} days ({formatDate(sp.startDate)} - {formatDate(sp.endDate)})</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Warning if cycle exhausted */}
+                      {cycleExhausted && (
+                        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEE2E2', borderRadius: '6px', fontSize: '13px', color: '#DC2626' }}>
+                          <strong>Cycle exhausted.</strong> A 2-week off period is recommended.
+                          {offPeriodEnds && <span> Off period ends: <strong>{formatDate(offPeriodEnds)}</strong></span>}
+                        </div>
+                      )}
+                      {/* Warning if new protocol would exceed */}
+                      {!cycleExhausted && wouldExceed && newDays > 0 && (
+                        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEF3C7', borderRadius: '6px', fontSize: '13px', color: '#92400E' }}>
+                          <strong>Warning:</strong> This {newDays}-day protocol would push the cycle to {cycleDaysUsed + newDays} / {RECOVERY_CYCLE_MAX_DAYS} days, exceeding the 12-week limit.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Only show vial options for Peptide Therapy - Vial */}
                 {isPeptideVialTemplate() && (
@@ -3435,6 +3543,78 @@ export default function CommandCenter() {
         }
       `}</style>
     </>
+  );
+}
+
+// ============================================
+// CYCLE PROGRESS SECTION (Protocol Detail Panel)
+// ============================================
+
+function CycleProgressSection({ protocol, formatDate }) {
+  const [cycleData, setCycleData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (protocol?.patient_id && protocol?.cycle_start_date) {
+      fetch(`/api/protocols/cycle-info?patientId=${protocol.patient_id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setCycleData(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [protocol?.patient_id, protocol?.cycle_start_date]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '16px 24px', background: '#F9FAFB', borderBottom: '1px solid #E5E5E5' }}>
+        <span style={{ fontSize: '13px', color: '#6B7280' }}>Loading cycle info...</span>
+      </div>
+    );
+  }
+
+  if (!cycleData || !cycleData.hasCycle) return null;
+
+  const { cycleDaysUsed, daysRemaining, cycleExhausted, offPeriodEnds, subProtocols } = cycleData;
+  const pct = Math.min(100, (cycleDaysUsed / RECOVERY_CYCLE_MAX_DAYS) * 100);
+  const barColor = pct < 60 ? '#22C55E' : pct < 85 ? '#F59E0B' : '#EF4444';
+
+  return (
+    <div style={{ padding: '20px 24px', background: '#FAFAFA', borderTop: '1px solid #F0F0F0' }}>
+      <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111', margin: '0 0 12px 0' }}>Recovery Peptide Cycle</h4>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <span style={{ fontSize: '12px', color: '#6B7280' }}>Cycle started: {formatDate(cycleData.cycleStartDate)}</span>
+        <span style={{ fontSize: '12px', fontWeight: '600', color: barColor, background: barColor + '18', padding: '2px 10px', borderRadius: '10px' }}>
+          {cycleDaysUsed} / {RECOVERY_CYCLE_MAX_DAYS} days
+        </span>
+      </div>
+      <div style={{ height: '8px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: '4px', transition: 'width 0.3s ease' }} />
+      </div>
+      <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: subProtocols.length > 0 ? '12px' : '0' }}>
+        {daysRemaining} days remaining in cycle
+      </div>
+      {subProtocols.length > 0 && (
+        <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '10px' }}>
+          <span style={{ fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sub-protocols:</span>
+          {subProtocols.map(sp => (
+            <div key={sp.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#374151', marginTop: '6px', padding: '4px 0' }}>
+              <span>{sp.medication}</span>
+              <span style={{ color: '#6B7280' }}>{sp.days}d ({formatDate(sp.startDate)} - {formatDate(sp.endDate)})</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {cycleExhausted && (
+        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEE2E2', borderRadius: '6px', fontSize: '13px', color: '#DC2626' }}>
+          <strong>Cycle exhausted.</strong> A 2-week off period is recommended.
+          {offPeriodEnds && <span> Off period ends: <strong>{formatDate(offPeriodEnds)}</strong></span>}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -4854,6 +5034,9 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                   <span style={{ ...styles.categoryBadge, background: CATEGORY_COLORS[p.program_type] }}>
                     {CATEGORY_LABELS[p.program_type] || p.program_type}
                   </span>
+                  {p.cycle_start_date && (
+                    <span style={{ fontSize: '10px', fontWeight: '600', color: '#7C3AED', background: '#F3E8FF', padding: '1px 6px', borderRadius: '4px', marginRight: '4px' }}>Cycle</span>
+                  )}
                   <span style={styles.detailItemName}>{getDisplayProgramName(p)}</span>
                   <span style={{ color: URGENCY_COLORS[p.urgency], flex: 1 }}>{getProtocolStatus(p)}</span>
                   <button

@@ -564,7 +564,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     // Find active protocol
     const { data: protocols, error: findError } = await supabase
       .from('protocols')
-      .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day')
+      .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type')
       .eq('patient_id', patient_id)
       .eq('program_type', programType)
       .eq('status', 'active')
@@ -593,19 +593,25 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       updated_at: new Date().toISOString()
     };
 
-    // Calculate next_expected_date based on frequency
-    const freq = (protocol.frequency || '').toLowerCase();
-    let dayInterval = 7; // default weekly
-    if (freq.includes('daily') || freq.includes('every day')) dayInterval = 1;
-    else if (freq.includes('10 day')) dayInterval = 10;
-    else if (freq.includes('2 week') || freq.includes('every 2')) dayInterval = 14;
-    else if (freq.includes('monthly')) dayInterval = 28;
-    else if (freq.includes('every other day')) dayInterval = 2;
-    else if (freq.includes('5 on')) dayInterval = 1; // 5 on / 2 off — next day during on phase
+    // Calculate next_expected_date
+    // For take-home peptide protocols, next_expected_date = end of supply (end_date)
+    // since the patient self-administers daily at home
+    if (protocol.program_type === 'peptide' && protocol.delivery_method === 'take_home' && protocol.end_date) {
+      updateData.next_expected_date = protocol.end_date;
+    } else {
+      const freq = (protocol.frequency || '').toLowerCase();
+      let dayInterval = 7; // default weekly
+      if (freq.includes('daily') || freq.includes('every day')) dayInterval = 1;
+      else if (freq.includes('10 day')) dayInterval = 10;
+      else if (freq.includes('2 week') || freq.includes('every 2')) dayInterval = 14;
+      else if (freq.includes('monthly')) dayInterval = 28;
+      else if (freq.includes('every other day')) dayInterval = 2;
+      else if (freq.includes('5 on')) dayInterval = 1;
 
-    const nextDate = new Date(logDate + 'T12:00:00');
-    nextDate.setDate(nextDate.getDate() + dayInterval);
-    updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+      const nextDate = new Date(logDate + 'T12:00:00');
+      nextDate.setDate(nextDate.getDate() + dayInterval);
+      updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+    }
 
     // Also update medication and dosage if provided
     if (medication) {

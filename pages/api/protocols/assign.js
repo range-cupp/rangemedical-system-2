@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { syncProtocolToGHL } from '../../../lib/ghl-sync';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
-import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
+import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, getCycleConfig } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -223,11 +223,16 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // RECOVERY PEPTIDE CYCLE TRACKING
+    // PEPTIDE CYCLE TRACKING (Recovery + GH)
     // ============================================
     let cycleStartDate = null;
-    if (isRecoveryPeptide(medicationName)) {
-      // Query existing recovery peptide protocols with cycle_start_date for this patient
+    const cycleConfig = getCycleConfig(medicationName);
+    if (cycleConfig) {
+      const filterFn = cycleConfig.type === 'recovery' ? isRecoveryPeptide : isGHPeptide;
+      const maxDays = cycleConfig.maxDays;
+      const offDays = cycleConfig.offDays;
+
+      // Query existing peptide protocols with cycle_start_date for this patient
       const { data: existingCycleProtocols } = await supabase
         .from('protocols')
         .select('id, medication, start_date, end_date, status, cycle_start_date')
@@ -237,16 +242,16 @@ export default async function handler(req, res) {
         .not('cycle_start_date', 'is', null)
         .order('cycle_start_date', { ascending: false });
 
-      // Filter to only recovery peptides
-      const recoveryProtocols = (existingCycleProtocols || []).filter(p => isRecoveryPeptide(p.medication));
+      // Filter to only the same peptide type (recovery or GH)
+      const matchingProtocols = (existingCycleProtocols || []).filter(p => filterFn(p.medication));
 
-      if (recoveryProtocols.length === 0) {
+      if (matchingProtocols.length === 0) {
         // No prior cycle — start a new one
         cycleStartDate = startDate;
       } else {
         // Find the latest cycle
-        const latestCycleDate = recoveryProtocols[0].cycle_start_date;
-        const cycleProtocols = recoveryProtocols.filter(p => p.cycle_start_date === latestCycleDate);
+        const latestCycleDate = matchingProtocols[0].cycle_start_date;
+        const cycleProtocols = matchingProtocols.filter(p => p.cycle_start_date === latestCycleDate);
 
         // Sum days used in this cycle
         let cycleDaysUsed = 0;
@@ -256,7 +261,7 @@ export default async function handler(req, res) {
           cycleDaysUsed += Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
         }
 
-        if (cycleDaysUsed < RECOVERY_CYCLE_MAX_DAYS) {
+        if (cycleDaysUsed < maxDays) {
           // Cycle not exhausted — continue same cycle
           cycleStartDate = latestCycleDate;
         } else {
@@ -268,7 +273,7 @@ export default async function handler(req, res) {
 
           if (latestEnd) {
             const offEnd = new Date(latestEnd);
-            offEnd.setDate(offEnd.getDate() + RECOVERY_CYCLE_OFF_DAYS);
+            offEnd.setDate(offEnd.getDate() + offDays);
             // Whether off period passed or not, start a new cycle (warning only, no block)
             cycleStartDate = startDate;
           } else {

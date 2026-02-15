@@ -90,8 +90,12 @@ const URGENCY_COLORS = {
   fresh: '#4488FF',
 };
 
-// Recovery peptide cycle tracking
+// Peptide cycle tracking
 const RECOVERY_CYCLE_MAX_DAYS = 84;
+const RECOVERY_CYCLE_OFF_DAYS = 14;
+const GH_CYCLE_MAX_DAYS = 84;
+const GH_CYCLE_OFF_DAYS = 28;
+
 const isRecoveryPeptideName = (name) => {
   if (!name) return false;
   const lower = name.toLowerCase();
@@ -100,6 +104,27 @@ const isRecoveryPeptideName = (name) => {
     lower.includes('wolverine') ||
     lower.includes('tb-500') || lower.includes('tb500') || lower.includes('tb4') ||
     lower.includes('thymosin beta');
+};
+
+const isGHPeptideName = (name) => {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return lower.includes('cjc') || lower.includes('tesamorelin') || lower.includes('tesa') ||
+    lower.includes('ipamorelin') || lower.includes('ghrp') || lower.includes('hexarelin') ||
+    lower.includes('mk-677') || lower.includes('sermorelin') || lower.includes('mgf') ||
+    lower.includes('2x blend') || lower.includes('3x blend') || lower.includes('4x blend');
+};
+
+// Returns "recovery", "gh", or null
+const getCycleType = (name) => {
+  if (isRecoveryPeptideName(name)) return 'recovery';
+  if (isGHPeptideName(name)) return 'gh';
+  return null;
+};
+
+const getCycleConstants = (type) => {
+  if (type === 'gh') return { maxDays: GH_CYCLE_MAX_DAYS, offDays: GH_CYCLE_OFF_DAYS, label: 'Growth Hormone Peptide Cycle', offLabel: '4-week' };
+  return { maxDays: RECOVERY_CYCLE_MAX_DAYS, offDays: RECOVERY_CYCLE_OFF_DAYS, label: 'Recovery Peptide Cycle', offLabel: '2-week' };
 };
 
 const LEAD_STATUS_LABELS = {
@@ -229,9 +254,10 @@ function getProtocolStatus(protocol, cycleInfo) {
     return `${used}/${total_sessions} sessions`;
   }
 
-  // Recovery peptide cycle progress
+  // Peptide cycle progress (recovery or GH)
   if (cycleInfo) {
-    return `${cycleInfo.cycleDaysUsed}/${RECOVERY_CYCLE_MAX_DAYS} cycle days`;
+    const maxDays = cycleInfo.maxDays || RECOVERY_CYCLE_MAX_DAYS;
+    return `${cycleInfo.cycleDaysUsed}/${maxDays} cycle days`;
   }
 
   // Check if supply date extends beyond billing date (vial patients)
@@ -329,8 +355,8 @@ export default function CommandCenter() {
   const [existingWLProtocol, setExistingWLProtocol] = useState(null);
   const [extendExistingWL, setExtendExistingWL] = useState(false);
 
-  // Recovery peptide cycle tracking state
-  const [recoveryCycleInfo, setRecoveryCycleInfo] = useState(null);
+  // Peptide cycle tracking state (keyed by cycle type: recovery or gh)
+  const [peptideCycleInfo, setPeptideCycleInfo] = useState({});
 
   // Log first visit state (for new protocol assignment)
   const [logFirstVisit, setLogFirstVisit] = useState(true);
@@ -729,17 +755,17 @@ export default function CommandCenter() {
       pickupType: 'prefilled',
       custom_dosage: '',
     });
-    setRecoveryCycleInfo(null);
+    setPeptideCycleInfo({});
     setShowAssignModal(true);
   };
 
-  // Fetch recovery peptide cycle info for a patient
-  const fetchRecoveryCycleInfo = async (patientId) => {
+  // Fetch peptide cycle info for a patient (recovery or gh)
+  const fetchPeptideCycleInfo = async (patientId, cycleType) => {
     try {
-      const res = await fetch(`/api/protocols/cycle-info?patientId=${patientId}`);
+      const res = await fetch(`/api/protocols/cycle-info?patientId=${patientId}&cycleType=${cycleType}`);
       if (res.ok) {
         const data = await res.json();
-        setRecoveryCycleInfo(data);
+        setPeptideCycleInfo(prev => ({ ...prev, [cycleType]: data }));
       }
     } catch (err) {
       console.error('Error fetching cycle info:', err);
@@ -1735,8 +1761,8 @@ export default function CommandCenter() {
                     </div>
                   </div>
 
-                  {/* Recovery Peptide Cycle Progress */}
-                  {protocolDetailPanel.protocol.cycle_start_date && isRecoveryPeptideName(protocolDetailPanel.protocol.medication) && (
+                  {/* Peptide Cycle Progress (Recovery or GH) */}
+                  {protocolDetailPanel.protocol.cycle_start_date && getCycleType(protocolDetailPanel.protocol.medication) && (
                     <CycleProgressSection
                       protocol={protocolDetailPanel.protocol}
                       formatDate={formatDate}
@@ -2359,11 +2385,16 @@ export default function CommandCenter() {
                         frequency: selectedPeptide?.frequency || '',
                         selectedDose: ''
                       });
-                      // Fetch cycle info if this is a recovery peptide
-                      if (selectedPeptide && isRecoveryPeptideName(selectedPeptide.name) && selectedPatient?.id) {
-                        fetchRecoveryCycleInfo(selectedPatient.id);
+                      // Fetch cycle info if this is a recovery or GH peptide
+                      if (selectedPeptide && selectedPatient?.id) {
+                        const ct = getCycleType(selectedPeptide.name);
+                        if (ct) {
+                          fetchPeptideCycleInfo(selectedPatient.id, ct);
+                        } else {
+                          setPeptideCycleInfo({});
+                        }
                       } else {
-                        setRecoveryCycleInfo(null);
+                        setPeptideCycleInfo({});
                       }
                     }}
                     style={styles.formSelect}
@@ -2409,10 +2440,16 @@ export default function CommandCenter() {
                   </select>
                 </div>
 
-                {/* Recovery Peptide Cycle Info Banner */}
-                {recoveryCycleInfo && recoveryCycleInfo.hasCycle && isRecoveryPeptideName(getSelectedPeptide()?.name) && (() => {
-                  const { cycleDaysUsed, daysRemaining, cycleExhausted, offPeriodEnds, subProtocols } = recoveryCycleInfo;
-                  const pct = Math.min(100, (cycleDaysUsed / RECOVERY_CYCLE_MAX_DAYS) * 100);
+                {/* Peptide Cycle Info Banner (Recovery or GH) */}
+                {(() => {
+                  const selectedPeptideName = getSelectedPeptide()?.name;
+                  const ct = getCycleType(selectedPeptideName);
+                  const cycleData = ct ? peptideCycleInfo[ct] : null;
+                  if (!cycleData || !cycleData.hasCycle || !ct) return null;
+
+                  const { maxDays, offDays, label, offLabel } = getCycleConstants(ct);
+                  const { cycleDaysUsed, daysRemaining, cycleExhausted, offPeriodEnds, subProtocols } = cycleData;
+                  const pct = Math.min(100, (cycleDaysUsed / maxDays) * 100);
                   const barColor = pct < 60 ? '#22C55E' : pct < 85 ? '#F59E0B' : '#EF4444';
 
                   // Calculate if this new protocol would exceed the cycle
@@ -2424,14 +2461,14 @@ export default function CommandCenter() {
                   else if (templateName.includes('10')) newDays = 10;
                   else if (templateName.includes('14')) newDays = 14;
                   else if (templateName.includes('7 day') || templateName.includes('7day')) newDays = 7;
-                  const wouldExceed = (cycleDaysUsed + newDays) > RECOVERY_CYCLE_MAX_DAYS;
+                  const wouldExceed = (cycleDaysUsed + newDays) > maxDays;
 
                   return (
                     <div style={{ padding: '16px 24px', background: cycleExhausted ? '#FEF2F2' : '#F0FDF4', borderBottom: '1px solid #E5E5E5' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Recovery Peptide Cycle</span>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{label}</span>
                         <span style={{ fontSize: '12px', fontWeight: '600', color: barColor, background: barColor + '18', padding: '2px 10px', borderRadius: '10px' }}>
-                          {cycleDaysUsed} / {RECOVERY_CYCLE_MAX_DAYS} days used
+                          {cycleDaysUsed} / {maxDays} days used
                         </span>
                       </div>
                       {/* Progress bar */}
@@ -2440,7 +2477,7 @@ export default function CommandCenter() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6B7280', marginBottom: subProtocols.length > 0 ? '10px' : '0' }}>
                         <span>{daysRemaining} days remaining</span>
-                        <span>Cycle start: {formatDate(recoveryCycleInfo.cycleStartDate)}</span>
+                        <span>Cycle start: {formatDate(cycleData.cycleStartDate)}</span>
                       </div>
                       {/* Sub-protocol breakdown */}
                       {subProtocols.length > 0 && (
@@ -2457,14 +2494,14 @@ export default function CommandCenter() {
                       {/* Warning if cycle exhausted */}
                       {cycleExhausted && (
                         <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEE2E2', borderRadius: '6px', fontSize: '13px', color: '#DC2626' }}>
-                          <strong>Cycle exhausted.</strong> A 2-week off period is recommended.
+                          <strong>Cycle exhausted.</strong> A {offLabel} off period is recommended.
                           {offPeriodEnds && <span> Off period ends: <strong>{formatDate(offPeriodEnds)}</strong></span>}
                         </div>
                       )}
                       {/* Warning if new protocol would exceed */}
                       {!cycleExhausted && wouldExceed && newDays > 0 && (
                         <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEF3C7', borderRadius: '6px', fontSize: '13px', color: '#92400E' }}>
-                          <strong>Warning:</strong> This {newDays}-day protocol would push the cycle to {cycleDaysUsed + newDays} / {RECOVERY_CYCLE_MAX_DAYS} days, exceeding the 12-week limit.
+                          <strong>Warning:</strong> This {newDays}-day protocol would push the cycle to {cycleDaysUsed + newDays} / {maxDays} days, exceeding the 12-week limit.
                         </div>
                       )}
                     </div>
@@ -3610,9 +3647,12 @@ function CycleProgressSection({ protocol, formatDate }) {
   const [cycleData, setCycleData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const ct = getCycleType(protocol?.medication);
+  const { maxDays, label, offLabel } = getCycleConstants(ct);
+
   useEffect(() => {
-    if (protocol?.patient_id && protocol?.cycle_start_date) {
-      fetch(`/api/protocols/cycle-info?patientId=${protocol.patient_id}`)
+    if (protocol?.patient_id && protocol?.cycle_start_date && ct) {
+      fetch(`/api/protocols/cycle-info?patientId=${protocol.patient_id}&cycleType=${ct}`)
         .then(res => res.json())
         .then(data => {
           if (data.success) setCycleData(data);
@@ -3622,7 +3662,7 @@ function CycleProgressSection({ protocol, formatDate }) {
     } else {
       setLoading(false);
     }
-  }, [protocol?.patient_id, protocol?.cycle_start_date]);
+  }, [protocol?.patient_id, protocol?.cycle_start_date, ct]);
 
   if (loading) {
     return (
@@ -3635,16 +3675,16 @@ function CycleProgressSection({ protocol, formatDate }) {
   if (!cycleData || !cycleData.hasCycle) return null;
 
   const { cycleDaysUsed, daysRemaining, cycleExhausted, offPeriodEnds, subProtocols } = cycleData;
-  const pct = Math.min(100, (cycleDaysUsed / RECOVERY_CYCLE_MAX_DAYS) * 100);
+  const pct = Math.min(100, (cycleDaysUsed / maxDays) * 100);
   const barColor = pct < 60 ? '#22C55E' : pct < 85 ? '#F59E0B' : '#EF4444';
 
   return (
     <div style={{ padding: '20px 24px', background: '#FAFAFA', borderTop: '1px solid #F0F0F0' }}>
-      <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111', margin: '0 0 12px 0' }}>Recovery Peptide Cycle</h4>
+      <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111', margin: '0 0 12px 0' }}>{label}</h4>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <span style={{ fontSize: '12px', color: '#6B7280' }}>Cycle started: {formatDate(cycleData.cycleStartDate)}</span>
         <span style={{ fontSize: '12px', fontWeight: '600', color: barColor, background: barColor + '18', padding: '2px 10px', borderRadius: '10px' }}>
-          {cycleDaysUsed} / {RECOVERY_CYCLE_MAX_DAYS} days
+          {cycleDaysUsed} / {maxDays} days
         </span>
       </div>
       <div style={{ height: '8px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
@@ -3666,7 +3706,7 @@ function CycleProgressSection({ protocol, formatDate }) {
       )}
       {cycleExhausted && (
         <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEE2E2', borderRadius: '6px', fontSize: '13px', color: '#DC2626' }}>
-          <strong>Cycle exhausted.</strong> A 2-week off period is recommended.
+          <strong>Cycle exhausted.</strong> A {offLabel} off period is recommended.
           {offPeriodEnds && <span> Off period ends: <strong>{formatDate(offPeriodEnds)}</strong></span>}
         </div>
       )}
@@ -4765,28 +4805,31 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase, onRefr
 }
 
 function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, onViewDetail, onMarkMissed }) {
-  // Compute cycle info for recovery peptide protocols
+  // Compute cycle info for peptide protocols (recovery + GH)
   const cycleInfoMap = useMemo(() => {
     if (!data) return {};
     const allProtocols = [...(data.protocols || []), ...(data.completedProtocols || [])];
-    const recoveryProtocols = allProtocols.filter(p =>
-      p.program_type === 'peptide' && isRecoveryPeptideName(p.medication) && p.cycle_start_date
+    const cyclePeptides = allProtocols.filter(p =>
+      p.program_type === 'peptide' && getCycleType(p.medication) && p.cycle_start_date
     );
 
-    // Group by patient_id + cycle_start_date
+    // Group by patient_id + cycle_start_date + cycleType
     const groups = {};
-    for (const p of recoveryProtocols) {
-      const key = `${p.patient_id}_${p.cycle_start_date}`;
-      if (!groups[key]) groups[key] = { cycleStartDate: p.cycle_start_date, protocols: [] };
+    for (const p of cyclePeptides) {
+      const ct = getCycleType(p.medication);
+      const key = `${p.patient_id}_${p.cycle_start_date}_${ct}`;
+      if (!groups[key]) groups[key] = { cycleStartDate: p.cycle_start_date, cycleType: ct, protocols: [] };
       groups[key].protocols.push(p);
     }
 
-    // Build map: protocolId -> { cycleDaysUsed, cycleStartDate }
+    // Build map: protocolId -> { cycleDaysUsed, cycleStartDate, maxDays }
     const map = {};
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
     for (const group of Object.values(groups)) {
+      const { maxDays } = getCycleConstants(group.cycleType);
+
       // Sum days used across all protocols in this cycle
       let totalDays = 0;
       for (const p of group.protocols) {
@@ -4798,10 +4841,10 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
         totalDays += Math.round((effectiveEnd - start) / (1000 * 60 * 60 * 24));
       }
 
-      const cycleDaysUsed = Math.min(totalDays, RECOVERY_CYCLE_MAX_DAYS);
+      const cycleDaysUsed = Math.min(totalDays, maxDays);
 
       for (const p of group.protocols) {
-        map[p.id] = { cycleDaysUsed, cycleStartDate: group.cycleStartDate };
+        map[p.id] = { cycleDaysUsed, cycleStartDate: group.cycleStartDate, maxDays };
       }
     }
 

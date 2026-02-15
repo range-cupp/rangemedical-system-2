@@ -1,9 +1,10 @@
 // /pages/api/protocols/cycle-info.js
-// GET cycle status for a patient's recovery peptide protocols
+// GET cycle status for a patient's peptide protocols (recovery or GH)
+// Query param: cycleType ("recovery" | "gh", defaults to "recovery")
 // Returns cycle days used, remaining, sub-protocols, and off-period info
 
 import { createClient } from '@supabase/supabase-js';
-import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
+import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,13 +16,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { patientId } = req.query;
+  const { patientId, cycleType: rawCycleType } = req.query;
   if (!patientId) {
     return res.status(400).json({ error: 'patientId is required' });
   }
 
+  // Determine cycle type: "recovery" (default) or "gh"
+  const cycleType = rawCycleType === 'gh' ? 'gh' : 'recovery';
+  const filterFn = cycleType === 'gh' ? isGHPeptide : isRecoveryPeptide;
+  const maxDays = cycleType === 'gh' ? GH_CYCLE_MAX_DAYS : RECOVERY_CYCLE_MAX_DAYS;
+  const offDays = cycleType === 'gh' ? GH_CYCLE_OFF_DAYS : RECOVERY_CYCLE_OFF_DAYS;
+
   try {
-    // Fetch all recovery peptide protocols for this patient that have a cycle_start_date
+    // Fetch all peptide protocols for this patient that have a cycle_start_date
     const { data: protocols, error } = await supabase
       .from('protocols')
       .select('id, medication, start_date, end_date, status, cycle_start_date, program_type')
@@ -36,15 +43,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    // Filter to only recovery peptides
-    const recoveryProtocols = (protocols || []).filter(p => isRecoveryPeptide(p.medication));
+    // Filter to only the requested peptide type
+    const matchingProtocols = (protocols || []).filter(p => filterFn(p.medication));
 
-    if (recoveryProtocols.length === 0) {
+    if (matchingProtocols.length === 0) {
       return res.status(200).json({
         success: true,
         hasCycle: false,
+        cycleType,
+        maxDays,
+        offDays,
         cycleDaysUsed: 0,
-        daysRemaining: RECOVERY_CYCLE_MAX_DAYS,
+        daysRemaining: maxDays,
         cycleStartDate: null,
         cycleExhausted: false,
         offPeriodEnds: null,
@@ -54,7 +64,7 @@ export default async function handler(req, res) {
 
     // Find the latest cycle (most recent cycle_start_date)
     const cycleGroups = {};
-    for (const p of recoveryProtocols) {
+    for (const p of matchingProtocols) {
       const key = p.cycle_start_date;
       if (!cycleGroups[key]) cycleGroups[key] = [];
       cycleGroups[key].push(p);
@@ -80,8 +90,8 @@ export default async function handler(req, res) {
       };
     });
 
-    const daysRemaining = Math.max(0, RECOVERY_CYCLE_MAX_DAYS - cycleDaysUsed);
-    const cycleExhausted = cycleDaysUsed >= RECOVERY_CYCLE_MAX_DAYS;
+    const daysRemaining = Math.max(0, maxDays - cycleDaysUsed);
+    const cycleExhausted = cycleDaysUsed >= maxDays;
 
     // Calculate off period end date if cycle is exhausted
     let offPeriodEnds = null;
@@ -94,7 +104,7 @@ export default async function handler(req, res) {
 
       if (latestEnd) {
         const offEnd = new Date(latestEnd);
-        offEnd.setDate(offEnd.getDate() + RECOVERY_CYCLE_OFF_DAYS);
+        offEnd.setDate(offEnd.getDate() + offDays);
         offPeriodEnds = offEnd.toISOString().split('T')[0];
       }
     }
@@ -102,6 +112,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       hasCycle: true,
+      cycleType,
+      maxDays,
+      offDays,
       cycleDaysUsed,
       daysRemaining,
       cycleStartDate: latestCycleDate,

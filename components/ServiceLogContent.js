@@ -62,7 +62,8 @@ const VITAMIN_OPTIONS = [
   { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
   { value: 'L-Carnitine', label: 'L-Carnitine' },
   { value: 'Lipo-C', label: 'Lipo-C' },
-  { value: 'Taurine', label: 'Taurine' }
+  { value: 'Taurine', label: 'Taurine' },
+  { value: 'Toradol', label: 'Toradol' }
 ];
 
 const PEPTIDE_OPTIONS = [

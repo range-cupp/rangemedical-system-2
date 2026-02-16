@@ -140,7 +140,33 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Send notification email
+    // 3. Send SMS notification to staff
+    if (GHL_API_KEY) {
+      try {
+        const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+        const avatarLabel = AVATAR_LABELS[avatar] || avatar;
+        await fetch(
+          'https://services.leadconnectorhq.com/conversations/messages',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-04-15',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: notifyContactId,
+              message: `New Cellular Reset Lead!\n\n${firstName} ${lastName || ''}\n${cleanEmail}\n${phone}\n\nPage: ${avatarLabel}\nGoal: ${goal || 'N/A'}\nTimeline: ${timeline || 'N/A'}`
+            })
+          }
+        );
+      } catch (notifyError) {
+        console.error('Staff SMS notification error:', notifyError);
+      }
+    }
+
+    // 4. Send notification email
     try {
       await sendNotificationEmail({ firstName, lastName, email: cleanEmail, phone, scores, goal, timeline, avatar });
     } catch (emailError) {

@@ -247,11 +247,16 @@ function getDisplayProgramName(protocol) {
 function getProtocolStatus(protocol, cycleInfo) {
   const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date, next_expected_date } = protocol;
 
-  // Session-based
+  // Session-based (in-clinic)
   if (delivery_method === 'in_clinic' && total_sessions > 0) {
     const used = sessions_used || 0;
-    const remaining = total_sessions - used;
     return `${used}/${total_sessions} sessions`;
+  }
+
+  // Take-home injection vials (e.g. NAD+ Vial)
+  if (delivery_method === 'take_home' && program_type === 'injection' && total_sessions > 0) {
+    const used = sessions_used || 0;
+    return `${used}/${total_sessions} injections`;
   }
 
   // Peptide cycle progress (recovery or GH)
@@ -1757,7 +1762,7 @@ export default function CommandCenter() {
                       )}
                       {protocolDetailPanel.protocol.total_sessions > 0 && !(protocolDetailPanel.protocol.program_type === 'peptide' && protocolDetailPanel.protocol.delivery_method === 'take_home') && (
                         <div style={styles.protocolDetailItem}>
-                          <span style={styles.protocolDetailLabel}>Sessions</span>
+                          <span style={styles.protocolDetailLabel}>{protocolDetailPanel.protocol.program_type === 'injection' && protocolDetailPanel.protocol.delivery_method === 'take_home' ? 'Injections' : 'Sessions'}</span>
                           <span style={styles.protocolDetailValue}>
                             {protocolDetailPanel.protocol.sessions_used || 0} / {protocolDetailPanel.protocol.total_sessions}
                           </span>

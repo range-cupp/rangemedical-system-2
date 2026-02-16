@@ -3,6 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Meta Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '4295373617400545');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=4295373617400545&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel Code -->
     <title>Athletes: Recover Faster at the Cellular Level | Range Medical Newport Beach</title>
     <meta name="description" content="Newport Beach athletes: your recovery isn't slow because you're not trying hard enough. It's slow because your cells can't keep up. The Six-Week Cellular Reset fixes that.">
     <meta name="keywords" content="athlete recovery Newport Beach, HBOT for athletes, red light therapy athletes, cellular energy reset, sports recovery program, mitochondrial therapy, hyperbaric oxygen therapy Orange County, injury recovery Newport Beach">
@@ -1468,7 +1485,7 @@
             }
         }
 
-        function openQuiz() { document.getElementById('quizOverlay').classList.add('active'); document.body.style.overflow = 'hidden'; }
+        function openQuiz() { document.getElementById('quizOverlay').classList.add('active'); document.body.style.overflow = 'hidden'; fbq('track', 'ViewContent', { content_name: 'cellular-reset-quiz', content_category: 'athlete' }); }
         function closeQuiz() { document.getElementById('quizOverlay').classList.remove('active'); document.body.style.overflow = ''; }
 
         function nextStep(s) {
@@ -1499,6 +1516,7 @@
             }
 
             document.getElementById('resultsContainer').innerHTML = html;
+            fbq('track', 'CompleteRegistration', { content_name: 'cellular-reset-quiz-complete', content_category: 'athlete', status: 'qualified' });
             nextStep(8);
         }
 
@@ -1513,6 +1531,8 @@
             try {
                 var resp = await fetch('/api/cellular-reset/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
                 if (!resp.ok) throw new Error('Submit failed');
+                fbq('track', 'Lead', { content_name: 'cellular-reset', content_category: 'athlete', value: 3999.00, currency: 'USD' });
+                fbq('track', 'Schedule', { content_name: 'cellular-reset-free-session', content_category: 'athlete' });
                 nextStep(10);
             } catch (err) {
                 console.error('Quiz submit error:', err);

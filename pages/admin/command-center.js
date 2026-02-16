@@ -1057,6 +1057,7 @@ export default function CommandCenter() {
     { value: 'Selank', label: 'Selank' },
     { value: 'MOTS-C', label: 'MOTS-C' },
     { value: 'SS-31', label: 'SS-31' },
+    { value: 'AOD-9604', label: 'AOD-9604' },
     { value: 'Other', label: 'Other (specify in notes)' }
   ];
 

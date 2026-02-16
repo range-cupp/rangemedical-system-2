@@ -244,6 +244,41 @@ function getDisplayProgramName(protocol) {
   return name;
 }
 
+// Calculate when a take-home injection vial will need a refill
+function getVialRefillDate(protocol) {
+  const { total_sessions, sessions_used, start_date, frequency } = protocol;
+  if (!start_date || !total_sessions || !frequency) return null;
+
+  const remaining = total_sessions - (sessions_used || 0);
+  if (remaining <= 0) return new Date(); // already used up
+
+  // Map frequency to injections per week
+  const freqMap = {
+    'Daily': 7,
+    '1x daily (AM)': 7,
+    '1x daily (PM/bedtime)': 7,
+    '2x daily': 14,
+    '3x daily': 21,
+    '5 on / 2 off': 5,
+    'Every other day': 3.5,
+    '3x per week': 3,
+    '2x per week': 2,
+    'Weekly': 1,
+    'Every 10 days': 0.7,
+    'Every 2 weeks': 0.5,
+  };
+
+  const perWeek = freqMap[frequency];
+  if (!perWeek) return null; // PRN or unknown
+
+  const weeksRemaining = remaining / perWeek;
+  const daysRemaining = Math.round(weeksRemaining * 7);
+  const startObj = new Date(start_date + 'T00:00:00');
+  const usedDays = (sessions_used || 0) / perWeek * 7;
+  const refillDate = new Date(startObj.getTime() + (usedDays + daysRemaining) * 24 * 60 * 60 * 1000);
+  return refillDate;
+}
+
 function getProtocolStatus(protocol, cycleInfo) {
   const { program_type, delivery_method, end_date, total_sessions, sessions_used, start_date, next_expected_date } = protocol;
 
@@ -253,8 +288,17 @@ function getProtocolStatus(protocol, cycleInfo) {
     return `${used}/${total_sessions} sessions`;
   }
 
-  // Take-home injection vials (e.g. NAD+ Vial)
-  if (delivery_method === 'take_home' && program_type === 'injection' && total_sessions > 0) {
+  // Take-home injection vials (e.g. NAD+ Vial) — show estimated refill date
+  if (delivery_method === 'take_home' && program_type === 'injection' && total_sessions > 0 && start_date) {
+    const refillDate = getVialRefillDate(protocol);
+    if (refillDate) {
+      const now = new Date();
+      const diff = Math.ceil((refillDate - now) / (1000 * 60 * 60 * 24));
+      const label = refillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (diff < 0) return `Refill overdue`;
+      if (diff <= 7) return `Refill ~${label}`;
+      return `Refill ~${label}`;
+    }
     const used = sessions_used || 0;
     return `${used}/${total_sessions} injections`;
   }
@@ -1761,12 +1805,38 @@ export default function CommandCenter() {
                         </div>
                       )}
                       {protocolDetailPanel.protocol.total_sessions > 0 && !(protocolDetailPanel.protocol.program_type === 'peptide' && protocolDetailPanel.protocol.delivery_method === 'take_home') && (
-                        <div style={styles.protocolDetailItem}>
-                          <span style={styles.protocolDetailLabel}>{protocolDetailPanel.protocol.program_type === 'injection' && protocolDetailPanel.protocol.delivery_method === 'take_home' ? 'Injections' : 'Sessions'}</span>
-                          <span style={styles.protocolDetailValue}>
-                            {protocolDetailPanel.protocol.sessions_used || 0} / {protocolDetailPanel.protocol.total_sessions}
-                          </span>
-                        </div>
+                        protocolDetailPanel.protocol.program_type === 'injection' && protocolDetailPanel.protocol.delivery_method === 'take_home' ? (
+                          <>
+                            <div style={styles.protocolDetailItem}>
+                              <span style={styles.protocolDetailLabel}>Vial</span>
+                              <span style={styles.protocolDetailValue}>
+                                {protocolDetailPanel.protocol.sessions_used || 0} / {protocolDetailPanel.protocol.total_sessions} injections used
+                              </span>
+                            </div>
+                            {(() => {
+                              const refill = getVialRefillDate(protocolDetailPanel.protocol);
+                              if (!refill) return null;
+                              const now = new Date();
+                              const diff = Math.ceil((refill - now) / (1000 * 60 * 60 * 24));
+                              const label = refill.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                              return (
+                                <div style={styles.protocolDetailItem}>
+                                  <span style={styles.protocolDetailLabel}>Est. Refill</span>
+                                  <span style={{ ...styles.protocolDetailValue, color: diff <= 7 ? '#DC2626' : diff <= 14 ? '#F59E0B' : '#16A34A', fontWeight: 600 }}>
+                                    {label} ({diff <= 0 ? 'overdue' : `~${diff} days`})
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                          </>
+                        ) : (
+                          <div style={styles.protocolDetailItem}>
+                            <span style={styles.protocolDetailLabel}>Sessions</span>
+                            <span style={styles.protocolDetailValue}>
+                              {protocolDetailPanel.protocol.sessions_used || 0} / {protocolDetailPanel.protocol.total_sessions}
+                            </span>
+                          </div>
+                        )
                       )}
                     </div>
                   </div>

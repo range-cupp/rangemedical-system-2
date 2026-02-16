@@ -220,7 +220,32 @@ export default async function handler(req, res) {
       console.error('SMS notification error:', smsError);
     }
 
-    // 4. Send email notification to cupp@range-medical.com
+    // 4. Send confirmation SMS to the lead
+    if (GHL_API_KEY && ghlContactId) {
+      try {
+        const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
+        await fetch(
+          'https://services.leadconnectorhq.com/conversations/messages',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-04-15',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: ghlContactId,
+              message: `Hi ${firstName}, thanks for completing your ${pathName} assessment with Range Medical! We received your information and will be in contact with you shortly to discuss your results and next steps. Feel free to call us at (949) 997-3988 with any questions. - Range Medical`
+            })
+          }
+        );
+      } catch (leadSmsError) {
+        console.error('Lead SMS confirmation error:', leadSmsError);
+      }
+    }
+
+    // 5. Send email notification
     try {
       await sendEmailNotification({
         firstName,

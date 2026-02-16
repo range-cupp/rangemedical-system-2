@@ -88,6 +88,26 @@ export default async function handler(req, res) {
           continue; // Too old for auto-start, needs manual trigger
         }
 
+        // Check if this patient already received drip emails from a previous WL protocol
+        const { data: previousDrips } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', protocol.patient_id)
+          .eq('log_type', 'drip_email')
+          .limit(1);
+
+        if (previousDrips && previousDrips.length > 0) {
+          console.log(`Patient ${protocol.patient_id} (${patient.name}) already received WL drip emails — skipping`);
+          // Mark all 4 as sent so we don't check again
+          await supabase.from('protocol_logs').insert([
+            { protocol_id: protocol.id, patient_id: protocol.patient_id, log_type: 'drip_email', log_date: today, notes: 'Drip emails skipped — patient previously received sequence' },
+            { protocol_id: protocol.id, patient_id: protocol.patient_id, log_type: 'drip_email', log_date: today, notes: 'Drip email 2 skipped' },
+            { protocol_id: protocol.id, patient_id: protocol.patient_id, log_type: 'drip_email', log_date: today, notes: 'Drip email 3 skipped' },
+            { protocol_id: protocol.id, patient_id: protocol.patient_id, log_type: 'drip_email', log_date: today, notes: 'Drip email 4 skipped' }
+          ]);
+          continue;
+        }
+
         // New protocol — send Email 1
         const emailTemplate = WL_DRIP_EMAILS[0];
         const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : null);

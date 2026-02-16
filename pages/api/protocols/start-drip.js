@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Patient has no email address on file' });
     }
 
-    // Check if any drip emails have already been sent
+    // Check if any drip emails have already been sent for this protocol
     const { data: existingLogs } = await supabase
       .from('protocol_logs')
       .select('id, notes')
@@ -52,6 +52,18 @@ export default async function handler(req, res) {
 
     if (existingLogs && existingLogs.length > 0) {
       return res.status(400).json({ error: 'Email sequence already started', emailsSent: existingLogs.length });
+    }
+
+    // Check if this patient already received drip emails from any previous WL protocol
+    const { data: previousDrips } = await supabase
+      .from('protocol_logs')
+      .select('id')
+      .eq('patient_id', protocol.patient_id)
+      .eq('log_type', 'drip_email')
+      .limit(1);
+
+    if (previousDrips && previousDrips.length > 0) {
+      return res.status(400).json({ error: 'Patient already received drip emails from a previous weight loss protocol' });
     }
 
     // Send Email 1 immediately

@@ -443,6 +443,25 @@ export default async function handler(req, res) {
     let dripEmailSent = false;
     if (programType === 'weight_loss') {
       try {
+        // Check if this patient has EVER received drip emails from any WL protocol
+        const { data: previousDrips } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', finalPatientId)
+          .eq('log_type', 'drip_email')
+          .limit(1);
+
+        if (previousDrips && previousDrips.length > 0) {
+          console.log(`Patient ${finalPatientId} already received WL drip emails — skipping (monthly renewal)`);
+          // Mark all 4 as "sent" on this protocol so the cron skips it too
+          const today = new Date().toISOString().split('T')[0];
+          await supabase.from('protocol_logs').insert([
+            { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip emails skipped — patient previously received sequence' },
+            { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 2 skipped' },
+            { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 3 skipped' },
+            { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 4 skipped' }
+          ]);
+        } else {
         // Look up patient email and first name
         const { data: patientData } = await supabase
           .from('patients')
@@ -483,6 +502,7 @@ export default async function handler(req, res) {
         } else {
           console.log('No patient email - skipping drip email 1');
         }
+        } // close else (no previous drips)
       } catch (dripError) {
         console.error('Drip email error (non-fatal):', dripError);
       }

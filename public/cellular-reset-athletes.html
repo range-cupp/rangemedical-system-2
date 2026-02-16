@@ -1502,12 +1502,24 @@
             nextStep(8);
         }
 
-        function submitQuiz() {
+        async function submitQuiz() {
             if (!document.getElementById('firstName').value || !document.getElementById('email').value || !document.getElementById('phone').value) { alert('Please fill in your name, email, and phone.'); return; }
             var data = { firstName: document.getElementById('firstName').value, lastName: document.getElementById('lastName').value, email: document.getElementById('email').value, phone: document.getElementById('phone').value, scores: {}, goal: document.getElementById('goalSelect').value, timeline: document.getElementById('timelineSelect').value, avatar: 'athlete', source: 'cellular-reset-lp' };
             for (var i=1; i<=6; i++) data.scores[benefitMap[i].label] = document.getElementById('slider'+i).value;
-            console.log('Quiz submission:', data);
-            nextStep(10);
+            var btn = document.querySelector('[onclick="submitQuiz()"]');
+            var origText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Booking...';
+            try {
+                var resp = await fetch('/api/cellular-reset/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                if (!resp.ok) throw new Error('Submit failed');
+                nextStep(10);
+            } catch (err) {
+                console.error('Quiz submit error:', err);
+                alert('Something went wrong. Please try again.');
+                btn.disabled = false;
+                btn.textContent = origText;
+            }
         }
 
         document.querySelectorAll('.faq-q').forEach(function(b) { b.addEventListener('click', function() { var i = b.parentElement; var w = i.classList.contains('active'); document.querySelectorAll('.faq-item').forEach(function(x) { x.classList.remove('active'); }); if(!w) i.classList.add('active'); }); });

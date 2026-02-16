@@ -1,8 +1,8 @@
 // /pages/api/admin/labs-pipeline.js
-// API for Labs Pipeline - New Patient Journeys & Protocol Follow-ups
+// API for Labs Pipeline - Protocol-based lab tracking
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-02-10 - New 6-stage pipeline: draw_scheduled, draw_complete, provider_reviewed, consult_scheduled, need_follow_up, treatment_started
+// UPDATED: 2026-02-16 - Rebuilt to use protocols table with 5 stages
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -11,211 +11,58 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Lab stages stored in protocols.status for program_type='labs'
+const LAB_STAGES = ['blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'];
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     return getLabsPipeline(req, res);
   } else if (req.method === 'PATCH') {
-    return updateLabJourney(req, res);
+    return updateLabProtocol(req, res);
   } else if (req.method === 'POST') {
-    return createLabJourney(req, res);
+    return createLabProtocol(req, res);
   } else if (req.method === 'DELETE') {
-    return deleteLabJourney(req, res);
+    return deleteLabProtocol(req, res);
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-// GET: Fetch all labs pipeline data
+// GET: Fetch all lab protocols grouped by stage
 async function getLabsPipeline(req, res) {
   try {
-    // =========================
-    // NEW PATIENT JOURNEYS (6 stages)
-    // =========================
+    // Fetch all lab protocols that are not completed or cancelled
+    const { data: labProtocols, error } = await supabase
+      .from('protocols')
+      .select('id, patient_id, program_name, program_type, medication, status, notes, start_date, created_at, updated_at, delivery_method, patients(id, name, first_name, last_name, email, phone)')
+      .eq('program_type', 'labs')
+      .in('status', LAB_STAGES)
+      .order('created_at', { ascending: true });
 
-    // 1. Blood Draw Scheduled
-    const { data: drawScheduled } = await supabase
-      .from('lab_journeys')
-      .select('*')
-      .eq('stage', 'draw_scheduled')
-      .eq('journey_type', 'new_patient')
-      .order('blood_draw_scheduled_date', { ascending: true });
-
-    // 2. Blood Draw Complete
-    const { data: drawComplete } = await supabase
-      .from('lab_journeys')
-      .select('*')
-      .eq('stage', 'draw_complete')
-      .eq('journey_type', 'new_patient')
-      .order('blood_draw_completed_date', { ascending: true });
-
-    // 3. Provider Reviewed
-    const { data: providerReviewed } = await supabase
-      .from('lab_journeys')
-      .select('*')
-      .eq('stage', 'provider_reviewed')
-      .eq('journey_type', 'new_patient')
-      .order('provider_reviewed_date', { ascending: true });
-
-    // 4. Consultation Scheduled
-    const { data: consultScheduled } = await supabase
-      .from('lab_journeys')
-      .select('*')
-      .eq('stage', 'consult_scheduled')
-      .eq('journey_type', 'new_patient')
-      .order('consultation_scheduled_date', { ascending: true });
-
-    // 5. Need to Follow Up
-    const { data: needFollowUp } = await supabase
-      .from('lab_journeys')
-      .select('*')
-      .eq('stage', 'need_follow_up')
-      .eq('journey_type', 'new_patient')
-      .order('follow_up_flagged_date', { ascending: true });
-
-    // 6. Treatment Started
-    const { data: treatmentStarted } = await supabase
-      .from('lab_journeys')
-      .select('*')
-      .eq('stage', 'treatment_started')
-      .eq('journey_type', 'new_patient')
-      .order('treatment_started_date', { ascending: true });
-
-    // =========================
-    // LINK PROTOCOLS TO TREATMENT STARTED
-    // =========================
-
-    let treatmentStartedWithProtocols = treatmentStarted || [];
-
-    try {
-      treatmentStartedWithProtocols = await Promise.all(
-        (treatmentStarted || []).map(async (journey) => {
-          try {
-            let protocol = null;
-
-            if (journey.patient_id) {
-              const { data: protocolData } = await supabase
-                .from('protocols')
-                .select('id, program_type, program_name, medication, status, start_date, created_at')
-                .eq('patient_id', journey.patient_id)
-                .order('created_at', { ascending: false })
-                .limit(1);
-
-              protocol = protocolData?.[0] || null;
-            }
-
-            if (!protocol && journey.ghl_contact_id) {
-              const { data: protocolByGhl } = await supabase
-                .from('protocols')
-                .select('id, program_type, program_name, medication, status, start_date, created_at')
-                .eq('ghl_contact_id', journey.ghl_contact_id)
-                .order('created_at', { ascending: false })
-                .limit(1);
-
-              protocol = protocolByGhl?.[0] || null;
-            }
-
-            if (!protocol && journey.patient_name) {
-              const nameParts = journey.patient_name.trim().toLowerCase().split(/\s+/);
-              if (nameParts.length >= 2) {
-                const firstName = nameParts[0];
-                const lastName = nameParts[nameParts.length - 1];
-
-                const { data: protocolsByName } = await supabase
-                  .from('protocols')
-                  .select('id, program_type, program_name, medication, status, start_date, created_at, patient_name')
-                  .order('created_at', { ascending: false })
-                  .limit(50);
-
-                if (protocolsByName) {
-                  protocol = protocolsByName.find(p => {
-                    const pName = (p.patient_name || '').toLowerCase();
-                    return pName.includes(firstName) && pName.includes(lastName);
-                  }) || null;
-                }
-              }
-            }
-
-            return {
-              ...journey,
-              linked_protocol: protocol
-            };
-          } catch (err) {
-            console.error('Error linking protocol for journey:', journey.id, err);
-            return {
-              ...journey,
-              linked_protocol: null
-            };
-          }
-        })
-      );
-    } catch (err) {
-      console.error('Error in protocol linking:', err);
-      treatmentStartedWithProtocols = (treatmentStarted || []).map(j => ({ ...j, linked_protocol: null }));
+    if (error) {
+      console.error('Error fetching lab protocols:', error);
+      return res.status(500).json({ error: error.message });
     }
 
-    // =========================
-    // PROTOCOL FOLLOW-UP LABS
-    // =========================
+    // Group by stage (status field)
+    const stages = {};
+    for (const stage of LAB_STAGES) {
+      stages[stage] = (labProtocols || []).filter(p => p.status === stage);
+    }
 
-    const { data: followUpDue } = await supabase
-      .from('protocol_follow_up_labs')
-      .select('*, protocols(program_type, medication)')
-      .eq('status', 'due')
-      .order('due_date', { ascending: true });
+    // Build counts
+    const counts = {};
+    for (const stage of LAB_STAGES) {
+      counts[stage] = stages[stage].length;
+    }
 
-    const { data: followUpScheduled } = await supabase
-      .from('protocol_follow_up_labs')
-      .select('*, protocols(program_type, medication)')
-      .eq('status', 'scheduled')
-      .order('scheduled_date', { ascending: true });
-
-    const { data: followUpPending } = await supabase
-      .from('protocol_follow_up_labs')
-      .select('*, protocols(program_type, medication)')
-      .eq('status', 'results_pending')
-      .order('drawn_date', { ascending: true });
-
-    // =========================
-    // COUNTS & SUMMARY
-    // =========================
-
-    const newPatientCounts = {
-      draw_scheduled: drawScheduled?.length || 0,
-      draw_complete: drawComplete?.length || 0,
-      provider_reviewed: providerReviewed?.length || 0,
-      consult_scheduled: consultScheduled?.length || 0,
-      need_follow_up: needFollowUp?.length || 0,
-      treatment_started: treatmentStartedWithProtocols?.length || 0
-    };
-
-    const followUpCounts = {
-      due: followUpDue?.length || 0,
-      scheduled: followUpScheduled?.length || 0,
-      results_pending: followUpPending?.length || 0
-    };
-
-    const overdueFollowUps = (followUpDue || []).filter(f => f.due_date <= new Date().toISOString().split('T')[0]);
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
     return res.status(200).json({
       success: true,
-      newPatient: {
-        drawScheduled: drawScheduled || [],
-        drawComplete: drawComplete || [],
-        providerReviewed: providerReviewed || [],
-        consultScheduled: consultScheduled || [],
-        needFollowUp: needFollowUp || [],
-        treatmentStarted: treatmentStartedWithProtocols || [],
-        counts: newPatientCounts
-      },
-      followUp: {
-        due: followUpDue || [],
-        scheduled: followUpScheduled || [],
-        resultsPending: followUpPending || [],
-        counts: followUpCounts
-      },
-      alerts: {
-        overdueFollowUps: overdueFollowUps.length
-      }
+      stages,
+      counts,
+      total
     });
 
   } catch (error) {
@@ -224,24 +71,33 @@ async function getLabsPipeline(req, res) {
   }
 }
 
-// PATCH: Update a lab journey stage or record outcome
-async function updateLabJourney(req, res) {
+// PATCH: Move a lab protocol to a different stage
+async function updateLabProtocol(req, res) {
   try {
-    const { id, type, updates } = req.body;
+    const { id, newStage, notes } = req.body;
 
-    if (!id || !type) {
-      return res.status(400).json({ error: 'id and type required' });
+    if (!id || !newStage) {
+      return res.status(400).json({ error: 'id and newStage required' });
     }
 
-    const table = type === 'journey' ? 'lab_journeys' : 'protocol_follow_up_labs';
+    if (!LAB_STAGES.includes(newStage)) {
+      return res.status(400).json({ error: 'Invalid stage: ' + newStage });
+    }
+
+    const updates = {
+      status: newStage,
+      updated_at: new Date().toISOString()
+    };
+
+    if (notes !== undefined) {
+      updates.notes = notes;
+    }
 
     const { data, error } = await supabase
-      .from(table)
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
+      .from('protocols')
+      .update(updates)
       .eq('id', id)
+      .eq('program_type', 'labs')
       .select()
       .single();
 
@@ -252,64 +108,96 @@ async function updateLabJourney(req, res) {
     return res.status(200).json({ success: true, data });
 
   } catch (error) {
-    console.error('Update Lab Journey Error:', error);
+    console.error('Update Lab Protocol Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
 
-// DELETE: Remove a lab journey from the pipeline
-async function deleteLabJourney(req, res) {
+// DELETE: Remove a lab protocol
+async function deleteLabProtocol(req, res) {
   try {
-    const { id, type } = req.body;
+    const { id } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: 'id required' });
     }
 
-    const table = type === 'follow_up' ? 'protocol_follow_up_labs' : 'lab_journeys';
-
+    // Set to cancelled rather than hard delete
     const { error } = await supabase
-      .from(table)
-      .delete()
-      .eq('id', id);
+      .from('protocols')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('program_type', 'labs');
 
     if (error) {
       return res.status(400).json({ error: error.message });
     }
 
-    return res.status(200).json({ success: true, message: 'Journey deleted' });
+    return res.status(200).json({ success: true, message: 'Lab protocol removed' });
 
   } catch (error) {
-    console.error('Delete Lab Journey Error:', error);
+    console.error('Delete Lab Protocol Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
 
-// POST: Manually create a lab journey
-async function createLabJourney(req, res) {
+// POST: Manually create a lab protocol
+async function createLabProtocol(req, res) {
   try {
-    const { patientId, patientName, journeyType, bloodDrawDate } = req.body;
+    const { patientId, patientName, panelType, labType, bloodDrawDate, notes } = req.body;
 
-    if (!patientName) {
-      return res.status(400).json({ error: 'patientName required' });
+    if (!patientName && !patientId) {
+      return res.status(400).json({ error: 'patientName or patientId required' });
+    }
+
+    const panel = panelType || 'essential';
+    const type = labType || 'new_patient';
+    const programName = `${type === 'follow_up' ? 'Follow-up' : 'New Patient'} Labs - ${panel === 'elite' ? 'Elite' : 'Essential'}`;
+
+    // Look up patient if we have a patientId
+    let resolvedPatientId = patientId;
+    let resolvedPatientName = patientName;
+
+    if (patientId && !patientName) {
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('name, first_name, last_name')
+        .eq('id', patientId)
+        .single();
+      if (patient) {
+        resolvedPatientName = patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+      }
+    }
+
+    // If no patientId but we have a name, try to find patient
+    if (!patientId && patientName) {
+      const { data: patients } = await supabase
+        .from('patients')
+        .select('id, name')
+        .ilike('name', `%${patientName}%`)
+        .limit(1);
+
+      if (patients && patients.length > 0) {
+        resolvedPatientId = patients[0].id;
+        resolvedPatientName = patients[0].name;
+      }
     }
 
     const insertData = {
-      patient_id: patientId,
-      patient_name: patientName,
-      journey_type: journeyType || 'new_patient',
-      stage: bloodDrawDate ? 'draw_complete' : 'draw_scheduled',
-      blood_draw_scheduled_date: new Date().toISOString()
+      patient_id: resolvedPatientId || null,
+      program_name: programName,
+      program_type: 'labs',
+      medication: panel === 'elite' ? 'Elite' : 'Essential',
+      delivery_method: type,
+      status: 'blood_draw_complete',
+      start_date: bloodDrawDate || new Date().toISOString().split('T')[0],
+      notes: notes || null
     };
 
-    if (bloodDrawDate) {
-      insertData.blood_draw_completed_date = new Date(bloodDrawDate).toISOString();
-    }
-
     const { data, error } = await supabase
-      .from('lab_journeys')
+      .from('protocols')
       .insert(insertData)
-      .select()
+      .select('*, patients(id, name, first_name, last_name, email, phone)')
       .single();
 
     if (error) {
@@ -319,7 +207,7 @@ async function createLabJourney(req, res) {
     return res.status(200).json({ success: true, data });
 
   } catch (error) {
-    console.error('Create Lab Journey Error:', error);
+    console.error('Create Lab Protocol Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }

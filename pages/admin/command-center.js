@@ -838,6 +838,7 @@ export default function CommandCenter() {
   const isWeightLossTemplate = () => getSelectedTemplate()?.category === 'weight_loss';
   const isHRTTemplate = () => getSelectedTemplate()?.category === 'hrt';
   const isIVTemplate = () => ['iv', 'iv_therapy'].includes(getSelectedTemplate()?.category);
+  const isLabsTemplate = () => getSelectedTemplate()?.category === 'labs';
 
   // Build service log payload from template category + firstVisitData
   const buildServiceLogPayload = () => {
@@ -1184,7 +1185,7 @@ export default function CommandCenter() {
       if (res.ok) {
         // Log first visit if enabled and this is a new protocol (not extend/add-supply)
         const isNewProtocol = !addToExistingProtocol && !extendExistingWL;
-        if (logFirstVisit && isNewProtocol) {
+        if (logFirstVisit && isNewProtocol && !isLabsTemplate()) {
           try {
             const servicePayload = buildServiceLogPayload();
             if (servicePayload) {
@@ -2894,8 +2895,17 @@ export default function CommandCenter() {
               </div>
             )}
 
-            {/* Hide frequency for weight loss - it's set by payment/pickup period */}
-            {!isWeightLossTemplate() && (
+            {/* Labs info banner */}
+            {isLabsTemplate() && (
+              <div style={{ padding: '12px 24px', background: '#FDF2F8', borderBottom: '1px solid #E5E5E5' }}>
+                <span style={{ fontSize: '13px', color: '#9D174D' }}>
+                  🧪 This will create a lab protocol and add it to the Labs pipeline at the "Blood Draw Complete" stage.
+                </span>
+              </div>
+            )}
+
+            {/* Hide frequency for weight loss and labs */}
+            {!isWeightLossTemplate() && !isLabsTemplate() && (
               <div style={styles.modalFormGroup}>
                 <label style={styles.formLabel}>
                   Frequency
@@ -2947,7 +2957,7 @@ export default function CommandCenter() {
             {/* Hide Start Date when adding to existing protocol */}
             {!addToExistingProtocol && (
               <div style={styles.modalFormGroup}>
-                <label style={styles.formLabel}>Start Date</label>
+                <label style={styles.formLabel}>{isLabsTemplate() ? 'Blood Draw Date' : 'Start Date'}</label>
                 <input
                   type="date"
                   value={assignForm.startDate}
@@ -2977,8 +2987,8 @@ export default function CommandCenter() {
               />
             </div>
 
-            {/* Log First Visit - only for new protocols (not extend/add-supply) */}
-            {!addToExistingProtocol && !extendExistingWL && assignForm.templateId && (
+            {/* Log First Visit - only for new protocols (not extend/add-supply), not labs */}
+            {!addToExistingProtocol && !extendExistingWL && assignForm.templateId && !isLabsTemplate() && (
               <div style={{ padding: '0 24px', marginBottom: '16px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: logFirstVisit ? '12px' : '0' }}>
                   <input

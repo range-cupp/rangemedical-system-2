@@ -223,6 +223,12 @@ export default async function handler(req, res) {
       medicationName = wlMedication;
     }
 
+    // For labs, store panel type (Essential/Elite) as medication
+    if (programType === 'labs') {
+      const templateNameLower = (programName || '').toLowerCase();
+      medicationName = templateNameLower.includes('elite') ? 'Elite' : 'Essential';
+    }
+
     // ============================================
     // PEPTIDE CYCLE TRACKING (Recovery + GH)
     // ============================================
@@ -295,12 +301,12 @@ export default async function handler(req, res) {
         selected_dose: selectedDose || null,
         starting_dose: selectedDose || null, // Track initial dose for WL protocols
         frequency: frequency || template?.frequency,
-        delivery_method: deliveryMethod || null,
+        delivery_method: deliveryMethod || template?.delivery_method || null,
         start_date: startDate,
         end_date: endDate,
         total_sessions: finalTotalSessions,
         sessions_used: 0,
-        status: isSingle ? 'completed' : 'active',
+        status: programType === 'labs' ? 'blood_draw_complete' : (isSingle ? 'completed' : 'active'),
         notes: notes,
         // Peptide vial specific fields
         num_vials: numVials || null,

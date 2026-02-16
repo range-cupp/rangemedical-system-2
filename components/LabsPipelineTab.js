@@ -1,58 +1,29 @@
 // /components/LabsPipelineTab.js
-// Labs Pipeline Tab - New Patient Journeys & Follow-up Labs
+// Labs Pipeline Tab - Protocol-based lab tracking with 5 stages
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-02-10 - New 6-stage pipeline: draw_scheduled, draw_complete, provider_reviewed, consult_scheduled, need_follow_up, treatment_started
+// UPDATED: 2026-02-16 - Rebuilt as protocol-based system with 5 stages
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-// Stage configurations - 6 new clinical stages
-const NEW_PATIENT_STAGES = [
-  { id: 'draw_scheduled', label: 'Blood Draw Scheduled', color: '#6366f1', icon: '📅' },
-  { id: 'draw_complete', label: 'Blood Draw Complete', color: '#f59e0b', icon: '🩸' },
+const LAB_STAGES = [
+  { id: 'blood_draw_complete', label: 'Blood Draw Complete', color: '#f59e0b', icon: '🩸' },
+  { id: 'results_received', label: 'Results Received', color: '#8b5cf6', icon: '📋' },
   { id: 'provider_reviewed', label: 'Provider Reviewed', color: '#10b981', icon: '👨‍⚕️' },
-  { id: 'consult_scheduled', label: 'Consultation Scheduled', color: '#8b5cf6', icon: '🗓️' },
-  { id: 'need_follow_up', label: 'Need to Follow Up', color: '#ef4444', icon: '📞' },
-  { id: 'treatment_started', label: 'Treatment Started', color: '#3b82f6', icon: '✅' }
+  { id: 'consult_scheduled', label: 'Consult Scheduled', color: '#6366f1', icon: '🗓️' },
+  { id: 'consult_complete', label: 'Consult Complete', color: '#3b82f6', icon: '✅' }
 ];
-
-const FOLLOW_UP_STAGES = [
-  { id: 'due', label: 'Follow-up Due', color: '#f59e0b', icon: '⏰' },
-  { id: 'scheduled', label: 'Scheduled', color: '#6366f1', icon: '📅' },
-  { id: 'results_pending', label: 'Results Pending', color: '#8b5cf6', icon: '🔬' }
-];
-
-const OUTCOMES = [
-  { value: 'hrt', label: 'HRT', color: '#3b82f6' },
-  { value: 'weight_loss', label: 'Weight Loss', color: '#10b981' },
-  { value: 'peptide', label: 'Peptides', color: '#8b5cf6' },
-  { value: 'thinking', label: 'Thinking About It', color: '#f59e0b' },
-  { value: 'declined', label: 'Declined', color: '#6b7280' }
-];
-
-// Protocol type colors
-const PROTOCOL_COLORS = {
-  hrt: { bg: '#dbeafe', text: '#1e40af' },
-  weight_loss: { bg: '#dcfce7', text: '#166534' },
-  peptide: { bg: '#f3e8ff', text: '#7c3aed' },
-  iv: { bg: '#fef3c7', text: '#92400e' },
-  hbot: { bg: '#e0e7ff', text: '#3730a3' },
-  rlt: { bg: '#ffe4e6', text: '#be123c' },
-  default: { bg: '#f3f4f6', text: '#374151' }
-};
 
 export default function LabsPipelineTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [subTab, setSubTab] = useState('new_patient');
-  const [selectedJourney, setSelectedJourney] = useState(null);
-  const [showOutcomeModal, setShowOutcomeModal] = useState(false);
-  const [showFollowUpNotesModal, setShowFollowUpNotesModal] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const [addForm, setAddForm] = useState({ patientName: '', bloodDrawDate: '' });
-  const [updating, setUpdating] = useState(false);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [patientResults, setPatientResults] = useState([]);
+  const [searchTimer, setSearchTimer] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -73,65 +44,41 @@ export default function LabsPipelineTab() {
     }
   };
 
-  // Format date for display
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric',
-      timeZone: 'America/Los_Angeles'
+      day: 'numeric'
     });
   };
 
-  // Format datetime for display
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZone: 'America/Los_Angeles'
-    });
-  };
-
-  // Check if date is overdue
-  const isOverdue = (dateStr) => {
-    if (!dateStr) return false;
-    const today = new Date().toISOString().split('T')[0];
-    return dateStr <= today;
-  };
-
-  // Update journey stage
-  const updateJourney = async (id, updates, type = 'journey') => {
+  // Move protocol to a new stage
+  const handleMoveStage = async (protocolId, newStage) => {
     setUpdating(true);
     try {
       const res = await fetch('/api/admin/labs-pipeline', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, type, updates })
+        body: JSON.stringify({ id: protocolId, newStage })
       });
       if (res.ok) {
         await fetchData();
-        setSelectedJourney(null);
-        setShowOutcomeModal(false);
-        setShowFollowUpNotesModal(false);
       }
     } catch (err) {
-      console.error('Error updating:', err);
+      console.error('Error moving stage:', err);
     } finally {
       setUpdating(false);
     }
   };
 
-  // Delete journey
-  const handleDelete = async (id, type = 'journey') => {
+  // Delete (cancel) a lab protocol
+  const handleDelete = async (id) => {
     setUpdating(true);
     try {
       const res = await fetch('/api/admin/labs-pipeline', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, type })
+        body: JSON.stringify({ id })
       });
       if (res.ok) {
         await fetchData();
@@ -144,65 +91,32 @@ export default function LabsPipelineTab() {
     }
   };
 
-  // Move to different stage with auto-filled dates
-  const handleMoveStage = async (journey, newStage) => {
-    const updates = { stage: newStage };
-    const now = new Date().toISOString().split('T')[0];
-
-    if (newStage === 'draw_complete') {
-      updates.blood_draw_completed_date = now;
-    } else if (newStage === 'provider_reviewed') {
-      updates.provider_reviewed_date = now;
-    } else if (newStage === 'consult_scheduled') {
-      updates.consultation_scheduled_date = new Date().toISOString();
-    } else if (newStage === 'need_follow_up') {
-      updates.follow_up_flagged_date = now;
-    } else if (newStage === 'treatment_started') {
-      updates.treatment_started_date = now;
+  // Search patients for add modal
+  const handlePatientSearch = (query) => {
+    setPatientSearch(query);
+    if (searchTimer) clearTimeout(searchTimer);
+    if (query.length < 2) {
+      setPatientResults([]);
+      return;
     }
-
-    await updateJourney(journey.id, updates);
-  };
-
-  // Save follow-up notes
-  const handleSaveFollowUpNotes = async (notes) => {
-    if (!selectedJourney) return;
-    await updateJourney(selectedJourney.id, {
-      stage: 'need_follow_up',
-      follow_up_flagged_date: new Date().toISOString().split('T')[0],
-      follow_up_notes: notes
-    });
-  };
-
-  // Record outcome
-  const handleRecordOutcome = async (outcome, notes) => {
-    if (!selectedJourney) return;
-    await updateJourney(selectedJourney.id, {
-      outcome,
-      outcome_notes: notes
-    });
-  };
-
-  // Add manual journey
-  const handleAddJourney = async () => {
-    if (!addForm.patientName) return;
-    try {
-      const res = await fetch('/api/admin/labs-pipeline', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientName: addForm.patientName,
-          bloodDrawDate: addForm.bloodDrawDate || null
-        })
-      });
-      if (res.ok) {
-        await fetchData();
-        setShowAddModal(false);
-        setAddForm({ patientName: '', bloodDrawDate: '' });
+    const timer = setTimeout(async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+        const { data: patients } = await supabase
+          .from('patients')
+          .select('id, name, email, phone')
+          .ilike('name', `%${query}%`)
+          .limit(8);
+        setPatientResults(patients || []);
+      } catch (err) {
+        console.error('Patient search error:', err);
       }
-    } catch (err) {
-      console.error('Error adding journey:', err);
-    }
+    }, 300);
+    setSearchTimer(timer);
   };
 
   if (loading) {
@@ -213,152 +127,82 @@ export default function LabsPipelineTab() {
     return <div style={styles.error}>Error loading labs pipeline</div>;
   }
 
-  const totalNewPatient = Object.values(data.newPatient.counts).reduce((a, b) => a + b, 0);
-  const totalFollowUp = Object.values(data.followUp.counts).reduce((a, b) => a + b, 0);
-
   return (
     <div style={styles.container}>
-      {/* Sub-tabs */}
-      <div style={styles.subTabs}>
-        <button
-          style={styles.subTab(subTab === 'new_patient')}
-          onClick={() => setSubTab('new_patient')}
-        >
-          New Patient Journey
-          <span style={styles.badge(false)}>
-            {totalNewPatient}
-          </span>
-        </button>
-        <button
-          style={styles.subTab(subTab === 'follow_up')}
-          onClick={() => setSubTab('follow_up')}
-        >
-          Protocol Follow-ups
-          <span style={styles.badge(data.alerts.overdueFollowUps > 0)}>
-            {totalFollowUp}
-          </span>
-          {data.alerts.overdueFollowUps > 0 && (
-            <span style={styles.alertBadge}>{data.alerts.overdueFollowUps} overdue</span>
-          )}
-        </button>
+      {/* Header */}
+      <div style={styles.headerRow}>
+        <div style={styles.headerInfo}>
+          <span style={styles.totalBadge}>{data.total} active</span>
+        </div>
         <div style={styles.headerActions}>
-          <button
-            style={styles.refreshButton}
-            onClick={fetchData}
-            disabled={loading}
-          >
+          <button style={styles.refreshButton} onClick={fetchData} disabled={loading}>
             ↻ Refresh
           </button>
-          <button
-            style={styles.addButton}
-            onClick={() => setShowAddModal(true)}
-          >
-            + Add Manually
+          <button style={styles.addButton} onClick={() => setShowAddModal(true)}>
+            + Add Lab Manually
           </button>
         </div>
       </div>
 
-      {/* New Patient Journey View - 6 columns */}
-      {subTab === 'new_patient' && (
-        <div style={styles.stagesContainer}>
-          {NEW_PATIENT_STAGES.map(stage => {
-            const items = getNewPatientItems(data.newPatient, stage.id);
-            return (
-              <div key={stage.id} style={styles.stageColumn}>
-                <div style={styles.stageHeader(stage.color)}>
-                  <span>{stage.icon}</span>
-                  <span>{stage.label}</span>
-                  <span style={styles.stageCount}>{items.length}</span>
-                </div>
-                <div style={styles.stageContent}>
-                  {items.map(item => (
-                    <JourneyCard
-                      key={item.id}
-                      journey={item}
-                      stage={stage.id}
-                      allStages={NEW_PATIENT_STAGES}
-                      onAction={(action) => {
-                        setSelectedJourney(item);
-                        if (action === 'follow_up_notes') setShowFollowUpNotesModal(true);
-                        if (action === 'outcome') setShowOutcomeModal(true);
-                      }}
-                      onMoveStage={(newStage) => handleMoveStage(item, newStage)}
-                      onDelete={() => setShowDeleteConfirm({ id: item.id, name: item.patient_name, type: 'journey' })}
-                      formatDate={formatDate}
-                      formatDateTime={formatDateTime}
-                    />
-                  ))}
-                  {items.length === 0 && (
-                    <div style={styles.emptyStage}>No patients</div>
-                  )}
-                </div>
+      {/* 5-Column Stage View */}
+      <div style={styles.stagesContainer}>
+        {LAB_STAGES.map(stage => {
+          const items = data.stages[stage.id] || [];
+          return (
+            <div key={stage.id} style={styles.stageColumn}>
+              <div style={styles.stageHeader(stage.color)}>
+                <span>{stage.icon}</span>
+                <span>{stage.label}</span>
+                <span style={styles.stageCount}>{items.length}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Follow-up Labs View */}
-      {subTab === 'follow_up' && (
-        <div style={styles.followUpStagesContainer}>
-          {FOLLOW_UP_STAGES.map(stage => {
-            const items = getFollowUpItems(data.followUp, stage.id);
-            return (
-              <div key={stage.id} style={styles.stageColumn}>
-                <div style={styles.stageHeader(stage.color)}>
-                  <span>{stage.icon}</span>
-                  <span>{stage.label}</span>
-                  <span style={styles.stageCount}>{items.length}</span>
-                </div>
-                <div style={styles.stageContent}>
-                  {items.map(item => (
-                    <FollowUpCard
-                      key={item.id}
-                      followUp={item}
-                      stage={stage.id}
-                      isOverdue={stage.id === 'due' && isOverdue(item.due_date)}
-                      formatDate={formatDate}
-                      onMarkReviewed={() => updateJourney(item.id, { status: 'reviewed' }, 'follow_up')}
-                      onDelete={() => setShowDeleteConfirm({ id: item.id, name: item.patient_name, type: 'follow_up' })}
-                    />
-                  ))}
-                  {items.length === 0 && (
-                    <div style={styles.emptyStage}>No patients</div>
-                  )}
-                </div>
+              <div style={styles.stageContent}>
+                {items.map(protocol => (
+                  <LabCard
+                    key={protocol.id}
+                    protocol={protocol}
+                    currentStage={stage.id}
+                    onMoveStage={(newStage) => handleMoveStage(protocol.id, newStage)}
+                    onDelete={() => setShowDeleteConfirm({ id: protocol.id, name: protocol.patients?.name || 'Unknown' })}
+                    formatDate={formatDate}
+                  />
+                ))}
+                {items.length === 0 && (
+                  <div style={styles.emptyStage}>No patients</div>
+                )}
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          );
+        })}
+      </div>
 
-      {/* Follow-Up Notes Modal */}
-      {showFollowUpNotesModal && selectedJourney && (
-        <FollowUpNotesModal
-          journey={selectedJourney}
-          onSave={handleSaveFollowUpNotes}
-          onClose={() => { setShowFollowUpNotesModal(false); setSelectedJourney(null); }}
-          updating={updating}
-        />
-      )}
-
-      {/* Outcome Modal */}
-      {showOutcomeModal && selectedJourney && (
-        <OutcomeModal
-          journey={selectedJourney}
-          onRecord={handleRecordOutcome}
-          onClose={() => { setShowOutcomeModal(false); setSelectedJourney(null); }}
-          updating={updating}
-        />
-      )}
-
-      {/* Add Manual Journey Modal */}
+      {/* Add Manual Lab Modal */}
       {showAddModal && (
-        <AddJourneyModal
-          form={addForm}
-          setForm={setAddForm}
-          onAdd={handleAddJourney}
-          onClose={() => setShowAddModal(false)}
+        <AddLabModal
+          patientSearch={patientSearch}
+          onPatientSearch={handlePatientSearch}
+          patientResults={patientResults}
+          onAdd={async (formData) => {
+            try {
+              const res = await fetch('/api/admin/labs-pipeline', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+              });
+              if (res.ok) {
+                await fetchData();
+                setShowAddModal(false);
+                setPatientSearch('');
+                setPatientResults([]);
+              }
+            } catch (err) {
+              console.error('Error adding lab:', err);
+            }
+          }}
+          onClose={() => {
+            setShowAddModal(false);
+            setPatientSearch('');
+            setPatientResults([]);
+          }}
         />
       )}
 
@@ -366,7 +210,7 @@ export default function LabsPipelineTab() {
       {showDeleteConfirm && (
         <DeleteConfirmModal
           name={showDeleteConfirm.name}
-          onConfirm={() => handleDelete(showDeleteConfirm.id, showDeleteConfirm.type)}
+          onConfirm={() => handleDelete(showDeleteConfirm.id)}
           onCancel={() => setShowDeleteConfirm(null)}
           updating={updating}
         />
@@ -375,141 +219,65 @@ export default function LabsPipelineTab() {
   );
 }
 
-// Helper: Get items for new patient stage
-function getNewPatientItems(data, stageId) {
-  switch (stageId) {
-    case 'draw_scheduled': return data.drawScheduled || [];
-    case 'draw_complete': return data.drawComplete || [];
-    case 'provider_reviewed': return data.providerReviewed || [];
-    case 'consult_scheduled': return data.consultScheduled || [];
-    case 'need_follow_up': return data.needFollowUp || [];
-    case 'treatment_started': return data.treatmentStarted || [];
-    default: return [];
-  }
-}
-
-// Helper: Get items for follow-up stage
-function getFollowUpItems(data, stageId) {
-  switch (stageId) {
-    case 'due': return data.due || [];
-    case 'scheduled': return data.scheduled || [];
-    case 'results_pending': return data.resultsPending || [];
-    default: return [];
-  }
-}
-
-// Helper: Get protocol type display
-function getProtocolTypeDisplay(type) {
-  if (!type) return 'Protocol';
-  const typeMap = {
-    hrt: 'HRT',
-    weight_loss: 'Weight Loss',
-    peptide: 'Peptides',
-    iv: 'IV Therapy',
-    hbot: 'HBOT',
-    rlt: 'Red Light'
-  };
-  return typeMap[type.toLowerCase()] || type;
-}
-
-// Journey Card Component
-function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelete, formatDate, formatDateTime }) {
+// Lab Card Component
+function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const linkedProtocol = journey.linked_protocol;
-  const hasProtocol = !!linkedProtocol;
-  const protocolColors = PROTOCOL_COLORS[linkedProtocol?.program_type?.toLowerCase()] || PROTOCOL_COLORS.default;
+  const patient = protocol.patients;
+  const patientName = patient?.name || patient?.first_name ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() : 'Unknown';
+  const panelType = protocol.medication || 'Essential';
+  const labType = protocol.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
+  const panelColor = panelType === 'Elite' ? { bg: '#fdf2f8', text: '#9d174d' } : { bg: '#f0f9ff', text: '#0369a1' };
 
   return (
-    <div style={styles.card(false)}>
+    <div style={styles.card}>
       <div style={styles.cardHeader}>
-        <Link href={`/patients/${journey.patient_id}`} style={styles.patientName}>
-          {journey.patient_name || 'Unknown'}
-        </Link>
-        {journey.patient_phone && (
-          <a href={`tel:${journey.patient_phone}`} style={styles.phone}>
-            📞 {journey.patient_phone}
+        {patient?.id ? (
+          <Link href={`/admin/patient/${patient.id}`} style={styles.patientName}>
+            {patientName}
+          </Link>
+        ) : (
+          <span style={styles.patientName}>{patientName}</span>
+        )}
+        {patient?.phone && (
+          <a href={`tel:${patient.phone}`} style={styles.phone}>
+            📞
           </a>
         )}
       </div>
 
+      <div style={styles.cardBadges}>
+        <span style={{ ...styles.panelBadge, backgroundColor: panelColor.bg, color: panelColor.text }}>
+          {panelType}
+        </span>
+        <span style={styles.labTypeBadge}>
+          {labType}
+        </span>
+      </div>
+
       <div style={styles.cardDetails}>
-        {stage === 'draw_scheduled' && (
-          <div>Blood Draw: {formatDateTime(journey.blood_draw_scheduled_date)}</div>
-        )}
-        {stage === 'draw_complete' && (
-          <div>Drawn: {formatDate(journey.blood_draw_completed_date)}</div>
-        )}
-        {stage === 'provider_reviewed' && (
-          <div>Reviewed: {formatDate(journey.provider_reviewed_date)}</div>
-        )}
-        {stage === 'consult_scheduled' && (
-          <div>Consultation: {formatDateTime(journey.consultation_scheduled_date)}</div>
-        )}
-        {stage === 'need_follow_up' && (
-          <>
-            <div>Flagged: {formatDate(journey.follow_up_flagged_date)}</div>
-            {journey.follow_up_notes && (
-              <div style={styles.followUpNotes}>{journey.follow_up_notes}</div>
-            )}
-          </>
-        )}
-        {stage === 'treatment_started' && (
-          <>
-            <div>Started: {formatDate(journey.treatment_started_date)}</div>
-
-            {/* Show linked protocol if exists */}
-            {hasProtocol && (
-              <div style={styles.protocolLink}>
-                <div style={styles.protocolLinkHeader}>
-                  <span style={{
-                    ...styles.protocolTypeBadge,
-                    backgroundColor: protocolColors.bg,
-                    color: protocolColors.text
-                  }}>
-                    ✓ {getProtocolTypeDisplay(linkedProtocol.program_type)}
-                  </span>
-                  <span style={styles.protocolStatus(linkedProtocol.status)}>
-                    {linkedProtocol.status || 'Active'}
-                  </span>
-                </div>
-                <div style={styles.protocolMeta}>
-                  Started: {formatDate(linkedProtocol.start_date)}
-                  {linkedProtocol.medication && ` • ${linkedProtocol.medication}`}
-                </div>
-                <Link href={`/patients/${journey.patient_id}`} style={styles.viewProtocolLink}>
-                  View Protocol →
-                </Link>
-              </div>
-            )}
-
-            {/* Show outcome if recorded but no protocol */}
-            {!hasProtocol && journey.outcome && (
-              <div style={styles.outcomeRecorded}>
-                <span style={styles.outcomeBadge(journey.outcome)}>
-                  {OUTCOMES.find(o => o.value === journey.outcome)?.label || journey.outcome}
-                </span>
-                {journey.outcome_notes && (
-                  <div style={styles.outcomeNotes}>{journey.outcome_notes}</div>
-                )}
-              </div>
-            )}
-          </>
+        <div>Draw: {formatDate(protocol.start_date)}</div>
+        {protocol.notes && (
+          <div style={styles.notesText}>{protocol.notes}</div>
         )}
       </div>
 
       <div style={styles.cardActions}>
-        {stage === 'need_follow_up' && (
-          <button style={styles.actionButton} onClick={() => onAction('follow_up_notes')}>
-            📝 Edit Notes
-          </button>
-        )}
-        {stage === 'treatment_started' && !hasProtocol && !journey.outcome && (
-          <button style={styles.actionButton} onClick={() => onAction('outcome')}>
-            📋 Record Outcome
+        {/* Quick advance button */}
+        {currentStage !== 'consult_complete' && (
+          <button
+            style={styles.advanceButton}
+            onClick={() => {
+              const stageIds = LAB_STAGES.map(s => s.id);
+              const currentIndex = stageIds.indexOf(currentStage);
+              if (currentIndex < stageIds.length - 1) {
+                onMoveStage(stageIds[currentIndex + 1]);
+              }
+            }}
+          >
+            → {LAB_STAGES[LAB_STAGES.findIndex(s => s.id === currentStage) + 1]?.label || 'Next'}
           </button>
         )}
 
-        {/* Move Stage & Delete Controls */}
         <div style={styles.cardControls}>
           <div style={styles.moveStageWrapper}>
             <button
@@ -520,7 +288,7 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
             </button>
             {showMoveMenu && (
               <div style={styles.moveStageMenu}>
-                {allStages.filter(s => s.id !== stage).map(s => (
+                {LAB_STAGES.filter(s => s.id !== currentStage).map(s => (
                   <button
                     key={s.id}
                     style={styles.moveStageOption}
@@ -535,7 +303,7 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
               </div>
             )}
           </div>
-          <button style={styles.deleteButton} onClick={onDelete} title="Delete from pipeline">
+          <button style={styles.deleteButton} onClick={onDelete} title="Remove from pipeline">
             🗑️
           </button>
         </div>
@@ -544,168 +312,141 @@ function JourneyCard({ journey, stage, allStages, onAction, onMoveStage, onDelet
   );
 }
 
-// Follow-up Card Component
-function FollowUpCard({ followUp, stage, isOverdue, formatDate, onMarkReviewed, onDelete }) {
-  const protocolType = followUp.protocols?.program_type || followUp.protocol_type || 'Protocol';
-  const protocolColors = PROTOCOL_COLORS[protocolType?.toLowerCase()] || PROTOCOL_COLORS.default;
-
-  return (
-    <div style={styles.card(isOverdue)}>
-      <div style={styles.cardHeader}>
-        <Link href={`/patients/${followUp.patient_id}`} style={styles.patientName}>
-          {followUp.patient_name || 'Unknown'}
-        </Link>
-        <span style={{
-          ...styles.protocolBadge,
-          backgroundColor: protocolColors.bg,
-          color: protocolColors.text
-        }}>
-          {getProtocolTypeDisplay(protocolType)}
-        </span>
-      </div>
-
-      <div style={styles.cardDetails}>
-        <div>{followUp.follow_up_type === 'first' ? '8-Week Follow-up' : `Quarterly #${followUp.follow_up_number || ''}`}</div>
-        {stage === 'due' && (
-          <div style={isOverdue ? styles.overdue : {}}>
-            Due: {formatDate(followUp.due_date)}
-          </div>
-        )}
-        {stage === 'scheduled' && (
-          <div>Scheduled: {formatDate(followUp.scheduled_date)}</div>
-        )}
-        {stage === 'results_pending' && (
-          <div>Drawn: {formatDate(followUp.drawn_date)}</div>
-        )}
-      </div>
-
-      <div style={styles.cardActions}>
-        {stage === 'results_pending' && (
-          <button style={styles.actionButton} onClick={onMarkReviewed}>
-            ✓ Results Reviewed
-          </button>
-        )}
-        <div style={styles.cardControls}>
-          <button style={styles.deleteButton} onClick={onDelete} title="Delete from pipeline">
-            🗑️
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Follow-Up Notes Modal
-function FollowUpNotesModal({ journey, onSave, onClose, updating }) {
-  const [notes, setNotes] = useState(journey.follow_up_notes || '');
-
-  return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modal}>
-        <h3 style={styles.modalTitle}>Follow-Up Notes</h3>
-        <p style={styles.modalSubtitle}>{journey.patient_name}</p>
-
-        <div style={styles.formGroup}>
-          <label>Notes</label>
-          <textarea
-            style={styles.textarea}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Why does this patient need follow-up? Any details..."
-          />
-        </div>
-
-        <div style={styles.modalActions}>
-          <button style={styles.cancelButton} onClick={onClose}>Cancel</button>
-          <button
-            style={styles.submitButton}
-            onClick={() => onSave(notes)}
-            disabled={updating}
-          >
-            {updating ? 'Saving...' : 'Save Notes'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Outcome Modal
-function OutcomeModal({ journey, onRecord, onClose, updating }) {
-  const [outcome, setOutcome] = useState('');
+// Add Lab Modal
+function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, onClose }) {
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [manualName, setManualName] = useState('');
+  const [panelType, setPanelType] = useState('essential');
+  const [labType, setLabType] = useState('new_patient');
+  const [bloodDrawDate, setBloodDrawDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
 
+  const handleSubmit = () => {
+    const patientId = selectedPatient?.id || null;
+    const patientName = selectedPatient?.name || manualName;
+    if (!patientName) {
+      alert('Please select or enter a patient name');
+      return;
+    }
+    onAdd({ patientId, patientName, panelType, labType, bloodDrawDate, notes: notes || null });
+  };
+
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
-        <h3 style={styles.modalTitle}>Record Outcome</h3>
-        <p style={styles.modalSubtitle}>{journey.patient_name}</p>
+        <h3 style={styles.modalTitle}>Add Lab Manually</h3>
 
+        {/* Patient Search */}
         <div style={styles.formGroup}>
-          <label>Patient Decision</label>
-          <div style={styles.outcomeButtons}>
-            {OUTCOMES.map(o => (
+          <label style={styles.formLabel}>Patient *</label>
+          {selectedPatient ? (
+            <div style={styles.selectedPatient}>
+              <span>{selectedPatient.name}</span>
               <button
-                key={o.value}
-                style={styles.outcomeButton(outcome === o.value, o.color)}
-                onClick={() => setOutcome(o.value)}
+                style={styles.clearPatientBtn}
+                onClick={() => { setSelectedPatient(null); onPatientSearch(''); }}
               >
-                {o.label}
+                ✕
               </button>
-            ))}
+            </div>
+          ) : (
+            <>
+              <input
+                type="text"
+                style={styles.input}
+                value={patientSearch}
+                onChange={(e) => onPatientSearch(e.target.value)}
+                placeholder="Search patient name..."
+              />
+              {patientResults.length > 0 && (
+                <div style={styles.searchResults}>
+                  {patientResults.map(p => (
+                    <button
+                      key={p.id}
+                      style={styles.searchResultItem}
+                      onClick={() => {
+                        setSelectedPatient(p);
+                        onPatientSearch('');
+                      }}
+                    >
+                      <span style={{ fontWeight: '500' }}>{p.name}</span>
+                      {p.email && <span style={{ fontSize: '11px', color: '#6b7280' }}>{p.email}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {patientSearch.length >= 2 && patientResults.length === 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    value={manualName}
+                    onChange={(e) => setManualName(e.target.value)}
+                    placeholder="Or enter name manually..."
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Panel Type */}
+        <div style={styles.formGroup}>
+          <label style={styles.formLabel}>Panel Type</label>
+          <div style={styles.toggleGroup}>
+            <button
+              style={{ ...styles.toggleBtn, ...(panelType === 'essential' ? styles.toggleBtnActive : {}) }}
+              onClick={() => setPanelType('essential')}
+            >
+              Essential
+            </button>
+            <button
+              style={{ ...styles.toggleBtn, ...(panelType === 'elite' ? styles.toggleBtnActive : {}) }}
+              onClick={() => setPanelType('elite')}
+            >
+              Elite
+            </button>
           </div>
         </div>
 
+        {/* Lab Type */}
         <div style={styles.formGroup}>
-          <label>Notes (optional)</label>
-          <textarea
-            style={styles.textarea}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any additional notes about the decision..."
-          />
+          <label style={styles.formLabel}>Lab Type</label>
+          <div style={styles.toggleGroup}>
+            <button
+              style={{ ...styles.toggleBtn, ...(labType === 'new_patient' ? styles.toggleBtnActive : {}) }}
+              onClick={() => setLabType('new_patient')}
+            >
+              New Patient
+            </button>
+            <button
+              style={{ ...styles.toggleBtn, ...(labType === 'follow_up' ? styles.toggleBtnActive : {}) }}
+              onClick={() => setLabType('follow_up')}
+            >
+              Follow-up
+            </button>
+          </div>
         </div>
 
-        <div style={styles.modalActions}>
-          <button style={styles.cancelButton} onClick={onClose}>Cancel</button>
-          <button
-            style={styles.submitButton}
-            onClick={() => onRecord(outcome, notes)}
-            disabled={!outcome || updating}
-          >
-            {updating ? 'Saving...' : 'Save Outcome'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Add Journey Modal
-function AddJourneyModal({ form, setForm, onAdd, onClose }) {
-  return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modal}>
-        <h3 style={styles.modalTitle}>Add Lab Journey Manually</h3>
-
+        {/* Blood Draw Date */}
         <div style={styles.formGroup}>
-          <label>Patient Name *</label>
-          <input
-            type="text"
-            style={styles.input}
-            value={form.patientName}
-            onChange={(e) => setForm({ ...form, patientName: e.target.value })}
-            placeholder="Enter patient name"
-          />
-        </div>
-
-        <div style={styles.formGroup}>
-          <label>Blood Draw Date (leave blank if not yet drawn)</label>
+          <label style={styles.formLabel}>Blood Draw Date</label>
           <input
             type="date"
             style={styles.input}
-            value={form.bloodDrawDate}
-            onChange={(e) => setForm({ ...form, bloodDrawDate: e.target.value })}
+            value={bloodDrawDate}
+            onChange={(e) => setBloodDrawDate(e.target.value)}
+          />
+        </div>
+
+        {/* Notes */}
+        <div style={styles.formGroup}>
+          <label style={styles.formLabel}>Notes (optional)</label>
+          <textarea
+            style={styles.textarea}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any notes about this lab..."
           />
         </div>
 
@@ -713,8 +454,8 @@ function AddJourneyModal({ form, setForm, onAdd, onClose }) {
           <button style={styles.cancelButton} onClick={onClose}>Cancel</button>
           <button
             style={styles.submitButton}
-            onClick={onAdd}
-            disabled={!form.patientName}
+            onClick={handleSubmit}
+            disabled={!selectedPatient && !manualName}
           >
             Add to Pipeline
           </button>
@@ -729,12 +470,12 @@ function DeleteConfirmModal({ name, onConfirm, onCancel, updating }) {
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
-        <h3 style={styles.modalTitle}>Delete from Pipeline?</h3>
+        <h3 style={styles.modalTitle}>Remove from Pipeline?</h3>
         <p style={styles.modalSubtitle}>
           Are you sure you want to remove <strong>{name}</strong> from the labs pipeline?
         </p>
         <p style={{ color: '#6b7280', fontSize: '13px', marginTop: '8px' }}>
-          This will not delete the patient or any protocols, only remove them from this tracking view.
+          This will cancel the lab protocol. Patient records will not be affected.
         </p>
 
         <div style={styles.modalActions}>
@@ -744,7 +485,7 @@ function DeleteConfirmModal({ name, onConfirm, onCancel, updating }) {
             onClick={onConfirm}
             disabled={updating}
           >
-            {updating ? 'Deleting...' : 'Delete'}
+            {updating ? 'Removing...' : 'Remove'}
           </button>
         </div>
       </div>
@@ -767,44 +508,25 @@ const styles = {
     textAlign: 'center',
     color: '#ef4444'
   },
-  subTabs: {
+  headerRow: {
     display: 'flex',
-    gap: '8px',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: '16px',
-    alignItems: 'center',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    gap: '8px'
   },
-  subTab: (active) => ({
-    padding: '10px 16px',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontWeight: '500',
+  headerInfo: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    backgroundColor: active ? '#2563eb' : '#f3f4f6',
-    color: active ? 'white' : '#374151',
-    transition: 'all 0.2s'
-  }),
-  badge: (hasAlert) => ({
-    backgroundColor: hasAlert ? '#fef3c7' : 'rgba(255,255,255,0.2)',
-    color: hasAlert ? '#92400e' : 'inherit',
-    padding: '2px 8px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '600'
-  }),
-  alertBadge: {
-    backgroundColor: '#fef2f2',
-    color: '#dc2626',
-    padding: '2px 8px',
-    borderRadius: '12px',
-    fontSize: '11px',
-    fontWeight: '600'
+    gap: '12px'
+  },
+  totalBadge: {
+    fontSize: '13px',
+    color: '#6b7280',
+    fontWeight: '500'
   },
   headerActions: {
-    marginLeft: 'auto',
     display: 'flex',
     gap: '8px',
     alignItems: 'center'
@@ -829,13 +551,7 @@ const styles = {
   },
   stagesContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(6, 1fr)',
-    gap: '12px',
-    minHeight: '500px'
-  },
-  followUpStagesContainer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: 'repeat(5, 1fr)',
     gap: '12px',
     minHeight: '500px'
   },
@@ -877,20 +593,19 @@ const styles = {
     padding: '20px',
     fontSize: '14px'
   },
-  card: (isOverdue) => ({
+  card: {
     backgroundColor: 'white',
     borderRadius: '8px',
     padding: '12px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    border: isOverdue ? '2px solid #fbbf24' : '1px solid #e5e7eb'
-  }),
+    border: '1px solid #e5e7eb'
+  },
   cardHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '8px',
-    gap: '8px',
-    flexWrap: 'wrap'
+    marginBottom: '6px',
+    gap: '8px'
   },
   patientName: {
     fontWeight: '600',
@@ -899,16 +614,27 @@ const styles = {
     fontSize: '14px'
   },
   phone: {
-    fontSize: '12px',
-    color: '#6b7280',
+    fontSize: '14px',
     textDecoration: 'none'
   },
-  protocolBadge: {
+  cardBadges: {
+    display: 'flex',
+    gap: '4px',
+    marginBottom: '8px',
+    flexWrap: 'wrap'
+  },
+  panelBadge: {
     fontSize: '11px',
-    backgroundColor: '#dbeafe',
-    color: '#1e40af',
     padding: '2px 6px',
     borderRadius: '4px',
+    fontWeight: '600'
+  },
+  labTypeBadge: {
+    fontSize: '11px',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    backgroundColor: '#f3f4f6',
+    color: '#374151',
     fontWeight: '500'
   },
   cardDetails: {
@@ -916,17 +642,13 @@ const styles = {
     color: '#6b7280',
     lineHeight: '1.5'
   },
-  overdue: {
-    color: '#dc2626',
-    fontWeight: '600'
-  },
-  followUpNotes: {
+  notesText: {
     marginTop: '4px',
-    padding: '6px 8px',
-    backgroundColor: '#fef2f2',
+    padding: '4px 6px',
+    backgroundColor: '#fef3c7',
     borderRadius: '4px',
     fontSize: '11px',
-    color: '#991b1b',
+    color: '#92400e',
     fontStyle: 'italic'
   },
   cardActions: {
@@ -934,7 +656,7 @@ const styles = {
     paddingTop: '8px',
     borderTop: '1px solid #f3f4f6'
   },
-  actionButton: {
+  advanceButton: {
     width: '100%',
     padding: '8px',
     border: 'none',
@@ -999,76 +721,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '12px'
   },
-  // Protocol link styles for Treatment Started column
-  protocolLink: {
-    marginTop: '8px',
-    padding: '8px',
-    backgroundColor: '#f0fdf4',
-    borderRadius: '6px',
-    border: '1px solid #bbf7d0'
-  },
-  protocolLinkHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '4px'
-  },
-  protocolTypeBadge: {
-    fontSize: '11px',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontWeight: '600'
-  },
-  protocolStatus: (status) => ({
-    fontSize: '10px',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    backgroundColor: status === 'active' ? '#dcfce7' : '#f3f4f6',
-    color: status === 'active' ? '#166534' : '#6b7280',
-    fontWeight: '500',
-    textTransform: 'capitalize'
-  }),
-  protocolMeta: {
-    fontSize: '11px',
-    color: '#6b7280',
-    marginBottom: '4px'
-  },
-  viewProtocolLink: {
-    fontSize: '11px',
-    color: '#2563eb',
-    textDecoration: 'none',
-    fontWeight: '500'
-  },
-  outcomeRecorded: {
-    marginTop: '8px',
-    padding: '8px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '6px'
-  },
-  outcomeBadge: (outcome) => {
-    const colors = {
-      hrt: { bg: '#dbeafe', text: '#1e40af' },
-      weight_loss: { bg: '#dcfce7', text: '#166534' },
-      peptide: { bg: '#f3e8ff', text: '#7c3aed' },
-      thinking: { bg: '#fef3c7', text: '#92400e' },
-      declined: { bg: '#f3f4f6', text: '#6b7280' }
-    };
-    const c = colors[outcome] || colors.declined;
-    return {
-      fontSize: '11px',
-      padding: '2px 8px',
-      borderRadius: '4px',
-      backgroundColor: c.bg,
-      color: c.text,
-      fontWeight: '600'
-    };
-  },
-  outcomeNotes: {
-    fontSize: '11px',
-    color: '#6b7280',
-    marginTop: '4px',
-    fontStyle: 'italic'
-  },
+  // Modal styles
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -1086,47 +739,30 @@ const styles = {
     borderRadius: '12px',
     padding: '24px',
     width: '90%',
-    maxWidth: '400px',
+    maxWidth: '440px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
     boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
   },
   modalTitle: {
-    margin: '0 0 4px 0',
+    margin: '0 0 16px 0',
     fontSize: '18px',
     fontWeight: '600'
   },
   modalSubtitle: {
-    margin: '0 0 20px 0',
-    color: '#6b7280',
+    margin: '0 0 8px 0',
+    color: '#374151',
     fontSize: '14px'
   },
   formGroup: {
     marginBottom: '16px'
   },
-  outcomeButtons: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '8px',
-    marginTop: '8px'
-  },
-  outcomeButton: (active, color) => ({
-    padding: '12px',
-    border: active ? `2px solid ${color}` : '1px solid #d1d5db',
-    borderRadius: '8px',
-    backgroundColor: active ? `${color}15` : 'white',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '13px'
-  }),
-  textarea: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    minHeight: '80px',
-    resize: 'vertical',
-    fontFamily: 'inherit',
-    marginTop: '8px',
-    boxSizing: 'border-box'
+  formLabel: {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: '6px'
   },
   input: {
     width: '100%',
@@ -1134,8 +770,76 @@ const styles = {
     border: '1px solid #d1d5db',
     borderRadius: '8px',
     fontFamily: 'inherit',
-    marginTop: '8px',
+    fontSize: '14px',
     boxSizing: 'border-box'
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    minHeight: '60px',
+    resize: 'vertical',
+    fontFamily: 'inherit',
+    fontSize: '14px',
+    boxSizing: 'border-box'
+  },
+  toggleGroup: {
+    display: 'flex',
+    gap: '8px'
+  },
+  toggleBtn: {
+    flex: 1,
+    padding: '10px',
+    background: '#fff',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  toggleBtnActive: {
+    background: '#111',
+    color: '#fff',
+    borderColor: '#111'
+  },
+  selectedPatient: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 12px',
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    borderRadius: '8px',
+    fontWeight: '500'
+  },
+  clearPatientBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '16px',
+    color: '#6b7280',
+    padding: '0 4px'
+  },
+  searchResults: {
+    marginTop: '4px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    backgroundColor: 'white',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+  },
+  searchResultItem: {
+    width: '100%',
+    padding: '10px 12px',
+    border: 'none',
+    borderBottom: '1px solid #f3f4f6',
+    backgroundColor: 'white',
+    cursor: 'pointer',
+    textAlign: 'left',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px'
   },
   modalActions: {
     display: 'flex',

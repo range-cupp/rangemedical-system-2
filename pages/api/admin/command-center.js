@@ -178,10 +178,34 @@ export default async function handler(req, res) {
     const completedProtocols = (protocols || []).filter(p => p.status === 'completed');
 
     // Calculate protocol urgency and add last text date
-    const processedProtocols = activeProtocols.map(protocol => {
+    let processedProtocols = activeProtocols.map(protocol => {
       const urgency = calculateProtocolUrgency(protocol, now);
       const lastTextDate = lastTextByProtocol[protocol.id] || null;
       return { ...protocol, urgency, last_checkin_text_date: lastTextDate };
+    });
+
+    // Suppress expiring/expired protocols if the patient has a newer active protocol
+    // for the same medication (e.g., old 10-day peptide when a new 30-day was purchased)
+    processedProtocols = processedProtocols.filter(protocol => {
+      if (protocol.urgency !== 'expired' && protocol.urgency !== 'critical' && protocol.urgency !== 'warning') {
+        return true; // Keep non-expiring protocols
+      }
+      if (!protocol.patient_id || !protocol.medication) return true;
+
+      // Check if this patient has a newer active protocol for the same medication
+      const hasNewerProtocol = processedProtocols.some(other =>
+        other.id !== protocol.id &&
+        other.patient_id === protocol.patient_id &&
+        other.program_type === protocol.program_type &&
+        other.medication === protocol.medication &&
+        new Date(other.created_at) > new Date(protocol.created_at) &&
+        (other.urgency === 'active' || other.urgency === 'fresh')
+      );
+
+      if (hasNewerProtocol) {
+        console.log(`Suppressing expiring protocol ${protocol.id} (${protocol.medication}) - patient has newer active protocol`);
+      }
+      return !hasNewerProtocol;
     });
 
     // Sort by urgency (most urgent first)

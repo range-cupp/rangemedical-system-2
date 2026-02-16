@@ -116,7 +116,31 @@ export default async function handler(req, res) {
       }
     }
 
-    // 2. Send notification email
+    // 2. Send confirmation SMS to the lead
+    if (GHL_API_KEY && ghlContactId) {
+      try {
+        await fetch(
+          'https://services.leadconnectorhq.com/conversations/messages',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-04-15',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: ghlContactId,
+              message: `Hi ${firstName}, thanks for completing the Cellular Reset quiz! We received your info and will be in contact with you shortly to schedule your complimentary session. — Range Medical (949) 997-3988`
+            })
+          }
+        );
+      } catch (smsError) {
+        console.error('SMS confirmation error:', smsError);
+      }
+    }
+
+    // 3. Send notification email
     try {
       await sendNotificationEmail({ firstName, lastName, email: cleanEmail, phone, scores, goal, timeline, avatar });
     } catch (emailError) {

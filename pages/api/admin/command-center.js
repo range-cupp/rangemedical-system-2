@@ -186,6 +186,8 @@ export default async function handler(req, res) {
 
     // Suppress expiring/expired protocols if the patient has a newer active protocol
     // for the same medication (e.g., old 10-day peptide when a new 30-day was purchased)
+    // Normalize medication names for comparison (handles variations like "BPC-157 / Thymosin Beta-4" vs "BPC-157/Thymosin Beta 4")
+    const normalizeMed = (m) => (m || '').toLowerCase().replace(/[\s\-\/]/g, '');
     processedProtocols = processedProtocols.filter(protocol => {
       if (protocol.urgency !== 'expired' && protocol.urgency !== 'critical' && protocol.urgency !== 'warning') {
         return true; // Keep non-expiring protocols
@@ -197,7 +199,7 @@ export default async function handler(req, res) {
         other.id !== protocol.id &&
         other.patient_id === protocol.patient_id &&
         other.program_type === protocol.program_type &&
-        other.medication === protocol.medication &&
+        normalizeMed(other.medication) === normalizeMed(protocol.medication) &&
         new Date(other.created_at) > new Date(protocol.created_at) &&
         (other.urgency === 'active' || other.urgency === 'fresh')
       );

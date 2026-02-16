@@ -223,7 +223,7 @@ export default function LabsPipelineTab() {
 function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const patient = protocol.patients;
-  const patientName = patient?.name || patient?.first_name ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() : 'Unknown';
+  const patientName = patient?.name || (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : 'Unknown');
   const panelType = protocol.medication || 'Essential';
   const labType = protocol.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
   const panelColor = panelType === 'Elite' ? { bg: '#fdf2f8', text: '#9d174d' } : { bg: '#f0f9ff', text: '#0369a1' };

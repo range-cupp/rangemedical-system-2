@@ -90,7 +90,7 @@ async function getPatientSummary(req, res) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
-    const intakeFields = 'id, patient_id, ghl_contact_id, email, submitted_at, current_medications, allergies, allergy_reactions, what_brings_you, what_brings_you_in, symptoms, on_hrt, hrt_details, high_blood_pressure, high_blood_pressure_year, high_cholesterol, high_cholesterol_year, heart_disease, heart_disease_type, heart_disease_year, diabetes, diabetes_type, diabetes_year, thyroid_disorder, thyroid_disorder_type, thyroid_disorder_year, depression_anxiety, depression_anxiety_year, kidney_disease, kidney_disease_type, kidney_disease_year, liver_disease, liver_disease_type, liver_disease_year, autoimmune_disorder, autoimmune_disorder_type, autoimmune_disorder_year, cancer, cancer_type, cancer_year';
+    const intakeFields = 'id, patient_id, ghl_contact_id, email, submitted_at, date_of_birth, current_medications, medication_notes, allergies, allergy_reactions, what_brings_you, what_brings_you_in, symptoms, additional_notes, on_hrt, hrt_details, high_blood_pressure, high_blood_pressure_year, high_cholesterol, high_cholesterol_year, heart_disease, heart_disease_type, heart_disease_year, diabetes, diabetes_type, diabetes_year, thyroid_disorder, thyroid_disorder_type, thyroid_disorder_year, depression_anxiety, depression_anxiety_year, kidney_disease, kidney_disease_type, kidney_disease_year, liver_disease, liver_disease_type, liver_disease_year, autoimmune_disorder, autoimmune_disorder_type, autoimmune_disorder_year, cancer, cancer_type, cancer_year, medical_conditions';
 
     // Fetch most recent intake - try patient_id, then ghl_contact_id, then email
     let intake = null;
@@ -149,34 +149,39 @@ async function getPatientSummary(req, res) {
 
     // Build diagnoses from boolean condition fields
     const conditionMap = [
-      { field: 'high_blood_pressure', label: 'High blood pressure', yearField: 'high_blood_pressure_year' },
-      { field: 'high_cholesterol', label: 'High cholesterol', yearField: 'high_cholesterol_year' },
-      { field: 'heart_disease', label: 'Heart disease', yearField: 'heart_disease_year', typeField: 'heart_disease_type' },
-      { field: 'diabetes', label: 'Diabetes', yearField: 'diabetes_year', typeField: 'diabetes_type' },
-      { field: 'thyroid_disorder', label: 'Thyroid disorder', yearField: 'thyroid_disorder_year', typeField: 'thyroid_disorder_type' },
-      { field: 'depression_anxiety', label: 'Depression/Anxiety', yearField: 'depression_anxiety_year' },
-      { field: 'kidney_disease', label: 'Kidney disease', yearField: 'kidney_disease_year', typeField: 'kidney_disease_type' },
-      { field: 'liver_disease', label: 'Liver disease', yearField: 'liver_disease_year', typeField: 'liver_disease_type' },
-      { field: 'autoimmune_disorder', label: 'Autoimmune disorder', yearField: 'autoimmune_disorder_year', typeField: 'autoimmune_disorder_type' },
-      { field: 'cancer', label: 'Cancer', yearField: 'cancer_year', typeField: 'cancer_type' },
+      { field: 'high_blood_pressure', label: 'High blood pressure', yearField: 'high_blood_pressure_year', jsonKey: 'hypertension' },
+      { field: 'high_cholesterol', label: 'High cholesterol', yearField: 'high_cholesterol_year', jsonKey: 'highCholesterol' },
+      { field: 'heart_disease', label: 'Heart disease', yearField: 'heart_disease_year', typeField: 'heart_disease_type', jsonKey: 'heartDisease' },
+      { field: 'diabetes', label: 'Diabetes', yearField: 'diabetes_year', typeField: 'diabetes_type', jsonKey: 'diabetes' },
+      { field: 'thyroid_disorder', label: 'Thyroid disorder', yearField: 'thyroid_disorder_year', typeField: 'thyroid_disorder_type', jsonKey: 'thyroid' },
+      { field: 'depression_anxiety', label: 'Depression/Anxiety', yearField: 'depression_anxiety_year', jsonKey: 'depression' },
+      { field: 'kidney_disease', label: 'Kidney disease', yearField: 'kidney_disease_year', typeField: 'kidney_disease_type', jsonKey: 'kidney' },
+      { field: 'liver_disease', label: 'Liver disease', yearField: 'liver_disease_year', typeField: 'liver_disease_type', jsonKey: 'liver' },
+      { field: 'autoimmune_disorder', label: 'Autoimmune disorder', yearField: 'autoimmune_disorder_year', typeField: 'autoimmune_disorder_type', jsonKey: 'autoimmune' },
+      { field: 'cancer', label: 'Cancer', yearField: 'cancer_year', typeField: 'cancer_type', jsonKey: 'cancer' },
     ];
+
+    const mc = intake.medical_conditions || {}; // JSONB fallback
 
     const diagnoses = [];
     for (const c of conditionMap) {
-      if (intake[c.field] === true) {
+      const boolVal = intake[c.field] === true;
+      const jsonVal = mc[c.jsonKey]?.response === 'Yes';
+
+      if (boolVal || jsonVal) {
         let entry = c.label;
-        if (c.typeField && intake[c.typeField]) {
-          entry += ` - ${intake[c.typeField]}`;
-        }
-        if (intake[c.yearField]) {
-          entry += ` (${intake[c.yearField]})`;
-        }
+        const typeVal = (c.typeField && intake[c.typeField]) || mc[c.jsonKey]?.type || null;
+        const yearVal = intake[c.yearField] || mc[c.jsonKey]?.year || null;
+        if (typeVal) entry += ` - ${typeVal}`;
+        if (yearVal) entry += ` (${yearVal})`;
         diagnoses.push(entry);
       }
     }
 
     const patientName = patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
-    const reasonForVisit = intake.what_brings_you || intake.what_brings_you_in || null;
+    const dob = patient.date_of_birth || intake.date_of_birth || null;
+    const reasonForVisit = intake.what_brings_you || intake.what_brings_you_in || intake.additional_notes || null;
+    const medications = intake.current_medications || intake.medication_notes || null;
     const allergies = intake.allergies
       ? (intake.allergy_reactions ? `${intake.allergies} (${intake.allergy_reactions})` : intake.allergies)
       : null;
@@ -185,11 +190,11 @@ async function getPatientSummary(req, res) {
       success: true,
       summary: {
         name: patientName,
-        dob: patient.date_of_birth || null,
+        dob,
         lastVisitDate,
         reasonForVisit,
         diagnoses,
-        medications: intake.current_medications || null,
+        medications,
         allergies,
         onHRT: intake.on_hrt || false,
         hrtDetails: intake.hrt_details || null,

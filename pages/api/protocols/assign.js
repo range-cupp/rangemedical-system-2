@@ -543,7 +543,7 @@ export default async function handler(req, res) {
 
         const firstName = patientData?.first_name || (patientData?.name ? patientData.name.split(' ')[0] : 'there');
 
-        const guideMessage = `Hi ${firstName}! Here's your BPC-157 / TB-500 guide to get started: https://www.range-medical.com/bpc-tb4-guide - Range Medical`;
+        const guideMessage = `Hi ${firstName}! Here's your guide to your recovery peptide protocol: https://www.range-medical.com/bpc-tb4-guide - Range Medical`;
 
         const smsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
           method: 'POST',

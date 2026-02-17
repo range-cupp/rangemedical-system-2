@@ -125,9 +125,12 @@ const PROTOCOL_CONFIG = {
   },
   vitamin: {
     frequencies: [
-      { value: 'weekly', label: 'Weekly' },
-      { value: '2x_weekly', label: '2x per week' },
-      { value: 'as_needed', label: 'As needed' }
+      { value: 'daily', label: 'Daily' },
+      { value: '5x_weekly', label: '5 times a week' },
+      { value: '4x_weekly', label: '4 times a week' },
+      { value: '3x_weekly', label: '3 times a week' },
+      { value: '2x_weekly', label: '2 times a week' },
+      { value: 'weekly', label: '1 time a week' }
     ]
   },
   iv_therapy: {

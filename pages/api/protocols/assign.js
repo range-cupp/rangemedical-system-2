@@ -516,10 +516,24 @@ export default async function handler(req, res) {
 
     // ============================================
     // SEND PEPTIDE GUIDE SMS (recovery peptides only)
+    // Skip if patient has already received the guide before (any previous protocol)
     // ============================================
     let peptideGuideSent = false;
     if (programType === 'peptide' && isRecoveryPeptide(medicationName) && finalGhlContactId) {
       try {
+        // Check if this patient has already received the peptide guide
+        const { data: existingGuide } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', finalPatientId)
+          .eq('log_type', 'peptide_guide_sent')
+          .limit(1);
+
+        if (existingGuide && existingGuide.length > 0) {
+          console.log('Peptide guide already sent to patient', finalPatientId, '- skipping');
+          peptideGuideSent = false;
+        } else {
+
         // Look up patient first name
         const { data: patientData } = await supabase
           .from('patients')
@@ -571,6 +585,8 @@ export default async function handler(req, res) {
           console.error('Peptide guide SMS error:', smsData);
           await logComm({ channel: 'sms', messageType: 'peptide_guide_sent', message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: smsData?.message || 'SMS failed' });
         }
+
+        } // end else (guide not previously sent)
       } catch (guideError) {
         console.error('Peptide guide SMS error (non-fatal):', guideError);
       }

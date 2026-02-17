@@ -154,6 +154,16 @@ const FREQUENCY_OPTIONS = [
   { value: 'PRN', label: 'PRN (as needed)' },
 ];
 
+// Vitamin/Injection frequency options
+const VITAMIN_FREQUENCY_OPTIONS = [
+  { value: 'Daily', label: 'Daily' },
+  { value: '5x per week', label: '5 times a week' },
+  { value: '4x per week', label: '4 times a week' },
+  { value: '3x per week', label: '3 times a week' },
+  { value: '2x per week', label: '2 times a week' },
+  { value: 'Weekly', label: '1 time a week' },
+];
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -2930,7 +2940,7 @@ export default function CommandCenter() {
                     style={styles.formSelect}
                   >
                     <option value="">Select frequency...</option>
-                    {FREQUENCY_OPTIONS.map(opt => (
+                    {(isInjectionTemplate() ? VITAMIN_FREQUENCY_OPTIONS : FREQUENCY_OPTIONS).map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>

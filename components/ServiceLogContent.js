@@ -205,6 +205,10 @@ export default function ServiceLogContent() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Protocol selection state (for services with multiple active protocols)
+  const [selectedProtocolId, setSelectedProtocolId] = useState(null);
+  const [availableProtocols, setAvailableProtocols] = useState([]);
+
   // Load data
   useEffect(() => {
     fetchLogs();
@@ -315,6 +319,8 @@ export default function ServiceLogContent() {
     setPatientProtocols([]);
     setVisitItems([]);
     setCurrentServiceType(null);
+    setSelectedProtocolId(null);
+    setAvailableProtocols([]);
   };
 
   const resetFormData = () => {
@@ -338,6 +344,8 @@ export default function ServiceLogContent() {
       deliveryMethod: 'take_home'
     });
     setShowProtocolForm(false);
+    setSelectedProtocolId(null);
+    setAvailableProtocols([]);
   };
 
   const selectPatient = (patient) => {
@@ -362,39 +370,61 @@ export default function ServiceLogContent() {
     setCurrentServiceType(serviceType);
 
     const protocol = getProtocolForService(serviceType.id);
-    setShowProtocolForm(!protocol);
 
-    if (serviceType.id === 'weight_loss') {
-      setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Semaglutide', dosage: protocol?.selected_dose || '' }));
+    if (serviceType.id === 'vitamin') {
+      // Vitamin: handle multiple active protocols (e.g. B12 12-pack + NAD+ 12-pack)
+      const protocols = getProtocolsForService(serviceType.id);
+      setAvailableProtocols(protocols);
       setEntryType('injection');
       setProtocolData(prev => ({ ...prev, frequency: 'weekly' }));
-    } else if (serviceType.id === 'iv_therapy') {
-      setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Energy IV' }));
-      setEntryType('session');
-      setProtocolData(prev => ({ ...prev, frequency: 'as_scheduled', totalSessions: '1' }));
-    } else if (serviceType.id === 'hbot') {
-      setFormData(prev => ({ ...prev, medication: 'HBOT Session' }));
-      setEntryType('session');
-      setProtocolData(prev => ({ ...prev, frequency: 'as_scheduled', totalSessions: '1' }));
-    } else if (serviceType.id === 'red_light') {
-      setFormData(prev => ({ ...prev, medication: 'Red Light Session', duration: 20 }));
-      setEntryType('session');
-      setProtocolData(prev => ({ ...prev, frequency: 'as_scheduled', totalSessions: '1' }));
-    } else if (serviceType.id === 'vitamin') {
-      setEntryType('injection');
-      setProtocolData(prev => ({ ...prev, frequency: 'weekly' }));
-    } else if (serviceType.id === 'peptide') {
-      // Auto-fill from protocol if exists, default to med_pickup for take-home
-      if (protocol) {
-        setFormData(prev => ({ ...prev, medication: protocol.medication || '', dosage: protocol.selected_dose || '' }));
-        setEntryType(protocol.delivery_method === 'take_home' ? 'med_pickup' : 'injection');
+
+      if (protocols.length === 1) {
+        // Single protocol — auto-select it
+        setSelectedProtocolId(protocols[0].id);
+        setShowProtocolForm(false);
+      } else if (protocols.length > 1) {
+        // Multiple protocols — show selector, don't auto-link
+        setSelectedProtocolId(null);
+        setShowProtocolForm(false);
       } else {
-        setEntryType('injection');
+        // No protocols — show protocol creation form
+        setSelectedProtocolId(null);
+        setShowProtocolForm(true);
       }
-      setProtocolData(prev => ({ ...prev, frequency: 'daily', duration: '30' }));
-    } else if (serviceType.id === 'testosterone') {
-      setEntryType(protocol?.delivery_method === 'take_home' ? 'pickup' : 'injection');
-      setProtocolData(prev => ({ ...prev, frequency: '2x_weekly', supplyType: 'prefilled' }));
+    } else {
+      setShowProtocolForm(!protocol);
+      setSelectedProtocolId(null);
+      setAvailableProtocols([]);
+
+      if (serviceType.id === 'weight_loss') {
+        setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Semaglutide', dosage: protocol?.selected_dose || '' }));
+        setEntryType('injection');
+        setProtocolData(prev => ({ ...prev, frequency: 'weekly' }));
+      } else if (serviceType.id === 'iv_therapy') {
+        setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Energy IV' }));
+        setEntryType('session');
+        setProtocolData(prev => ({ ...prev, frequency: 'as_scheduled', totalSessions: '1' }));
+      } else if (serviceType.id === 'hbot') {
+        setFormData(prev => ({ ...prev, medication: 'HBOT Session' }));
+        setEntryType('session');
+        setProtocolData(prev => ({ ...prev, frequency: 'as_scheduled', totalSessions: '1' }));
+      } else if (serviceType.id === 'red_light') {
+        setFormData(prev => ({ ...prev, medication: 'Red Light Session', duration: 20 }));
+        setEntryType('session');
+        setProtocolData(prev => ({ ...prev, frequency: 'as_scheduled', totalSessions: '1' }));
+      } else if (serviceType.id === 'peptide') {
+        // Auto-fill from protocol if exists, default to med_pickup for take-home
+        if (protocol) {
+          setFormData(prev => ({ ...prev, medication: protocol.medication || '', dosage: protocol.selected_dose || '' }));
+          setEntryType(protocol.delivery_method === 'take_home' ? 'med_pickup' : 'injection');
+        } else {
+          setEntryType('injection');
+        }
+        setProtocolData(prev => ({ ...prev, frequency: 'daily', duration: '30' }));
+      } else if (serviceType.id === 'testosterone') {
+        setEntryType(protocol?.delivery_method === 'take_home' ? 'pickup' : 'injection');
+        setProtocolData(prev => ({ ...prev, frequency: '2x_weekly', supplyType: 'prefilled' }));
+      }
     }
   };
 
@@ -407,7 +437,8 @@ export default function ServiceLogContent() {
       entryType,
       formData: { ...formData },
       protocolData: showProtocolForm ? { ...protocolData } : null,
-      createProtocol: showProtocolForm
+      createProtocol: showProtocolForm,
+      protocolId: selectedProtocolId || null
     };
 
     setVisitItems([...visitItems, item]);
@@ -425,6 +456,11 @@ export default function ServiceLogContent() {
     return patientProtocols.find(p => p.program_type === programType);
   };
 
+  const getProtocolsForService = (serviceId) => {
+    const programType = SERVICE_TYPES.find(s => s.id === serviceId)?.programType;
+    return patientProtocols.filter(p => p.program_type === programType);
+  };
+
   const handleSubmitVisit = async () => {
     if (!selectedPatient || visitItems.length === 0) return;
 
@@ -439,7 +475,8 @@ export default function ServiceLogContent() {
           category: item.serviceType.id,
           entry_type: item.entryType,
           entry_date: visitDate,
-          notes: item.formData.notes || null
+          notes: item.formData.notes || null,
+          protocol_id: item.protocolId || null
         };
 
         if (item.serviceType.id === 'testosterone') {
@@ -978,7 +1015,7 @@ export default function ServiceLogContent() {
                 {!currentServiceType ? (
                   <div style={slcStyles.serviceGrid}>
                     {SERVICE_TYPES.map(st => {
-                      const protocol = getProtocolForService(st.id);
+                      const protocols = getProtocolsForService(st.id);
                       return (
                         <button
                           key={st.id}
@@ -987,11 +1024,15 @@ export default function ServiceLogContent() {
                         >
                           <span style={slcStyles.serviceIcon}>{st.icon}</span>
                           <span style={slcStyles.serviceName}>{st.label}</span>
-                          {protocol ? (
+                          {protocols.length > 1 ? (
+                            <span style={slcStyles.serviceProtocolActive}>
+                              ✓ {protocols.length} active protocols
+                            </span>
+                          ) : protocols.length === 1 ? (
                             <span style={slcStyles.serviceProtocolActive}>
                               ✓ Active protocol
-                              {protocol.total_sessions > 0 &&
-                                ` (${protocol.total_sessions - (protocol.sessions_used || 0)} left)`
+                              {protocols[0].total_sessions > 0 &&
+                                ` (${protocols[0].total_sessions - (protocols[0].sessions_used || 0)} left)`
                               }
                             </span>
                           ) : (
@@ -1233,11 +1274,72 @@ export default function ServiceLogContent() {
                     {/* === VITAMINS === */}
                     {currentServiceType.id === 'vitamin' && (
                       <>
+                        {/* Protocol selector when patient has 2+ vitamin protocols */}
+                        {availableProtocols.length > 1 && (
+                          <div style={slcStyles.formGroup}>
+                            <label style={slcStyles.label}>Link to Protocol</label>
+                            <select
+                              value={selectedProtocolId || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '__new__') {
+                                  setSelectedProtocolId(null);
+                                  setShowProtocolForm(true);
+                                } else if (val) {
+                                  setSelectedProtocolId(val);
+                                  setShowProtocolForm(false);
+                                } else {
+                                  setSelectedProtocolId(null);
+                                  setShowProtocolForm(false);
+                                }
+                              }}
+                              style={slcStyles.select}
+                            >
+                              <option value="">Select protocol...</option>
+                              {availableProtocols.map(p => {
+                                const remaining = (p.total_sessions || 0) - (p.sessions_used || 0);
+                                const name = p.program_name || p.medication || 'Vitamin Protocol';
+                                return (
+                                  <option key={p.id} value={p.id}>
+                                    {name}{p.total_sessions > 0 ? ` (${remaining} of ${p.total_sessions} remaining)` : ''}
+                                  </option>
+                                );
+                              })}
+                              <option value="__new__">+ New protocol</option>
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Single protocol indicator */}
+                        {availableProtocols.length === 1 && (
+                          <div style={{ padding: '8px 12px', background: '#F0FDF4', borderRadius: '6px', fontSize: '13px', color: '#166534', marginBottom: '12px' }}>
+                            Linked to: <strong>{availableProtocols[0].program_name || availableProtocols[0].medication || 'Vitamin Protocol'}</strong>
+                            {availableProtocols[0].total_sessions > 0 &&
+                              ` (${availableProtocols[0].total_sessions - (availableProtocols[0].sessions_used || 0)} of ${availableProtocols[0].total_sessions} remaining)`
+                            }
+                          </div>
+                        )}
+
                         <div style={slcStyles.formGroup}>
                           <label style={slcStyles.label}>Injection</label>
                           <select
                             value={formData.medication}
-                            onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
+                            onChange={(e) => {
+                              const med = e.target.value;
+                              setFormData(prev => ({ ...prev, medication: med }));
+                              // Auto-match protocol by medication name when multiple protocols exist
+                              if (availableProtocols.length > 1 && med) {
+                                const medLower = med.toLowerCase();
+                                const match = availableProtocols.find(p => {
+                                  const pMed = (p.medication || p.program_name || '').toLowerCase();
+                                  return pMed.includes(medLower) || medLower.includes(pMed);
+                                });
+                                if (match) {
+                                  setSelectedProtocolId(match.id);
+                                  setShowProtocolForm(false);
+                                }
+                              }
+                            }}
                             style={slcStyles.select}
                           >
                             <option value="">Select injection...</option>

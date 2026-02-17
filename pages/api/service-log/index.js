@@ -198,7 +198,8 @@ async function handlePost(req, res) {
     quantity,
     supply_type,
     duration,
-    notes
+    notes,
+    protocol_id // optional: link to a specific protocol (e.g. when patient has multiple vitamin protocols)
   } = req.body;
 
   if (!patient_id || !category) {
@@ -251,7 +252,7 @@ async function handlePost(req, res) {
     if (logError) throw logError;
 
     // 2. Check for active package and decrement if found
-    const packageUpdate = await checkAndDecrementPackage(patient_id, category, entry_type);
+    const packageUpdate = await checkAndDecrementPackage(patient_id, category, entry_type, protocol_id);
 
     // 3. Update or create protocol based on entry type
     let protocolUpdate = { updated: false };
@@ -261,7 +262,7 @@ async function handlePost(req, res) {
       protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage);
     } else if (entry_type === 'injection' || entry_type === 'session') {
       // For injections/sessions, increment session count and update medication details
-      protocolUpdate = await incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage);
+      protocolUpdate = await incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage, protocol_id);
     }
 
     return res.status(200).json({
@@ -378,22 +379,38 @@ async function handleDelete(req, res) {
 // PACKAGE CHECKING & DECREMENTING
 // ============================================
 
-async function checkAndDecrementPackage(patient_id, category, entry_type) {
+async function checkAndDecrementPackage(patient_id, category, entry_type, protocol_id = null) {
   const programType = CATEGORY_TO_PROGRAM_TYPE[category];
   if (!programType) {
     return { no_package: true, reason: 'Category not trackable' };
   }
 
   try {
-    // Find active package/protocol with remaining sessions
-    const { data: protocols, error } = await supabase
-      .from('protocols')
-      .select('id, program_type, program_name, total_sessions, sessions_used, status')
-      .eq('patient_id', patient_id)
-      .eq('program_type', programType)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1);
+    let protocols, error;
+
+    if (protocol_id) {
+      // Fetch the specific protocol by ID
+      const result = await supabase
+        .from('protocols')
+        .select('id, program_type, program_name, total_sessions, sessions_used, status')
+        .eq('id', protocol_id)
+        .eq('status', 'active')
+        .limit(1);
+      protocols = result.data;
+      error = result.error;
+    } else {
+      // Find active package/protocol by program_type (original behavior)
+      const result = await supabase
+        .from('protocols')
+        .select('id, program_type, program_name, total_sessions, sessions_used, status')
+        .eq('patient_id', patient_id)
+        .eq('program_type', programType)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      protocols = result.data;
+      error = result.error;
+    }
 
     if (error) {
       console.error('Error checking packages:', error);
@@ -554,21 +571,37 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
   }
 }
 
-async function incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage) {
+async function incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage, protocol_id = null) {
   const programType = CATEGORY_TO_PROGRAM_TYPE[category];
   if (!programType) {
     return { updated: false, reason: 'Category not trackable' };
   }
 
   try {
-    // Find active protocol
-    const { data: protocols, error: findError } = await supabase
-      .from('protocols')
-      .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type')
-      .eq('patient_id', patient_id)
-      .eq('program_type', programType)
-      .eq('status', 'active')
-      .limit(1);
+    let protocols, findError;
+
+    if (protocol_id) {
+      // Fetch the specific protocol by ID
+      const result = await supabase
+        .from('protocols')
+        .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type')
+        .eq('id', protocol_id)
+        .eq('status', 'active')
+        .limit(1);
+      protocols = result.data;
+      findError = result.error;
+    } else {
+      // Find active protocol by program_type (original behavior)
+      const result = await supabase
+        .from('protocols')
+        .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type')
+        .eq('patient_id', patient_id)
+        .eq('program_type', programType)
+        .eq('status', 'active')
+        .limit(1);
+      protocols = result.data;
+      findError = result.error;
+    }
 
     if (findError) {
       console.error('Error finding protocol:', findError);
@@ -614,11 +647,13 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     }
 
     // Also update medication and dosage if provided
-    if (medication) {
+    // Skip overwriting medication/program_name when protocol_id was explicitly provided,
+    // since the protocol already has the correct medication set
+    if (medication && !protocol_id) {
       updateData.medication = medication;
       updateData.program_name = medication;
     }
-    if (dosage) {
+    if (dosage && !protocol_id) {
       updateData.selected_dose = dosage;
     }
 

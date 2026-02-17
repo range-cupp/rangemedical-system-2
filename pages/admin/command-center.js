@@ -414,6 +414,10 @@ export default function CommandCenter() {
   const [existingWLProtocol, setExistingWLProtocol] = useState(null);
   const [extendExistingWL, setExtendExistingWL] = useState(false);
 
+  // Add sessions to existing protocol state (for Vitamins/Injections)
+  const [existingVitaminProtocols, setExistingVitaminProtocols] = useState([]);
+  const [addToExistingVitamin, setAddToExistingVitamin] = useState(null);
+
   // Peptide cycle tracking state (keyed by cycle type: recovery or gh)
   const [peptideCycleInfo, setPeptideCycleInfo] = useState({});
 
@@ -776,8 +780,16 @@ export default function CommandCenter() {
     setExistingWLProtocol(extendableWLProtocol || null);
     setExtendExistingWL(false);
 
+    // Check for existing vitamin/injection protocols
+    const activeVitaminProtocols = patientProtocols.filter(p =>
+      p.program_type === 'vitamin' && p.status === 'active'
+    );
+    setExistingVitaminProtocols(activeVitaminProtocols);
+    setAddToExistingVitamin(null);
+
     console.log('Patient protocols found:', patientProtocols.length);
     console.log('Extendable WL protocol:', extendableWLProtocol?.id);
+    console.log('Active vitamin protocols:', activeVitaminProtocols.length);
 
     setAssignForm({
       templateId: '',
@@ -1128,8 +1140,25 @@ export default function CommandCenter() {
     try {
       let res;
 
-      // If adding to existing HRT protocol
-      if (addToExistingProtocol) {
+      // If adding sessions to existing vitamin protocol
+      if (addToExistingVitamin) {
+        // Get purchase quantity to determine how many sessions to add
+        const purchaseItem = (assignForm.purchaseItem || '').toLowerCase();
+        let sessionsToAdd = 12; // default
+        const packMatch = purchaseItem.match(/(\d+)\s*[-]?\s*pack/i);
+        if (packMatch) sessionsToAdd = parseInt(packMatch[1]);
+
+        res = await fetch(`/api/protocols/${addToExistingVitamin}/add-sessions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionsToAdd,
+            purchaseId: assignForm.purchaseId || null,
+            notes: assignForm.notes || null
+          })
+        });
+      } else if (addToExistingProtocol) {
+        // If adding to existing HRT protocol
         res = await fetch(`/api/protocols/${addToExistingProtocol}/add-supply`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1193,8 +1222,8 @@ export default function CommandCenter() {
       }
 
       if (res.ok) {
-        // Log first visit if enabled and this is a new protocol (not extend/add-supply)
-        const isNewProtocol = !addToExistingProtocol && !extendExistingWL;
+        // Log first visit if enabled and this is a new protocol (not extend/add-supply/add-sessions)
+        const isNewProtocol = !addToExistingProtocol && !extendExistingWL && !addToExistingVitamin;
         if (logFirstVisit && isNewProtocol && !isLabsTemplate()) {
           try {
             const servicePayload = buildServiceLogPayload();
@@ -1284,6 +1313,8 @@ export default function CommandCenter() {
         setAddToExistingProtocol(null);
         setExtendExistingWL(false);
         setExistingWLProtocol(null);
+        setAddToExistingVitamin(null);
+        setExistingVitaminProtocols([]);
         // Refresh data in background
         fetchPatientDetails(selectedPatient.id);
         fetchData();
@@ -2486,6 +2517,48 @@ export default function CommandCenter() {
                     <strong>Continuing protocol:</strong> Update medication/dose below if needed. Protocol will be extended by 28 days (4 weeks).
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Add sessions to existing Vitamin/Injection protocol option */}
+            {isInjectionTemplate() && existingVitaminProtocols.length > 0 && (
+              <div style={{ padding: '16px 24px', background: '#F0FDF4', borderBottom: '1px solid #E5E5E5' }}>
+                <label style={{ ...styles.formLabel, marginBottom: '12px', display: 'block' }}>
+                  This patient has active vitamin protocol(s). Would you like to:
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="vitaminAction"
+                      checked={addToExistingVitamin === null}
+                      onChange={() => setAddToExistingVitamin(null)}
+                    />
+                    <span style={{ fontSize: '14px' }}>Create new protocol</span>
+                  </label>
+                  {existingVitaminProtocols.map(protocol => {
+                    const remaining = (protocol.total_sessions || 0) - (protocol.sessions_used || 0);
+                    const name = protocol.program_name || protocol.medication || 'Vitamin Protocol';
+                    return (
+                      <label key={protocol.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name="vitaminAction"
+                          checked={addToExistingVitamin === protocol.id}
+                          onChange={() => setAddToExistingVitamin(protocol.id)}
+                        />
+                        <span style={{ fontSize: '14px' }}>
+                          Add sessions to: <strong>{name}</strong>
+                          {protocol.total_sessions > 0 && (
+                            <span style={{ color: '#6B7280', marginLeft: '4px' }}>
+                              ({protocol.sessions_used || 0} of {protocol.total_sessions} used, {remaining} remaining)
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

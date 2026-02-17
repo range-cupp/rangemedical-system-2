@@ -10,14 +10,37 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'DELETE') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   const { id: protocolId, logId } = req.query;
 
   if (!protocolId || !logId) {
     return res.status(400).json({ error: 'Protocol ID and Log ID required' });
+  }
+
+  // PUT - Update log_date on an existing log entry
+  if (req.method === 'PUT') {
+    const { log_date } = req.body;
+    if (!log_date) {
+      return res.status(400).json({ error: 'log_date is required' });
+    }
+    try {
+      const { data, error } = await supabase
+        .from('protocol_logs')
+        .update({ log_date })
+        .eq('id', logId)
+        .eq('protocol_id', protocolId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error('Error updating log:', error);
+      return res.status(500).json({ error: error.message || 'Server error' });
+    }
+  }
+
+  if (req.method !== 'DELETE') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {

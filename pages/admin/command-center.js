@@ -571,32 +571,56 @@ export default function CommandCenter() {
     }
   };
 
-  // Blood draw logging state & handler
+  // Blood draw logging state & handlers
+  const [editingDrawLabel, setEditingDrawLabel] = useState(null);
+  const [editingDrawDate, setEditingDrawDate] = useState('');
   const [savingDrawLabel, setSavingDrawLabel] = useState(null);
 
-  const logBloodDraw = async (draw) => {
+  const logBloodDraw = (draw) => {
+    setEditingDrawLabel(draw.label);
+    setEditingDrawDate(draw.completedDate || new Date().toISOString().split('T')[0]);
+  };
+
+  const cancelEditDraw = () => {
+    setEditingDrawLabel(null);
+    setEditingDrawDate('');
+  };
+
+  const saveBloodDraw = async (draw) => {
     const proto = protocolDetailPanel.protocol;
     if (!proto) return;
     setSavingDrawLabel(draw.label);
     try {
-      const res = await fetch(`/api/protocols/${proto.id}/logs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: proto.patient_id,
-          log_date: new Date().toISOString().split('T')[0],
-          log_type: 'blood_draw',
-          notes: draw.label
-        })
-      });
+      let res;
+      if (draw.logId) {
+        // Update existing log date
+        res = await fetch(`/api/protocols/${proto.id}/logs/${draw.logId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ log_date: editingDrawDate })
+        });
+      } else {
+        // Create new blood draw log
+        res = await fetch(`/api/protocols/${proto.id}/logs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: proto.patient_id,
+            log_date: editingDrawDate,
+            log_type: 'blood_draw',
+            notes: draw.label
+          })
+        });
+      }
       const data = await res.json();
       if (data.error) {
-        alert('Error logging blood draw: ' + data.error);
+        alert('Error saving blood draw: ' + data.error);
       } else {
+        cancelEditDraw();
         openProtocolDetail(proto);
       }
     } catch (err) {
-      alert('Error logging blood draw: ' + err.message);
+      alert('Error saving blood draw: ' + err.message);
     }
     setSavingDrawLabel(null);
   };
@@ -1969,7 +1993,36 @@ export default function CommandCenter() {
                               <div style={{ flex: 1, paddingBottom: isLast ? '0' : '16px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                                   <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{draw.label}</span>
-                                  {draw.status === 'completed' ? (
+                                  {editingDrawLabel === draw.label ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <input
+                                        type="date"
+                                        value={editingDrawDate}
+                                        onChange={e => setEditingDrawDate(e.target.value)}
+                                        style={{
+                                          fontSize: '12px', padding: '2px 6px', borderRadius: '6px',
+                                          border: '1px solid #d1d5db', outline: 'none'
+                                        }}
+                                      />
+                                      <button
+                                        onClick={() => saveBloodDraw(draw)}
+                                        disabled={savingDrawLabel === draw.label}
+                                        style={{
+                                          fontSize: '11px', fontWeight: '600', padding: '2px 10px',
+                                          borderRadius: '10px', border: 'none',
+                                          background: '#22c55e', color: '#fff',
+                                          cursor: savingDrawLabel === draw.label ? 'not-allowed' : 'pointer',
+                                          opacity: savingDrawLabel === draw.label ? 0.6 : 1
+                                        }}
+                                      >
+                                        {savingDrawLabel === draw.label ? 'Saving...' : 'Save'}
+                                      </button>
+                                      <span
+                                        onClick={cancelEditDraw}
+                                        style={{ fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}
+                                      >Cancel</span>
+                                    </div>
+                                  ) : draw.status === 'completed' ? (
                                     <span style={{
                                       fontSize: '11px', fontWeight: '600', padding: '2px 8px',
                                       borderRadius: '10px', background: '#dcfce7', color: '#22c55e',
@@ -1986,25 +2039,27 @@ export default function CommandCenter() {
                                       )}
                                       <button
                                         onClick={() => logBloodDraw(draw)}
-                                        disabled={savingDrawLabel === draw.label}
                                         style={{
                                           fontSize: '11px', fontWeight: '600', padding: '2px 10px',
                                           borderRadius: '10px', border: '1px solid #22c55e',
                                           background: draw.status === 'overdue' ? '#22c55e' : '#fff',
                                           color: draw.status === 'overdue' ? '#fff' : '#22c55e',
-                                          cursor: savingDrawLabel === draw.label ? 'not-allowed' : 'pointer',
-                                          opacity: savingDrawLabel === draw.label ? 0.6 : 1
+                                          cursor: 'pointer'
                                         }}
                                       >
-                                        {savingDrawLabel === draw.label ? 'Saving...' : 'Mark Done'}
+                                        Mark Done
                                       </button>
                                     </>
                                   )}
                                 </div>
                                 <div style={{ fontSize: '13px', color: '#6b7280' }}>
                                   {draw.weekLabel}
-                                  {draw.completedDate && (
-                                    <span style={{ color: '#22c55e', marginLeft: '8px' }}>
+                                  {draw.completedDate && editingDrawLabel !== draw.label && (
+                                    <span
+                                      onClick={() => logBloodDraw(draw)}
+                                      style={{ color: '#22c55e', marginLeft: '8px', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+                                      title="Click to edit date"
+                                    >
                                       — Completed {formatDate(draw.completedDate)}
                                     </span>
                                   )}

@@ -7,6 +7,7 @@ import Head from 'next/head';
 import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
 import { formatCategoryName } from '../../lib/protocol-config';
+import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 
 // ============================================
 // CONSTANTS
@@ -444,6 +445,7 @@ export default function CommandCenter() {
     weightCheckins: [],
     activityLogs: [],
     weightProgress: null,
+    labSchedule: [],
     loading: false
   });
 
@@ -527,6 +529,7 @@ export default function CommandCenter() {
       weightCheckins: [],
       activityLogs: [],
       weightProgress: null,
+      labSchedule: [],
       loading: true
     });
 
@@ -534,12 +537,31 @@ export default function CommandCenter() {
       const res = await fetch(`/api/protocols/${protocol.id}`);
       const result = await res.json();
       if (result.success) {
+        // Compute HRT lab schedule if applicable
+        let labSchedule = [];
+        const proto = result.protocol;
+        if (isHRTProtocol(proto.program_type) && proto.start_date) {
+          const bloodDrawLogs = (result.activityLogs || []).filter(l => l.log_type === 'blood_draw');
+          // Fetch patient labs if possible
+          let patientLabs = [];
+          if (proto.patient_id) {
+            try {
+              const labsRes = await fetch(`/api/patients/${proto.patient_id}`);
+              const labsData = await labsRes.json();
+              patientLabs = labsData.labs || [];
+            } catch {}
+          }
+          const schedule = getHRTLabSchedule(proto.start_date);
+          labSchedule = matchDrawsToLogs(schedule, bloodDrawLogs, patientLabs);
+        }
+
         setProtocolDetailPanel(prev => ({
           ...prev,
-          protocol: result.protocol,
+          protocol: proto,
           weightCheckins: result.weightCheckins || [],
           activityLogs: result.activityLogs || [],
           weightProgress: result.weightProgress,
+          labSchedule,
           loading: false
         }));
       }
@@ -549,6 +571,36 @@ export default function CommandCenter() {
     }
   };
 
+  // Blood draw logging state & handler
+  const [savingDrawLabel, setSavingDrawLabel] = useState(null);
+
+  const logBloodDraw = async (draw) => {
+    const proto = protocolDetailPanel.protocol;
+    if (!proto) return;
+    setSavingDrawLabel(draw.label);
+    try {
+      const res = await fetch(`/api/protocols/${proto.id}/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: proto.patient_id,
+          log_date: new Date().toISOString().split('T')[0],
+          log_type: 'blood_draw',
+          notes: draw.label
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert('Error logging blood draw: ' + data.error);
+      } else {
+        openProtocolDetail(proto);
+      }
+    } catch (err) {
+      alert('Error logging blood draw: ' + err.message);
+    }
+    setSavingDrawLabel(null);
+  };
+
   const closeProtocolDetail = () => {
     setProtocolDetailPanel({
       open: false,
@@ -556,6 +608,7 @@ export default function CommandCenter() {
       weightCheckins: [],
       activityLogs: [],
       weightProgress: null,
+      labSchedule: [],
       loading: false
     });
   };
@@ -1887,6 +1940,82 @@ export default function CommandCenter() {
                       )}
                     </div>
                   </div>
+
+                  {/* HRT Lab Draw Schedule */}
+                  {protocolDetailPanel.labSchedule.length > 0 && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>Lab Draw Schedule</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                        {protocolDetailPanel.labSchedule.map((draw, idx) => {
+                          const isLast = idx === protocolDetailPanel.labSchedule.length - 1;
+                          const statusColor = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
+                          const statusBg = draw.status === 'completed' ? '#dcfce7' : draw.status === 'overdue' ? '#fee2e2' : '#f3f4f6';
+                          return (
+                            <div key={draw.label} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
+                                <div style={{
+                                  width: '12px', height: '12px', borderRadius: '50%',
+                                  background: statusColor, border: '2px solid #fff',
+                                  boxShadow: `0 0 0 2px ${statusColor}`, flexShrink: 0, marginTop: '4px'
+                                }}>
+                                  {draw.status === 'completed' && (
+                                    <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>✓</span>
+                                  )}
+                                </div>
+                                {!isLast && (
+                                  <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '32px' }} />
+                                )}
+                              </div>
+                              <div style={{ flex: 1, paddingBottom: isLast ? '0' : '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{draw.label}</span>
+                                  {draw.status === 'completed' ? (
+                                    <span style={{
+                                      fontSize: '11px', fontWeight: '600', padding: '2px 8px',
+                                      borderRadius: '10px', background: '#dcfce7', color: '#22c55e',
+                                      textTransform: 'uppercase'
+                                    }}>✓ Done</span>
+                                  ) : (
+                                    <>
+                                      {draw.status === 'overdue' && (
+                                        <span style={{
+                                          fontSize: '11px', fontWeight: '600', padding: '2px 8px',
+                                          borderRadius: '10px', background: '#fee2e2', color: '#dc2626',
+                                          textTransform: 'uppercase'
+                                        }}>Overdue</span>
+                                      )}
+                                      <button
+                                        onClick={() => logBloodDraw(draw)}
+                                        disabled={savingDrawLabel === draw.label}
+                                        style={{
+                                          fontSize: '11px', fontWeight: '600', padding: '2px 10px',
+                                          borderRadius: '10px', border: '1px solid #22c55e',
+                                          background: draw.status === 'overdue' ? '#22c55e' : '#fff',
+                                          color: draw.status === 'overdue' ? '#fff' : '#22c55e',
+                                          cursor: savingDrawLabel === draw.label ? 'not-allowed' : 'pointer',
+                                          opacity: savingDrawLabel === draw.label ? 0.6 : 1
+                                        }}
+                                      >
+                                        {savingDrawLabel === draw.label ? 'Saving...' : 'Mark Done'}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                                  {draw.weekLabel}
+                                  {draw.completedDate && (
+                                    <span style={{ color: '#22c55e', marginLeft: '8px' }}>
+                                      — Completed {formatDate(draw.completedDate)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Peptide Cycle Progress (Recovery or GH) */}
                   {protocolDetailPanel.protocol.cycle_start_date && getCycleType(protocolDetailPanel.protocol.medication) && (

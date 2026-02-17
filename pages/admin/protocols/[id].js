@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 
 // Protocol Types
 const PROTOCOL_TYPES = {
@@ -175,6 +176,7 @@ export default function ProtocolDetail() {
   const [success, setSuccess] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({});
+  const [labSchedule, setLabSchedule] = useState([]);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -205,10 +207,42 @@ export default function ProtocolDetail() {
         status: p.status || 'active',
         notes: p.notes || ''
       });
+
+      // Fetch blood draw schedule for HRT protocols
+      if (isHRTProtocol(p.program_type) && p.start_date) {
+        fetchLabSchedule(p);
+      } else {
+        setLabSchedule([]);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLabSchedule = async (p) => {
+    try {
+      const res = await fetch(`/api/protocols/${p.id}`);
+      const data = await res.json();
+      const logs = (data.activityLogs || []).filter(l => l.log_type === 'blood_draw');
+
+      // Fetch labs for this patient
+      let patientLabs = [];
+      if (p.patient_id) {
+        const labsRes = await fetch(`/api/patients/${p.patient_id}`);
+        const labsData = await labsRes.json();
+        patientLabs = labsData.labs || [];
+      }
+
+      const schedule = getHRTLabSchedule(p.start_date);
+      const matched = matchDrawsToLogs(schedule, logs, patientLabs);
+      setLabSchedule(matched);
+    } catch (err) {
+      console.error('Error fetching lab schedule:', err);
+      // Still show schedule without completion data
+      const schedule = getHRTLabSchedule(p.start_date);
+      setLabSchedule(schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null })));
     }
   };
 
@@ -688,6 +722,60 @@ export default function ProtocolDetail() {
                     <div style={styles.detailLabel}>End Date</div>
                     <div style={styles.detailValue}>{formatDate(protocol?.end_date)}</div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Blood Draw Schedule (HRT only) */}
+            {!isEditing && labSchedule.length > 0 && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>Blood Draw Schedule</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                  {labSchedule.map((draw, idx) => {
+                    const isLast = idx === labSchedule.length - 1;
+                    const statusColor = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
+                    const statusBg = draw.status === 'completed' ? '#dcfce7' : draw.status === 'overdue' ? '#fee2e2' : '#f3f4f6';
+                    return (
+                      <div key={draw.label} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        {/* Timeline line + dot */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
+                          <div style={{
+                            width: '12px', height: '12px', borderRadius: '50%',
+                            background: statusColor, border: '2px solid #fff',
+                            boxShadow: `0 0 0 2px ${statusColor}`, flexShrink: 0, marginTop: '4px'
+                          }}>
+                            {draw.status === 'completed' && (
+                              <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>✓</span>
+                            )}
+                          </div>
+                          {!isLast && (
+                            <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '32px' }} />
+                          )}
+                        </div>
+                        {/* Content */}
+                        <div style={{ flex: 1, paddingBottom: isLast ? '0' : '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{draw.label}</span>
+                            <span style={{
+                              fontSize: '11px', fontWeight: '600', padding: '2px 8px',
+                              borderRadius: '10px', background: statusBg, color: statusColor,
+                              textTransform: 'uppercase'
+                            }}>
+                              {draw.status === 'completed' ? '✓ Done' : draw.status === 'overdue' ? 'Overdue' : 'Upcoming'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                            {draw.weekLabel}
+                            {draw.completedDate && (
+                              <span style={{ color: '#22c55e', marginLeft: '8px' }}>
+                                — Completed {formatDate(draw.completedDate)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

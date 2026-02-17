@@ -28,6 +28,7 @@ import {
   findMatchingPeptide,
   getDoseOptions
 } from '../../lib/protocol-config';
+import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 
 export default function PatientProfile() {
   const router = useRouter();
@@ -50,6 +51,7 @@ export default function PatientProfile() {
   const [appointments, setAppointments] = useState([]);
   const [weightLossLogs, setWeightLossLogs] = useState([]);
   const [stats, setStats] = useState({});
+  const [hrtLabSchedules, setHrtLabSchedules] = useState({});
 
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
@@ -152,6 +154,26 @@ export default function PatientProfile() {
         setAppointments(data.appointments || []);
         setWeightLossLogs(data.weightLossLogs || []);
         setStats(data.stats || {});
+
+        // Compute HRT lab schedules for active HRT protocols
+        const allProtos = [...(data.activeProtocols || []), ...(data.completedProtocols || [])];
+        const hrtProtos = allProtos.filter(p => isHRTProtocol(p.program_type) && p.start_date);
+        if (hrtProtos.length > 0) {
+          const schedules = {};
+          for (const p of hrtProtos) {
+            try {
+              const protoRes = await fetch(`/api/protocols/${p.id}`);
+              const protoData = await protoRes.json();
+              const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
+              const schedule = getHRTLabSchedule(p.start_date);
+              schedules[p.id] = matchDrawsToLogs(schedule, bloodDrawLogs, data.labs || []);
+            } catch {
+              const schedule = getHRTLabSchedule(p.start_date);
+              schedules[p.id] = schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null }));
+            }
+          }
+          setHrtLabSchedules(schedules);
+        }
       }
     } catch (error) {
       console.error('Error fetching patient:', error);
@@ -824,6 +846,57 @@ export default function PatientProfile() {
                               <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
                             </div>
                           </div>
+
+                          {/* HRT Lab Schedule */}
+                          {isHRTProtocol(protocol.program_type) && hrtLabSchedules[protocol.id]?.length > 0 && (() => {
+                            const schedule = hrtLabSchedules[protocol.id];
+                            const completed = schedule.filter(d => d.status === 'completed').length;
+                            const total = schedule.length;
+                            const nextDraw = schedule.find(d => d.status === 'upcoming' || d.status === 'overdue');
+                            const isLabExpanded = expandedProtocols['lab_' + protocol.id];
+                            return (
+                              <div style={{ marginTop: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                                    Lab Schedule: {completed} of {total} draws completed
+                                  </div>
+                                  <button
+                                    onClick={() => setExpandedProtocols(prev => ({ ...prev, ['lab_' + protocol.id]: !prev['lab_' + protocol.id] }))}
+                                    style={{ fontSize: '12px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                                  >
+                                    {isLabExpanded ? 'Hide' : 'Details'}
+                                  </button>
+                                </div>
+                                {nextDraw && (
+                                  <div style={{ fontSize: '12px', color: nextDraw.status === 'overdue' ? '#dc2626' : '#6b7280', marginTop: '4px' }}>
+                                    {nextDraw.status === 'overdue' ? 'Overdue: ' : 'Next: '}{nextDraw.label} — {nextDraw.weekLabel}
+                                  </div>
+                                )}
+                                {isLabExpanded && (
+                                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    {schedule.map(draw => {
+                                      const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
+                                      return (
+                                        <div key={draw.label} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                                          <span style={{
+                                            width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0
+                                          }} />
+                                          <span style={{ fontWeight: '500', color: '#374151', minWidth: '100px' }}>{draw.label}</span>
+                                          <span style={{ color: '#6b7280' }}>{draw.weekLabel}</span>
+                                          {draw.completedDate && (
+                                            <span style={{ color: '#22c55e', marginLeft: 'auto', fontSize: '12px' }}>✓ {formatShortDate(draw.completedDate)}</span>
+                                          )}
+                                          {draw.status === 'overdue' && !draw.completedDate && (
+                                            <span style={{ color: '#dc2626', marginLeft: 'auto', fontSize: '12px' }}>Overdue</span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
 
                           {/* Weight Loss Progress Panel */}
                           {isWeightLoss && isExpanded && protocolLogs.length > 0 && (

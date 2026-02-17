@@ -52,7 +52,6 @@ export default async function handler(req, res) {
       // Deduct: increment sessions_used (patient is paying for sessions consumed from pack)
       const newUsed = currentUsed + count;
       updateData.sessions_used = newUsed;
-      updateData.injections_completed = newUsed;
 
       // Mark as completed if all sessions are now used
       if (currentTotal > 0 && newUsed >= currentTotal) {

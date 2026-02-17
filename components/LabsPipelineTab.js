@@ -2,7 +2,7 @@
 // Labs Pipeline Tab - Protocol-based lab tracking with 5 stages
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-02-16 - Rebuilt as protocol-based system with 5 stages
+// UPDATED: 2026-02-17 - Added pre-consult summary (Prep button)
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -222,11 +222,85 @@ export default function LabsPipelineTab() {
 // Lab Card Component
 function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const patient = protocol.patients;
   const patientName = patient?.name || (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : 'Unknown');
   const panelType = protocol.medication || 'Essential';
   const labType = protocol.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
   const panelColor = panelType === 'Elite' ? { bg: '#fdf2f8', text: '#9d174d' } : { bg: '#f0f9ff', text: '#0369a1' };
+
+  const fetchSummary = async () => {
+    if (!patient?.id) return;
+    setSummaryLoading(true);
+    try {
+      const res = await fetch(`/api/admin/labs-pipeline?action=summary&patientId=${patient.id}`);
+      const json = await res.json();
+      if (json.success) {
+        setSummaryData(json.noIntake ? { noIntake: true } : json.summary);
+      }
+    } catch (err) {
+      console.error('Error fetching summary:', err);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handlePrep = () => {
+    if (showSummary) {
+      setShowSummary(false);
+      return;
+    }
+    if (!summaryData) {
+      fetchSummary();
+    }
+    setShowSummary(true);
+  };
+
+  const formatDOB = (dob) => {
+    if (!dob) return '-';
+    const [y, m, d] = dob.split('-');
+    return `${m}/${d}/${y}`;
+  };
+
+  const formatVisitDate = (dateStr) => {
+    if (!dateStr) return null;
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const buildCopyText = (s) => {
+    let text = 'PRE-CONSULT SUMMARY\n';
+    text += `Name: ${s.name}\n`;
+    text += `DOB: ${formatDOB(s.dob)}\n`;
+    if (s.lastVisitDate) text += `Last Visit: ${formatVisitDate(s.lastVisitDate)}\n`;
+    if (s.reasonForVisit) text += `Reason: ${s.reasonForVisit}\n`;
+    text += '\n';
+    text += `Diagnoses: ${s.diagnoses.length > 0 ? s.diagnoses.join(', ') : 'None reported'}\n`;
+    text += `Medications: ${s.medications || 'None reported'}\n`;
+    text += `Allergies: ${s.allergies || 'None reported'}\n`;
+    if (s.onHRT && s.hrtDetails) text += `HRT: ${s.hrtDetails}\n`;
+    else if (s.onHRT) text += `HRT: Yes\n`;
+    text += '\n*Reminder: Use Insight Health to scribe the conversation';
+    return text;
+  };
+
+  const handleCopy = async () => {
+    if (!summaryData || summaryData.noIntake) return;
+    try {
+      await navigator.clipboard.writeText(buildCopyText(summaryData));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
 
   return (
     <div style={styles.card}>
@@ -253,6 +327,83 @@ function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) 
           {labType}
         </span>
       </div>
+
+      {/* Prep Button */}
+      {patient?.id && (
+        <button
+          style={{
+            ...styles.prepButton,
+            ...(showSummary ? styles.prepButtonActive : {})
+          }}
+          onClick={handlePrep}
+          disabled={summaryLoading}
+        >
+          {summaryLoading ? 'Loading...' : showSummary ? '▾ Prep' : '▸ Prep'}
+        </button>
+      )}
+
+      {/* Expandable Summary */}
+      {showSummary && summaryData && (
+        <div style={styles.summaryBlock}>
+          {summaryData.noIntake ? (
+            <div style={styles.summaryNoIntake}>No intake form found</div>
+          ) : (
+            <>
+              <div style={styles.summaryRow}>
+                <span style={styles.summaryLabel}>DOB</span>
+                <span>{formatDOB(summaryData.dob)}</span>
+              </div>
+              {summaryData.lastVisitDate && (
+                <div style={styles.summaryRow}>
+                  <span style={styles.summaryLabel}>Last Visit</span>
+                  <span>{formatVisitDate(summaryData.lastVisitDate)}</span>
+                </div>
+              )}
+              {summaryData.reasonForVisit && (
+                <div style={styles.summaryRow}>
+                  <span style={styles.summaryLabel}>Reason</span>
+                  <span>{summaryData.reasonForVisit}</span>
+                </div>
+              )}
+              <div style={styles.summarySection}>
+                <span style={styles.summaryLabel}>Diagnoses</span>
+                {summaryData.diagnoses.length > 0 ? (
+                  <ul style={styles.summaryList}>
+                    {summaryData.diagnoses.map((d, i) => <li key={i}>{d}</li>)}
+                  </ul>
+                ) : (
+                  <span style={styles.summaryNone}>None reported</span>
+                )}
+              </div>
+              <div style={styles.summaryRow}>
+                <span style={styles.summaryLabel}>Meds</span>
+                <span>{summaryData.medications || <span style={styles.summaryNone}>None reported</span>}</span>
+              </div>
+              <div style={styles.summaryRow}>
+                <span style={styles.summaryLabel}>Allergies</span>
+                <span>{summaryData.allergies || <span style={styles.summaryNone}>None reported</span>}</span>
+              </div>
+              {summaryData.onHRT && (
+                <div style={styles.summaryRow}>
+                  <span style={styles.summaryLabel}>HRT</span>
+                  <span>{summaryData.hrtDetails || 'Yes'}</span>
+                </div>
+              )}
+              <div style={styles.summaryReminder}>
+                *Reminder: Use Insight Health to scribe the conversation
+              </div>
+              <div style={styles.summaryActions}>
+                <button style={styles.copyButton} onClick={handleCopy}>
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <button style={styles.closeButton} onClick={() => setShowSummary(false)}>
+                  Close
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div style={styles.cardDetails}>
         <div>Draw: {formatDate(protocol.start_date)}</div>
@@ -864,5 +1015,98 @@ const styles = {
     color: 'white',
     cursor: 'pointer',
     fontWeight: '500'
+  },
+  // Prep / Summary styles
+  prepButton: {
+    width: '100%',
+    padding: '6px 10px',
+    border: '1px solid #e0e7ff',
+    borderRadius: '6px',
+    backgroundColor: '#eef2ff',
+    color: '#4338ca',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '12px',
+    marginBottom: '8px',
+    textAlign: 'left'
+  },
+  prepButtonActive: {
+    backgroundColor: '#4338ca',
+    color: 'white',
+    borderColor: '#4338ca'
+  },
+  summaryBlock: {
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: '6px',
+    padding: '10px',
+    marginBottom: '8px',
+    fontSize: '12px',
+    lineHeight: '1.6'
+  },
+  summaryNoIntake: {
+    color: '#94a3b8',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: '8px 0'
+  },
+  summaryRow: {
+    display: 'flex',
+    gap: '6px',
+    marginBottom: '2px'
+  },
+  summarySection: {
+    marginBottom: '4px'
+  },
+  summaryLabel: {
+    fontWeight: '600',
+    color: '#475569',
+    minWidth: '60px',
+    flexShrink: 0
+  },
+  summaryList: {
+    margin: '2px 0 2px 16px',
+    padding: 0,
+    listStyle: 'disc'
+  },
+  summaryNone: {
+    color: '#94a3b8',
+    fontStyle: 'italic'
+  },
+  summaryReminder: {
+    marginTop: '8px',
+    padding: '6px 8px',
+    backgroundColor: '#fefce8',
+    borderRadius: '4px',
+    fontSize: '11px',
+    color: '#854d0e',
+    fontStyle: 'italic'
+  },
+  summaryActions: {
+    display: 'flex',
+    gap: '6px',
+    marginTop: '8px'
+  },
+  copyButton: {
+    flex: 1,
+    padding: '6px',
+    border: 'none',
+    borderRadius: '4px',
+    backgroundColor: '#2563eb',
+    color: 'white',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '11px'
+  },
+  closeButton: {
+    flex: 1,
+    padding: '6px',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    backgroundColor: 'white',
+    color: '#6b7280',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '11px'
   }
 };

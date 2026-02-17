@@ -2,7 +2,7 @@
 // API for Labs Pipeline - Protocol-based lab tracking
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-02-16 - Rebuilt to use protocols table with 5 stages
+// UPDATED: 2026-02-17 - Added pre-consult summary endpoint
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,6 +16,9 @@ const LAB_STAGES = ['blood_draw_complete', 'results_received', 'provider_reviewe
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
+    if (req.query.action === 'summary' && req.query.patientId) {
+      return getPatientSummary(req, res);
+    }
     return getLabsPipeline(req, res);
   } else if (req.method === 'PATCH') {
     return updateLabProtocol(req, res);
@@ -67,6 +70,134 @@ async function getLabsPipeline(req, res) {
 
   } catch (error) {
     console.error('Labs Pipeline Error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+// GET: Fetch pre-consult summary for a patient
+async function getPatientSummary(req, res) {
+  try {
+    const { patientId } = req.query;
+
+    // Fetch patient record
+    const { data: patient, error: patientError } = await supabase
+      .from('patients')
+      .select('id, name, first_name, last_name, email, date_of_birth, ghl_contact_id')
+      .eq('id', patientId)
+      .single();
+
+    if (patientError || !patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    const intakeFields = 'id, patient_id, ghl_contact_id, email, submitted_at, current_medications, allergies, allergy_reactions, what_brings_you, what_brings_you_in, symptoms, on_hrt, hrt_details, high_blood_pressure, high_blood_pressure_year, high_cholesterol, high_cholesterol_year, heart_disease, heart_disease_type, heart_disease_year, diabetes, diabetes_type, diabetes_year, thyroid_disorder, thyroid_disorder_type, thyroid_disorder_year, depression_anxiety, depression_anxiety_year, kidney_disease, kidney_disease_type, kidney_disease_year, liver_disease, liver_disease_type, liver_disease_year, autoimmune_disorder, autoimmune_disorder_type, autoimmune_disorder_year, cancer, cancer_type, cancer_year';
+
+    // Fetch most recent intake - try patient_id, then ghl_contact_id, then email
+    let intake = null;
+
+    const { data: intakeByPatient } = await supabase
+      .from('intakes')
+      .select(intakeFields)
+      .eq('patient_id', patientId)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (intakeByPatient) {
+      intake = intakeByPatient;
+    }
+
+    if (!intake && patient.ghl_contact_id) {
+      const { data: intakeByGhl } = await supabase
+        .from('intakes')
+        .select(intakeFields)
+        .eq('ghl_contact_id', patient.ghl_contact_id)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (intakeByGhl) intake = intakeByGhl;
+    }
+
+    if (!intake && patient.email) {
+      const { data: intakeByEmail } = await supabase
+        .from('intakes')
+        .select(intakeFields)
+        .ilike('email', patient.email)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (intakeByEmail) intake = intakeByEmail;
+    }
+
+    if (!intake) {
+      return res.status(200).json({ success: true, noIntake: true });
+    }
+
+    // Fetch most recent session date
+    let lastVisitDate = null;
+    const { data: lastSession } = await supabase
+      .from('sessions')
+      .select('session_date')
+      .eq('patient_id', patientId)
+      .order('session_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (lastSession) {
+      lastVisitDate = lastSession.session_date;
+    }
+
+    // Build diagnoses from boolean condition fields
+    const conditionMap = [
+      { field: 'high_blood_pressure', label: 'High blood pressure', yearField: 'high_blood_pressure_year' },
+      { field: 'high_cholesterol', label: 'High cholesterol', yearField: 'high_cholesterol_year' },
+      { field: 'heart_disease', label: 'Heart disease', yearField: 'heart_disease_year', typeField: 'heart_disease_type' },
+      { field: 'diabetes', label: 'Diabetes', yearField: 'diabetes_year', typeField: 'diabetes_type' },
+      { field: 'thyroid_disorder', label: 'Thyroid disorder', yearField: 'thyroid_disorder_year', typeField: 'thyroid_disorder_type' },
+      { field: 'depression_anxiety', label: 'Depression/Anxiety', yearField: 'depression_anxiety_year' },
+      { field: 'kidney_disease', label: 'Kidney disease', yearField: 'kidney_disease_year', typeField: 'kidney_disease_type' },
+      { field: 'liver_disease', label: 'Liver disease', yearField: 'liver_disease_year', typeField: 'liver_disease_type' },
+      { field: 'autoimmune_disorder', label: 'Autoimmune disorder', yearField: 'autoimmune_disorder_year', typeField: 'autoimmune_disorder_type' },
+      { field: 'cancer', label: 'Cancer', yearField: 'cancer_year', typeField: 'cancer_type' },
+    ];
+
+    const diagnoses = [];
+    for (const c of conditionMap) {
+      if (intake[c.field] === true) {
+        let entry = c.label;
+        if (c.typeField && intake[c.typeField]) {
+          entry += ` - ${intake[c.typeField]}`;
+        }
+        if (intake[c.yearField]) {
+          entry += ` (${intake[c.yearField]})`;
+        }
+        diagnoses.push(entry);
+      }
+    }
+
+    const patientName = patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+    const reasonForVisit = intake.what_brings_you || intake.what_brings_you_in || null;
+    const allergies = intake.allergies
+      ? (intake.allergy_reactions ? `${intake.allergies} (${intake.allergy_reactions})` : intake.allergies)
+      : null;
+
+    return res.status(200).json({
+      success: true,
+      summary: {
+        name: patientName,
+        dob: patient.date_of_birth || null,
+        lastVisitDate,
+        reasonForVisit,
+        diagnoses,
+        medications: intake.current_medications || null,
+        allergies,
+        onHRT: intake.on_hrt || false,
+        hrtDetails: intake.hrt_details || null,
+      }
+    });
+
+  } catch (error) {
+    console.error('Patient Summary Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }

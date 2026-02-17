@@ -414,9 +414,10 @@ export default function CommandCenter() {
   const [existingWLProtocol, setExistingWLProtocol] = useState(null);
   const [extendExistingWL, setExtendExistingWL] = useState(false);
 
-  // Add sessions to existing protocol state (for Vitamins/Injections)
+  // Add/deduct sessions on existing protocol state (for Vitamins/Injections)
   const [existingVitaminProtocols, setExistingVitaminProtocols] = useState([]);
-  const [addToExistingVitamin, setAddToExistingVitamin] = useState(null);
+  const [addToExistingVitamin, setAddToExistingVitamin] = useState(null); // protocol ID
+  const [vitaminActionMode, setVitaminActionMode] = useState('deduct'); // 'add' or 'deduct'
 
   // Peptide cycle tracking state (keyed by cycle type: recovery or gh)
   const [peptideCycleInfo, setPeptideCycleInfo] = useState({});
@@ -786,6 +787,7 @@ export default function CommandCenter() {
     );
     setExistingVitaminProtocols(activeVitaminProtocols);
     setAddToExistingVitamin(null);
+    setVitaminActionMode('deduct');
 
     console.log('Patient protocols found:', patientProtocols.length);
     console.log('Extendable WL protocol:', extendableWLProtocol?.id);
@@ -1140,19 +1142,20 @@ export default function CommandCenter() {
     try {
       let res;
 
-      // If adding sessions to existing vitamin protocol
+      // If adding/deducting sessions on existing vitamin protocol
       if (addToExistingVitamin) {
-        // Get purchase quantity to determine how many sessions to add
+        // Get purchase quantity to determine session count
         const purchaseItem = (assignForm.purchaseItem || '').toLowerCase();
-        let sessionsToAdd = 12; // default
-        const packMatch = purchaseItem.match(/(\d+)\s*[-]?\s*pack/i);
-        if (packMatch) sessionsToAdd = parseInt(packMatch[1]);
+        let sessionCount = 12; // default
+        const packMatch = purchaseItem.match(/(\d+)\s*[-]?\s*(?:pack|injection)/i);
+        if (packMatch) sessionCount = parseInt(packMatch[1]);
 
         res = await fetch(`/api/protocols/${addToExistingVitamin}/add-sessions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            sessionsToAdd,
+            sessionsToAdd: sessionCount,
+            mode: vitaminActionMode, // 'add' or 'deduct'
             purchaseId: assignForm.purchaseId || null,
             notes: assignForm.notes || null
           })
@@ -1315,6 +1318,7 @@ export default function CommandCenter() {
         setExistingWLProtocol(null);
         setAddToExistingVitamin(null);
         setExistingVitaminProtocols([]);
+        setVitaminActionMode('deduct');
         // Refresh data in background
         fetchPatientDetails(selectedPatient.id);
         fetchData();
@@ -2520,7 +2524,7 @@ export default function CommandCenter() {
               </div>
             )}
 
-            {/* Add sessions to existing Vitamin/Injection protocol option */}
+            {/* Link to existing Vitamin/Injection protocol option */}
             {isInjectionTemplate() && existingVitaminProtocols.length > 0 && (
               <div style={{ padding: '16px 24px', background: '#F0FDF4', borderBottom: '1px solid #E5E5E5' }}>
                 <label style={{ ...styles.formLabel, marginBottom: '12px', display: 'block' }}>
@@ -2548,7 +2552,7 @@ export default function CommandCenter() {
                           onChange={() => setAddToExistingVitamin(protocol.id)}
                         />
                         <span style={{ fontSize: '14px' }}>
-                          Add sessions to: <strong>{name}</strong>
+                          Link to: <strong>{name}</strong>
                           {protocol.total_sessions > 0 && (
                             <span style={{ color: '#6B7280', marginLeft: '4px' }}>
                               ({protocol.sessions_used || 0} of {protocol.total_sessions} used, {remaining} remaining)
@@ -2559,6 +2563,47 @@ export default function CommandCenter() {
                     );
                   })}
                 </div>
+
+                {/* Add vs Deduct decision tree */}
+                {addToExistingVitamin && (
+                  <div style={{ marginTop: '12px', padding: '12px', background: '#ECFDF5', borderRadius: '6px' }}>
+                    <label style={{ ...styles.formLabel, marginBottom: '8px', display: 'block', fontSize: '13px' }}>
+                      What should this purchase do?
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name="vitaminMode"
+                          checked={vitaminActionMode === 'deduct'}
+                          onChange={() => setVitaminActionMode('deduct')}
+                          style={{ marginTop: '3px' }}
+                        />
+                        <span style={{ fontSize: '13px' }}>
+                          <strong>Deduct sessions</strong> — Patient is paying for sessions from this pack
+                          <span style={{ display: 'block', color: '#6B7280', fontSize: '12px' }}>
+                            Marks sessions as used (e.g. paying for 3 weekly injections from a 12-pack)
+                          </span>
+                        </span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name="vitaminMode"
+                          checked={vitaminActionMode === 'add'}
+                          onChange={() => setVitaminActionMode('add')}
+                          style={{ marginTop: '3px' }}
+                        />
+                        <span style={{ fontSize: '13px' }}>
+                          <strong>Add sessions</strong> — Patient bought more sessions to add to this pack
+                          <span style={{ display: 'block', color: '#6B7280', fontSize: '12px' }}>
+                            Increases total sessions (e.g. adding a new 12-pack on top of existing)
+                          </span>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

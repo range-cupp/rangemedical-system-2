@@ -1,5 +1,7 @@
 // /pages/api/protocols/[id]/add-sessions.js
-// Add sessions to an existing protocol (e.g., adding 12 sessions from a new vitamin pack purchase)
+// Add or deduct sessions on an existing protocol
+// Mode 'add': increases total_sessions (patient bought more sessions)
+// Mode 'deduct': increases sessions_used (patient paying for sessions from existing pack)
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -15,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { sessionsToAdd, purchaseId, notes } = req.body;
+  const { sessionsToAdd, mode = 'add', purchaseId, notes } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID is required' });
@@ -24,6 +26,8 @@ export default async function handler(req, res) {
   if (!sessionsToAdd || sessionsToAdd < 1) {
     return res.status(400).json({ error: 'sessionsToAdd must be a positive number' });
   }
+
+  const count = parseInt(sessionsToAdd);
 
   try {
     // Get current protocol
@@ -40,19 +44,35 @@ export default async function handler(req, res) {
     }
 
     const currentTotal = protocol.total_sessions || 0;
-    const newTotal = currentTotal + parseInt(sessionsToAdd);
+    const currentUsed = protocol.sessions_used || 0;
+    const updateData = { updated_at: new Date().toISOString() };
+    let logMessage;
 
-    // Update protocol with new total_sessions and reactivate if completed
-    const updateData = {
-      total_sessions: newTotal,
-      status: 'active',
-      updated_at: new Date().toISOString()
-    };
+    if (mode === 'deduct') {
+      // Deduct: increment sessions_used (patient is paying for sessions consumed from pack)
+      const newUsed = currentUsed + count;
+      updateData.sessions_used = newUsed;
+      updateData.injections_completed = newUsed;
+
+      // Mark as completed if all sessions are now used
+      if (currentTotal > 0 && newUsed >= currentTotal) {
+        updateData.status = 'completed';
+      }
+
+      logMessage = `Deducted ${count} sessions (${currentUsed} → ${newUsed} used of ${currentTotal}).`;
+    } else {
+      // Add: increment total_sessions (patient bought more sessions to add to pack)
+      const newTotal = currentTotal + count;
+      updateData.total_sessions = newTotal;
+      updateData.status = 'active'; // reactivate if was completed
+
+      logMessage = `Added ${count} sessions (${currentTotal} → ${newTotal} total).`;
+    }
 
     // Append notes if provided
     if (notes) {
       const existingNotes = protocol.notes || '';
-      const sessionNote = `[${new Date().toISOString().split('T')[0]}] Added ${sessionsToAdd} sessions. ${notes}`;
+      const sessionNote = `[${new Date().toISOString().split('T')[0]}] ${logMessage} ${notes}`;
       updateData.notes = existingNotes ? `${existingNotes}\n${sessionNote}` : sessionNote;
     }
 
@@ -86,9 +106,9 @@ export default async function handler(req, res) {
       .insert({
         protocol_id: id,
         patient_id: protocol.patient_id,
-        log_type: 'renewal',
+        log_type: mode === 'deduct' ? 'session' : 'renewal',
         log_date: new Date().toISOString().split('T')[0],
-        notes: `Added ${sessionsToAdd} sessions (${currentTotal} → ${newTotal}).${notes ? ` ${notes}` : ''}`
+        notes: `${logMessage}${notes ? ` ${notes}` : ''}`
       });
 
     if (logError) {
@@ -97,13 +117,12 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      mode,
       protocol: updatedProtocol,
-      previousTotal: currentTotal,
-      newTotal,
-      sessionsAdded: parseInt(sessionsToAdd)
+      sessionsChanged: count
     });
   } catch (error) {
-    console.error('Error adding sessions:', error);
+    console.error('Error in add-sessions:', error);
     return res.status(500).json({ error: error.message });
   }
 }

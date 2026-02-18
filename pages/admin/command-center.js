@@ -1100,6 +1100,7 @@ export default function CommandCenter() {
   const PICKUP_FREQUENCY_OPTIONS = [
     { value: '7', label: 'Weekly (7 days)', days: 7 },
     { value: '14', label: 'Every 2 Weeks (14 days)', days: 14 },
+    { value: '21', label: 'Every 3 Weeks (21 days)', days: 21 },
     { value: '28', label: 'Every 4 Weeks (28 days)', days: 28 }
   ];
 

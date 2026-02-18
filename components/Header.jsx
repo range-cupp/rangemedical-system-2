@@ -5,6 +5,7 @@ import { useState } from 'react';
 export default function Header() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [treatmentsOpen, setTreatmentsOpen] = useState(false);
 
   const treatments = [
     { href: '/hormone-optimization', label: 'Hormone Optimization' },
@@ -85,18 +86,32 @@ export default function Header() {
           <Link href="/injury-recovery" onClick={() => setMobileOpen(false)}>
             Injury Recovery
           </Link>
-          <div className="rm-mobile-section-label">How We Treat</div>
-          {treatments.map(t => (
-            <Link 
-              key={t.href} 
-              href={t.href}
-              className={router.pathname === t.href ? 'active' : ''}
-              onClick={() => setMobileOpen(false)}
+          <button
+            className="rm-mobile-dropdown-toggle"
+            onClick={() => setTreatmentsOpen(!treatmentsOpen)}
+          >
+            <span>How We Treat</span>
+            <svg
+              width="12" height="7" viewBox="0 0 12 7" fill="none"
+              style={{ transform: treatmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
             >
-              {t.label}
-            </Link>
-          ))}
-          <div className="rm-mobile-divider"></div>
+              <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {treatmentsOpen && (
+            <div className="rm-mobile-dropdown-items">
+              {treatments.map(t => (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  className={router.pathname === t.href ? 'active' : ''}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {t.label}
+                </Link>
+              ))}
+            </div>
+          )}
           <Link href="/lab-panels" onClick={() => setMobileOpen(false)}>
             Labs & Testing
           </Link>

@@ -239,6 +239,31 @@ p {
   margin: 0.5rem 0;
 }
 
+.rm-mobile-dropdown-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #404040;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.rm-mobile-dropdown-items {
+  padding-left: 1rem;
+}
+
+.rm-mobile-dropdown-items a {
+  font-size: 0.9rem;
+  color: #737373 !important;
+}
+
 .rm-mobile-cta {
   background: #000000;
   color: #ffffff !important;

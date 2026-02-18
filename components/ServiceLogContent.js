@@ -1143,6 +1143,7 @@ export default function ServiceLogContent() {
                                   style={slcStyles.select}
                                 >
                                   <option value="4">4 syringes (2 weeks)</option>
+                                  <option value="6">6 syringes (3 weeks)</option>
                                   <option value="8">8 syringes (4 weeks)</option>
                                 </select>
                               </div>

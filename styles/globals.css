@@ -201,6 +201,8 @@ p {
   background: #ffffff;
   border-bottom: 1px solid #e5e5e5;
   padding: 1rem 1.5rem;
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
 }
 
 .rm-mobile-menu a {

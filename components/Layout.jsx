@@ -5,6 +5,7 @@ import { useState } from 'react';
 export default function Layout({ children, title, description }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileTreatmentsOpen, setMobileTreatmentsOpen] = useState(false);
 
   return (
     <>
@@ -82,19 +83,32 @@ export default function Layout({ children, title, description }) {
         {/* Mobile Menu */}
         <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
           <Link href="/injury-recovery" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injury Recovery</Link>
-          <div className="rm-mobile-divider"></div>
-          <div className="rm-mobile-label">How We Treat</div>
-          <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
-          <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
-          <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
-          <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
-          <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
-          <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
-          <Link href="/hyperbaric-oxygen-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hyperbaric Oxygen</Link>
-          <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
-          <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
-          <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
-          <div className="rm-mobile-divider"></div>
+          <button
+            className="rm-mobile-accordion"
+            onClick={() => setMobileTreatmentsOpen(!mobileTreatmentsOpen)}
+          >
+            <span>How We Treat</span>
+            <svg
+              width="12" height="7" viewBox="0 0 12 7" fill="none"
+              style={{ transform: mobileTreatmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+            >
+              <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {mobileTreatmentsOpen && (
+            <div className="rm-mobile-sub">
+              <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
+              <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
+              <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
+              <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
+              <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
+              <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
+              <Link href="/hyperbaric-oxygen-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hyperbaric Oxygen</Link>
+              <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
+              <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
+              <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
+            </div>
+          )}
           <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
           <Link href="/range-assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Take Assessment</Link>
         </div>
@@ -337,6 +351,31 @@ export default function Layout({ children, title, description }) {
           height: 1px;
           background: #e5e5e5;
           margin: 0.5rem 0;
+        }
+
+        .rm-mobile-accordion {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          padding: 0.75rem 0;
+          background: none;
+          border: none;
+          border-bottom: 1px solid #f0f0f0;
+          font-size: 0.9375rem;
+          font-weight: 500;
+          color: #404040;
+          cursor: pointer;
+          font-family: inherit;
+        }
+
+        .rm-mobile-sub {
+          padding-left: 1rem;
+        }
+
+        .rm-mobile-sub :global(a) {
+          font-size: 0.875rem;
+          color: #737373;
         }
 
         .rm-mobile-cta {

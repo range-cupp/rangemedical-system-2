@@ -262,7 +262,13 @@ async function handlePost(req, res) {
       protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage);
     } else if (entry_type === 'injection' || entry_type === 'session') {
       // For injections/sessions, increment session count and update medication details
-      protocolUpdate = await incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage, protocol_id);
+      // Pass package info so incrementOrCreateProtocol can avoid double-incrementing sessions_used
+      // and can target the exact protocol that was already decremented
+      protocolUpdate = await incrementOrCreateProtocol(
+        patient_id, category, logDate, medication, dosage,
+        protocol_id || (packageUpdate.decremented ? packageUpdate.protocol_id : null),
+        packageUpdate.decremented || false
+      );
     }
 
     return res.status(200).json({
@@ -447,13 +453,8 @@ async function checkAndDecrementPackage(patient_id, category, entry_type, protoc
       return { decremented: false, reason: 'Error updating package' };
     }
 
-    // Check if package is now complete
-    if (totalSessions > 0 && newSessionsUsed >= totalSessions) {
-      await supabase
-        .from('protocols')
-        .update({ status: 'completed' })
-        .eq('id', protocol.id);
-    }
+    // Note: Do NOT mark protocol as completed here.
+    // Completion is handled by incrementOrCreateProtocol after it updates next_expected_date.
 
     return {
       decremented: true,
@@ -571,7 +572,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
   }
 }
 
-async function incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage, protocol_id = null) {
+async function incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage, protocol_id = null, alreadyIncremented = false) {
   const programType = CATEGORY_TO_PROGRAM_TYPE[category];
   if (!programType) {
     return { updated: false, reason: 'Category not trackable' };
@@ -615,16 +616,20 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
 
     const protocol = protocols[0];
 
-    // Increment appropriate counter and update medication details
+    // If checkAndDecrementPackage already incremented sessions_used, don't double-count.
+    // Just read the current values instead of incrementing again.
     const currentSessions = protocol.sessions_used || protocol.injections_completed || 0;
-    const newCount = currentSessions + 1;
+    const newCount = alreadyIncremented ? currentSessions : currentSessions + 1;
 
     const updateData = {
-      sessions_used: newCount,
-      injections_completed: newCount,
       last_visit_date: logDate,
       updated_at: new Date().toISOString()
     };
+
+    if (!alreadyIncremented) {
+      updateData.sessions_used = newCount;
+      updateData.injections_completed = newCount;
+    }
 
     // Calculate next_expected_date
     // For take-home peptide protocols, next_expected_date = end of supply (end_date)
@@ -665,6 +670,15 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     if (updateError) {
       console.error('Error incrementing protocol:', updateError);
       return { updated: false, reason: 'Error updating protocol' };
+    }
+
+    // Check if protocol is now complete (after next_expected_date has been set)
+    const totalSessions = protocol.total_sessions || 0;
+    if (totalSessions > 0 && newCount >= totalSessions) {
+      await supabase
+        .from('protocols')
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .eq('id', protocol.id);
     }
 
     return {
@@ -737,6 +751,11 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
 
 async function createProtocolFromSession(patient_id, category, programType, logDate, medication, dosage) {
   try {
+    // Calculate next_expected_date (default weekly interval)
+    const sessionDate = new Date(logDate + 'T12:00:00');
+    sessionDate.setDate(sessionDate.getDate() + 7);
+    const nextExpectedDate = sessionDate.toISOString().split('T')[0];
+
     const { data: protocol, error } = await supabase
       .from('protocols')
       .insert({
@@ -747,6 +766,9 @@ async function createProtocolFromSession(patient_id, category, programType, logD
         selected_dose: dosage || null,
         status: 'active',
         start_date: logDate,
+        last_visit_date: logDate,
+        next_expected_date: nextExpectedDate,
+        delivery_method: 'in_clinic',
         sessions_used: 1,
         injections_completed: 1,
         created_at: new Date().toISOString()
@@ -762,6 +784,7 @@ async function createProtocolFromSession(patient_id, category, programType, logD
     return {
       created: true,
       protocol_id: protocol.id,
+      next_expected_date: nextExpectedDate,
       medication,
       dosage
     };

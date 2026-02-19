@@ -4155,6 +4155,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol 
     p.urgency === 'critical' || p.urgency === 'warning'
   ).slice(0, 10);
   const sessionAlerts = data?.sessionAlerts || [];
+  const upcomingLabDraws = data?.upcomingLabDraws || [];
 
   return (
     <div style={styles.overviewGrid}>
@@ -4192,6 +4193,49 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol 
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming Lab Draws Banner */}
+      {upcomingLabDraws.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #EBF2FF 0%, #F0F6FF 100%)',
+          border: '1px solid #4488FF',
+          borderRadius: 12,
+          padding: '16px 20px',
+          display: 'flex',
+          gap: 16,
+          alignItems: 'flex-start',
+        }}>
+          <div style={{ fontSize: 24, lineHeight: 1 }}>🩸</div>
+          <div style={{ flex: 1 }}>
+            <strong style={{ fontSize: 15, color: '#1a3a6b', display: 'block', marginBottom: 8 }}>
+              {upcomingLabDraws.length} Upcoming Lab Draw{upcomingLabDraws.length > 1 ? 's' : ''} (Next 14 Days)
+            </strong>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {upcomingLabDraws.map((draw, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                  <span style={{
+                    background: '#4488FF',
+                    color: '#fff',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}>
+                    {draw.label}
+                  </span>
+                  <span style={{ color: '#1a3a6b', fontWeight: 500 }}>{draw.patientName}</span>
+                  <span style={{ color: '#5577aa' }}>{draw.weekLabel}</span>
+                  {draw.phone && (
+                    <a href={`tel:${draw.phone}`} style={{ color: '#4488FF', textDecoration: 'none', marginLeft: 'auto' }}>
+                      {draw.phone}
+                    </a>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

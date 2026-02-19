@@ -3,6 +3,7 @@
 // Returns all data needed for the dashboard in a single call
 
 import { createClient } from '@supabase/supabase-js';
+import { getHRTLabSchedule, matchDrawsToLogs } from '../../../lib/hrt-lab-schedule';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -326,6 +327,50 @@ export default async function handler(req, res) {
       )
     };
 
+    // Upcoming HRT Lab Draws (next 14 days)
+    const upcomingLabDraws = [];
+    const fourteenDaysFromNow = new Date(now);
+    fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
+
+    const hrtProtocols = activeProtocols.filter(p =>
+      (p.program_type || '').toLowerCase().includes('hrt')
+    );
+
+    for (const protocol of hrtProtocols) {
+      if (!protocol.start_date) continue;
+
+      const schedule = getHRTLabSchedule(protocol.start_date);
+
+      // Get blood draw logs for this protocol
+      const { data: bloodDrawLogs } = await supabase
+        .from('protocol_logs')
+        .select('id, log_date, notes')
+        .eq('protocol_id', protocol.id)
+        .eq('log_type', 'blood_draw');
+
+      // Get labs for this patient
+      const { data: labs } = await supabase
+        .from('labs')
+        .select('lab_date, collection_date, completed_date')
+        .eq('patient_id', protocol.patient_id);
+
+      const matched = matchDrawsToLogs(schedule, bloodDrawLogs || [], labs || []);
+
+      for (const draw of matched) {
+        if (draw.status !== 'upcoming') continue;
+        const targetDate = new Date(draw.targetDate + 'T00:00:00');
+        if (targetDate <= fourteenDaysFromNow) {
+          upcomingLabDraws.push({
+            patientName: protocol.patients?.name || 'Unknown',
+            phone: protocol.patients?.phone || null,
+            label: draw.label,
+            weekLabel: draw.weekLabel,
+            targetDate: draw.targetDate,
+          });
+        }
+      }
+    }
+
     return res.status(200).json({
       success: true,
       timestamp: now.toISOString(),
@@ -342,6 +387,7 @@ export default async function handler(req, res) {
       leads,
       inClinicData,
       weeklyPickups,
+      upcomingLabDraws,
       alerts: alerts || [],
       sessionAlerts,
     });

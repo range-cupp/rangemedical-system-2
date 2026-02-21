@@ -252,15 +252,19 @@ async function handlePost(req, res) {
     if (logError) throw logError;
 
     // 2. Check for active package and decrement if found
-    const packageUpdate = await checkAndDecrementPackage(patient_id, category, entry_type, protocol_id);
+    const packageUpdate = await checkAndDecrementPackage(patient_id, category, resolvedEntryType, protocol_id);
 
     // 3. Update or create protocol based on entry type
+    // Use resolvedEntryType (not raw entry_type) to ensure protocol updates always run
     let protocolUpdate = { updated: false };
 
-    if (entry_type === 'pickup') {
+    console.log('[service-log] POST:', { patient_id, category, entry_type, resolvedEntryType, protocol_id, logDate });
+    console.log('[service-log] packageUpdate:', JSON.stringify(packageUpdate));
+
+    if (resolvedEntryType === 'pickup') {
       // For pickups, update last_refill_date and medication details on protocol
       protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage);
-    } else if (entry_type === 'injection' || entry_type === 'session') {
+    } else if (resolvedEntryType === 'injection' || resolvedEntryType === 'session') {
       // For injections/sessions, increment session count and update medication details
       // Pass package info so incrementOrCreateProtocol can avoid double-incrementing sessions_used
       // and can target the exact protocol that was already decremented
@@ -270,6 +274,8 @@ async function handlePost(req, res) {
         packageUpdate.decremented || false
       );
     }
+
+    console.log('[service-log] protocolUpdate:', JSON.stringify(protocolUpdate));
 
     return res.status(200).json({
       success: true,
@@ -578,6 +584,8 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     return { updated: false, reason: 'Category not trackable' };
   }
 
+  console.log('[incrementOrCreateProtocol] called:', { patient_id, category, programType, protocol_id, alreadyIncremented, logDate });
+
   try {
     let protocols, findError;
 
@@ -604,6 +612,8 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       findError = result.error;
     }
 
+    console.log('[incrementOrCreateProtocol] query result:', { found: protocols?.length, findError, protocol_id_used: protocol_id || 'by program_type' });
+
     if (findError) {
       console.error('Error finding protocol:', findError);
       return { updated: false, reason: 'Error finding protocol' };
@@ -611,14 +621,19 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
 
     if (!protocols || protocols.length === 0) {
       // No protocol exists, create one
+      console.log('[incrementOrCreateProtocol] No protocol found, creating new one');
       return await createProtocolFromSession(patient_id, category, programType, logDate, medication, dosage);
     }
 
     const protocol = protocols[0];
+    console.log('[incrementOrCreateProtocol] Found protocol:', { id: protocol.id, sessions_used: protocol.sessions_used, total_sessions: protocol.total_sessions, frequency: protocol.frequency, delivery_method: protocol.delivery_method });
 
     // If checkAndDecrementPackage already incremented sessions_used, don't double-count.
     // Just read the current values instead of incrementing again.
-    const currentSessions = protocol.sessions_used || protocol.injections_completed || 0;
+    // Use typeof check to handle sessions_used === 0 correctly (0 is falsy in JS)
+    const currentSessions = typeof protocol.sessions_used === 'number' ? protocol.sessions_used
+      : typeof protocol.injections_completed === 'number' ? protocol.injections_completed
+      : 0;
     const newCount = alreadyIncremented ? currentSessions : currentSessions + 1;
 
     const updateData = {
@@ -662,15 +677,19 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       updateData.selected_dose = dosage;
     }
 
+    console.log('[incrementOrCreateProtocol] Updating protocol:', { protocol_id: protocol.id, updateData, alreadyIncremented, currentSessions, newCount });
+
     const { error: updateError } = await supabase
       .from('protocols')
       .update(updateData)
       .eq('id', protocol.id);
 
     if (updateError) {
-      console.error('Error incrementing protocol:', updateError);
-      return { updated: false, reason: 'Error updating protocol' };
+      console.error('[incrementOrCreateProtocol] UPDATE FAILED:', updateError);
+      return { updated: false, reason: 'Error updating protocol: ' + updateError.message };
     }
+
+    console.log('[incrementOrCreateProtocol] Protocol updated successfully:', { protocol_id: protocol.id, next_expected_date: updateData.next_expected_date });
 
     // Check if protocol is now complete (after next_expected_date has been set)
     const totalSessions = protocol.total_sessions || 0;

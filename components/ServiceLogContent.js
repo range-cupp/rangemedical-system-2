@@ -391,16 +391,27 @@ export default function ServiceLogContent() {
         setSelectedProtocolId(null);
         setShowProtocolForm(true);
       }
+    } else if (serviceType.id === 'weight_loss') {
+      // Weight loss: auto-link to existing protocol so protocol_id is explicitly passed to API
+      const protocols = getProtocolsForService(serviceType.id);
+      setAvailableProtocols(protocols);
+      setEntryType('injection');
+      setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Semaglutide', dosage: protocol?.selected_dose || '' }));
+      setProtocolData(prev => ({ ...prev, frequency: 'weekly', deliveryMethod: 'in_clinic' }));
+
+      if (protocols.length >= 1) {
+        setSelectedProtocolId(protocols[0].id);
+        setShowProtocolForm(false);
+      } else {
+        setSelectedProtocolId(null);
+        setShowProtocolForm(true);
+      }
     } else {
       setShowProtocolForm(!protocol);
       setSelectedProtocolId(null);
       setAvailableProtocols([]);
 
-      if (serviceType.id === 'weight_loss') {
-        setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Semaglutide', dosage: protocol?.selected_dose || '' }));
-        setEntryType('injection');
-        setProtocolData(prev => ({ ...prev, frequency: 'weekly' }));
-      } else if (serviceType.id === 'iv_therapy') {
+      if (serviceType.id === 'iv_therapy') {
         setFormData(prev => ({ ...prev, medication: protocol?.medication || 'Energy IV' }));
         setEntryType('session');
         setProtocolData(prev => ({ ...prev, frequency: 'as_scheduled', totalSessions: '1' }));
@@ -562,7 +573,13 @@ export default function ServiceLogContent() {
             body: JSON.stringify(protocolPayload)
           });
 
-          if (!protocolRes.ok) {
+          if (protocolRes.ok) {
+            const pData = await protocolRes.json();
+            // Pass the newly created protocol_id to the service log so it links correctly
+            if (pData.protocol?.id) {
+              payload.protocol_id = pData.protocol.id;
+            }
+          } else {
             const pErr = await protocolRes.json();
             console.error('Protocol creation error:', pErr);
           }
@@ -577,6 +594,10 @@ export default function ServiceLogContent() {
         const data = await res.json();
         if (data.success) {
           results.push({ item, success: true, data });
+          // Warn if protocol update failed silently
+          if (data.protocol_update && !data.protocol_update.updated && !data.protocol_update.created) {
+            console.warn('Protocol update failed:', data.protocol_update);
+          }
         } else {
           errors.push({ item, error: data.error });
         }
@@ -590,6 +611,10 @@ export default function ServiceLogContent() {
     if (errors.length === 0) {
       closeModal();
       fetchLogs();
+      // Re-fetch protocols so UI reflects updated next_expected_date
+      if (selectedPatient) {
+        fetchPatientProtocols(selectedPatient.id);
+      }
       alert(`✓ ${results.length} service(s) logged for ${selectedPatient.displayName}`);
     } else {
       alert(`Logged ${results.length} service(s), ${errors.length} error(s):\n${errors.map(e => e.error).join('\n')}`);

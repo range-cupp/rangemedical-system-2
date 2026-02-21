@@ -1,5 +1,5 @@
 // /pages/api/protocols/[id]/add-supply.js
-// Add supply/refill to an existing protocol (e.g., HRT monthly refill)
+// Record monthly payment for an existing protocol (e.g., HRT monthly membership)
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -48,10 +48,10 @@ export default async function handler(req, res) {
     startFrom.setDate(startFrom.getDate() + 30);
     const newEndDate = startFrom.toISOString().split('T')[0];
 
-    // Update protocol with extended end date and refill info
+    // Update protocol with extended end date and payment info
     const updateData = {
       end_date: newEndDate,
-      last_refill_date: new Date().toISOString().split('T')[0],
+      last_payment_date: new Date().toISOString().split('T')[0],
       status: 'active', // Reactivate if was completed
       updated_at: new Date().toISOString()
     };
@@ -59,8 +59,8 @@ export default async function handler(req, res) {
     // Add notes if provided
     if (notes) {
       const existingNotes = protocol.notes || '';
-      const refillNote = `[${new Date().toISOString().split('T')[0]}] Refill added. ${notes}`;
-      updateData.notes = existingNotes ? `${existingNotes}\n${refillNote}` : refillNote;
+      const paymentNote = `[${new Date().toISOString().split('T')[0]}] Payment recorded. ${notes}`;
+      updateData.notes = existingNotes ? `${existingNotes}\n${paymentNote}` : paymentNote;
     }
 
     const { data: updatedProtocol, error: updateError } = await supabase
@@ -87,31 +87,31 @@ export default async function handler(req, res) {
       }
     }
 
-    // Create a log entry for the refill
+    // Create a log entry for the payment
     const { error: logError } = await supabase
       .from('protocol_logs')
       .insert({
         protocol_id: id,
         patient_id: protocol.patient_id,
-        log_type: 'refill',
+        log_type: 'payment',
         log_date: new Date().toISOString().split('T')[0],
-        notes: `Supply added. New end date: ${newEndDate}${notes ? `. ${notes}` : ''}`
+        notes: `Monthly payment recorded. New end date: ${newEndDate}${notes ? `. ${notes}` : ''}`
       });
 
     if (logError) {
-      console.error('Error creating refill log:', logError);
+      console.error('Error creating payment log:', logError);
     }
 
     // Add note to GHL
     if (ghlContactId) {
-      const ghlNote = `💊 HRT SUPPLY ADDED
+      const ghlNote = `💊 HRT MONTHLY PAYMENT RECORDED
 
 Protocol: ${protocol.program_name}
 ${protocol.medication ? `Medication: ${protocol.medication}` : ''}
 Previous End: ${protocol.end_date || 'Not set'}
 New End: ${newEndDate}
 
-Supply extended for another month.${notes ? `\n\nNotes: ${notes}` : ''}`;
+Billing period extended for another month.${notes ? `\n\nNotes: ${notes}` : ''}`;
 
       try {
         await addGHLNote(ghlContactId, ghlNote);
@@ -120,17 +120,17 @@ Supply extended for another month.${notes ? `\n\nNotes: ${notes}` : ''}`;
       }
     }
 
-    console.log(`✓ Supply added to protocol ${id} for ${patientName}. New end date: ${newEndDate}`);
+    console.log(`✓ Payment recorded for protocol ${id} for ${patientName}. New end date: ${newEndDate}`);
 
     return res.status(200).json({
       success: true,
-      message: 'Supply added to protocol',
+      message: 'Payment recorded for protocol',
       protocol: updatedProtocol,
       newEndDate
     });
 
   } catch (error) {
-    console.error('Error adding supply to protocol:', error);
+    console.error('Error recording payment for protocol:', error);
     return res.status(500).json({ error: error.message });
   }
 }

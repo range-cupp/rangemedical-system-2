@@ -1921,6 +1921,14 @@ export default function CommandCenter() {
                           </span>
                         </div>
                       )}
+                      {protocolDetailPanel.protocol.last_payment_date && (
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>Last Payment</span>
+                          <span style={styles.protocolDetailValue}>
+                            {formatDate(protocolDetailPanel.protocol.last_payment_date)}
+                          </span>
+                        </div>
+                      )}
                       {protocolDetailPanel.protocol.last_refill_date && (
                         <div style={styles.protocolDetailItem}>
                           <span style={styles.protocolDetailLabel}>Last Refill</span>
@@ -3284,7 +3292,7 @@ export default function CommandCenter() {
             {addToExistingProtocol && (
               <div style={{ padding: '16px 24px', background: '#FEF3C7', borderRadius: '6px', margin: '0 24px 16px' }}>
                 <p style={{ margin: 0, fontSize: '13px', color: '#92400E' }}>
-                  This will extend the protocol by 30 days and mark the purchase as fulfilled.
+                  This will record the monthly payment and extend the billing period by 30 days.
                 </p>
               </div>
             )}
@@ -3296,7 +3304,7 @@ export default function CommandCenter() {
                 onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
                 style={{ ...styles.formInput, minHeight: '60px', resize: 'vertical' }}
                 rows={2}
-                placeholder={addToExistingProtocol ? "Notes about this refill..." : "Optional notes..."}
+                placeholder={addToExistingProtocol ? "Notes about this payment..." : "Optional notes..."}
               />
             </div>
 
@@ -3588,8 +3596,8 @@ export default function CommandCenter() {
                 disabled={!assignForm.templateId || isAssigning}
               >
                 {isAssigning
-                  ? (addToExistingProtocol || extendExistingWL ? 'Extending...' : 'Creating...')
-                  : (addToExistingProtocol ? 'Add Supply' : extendExistingWL ? 'Extend Protocol' : logFirstVisit && !addToExistingProtocol ? 'Assign Protocol & Log Visit' : 'Assign Protocol')}
+                  ? (addToExistingProtocol ? 'Recording...' : extendExistingWL ? 'Extending...' : 'Creating...')
+                  : (addToExistingProtocol ? 'Record Payment' : extendExistingWL ? 'Extend Protocol' : logFirstVisit && !addToExistingProtocol ? 'Assign Protocol & Log Visit' : 'Assign Protocol')}
               </button>
             </div>
           </div>

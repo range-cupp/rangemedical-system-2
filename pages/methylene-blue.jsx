@@ -8,7 +8,6 @@ import Head from 'next/head';
 import { useEffect, useState } from 'react';
 
 const SMS_LINK = 'sms:+19499973988?body=Hi%2C%20I%27m%20interested%20in%20Methylene%20Blue';
-const SMS_LINK_IV = 'sms:+19499973988?body=Hi%2C%20I%27d%20like%20to%20ask%20about%20Methylene%20Blue%20IV';
 
 export default function MethyleneBlue() {
   const [openFaq, setOpenFaq] = useState(null);
@@ -71,14 +70,14 @@ export default function MethyleneBlue() {
   return (
     <Layout
       title="Methylene Blue | Cellular Energy + Mood Support | Range Medical | Newport Beach"
-      description="Methylene blue capsules and IV therapy in Newport Beach. Supports cellular energy, mood, and brain function. 25mg capsules $197. Text us to learn more."
+      description="Methylene blue capsules in Newport Beach. Supports cellular energy, mood, and brain function. 25mg capsules $197. Text us to learn more."
     >
       <Head>
         <meta name="keywords" content="methylene blue Newport Beach, methylene blue capsules, methylene blue IV, cellular energy, mood support, brain health, Range Medical" />
         <link rel="canonical" href="https://www.range-medical.com/methylene-blue" />
 
         <meta property="og:title" content="Methylene Blue | Cellular Energy + Mood Support | Newport Beach" />
-        <meta property="og:description" content="Methylene blue capsules and IV therapy. Supports cellular energy, mood, and brain function. Newport Beach." />
+        <meta property="og:description" content="Methylene blue capsules for cellular energy, mood, and brain function. Newport Beach." />
         <meta property="og:url" content="https://www.range-medical.com/methylene-blue" />
         <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
         <meta property="og:type" content="website" />
@@ -86,7 +85,7 @@ export default function MethyleneBlue() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Methylene Blue | Cellular Energy + Mood Support | Newport Beach" />
-        <meta name="twitter:description" content="Methylene blue capsules and IV therapy in Newport Beach. Supports cellular energy, mood, and brain function." />
+        <meta name="twitter:description" content="Methylene blue capsules in Newport Beach. Supports cellular energy, mood, and brain function." />
         <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
 
         <meta name="geo.region" content="US-CA" />
@@ -318,19 +317,17 @@ export default function MethyleneBlue() {
           </div>
         </section>
 
-        {/* Options */}
+        {/* Pricing */}
         <section className="mb-section">
           <div className="mb-container">
             <div className="mb-animate">
               <div className="mb-kicker">How to Get It</div>
-              <h2>Methylene Blue Options</h2>
+              <h2>Methylene Blue Capsule</h2>
               <div className="mb-divider"></div>
             </div>
 
-            <div className="mb-options-grid mb-animate">
+            <div className="mb-pricing-center mb-animate">
               <div className="mb-option-card mb-option-featured">
-                <div className="mb-option-badge">Most Popular</div>
-                <h3>Methylene Blue Capsule</h3>
                 <div className="mb-option-price">$197</div>
                 <ul className="mb-option-details">
                   <li>25mg per capsule</li>
@@ -339,18 +336,6 @@ export default function MethyleneBlue() {
                   <li>Easy to use at home</li>
                 </ul>
                 <a href={SMS_LINK} className="mb-btn-primary mb-btn-dark mb-btn-full">Text Us to Order</a>
-              </div>
-              <div className="mb-option-card">
-                <h3>Methylene Blue IV</h3>
-                <div className="mb-option-price">$200</div>
-                <ul className="mb-option-details">
-                  <li>Pharmaceutical-grade MB</li>
-                  <li>Mixed with high-dose Vitamin C + magnesium</li>
-                  <li>Direct into bloodstream</li>
-                  <li>Takes 30–45 minutes</li>
-                  <li>Best for deeper support</li>
-                </ul>
-                <a href={SMS_LINK_IV} className="mb-btn-primary mb-btn-dark mb-btn-full">Ask About IV</a>
               </div>
             </div>
           </div>
@@ -808,12 +793,10 @@ export default function MethyleneBlue() {
           font-style: italic;
         }
 
-        /* Options Grid */
-        .mb-options-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-          margin-top: 2.5rem;
+        /* Pricing Card */
+        .mb-pricing-center {
+          max-width: 420px;
+          margin: 2.5rem auto 0;
         }
 
         .mb-option-card {
@@ -1082,10 +1065,6 @@ export default function MethyleneBlue() {
           .mb-stat-row {
             grid-template-columns: repeat(2, 1fr);
             gap: 1.5rem;
-          }
-
-          .mb-options-grid {
-            grid-template-columns: 1fr;
           }
 
           .mb-energy-bars {

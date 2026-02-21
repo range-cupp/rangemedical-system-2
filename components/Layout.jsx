@@ -57,6 +57,7 @@ export default function Layout({ children, title, description }) {
                   <Link href="/red-light-therapy">Red Light Therapy</Link>
                   <Link href="/prp-therapy">PRP Therapy</Link>
                   <Link href="/exosome-therapy">Exosome Therapy</Link>
+                  <Link href="/methylene-blue">Methylene Blue</Link>
                 </div>
               </div>
 
@@ -107,6 +108,7 @@ export default function Layout({ children, title, description }) {
               <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
               <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
               <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
+              <Link href="/methylene-blue" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Methylene Blue</Link>
             </div>
           )}
           <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
@@ -158,6 +160,7 @@ export default function Layout({ children, title, description }) {
               <li><Link href="/red-light-therapy">Red Light Therapy</Link></li>
               <li><Link href="/prp-therapy">PRP Therapy</Link></li>
               <li><Link href="/exosome-therapy">Exosome Therapy</Link></li>
+              <li><Link href="/methylene-blue">Methylene Blue</Link></li>
               <li><Link href="/reviews">Reviews</Link></li>
               <li><Link href="/gift-cards">Gift Cards</Link></li>
             </ul>

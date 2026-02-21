@@ -70,7 +70,7 @@ export default function MethyleneBlue() {
   return (
     <Layout
       title="Methylene Blue | Cellular Energy + Mood Support | Range Medical | Newport Beach"
-      description="Methylene blue capsules in Newport Beach. Supports cellular energy, mood, and brain function. 25mg capsules $197. Text us to learn more."
+      description="Methylene blue in Newport Beach — capsules, Blu liquid dropper, and IV infusion. Supports cellular energy, mood, and brain function. Text us to learn more."
     >
       <Head>
         <meta name="keywords" content="methylene blue Newport Beach, methylene blue capsules, methylene blue IV, cellular energy, mood support, brain health, Range Medical" />
@@ -322,12 +322,14 @@ export default function MethyleneBlue() {
           <div className="mb-container">
             <div className="mb-animate">
               <div className="mb-kicker">How to Get It</div>
-              <h2>Methylene Blue Capsule</h2>
+              <h2>Methylene Blue Options</h2>
               <div className="mb-divider"></div>
             </div>
 
-            <div className="mb-pricing-center mb-animate">
+            <div className="mb-options-grid mb-animate">
               <div className="mb-option-card mb-option-featured">
+                <div className="mb-option-badge">Capsule</div>
+                <h3>Methylene Blue Capsule</h3>
                 <div className="mb-option-price">$197</div>
                 <ul className="mb-option-details">
                   <li>25mg per capsule</li>
@@ -336,6 +338,31 @@ export default function MethyleneBlue() {
                   <li>Easy to use at home</li>
                 </ul>
                 <a href={SMS_LINK} className="mb-btn-primary mb-btn-dark mb-btn-full">Text Us to Order</a>
+              </div>
+              <div className="mb-option-card">
+                <div className="mb-option-badge-outline">Liquid</div>
+                <h3>Blu — Methylene Blue Dropper</h3>
+                <div className="mb-option-price">$197</div>
+                <ul className="mb-option-details">
+                  <li>Liquid dropper form</li>
+                  <li>Easy to dose and adjust</li>
+                  <li>Take by mouth in the morning</li>
+                  <li>Good for daily support</li>
+                </ul>
+                <a href={SMS_LINK} className="mb-btn-primary mb-btn-dark mb-btn-full">Text Us to Order</a>
+              </div>
+              <div className="mb-option-card">
+                <div className="mb-option-badge-outline">IV Infusion</div>
+                <h3>Methylene Blue IV</h3>
+                <div className="mb-option-price">$550</div>
+                <ul className="mb-option-details">
+                  <li>Pharmaceutical-grade MB</li>
+                  <li>Mixed with high-dose Vitamin C + magnesium</li>
+                  <li>Direct into bloodstream</li>
+                  <li>Takes 30–45 minutes</li>
+                  <li>Best for deeper support</li>
+                </ul>
+                <a href={SMS_LINK} className="mb-btn-primary mb-btn-dark mb-btn-full">Ask About IV</a>
               </div>
             </div>
           </div>
@@ -793,10 +820,12 @@ export default function MethyleneBlue() {
           font-style: italic;
         }
 
-        /* Pricing Card */
-        .mb-pricing-center {
-          max-width: 420px;
-          margin: 2.5rem auto 0;
+        /* Options Grid */
+        .mb-options-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
+          margin-top: 2.5rem;
         }
 
         .mb-option-card {
@@ -833,6 +862,21 @@ export default function MethyleneBlue() {
           padding: 0.25rem 0.75rem;
           background: #000000;
           color: #ffffff;
+          border-radius: 100px;
+        }
+
+        .mb-option-badge-outline {
+          position: absolute;
+          top: -10px;
+          left: 1.5rem;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          padding: 0.25rem 0.75rem;
+          background: #ffffff;
+          color: #171717;
+          border: 1.5px solid #e5e5e5;
           border-radius: 100px;
         }
 
@@ -1065,6 +1109,10 @@ export default function MethyleneBlue() {
           .mb-stat-row {
             grid-template-columns: repeat(2, 1fr);
             gap: 1.5rem;
+          }
+
+          .mb-options-grid {
+            grid-template-columns: 1fr;
           }
 
           .mb-energy-bars {

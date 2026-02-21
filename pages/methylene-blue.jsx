@@ -972,7 +972,7 @@ export default function MethyleneBlue() {
           text-align: center;
         }
 
-        .mb-cta-title {
+        .mb-cta-section h2.mb-cta-title {
           font-size: 2.75rem;
           letter-spacing: -0.02em;
           color: #ffffff;

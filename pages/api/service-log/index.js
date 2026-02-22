@@ -697,14 +697,10 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
 
     console.log('[incrementOrCreateProtocol] Protocol updated successfully:', { protocol_id: protocol.id, next_expected_date: updateData.next_expected_date });
 
-    // Check if protocol is now complete (after next_expected_date has been set)
-    const totalSessions = protocol.total_sessions || 0;
-    if (totalSessions > 0 && newCount >= totalSessions) {
-      await supabase
-        .from('protocols')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
-        .eq('id', protocol.id);
-    }
+    // Note: Don't auto-complete based on session count here.
+    // The complete-protocols cron handles completion based on end_date.
+    // Auto-completing on session exhaustion causes the protocol to vanish
+    // from the Active list mid-workflow (e.g. monthly memberships that renew).
 
     return {
       updated: true,

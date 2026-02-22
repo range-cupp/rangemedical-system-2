@@ -2115,6 +2115,44 @@ export default function CommandCenter() {
                     </div>
                   )}
 
+                  {/* HRT Injection Reminders (take-home HRT) */}
+                  {protocolDetailPanel.protocol.program_type === 'hrt' && protocolDetailPanel.protocol.delivery_method === 'take_home' && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>Injection Reminders</h4>
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '140px' }}>
+                          <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '6px' }}>Schedule</span>
+                          <select
+                            value={protocolDetailPanel.protocol.hrt_reminder_schedule || ''}
+                            onChange={e => updateProtocolField(protocolDetailPanel.protocol.id, { hrt_reminder_schedule: e.target.value || null })}
+                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', background: '#fff' }}
+                          >
+                            <option value="">Not set</option>
+                            <option value="mon_thu">Monday / Thursday</option>
+                            <option value="tue_fri">Tuesday / Friday</option>
+                          </select>
+                        </div>
+                        <div style={{ flex: 1, minWidth: '160px' }}>
+                          <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '6px' }}>Injection Reminder SMS</span>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', background: protocolDetailPanel.protocol.hrt_reminders_enabled ? '#F0FDF4' : '#fff' }}>
+                            <input
+                              type="checkbox"
+                              checked={protocolDetailPanel.protocol.hrt_reminders_enabled || false}
+                              onChange={e => updateProtocolField(protocolDetailPanel.protocol.id, { hrt_reminders_enabled: e.target.checked })}
+                              style={{ width: '18px', height: '18px', accentColor: '#16A34A' }}
+                            />
+                            <span style={{ fontSize: '14px', fontWeight: '500', color: protocolDetailPanel.protocol.hrt_reminders_enabled ? '#16A34A' : '#6B7280' }}>
+                              {protocolDetailPanel.protocol.hrt_reminders_enabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </label>
+                          <span style={{ fontSize: '11px', color: '#9CA3AF', display: 'block', marginTop: '4px' }}>
+                            Sends injection reminder at 9 AM on scheduled days
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Injection Reminders (take-home weight loss) */}
                   {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.protocol.delivery_method === 'take_home' && (
                     <div style={styles.protocolDetailSection}>

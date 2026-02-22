@@ -177,7 +177,10 @@ async function updateProtocol(id, updates, res) {
     'last_visit_date',
     'next_expected_date',
     // Recovery peptide cycle tracking
-    'cycle_start_date'
+    'cycle_start_date',
+    // HRT take-home injection reminders
+    'hrt_reminders_enabled',
+    'hrt_reminder_schedule'
   ];
 
   // Date fields that need special handling (convert empty string to null)

@@ -664,6 +664,12 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       const nextDate = new Date(logDate + 'T12:00:00');
       nextDate.setDate(nextDate.getDate() + dayInterval);
       updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+
+      // Extend end_date if next_expected_date is past it, so protocol doesn't show
+      // as overdue while patient is still actively being treated
+      if (protocol.end_date && updateData.next_expected_date > protocol.end_date) {
+        updateData.end_date = updateData.next_expected_date;
+      }
     }
 
     // Also update medication and dosage if provided

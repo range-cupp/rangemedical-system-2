@@ -541,7 +541,7 @@ export default function CommandCenter() {
           weightCheckins: prev.weightCheckins.map(c =>
             c.id === id ? { ...c, weight: parseFloat(weight) } : c
           ),
-          weightProgress: prev.weightProgress ? (() => {
+          weightProgress: prev.weightProgress && prev.protocol ? (() => {
             const updatedCheckins = prev.weightCheckins.map(c =>
               c.id === id ? { ...c, weight: parseFloat(weight) } : c
             ).filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
@@ -571,6 +571,7 @@ export default function CommandCenter() {
 
     try {
       const res = await fetch(`/api/protocols/${protocol.id}`);
+      if (!res.ok) throw new Error(`Failed to load protocol (${res.status})`);
       const result = await res.json();
       if (result.success) {
         // Compute HRT lab schedule if applicable
@@ -827,10 +828,9 @@ export default function CommandCenter() {
 
   const fetchTemplates = async () => {
     try {
-      console.log('Fetching templates...');
       const res = await fetch('/api/protocols/templates');
+      if (!res.ok) throw new Error(`Failed to load templates (${res.status})`);
       const data = await res.json();
-      console.log('Templates loaded:', data.grouped ? Object.keys(data.grouped).length + ' categories' : 'none');
       if (data.grouped) setTemplates(data);
     } catch (error) {
       console.error('Error fetching templates:', error);
@@ -841,6 +841,7 @@ export default function CommandCenter() {
   const fetchPeptides = async () => {
     try {
       const res = await fetch('/api/peptides');
+      if (!res.ok) throw new Error(`Failed to load peptides (${res.status})`);
       const data = await res.json();
       // API returns array directly, not { peptides: [...] }
       if (Array.isArray(data)) {

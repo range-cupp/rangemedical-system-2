@@ -220,12 +220,14 @@ export default function ServiceLogContent() {
     try {
       const categoryParam = viewCategory === 'all' ? '' : `category=${viewCategory}&`;
       const res = await fetch(`/api/service-log?${categoryParam}limit=100`);
+      if (!res.ok) throw new Error(`Failed to load logs (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setLogs(data.logs || []);
       }
     } catch (err) {
       console.error('Error fetching logs:', err);
+      alert('Error loading service logs. Please refresh the page.');
     }
     setLoading(false);
   };
@@ -233,6 +235,7 @@ export default function ServiceLogContent() {
   const fetchPatients = async () => {
     try {
       const res = await fetch('/api/patients?limit=2000');
+      if (!res.ok) throw new Error(`Failed to load patients (${res.status})`);
       const data = await res.json();
       if (data.patients) {
         setPatients(data.patients);
@@ -246,6 +249,7 @@ export default function ServiceLogContent() {
     setLoadingProtocols(true);
     try {
       const res = await fetch('/api/admin/command-center');
+      if (!res.ok) throw new Error(`Failed to load protocols (${res.status})`);
       const data = await res.json();
       if (data.success && data.protocols) {
         const patientActiveProtocols = data.protocols
@@ -879,8 +883,8 @@ export default function ServiceLogContent() {
 
       {/* ===== NEW ENTRY MODAL ===== */}
       {showModal && (
-        <div style={slcStyles.modalOverlay}>
-          <div style={slcStyles.modal}>
+        <div style={slcStyles.modalOverlay} onClick={closeModal}>
+          <div style={slcStyles.modal} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={slcStyles.modalHeader}>
               <div style={slcStyles.modalHeaderLeft}>

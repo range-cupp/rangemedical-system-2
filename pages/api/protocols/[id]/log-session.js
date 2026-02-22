@@ -5,7 +5,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { syncSessionLogToGHL } from '../../../../lib/ghl-sync';
-import { sendStaffSMS } from '../../../../lib/twilio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -14,14 +13,40 @@ const supabase = createClient(
 
 // Send SMS notification to clinic when protocol completes (payment due)
 async function sendPaymentDueNotification(patientName, programName, programType) {
-  const message = `Payment Due!\n\n${patientName} has completed their ${programName} protocol.\n\nTime to collect payment for next period.`;
+  const ghlApiKey = process.env.GHL_API_KEY;
+  // Contact ID for Chris Cupp - used for clinic notifications
+  const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+
+  if (!ghlApiKey) {
+    console.warn('GHL_API_KEY not configured, skipping payment notification');
+    return;
+  }
+
+  const message = `💰 Payment Due!\n\n${patientName} has completed their ${programName} protocol.\n\nTime to collect payment for next period.`;
 
   try {
-    const result = await sendStaffSMS(message);
-    if (result) {
-      console.log('Payment due notification sent for:', patientName);
+    const response = await fetch(
+      'https://services.leadconnectorhq.com/conversations/messages',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ghlApiKey}`,
+          'Version': '2021-04-15',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'SMS',
+          contactId: notifyContactId,
+          message: message
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Payment notification SMS error:', errorData);
     } else {
-      console.error('Payment notification SMS error for:', patientName);
+      console.log('Payment due notification sent for:', patientName);
     }
   } catch (error) {
     console.error('Payment notification error:', error);

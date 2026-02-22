@@ -4,7 +4,6 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { sendStaffSMS } from '../../../lib/twilio';
 import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
@@ -12,10 +11,42 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Send SMS to clinic staff via Twilio
+const GHL_API_KEY = process.env.GHL_API_KEY;
+const NOTIFY_CONTACT_ID = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+
+// Send SMS to clinic
 async function sendClinicSMS(message) {
-  const result = await sendStaffSMS(message);
-  return result ? { success: true } : { success: false, error: 'SMS failed' };
+  if (!GHL_API_KEY) {
+    console.log('Missing GHL_API_KEY');
+    return { success: false };
+  }
+
+  try {
+    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-04-15'
+      },
+      body: JSON.stringify({
+        type: 'SMS',
+        contactId: NOTIFY_CONTACT_ID,
+        message: message
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('SMS error:', error);
+      return { success: false, error };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('SMS error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 export default async function handler(req, res) {

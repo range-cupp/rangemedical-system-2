@@ -1,5 +1,3 @@
-import { sendStaffSMS } from '../../../lib/twilio';
-
 const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
@@ -74,10 +72,28 @@ export default async function handler(req, res) {
           }
         );
 
-        // If they want PT referral, send an SMS notification to staff
+        // If they want PT referral, send an SMS notification
         if (wantsPTRecommendation) {
+          const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
           const message = `PT Referral Request!\n\n${firstName} ${lastName}\n${email}\n\nPatient wants Range Sports Therapy referral from injury assessment.`;
-          await sendStaffSMS(message);
+
+          await fetch(
+            'https://services.leadconnectorhq.com/conversations/messages',
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${GHL_API_KEY}`,
+                'Version': '2021-04-15',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                type: 'SMS',
+                contactId: notifyContactId,
+                message: message
+              })
+            }
+          );
+
           console.log('PT referral SMS notification sent');
         }
 

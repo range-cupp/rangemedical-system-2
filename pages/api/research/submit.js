@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { getStudyById } from '../../../data/researchStudies';
-import { sendStaffSMS } from '../../../lib/twilio';
 
 // Initialize Supabase only if credentials are available
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -35,8 +34,16 @@ async function addGHLNote(contactId, noteBody, ghlApiKey) {
 // Send SMS notification for new research lead
 async function sendSMSNotification(data) {
   const { firstName, lastName, email, studyTitle, servicePage } = data;
-  // Keep RESEARCH_NOTIFY_CONTACT_ID reference for GHL-specific use
+  const ghlApiKey = process.env.GHL_API_KEY;
+  const ghlLocationId = process.env.GHL_LOCATION_ID;
+  const notifyPhone = process.env.RESEARCH_NOTIFY_PHONE || '+19496900339';
+  // Contact ID for Chris Cupp (owner) - used for SMS notifications
   const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+
+  if (!ghlApiKey) {
+    console.warn('GHL_API_KEY not configured, skipping SMS notification');
+    return;
+  }
 
   const serviceNames = {
     'red-light-therapy': 'Red Light Therapy',
@@ -54,11 +61,29 @@ async function sendSMSNotification(data) {
   const message = `New Research Lead!\n\n${firstName} ${lastName}\n${email}\n\nStudy: ${studyTitle}\nService: ${serviceName}`;
 
   try {
-    const result = await sendStaffSMS(message);
-    if (result) {
-      console.log('SMS notification sent successfully');
+    // Send SMS using GHL conversations API with contact ID
+    const response = await fetch(
+      'https://services.leadconnectorhq.com/conversations/messages',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ghlApiKey}`,
+          'Version': '2021-04-15',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'SMS',
+          contactId: notifyContactId,
+          message: message
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('SMS send error:', errorData);
     } else {
-      console.error('SMS send error');
+      console.log('SMS notification sent successfully');
     }
   } catch (error) {
     console.error('SMS notification error:', error);

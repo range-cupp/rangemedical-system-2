@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { sendSMS, sendStaffSMS } from '../../../lib/twilio';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -208,22 +207,42 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Send SMS notification to staff
+    // 3. Send SMS notification
     try {
-      const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
-      const staffMessage = `New Assessment Lead!\n\n${firstName} ${lastName}\n${email}\n${phone}\n\nPath: ${pathName}`;
-      await sendStaffSMS(staffMessage);
-      console.log('Assessment SMS notification sent successfully');
+      await sendSMSNotification({
+        firstName,
+        lastName,
+        email,
+        phone,
+        assessmentPath
+      });
     } catch (smsError) {
       console.error('SMS notification error:', smsError);
     }
 
     // 4. Send confirmation SMS to the lead
-    try {
-      const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
-      await sendSMS(phone, `Hi ${firstName}, thanks for completing your ${pathName} assessment with Range Medical! We received your information and will be in contact with you shortly to discuss your results and next steps. Feel free to call us at (949) 997-3988 with any questions. - Range Medical`);
-    } catch (leadSmsError) {
-      console.error('Lead SMS confirmation error:', leadSmsError);
+    if (GHL_API_KEY && ghlContactId) {
+      try {
+        const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
+        await fetch(
+          'https://services.leadconnectorhq.com/conversations/messages',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-04-15',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: ghlContactId,
+              message: `Hi ${firstName}, thanks for completing your ${pathName} assessment with Range Medical! We received your information and will be in contact with you shortly to discuss your results and next steps. Feel free to call us at (949) 997-3988 with any questions. - Range Medical`
+            })
+          }
+        );
+      } catch (leadSmsError) {
+        console.error('Lead SMS confirmation error:', leadSmsError);
+      }
     }
 
     // 5. Send email notification
@@ -289,6 +308,42 @@ Previous HRT: ${getLabelForValue('triedHormoneTherapy', data.triedHormoneTherapy
 Goals: ${goalsDisplay}
 
 ${data.additionalInfo ? `Additional Notes: ${data.additionalInfo}` : ''}`;
+  }
+}
+
+// Send SMS notification
+async function sendSMSNotification(data) {
+  const { firstName, lastName, email, phone, assessmentPath } = data;
+  const ghlApiKey = process.env.GHL_API_KEY;
+  const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+
+  if (!ghlApiKey) return;
+
+  const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
+  const message = `New Assessment Lead!\n\n${firstName} ${lastName}\n${email}\n${phone}\n\nPath: ${pathName}`;
+
+  const response = await fetch(
+    'https://services.leadconnectorhq.com/conversations/messages',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ghlApiKey}`,
+        'Version': '2021-04-15',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        type: 'SMS',
+        contactId: notifyContactId,
+        message: message
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error('SMS send error:', errorData);
+  } else {
+    console.log('Assessment SMS notification sent successfully');
   }
 }
 

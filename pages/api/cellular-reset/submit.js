@@ -1,5 +1,4 @@
 import { Resend } from 'resend';
-import { sendSMS, sendMultiStaffSMS } from '../../../lib/twilio';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const GHL_API_KEY = process.env.GHL_API_KEY;
@@ -118,19 +117,56 @@ export default async function handler(req, res) {
     }
 
     // 2. Send confirmation SMS to the lead
-    try {
-      await sendSMS(phone, `Hi ${firstName}, thanks for completing the Cellular Reset quiz! We received your info and will be in contact with you shortly to schedule your complimentary session. — Range Medical (949) 997-3988`);
-    } catch (smsError) {
-      console.error('SMS confirmation error:', smsError);
+    if (GHL_API_KEY && ghlContactId) {
+      try {
+        await fetch(
+          'https://services.leadconnectorhq.com/conversations/messages',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-04-15',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: ghlContactId,
+              message: `Hi ${firstName}, thanks for completing the Cellular Reset quiz! We received your info and will be in contact with you shortly to schedule your complimentary session. — Range Medical (949) 997-3988`
+            })
+          }
+        );
+      } catch (smsError) {
+        console.error('SMS confirmation error:', smsError);
+      }
     }
 
-    // 3. Send SMS notification to staff (Chris + Damon)
-    try {
+    // 3. Send SMS notification to staff
+    if (GHL_API_KEY) {
+      const staffContacts = [
+        process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2', // Chris
+        '6rpcbVD71tCzuFMpz8oV' // Damon
+      ];
       const avatarLabel = AVATAR_LABELS[avatar] || avatar;
       const notifyMsg = `New Cellular Reset Lead!\n\n${firstName} ${lastName || ''}\n${cleanEmail}\n${phone}\n\nPage: ${avatarLabel}\nGoal: ${goal || 'N/A'}\nTimeline: ${timeline || 'N/A'}`;
-      await sendMultiStaffSMS(notifyMsg, ['chris', 'lily']);
-    } catch (notifyError) {
-      console.error('Staff SMS notification error:', notifyError);
+
+      for (const contactId of staffContacts) {
+        try {
+          await fetch(
+            'https://services.leadconnectorhq.com/conversations/messages',
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${GHL_API_KEY}`,
+                'Version': '2021-04-15',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ type: 'SMS', contactId, message: notifyMsg })
+            }
+          );
+        } catch (notifyError) {
+          console.error('Staff SMS notification error:', notifyError);
+        }
+      }
     }
 
     // 4. Send notification email

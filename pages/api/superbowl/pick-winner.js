@@ -8,7 +8,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-import { sendSMS } from '../../../lib/twilio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -87,31 +86,59 @@ export default async function handler(req, res) {
     const formattedPhone = `+1${winner.phone_number}`;
 
     try {
+      // Find or create GHL contact
       let ghlContactId = winner.ghl_contact_id;
 
-      // Send winner SMS via Twilio - include referrer if they had one
-      const referrerNote = winner.referred_by
-        ? ` And great news — ${winner.referred_by} who referred you wins one too!`
-        : '';
-      const winnerMessage = `Congratulations! You won the Range Medical Super Bowl Giveaway! You've won a FREE Elite Panel Lab Draw valued at $750.${referrerNote} Call us at (949) 997-3988 or reply to this text to schedule your appointment. — Range Medical, Newport Beach`;
+      if (!ghlContactId) {
+        // Search for contact
+        const searchResponse = await fetch(
+          `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${winner.phone_number}&limit=1`,
+          {
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28',
+              'Accept': 'application/json'
+            }
+          }
+        );
 
-      const smsResult = await sendSMS(winner.phone_number, winnerMessage);
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          if (searchData.contacts && searchData.contacts.length > 0) {
+            ghlContactId = searchData.contacts[0].id;
+          }
+        }
 
-      if (smsResult) {
-        smsSent = true;
-        console.log('Winner SMS sent successfully');
+        // Create contact if needed
+        if (!ghlContactId) {
+          const createResponse = await fetch(
+            `https://services.leadconnectorhq.com/contacts/`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${GHL_API_KEY}`,
+                'Version': '2021-07-28',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                locationId: GHL_LOCATION_ID,
+                phone: formattedPhone,
+                firstName: winner.first_name,
+                lastName: winner.last_name,
+                tags: ['superbowl-winner']
+              })
+            }
+          );
 
-        // Mark as notified
-        await supabase
-          .from('superbowl_giveaway_entries')
-          .update({ winner_notified: true })
-          .eq('id', winner.id);
-      } else {
-        console.error('Winner SMS error for:', winner.phone_number);
+          if (createResponse.ok) {
+            const createData = await createResponse.json();
+            ghlContactId = createData.contact?.id;
+          }
+        }
       }
 
-      // Add note to GHL contact if we have one
-      if (ghlContactId && GHL_API_KEY) {
+      if (ghlContactId) {
         // Add winner tag
         await fetch(
           `https://services.leadconnectorhq.com/contacts/${ghlContactId}`,
@@ -129,6 +156,45 @@ export default async function handler(req, res) {
           }
         );
 
+        // Send winner SMS - include referrer if they had one
+        const referrerNote = winner.referred_by
+          ? ` And great news — ${winner.referred_by} who referred you wins one too!`
+          : '';
+        const winnerMessage = `Congratulations! 🏆🏈 You won the Range Medical Super Bowl Giveaway! You've won a FREE Elite Panel Lab Draw valued at $750.${referrerNote} Call us at (949) 997-3988 or reply to this text to schedule your appointment. — Range Medical, Newport Beach`;
+
+        const smsResponse = await fetch(
+          `https://services.leadconnectorhq.com/conversations/messages`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: ghlContactId,
+              message: winnerMessage
+            })
+          }
+        );
+
+        if (smsResponse.ok) {
+          smsSent = true;
+          console.log('Winner SMS sent successfully');
+
+          // Mark as notified
+          await supabase
+            .from('superbowl_giveaway_entries')
+            .update({ winner_notified: true })
+            .eq('id', winner.id);
+        } else {
+          const smsError = await smsResponse.text();
+          console.error('Winner SMS error:', smsResponse.status, smsError);
+        }
+
+        // Add note to contact
         const referrerNoteText = winner.referred_by
           ? `\n\n⚠️ REFERRER ALSO WINS: ${winner.referred_by}\nPlease locate this person in the system and notify them that they also won a FREE Elite Panel.`
           : '';

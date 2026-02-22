@@ -7,7 +7,6 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { sendSMS as twilioSendSMS } from '../../../lib/twilio';
 import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
 
@@ -16,19 +15,48 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const GHL_API_KEY = process.env.GHL_API_KEY;
+
 // Get today's date string in Pacific Time (YYYY-MM-DD)
 function getPacificDate() {
   const now = new Date();
   return new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
 }
 
-// Send SMS via Twilio
-async function sendSMS(phone, message) {
-  if (!phone) {
-    return { success: false, error: 'No phone number' };
+// Send SMS via GHL
+async function sendSMS(contactId, message) {
+  if (!GHL_API_KEY || !contactId) {
+    console.log('Missing GHL_API_KEY or contactId');
+    return { success: false, error: 'Missing API key or contact ID' };
   }
-  const result = await twilioSendSMS(phone, message);
-  return result ? { success: true } : { success: false, error: 'SMS failed' };
+
+  try {
+    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-04-15'
+      },
+      body: JSON.stringify({
+        type: 'SMS',
+        contactId: contactId,
+        message: message
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('GHL SMS error:', data);
+      return { success: false, error: data.message || 'SMS failed' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('SMS error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 // Log a sent text to protocol_logs (prevents double-sends)
@@ -118,14 +146,13 @@ export default async function handler(req, res) {
           id,
           name,
           first_name,
-          phone,
           ghl_contact_id
         )
       `)
       .eq('status', 'active')
       .eq('program_type', 'peptide')
       .eq('peptide_reminders_enabled', true)
-      .not('patients.phone', 'is', null);
+      .not('patients.ghl_contact_id', 'is', null);
 
     if (protocolsError) {
       if (protocolsError.message.includes('column')) {
@@ -170,7 +197,7 @@ export default async function handler(req, res) {
         if (!logSet.has(logKey)) {
           const message = `Hi ${firstName}! It's been about a week on your recovery peptide protocol. How are you feeling? Most patients see the best results with 20-30 days of continued use. Let us know if you'd like to keep going — we're here to help! - Range Medical`;
 
-          const smsResult = await sendSMS(patient.phone, message);
+          const smsResult = await sendSMS(ghlContactId, message);
           if (smsResult.success) {
             await logSent(protocol.id, patient.id, 'peptide_followup', message);
             await logComm({ channel: 'sms', messageType: 'peptide_followup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
@@ -200,7 +227,7 @@ export default async function handler(req, res) {
           if (!logSet.has(logKey)) {
             const message = `Hi ${firstName}! Week ${weekNum} check-in on your recovery peptide protocol. How are you feeling? Any changes in pain, mobility, or recovery? Reply anytime and let us know. - Range Medical`;
 
-            const smsResult = await sendSMS(patient.phone, message);
+            const smsResult = await sendSMS(ghlContactId, message);
             if (smsResult.success) {
               await logSent(protocol.id, patient.id, logType, message);
               await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
@@ -237,7 +264,7 @@ export default async function handler(req, res) {
               message = `Hi ${firstName}! Your current peptide supply is almost done. Ready for another 30 days? Most patients see continued improvement with extended use. Reply or call us to get your next round started. - Range Medical`;
             }
 
-            const smsResult = await sendSMS(patient.phone, message);
+            const smsResult = await sendSMS(ghlContactId, message);
             if (smsResult.success) {
               await logSent(protocol.id, patient.id, 'peptide_reup', message);
               await logComm({ channel: 'sms', messageType: 'peptide_reup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });

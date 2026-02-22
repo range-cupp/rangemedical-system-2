@@ -1,7 +1,5 @@
 // pages/api/send-forms-sms.js
-// Sends selected form links via SMS using Twilio
-
-import { sendSMS } from '../../lib/twilio';
+// Sends selected form links via SMS using GoHighLevel API
 
 const FORM_DEFINITIONS = {
   'intake': { name: 'Medical Intake', path: '/intake' },
@@ -25,6 +23,11 @@ export default async function handler(req, res) {
   const GHL_API_KEY = process.env.GHL_API_KEY;
   const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
+  if (!GHL_API_KEY || !GHL_LOCATION_ID) {
+    console.error('Missing GHL credentials');
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
+
   try {
     const { phone, firstName, formIds } = req.body;
 
@@ -45,125 +48,53 @@ export default async function handler(req, res) {
     // Format phone for GHL (+1 prefix)
     const formattedPhone = '+1' + phone;
 
-    // Build the base URL
+    // Build the base URL - USE APP DOMAIN for GHL sync to work
     const baseUrl = 'https://app.range-medical.com';
 
-    // Step 1: Find or create contact in GHL (for CRM tracking)
+    // Step 1: Find or create contact in GHL
     let contactId = null;
 
-    if (GHL_API_KEY && GHL_LOCATION_ID) {
-      try {
-        const searchParams = new URLSearchParams({
-          locationId: GHL_LOCATION_ID,
-          query: formattedPhone
-        });
+    const searchParams = new URLSearchParams({
+      locationId: GHL_LOCATION_ID,
+      query: formattedPhone
+    });
 
-        const searchResponse = await fetch(
-          `https://services.leadconnectorhq.com/contacts/?${searchParams}`,
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-07-28',
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          if (searchData.contacts && searchData.contacts.length > 0) {
-            contactId = searchData.contacts[0].id;
-            console.log('Found existing contact:', contactId);
-          }
+    const searchResponse = await fetch(
+      `https://services.leadconnectorhq.com/contacts/?${searchParams}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json'
         }
+      }
+    );
 
-        // Build tags based on forms being sent
-        const formTags = validFormIds.map(id => `${id}-pending`);
-        const allTags = ['forms-sent', ...formTags];
-
-        if (!contactId) {
-          const createPayload = {
-            firstName: firstName || 'New',
-            lastName: 'Patient',
-            phone: formattedPhone,
-            locationId: GHL_LOCATION_ID,
-            tags: allTags
-          };
-
-          const createResponse = await fetch(
-            'https://services.leadconnectorhq.com/contacts/',
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Version': '2021-07-28',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(createPayload)
-            }
-          );
-
-          if (createResponse.ok) {
-            const createData = await createResponse.json();
-            contactId = createData.contact?.id;
-            console.log('Created new contact:', contactId);
-          }
-        } else {
-          await fetch(
-            `https://services.leadconnectorhq.com/contacts/${contactId}`,
-            {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Version': '2021-07-28',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                tags: allTags,
-                firstName: firstName || undefined
-              })
-            }
-          );
-        }
-      } catch (ghlError) {
-        console.error('GHL contact sync error (non-fatal):', ghlError);
+    if (searchResponse.ok) {
+      const searchData = await searchResponse.json();
+      if (searchData.contacts && searchData.contacts.length > 0) {
+        contactId = searchData.contacts[0].id;
+        console.log('Found existing contact:', contactId);
       }
     }
 
-    // Step 2: Build SMS message
-    const greeting = firstName ? `Hi ${firstName}! ` : '';
+    // Build tags based on forms being sent
+    const formTags = validFormIds.map(id => `${id}-pending`);
+    const allTags = ['forms-sent', ...formTags];
 
-    let messageBody;
+    // If no contact found, create one
+    if (!contactId) {
+      const createPayload = {
+        firstName: firstName || 'New',
+        lastName: 'Patient',
+        phone: formattedPhone,
+        locationId: GHL_LOCATION_ID,
+        tags: allTags
+      };
 
-    if (validFormIds.length === 1) {
-      const form = FORM_DEFINITIONS[validFormIds[0]];
-      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
-    } else {
-      const formLinks = validFormIds.map(id => {
-        const form = FORM_DEFINITIONS[id];
-        return `• ${form.name}: ${baseUrl}${form.path}`;
-      }).join('\n');
-
-      messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
-    }
-
-    // Step 3: Send SMS via Twilio
-    const smsResult = await sendSMS(phone, messageBody);
-
-    if (!smsResult) {
-      return res.status(500).json({
-        error: 'Failed to send SMS.'
-      });
-    }
-
-    console.log('SMS sent successfully');
-
-    // Step 4: Add note to GHL contact if we have one
-    if (contactId && GHL_API_KEY) {
-      const formNames = validFormIds.map(id => FORM_DEFINITIONS[id].name).join(', ');
-      await fetch(
-        `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
+      const createResponse = await fetch(
+        'https://services.leadconnectorhq.com/contacts/',
         {
           method: 'POST',
           headers: {
@@ -171,16 +102,112 @@ export default async function handler(req, res) {
             'Version': '2021-07-28',
             'Content-Type': 'application/json'
           },
+          body: JSON.stringify(createPayload)
+        }
+      );
+
+      if (createResponse.ok) {
+        const createData = await createResponse.json();
+        contactId = createData.contact?.id;
+        console.log('Created new contact:', contactId);
+      } else {
+        const errorData = await createResponse.json();
+        console.error('Failed to create contact:', errorData);
+        return res.status(500).json({ error: 'Failed to create contact in system' });
+      }
+    } else {
+      // Update existing contact with tags
+      await fetch(
+        `https://services.leadconnectorhq.com/contacts/${contactId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
-            body: `Forms sent via SMS on ${new Date().toLocaleString()}:\n${formNames}`,
-            userId: null
+            tags: allTags,
+            firstName: firstName || undefined
           })
         }
       );
     }
 
-    return res.status(200).json({
-      success: true,
+    // Step 2: Build SMS message
+    const greeting = firstName ? `Hi ${firstName}! ` : '';
+    
+    let messageBody;
+    
+    if (validFormIds.length === 1) {
+      // Single form - simple message
+      const form = FORM_DEFINITIONS[validFormIds[0]];
+      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
+    } else {
+      // Multiple forms - list them out
+      const formLinks = validFormIds.map(id => {
+        const form = FORM_DEFINITIONS[id];
+        return `• ${form.name}: ${baseUrl}${form.path}`;
+      }).join('\n');
+      
+      messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
+    }
+
+    // Step 3: Send SMS via GHL
+    const smsResponse = await fetch(
+      'https://services.leadconnectorhq.com/conversations/messages',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'SMS',
+          contactId: contactId,
+          message: messageBody
+        })
+      }
+    );
+
+    if (!smsResponse.ok) {
+      const smsError = await smsResponse.json();
+      console.error('SMS send failed:', smsError);
+      
+      if (smsError.message?.includes('opt') || smsError.message?.includes('consent')) {
+        return res.status(400).json({ 
+          error: 'Patient has opted out of SMS or consent required' 
+        });
+      }
+      
+      return res.status(500).json({ 
+        error: 'Failed to send SMS. Check GHL phone settings.' 
+      });
+    }
+
+    console.log('SMS sent successfully');
+
+    // Step 4: Add note to contact
+    const formNames = validFormIds.map(id => FORM_DEFINITIONS[id].name).join(', ');
+    await fetch(
+      `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          body: `Forms sent via SMS on ${new Date().toLocaleString()}:\n${formNames}`,
+          userId: null
+        })
+      }
+    );
+
+    return res.status(200).json({ 
+      success: true, 
       contactId,
       formsSent: validFormIds.length,
       message: 'Forms sent successfully'
@@ -188,8 +215,8 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Send forms SMS error:', error);
-    return res.status(500).json({
-      error: 'Server error. Please try again.'
+    return res.status(500).json({ 
+      error: 'Server error. Please try again.' 
     });
   }
 }

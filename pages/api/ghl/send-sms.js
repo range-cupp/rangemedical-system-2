@@ -1,15 +1,16 @@
 // /pages/api/ghl/send-sms.js
-// Send SMS via Twilio
+// Send SMS via GHL API
 // Range Medical
-// UPDATED: 2026-02-22 - Switched from GHL to Twilio
+// UPDATED: 2026-02-08 - Added protocol logging for check-in texts
 
 import { createClient } from '@supabase/supabase-js';
-import { sendSMS } from '../../../lib/twilio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const GHL_API_KEY = process.env.GHL_API_KEY;
 
 export default async function handler(req, res) {
   // CORS headers
@@ -32,31 +33,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Look up patient phone number from patients table using ghl_contact_id
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('phone, name')
-      .eq('ghl_contact_id', contact_id)
-      .single();
+    // Send SMS via GHL Conversations API
+    const response = await fetch(
+      `https://services.leadconnectorhq.com/conversations/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'SMS',
+          contactId: contact_id,
+          message: message
+        })
+      }
+    );
 
-    if (patientError || !patient?.phone) {
-      console.error('Could not find phone for contact_id:', contact_id);
-      return res.status(400).json({
-        error: 'Could not find phone number for this contact'
-      });
-    }
-
-    // Send SMS via Twilio
-    const result = await sendSMS(patient.phone, message);
-
-    if (!result) {
-      console.error('SMS send failed for:', patient.phone);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('GHL SMS error:', response.status, errorText);
       return res.status(500).json({
-        error: 'Failed to send SMS'
+        error: 'Failed to send SMS',
+        details: errorText
       });
     }
 
-    console.log('SMS sent to:', patient.phone, '(contact_id:', contact_id, ')');
+    const result = await response.json();
+    console.log('SMS sent to:', contact_id);
 
     // Log to protocol_logs if protocol_id provided
     if (protocol_id) {
@@ -78,7 +84,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: 'SMS sent successfully',
-      messageId: result.sid
+      messageId: result.messageId || result.id
     });
 
   } catch (err) {

@@ -4,13 +4,14 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { sendSMS as twilioSendSMS } from '../../../lib/twilio';
 import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const GHL_API_KEY = process.env.GHL_API_KEY;
 
 // Get current day of week in Pacific Time
 function getPacificDayOfWeek() {
@@ -27,13 +28,40 @@ function isWithinAllowedHours() {
   return pstHour >= 8 && pstHour <= 10;
 }
 
-// Send SMS via Twilio
-async function sendSMS(phone, message) {
-  if (!phone) {
-    return { success: false, error: 'No phone number' };
+// Send SMS via GHL
+async function sendSMS(contactId, message) {
+  if (!GHL_API_KEY || !contactId) {
+    console.log('Missing GHL_API_KEY or contactId');
+    return { success: false, error: 'Missing API key or contact ID' };
   }
-  const result = await twilioSendSMS(phone, message);
-  return result ? { success: true } : { success: false, error: 'SMS failed' };
+
+  try {
+    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GHL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-04-15'
+      },
+      body: JSON.stringify({
+        type: 'SMS',
+        contactId: contactId,
+        message: message
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('GHL SMS error:', data);
+      return { success: false, error: data.message || 'SMS failed' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('SMS error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 // Log the reminder
@@ -103,7 +131,6 @@ export default async function handler(req, res) {
           id,
           name,
           first_name,
-          phone,
           ghl_contact_id
         )
       `)
@@ -111,7 +138,7 @@ export default async function handler(req, res) {
       .eq('program_type', 'weight_loss')
       .eq('checkin_reminder_enabled', true)
       .eq('injection_day', todayPacific)
-      .not('patients.phone', 'is', null);
+      .not('patients.ghl_contact_id', 'is', null);
 
     if (protocolsError) {
       // If columns don't exist yet, return helpful message
@@ -131,7 +158,6 @@ export default async function handler(req, res) {
     for (const protocol of protocolList) {
       const patient = protocol.patients;
       const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : 'there');
-      const patientPhone = patient.phone;
       const ghlContactId = patient.ghl_contact_id;
 
       // Build the check-in URL
@@ -140,8 +166,8 @@ export default async function handler(req, res) {
       // Build the message
       const message = 'Hi ' + firstName + '! 📊\n\nTime for your weekly weight loss check-in. Takes 30 seconds:\n\n' + checkinUrl + '\n\n- Range Medical';
 
-      // Send the SMS via Twilio
-      const smsResult = await sendSMS(patientPhone, message);
+      // Send the SMS
+      const smsResult = await sendSMS(ghlContactId, message);
 
       if (smsResult.success) {
         results.sent.push({

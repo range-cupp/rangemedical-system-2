@@ -277,6 +277,30 @@ async function handlePost(req, res) {
 
     console.log('[service-log] protocolUpdate:', JSON.stringify(protocolUpdate));
 
+    // Safety net: directly update next_expected_date on the protocol after any injection/session.
+    // This guarantees the update even if incrementOrCreateProtocol hit an edge case.
+    const targetProtocolId = protocol_id || protocolUpdate?.protocol_id || (packageUpdate.decremented ? packageUpdate.protocol_id : null);
+    if (targetProtocolId && (resolvedEntryType === 'injection' || resolvedEntryType === 'session')) {
+      const nextDate = new Date(logDate + 'T12:00:00');
+      nextDate.setDate(nextDate.getDate() + 7);
+      const nextExpected = nextDate.toISOString().split('T')[0];
+
+      const { error: safetyErr } = await supabase
+        .from('protocols')
+        .update({
+          next_expected_date: nextExpected,
+          last_visit_date: logDate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', targetProtocolId);
+
+      if (safetyErr) {
+        console.error('[service-log] Safety net update failed:', safetyErr);
+      } else {
+        console.log('[service-log] Safety net: next_expected_date set to', nextExpected, 'for protocol', targetProtocolId);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       log,

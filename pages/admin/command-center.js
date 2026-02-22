@@ -1,11 +1,12 @@
 // /pages/admin/command-center.js
 // Range Medical Command Center - Unified Admin Dashboard
-// 9 tabs: Overview, Leads, Due Soon, Protocols, Patients, Injections, Send Forms, Labs, Comms
+// 10 tabs: Overview, Leads, Due Soon, Protocols, Patients, Injections, Send Forms, Labs, Comms, Booking
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
+import BookingTab from '../../components/BookingTab';
 import { formatCategoryName } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 
@@ -1680,6 +1681,7 @@ export default function CommandCenter() {
             { id: 'forms', label: 'Send Forms', icon: '📤' },
             { id: 'labs', label: 'Labs', icon: '🧪' },
             { id: 'comms', label: 'Comms', icon: '📨' },
+            { id: 'booking', label: 'Booking', icon: '📅' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1811,6 +1813,9 @@ export default function CommandCenter() {
           )}
           {activeTab === 'comms' && (
             <CommsLogTab />
+          )}
+          {activeTab === 'booking' && (
+            <BookingTab />
           )}
         </main>
       </div>

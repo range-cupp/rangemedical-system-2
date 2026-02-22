@@ -1,0 +1,1206 @@
+// /components/BookingTab.js
+// Booking Tab - Staff booking interface via Cal.com
+// Range Medical
+// CREATED: 2026-02-22
+
+import { useState, useEffect } from 'react';
+
+export default function BookingTab() {
+  // Booking flow state
+  const [step, setStep] = useState(1); // 1=patient, 2=service, 3=datetime, 4=confirm
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [notes, setNotes] = useState('');
+  const [booking, setBooking] = useState(false);
+
+  // Data state
+  const [patientSearch, setPatientSearch] = useState('');
+  const [patientResults, setPatientResults] = useState([]);
+  const [searchTimer, setSearchTimer] = useState(null);
+  const [eventTypes, setEventTypes] = useState([]);
+  const [slots, setSlots] = useState({});
+  const [loadingEventTypes, setLoadingEventTypes] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // Right panel state
+  const [upcomingBookings, setUpcomingBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [bookingView, setBookingView] = useState('day'); // day or week
+  const [bookingDate, setBookingDate] = useState(getTodayDate());
+  const [cancelConfirm, setCancelConfirm] = useState(null);
+  const [rescheduleModal, setRescheduleModal] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleSlot, setRescheduleSlot] = useState(null);
+  const [rescheduleSlots, setRescheduleSlots] = useState({});
+  const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false);
+
+  function getTodayDate() {
+    return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  }
+
+  // Fetch event types on mount
+  useEffect(() => {
+    fetchEventTypes();
+    fetchUpcomingBookings();
+  }, []);
+
+  // Refetch bookings when view/date changes
+  useEffect(() => {
+    fetchUpcomingBookings();
+  }, [bookingDate, bookingView]);
+
+  // ============================================
+  // DATA FETCHING
+  // ============================================
+
+  const fetchEventTypes = async () => {
+    setLoadingEventTypes(true);
+    try {
+      const res = await fetch('/api/bookings/event-types');
+      const json = await res.json();
+      if (json.success) {
+        setEventTypes(json.eventTypes || []);
+      }
+    } catch (err) {
+      console.error('Error fetching event types:', err);
+    } finally {
+      setLoadingEventTypes(false);
+    }
+  };
+
+  const fetchSlots = async (eventTypeId, date) => {
+    setLoadingSlots(true);
+    setSlots({});
+    try {
+      const res = await fetch(`/api/bookings/slots?eventTypeId=${eventTypeId}&date=${date}`);
+      const json = await res.json();
+      if (json.success) {
+        setSlots(json.slots || {});
+      }
+    } catch (err) {
+      console.error('Error fetching slots:', err);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const fetchUpcomingBookings = async () => {
+    setLoadingBookings(true);
+    try {
+      const res = await fetch(`/api/bookings/list?date=${bookingDate}&range=${bookingView}`);
+      const json = await res.json();
+      if (json.success) {
+        setUpcomingBookings(json.bookings || []);
+      }
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+
+  // ============================================
+  // PATIENT SEARCH
+  // ============================================
+
+  const handlePatientSearch = (query) => {
+    setPatientSearch(query);
+    if (searchTimer) clearTimeout(searchTimer);
+    if (query.length < 2) {
+      setPatientResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/patients?search=${encodeURIComponent(query)}`);
+        const json = await res.json();
+        setPatientResults(json.patients || json.data || []);
+      } catch (err) {
+        console.error('Patient search error:', err);
+      }
+    }, 300);
+    setSearchTimer(timer);
+  };
+
+  const selectPatient = (patient) => {
+    setSelectedPatient(patient);
+    setPatientSearch('');
+    setPatientResults([]);
+    setStep(2);
+  };
+
+  // ============================================
+  // SERVICE SELECTION
+  // ============================================
+
+  const selectService = (service) => {
+    setSelectedService(service);
+    setStep(3);
+    fetchSlots(service.id, selectedDate);
+  };
+
+  // ============================================
+  // DATE/TIME
+  // ============================================
+
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    setSelectedSlot(null);
+    if (selectedService) {
+      fetchSlots(selectedService.id, newDate);
+    }
+  };
+
+  const navigateDate = (direction) => {
+    const d = new Date(selectedDate + 'T12:00:00');
+    d.setDate(d.getDate() + direction);
+    const newDate = d.toLocaleDateString('en-CA');
+    handleDateChange(newDate);
+  };
+
+  // ============================================
+  // BOOKING
+  // ============================================
+
+  const handleBook = async () => {
+    if (!selectedPatient || !selectedService || !selectedSlot) return;
+    setBooking(true);
+    try {
+      const res = await fetch('/api/bookings/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventTypeId: selectedService.id,
+          start: selectedSlot.start,
+          patientId: selectedPatient.id,
+          patientName: selectedPatient.name,
+          patientEmail: selectedPatient.email,
+          patientPhone: selectedPatient.phone,
+          serviceName: selectedService.title,
+          serviceSlug: selectedService.slug,
+          durationMinutes: selectedService.length,
+          notes
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        // Reset form
+        setStep(1);
+        setSelectedPatient(null);
+        setSelectedService(null);
+        setSelectedSlot(null);
+        setNotes('');
+        setSelectedDate(getTodayDate());
+        // Refresh bookings list
+        fetchUpcomingBookings();
+        alert('Booking created successfully!');
+      } else {
+        alert('Booking failed: ' + (json.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Booking error:', err);
+      alert('Booking failed: ' + err.message);
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  // ============================================
+  // CANCEL / RESCHEDULE
+  // ============================================
+
+  const handleCancel = async (bookingId) => {
+    try {
+      const res = await fetch('/api/bookings/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCancelConfirm(null);
+        fetchUpcomingBookings();
+      } else {
+        alert('Cancel failed: ' + (json.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Cancel error:', err);
+    }
+  };
+
+  const fetchRescheduleSlots = async (eventTypeId, date) => {
+    setLoadingRescheduleSlots(true);
+    setRescheduleSlots({});
+    try {
+      const res = await fetch(`/api/bookings/slots?eventTypeId=${eventTypeId}&date=${date}`);
+      const json = await res.json();
+      if (json.success) {
+        setRescheduleSlots(json.slots || {});
+      }
+    } catch (err) {
+      console.error('Error fetching reschedule slots:', err);
+    } finally {
+      setLoadingRescheduleSlots(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!rescheduleModal || !rescheduleSlot) return;
+    try {
+      const res = await fetch('/api/bookings/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: rescheduleModal.id,
+          newStart: rescheduleSlot.start
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setRescheduleModal(null);
+        setRescheduleSlot(null);
+        setRescheduleDate('');
+        fetchUpcomingBookings();
+      } else {
+        alert('Reschedule failed: ' + (json.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Reschedule error:', err);
+    }
+  };
+
+  // ============================================
+  // HELPERS
+  // ============================================
+
+  const formatTime = (isoString) => {
+    if (!isoString) return '';
+    return new Date(isoString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'America/Los_Angeles'
+    });
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatDateLong = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  // Get all slots as flat array
+  const getSlotsList = (slotsObj) => {
+    const all = [];
+    Object.values(slotsObj || {}).forEach(daySlots => {
+      if (Array.isArray(daySlots)) {
+        all.push(...daySlots);
+      }
+    });
+    return all;
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.twoColumn}>
+        {/* LEFT PANEL - Book Appointment */}
+        <div style={styles.leftPanel}>
+          <h3 style={styles.panelTitle}>Book Appointment</h3>
+
+          {/* Step indicators */}
+          <div style={styles.steps}>
+            {[
+              { num: 1, label: 'Patient' },
+              { num: 2, label: 'Service' },
+              { num: 3, label: 'Date & Time' },
+              { num: 4, label: 'Confirm' }
+            ].map(s => (
+              <div
+                key={s.num}
+                style={{
+                  ...styles.stepItem,
+                  ...(step >= s.num ? styles.stepActive : {}),
+                  ...(step === s.num ? styles.stepCurrent : {}),
+                  cursor: step > s.num ? 'pointer' : 'default'
+                }}
+                onClick={() => { if (step > s.num) setStep(s.num); }}
+              >
+                <span style={styles.stepNum}>{s.num}</span>
+                <span style={styles.stepLabel}>{s.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Step 1: Patient Search */}
+          {step === 1 && (
+            <div style={styles.stepContent}>
+              <label style={styles.label}>Search Patient</label>
+              {selectedPatient ? (
+                <div style={styles.selectedCard}>
+                  <div>
+                    <div style={styles.selectedName}>{selectedPatient.name}</div>
+                    {selectedPatient.email && <div style={styles.selectedDetail}>{selectedPatient.email}</div>}
+                    {selectedPatient.phone && <div style={styles.selectedDetail}>{selectedPatient.phone}</div>}
+                  </div>
+                  <button
+                    style={styles.clearBtn}
+                    onClick={() => { setSelectedPatient(null); setStep(1); }}
+                  >
+                    x
+                  </button>
+                </div>
+              ) : (
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={patientSearch}
+                    onChange={(e) => handlePatientSearch(e.target.value)}
+                    placeholder="Type patient name..."
+                    style={styles.input}
+                    autoFocus
+                  />
+                  {patientResults.length > 0 && (
+                    <div style={styles.searchResults}>
+                      {patientResults.slice(0, 8).map(p => (
+                        <div
+                          key={p.id}
+                          style={styles.searchResult}
+                          onClick={() => selectPatient(p)}
+                        >
+                          <span style={styles.resultName}>{p.name}</span>
+                          {p.phone && <span style={styles.resultPhone}>{p.phone}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {selectedPatient && (
+                <button style={styles.nextBtn} onClick={() => setStep(2)}>
+                  Next: Select Service
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Service Selection */}
+          {step === 2 && (
+            <div style={styles.stepContent}>
+              <label style={styles.label}>Select Service</label>
+              {loadingEventTypes ? (
+                <div style={styles.loadingText}>Loading services...</div>
+              ) : (
+                <div style={styles.serviceGrid}>
+                  {eventTypes.map(et => (
+                    <div
+                      key={et.id}
+                      style={{
+                        ...styles.serviceCard,
+                        ...(selectedService?.id === et.id ? styles.serviceCardSelected : {})
+                      }}
+                      onClick={() => selectService(et)}
+                    >
+                      <div style={styles.serviceName}>{et.title}</div>
+                      <div style={styles.serviceDuration}>{et.length} min</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Date & Time */}
+          {step === 3 && (
+            <div style={styles.stepContent}>
+              <label style={styles.label}>Select Date</label>
+              <div style={styles.dateNav}>
+                <button style={styles.dateNavBtn} onClick={() => navigateDate(-1)}>&larr;</button>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  style={styles.dateInput}
+                />
+                <button style={styles.dateNavBtn} onClick={() => navigateDate(1)}>&rarr;</button>
+              </div>
+              <div style={styles.dateLabel}>{formatDateLong(selectedDate)}</div>
+
+              <label style={{ ...styles.label, marginTop: '16px' }}>Available Times</label>
+              {loadingSlots ? (
+                <div style={styles.loadingText}>Loading available times...</div>
+              ) : (
+                <div style={styles.slotsGrid}>
+                  {getSlotsList(slots).length === 0 ? (
+                    <div style={styles.noSlots}>No available times for this date</div>
+                  ) : (
+                    getSlotsList(slots).map((slot, i) => (
+                      <button
+                        key={i}
+                        style={{
+                          ...styles.slotBtn,
+                          ...(selectedSlot?.start === slot.start ? styles.slotBtnSelected : {})
+                        }}
+                        onClick={() => { setSelectedSlot(slot); setStep(4); }}
+                      >
+                        {formatTime(slot.start)}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 4: Confirm */}
+          {step === 4 && (
+            <div style={styles.stepContent}>
+              <label style={styles.label}>Confirm Booking</label>
+              <div style={styles.summaryCard}>
+                <div style={styles.summaryRow}>
+                  <span style={styles.summaryLabel}>Patient</span>
+                  <span style={styles.summaryValue}>{selectedPatient?.name}</span>
+                </div>
+                <div style={styles.summaryRow}>
+                  <span style={styles.summaryLabel}>Service</span>
+                  <span style={styles.summaryValue}>{selectedService?.title}</span>
+                </div>
+                <div style={styles.summaryRow}>
+                  <span style={styles.summaryLabel}>Duration</span>
+                  <span style={styles.summaryValue}>{selectedService?.length} min</span>
+                </div>
+                <div style={styles.summaryRow}>
+                  <span style={styles.summaryLabel}>Date</span>
+                  <span style={styles.summaryValue}>{formatDateLong(selectedDate)}</span>
+                </div>
+                <div style={styles.summaryRow}>
+                  <span style={styles.summaryLabel}>Time</span>
+                  <span style={styles.summaryValue}>{formatTime(selectedSlot?.start)}</span>
+                </div>
+              </div>
+
+              <label style={{ ...styles.label, marginTop: '16px' }}>Notes (optional)</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add booking notes..."
+                style={styles.textarea}
+                rows={3}
+              />
+
+              <button
+                style={{ ...styles.bookBtn, opacity: booking ? 0.6 : 1 }}
+                onClick={handleBook}
+                disabled={booking}
+              >
+                {booking ? 'Creating Booking...' : 'Book Appointment'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT PANEL - Upcoming Bookings */}
+        <div style={styles.rightPanel}>
+          <div style={styles.rightHeader}>
+            <h3 style={styles.panelTitle}>Upcoming Bookings</h3>
+            <div style={styles.viewToggle}>
+              <button
+                style={{ ...styles.toggleBtn, ...(bookingView === 'day' ? styles.toggleBtnActive : {}) }}
+                onClick={() => setBookingView('day')}
+              >
+                Day
+              </button>
+              <button
+                style={{ ...styles.toggleBtn, ...(bookingView === 'week' ? styles.toggleBtnActive : {}) }}
+                onClick={() => setBookingView('week')}
+              >
+                Week
+              </button>
+            </div>
+          </div>
+
+          <div style={styles.dateNav}>
+            <button style={styles.dateNavBtn} onClick={() => {
+              const d = new Date(bookingDate + 'T12:00:00');
+              d.setDate(d.getDate() - (bookingView === 'week' ? 7 : 1));
+              setBookingDate(d.toLocaleDateString('en-CA'));
+            }}>&larr;</button>
+            <input
+              type="date"
+              value={bookingDate}
+              onChange={(e) => setBookingDate(e.target.value)}
+              style={styles.dateInput}
+            />
+            <button style={styles.dateNavBtn} onClick={() => {
+              const d = new Date(bookingDate + 'T12:00:00');
+              d.setDate(d.getDate() + (bookingView === 'week' ? 7 : 1));
+              setBookingDate(d.toLocaleDateString('en-CA'));
+            }}>&rarr;</button>
+          </div>
+
+          {loadingBookings ? (
+            <div style={styles.loadingText}>Loading bookings...</div>
+          ) : upcomingBookings.length === 0 ? (
+            <div style={styles.noBookings}>No bookings for this {bookingView === 'week' ? 'week' : 'date'}</div>
+          ) : (
+            <div style={styles.bookingsList}>
+              {upcomingBookings.map(b => (
+                <div key={b.id} style={styles.bookingCard}>
+                  <div style={styles.bookingTime}>
+                    {formatTime(b.start_time)}
+                    {b.duration_minutes && <span style={styles.bookingDuration}> ({b.duration_minutes}m)</span>}
+                  </div>
+                  <div style={styles.bookingInfo}>
+                    <div style={styles.bookingPatient}>{b.patient_name}</div>
+                    <div style={styles.bookingService}>{b.service_name}</div>
+                  </div>
+                  <div style={styles.bookingMeta}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: b.status === 'confirmed' ? '#dcfce7' : b.status === 'scheduled' ? '#dbeafe' : '#f3f4f6',
+                      color: b.status === 'confirmed' ? '#166534' : b.status === 'scheduled' ? '#1e40af' : '#374151'
+                    }}>
+                      {b.status}
+                    </span>
+                    {b.booking_date !== bookingDate && (
+                      <div style={styles.bookingDateSmall}>{formatDate(b.booking_date)}</div>
+                    )}
+                  </div>
+                  <div style={styles.bookingActions}>
+                    <button
+                      style={styles.actionBtn}
+                      onClick={() => {
+                        setRescheduleModal(b);
+                        setRescheduleDate(b.booking_date);
+                        fetchRescheduleSlots(b.calcom_event_type_id, b.booking_date);
+                      }}
+                      title="Reschedule"
+                    >
+                      Reschedule
+                    </button>
+                    <button
+                      style={{ ...styles.actionBtn, ...styles.cancelBtn }}
+                      onClick={() => setCancelConfirm(b)}
+                      title="Cancel"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Cancel Confirmation Modal */}
+      {cancelConfirm && (
+        <div style={styles.modalOverlay} onClick={() => setCancelConfirm(null)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()}>
+            <h3 style={styles.modalTitle}>Cancel Booking</h3>
+            <p style={styles.modalText}>
+              Cancel <strong>{cancelConfirm.patient_name}</strong>'s booking for{' '}
+              <strong>{cancelConfirm.service_name}</strong> on{' '}
+              {formatDateLong(cancelConfirm.booking_date)} at {formatTime(cancelConfirm.start_time)}?
+            </p>
+            <div style={styles.modalActions}>
+              <button style={styles.modalCancelBtn} onClick={() => setCancelConfirm(null)}>Keep Booking</button>
+              <button
+                style={styles.modalConfirmBtn}
+                onClick={() => handleCancel(cancelConfirm.id)}
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleModal && (
+        <div style={styles.modalOverlay} onClick={() => { setRescheduleModal(null); setRescheduleSlot(null); }}>
+          <div style={{ ...styles.modal, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <h3 style={styles.modalTitle}>Reschedule Booking</h3>
+            <p style={styles.modalText}>
+              Reschedule <strong>{rescheduleModal.patient_name}</strong> — {rescheduleModal.service_name}
+            </p>
+
+            <label style={styles.label}>New Date</label>
+            <div style={styles.dateNav}>
+              <button style={styles.dateNavBtn} onClick={() => {
+                const d = new Date(rescheduleDate + 'T12:00:00');
+                d.setDate(d.getDate() - 1);
+                const nd = d.toLocaleDateString('en-CA');
+                setRescheduleDate(nd);
+                setRescheduleSlot(null);
+                fetchRescheduleSlots(rescheduleModal.calcom_event_type_id, nd);
+              }}>&larr;</button>
+              <input
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => {
+                  setRescheduleDate(e.target.value);
+                  setRescheduleSlot(null);
+                  fetchRescheduleSlots(rescheduleModal.calcom_event_type_id, e.target.value);
+                }}
+                style={styles.dateInput}
+              />
+              <button style={styles.dateNavBtn} onClick={() => {
+                const d = new Date(rescheduleDate + 'T12:00:00');
+                d.setDate(d.getDate() + 1);
+                const nd = d.toLocaleDateString('en-CA');
+                setRescheduleDate(nd);
+                setRescheduleSlot(null);
+                fetchRescheduleSlots(rescheduleModal.calcom_event_type_id, nd);
+              }}>&rarr;</button>
+            </div>
+
+            <label style={{ ...styles.label, marginTop: '12px' }}>New Time</label>
+            {loadingRescheduleSlots ? (
+              <div style={styles.loadingText}>Loading times...</div>
+            ) : (
+              <div style={styles.slotsGrid}>
+                {getSlotsList(rescheduleSlots).length === 0 ? (
+                  <div style={styles.noSlots}>No available times</div>
+                ) : (
+                  getSlotsList(rescheduleSlots).map((slot, i) => (
+                    <button
+                      key={i}
+                      style={{
+                        ...styles.slotBtn,
+                        ...(rescheduleSlot?.start === slot.start ? styles.slotBtnSelected : {})
+                      }}
+                      onClick={() => setRescheduleSlot(slot)}
+                    >
+                      {formatTime(slot.start)}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            <div style={styles.modalActions}>
+              <button style={styles.modalCancelBtn} onClick={() => { setRescheduleModal(null); setRescheduleSlot(null); }}>
+                Cancel
+              </button>
+              <button
+                style={{ ...styles.modalConfirmBtn, opacity: rescheduleSlot ? 1 : 0.5 }}
+                onClick={handleReschedule}
+                disabled={!rescheduleSlot}
+              >
+                Reschedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// STYLES
+// ============================================
+
+const styles = {
+  container: {
+    padding: '0'
+  },
+  twoColumn: {
+    display: 'flex',
+    gap: '24px',
+    alignItems: 'flex-start'
+  },
+  leftPanel: {
+    flex: '1',
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+    border: '1px solid #e5e7eb',
+    minHeight: '500px'
+  },
+  rightPanel: {
+    width: '420px',
+    flexShrink: 0,
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+    border: '1px solid #e5e7eb',
+    minHeight: '500px'
+  },
+  panelTitle: {
+    margin: '0 0 16px 0',
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  rightHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '4px'
+  },
+
+  // Steps
+  steps: {
+    display: 'flex',
+    gap: '4px',
+    marginBottom: '24px',
+    padding: '4px',
+    backgroundColor: '#f3f4f6',
+    borderRadius: '8px'
+  },
+  stepItem: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    color: '#9ca3af',
+    transition: 'all 0.15s'
+  },
+  stepActive: {
+    color: '#374151'
+  },
+  stepCurrent: {
+    backgroundColor: 'white',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+    color: '#111827',
+    fontWeight: '500'
+  },
+  stepNum: {
+    width: '22px',
+    height: '22px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '12px',
+    fontWeight: '600',
+    backgroundColor: '#e5e7eb',
+    color: '#6b7280'
+  },
+  stepLabel: {
+    fontSize: '13px'
+  },
+
+  // Step content
+  stepContent: {
+    minHeight: '300px'
+  },
+  label: {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: '8px'
+  },
+
+  // Patient search
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  searchResults: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    zIndex: 10,
+    maxHeight: '280px',
+    overflowY: 'auto',
+    marginTop: '4px'
+  },
+  searchResult: {
+    padding: '10px 12px',
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid #f3f4f6'
+  },
+  resultName: {
+    fontWeight: '500',
+    color: '#111827',
+    fontSize: '14px'
+  },
+  resultPhone: {
+    color: '#6b7280',
+    fontSize: '13px'
+  },
+  selectedCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '12px 16px',
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #86efac',
+    borderRadius: '8px'
+  },
+  selectedName: {
+    fontWeight: '600',
+    color: '#166534',
+    fontSize: '15px'
+  },
+  selectedDetail: {
+    fontSize: '13px',
+    color: '#4b5563',
+    marginTop: '2px'
+  },
+  clearBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    cursor: 'pointer',
+    color: '#6b7280',
+    padding: '4px 8px'
+  },
+  nextBtn: {
+    marginTop: '16px',
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#2563eb',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+
+  // Service grid
+  serviceGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: '10px'
+  },
+  serviceCard: {
+    padding: '14px 16px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.15s'
+  },
+  serviceCardSelected: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
+    boxShadow: '0 0 0 2px #2563eb'
+  },
+  serviceName: {
+    fontWeight: '500',
+    fontSize: '14px',
+    color: '#111827',
+    marginBottom: '4px'
+  },
+  serviceDuration: {
+    fontSize: '13px',
+    color: '#6b7280'
+  },
+
+  // Date navigation
+  dateNav: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    marginBottom: '8px'
+  },
+  dateNavBtn: {
+    padding: '8px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    backgroundColor: 'white',
+    cursor: 'pointer',
+    fontSize: '16px',
+    color: '#374151'
+  },
+  dateInput: {
+    flex: 1,
+    padding: '8px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px'
+  },
+  dateLabel: {
+    fontSize: '13px',
+    color: '#6b7280',
+    marginBottom: '16px'
+  },
+
+  // Slots grid
+  slotsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+    gap: '8px'
+  },
+  slotBtn: {
+    padding: '10px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    backgroundColor: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    textAlign: 'center',
+    transition: 'all 0.15s'
+  },
+  slotBtnSelected: {
+    borderColor: '#2563eb',
+    backgroundColor: '#2563eb',
+    color: 'white'
+  },
+  noSlots: {
+    gridColumn: '1 / -1',
+    padding: '24px',
+    textAlign: 'center',
+    color: '#9ca3af',
+    fontSize: '14px'
+  },
+
+  // Summary / confirm
+  summaryCard: {
+    backgroundColor: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '8px'
+  },
+  summaryRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '8px 0',
+    borderBottom: '1px solid #f3f4f6'
+  },
+  summaryLabel: {
+    color: '#6b7280',
+    fontSize: '14px'
+  },
+  summaryValue: {
+    fontWeight: '500',
+    color: '#111827',
+    fontSize: '14px'
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '14px',
+    resize: 'vertical',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  bookBtn: {
+    marginTop: '16px',
+    width: '100%',
+    padding: '14px',
+    backgroundColor: '#16a34a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '15px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  },
+
+  // View toggle
+  viewToggle: {
+    display: 'flex',
+    gap: '4px',
+    padding: '3px',
+    backgroundColor: '#f3f4f6',
+    borderRadius: '6px'
+  },
+  toggleBtn: {
+    padding: '6px 14px',
+    border: 'none',
+    borderRadius: '4px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    backgroundColor: 'transparent',
+    color: '#6b7280',
+    fontWeight: '500'
+  },
+  toggleBtnActive: {
+    backgroundColor: 'white',
+    color: '#111827',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.08)'
+  },
+
+  // Bookings list
+  bookingsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    marginTop: '12px'
+  },
+  bookingCard: {
+    padding: '12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  bookingTime: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  bookingDuration: {
+    fontWeight: '400',
+    color: '#6b7280',
+    fontSize: '13px'
+  },
+  bookingInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px'
+  },
+  bookingPatient: {
+    fontWeight: '500',
+    color: '#374151',
+    fontSize: '14px'
+  },
+  bookingService: {
+    color: '#6b7280',
+    fontSize: '13px'
+  },
+  bookingMeta: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  statusBadge: {
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    textTransform: 'capitalize'
+  },
+  bookingDateSmall: {
+    fontSize: '12px',
+    color: '#6b7280'
+  },
+  bookingActions: {
+    display: 'flex',
+    gap: '8px',
+    borderTop: '1px solid #f3f4f6',
+    paddingTop: '8px'
+  },
+  actionBtn: {
+    padding: '6px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    backgroundColor: 'white',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#374151'
+  },
+  cancelBtn: {
+    color: '#dc2626',
+    borderColor: '#fecaca'
+  },
+  noBookings: {
+    padding: '40px 16px',
+    textAlign: 'center',
+    color: '#9ca3af',
+    fontSize: '14px'
+  },
+  loadingText: {
+    padding: '24px',
+    textAlign: 'center',
+    color: '#6b7280',
+    fontSize: '14px'
+  },
+
+  // Modal
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+    width: '90%',
+    maxWidth: '420px',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+  },
+  modalTitle: {
+    margin: '0 0 12px 0',
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  modalText: {
+    color: '#4b5563',
+    fontSize: '14px',
+    lineHeight: '1.5',
+    margin: '0 0 20px 0'
+  },
+  modalActions: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    marginTop: '20px'
+  },
+  modalCancelBtn: {
+    padding: '10px 20px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    backgroundColor: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#374151'
+  },
+  modalConfirmBtn: {
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '8px',
+    backgroundColor: '#dc2626',
+    color: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500'
+  }
+};

@@ -35,7 +35,7 @@ async function addGHLNote(contactId, noteBody, ghlApiKey) {
 async function sendSMSNotification(data) {
   const { firstName, lastName, email, studyTitle, servicePage } = data;
   const ghlApiKey = process.env.GHL_API_KEY;
-  const ghlLocationId = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+  const ghlLocationId = process.env.GHL_LOCATION_ID;
   const notifyPhone = process.env.RESEARCH_NOTIFY_PHONE || '+19496900339';
   // Contact ID for Chris Cupp (owner) - used for SMS notifications
   const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
@@ -94,7 +94,7 @@ async function sendSMSNotification(data) {
 async function createOrUpdateGHLContact(data) {
   const { firstName, lastName, email, studyId, studyTitle, servicePage, category, tags } = data;
 
-  const ghlLocationId = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+  const ghlLocationId = process.env.GHL_LOCATION_ID;
   const ghlApiKey = process.env.GHL_API_KEY;
 
   if (!ghlApiKey) {

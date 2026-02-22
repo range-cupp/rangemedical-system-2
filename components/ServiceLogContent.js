@@ -628,9 +628,15 @@ export default function ServiceLogContent() {
     if (!confirm('Delete this entry?')) return;
     try {
       const res = await fetch(`/api/service-log?id=${id}`, { method: 'DELETE' });
-      if (res.ok) fetchLogs();
+      if (res.ok) {
+        fetchLogs();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert('Failed to delete entry: ' + (data.error || 'Unknown error'));
+      }
     } catch (err) {
       console.error('Delete error:', err);
+      alert('Failed to delete entry. Please try again.');
     }
   };
 

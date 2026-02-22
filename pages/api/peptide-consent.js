@@ -19,8 +19,8 @@ export default async function handler(req, res) {
     const consentData = req.body;
     
     // GoHighLevel API v2.0 Configuration
-    const GHL_API_KEY = 'pit-e2ba8047-4b3a-48ba-b105-dc67e936d71b';
-    const GHL_LOCATION_ID = 'WICdvbXmTjQORW6GiHWW';
+    const GHL_API_KEY = process.env.GHL_API_KEY;
+    const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
     
     console.log('=== Peptide Consent Integration Start ===');
     console.log('Processing consent for:', consentData.email);
@@ -134,8 +134,8 @@ Email: ${consentData.email}`,
       const { createClient } = await import('@supabase/supabase-js');
       
       const supabaseClient = createClient(
-        'https://teivfptpozltpqwahgdl.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       );
 
       // Check if patient exists

@@ -15,7 +15,7 @@ const supabase = supabaseUrl && supabaseKey
   : null;
 
 const GHL_API_KEY = process.env.GHL_API_KEY;
-const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
 // Condition labels for display
 const CONDITION_LABELS = {

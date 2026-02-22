@@ -15,7 +15,7 @@ const supabase = createClient(
 );
 
 const GHL_API_KEY = process.env.GHL_API_KEY;
-const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'range-superbowl-2026';
 
 export default async function handler(req, res) {

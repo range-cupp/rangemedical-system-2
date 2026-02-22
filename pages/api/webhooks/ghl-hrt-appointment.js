@@ -8,7 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teivfptpozltpqwahgdl.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
@@ -159,7 +159,7 @@ async function markIvUsed(contactId) {
 // Add note to GHL contact
 // =====================================================
 async function addGHLNote(contactId, noteText) {
-  const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
+  const GHL_API_KEY = process.env.GHL_API_KEY;
   
   try {
     const response = await fetch(

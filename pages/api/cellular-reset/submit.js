@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const GHL_API_KEY = process.env.GHL_API_KEY;
-const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
 const AVATAR_LABELS = {
   'athlete': 'Athletes & Performance',

@@ -3,8 +3,8 @@
 // Range Medical
 
 export default async function handler(req, res) {
-  const GHL_API_KEY = process.env.GHL_API_KEY || 'pit-3077d6b0-6f08-4cb6-b74e-be7dd765e91d';
-  const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || 'WICdvbXmTjQORW6GiHWW';
+  const GHL_API_KEY = process.env.GHL_API_KEY;
+  const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
   const WEBHOOK_URL = 'https://app.range-medical.com/api/protocol-webhook';
 
   try {

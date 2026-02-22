@@ -389,19 +389,23 @@ async function handleDelete(req, res) {
 
   try {
     // Try service_logs first
-    const { error: sError } = await supabase
+    const { data: sData, error: sError } = await supabase
       .from('service_logs')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
 
-    if (sError && sError.code === '42P01') {
-      const { error: iError } = await supabase
+    if (sError) throw sError;
+
+    // If nothing was deleted from service_logs, try injection_logs
+    if (!sData || sData.length === 0) {
+      const { data: iData, error: iError } = await supabase
         .from('injection_logs')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
+
       if (iError) throw iError;
-    } else if (sError) {
-      throw sError;
     }
 
     return res.status(200).json({ success: true });

@@ -104,7 +104,8 @@ async function getProtocol(id, res) {
         weight: sl.weight ? parseFloat(sl.weight) : null,
         dosage: sl.dosage,
         notes: sl.notes,
-        log_type: 'checkin'
+        log_type: 'checkin',
+        source: 'service_log'
       }));
 
       // Merge all sources, deduplicate by date+weight to avoid double entries

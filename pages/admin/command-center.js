@@ -449,6 +449,9 @@ export default function CommandCenter() {
     loading: false
   });
 
+  // Weight check-in inline editing state
+  const [editingWeightCheckin, setEditingWeightCheckin] = useState(null); // { id, weight, source }
+
   // SMS check-in modal state
   const [smsModal, setSmsModal] = useState({
     open: false,
@@ -520,6 +523,39 @@ export default function CommandCenter() {
       console.error('Error fetching patient details:', err);
     }
     setPatientDetailLoading(false);
+  };
+
+  const saveWeightCheckinEdit = async () => {
+    if (!editingWeightCheckin) return;
+    const { id, weight, source } = editingWeightCheckin;
+    try {
+      const res = await fetch(`/api/service-log?id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weight: parseFloat(weight) })
+      });
+      if (res.ok) {
+        // Update local state so it reflects immediately
+        setProtocolDetailPanel(prev => ({
+          ...prev,
+          weightCheckins: prev.weightCheckins.map(c =>
+            c.id === id ? { ...c, weight: parseFloat(weight) } : c
+          ),
+          weightProgress: prev.weightProgress ? (() => {
+            const updatedCheckins = prev.weightCheckins.map(c =>
+              c.id === id ? { ...c, weight: parseFloat(weight) } : c
+            ).filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+            const startW = prev.protocol.starting_weight || updatedCheckins[0]?.weight;
+            const currentW = updatedCheckins[updatedCheckins.length - 1]?.weight;
+            const change = startW && currentW ? currentW - startW : null;
+            return { ...prev.weightProgress, currentWeight: currentW, change, changePercent: startW ? ((change / startW) * 100) : null };
+          })() : null
+        }));
+        setEditingWeightCheckin(null);
+      }
+    } catch (err) {
+      console.error('Error saving weight:', err);
+    }
   };
 
   const openProtocolDetail = async (protocol) => {
@@ -2276,7 +2312,31 @@ export default function CommandCenter() {
                             ) : (
                               <div key={item.id || idx} style={styles.checkinItem}>
                                 <div style={styles.checkinDate}>{formatDate(item.log_date)}</div>
-                                <div style={styles.checkinWeight}>{item.weight ? `${item.weight} lbs` : '—'}</div>
+                                {editingWeightCheckin && editingWeightCheckin.id === item.id ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <input
+                                      type="number"
+                                      step="0.1"
+                                      value={editingWeightCheckin.weight}
+                                      onChange={e => setEditingWeightCheckin(prev => ({ ...prev, weight: e.target.value }))}
+                                      onKeyDown={e => { if (e.key === 'Enter') saveWeightCheckinEdit(); if (e.key === 'Escape') setEditingWeightCheckin(null); }}
+                                      autoFocus
+                                      style={{ width: '80px', padding: '4px 8px', border: '1px solid #3B82F6', borderRadius: '4px', fontSize: '14px', fontWeight: '600' }}
+                                    />
+                                    <span style={{ fontSize: '13px', color: '#6B7280' }}>lbs</span>
+                                    <button onClick={saveWeightCheckinEdit} style={{ padding: '2px 8px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>Save</button>
+                                    <button onClick={() => setEditingWeightCheckin(null)} style={{ padding: '2px 8px', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
+                                  </div>
+                                ) : (
+                                  <div
+                                    style={{ ...styles.checkinWeight, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                    onClick={() => setEditingWeightCheckin({ id: item.id, weight: item.weight || '', source: item.source || 'service_log' })}
+                                    title="Click to edit weight"
+                                  >
+                                    {item.weight ? `${item.weight} lbs` : '—'}
+                                    <span style={{ fontSize: '11px', color: '#9CA3AF' }}>✏️</span>
+                                  </div>
+                                )}
                                 {item.dosage && (
                                   <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.dosage}</div>
                                 )}

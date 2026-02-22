@@ -17,14 +17,19 @@ const supabase = createClient(
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // Verify cron secret
+  // Verify cron authorization
   const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (process.env.CRON_SECRET && cronSecret !== process.env.CRON_SECRET) {
-    console.log('WL drip emails cron called without secret');
+  const authHeader = req.headers['authorization'];
+  const isVercelCron = !!req.headers['x-vercel-cron-signature'];
+  const isAuthorized = isVercelCron || (
+    process.env.CRON_SECRET && (
+      cronSecret === process.env.CRON_SECRET ||
+      authHeader === `Bearer ${process.env.CRON_SECRET}`
+    )
+  );
+
+  if (!isAuthorized) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {

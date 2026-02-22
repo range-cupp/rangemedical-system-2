@@ -89,13 +89,16 @@ function getFirstName(fullName) {
 }
 
 export default async function handler(req, res) {
-  // Verify authorization
+  // Verify cron authorization
   const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
   const authHeader = req.headers['authorization'];
-  const isAuthorized =
-    cronSecret === process.env.CRON_SECRET ||
-    authHeader === `Bearer ${process.env.CRON_SECRET}` ||
-    req.headers['x-vercel-signature'];
+  const isVercelCron = !!req.headers['x-vercel-cron-signature'];
+  const isAuthorized = isVercelCron || (
+    process.env.CRON_SECRET && (
+      cronSecret === process.env.CRON_SECRET ||
+      authHeader === `Bearer ${process.env.CRON_SECRET}`
+    )
+  );
 
   if (!isAuthorized) {
     return res.status(401).json({ error: 'Unauthorized' });

@@ -13,16 +13,18 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Verify authorization
-  const authHeader = req.headers.authorization;
-  const cronSecret = req.headers['x-cron-secret'];
-  const isAuthorized =
-    cronSecret === process.env.CRON_SECRET ||
-    authHeader === `Bearer ${process.env.CRON_SECRET}` ||
-    req.query.secret === process.env.CRON_SECRET;
-  const isVercelCron = req.headers['x-vercel-cron-signature'];
+  // Verify cron authorization
+  const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
+  const authHeader = req.headers['authorization'];
+  const isVercelCron = !!req.headers['x-vercel-cron-signature'];
+  const isAuthorized = isVercelCron || (
+    process.env.CRON_SECRET && (
+      cronSecret === process.env.CRON_SECRET ||
+      authHeader === `Bearer ${process.env.CRON_SECRET}`
+    )
+  );
 
-  if (!isAuthorized && !isVercelCron) {
+  if (!isAuthorized) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

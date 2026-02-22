@@ -159,12 +159,17 @@ export default async function handler(req, res) {
     }
 
     // Check for existing intake from same person (avoid duplicates)
-    const { data: existing } = await supabase
-      .from('intakes')
-      .select('id')
-      .eq('email', intakeData.email)
-      .gte('submitted_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
-      .single();
+    // Only check if email is provided — empty emails would match all empty-email intakes
+    let existing = null;
+    if (intakeData.email) {
+      const { data: dup } = await supabase
+        .from('intakes')
+        .select('id')
+        .ilike('email', intakeData.email)
+        .gte('submitted_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+        .maybeSingle();
+      existing = dup;
+    }
 
     if (existing) {
       console.log('Duplicate intake detected, updating existing:', existing.id);

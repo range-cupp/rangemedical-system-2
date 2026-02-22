@@ -61,7 +61,7 @@ const CUSTOM_FIELD_GROUPS = [
       { name: 'Next Lab Due', dataType: 'DATE' },
       { name: 'HRT Last Visit Date', dataType: 'DATE' },
       { name: 'HRT Next Expected Visit', dataType: 'DATE' },
-      { name: 'HRT Reminders Enabled', dataType: 'CHECKBOX' },
+      { name: 'HRT Reminders Enabled', dataType: 'SINGLE_OPTIONS', options: ['Yes', 'No'] },
       { name: 'HRT Reminder Schedule', dataType: 'SINGLE_OPTIONS', options: ['Mon/Thu', 'Tue/Fri'] },
       { name: 'HRT Notes', dataType: 'LARGE_TEXT' }
     ]
@@ -280,10 +280,6 @@ export default async function handler(req, res) {
 
         if (field.options && field.options.length > 0) {
           body.options = field.options;
-        }
-
-        if (field.dataType === 'CHECKBOX') {
-          body.acceptedFormat = 'BOOLEAN';
         }
 
         try {

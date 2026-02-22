@@ -6,13 +6,12 @@
 // based on hrt_reminder_schedule field
 
 import { createClient } from '@supabase/supabase-js';
+import { sendSMS as twilioSendSMS } from '../../../lib/twilio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const GHL_API_KEY = process.env.GHL_API_KEY;
 
 // Check if current time is within allowed window (9am-6pm PST)
 function isWithinAllowedHours() {
@@ -42,30 +41,11 @@ function isScheduledDay(schedule) {
   return false;
 }
 
-// Send SMS via GHL
-async function sendSMS(contactId, message) {
-  if (!GHL_API_KEY || !contactId) return false;
-
-  try {
-    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: contactId,
-        message: message
-      })
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.error('SMS error:', error);
-    return false;
-  }
+// Send SMS via Twilio
+async function sendSMS(phone, message) {
+  if (!phone) return false;
+  const result = await twilioSendSMS(phone, message);
+  return !!result;
 }
 
 // Log a sent text to protocol_logs (prevents double-sends)
@@ -121,14 +101,14 @@ export default async function handler(req, res) {
     // Get active HRT take-home protocols with reminders enabled
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
-      .select('*')
+      .select('*, patients!inner(id, name, phone)')
       .eq('status', 'active')
       .eq('hrt_reminders_enabled', true)
       .eq('delivery_method', 'take_home')
       .eq('program_type', 'hrt')
       .lte('start_date', todayStr)
       .gte('end_date', todayStr)
-      .not('ghl_contact_id', 'is', null);
+      .not('patients.phone', 'is', null);
 
     if (protocolsError) {
       throw new Error(`Protocols query error: ${protocolsError.message}`);
@@ -170,10 +150,10 @@ export default async function handler(req, res) {
       }
 
       // Send reminder
-      const firstName = getFirstName(protocol.patient_name);
+      const firstName = getFirstName(protocol.patient_name || protocol.patients?.name);
       const message = `Hi ${firstName}! It's injection day — time for your testosterone injection. — Range Medical`;
 
-      const sent = await sendSMS(protocol.ghl_contact_id, message);
+      const sent = await sendSMS(protocol.patients?.phone, message);
 
       if (sent) {
         await logSent(protocol.id, protocol.patient_id, 'hrt_injection_reminder', message);

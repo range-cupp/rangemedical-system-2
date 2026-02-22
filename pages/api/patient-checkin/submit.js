@@ -11,6 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { updateGHLContact, addGHLNote, createGHLTask } from '../../../lib/ghl-sync';
+import { sendSMS, sendMultiStaffSMS } from '../../../lib/twilio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -200,81 +201,60 @@ Weight: ${parsedWeight} lbs`;
     await addGHLNote(contact_id, ghlNote);
 
     // Send SMS notification to clinic staff when patient completes check-in
-    const ghlApiKey = process.env.GHL_API_KEY;
-    const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
-    const nurseLilyContactId = 'tnHRcVjbvZv8A3bAU9Ev';
-
-    if (ghlApiKey) {
-      let smsMessage = `📱 WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;
+    {
+      let smsMessage = `WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;
       if (weightChange) smsMessage += ` (${weightChange})`;
       smsMessage += `\nInjection: ${newSessionsUsed}/${totalSessions}`;
 
       if (side_effects && side_effects.length > 0) {
-        smsMessage += `\n⚠️ Side effects: ${side_effects.join(', ')}`;
+        smsMessage += `\nSide effects: ${side_effects.join(', ')}`;
       }
 
       if (isPaymentDue) {
-        smsMessage += `\n\n💰 PAYMENT DUE`;
+        smsMessage += `\n\nPAYMENT DUE`;
       }
 
-      // Send to all clinic staff recipients
-      const notifyRecipients = [notifyContactId, nurseLilyContactId];
-
-      for (const recipientId of notifyRecipients) {
-        try {
-          await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${ghlApiKey}`,
-              'Version': '2021-04-15',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              type: 'SMS',
-              contactId: recipientId,
-              message: smsMessage
-            })
-          });
-          console.log(`✓ Check-in SMS notification sent to ${recipientId}`);
-        } catch (smsError) {
-          console.error(`SMS notification error (${recipientId}):`, smsError);
-        }
+      // Send to Chris + Lily
+      try {
+        await sendMultiStaffSMS(smsMessage, ['chris', 'lily']);
+        console.log('✓ Check-in SMS notification sent to staff');
+      } catch (smsError) {
+        console.error('SMS notification error:', smsError);
       }
     }
 
-    // Send thank-you SMS to patient
-    if (ghlApiKey && contact_id) {
+    // Send thank-you SMS to patient (look up phone from patient record)
+    {
       try {
-        const firstName = patient.name ? patient.name.split(' ')[0] : 'there';
-        let thankYouMsg = `Thanks for checking in, ${firstName}! 🎉 Your weight has been logged.`;
+        // Get patient phone
+        const { data: patientPhone } = await supabase
+          .from('patients')
+          .select('phone')
+          .eq('id', patient.id)
+          .single();
 
-        if (weightChange) {
-          thankYouMsg += `\n\nYou're ${weightChange} from your starting weight — `;
-          thankYouMsg += weightChange.startsWith('↓') ? 'keep up the great work!' : 'stay consistent, you\'ve got this!';
+        if (patientPhone?.phone) {
+          const firstName = patient.name ? patient.name.split(' ')[0] : 'there';
+          let thankYouMsg = `Thanks for checking in, ${firstName}! Your weight has been logged.`;
+
+          if (weightChange) {
+            thankYouMsg += `\n\nYou're ${weightChange} from your starting weight — `;
+            thankYouMsg += weightChange.startsWith('↓') ? 'keep up the great work!' : 'stay consistent, you\'ve got this!';
+          }
+
+          if (sessionsRemaining <= 0) {
+            thankYouMsg += `\n\nYou've completed your current protocol! We'll be in touch about next steps.`;
+          } else if (sessionsRemaining === 1) {
+            thankYouMsg += `\n\nYou have 1 injection remaining in this cycle.`;
+          }
+
+          thankYouMsg += `\n\n- Range Medical`;
+
+          await sendSMS(patientPhone.phone, thankYouMsg);
+          console.log('✓ Thank-you SMS sent to patient');
+        } else {
+          console.log('No patient phone found, skipping thank-you SMS');
         }
-
-        if (sessionsRemaining <= 0) {
-          thankYouMsg += `\n\nYou've completed your current protocol! We'll be in touch about next steps.`;
-        } else if (sessionsRemaining === 1) {
-          thankYouMsg += `\n\nYou have 1 injection remaining in this cycle.`;
-        }
-
-        thankYouMsg += `\n\n- Range Medical`;
-
-        await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${ghlApiKey}`,
-            'Version': '2021-04-15',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: contact_id,
-            message: thankYouMsg
-          })
-        });
-        console.log('✓ Thank-you SMS sent to patient');
       } catch (thankYouError) {
         console.error('Thank-you SMS error:', thankYouError);
       }

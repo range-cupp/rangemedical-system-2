@@ -1,44 +1,16 @@
 // /pages/api/admin/send-questionnaire-reminder.js
-// Manually send questionnaire reminder via GHL SMS
+// Manually send questionnaire reminder via SMS
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { sendSMS } from '../../../lib/twilio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const GHL_API_KEY = process.env.GHL_API_KEY;
-const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'range2024admin';
-
-async function sendSMS(contactId, message) {
-  if (!GHL_API_KEY) {
-    throw new Error('GHL_API_KEY not configured');
-  }
-
-  const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GHL_API_KEY}`,
-      'Content-Type': 'application/json',
-      'Version': '2021-04-15'
-    },
-    body: JSON.stringify({
-      type: 'SMS',
-      contactId: contactId,
-      message: message
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`GHL SMS error: ${err}`);
-  }
-
-  return true;
-}
 
 function getFirstName(fullName) {
   if (!fullName) return 'there';
@@ -82,8 +54,29 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    if (!protocol.ghl_contact_id) {
-      return res.status(400).json({ error: 'Patient has no GHL contact ID' });
+    // Look up patient phone from the patients table
+    let patientPhone = null;
+    if (protocol.patient_id) {
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('phone')
+        .eq('id', protocol.patient_id)
+        .single();
+      patientPhone = patient?.phone;
+    }
+
+    // Fallback: try looking up by ghl_contact_id
+    if (!patientPhone && protocol.ghl_contact_id) {
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('phone')
+        .eq('ghl_contact_id', protocol.ghl_contact_id)
+        .single();
+      patientPhone = patient?.phone;
+    }
+
+    if (!patientPhone) {
+      return res.status(400).json({ error: 'Patient has no phone number' });
     }
 
     // Check if questionnaire already exists
@@ -109,8 +102,12 @@ export default async function handler(req, res) {
       message = `Hi ${firstName}! Your ${protocol.program_name} is wrapping up. Please take 2 min to complete your final assessment - we'd love to see how much you've improved: ${trackerUrl}`;
     }
 
-    // Send SMS
-    await sendSMS(protocol.ghl_contact_id, message);
+    // Send SMS via Twilio
+    const smsResult = await sendSMS(patientPhone, message);
+
+    if (!smsResult) {
+      return res.status(500).json({ error: 'Failed to send SMS' });
+    }
 
     return res.status(200).json({
       success: true,

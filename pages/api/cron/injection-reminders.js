@@ -7,13 +7,12 @@
 // Only sends between 9am-6pm PST
 
 import { createClient } from '@supabase/supabase-js';
+import { sendSMS as twilioSendSMS } from '../../../lib/twilio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const GHL_API_KEY = process.env.GHL_API_KEY;
 
 // Check if current time is within allowed window (9am-6pm PST)
 function isWithinAllowedHours() {
@@ -64,26 +63,25 @@ function isInjectionDay(startDate, frequency) {
   return true;
 }
 
-// Send SMS via GHL
-async function sendSMS(contactId, message) {
-  if (!GHL_API_KEY || !contactId) return false;
+// Send SMS via Twilio - looks up patient phone from ghl_contact_id
+async function sendSMSByContactId(contactId, message) {
+  if (!contactId) return false;
 
   try {
-    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: contactId,
-        message: message
-      })
-    });
+    // Look up patient phone from ghl_contact_id
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('phone')
+      .eq('ghl_contact_id', contactId)
+      .single();
 
-    return response.ok;
+    if (!patient?.phone) {
+      console.error('No phone found for contact_id:', contactId);
+      return false;
+    }
+
+    const result = await twilioSendSMS(patient.phone, message);
+    return !!result;
   } catch (error) {
     console.error('SMS error:', error);
     return false;
@@ -192,7 +190,7 @@ export default async function handler(req, res) {
         message = `Hi ${firstName}! Quick reminder - Day ${dayNumber} injection done? Tap to log: ${trackerUrl} - Range Medical`;
       }
 
-      const sent = await sendSMS(protocol.ghl_contact_id, message);
+      const sent = await sendSMSByContactId(protocol.ghl_contact_id, message);
       
       if (sent) {
         results.sent.push({ patient: protocol.patient_name, day: dayNumber });

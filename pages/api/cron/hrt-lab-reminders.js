@@ -5,7 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getHRTLabSchedule, matchDrawsToLogs } from '../../../lib/hrt-lab-schedule';
-import { sendStaffSMS } from '../../../lib/ghl-sync';
+import { sendStaffSMS } from '../../../lib/twilio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

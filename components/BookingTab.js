@@ -35,6 +35,7 @@ export default function BookingTab() {
   const [rescheduleSlot, setRescheduleSlot] = useState(null);
   const [rescheduleSlots, setRescheduleSlots] = useState({});
   const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false);
+  const [selectedBlock, setSelectedBlock] = useState(null); // calendar block popover
 
   function getTodayDate() {
     return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -275,6 +276,18 @@ export default function BookingTab() {
   // ============================================
   // HELPERS
   // ============================================
+
+  const getLocalHourMinute = (isoString) => {
+    if (!isoString) return { hour: 8, minute: 0 };
+    const parts = new Date(isoString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'America/Los_Angeles'
+    });
+    const [h, m] = parts.split(':').map(Number);
+    return { hour: h, minute: m };
+  };
 
   const formatTime = (isoString) => {
     if (!isoString) return '';
@@ -558,9 +571,118 @@ export default function BookingTab() {
 
           {loadingBookings ? (
             <div style={styles.loadingText}>Loading bookings...</div>
+          ) : bookingView === 'day' ? (
+            /* DAY VIEW — Time-grid calendar */
+            <div style={styles.calendarWrapper} onClick={() => setSelectedBlock(null)}>
+              <div style={styles.calendarGrid}>
+                {/* Hour lines */}
+                {Array.from({ length: 11 }, (_, i) => {
+                  const hour = 8 + i;
+                  const label = hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
+                  return (
+                    <div key={hour} style={{ ...styles.hourRow, top: `${i * 60}px` }}>
+                      <span style={styles.hourLabel}>{label}</span>
+                      <div style={styles.hourLine} />
+                    </div>
+                  );
+                })}
+
+                {/* Booking blocks */}
+                {upcomingBookings.map(b => {
+                  const { hour, minute } = getLocalHourMinute(b.start_time);
+                  const topPx = (hour - 8) * 60 + minute;
+                  const duration = b.duration_minutes || 30;
+                  const heightPx = Math.max(24, duration);
+                  const isScheduled = b.status === 'scheduled';
+                  const accentColor = isScheduled ? '#2563eb' : '#16a34a';
+
+                  return (
+                    <div
+                      key={b.id}
+                      style={{
+                        ...styles.bookingBlock,
+                        top: `${topPx}px`,
+                        height: `${heightPx}px`,
+                        borderLeftColor: accentColor,
+                        backgroundColor: isScheduled ? '#eff6ff' : '#f0fdf4'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBlock(selectedBlock?.id === b.id ? null : b);
+                      }}
+                    >
+                      <div style={styles.blockPatient}>{b.patient_name}</div>
+                      {heightPx >= 40 && <div style={styles.blockService}>{b.service_name}</div>}
+                      {heightPx >= 54 && <div style={styles.blockTime}>{formatTime(b.start_time)} ({duration}m)</div>}
+                    </div>
+                  );
+                })}
+
+                {/* Current time indicator (today only) */}
+                {bookingDate === getTodayDate() && (() => {
+                  const now = new Date();
+                  const parts = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false, timeZone: 'America/Los_Angeles' });
+                  const [h, m] = parts.split(':').map(Number);
+                  const topPx = (h - 8) * 60 + m;
+                  if (topPx < 0 || topPx > 600) return null;
+                  return (
+                    <div style={{ ...styles.currentTimeLine, top: `${topPx}px` }}>
+                      <div style={styles.currentTimeDot} />
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Click popover */}
+              {selectedBlock && (() => {
+                const { hour, minute } = getLocalHourMinute(selectedBlock.start_time);
+                const topPx = (hour - 8) * 60 + minute;
+                const duration = selectedBlock.duration_minutes || 30;
+                const blockBottom = topPx + Math.max(24, duration);
+                return (
+                  <div
+                    style={{ ...styles.blockPopover, top: `${blockBottom + 4}px` }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: '#111827', marginBottom: '4px' }}>
+                      {selectedBlock.patient_name}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '2px' }}>
+                      {selectedBlock.service_name}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
+                      {formatTime(selectedBlock.start_time)} ({duration}m)
+                    </div>
+                    <div style={styles.popoverActions}>
+                      <button
+                        style={styles.actionBtn}
+                        onClick={() => {
+                          setRescheduleModal(selectedBlock);
+                          setRescheduleDate(selectedBlock.booking_date);
+                          fetchRescheduleSlots(selectedBlock.calcom_event_type_id, selectedBlock.booking_date);
+                          setSelectedBlock(null);
+                        }}
+                      >
+                        Reschedule
+                      </button>
+                      <button
+                        style={{ ...styles.actionBtn, ...styles.cancelBtn }}
+                        onClick={() => {
+                          setCancelConfirm(selectedBlock);
+                          setSelectedBlock(null);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           ) : upcomingBookings.length === 0 ? (
-            <div style={styles.noBookings}>No bookings for this {bookingView === 'week' ? 'week' : 'date'}</div>
+            <div style={styles.noBookings}>No bookings for this week</div>
           ) : (
+            /* WEEK VIEW — Card list (unchanged) */
             <div style={styles.bookingsList}>
               {upcomingBookings.map(b => (
                 <div key={b.id} style={styles.bookingCard}>
@@ -1143,6 +1265,104 @@ const styles = {
     textAlign: 'center',
     color: '#6b7280',
     fontSize: '14px'
+  },
+
+  // Calendar grid (day view)
+  calendarWrapper: {
+    position: 'relative',
+    marginTop: '12px',
+    maxHeight: 'calc(100vh - 240px)',
+    overflowY: 'auto',
+    overflowX: 'hidden'
+  },
+  calendarGrid: {
+    position: 'relative',
+    height: '600px',
+    marginLeft: '52px'
+  },
+  hourRow: {
+    position: 'absolute',
+    left: '-52px',
+    right: 0,
+    display: 'flex',
+    alignItems: 'flex-start'
+  },
+  hourLabel: {
+    width: '48px',
+    flexShrink: 0,
+    fontSize: '11px',
+    color: '#9ca3af',
+    textAlign: 'right',
+    paddingRight: '8px',
+    transform: 'translateY(-7px)',
+    fontWeight: '500'
+  },
+  hourLine: {
+    flex: 1,
+    borderTop: '1px solid #e5e7eb'
+  },
+  bookingBlock: {
+    position: 'absolute',
+    left: '0',
+    right: '8px',
+    borderRadius: '6px',
+    borderLeft: '3px solid',
+    padding: '4px 8px',
+    cursor: 'pointer',
+    overflow: 'hidden',
+    transition: 'box-shadow 0.15s',
+    zIndex: 1
+  },
+  blockPatient: {
+    fontWeight: '600',
+    fontSize: '12px',
+    color: '#111827',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
+  blockService: {
+    fontSize: '11px',
+    color: '#6b7280',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
+  blockTime: {
+    fontSize: '11px',
+    color: '#9ca3af'
+  },
+  currentTimeLine: {
+    position: 'absolute',
+    left: '-4px',
+    right: '0',
+    height: '2px',
+    backgroundColor: '#dc2626',
+    zIndex: 2
+  },
+  currentTimeDot: {
+    position: 'absolute',
+    left: '-4px',
+    top: '-4px',
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: '#dc2626'
+  },
+  blockPopover: {
+    position: 'absolute',
+    left: '0',
+    right: '8px',
+    backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '12px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+    zIndex: 10
+  },
+  popoverActions: {
+    display: 'flex',
+    gap: '8px'
   },
 
   // Modal

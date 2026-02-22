@@ -14,11 +14,11 @@ export default function PrivacyPolicyPage() {
       <div className="legal-page">
         <div className="legal-container">
           <h1>Privacy Policy</h1>
-          <p className="legal-effective">Effective Date: February 1, 2025</p>
+          <p className="legal-effective">Effective Date: February 22, 2026</p>
 
           <section className="legal-section">
             <p>
-              Range Medical ("we," "us," or "our") is committed to protecting your privacy. This
+              Range Medical (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) is committed to protecting your privacy. This
               Privacy Policy describes how we collect, use, disclose, and safeguard your information
               when you visit our website (range-medical.com), use our online forms and assessments,
               or receive our services.
@@ -57,6 +57,7 @@ export default function PrivacyPolicyPage() {
             <ul>
               <li>To coordinate and provide medical treatment and services</li>
               <li>To communicate with you about appointments, treatment plans, and follow-up care</li>
+              <li>To send text message (SMS) communications related to your care (see Section 5 below)</li>
               <li>To process payments and manage your account</li>
               <li>To send relevant health information, service updates, and promotional communications (you may opt out at any time)</li>
               <li>To improve our website, services, and patient experience</li>
@@ -80,7 +81,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="legal-section">
-            <h2>4. Third-Party Services</h2>
+            <h2>4. Information Sharing and Third-Party Services</h2>
             <p>
               We use trusted third-party services to help operate our website, manage patient
               communications, and deliver our services. These may include hosting providers,
@@ -89,13 +90,49 @@ export default function PrivacyPolicyPage() {
               and may only use it for the purposes we specify.
             </p>
             <p>
-              We do not sell, rent, or trade your personal information or health data to third
-              parties for their marketing purposes.
+              <strong>We do not sell, rent, or lease your personal information to third parties.</strong> Your
+              phone number will not be shared with third parties for marketing purposes.
             </p>
           </section>
 
           <section className="legal-section">
-            <h2>5. Data Security</h2>
+            <h2>5. SMS/Text Messaging</h2>
+            <p>
+              When you provide your phone number and consent to receive text messages from Range
+              Medical, we may send you SMS messages for the following purposes:
+            </p>
+            <ul>
+              <li>Appointment confirmations and reminders</li>
+              <li>Lab result notifications</li>
+              <li>Treatment follow-ups and check-ins</li>
+              <li>Health tips and information relevant to your care</li>
+              <li>Responses to your inquiries</li>
+            </ul>
+            <p>
+              <strong>Message Frequency:</strong> Message frequency varies based on your care needs, up to
+              10 messages per month.
+            </p>
+            <p>
+              <strong>Message and Data Rates:</strong> Standard message and data rates may apply depending
+              on your mobile carrier and plan.
+            </p>
+            <p>
+              <strong>Opt-Out:</strong> You may opt out of text messages at any time by replying <strong>STOP</strong> to
+              any message you receive from us. After opting out, you will receive a one-time
+              confirmation message and will no longer receive SMS communications from Range Medical.
+            </p>
+            <p>
+              <strong>Help:</strong> For assistance, reply <strong>HELP</strong> to any message or
+              call us at <a href="tel:9499973988">(949) 997-3988</a>.
+            </p>
+            <p>
+              Your phone number will not be shared with third parties for marketing purposes.
+              For more information, see our <a href="/terms-of-use">Terms of Use</a>.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>6. Data Security</h2>
             <p>
               We implement appropriate technical and organizational measures to protect your
               information against unauthorized access, alteration, disclosure, or destruction.
@@ -106,7 +143,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="legal-section">
-            <h2>6. Cookies and Tracking Technologies</h2>
+            <h2>7. Cookies and Tracking Technologies</h2>
             <p>
               Our website uses cookies and similar technologies to enhance your browsing experience,
               analyze site traffic, and understand how visitors interact with our website. You can
@@ -116,13 +153,24 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="legal-section">
-            <h2>7. Your Rights</h2>
+            <h2>8. Data Retention</h2>
+            <p>
+              We retain your personal information and health data for as long as necessary to
+              fulfill the purposes described in this Privacy Policy, comply with legal obligations,
+              resolve disputes, and enforce our agreements. Medical records are retained in accordance
+              with applicable state and federal laws governing healthcare record retention.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h2>9. Your Rights</h2>
             <p>You have the right to:</p>
             <ul>
               <li>Request access to the personal information we hold about you</li>
               <li>Request correction of inaccurate or incomplete information</li>
               <li>Request deletion of your personal information, subject to legal and regulatory obligations</li>
               <li>Opt out of marketing communications at any time</li>
+              <li>Opt out of SMS/text message communications by replying STOP</li>
               <li>Request a copy of your medical records in accordance with applicable law</li>
             </ul>
             <p>
@@ -133,7 +181,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="legal-section">
-            <h2>8. Children's Privacy</h2>
+            <h2>10. Children&apos;s Privacy</h2>
             <p>
               Our website and services are not directed to individuals under the age of 18. We do
               not knowingly collect personal information from children. If you believe we have
@@ -142,7 +190,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="legal-section">
-            <h2>9. Changes to This Policy</h2>
+            <h2>11. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time to reflect changes in our
               practices or applicable law. Updated versions will be posted on this page with a
@@ -151,7 +199,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="legal-section">
-            <h2>10. Contact Us</h2>
+            <h2>12. Contact Us</h2>
             <p>
               If you have any questions about this Privacy Policy or how we handle your information,
               please contact us:
@@ -226,6 +274,16 @@ export default function PrivacyPolicyPage() {
 
         .legal-section li:last-child {
           margin-bottom: 0;
+        }
+
+        .legal-section a {
+          color: #171717;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+
+        .legal-section a:hover {
+          color: #000000;
         }
 
         .legal-contact {

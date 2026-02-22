@@ -45,7 +45,10 @@ export default function Footer() {
       </div>
       
       <div className="footer-bottom">
-        <p>© 2025 Range Medical. All rights reserved.</p>
+        <p>© 2026 Range Medical. All rights reserved.</p>
+        <p className="footer-sms">
+          By texting or providing your phone number to Range Medical, you agree to receive text messages related to your care. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help. <Link href="/terms-of-use">Terms</Link> &amp; <Link href="/privacy-policy">Privacy Policy</Link>.
+        </p>
         <div className="footer-legal">
           <Link href="/terms-of-use">Terms</Link>
           <Link href="/privacy-policy">Privacy</Link>
@@ -133,6 +136,25 @@ export default function Footer() {
           font-size: 0.8125rem;
           color: #737373;
           margin: 0;
+        }
+
+        .footer-sms {
+          font-size: 0.75rem !important;
+          color: #a3a3a3 !important;
+          line-height: 1.6;
+          max-width: 600px;
+          text-align: center;
+          margin: 0.75rem auto !important;
+        }
+
+        .footer-sms :global(a) {
+          color: #a3a3a3;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+
+        .footer-sms :global(a:hover) {
+          color: #737373;
         }
         
         .footer-legal {

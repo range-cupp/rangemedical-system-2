@@ -383,6 +383,7 @@ export default function Quiz() {
                     value={leadInfo.phone}
                     onChange={(e) => setLeadInfo({ ...leadInfo, phone: e.target.value })}
                   />
+                  <p className="sms-consent">By providing my phone number, I agree to receive text messages from Range Medical. Msg &amp; data rates may apply. Up to 10 msg/mo. Reply STOP to cancel, HELP for help. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a>.</p>
                   <input
                     type="email"
                     placeholder="Email address"
@@ -446,6 +447,18 @@ export default function Quiz() {
 
       <style jsx>{`
         /* ===== QUIZ PAGE SCOPED STYLES ===== */
+
+        .sms-consent {
+          font-size: 0.65rem;
+          color: #a3a3a3;
+          line-height: 1.4;
+          margin: 0.375rem 0 0.5rem;
+        }
+
+        .sms-consent a {
+          color: #a3a3a3;
+          text-decoration: underline;
+        }
 
         /* Trust Bar */
         .quiz-trust-bar {

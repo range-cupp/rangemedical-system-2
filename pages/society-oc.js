@@ -314,6 +314,7 @@ export default function SocietyOC() {
                     onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
                     style={styles.input}
                   />
+                  <p style={{ fontSize: '0.65rem', color: '#a3a3a3', lineHeight: 1.4, marginTop: '0.375rem' }}>By providing my phone number, I agree to receive text messages from Range Medical. Msg &amp; data rates may apply. Up to 10 msg/mo. Reply STOP to cancel, HELP for help. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', textDecoration: 'underline' }}>Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', textDecoration: 'underline' }}>Privacy</a>.</p>
                 </div>
 
                 <div style={styles.formGroup}>

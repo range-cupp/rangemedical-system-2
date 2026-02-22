@@ -371,6 +371,25 @@ p {
   margin: 0;
 }
 
+.rm-footer-sms {
+  font-size: 0.75rem !important;
+  color: #a3a3a3 !important;
+  line-height: 1.6;
+  max-width: 600px;
+  text-align: center;
+  margin: 0.75rem auto !important;
+}
+
+.rm-footer-sms a {
+  color: #a3a3a3;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rm-footer-sms a:hover {
+  color: #737373;
+}
+
 .rm-footer-legal {
   display: flex;
   gap: 1.5rem;

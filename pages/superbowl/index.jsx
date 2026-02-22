@@ -472,6 +472,7 @@ export default function SuperBowlGiveaway() {
                   placeholder="(555) 555-5555"
                   autoComplete="tel"
                 />
+                <p className="sb-sms-consent">By providing my phone number, I agree to receive text messages from Range Medical. Msg &amp; data rates may apply. Up to 10 msg/mo. Reply STOP to cancel, HELP for help. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a>.</p>
               </div>
 
               <div className="sb-field">
@@ -589,6 +590,18 @@ export default function SuperBowlGiveaway() {
           background: #ffffff;
           color: #171717;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .sb-sms-consent {
+          font-size: 0.65rem;
+          color: #a3a3a3;
+          line-height: 1.4;
+          margin: 0.375rem 0 0;
+        }
+
+        .sb-sms-consent a {
+          color: #a3a3a3;
+          text-decoration: underline;
         }
 
         /* Deadline Banner */

@@ -1627,6 +1627,7 @@ export default function RangeAssessment() {
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     placeholder="(949) 555-1234"
                   />
+                  <p className="ra-sms-consent">By providing my phone number, I agree to receive text messages from Range Medical regarding my appointments, lab results, and health updates. Message and data rates may apply. Message frequency varies (up to 10 msg/mo). Reply STOP to cancel, HELP for help. View our <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
                 </div>
 
                 {error && <div className="ra-error">{error}</div>}
@@ -2066,6 +2067,23 @@ const styles = `
   .ra-field input::placeholder,
   .ra-field textarea::placeholder {
     color: #a3a3a3;
+  }
+
+  .ra-sms-consent {
+    font-size: 0.7rem;
+    color: #a3a3a3;
+    line-height: 1.5;
+    margin: 0.5rem 0 0;
+  }
+
+  .ra-sms-consent a {
+    color: #a3a3a3;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .ra-sms-consent a:hover {
+    color: #737373;
   }
 
   .ra-field select {

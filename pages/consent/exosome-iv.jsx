@@ -582,6 +582,7 @@ export default function ExosomeIVConsentPage() {
               <div className="form-group">
                 <label htmlFor="phone">Phone <span className="req">*</span></label>
                 <input type="tel" id="phone" name="phone" required />
+                <p style={{ fontSize: '0.6rem', color: '#a3a3a3', lineHeight: 1.4, marginTop: '0.25rem' }}>By providing my phone number, I agree to receive texts from Range Medical. Msg &amp; data rates may apply. Up to 10 msg/mo. Reply STOP to opt out. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', textDecoration: 'underline' }}>Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', textDecoration: 'underline' }}>Privacy</a>.</p>
               </div>
             </div>
             <div className="form-row">

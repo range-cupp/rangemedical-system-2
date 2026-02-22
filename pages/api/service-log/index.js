@@ -401,12 +401,12 @@ async function checkAndDecrementPackage(patient_id, category, entry_type, protoc
     let protocols, error;
 
     if (protocol_id) {
-      // Fetch the specific protocol by ID
+      // Fetch the specific protocol by ID (don't filter by status — if the UI
+      // explicitly linked to this protocol, honor it even if completed)
       const result = await supabase
         .from('protocols')
         .select('id, program_type, program_name, total_sessions, sessions_used, status')
         .eq('id', protocol_id)
-        .eq('status', 'active')
         .limit(1);
       protocols = result.data;
       error = result.error;
@@ -590,12 +590,12 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     let protocols, findError;
 
     if (protocol_id) {
-      // Fetch the specific protocol by ID
+      // Fetch the specific protocol by ID (don't filter by status — if the UI
+      // explicitly linked to this protocol, honor it even if completed)
       const result = await supabase
         .from('protocols')
-        .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type')
+        .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type, status')
         .eq('id', protocol_id)
-        .eq('status', 'active')
         .limit(1);
       protocols = result.data;
       findError = result.error;
@@ -603,7 +603,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       // Find active protocol by program_type (original behavior)
       const result = await supabase
         .from('protocols')
-        .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type')
+        .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type, status')
         .eq('patient_id', patient_id)
         .eq('program_type', programType)
         .eq('status', 'active')
@@ -626,7 +626,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     }
 
     const protocol = protocols[0];
-    console.log('[incrementOrCreateProtocol] Found protocol:', { id: protocol.id, sessions_used: protocol.sessions_used, total_sessions: protocol.total_sessions, frequency: protocol.frequency, delivery_method: protocol.delivery_method });
+    console.log('[incrementOrCreateProtocol] Found protocol:', { id: protocol.id, status: protocol.status, sessions_used: protocol.sessions_used, total_sessions: protocol.total_sessions, frequency: protocol.frequency, delivery_method: protocol.delivery_method });
 
     // If checkAndDecrementPackage already incremented sessions_used, don't double-count.
     // Just read the current values instead of incrementing again.
@@ -640,6 +640,11 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       last_visit_date: logDate,
       updated_at: new Date().toISOString()
     };
+
+    // Re-activate if the protocol was completed but staff is still logging against it
+    if (protocol.status === 'completed') {
+      updateData.status = 'active';
+    }
 
     if (!alreadyIncremented) {
       updateData.sessions_used = newCount;

@@ -11,6 +11,12 @@ import LabDashboard from '../../components/labs/LabDashboard';
 import { formatCategoryName } from '../../lib/protocol-config';
 import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
+import { loadStripe } from '@stripe/stripe-js';
+import POSChargeModal from '../../components/POSChargeModal';
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 // ============================================
 // CONSTANTS
@@ -4178,6 +4184,9 @@ export default function CommandCenter() {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
         }
+        @keyframes pos-spin {
+          to { transform: rotate(360deg); }
+        }
       `}</style>
     </>
   );
@@ -5618,6 +5627,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
 
 function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf, onAssignProtocol, onEditProtocol }) {
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showPOSModal, setShowPOSModal] = useState(false);
 
   const CONSENT_ICONS = {
     hipaa: '🔒',
@@ -5722,6 +5732,12 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                 onClick={() => setShowBookingModal(true)}
               >
                 📅 Book Appointment
+              </button>
+              <button
+                style={{ ...styles.actionBtn, backgroundColor: '#16A34A', color: '#fff', border: 'none' }}
+                onClick={() => setShowPOSModal(true)}
+              >
+                💳 Charge
               </button>
             </div>
 
@@ -5875,6 +5891,14 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
         )}
       </div>
     </div>
+
+    {/* POS Charge Modal */}
+    <POSChargeModal
+      isOpen={showPOSModal}
+      onClose={() => setShowPOSModal(false)}
+      patient={selected}
+      stripePromise={stripePromise}
+    />
 
     {/* Booking Modal */}
     {showBookingModal && selected && (

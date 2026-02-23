@@ -40,10 +40,10 @@ function groupServicesByCategory(eventTypes) {
     .map(cat => ({ category: cat, services: groups[cat] }));
 }
 
-export default function BookingTab() {
+export default function BookingTab({ preselectedPatient = null }) {
   // Booking flow state
-  const [step, setStep] = useState(1); // 1=patient, 2=service, 3=datetime, 4=confirm
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [step, setStep] = useState(preselectedPatient ? 2 : 1); // 1=patient, 2=service, 3=datetime, 4=confirm
+  const [selectedPatient, setSelectedPatient] = useState(preselectedPatient);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -81,6 +81,14 @@ export default function BookingTab() {
     fetchEventTypes();
     fetchUpcomingBookings();
   }, []);
+
+  // Handle preselected patient (e.g. booking from patient profile)
+  useEffect(() => {
+    if (preselectedPatient) {
+      setSelectedPatient(preselectedPatient);
+      setStep(2);
+    }
+  }, [preselectedPatient]);
 
   // Refetch bookings when view/date changes
   useEffect(() => {

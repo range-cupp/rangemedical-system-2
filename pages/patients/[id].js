@@ -29,6 +29,7 @@ import {
   getDoseOptions
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
+import BookingTab from '../../components/BookingTab';
 
 export default function PatientProfile() {
   const router = useRouter();
@@ -72,6 +73,7 @@ export default function PatientProfile() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showSymptomsModal, setShowSymptomsModal] = useState(false);
   const [showIntakeModal, setShowIntakeModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -595,11 +597,14 @@ export default function PatientProfile() {
         <header className="profile-header">
           <div className="header-top">
             <button onClick={() => router.back()} className="back-btn">← Back</button>
-            {ghlLink && (
-              <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="ghl-link">
-                Open in GHL ↗
-              </a>
-            )}
+            <div className="header-actions">
+              <button onClick={() => setShowBookingModal(true)} className="book-appt-btn">Book Appointment</button>
+              {ghlLink && (
+                <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="ghl-link">
+                  Open in GHL ↗
+                </a>
+              )}
+            </div>
           </div>
 
           <div className="header-main">
@@ -1921,6 +1926,21 @@ export default function PatientProfile() {
           </div>
         )}
 
+        {/* Booking Modal */}
+        {showBookingModal && (
+          <div className="modal-overlay" onClick={() => setShowBookingModal(false)}>
+            <div className="modal modal-booking" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Book Appointment</h3>
+                <button onClick={() => setShowBookingModal(false)} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                <BookingTab preselectedPatient={{ id: patient.id, name: patient.name, email: patient.email, phone: patient.phone }} />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* PDF Slide-Out Viewer */}
         {pdfSlideOut.open && (
           <>
@@ -1986,6 +2006,22 @@ export default function PatientProfile() {
           border-radius: 6px;
         }
         .ghl-link:hover { background: #eff6ff; }
+        .header-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .book-appt-btn {
+          font-size: 13px;
+          color: #fff;
+          background: #2563eb;
+          padding: 6px 14px;
+          border: none;
+          border-radius: 6px;
+          font-weight: 500;
+          cursor: pointer;
+        }
+        .book-appt-btn:hover { background: #1d4ed8; }
         .header-main h1 {
           font-size: 28px;
           font-weight: 600;
@@ -2580,6 +2616,7 @@ export default function PatientProfile() {
         .modal-sm { max-width: 380px; }
         .modal-lg { max-width: 700px; }
         .modal-large { max-width: 600px; }
+        .modal-booking { max-width: 1200px; }
         .modal-header {
           display: flex;
           justify-content: space-between;

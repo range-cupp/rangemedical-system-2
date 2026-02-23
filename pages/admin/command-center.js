@@ -1,6 +1,6 @@
 // /pages/admin/command-center.js
 // Range Medical Command Center - Unified Admin Dashboard
-// 10 tabs: Overview, Leads, Due Soon, Protocols, Patients, Injections, Send Forms, Labs, Comms, Booking
+// 11 tabs: Overview, Leads, Due Soon, Protocols, Patients, Injections, Send Forms, Labs, Comms, Booking, POS
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
@@ -1690,6 +1690,7 @@ export default function CommandCenter() {
             { id: 'labs', label: 'Labs', icon: '🧪' },
             { id: 'comms', label: 'Comms', icon: '📨' },
             { id: 'booking', label: 'Booking', icon: '📅' },
+            { id: 'pos', label: 'POS', icon: '💳' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1824,6 +1825,9 @@ export default function CommandCenter() {
           )}
           {activeTab === 'booking' && (
             <BookingTab />
+          )}
+          {activeTab === 'pos' && (
+            <POSTab stripePromise={stripePromise} />
           )}
         </main>
       </div>
@@ -6458,6 +6462,516 @@ function CommsLogTab() {
             Next
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// POS TAB
+// ============================================
+function POSTab({ stripePromise }) {
+  const [view, setView] = useState('charge'); // 'charge' | 'services'
+  const [showChargeModal, setShowChargeModal] = useState(false);
+  const [chargePatient, setChargePatient] = useState(null);
+
+  // Services state
+  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+  const [editingCell, setEditingCell] = useState(null); // { id, field }
+  const [editValue, setEditValue] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newService, setNewService] = useState({ name: '', category: 'lab_panels', price: '', recurring: false, interval: '' });
+
+  // Recent purchases
+  const [recentPurchases, setRecentPurchases] = useState([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(true);
+
+  // Patient search for charge view
+  const [patientSearch, setPatientSearch] = useState('');
+  const [patientResults, setPatientResults] = useState([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [searchingPatients, setSearchingPatients] = useState(false);
+
+  const CATEGORY_LABELS = {
+    lab_panels: 'Lab Panels',
+    iv_therapy: 'IV Therapy',
+    regenerative: 'Regenerative',
+    weight_loss: 'Weight Loss',
+    hrt: 'HRT',
+  };
+
+  useEffect(() => {
+    loadServices();
+    loadRecentPurchases();
+  }, []);
+
+  async function loadServices() {
+    setLoadingServices(true);
+    try {
+      const res = await fetch('/api/pos/services');
+      const data = await res.json();
+      setServices(data.services || []);
+    } catch (err) {
+      console.error('Load services error:', err);
+    }
+    setLoadingServices(false);
+  }
+
+  async function loadRecentPurchases() {
+    setLoadingPurchases(true);
+    try {
+      const res = await fetch('/api/admin/purchases?limit=10&source=stripe_pos');
+      const data = await res.json();
+      setRecentPurchases(data.purchases || []);
+    } catch (err) {
+      console.error('Load purchases error:', err);
+    }
+    setLoadingPurchases(false);
+  }
+
+  // Patient search with debounce
+  useEffect(() => {
+    if (!patientSearch || patientSearch.length < 2) {
+      setPatientResults([]);
+      setShowPatientDropdown(false);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setSearchingPatients(true);
+      try {
+        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(patientSearch)}`);
+        const data = await res.json();
+        setPatientResults(data.patients || []);
+        setShowPatientDropdown(true);
+      } catch (err) {
+        console.error('Patient search error:', err);
+      }
+      setSearchingPatients(false);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [patientSearch]);
+
+  async function handleSaveEdit(serviceId, field) {
+    let value = editValue;
+    if (field === 'price') {
+      const dollars = parseFloat(value);
+      if (isNaN(dollars) || dollars < 0) return;
+      value = Math.round(dollars * 100); // Convert to cents
+    }
+
+    try {
+      await fetch('/api/pos/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: serviceId, [field]: value }),
+      });
+      loadServices();
+    } catch (err) {
+      console.error('Save error:', err);
+    }
+    setEditingCell(null);
+    setEditValue('');
+  }
+
+  async function handleToggleActive(service) {
+    try {
+      await fetch('/api/pos/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: service.id, active: !service.active }),
+      });
+      loadServices();
+    } catch (err) {
+      console.error('Toggle error:', err);
+    }
+  }
+
+  async function handleAddService() {
+    const price = parseFloat(newService.price);
+    if (!newService.name || !newService.category || isNaN(price)) return;
+
+    try {
+      await fetch('/api/pos/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newService.name,
+          category: newService.category,
+          price: Math.round(price * 100),
+          recurring: newService.recurring,
+          interval: newService.recurring ? (newService.interval || 'month') : null,
+        }),
+      });
+      setShowAddForm(false);
+      setNewService({ name: '', category: 'lab_panels', price: '', recurring: false, interval: '' });
+      loadServices();
+    } catch (err) {
+      console.error('Add service error:', err);
+    }
+  }
+
+  function formatDollars(cents) {
+    return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+  }
+
+  function formatDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+
+  // Group services by category
+  const groupedServices = {};
+  for (const svc of services) {
+    if (!groupedServices[svc.category]) groupedServices[svc.category] = [];
+    groupedServices[svc.category].push(svc);
+  }
+
+  const posTabStyles = {
+    viewToggle: { display: 'flex', gap: '4px', marginBottom: '20px' },
+    viewBtn: {
+      padding: '8px 20px', borderRadius: '6px', border: '1px solid #d1d5db',
+      background: '#fff', fontSize: '14px', fontWeight: 500, cursor: 'pointer', color: '#555',
+    },
+    viewBtnActive: { background: '#1A1A1A', color: '#fff', border: '1px solid #1A1A1A' },
+    section: { marginBottom: '24px' },
+    sectionTitle: { fontSize: '16px', fontWeight: 600, margin: '0 0 12px 0', color: '#111' },
+    searchWrap: { position: 'relative', maxWidth: '400px', marginBottom: '20px' },
+    searchInput: {
+      width: '100%', padding: '10px 14px', border: '1px solid #d1d5db',
+      borderRadius: '8px', fontSize: '15px', outline: 'none', boxSizing: 'border-box',
+    },
+    dropdown: {
+      position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff',
+      border: '1px solid #d1d5db', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      zIndex: 10, maxHeight: '240px', overflowY: 'auto',
+    },
+    dropdownItem: {
+      padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', fontSize: '14px',
+    },
+    table: { width: '100%', borderCollapse: 'collapse', fontSize: '14px' },
+    th: {
+      textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid #e5e7eb',
+      fontSize: '12px', fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px',
+    },
+    td: { padding: '8px 12px', borderBottom: '1px solid #f3f4f6', verticalAlign: 'middle' },
+    catHeader: {
+      padding: '12px 12px 6px', fontSize: '13px', fontWeight: 700,
+      color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.5px',
+    },
+    editInput: {
+      width: '80px', padding: '4px 8px', border: '1px solid #16A34A',
+      borderRadius: '4px', fontSize: '14px', outline: 'none',
+    },
+    clickToEdit: { cursor: 'pointer', borderBottom: '1px dashed #ccc' },
+    badge: {
+      display: 'inline-block', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600,
+    },
+    activeBadge: { background: '#DCFCE7', color: '#166534' },
+    inactiveBadge: { background: '#FEE2E2', color: '#991B1B' },
+    actionBtnSm: {
+      padding: '4px 10px', borderRadius: '4px', border: '1px solid #d1d5db',
+      background: '#fff', fontSize: '12px', cursor: 'pointer', color: '#555',
+    },
+    addBtn: {
+      padding: '8px 16px', borderRadius: '6px', border: 'none',
+      background: '#16A34A', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+    },
+    addForm: {
+      padding: '16px', background: '#f9fafb', borderRadius: '8px',
+      border: '1px solid #e5e7eb', marginBottom: '16px',
+    },
+    addFormRow: { display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'flex-end' },
+    addFormField: { display: 'flex', flexDirection: 'column', gap: '4px' },
+    addFormLabel: { fontSize: '12px', fontWeight: 500, color: '#666' },
+    addFormInput: {
+      padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none',
+    },
+    purchaseList: { display: 'flex', flexDirection: 'column', gap: '6px' },
+    purchaseItem: {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '10px 14px', background: '#fafafa', borderRadius: '8px', border: '1px solid #f3f4f6',
+    },
+    chargeBtn: {
+      padding: '10px 24px', borderRadius: '8px', border: 'none',
+      background: '#16A34A', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+    },
+  };
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {/* View Toggle */}
+      <div style={posTabStyles.viewToggle}>
+        <button
+          style={{ ...posTabStyles.viewBtn, ...(view === 'charge' ? posTabStyles.viewBtnActive : {}) }}
+          onClick={() => setView('charge')}
+        >
+          Charge
+        </button>
+        <button
+          style={{ ...posTabStyles.viewBtn, ...(view === 'services' ? posTabStyles.viewBtnActive : {}) }}
+          onClick={() => setView('services')}
+        >
+          Services & Pricing
+        </button>
+      </div>
+
+      {/* ---- CHARGE VIEW ---- */}
+      {view === 'charge' && (
+        <>
+          {/* Patient Search */}
+          <div style={posTabStyles.section}>
+            <h3 style={posTabStyles.sectionTitle}>New Charge</h3>
+            <div style={posTabStyles.searchWrap}>
+              <input
+                type="text"
+                placeholder="Search patient by name..."
+                value={patientSearch}
+                onChange={e => setPatientSearch(e.target.value)}
+                style={posTabStyles.searchInput}
+              />
+              {searchingPatients && (
+                <div style={{ position: 'absolute', right: '12px', top: '12px', color: '#888', fontSize: '13px' }}>
+                  Searching...
+                </div>
+              )}
+              {showPatientDropdown && patientResults.length > 0 && (
+                <div style={posTabStyles.dropdown}>
+                  {patientResults.map(p => (
+                    <div
+                      key={p.id}
+                      style={posTabStyles.dropdownItem}
+                      onClick={() => {
+                        setChargePatient(p);
+                        setPatientSearch('');
+                        setShowPatientDropdown(false);
+                        setShowChargeModal(true);
+                      }}
+                    >
+                      <div style={{ fontWeight: 500 }}>{p.name}</div>
+                      {p.email && <div style={{ fontSize: '12px', color: '#888' }}>{p.email}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showPatientDropdown && patientResults.length === 0 && patientSearch.length >= 2 && !searchingPatients && (
+                <div style={posTabStyles.dropdown}>
+                  <div style={{ padding: '12px', color: '#888', textAlign: 'center' }}>No patients found</div>
+                </div>
+              )}
+            </div>
+            <button
+              style={posTabStyles.chargeBtn}
+              onClick={() => {
+                setChargePatient(null);
+                setShowChargeModal(true);
+              }}
+            >
+              Quick Charge (search in modal)
+            </button>
+          </div>
+
+          {/* Recent Charges */}
+          <div style={posTabStyles.section}>
+            <h3 style={posTabStyles.sectionTitle}>Recent Charges</h3>
+            {loadingPurchases ? (
+              <div style={{ color: '#888', padding: '12px' }}>Loading...</div>
+            ) : recentPurchases.length === 0 ? (
+              <div style={{ color: '#888', padding: '12px' }}>No recent charges</div>
+            ) : (
+              <div style={posTabStyles.purchaseList}>
+                {recentPurchases.map(p => (
+                  <div key={p.id} style={posTabStyles.purchaseItem}>
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: '14px' }}>{p.description || 'Charge'}</div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>
+                        {p.patient_name || p.patient_id} — {formatDate(p.purchase_date)}
+                      </div>
+                    </div>
+                    <div style={{ fontWeight: 600, color: '#16A34A' }}>
+                      ${p.amount?.toFixed(2)}
+                      {p.discount_type && (
+                        <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px' }}>
+                          ({p.discount_type === 'percent' ? `${p.discount_amount}% off` : `$${p.discount_amount} off`})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Charge Modal */}
+          <POSChargeModal
+            isOpen={showChargeModal}
+            onClose={() => setShowChargeModal(false)}
+            patient={chargePatient}
+            stripePromise={stripePromise}
+            onChargeComplete={() => loadRecentPurchases()}
+          />
+        </>
+      )}
+
+      {/* ---- SERVICES & PRICING VIEW ---- */}
+      {view === 'services' && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={posTabStyles.sectionTitle}>Services & Pricing</h3>
+            <button style={posTabStyles.addBtn} onClick={() => setShowAddForm(!showAddForm)}>
+              {showAddForm ? 'Cancel' : '+ Add Service'}
+            </button>
+          </div>
+
+          {/* Add Service Form */}
+          {showAddForm && (
+            <div style={posTabStyles.addForm}>
+              <div style={posTabStyles.addFormRow}>
+                <div style={posTabStyles.addFormField}>
+                  <label style={posTabStyles.addFormLabel}>Name</label>
+                  <input
+                    style={{ ...posTabStyles.addFormInput, width: '200px' }}
+                    value={newService.name}
+                    onChange={e => setNewService({ ...newService, name: e.target.value })}
+                    placeholder="Service name"
+                  />
+                </div>
+                <div style={posTabStyles.addFormField}>
+                  <label style={posTabStyles.addFormLabel}>Category</label>
+                  <select
+                    style={{ ...posTabStyles.addFormInput, width: '140px' }}
+                    value={newService.category}
+                    onChange={e => setNewService({ ...newService, category: e.target.value })}
+                  >
+                    {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={posTabStyles.addFormField}>
+                  <label style={posTabStyles.addFormLabel}>Price ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    style={{ ...posTabStyles.addFormInput, width: '100px' }}
+                    value={newService.price}
+                    onChange={e => setNewService({ ...newService, price: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div style={posTabStyles.addFormField}>
+                  <label style={posTabStyles.addFormLabel}>Recurring</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
+                    <input
+                      type="checkbox"
+                      checked={newService.recurring}
+                      onChange={e => setNewService({ ...newService, recurring: e.target.checked })}
+                    />
+                    Monthly
+                  </label>
+                </div>
+                <button style={posTabStyles.addBtn} onClick={handleAddService}>
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Services Table */}
+          {loadingServices ? (
+            <div style={{ color: '#888', padding: '12px' }}>Loading services...</div>
+          ) : (
+            <table style={posTabStyles.table}>
+              <thead>
+                <tr>
+                  <th style={posTabStyles.th}>Name</th>
+                  <th style={posTabStyles.th}>Price</th>
+                  <th style={posTabStyles.th}>Recurring</th>
+                  <th style={posTabStyles.th}>Status</th>
+                  <th style={posTabStyles.th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(CATEGORY_LABELS).map(([catKey, catLabel]) => {
+                  const catServices = groupedServices[catKey];
+                  if (!catServices || catServices.length === 0) return null;
+                  return (
+                    <React.Fragment key={catKey}>
+                      <tr>
+                        <td colSpan={5} style={posTabStyles.catHeader}>{catLabel}</td>
+                      </tr>
+                      {catServices.map(svc => (
+                        <tr key={svc.id} style={{ opacity: svc.active ? 1 : 0.5 }}>
+                          <td style={posTabStyles.td}>
+                            {editingCell?.id === svc.id && editingCell?.field === 'name' ? (
+                              <input
+                                style={{ ...posTabStyles.editInput, width: '180px' }}
+                                value={editValue}
+                                onChange={e => setEditValue(e.target.value)}
+                                onBlur={() => handleSaveEdit(svc.id, 'name')}
+                                onKeyDown={e => e.key === 'Enter' && handleSaveEdit(svc.id, 'name')}
+                                autoFocus
+                              />
+                            ) : (
+                              <span
+                                style={posTabStyles.clickToEdit}
+                                onClick={() => { setEditingCell({ id: svc.id, field: 'name' }); setEditValue(svc.name); }}
+                              >
+                                {svc.name}
+                              </span>
+                            )}
+                          </td>
+                          <td style={posTabStyles.td}>
+                            {editingCell?.id === svc.id && editingCell?.field === 'price' ? (
+                              <input
+                                type="number"
+                                step="0.01"
+                                style={posTabStyles.editInput}
+                                value={editValue}
+                                onChange={e => setEditValue(e.target.value)}
+                                onBlur={() => handleSaveEdit(svc.id, 'price')}
+                                onKeyDown={e => e.key === 'Enter' && handleSaveEdit(svc.id, 'price')}
+                                autoFocus
+                              />
+                            ) : (
+                              <span
+                                style={{ ...posTabStyles.clickToEdit, fontWeight: 600 }}
+                                onClick={() => { setEditingCell({ id: svc.id, field: 'price' }); setEditValue((svc.price / 100).toFixed(2)); }}
+                              >
+                                {formatDollars(svc.price)}
+                              </span>
+                            )}
+                          </td>
+                          <td style={posTabStyles.td}>
+                            {svc.recurring ? (
+                              <span style={{ ...posTabStyles.badge, background: '#E0F2FE', color: '#0369A1' }}>
+                                {svc.interval || 'month'}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td style={posTabStyles.td}>
+                            <span style={{ ...posTabStyles.badge, ...(svc.active ? posTabStyles.activeBadge : posTabStyles.inactiveBadge) }}>
+                              {svc.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td style={posTabStyles.td}>
+                            <button
+                              style={posTabStyles.actionBtnSm}
+                              onClick={() => handleToggleActive(svc)}
+                            >
+                              {svc.active ? 'Deactivate' : 'Activate'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </>
       )}
     </div>
   );

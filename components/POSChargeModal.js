@@ -1,37 +1,118 @@
 // POS Charge Modal — Range Medical
 // Multi-step: Select Service → Payment Method → Processing → Result
+// Fetches services from DB, supports discounts, optional patient pre-selection
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
-import { POS_CATEGORIES, POS_ITEMS, formatPrice, getItemsByCategory } from '../lib/pos-pricing';
+import { formatPrice } from '../lib/pos-pricing';
+
+// Category display order and labels
+const CATEGORY_ORDER = ['lab_panels', 'iv_therapy', 'regenerative', 'weight_loss', 'hrt', 'custom'];
+const CATEGORY_LABELS = {
+  lab_panels: 'Lab Panels',
+  iv_therapy: 'IV Therapy',
+  regenerative: 'Regenerative',
+  weight_loss: 'Weight Loss',
+  hrt: 'HRT',
+  custom: 'Custom',
+};
 
 // ============================================================
 // Inner component (must be inside <Elements> provider)
 // ============================================================
-function POSChargeForm({ patient, onClose }) {
+function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const stripe = useStripe();
   const elements = useElements();
 
-  // Steps: 'select' | 'payment' | 'processing' | 'result'
-  const [step, setStep] = useState('select');
-  const [activeCategory, setActiveCategory] = useState('lab_panels');
+  // Patient state (for when no patient is pre-selected)
+  const [patient, setPatient] = useState(initialPatient || null);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [patientResults, setPatientResults] = useState([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [searchingPatients, setSearchingPatients] = useState(false);
+  const searchTimeout = useRef(null);
+
+  // Steps: 'patient' | 'select' | 'payment' | 'processing' | 'result'
+  const [step, setStep] = useState(initialPatient ? 'select' : 'patient');
+
+  // Services from DB
+  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+  const [categories, setCategories] = useState([]);
+
+  const [activeCategory, setActiveCategory] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [customAmount, setCustomAmount] = useState('');
   const [customDescription, setCustomDescription] = useState('');
 
+  // Discount state
+  const [discountType, setDiscountType] = useState('none'); // 'none' | 'percent' | 'dollar'
+  const [discountValue, setDiscountValue] = useState('');
+
   // Payment state
   const [savedCards, setSavedCards] = useState([]);
-  const [selectedCard, setSelectedCard] = useState(null); // payment_method_id or 'new'
+  const [selectedCard, setSelectedCard] = useState(null);
   const [saveNewCard, setSaveNewCard] = useState(false);
   const [loadingCards, setLoadingCards] = useState(false);
 
   // Result state
-  const [resultStatus, setResultStatus] = useState(null); // 'success' | 'error'
+  const [resultStatus, setResultStatus] = useState(null);
   const [resultMessage, setResultMessage] = useState('');
+
+  // Load services from DB on mount
+  useEffect(() => {
+    async function loadServices() {
+      try {
+        const res = await fetch('/api/pos/services?active=true');
+        const data = await res.json();
+        const svc = data.services || [];
+        setServices(svc);
+
+        // Build category list from returned services, in preferred order
+        const cats = [];
+        for (const cat of CATEGORY_ORDER) {
+          if (cat === 'custom' || svc.some(s => s.category === cat)) {
+            cats.push(cat);
+          }
+        }
+        setCategories(cats);
+        if (cats.length > 0) setActiveCategory(cats[0]);
+      } catch (err) {
+        console.error('Load services error:', err);
+      }
+      setLoadingServices(false);
+    }
+    loadServices();
+  }, []);
+
+  // Patient search
+  useEffect(() => {
+    if (!patientSearch || patientSearch.length < 2) {
+      setPatientResults([]);
+      setShowPatientDropdown(false);
+      return;
+    }
+
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(async () => {
+      setSearchingPatients(true);
+      try {
+        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(patientSearch)}`);
+        const data = await res.json();
+        setPatientResults(data.patients || []);
+        setShowPatientDropdown(true);
+      } catch (err) {
+        console.error('Patient search error:', err);
+      }
+      setSearchingPatients(false);
+    }, 300);
+
+    return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
+  }, [patientSearch]);
 
   // Load saved cards when entering payment step
   useEffect(() => {
-    if (step === 'payment') {
+    if (step === 'payment' && patient) {
       loadSavedCards();
     }
   }, [step]);
@@ -54,12 +135,34 @@ function POSChargeForm({ patient, onClose }) {
     setLoadingCards(false);
   }
 
-  function getChargeAmount() {
+  function getItemsByCategory(categoryId) {
+    return services.filter(s => s.category === categoryId);
+  }
+
+  function getBaseAmount() {
     if (activeCategory === 'custom') {
       const dollars = parseFloat(customAmount);
       return isNaN(dollars) ? 0 : Math.round(dollars * 100);
     }
     return selectedItem?.price || 0;
+  }
+
+  function getDiscountCents() {
+    const base = getBaseAmount();
+    const val = parseFloat(discountValue);
+    if (!val || val <= 0 || discountType === 'none') return 0;
+
+    if (discountType === 'percent') {
+      return Math.round(base * (Math.min(val, 100) / 100));
+    }
+    if (discountType === 'dollar') {
+      return Math.min(Math.round(val * 100), base);
+    }
+    return 0;
+  }
+
+  function getChargeAmount() {
+    return Math.max(getBaseAmount() - getDiscountCents(), 0);
   }
 
   function getChargeDescription() {
@@ -80,6 +183,36 @@ function POSChargeForm({ patient, onClose }) {
     return selectedItem !== null;
   }
 
+  function getDiscountData() {
+    if (discountType === 'none' || !parseFloat(discountValue)) return {};
+    return {
+      discount_type: discountType,
+      discount_amount: parseFloat(discountValue),
+      original_amount: getBaseAmount(),
+    };
+  }
+
+  async function recordPurchase(extraFields) {
+    const amount = getChargeAmount();
+    const description = getChargeDescription();
+    const discountData = getDiscountData();
+
+    await fetch('/api/stripe/record-purchase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        patient_id: patient.id,
+        amount,
+        description: discountData.discount_type
+          ? `${description} (${discountType === 'percent' ? discountValue + '% off' : '$' + discountValue + ' off'})`
+          : description,
+        payment_method: 'stripe',
+        ...discountData,
+        ...extraFields,
+      }),
+    });
+  }
+
   async function handlePay() {
     if (!stripe || !elements) return;
 
@@ -90,10 +223,9 @@ function POSChargeForm({ patient, onClose }) {
     try {
       // For recurring items, create a subscription
       if (isRecurring()) {
-        // If using a new card, save it first
         if (selectedCard === 'new') {
           const saveResult = await saveCardFirst();
-          if (!saveResult) return; // Error handled inside
+          if (!saveResult) return;
         }
 
         const subRes = await fetch('/api/stripe/subscription', {
@@ -110,17 +242,9 @@ function POSChargeForm({ patient, onClose }) {
         const subData = await subRes.json();
         if (!subRes.ok) throw new Error(subData.error);
 
-        // Record purchase
-        await fetch('/api/stripe/record-purchase', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patient_id: patient.id,
-            amount,
-            description: `${description} (monthly subscription)`,
-            stripe_subscription_id: subData.subscription_id,
-            payment_method: 'stripe',
-          }),
+        await recordPurchase({
+          stripe_subscription_id: subData.subscription_id,
+          description: `${description} (monthly subscription)`,
         });
 
         setResultStatus('success');
@@ -131,18 +255,14 @@ function POSChargeForm({ patient, onClose }) {
 
       // One-time charge
       if (selectedCard === 'new') {
-        // Save card if requested, then charge
         if (saveNewCard) {
           const saved = await saveCardFirst();
           if (!saved) return;
-          // Charge the newly saved card
           await chargeWithSavedCard(saved, amount, description);
         } else {
-          // Charge with CardElement directly (no save)
           await chargeWithNewCard(amount, description);
         }
       } else {
-        // Charge saved card
         await chargeWithSavedCard(selectedCard, amount, description);
       }
 
@@ -155,7 +275,6 @@ function POSChargeForm({ patient, onClose }) {
   }
 
   async function saveCardFirst() {
-    // Create SetupIntent
     const setupRes = await fetch('/api/stripe/saved-cards', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -181,7 +300,6 @@ function POSChargeForm({ patient, onClose }) {
   }
 
   async function chargeWithNewCard(amount, description) {
-    // Create PaymentIntent without saved card
     const piRes = await fetch('/api/stripe/payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -208,18 +326,7 @@ function POSChargeForm({ patient, onClose }) {
     }
 
     if (paymentIntent.status === 'succeeded') {
-      // Record purchase
-      await fetch('/api/stripe/record-purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: patient.id,
-          amount,
-          description,
-          stripe_payment_intent_id: paymentIntent.id,
-          payment_method: 'stripe',
-        }),
-      });
+      await recordPurchase({ stripe_payment_intent_id: paymentIntent.id });
 
       setResultStatus('success');
       setResultMessage(`Charged ${formatPrice(amount)} for ${description}`);
@@ -242,19 +349,8 @@ function POSChargeForm({ patient, onClose }) {
     const piData = await piRes.json();
     if (!piRes.ok) throw new Error(piData.error);
 
-    // If already succeeded (confirm=true on server), we're done
     if (piData.status === 'succeeded') {
-      await fetch('/api/stripe/record-purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: patient.id,
-          amount,
-          description,
-          stripe_payment_intent_id: piData.payment_intent_id,
-          payment_method: 'stripe',
-        }),
-      });
+      await recordPurchase({ stripe_payment_intent_id: piData.payment_intent_id });
 
       setResultStatus('success');
       setResultMessage(`Charged ${formatPrice(amount)} for ${description}`);
@@ -262,7 +358,6 @@ function POSChargeForm({ patient, onClose }) {
       return;
     }
 
-    // If requires action (3D Secure etc)
     if (piData.status === 'requires_action' || piData.status === 'requires_confirmation') {
       const { error, paymentIntent } = await stripe.confirmCardPayment(piData.client_secret);
 
@@ -274,17 +369,7 @@ function POSChargeForm({ patient, onClose }) {
       }
 
       if (paymentIntent.status === 'succeeded') {
-        await fetch('/api/stripe/record-purchase', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patient_id: patient.id,
-            amount,
-            description,
-            stripe_payment_intent_id: paymentIntent.id,
-            payment_method: 'stripe',
-          }),
-        });
+        await recordPurchase({ stripe_payment_intent_id: paymentIntent.id });
 
         setResultStatus('success');
         setResultMessage(`Charged ${formatPrice(amount)} for ${description}`);
@@ -294,20 +379,36 @@ function POSChargeForm({ patient, onClose }) {
   }
 
   function handleClose() {
-    setStep('select');
+    setStep(initialPatient ? 'select' : 'patient');
+    setPatient(initialPatient || null);
+    setPatientSearch('');
     setSelectedItem(null);
     setCustomAmount('');
     setCustomDescription('');
     setSelectedCard(null);
     setSaveNewCard(false);
+    setDiscountType('none');
+    setDiscountValue('');
     setResultStatus(null);
     setResultMessage('');
     onClose();
   }
 
+  function handleDone() {
+    if (resultStatus === 'success' && onChargeComplete) {
+      onChargeComplete();
+    }
+    handleClose();
+  }
+
   // ============================================================
   // RENDER
   // ============================================================
+
+  const hasDiscount = discountType !== 'none' && parseFloat(discountValue) > 0;
+  const baseAmount = getBaseAmount();
+  const discountCents = getDiscountCents();
+  const finalAmount = getChargeAmount();
 
   return (
     <>
@@ -316,103 +417,221 @@ function POSChargeForm({ patient, onClose }) {
         {/* Header */}
         <div style={modalStyles.header}>
           <h2 style={modalStyles.title}>
+            {step === 'patient' && 'Select Patient'}
             {step === 'select' && 'Charge Patient'}
             {step === 'payment' && 'Payment Method'}
             {step === 'processing' && 'Processing...'}
             {step === 'result' && (resultStatus === 'success' ? 'Payment Complete' : 'Payment Failed')}
           </h2>
-          <div style={modalStyles.patientName}>{patient.name}</div>
+          {patient && step !== 'patient' && (
+            <div style={modalStyles.patientName}>{patient.name}</div>
+          )}
           <button style={modalStyles.closeBtn} onClick={handleClose}>×</button>
         </div>
+
+        {/* Step 0: Patient Search (when no patient pre-selected) */}
+        {step === 'patient' && (
+          <div style={modalStyles.body}>
+            <div style={{ position: 'relative', marginBottom: '16px' }}>
+              <input
+                type="text"
+                placeholder="Search patient by name..."
+                value={patientSearch}
+                onChange={e => setPatientSearch(e.target.value)}
+                style={modalStyles.input}
+                autoFocus
+              />
+              {searchingPatients && (
+                <div style={{ position: 'absolute', right: '12px', top: '12px', color: '#888', fontSize: '13px' }}>
+                  Searching...
+                </div>
+              )}
+              {showPatientDropdown && patientResults.length > 0 && (
+                <div style={modalStyles.dropdown}>
+                  {patientResults.map(p => (
+                    <div
+                      key={p.id}
+                      style={modalStyles.dropdownItem}
+                      onClick={() => {
+                        setPatient(p);
+                        setPatientSearch('');
+                        setShowPatientDropdown(false);
+                        setStep('select');
+                      }}
+                    >
+                      <div style={{ fontWeight: 500 }}>{p.name}</div>
+                      {p.email && <div style={{ fontSize: '12px', color: '#888' }}>{p.email}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showPatientDropdown && patientResults.length === 0 && patientSearch.length >= 2 && !searchingPatients && (
+                <div style={modalStyles.dropdown}>
+                  <div style={{ padding: '12px', color: '#888', textAlign: 'center' }}>No patients found</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Step 1: Service Selection */}
         {step === 'select' && (
           <div style={modalStyles.body}>
-            {/* Category Tabs */}
-            <div style={modalStyles.categoryTabs}>
-              {POS_CATEGORIES.map(cat => (
-                <button
-                  key={cat.id}
-                  style={{
-                    ...modalStyles.categoryTab,
-                    ...(activeCategory === cat.id ? modalStyles.categoryTabActive : {}),
-                  }}
-                  onClick={() => {
-                    setActiveCategory(cat.id);
-                    setSelectedItem(null);
-                  }}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Service Items */}
-            {activeCategory !== 'custom' ? (
-              <div style={modalStyles.itemGrid}>
-                {getItemsByCategory(activeCategory).map(item => (
-                  <button
-                    key={item.id}
-                    style={{
-                      ...modalStyles.itemCard,
-                      ...(selectedItem?.id === item.id ? modalStyles.itemCardSelected : {}),
-                    }}
-                    onClick={() => setSelectedItem(item)}
-                  >
-                    <div style={modalStyles.itemName}>{item.name}</div>
-                    <div style={modalStyles.itemPrice}>
-                      {formatPrice(item.price)}
-                      {item.recurring && <span style={modalStyles.recurringBadge}>/mo</span>}
-                    </div>
-                  </button>
-                ))}
-              </div>
+            {loadingServices ? (
+              <div style={modalStyles.loading}>Loading services...</div>
             ) : (
-              <div style={modalStyles.customForm}>
-                <div style={modalStyles.fieldGroup}>
-                  <label style={modalStyles.label}>Amount ($)</label>
-                  <input
-                    type="number"
-                    min="0.50"
-                    step="0.01"
-                    value={customAmount}
-                    onChange={e => setCustomAmount(e.target.value)}
-                    placeholder="0.00"
-                    style={modalStyles.input}
-                  />
+              <>
+                {/* Category Tabs */}
+                <div style={modalStyles.categoryTabs}>
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      style={{
+                        ...modalStyles.categoryTab,
+                        ...(activeCategory === cat ? modalStyles.categoryTabActive : {}),
+                      }}
+                      onClick={() => {
+                        setActiveCategory(cat);
+                        setSelectedItem(null);
+                        setDiscountType('none');
+                        setDiscountValue('');
+                      }}
+                    >
+                      {CATEGORY_LABELS[cat] || cat}
+                    </button>
+                  ))}
                 </div>
-                <div style={modalStyles.fieldGroup}>
-                  <label style={modalStyles.label}>Description</label>
-                  <input
-                    type="text"
-                    value={customDescription}
-                    onChange={e => setCustomDescription(e.target.value)}
-                    placeholder="What is this charge for?"
-                    style={modalStyles.input}
-                  />
-                </div>
-              </div>
-            )}
 
-            {/* Charge Summary + Next */}
-            <div style={modalStyles.footer}>
-              {canProceedToPayment() && (
-                <div style={modalStyles.summaryLine}>
-                  {getChargeDescription()} — <strong>{formatPrice(getChargeAmount())}</strong>
-                  {isRecurring() && ' /mo'}
+                {/* Service Items */}
+                {activeCategory !== 'custom' ? (
+                  <div style={modalStyles.itemGrid}>
+                    {getItemsByCategory(activeCategory).map(item => (
+                      <button
+                        key={item.id}
+                        style={{
+                          ...modalStyles.itemCard,
+                          ...(selectedItem?.id === item.id ? modalStyles.itemCardSelected : {}),
+                        }}
+                        onClick={() => setSelectedItem(item)}
+                      >
+                        <div style={modalStyles.itemName}>{item.name}</div>
+                        <div style={modalStyles.itemPrice}>
+                          {formatPrice(item.price)}
+                          {item.recurring && <span style={modalStyles.recurringBadge}>/mo</span>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={modalStyles.customForm}>
+                    <div style={modalStyles.fieldGroup}>
+                      <label style={modalStyles.label}>Amount ($)</label>
+                      <input
+                        type="number"
+                        min="0.50"
+                        step="0.01"
+                        value={customAmount}
+                        onChange={e => setCustomAmount(e.target.value)}
+                        placeholder="0.00"
+                        style={modalStyles.input}
+                      />
+                    </div>
+                    <div style={modalStyles.fieldGroup}>
+                      <label style={modalStyles.label}>Description</label>
+                      <input
+                        type="text"
+                        value={customDescription}
+                        onChange={e => setCustomDescription(e.target.value)}
+                        placeholder="What is this charge for?"
+                        style={modalStyles.input}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Discount Section */}
+                {canProceedToPayment() && (
+                  <div style={modalStyles.discountSection}>
+                    <div style={modalStyles.discountLabel}>Discount</div>
+                    <div style={modalStyles.discountRow}>
+                      <div style={modalStyles.discountToggle}>
+                        {['none', 'percent', 'dollar'].map(type => (
+                          <button
+                            key={type}
+                            style={{
+                              ...modalStyles.discountBtn,
+                              ...(discountType === type ? modalStyles.discountBtnActive : {}),
+                            }}
+                            onClick={() => {
+                              setDiscountType(type);
+                              setDiscountValue('');
+                            }}
+                          >
+                            {type === 'none' ? 'None' : type === 'percent' ? '% Off' : '$ Off'}
+                          </button>
+                        ))}
+                      </div>
+                      {discountType !== 'none' && (
+                        <div style={modalStyles.discountInputWrap}>
+                          {discountType === 'dollar' && <span style={modalStyles.discountPrefix}>$</span>}
+                          <input
+                            type="number"
+                            min="0"
+                            step={discountType === 'percent' ? '1' : '0.01'}
+                            max={discountType === 'percent' ? '100' : undefined}
+                            value={discountValue}
+                            onChange={e => setDiscountValue(e.target.value)}
+                            placeholder={discountType === 'percent' ? '10' : '25.00'}
+                            style={modalStyles.discountInput}
+                          />
+                          {discountType === 'percent' && <span style={modalStyles.discountSuffix}>%</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Charge Summary + Next */}
+                <div style={modalStyles.footer}>
+                  {canProceedToPayment() && (
+                    <div style={modalStyles.summaryLine}>
+                      <div>{getChargeDescription()}</div>
+                      {hasDiscount ? (
+                        <div>
+                          <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px' }}>
+                            {formatPrice(baseAmount)}
+                          </span>
+                          <strong style={{ color: '#16A34A' }}>{formatPrice(finalAmount)}</strong>
+                          <span style={{ fontSize: '12px', color: '#888', marginLeft: '6px' }}>
+                            (save {formatPrice(discountCents)})
+                          </span>
+                        </div>
+                      ) : (
+                        <strong>{formatPrice(baseAmount)}{isRecurring() ? ' /mo' : ''}</strong>
+                      )}
+                    </div>
+                  )}
+                  {!initialPatient && (
+                    <button style={modalStyles.secondaryBtn} onClick={() => {
+                      setPatient(null);
+                      setStep('patient');
+                    }}>
+                      Change Patient
+                    </button>
+                  )}
+                  <button
+                    style={{
+                      ...modalStyles.primaryBtn,
+                      ...(canProceedToPayment() ? {} : modalStyles.disabledBtn),
+                    }}
+                    disabled={!canProceedToPayment()}
+                    onClick={() => setStep('payment')}
+                  >
+                    Continue to Payment
+                  </button>
                 </div>
-              )}
-              <button
-                style={{
-                  ...modalStyles.primaryBtn,
-                  ...(canProceedToPayment() ? {} : modalStyles.disabledBtn),
-                }}
-                disabled={!canProceedToPayment()}
-                onClick={() => setStep('payment')}
-              >
-                Continue to Payment
-              </button>
-            </div>
+              </>
+            )}
           </div>
         )}
 
@@ -421,7 +640,14 @@ function POSChargeForm({ patient, onClose }) {
           <div style={modalStyles.body}>
             <div style={modalStyles.chargeSummary}>
               <span>{getChargeDescription()}</span>
-              <strong>{formatPrice(getChargeAmount())}{isRecurring() ? '/mo' : ''}</strong>
+              <div>
+                {hasDiscount && (
+                  <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px', fontSize: '13px' }}>
+                    {formatPrice(baseAmount)}
+                  </span>
+                )}
+                <strong>{formatPrice(finalAmount)}{isRecurring() ? '/mo' : ''}</strong>
+              </div>
             </div>
 
             {loadingCards ? (
@@ -479,7 +705,7 @@ function POSChargeForm({ patient, onClose }) {
 
             <div style={modalStyles.footer}>
               <button style={modalStyles.secondaryBtn} onClick={() => setStep('select')}>
-                ← Back
+                Back
               </button>
               <button
                 style={modalStyles.primaryBtn}
@@ -487,8 +713,8 @@ function POSChargeForm({ patient, onClose }) {
                 disabled={!stripe}
               >
                 {isRecurring()
-                  ? `Subscribe ${formatPrice(getChargeAmount())}/mo`
-                  : `Pay ${formatPrice(getChargeAmount())}`
+                  ? `Subscribe ${formatPrice(finalAmount)}/mo`
+                  : `Pay ${formatPrice(finalAmount)}`
                 }
               </button>
             </div>
@@ -527,7 +753,7 @@ function POSChargeForm({ patient, onClose }) {
                   Try Again
                 </button>
               )}
-              <button style={modalStyles.primaryBtn} onClick={handleClose}>
+              <button style={modalStyles.primaryBtn} onClick={handleDone}>
                 Done
               </button>
             </div>
@@ -541,12 +767,12 @@ function POSChargeForm({ patient, onClose }) {
 // ============================================================
 // Wrapper with Elements provider
 // ============================================================
-export default function POSChargeModal({ isOpen, onClose, patient, stripePromise }) {
-  if (!isOpen || !patient) return null;
+export default function POSChargeModal({ isOpen, onClose, patient, stripePromise, onChargeComplete }) {
+  if (!isOpen) return null;
 
   return (
     <Elements stripe={stripePromise}>
-      <POSChargeForm patient={patient} onClose={onClose} />
+      <POSChargeForm patient={patient} onClose={onClose} onChargeComplete={onChargeComplete} />
     </Elements>
   );
 }
@@ -710,6 +936,93 @@ const modalStyles = {
     fontSize: '15px',
     outline: 'none',
     boxSizing: 'border-box',
+  },
+  // Discount styles
+  discountSection: {
+    padding: '12px 16px',
+    background: '#f9fafb',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    border: '1px solid #e5e7eb',
+  },
+  discountLabel: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginBottom: '8px',
+  },
+  discountRow: {
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  discountToggle: {
+    display: 'flex',
+    gap: '4px',
+  },
+  discountBtn: {
+    padding: '5px 12px',
+    borderRadius: '6px',
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    fontSize: '13px',
+    color: '#555',
+    cursor: 'pointer',
+    fontWeight: 500,
+  },
+  discountBtnActive: {
+    background: '#16A34A',
+    color: '#fff',
+    border: '1px solid #16A34A',
+  },
+  discountInputWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    flex: 1,
+    maxWidth: '140px',
+  },
+  discountPrefix: {
+    fontSize: '14px',
+    color: '#555',
+    fontWeight: 500,
+  },
+  discountSuffix: {
+    fontSize: '14px',
+    color: '#555',
+    fontWeight: 500,
+  },
+  discountInput: {
+    width: '100%',
+    padding: '6px 10px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  // Patient search dropdown
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: '#fff',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    zIndex: 10,
+    maxHeight: '240px',
+    overflowY: 'auto',
+  },
+  dropdownItem: {
+    padding: '10px 12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f3f4f6',
+    fontSize: '14px',
   },
   footer: {
     marginTop: '16px',

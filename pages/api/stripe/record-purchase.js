@@ -21,24 +21,36 @@ export default async function handler(req, res) {
       stripe_payment_intent_id,
       stripe_subscription_id,
       payment_method,
+      discount_type,
+      discount_amount,
+      original_amount,
     } = req.body;
 
     if (!patient_id || !amount) {
       return res.status(400).json({ error: 'patient_id and amount are required' });
     }
 
+    const insertData = {
+      patient_id,
+      amount: amount / 100, // Convert cents to dollars for DB
+      description: description || 'Stripe charge',
+      stripe_payment_intent_id: stripe_payment_intent_id || null,
+      stripe_subscription_id: stripe_subscription_id || null,
+      payment_method: payment_method || 'stripe',
+      source: 'stripe_pos',
+      purchase_date: new Date().toISOString(),
+    };
+
+    // Add discount fields if present
+    if (discount_type) {
+      insertData.discount_type = discount_type;
+      insertData.discount_amount = discount_amount;
+      insertData.original_amount = original_amount != null ? original_amount / 100 : null; // cents to dollars
+    }
+
     const { data, error } = await supabase
       .from('purchases')
-      .insert({
-        patient_id,
-        amount: amount / 100, // Convert cents to dollars for DB
-        description: description || 'Stripe charge',
-        stripe_payment_intent_id: stripe_payment_intent_id || null,
-        stripe_subscription_id: stripe_subscription_id || null,
-        payment_method: payment_method || 'stripe',
-        source: 'stripe_pos',
-        purchase_date: new Date().toISOString(),
-      })
+      .insert(insertData)
       .select()
       .single();
 

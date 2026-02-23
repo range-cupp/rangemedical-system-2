@@ -4,6 +4,41 @@
 // CREATED: 2026-02-22
 
 import { useState, useEffect } from 'react';
+import { CATEGORY_COLORS } from '../lib/protocol-config';
+
+// Keyword-based categorization for Cal.com event types
+const SERVICE_CATEGORY_MAP = {
+  hrt: ['testosterone', 'hrt', 'hormone', 'trt', 'nandrolone', 'hcg'],
+  weight_loss: ['weight', 'semaglutide', 'tirzepatide', 'retatrutide', 'glp'],
+  peptide: ['peptide', 'bpc', 'thymosin', 'sermorelin', 'ipamorelin', 'cjc', 'ghk'],
+  iv: ['iv-', 'iv ', 'infusion', 'drip', 'nad+', 'myers', 'hydration'],
+  hbot: ['hbot', 'hyperbaric', 'oxygen'],
+  rlt: ['red light', 'rlt', 'photobio'],
+  injection: ['injection', 'b12', 'lipo', 'amino', 'glutathione', 'vitamin', 'skinny shot', 'toradol'],
+  labs: ['lab', 'blood draw', 'blood work', 'panel'],
+};
+
+const CATEGORY_ORDER = ['hrt', 'weight_loss', 'peptide', 'iv', 'hbot', 'rlt', 'injection', 'labs', 'other'];
+
+function categorizeService(eventType) {
+  const text = ((eventType.title || '') + ' ' + (eventType.slug || '')).toLowerCase();
+  for (const [category, keywords] of Object.entries(SERVICE_CATEGORY_MAP)) {
+    if (keywords.some(kw => text.includes(kw))) return category;
+  }
+  return 'other';
+}
+
+function groupServicesByCategory(eventTypes) {
+  const groups = {};
+  eventTypes.forEach(et => {
+    const cat = categorizeService(et);
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(et);
+  });
+  return CATEGORY_ORDER
+    .filter(cat => groups[cat] && groups[cat].length > 0)
+    .map(cat => ({ category: cat, services: groups[cat] }));
+}
 
 export default function BookingTab() {
   // Booking flow state
@@ -422,20 +457,42 @@ export default function BookingTab() {
               {loadingEventTypes ? (
                 <div style={styles.loadingText}>Loading services...</div>
               ) : (
-                <div style={styles.serviceGrid}>
-                  {eventTypes.map(et => (
-                    <div
-                      key={et.id}
-                      style={{
-                        ...styles.serviceCard,
-                        ...(selectedService?.id === et.id ? styles.serviceCardSelected : {})
-                      }}
-                      onClick={() => selectService(et)}
-                    >
-                      <div style={styles.serviceName}>{et.title}</div>
-                      <div style={styles.serviceDuration}>{et.length} min</div>
-                    </div>
-                  ))}
+                <div>
+                  {groupServicesByCategory(eventTypes).map(({ category, services }) => {
+                    const color = CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
+                    return (
+                      <div key={category} style={{ marginBottom: '20px' }}>
+                        <div style={{
+                          display: 'inline-block',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor: color.bg,
+                          color: color.text,
+                          marginBottom: '10px'
+                        }}>
+                          {color.label}
+                        </div>
+                        <div style={styles.serviceGrid}>
+                          {services.map(et => (
+                            <div
+                              key={et.id}
+                              style={{
+                                ...styles.serviceCard,
+                                borderLeft: `3px solid ${color.text}`,
+                                ...(selectedService?.id === et.id ? styles.serviceCardSelected : {})
+                              }}
+                              onClick={() => selectService(et)}
+                            >
+                              <div style={styles.serviceName}>{et.title}</div>
+                              <div style={styles.serviceDuration}>{et.length} min</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -7,22 +7,38 @@ import { CardElement, Elements, useStripe, useElements } from '@stripe/react-str
 import { formatPrice } from '../lib/pos-pricing';
 
 // Category display order and labels
-const CATEGORY_ORDER = ['lab_panels', 'iv_therapy', 'regenerative', 'weight_loss', 'hrt', 'custom'];
+const CATEGORY_ORDER = [
+  'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
+  'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
+  'injection_pack', 'nad_injection', 'peptide', 'labs', 'assessment', 'custom',
+];
 const CATEGORY_LABELS = {
-  lab_panels: 'Lab Panels',
-  iv_therapy: 'IV Therapy',
-  regenerative: 'Regenerative',
-  weight_loss: 'Weight Loss',
+  programs: 'Programs',
+  combo_membership: 'Combo Memberships',
+  hbot: 'HBOT',
+  red_light: 'Red Light',
   hrt: 'HRT',
+  weight_loss: 'Weight Loss',
+  iv_therapy: 'IV Therapy',
+  specialty_iv: 'Specialty IVs',
+  injection_standard: 'Injections',
+  injection_premium: 'Premium Injections',
+  injection_pack: 'Injection Packs',
+  nad_injection: 'NAD+ Injections',
+  peptide: 'Peptides',
+  labs: 'Lab Panels',
+  assessment: 'Assessment',
   custom: 'Custom',
 };
 
 // ============================================================
 // Inner component (must be inside <Elements> provider)
 // ============================================================
-function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
+function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete, stripeMode }) {
   const stripe = useStripe();
   const elements = useElements();
+
+  const modeHeader = { 'x-stripe-mode': stripeMode || 'live' };
 
   // Patient state (for when no patient is pre-selected)
   const [patient, setPatient] = useState(initialPatient || null);
@@ -120,7 +136,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   async function loadSavedCards() {
     setLoadingCards(true);
     try {
-      const res = await fetch(`/api/stripe/saved-cards?patient_id=${patient.id}`);
+      const res = await fetch(`/api/stripe/saved-cards?patient_id=${patient.id}`, {
+        headers: modeHeader,
+      });
       const data = await res.json();
       setSavedCards(data.cards || []);
       if (data.cards?.length > 0) {
@@ -199,7 +217,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
     await fetch('/api/stripe/record-purchase', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...modeHeader },
       body: JSON.stringify({
         patient_id: patient.id,
         amount,
@@ -230,7 +248,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
         const subRes = await fetch('/api/stripe/subscription', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...modeHeader },
           body: JSON.stringify({
             patient_id: patient.id,
             price_amount: amount,
@@ -277,7 +295,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   async function saveCardFirst() {
     const setupRes = await fetch('/api/stripe/saved-cards', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...modeHeader },
       body: JSON.stringify({ patient_id: patient.id }),
     });
 
@@ -302,7 +320,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   async function chargeWithNewCard(amount, description) {
     const piRes = await fetch('/api/stripe/payment-intent', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...modeHeader },
       body: JSON.stringify({
         patient_id: patient.id,
         amount,
@@ -337,7 +355,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   async function chargeWithSavedCard(paymentMethodId, amount, description) {
     const piRes = await fetch('/api/stripe/payment-intent', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...modeHeader },
       body: JSON.stringify({
         patient_id: patient.id,
         amount,
@@ -767,12 +785,12 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 // ============================================================
 // Wrapper with Elements provider
 // ============================================================
-export default function POSChargeModal({ isOpen, onClose, patient, stripePromise, onChargeComplete }) {
+export default function POSChargeModal({ isOpen, onClose, patient, stripePromise, onChargeComplete, stripeMode }) {
   if (!isOpen) return null;
 
   return (
     <Elements stripe={stripePromise}>
-      <POSChargeForm patient={patient} onClose={onClose} onChargeComplete={onChargeComplete} />
+      <POSChargeForm patient={patient} onClose={onClose} onChargeComplete={onChargeComplete} stripeMode={stripeMode} />
     </Elements>
   );
 }

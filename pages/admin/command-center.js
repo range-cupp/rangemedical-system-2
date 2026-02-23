@@ -14,9 +14,15 @@ import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hr
 import { loadStripe } from '@stripe/stripe-js';
 import POSChargeModal from '../../components/POSChargeModal';
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+const stripeLivePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
+
+const stripeTestPromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST)
+  : null;
+
+const hasTestKeys = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST;
 
 // ============================================
 // CONSTANTS
@@ -374,6 +380,8 @@ export default function CommandCenter() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [stripeMode, setStripeMode] = useState('live');
+  const stripePromise = stripeMode === 'test' ? stripeTestPromise : stripeLivePromise;
 
   // Filters
   const [protocolFilter, setProtocolFilter] = useState({ status: 'active', category: 'all', delivery: 'all', search: '' });
@@ -1786,6 +1794,8 @@ export default function CommandCenter() {
               openPdf={(url, title) => setPdfSlideOut({ open: true, url, title })}
               onAssignProtocol={openAssignModal}
               onEditProtocol={handleEditProtocol}
+              stripePromise={stripePromise}
+              stripeMode={stripeMode}
             />
           )}
           {activeTab === 'injections' && (
@@ -1827,7 +1837,49 @@ export default function CommandCenter() {
             <BookingTab />
           )}
           {activeTab === 'pos' && (
-            <POSTab stripePromise={stripePromise} />
+            <>
+              {hasTestKeys && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#666' }}>Stripe Mode:</span>
+                  <button
+                    onClick={() => setStripeMode(stripeMode === 'live' ? 'test' : 'live')}
+                    style={{
+                      padding: '6px 16px',
+                      borderRadius: '6px',
+                      border: stripeMode === 'test' ? '2px solid #d97706' : '2px solid #16A34A',
+                      background: stripeMode === 'test' ? '#fef3c7' : '#f0fdf4',
+                      color: stripeMode === 'test' ? '#92400e' : '#166534',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {stripeMode === 'test' ? 'TEST MODE' : 'LIVE MODE'}
+                  </button>
+                  {stripeMode === 'test' && (
+                    <span style={{ fontSize: '12px', color: '#92400e' }}>No real charges will be made</span>
+                  )}
+                </div>
+              )}
+              {stripeMode === 'test' && (
+                <div style={{
+                  background: '#fef3c7',
+                  border: '1px solid #f59e0b',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#92400e',
+                }}>
+                  TEST MODE — Charges use Stripe test keys. No real payments.
+                </div>
+              )}
+              <POSTab stripePromise={stripePromise} stripeMode={stripeMode} />
+            </>
           )}
         </main>
       </div>
@@ -5629,7 +5681,7 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
   );
 }
 
-function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf, onAssignProtocol, onEditProtocol }) {
+function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf, onAssignProtocol, onEditProtocol, stripePromise, stripeMode }) {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showPOSModal, setShowPOSModal] = useState(false);
 
@@ -5902,6 +5954,7 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
       onClose={() => setShowPOSModal(false)}
       patient={selected}
       stripePromise={stripePromise}
+      stripeMode={stripeMode}
     />
 
     {/* Booking Modal */}
@@ -6470,7 +6523,7 @@ function CommsLogTab() {
 // ============================================
 // POS TAB
 // ============================================
-function POSTab({ stripePromise }) {
+function POSTab({ stripePromise, stripeMode }) {
   const [view, setView] = useState('charge'); // 'charge' | 'services'
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [chargePatient, setChargePatient] = useState(null);
@@ -6494,11 +6547,21 @@ function POSTab({ stripePromise }) {
   const [searchingPatients, setSearchingPatients] = useState(false);
 
   const CATEGORY_LABELS = {
-    lab_panels: 'Lab Panels',
-    iv_therapy: 'IV Therapy',
-    regenerative: 'Regenerative',
-    weight_loss: 'Weight Loss',
+    programs: 'Programs',
+    combo_membership: 'Combo Memberships',
+    hbot: 'HBOT',
+    red_light: 'Red Light',
     hrt: 'HRT',
+    weight_loss: 'Weight Loss',
+    iv_therapy: 'IV Therapy',
+    specialty_iv: 'Specialty IVs',
+    injection_standard: 'Injections',
+    injection_premium: 'Premium Injections',
+    injection_pack: 'Injection Packs',
+    nad_injection: 'NAD+ Injections',
+    peptide: 'Peptides',
+    labs: 'Lab Panels',
+    assessment: 'Assessment',
   };
 
   useEffect(() => {
@@ -6808,6 +6871,7 @@ function POSTab({ stripePromise }) {
             onClose={() => setShowChargeModal(false)}
             patient={chargePatient}
             stripePromise={stripePromise}
+            stripeMode={stripeMode}
             onChargeComplete={() => loadRecentPurchases()}
           />
         </>

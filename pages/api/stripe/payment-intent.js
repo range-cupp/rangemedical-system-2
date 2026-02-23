@@ -3,14 +3,14 @@
 // amount is in cents
 
 import { createClient } from '@supabase/supabase-js';
-import stripe from '../../../lib/stripe';
+import { getStripe } from '../../../lib/stripe';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-async function ensureStripeCustomer(patient_id) {
+async function ensureStripeCustomer(patient_id, stripe) {
   const { data: patient, error } = await supabase
     .from('patients')
     .select('stripe_customer_id, email, name')
@@ -44,13 +44,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    const stripeMode = req.headers['x-stripe-mode'] || 'live';
+    const stripe = getStripe(stripeMode);
+
     const { patient_id, amount, description, payment_method_id } = req.body;
 
     if (!patient_id || !amount) {
       return res.status(400).json({ error: 'patient_id and amount are required' });
     }
 
-    const customerId = await ensureStripeCustomer(patient_id);
+    const customerId = await ensureStripeCustomer(patient_id, stripe);
 
     const intentParams = {
       amount: Math.round(amount),

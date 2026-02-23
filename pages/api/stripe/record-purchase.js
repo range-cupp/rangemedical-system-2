@@ -2,11 +2,90 @@
 // POST: { patient_id, amount, description, stripe_payment_intent_id?, stripe_subscription_id?, payment_method }
 
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
+import { getStripe } from '../../../lib/stripe';
+import { generateReceiptHtml } from '../../../lib/receipt-email';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+async function sendReceiptEmail(purchase, stripeMode) {
+  // Skip receipts for test mode
+  if (stripeMode === 'test') return;
+
+  try {
+    // Fetch patient info
+    const { data: patient, error: patientError } = await supabase
+      .from('patients')
+      .select('name, email')
+      .eq('id', purchase.patient_id)
+      .single();
+
+    if (patientError || !patient?.email) {
+      console.log('Receipt email skipped — no patient email found');
+      return;
+    }
+
+    const firstName = (patient.name || '').split(' ')[0] || 'there';
+
+    // Get card details from Stripe PaymentIntent
+    let cardBrand = null;
+    let cardLast4 = null;
+    if (purchase.stripe_payment_intent_id) {
+      try {
+        const stripe = getStripe(stripeMode);
+        const pi = await stripe.paymentIntents.retrieve(purchase.stripe_payment_intent_id, {
+          expand: ['payment_method'],
+        });
+        if (pi.payment_method?.card) {
+          cardBrand = pi.payment_method.card.brand;
+          cardLast4 = pi.payment_method.card.last4;
+        }
+      } catch (err) {
+        console.error('Failed to retrieve PaymentIntent for receipt:', err.message);
+      }
+    }
+
+    // Build discount label
+    let discountLabel = null;
+    if (purchase.discount_type === 'percent') {
+      discountLabel = `${purchase.discount_amount}% off`;
+    } else if (purchase.discount_type === 'dollar') {
+      discountLabel = `$${purchase.discount_amount} off`;
+    }
+
+    const html = generateReceiptHtml({
+      firstName,
+      invoiceId: purchase.id,
+      date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+      description: purchase.description,
+      originalAmountCents: purchase.original_amount ? Math.round(purchase.original_amount * 100) : Math.round(purchase.amount * 100),
+      discountLabel,
+      amountPaidCents: Math.round(purchase.amount * 100),
+      cardBrand,
+      cardLast4,
+    });
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: 'Range Medical <noreply@range-medical.com>',
+      to: patient.email,
+      bcc: 'info@range-medical.com',
+      subject: `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}`,
+      html,
+    });
+
+    console.log(`Receipt email sent to ${patient.email} for purchase ${purchase.id}`);
+  } catch (err) {
+    console.error('Receipt email error:', err);
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -58,6 +137,12 @@ export default async function handler(req, res) {
       console.error('Record purchase error:', error);
       return res.status(500).json({ error: error.message });
     }
+
+    // Fire-and-forget receipt email
+    const stripeMode = req.headers['x-stripe-mode'] || 'live';
+    sendReceiptEmail(data, stripeMode).catch(err =>
+      console.error('Receipt email failed:', err)
+    );
 
     return res.status(200).json({ purchase: data });
 

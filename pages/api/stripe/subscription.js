@@ -3,7 +3,7 @@
 // DELETE: { subscription_id }
 
 import { createClient } from '@supabase/supabase-js';
-import stripe from '../../../lib/stripe';
+import { getStripe } from '../../../lib/stripe';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +11,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  const stripeMode = req.headers['x-stripe-mode'] || 'live';
+  const stripe = getStripe(stripeMode);
+
   if (req.method === 'POST') {
     try {
       const { patient_id, price_amount, interval, description } = req.body;

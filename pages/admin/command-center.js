@@ -7,6 +7,7 @@ import Head from 'next/head';
 import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
 import BookingTab from '../../components/BookingTab';
+import LabDashboard from '../../components/labs/LabDashboard';
 import { formatCategoryName } from '../../lib/protocol-config';
 import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
@@ -5829,18 +5830,13 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
             </div>
 
             {/* Labs */}
-            {(details?.labs || []).length > 0 && (
-              <div style={styles.detailSection}>
-                <h3 style={styles.detailTitle}>🧪 Lab Results ({details?.labs?.length || 0})</h3>
-                {(details?.labs || []).map(lab => (
-                  <div key={lab.id} style={styles.detailItem}>
-                    <span style={styles.detailItemType}>{lab.lab_type || 'Lab'}</span>
-                    <span style={styles.detailItemName}>{lab.panel_type || lab.lab_panel || 'Results'}</span>
-                    <span style={styles.detailItemDate}>{formatDate(lab.completed_date || lab.created_at)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div style={styles.detailSection}>
+              <LabDashboard
+                patientId={selected.id}
+                patientGender={selected.gender}
+                embedded={true}
+              />
+            </div>
 
             {/* Recent Injection Logs */}
             <div style={styles.detailSection}>

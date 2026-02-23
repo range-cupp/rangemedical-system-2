@@ -31,6 +31,7 @@ import {
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import BookingTab from '../../components/BookingTab';
+import LabDashboard from '../../components/labs/LabDashboard';
 
 export default function PatientProfile() {
   const router = useRouter();
@@ -1074,26 +1075,11 @@ export default function PatientProfile() {
                 )}
               </section>
 
-              <section className="card">
-                <div className="card-header">
-                  <h3>Lab Results</h3>
-                  <button onClick={() => setShowLabsModal(true)} className="btn-primary-sm">+ Add Labs</button>
-                </div>
-                {labs.length === 0 ? (
-                  <div className="empty">No lab results recorded</div>
-                ) : (
-                  <div className="lab-list">
-                    {labs.map(lab => (
-                      <div key={lab.id} className="lab-row">
-                        <div className="lab-info">
-                          <strong>{lab.lab_panel || 'Lab Panel'}</strong>
-                          <span>{lab.lab_type} • {formatDate(lab.completed_date || lab.collection_date)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
+              <LabDashboard
+                patientId={patient.id}
+                patientGender={patient.gender || intakeDemographics?.gender}
+                embedded={true}
+              />
             </>
           )}
 

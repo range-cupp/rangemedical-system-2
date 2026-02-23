@@ -353,6 +353,19 @@ export default async function handler(req, res) {
         consents = consentsByPatientId;
       }
 
+      // Also try ghl_contact_id if we haven't found any yet
+      if (consents.length === 0 && patient.ghl_contact_id) {
+        const { data: consentsByGhl } = await supabase
+          .from('consents')
+          .select(consentFields)
+          .eq('ghl_contact_id', patient.ghl_contact_id)
+          .order('submitted_at', { ascending: false });
+
+        if (consentsByGhl && consentsByGhl.length > 0) {
+          consents = consentsByGhl;
+        }
+      }
+
       // Try email if we haven't found any consents yet
       if (consents.length === 0 && patient.email) {
         const { data: consentsByEmail } = await supabase

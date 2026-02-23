@@ -10,6 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, TrendingUp, Users, DollarSign, AlertCircle, Activity, Syringe, Droplet, Sun, Wind, FileText, Bell, ChevronRight, X, Loader, Trash2, Zap } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import { formatPhone } from '../lib/format-utils';
 
 const supabaseClient = createClient(
   'https://teivfptpozltpqwahgdl.supabase.co',
@@ -1305,7 +1306,7 @@ const RangeMedicalSystem = () => {
                 </h2>
                 <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <div style={{ fontSize: '0.9rem', color: '#666666' }}>{selectedPatient.email}</div>
-                  {selectedPatient.phone && <div style={{ fontSize: '0.9rem', color: '#666666' }}>{selectedPatient.phone}</div>}
+                  {selectedPatient.phone && <div style={{ fontSize: '0.9rem', color: '#666666' }}>{formatPhone(selectedPatient.phone)}</div>}
                   {selectedPatient.dateOfBirth && (
                     <div style={{ fontSize: '0.85rem', color: '#666666' }}>
                       DOB: {new Date(selectedPatient.dateOfBirth).toLocaleDateString('en-US')}
@@ -3605,7 +3606,7 @@ const RangeMedicalSystem = () => {
                     <div>
                       <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Phone</div>
                       <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
-                        {selectedIntake.phone}
+                        {formatPhone(selectedIntake.phone)}
                       </div>
                     </div>
                   )}
@@ -4003,7 +4004,7 @@ const RangeMedicalSystem = () => {
                     <div>
                       <div style={{ fontSize: '0.75rem', color: '#666666', textTransform: 'uppercase', fontWeight: 600 }}>Phone</div>
                       <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: '1rem' }}>
-                        {selectedConsent.phone}
+                        {formatPhone(selectedConsent.phone)}
                       </div>
                     </div>
                   )}
@@ -4388,7 +4389,7 @@ const RangeMedicalSystem = () => {
                   <option disabled>──────────</option>
                   {patients.sort((a, b) => a.name.localeCompare(b.name)).map(patient => (
                     <option key={patient.id} value={patient.id}>
-                      {patient.name} ({patient.email || patient.phone})
+                      {patient.name} ({patient.email || formatPhone(patient.phone)})
                     </option>
                   ))}
                 </select>
@@ -4964,7 +4965,7 @@ const RangeMedicalSystem = () => {
                       <div style={{ fontWeight: 700, fontSize: '1rem', textTransform: 'uppercase' }}>{patient.name}</div>
                       <div style={{ fontSize: '0.85rem', color: '#666666' }}>{patient.email}</div>
                       {patient.phone && (
-                        <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.15rem' }}>{patient.phone}</div>
+                        <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.15rem' }}>{formatPhone(patient.phone)}</div>
                       )}
                     </div>
                     <div style={{ textAlign: 'right' }}>

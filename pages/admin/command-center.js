@@ -8,6 +8,7 @@ import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
 import BookingTab from '../../components/BookingTab';
 import { formatCategoryName } from '../../lib/protocol-config';
+import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 
 // ============================================
@@ -2502,7 +2503,7 @@ export default function CommandCenter() {
                    `${smsModal.protocol.patients?.first_name || ''} ${smsModal.protocol.patients?.last_name || ''}`.trim()}
                 </span>
                 <span style={{ marginLeft: '8px', color: '#888', fontSize: '13px' }}>
-                  ({smsModal.protocol.patients?.phone || 'No phone'})
+                  ({formatPhone(smsModal.protocol.patients?.phone) || 'No phone'})
                 </span>
               </div>
 
@@ -4755,7 +4756,7 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText, onMarkMissed }) {
         <div style={dueSoonStyles.cardHeader}>
           <div style={dueSoonStyles.patientInfo}>
             <span style={dueSoonStyles.patientName}>{patientName}</span>
-            {phone && <span style={dueSoonStyles.phone}>{phone}</span>}
+            {phone && <span style={dueSoonStyles.phone}>{formatPhone(phone)}</span>}
             {protocol.program_type === 'peptide' && lastTextInfo && (
               <span style={{ fontSize: '11px', color: '#10B981', marginLeft: '8px' }}>
                 {lastTextInfo}
@@ -5333,7 +5334,7 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase, onRefr
               <div style={styles.leadInfo}>
                 <span style={styles.leadName}>{lead.name || 'Unknown'}</span>
                 <span style={styles.leadContact}>
-                  {lead.phone && <span>{lead.phone}</span>}
+                  {lead.phone && <span>{formatPhone(lead.phone)}</span>}
                   {lead.email && <span style={{ marginLeft: '12px' }}>{lead.email}</span>}
                 </span>
               </div>
@@ -5672,7 +5673,7 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                 {patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || 'Unknown'}
               </div>
               <div style={styles.patientItemMeta}>
-                {patient.phone && <span>{patient.phone}</span>}
+                {patient.phone && <span>{formatPhone(patient.phone)}</span>}
               </div>
             </div>
           ))}
@@ -5691,7 +5692,7 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                 {selected.name || `${selected.first_name || ''} ${selected.last_name || ''}`.trim()}
               </h2>
               <div style={styles.patientContact}>
-                {selected.phone && <span>{selected.phone}</span>}
+                {selected.phone && <span>{formatPhone(selected.phone)}</span>}
                 {selected.email && <span>{selected.email}</span>}
               </div>
               <div style={styles.patientSince}>
@@ -5916,17 +5917,6 @@ function SendFormsTab({
   patientSearch, setPatientSearch, selectedPatient, setSelectedPatient,
   filteredPatients, showDropdown, setShowDropdown
 }) {
-  const formatPhone = (value) => {
-    if (!value) return '';
-    let digits = value.replace(/\D/g, '');
-    if (digits.length === 11 && digits.startsWith('1')) {
-      digits = digits.slice(1);
-    }
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-  };
-
   const handlePhoneChange = (e) => {
     setPhone(formatPhone(e.target.value));
   };
@@ -6217,7 +6207,7 @@ function SendFormsTab({
               {recentSends.map((send, i) => (
                 <div key={i} style={styles.recentItem}>
                   <div style={styles.recentTop}>
-                    <span><strong>{send.firstName}</strong> · {send.phone}</span>
+                    <span><strong>{send.firstName}</strong> · {formatPhone(send.phone)}</span>
                     <span style={{ color: '#A3A3A3', fontSize: '12px' }}>{send.time}</span>
                   </div>
                   <div style={{ fontSize: '12px', color: '#737373' }}>{send.forms}</div>

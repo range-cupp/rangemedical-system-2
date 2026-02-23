@@ -3,6 +3,7 @@
 // Clean aesthetic matching Pipeline
 
 import { useState, useEffect } from 'react';
+import { formatPhone } from '../../lib/format-utils';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -231,7 +232,7 @@ export default function PatientsList() {
                     <div style={styles.patientName}>{getDisplayName(patient)}</div>
                     <div style={styles.patientMeta}>
                       {patient.email && <span>{patient.email}</span>}
-                      {patient.phone && <span> • {patient.phone}</span>}
+                      {patient.phone && <span> • {formatPhone(patient.phone)}</span>}
                     </div>
                     {patient.created_at && (
                       <div style={styles.patientDate}>
@@ -286,7 +287,7 @@ export default function PatientsList() {
                         >
                           <div style={styles.resultName}>{getDisplayName(p)}</div>
                           <div style={styles.resultMeta}>
-                            {p.email || p.phone || 'No contact'}
+                            {p.email || formatPhone(p.phone) || 'No contact'}
                           </div>
                         </div>
                       ))}
@@ -305,7 +306,7 @@ export default function PatientsList() {
                     <div style={styles.selectedLabel}>Keep:</div>
                     <div style={styles.selectedName}>{getDisplayName(primaryPatient)}</div>
                     <div style={styles.selectedMeta}>
-                      {primaryPatient.email || primaryPatient.phone || 'No contact'}
+                      {primaryPatient.email || formatPhone(primaryPatient.phone) || 'No contact'}
                     </div>
                   </div>
 
@@ -331,7 +332,7 @@ export default function PatientsList() {
                         >
                           <div style={styles.resultName}>{getDisplayName(p)}</div>
                           <div style={styles.resultMeta}>
-                            {p.email || p.phone || 'No contact'}
+                            {p.email || formatPhone(p.phone) || 'No contact'}
                           </div>
                         </div>
                       ))}
@@ -359,7 +360,7 @@ export default function PatientsList() {
                       <div style={styles.previewName}>{getDisplayName(primaryPatient)}</div>
                       <div style={styles.previewMeta}>
                         {primaryPatient.email && <div>Email: {primaryPatient.email}</div>}
-                        {primaryPatient.phone && <div>Phone: {primaryPatient.phone}</div>}
+                        {primaryPatient.phone && <div>Phone: {formatPhone(primaryPatient.phone)}</div>}
                         {primaryPatient.ghl_contact_id && <div>GHL ID: {primaryPatient.ghl_contact_id}</div>}
                       </div>
                     </div>
@@ -371,7 +372,7 @@ export default function PatientsList() {
                       <div style={styles.previewName}>{getDisplayName(duplicatePatient)}</div>
                       <div style={styles.previewMeta}>
                         {duplicatePatient.email && <div>Email: {duplicatePatient.email}</div>}
-                        {duplicatePatient.phone && <div>Phone: {duplicatePatient.phone}</div>}
+                        {duplicatePatient.phone && <div>Phone: {formatPhone(duplicatePatient.phone)}</div>}
                         {duplicatePatient.ghl_contact_id && <div>GHL ID: {duplicatePatient.ghl_contact_id}</div>}
                       </div>
                     </div>

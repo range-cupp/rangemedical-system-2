@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { formatPhone } from '../lib/format-utils';
 
 // ============================================
 // SERVICE CONFIGURATION
@@ -924,7 +925,7 @@ export default function ServiceLogContent() {
                           return (
                             <div key={p.id} style={slcStyles.dropdownItem} onClick={() => selectPatient(p)}>
                               <div style={slcStyles.dropdownName}>{name}</div>
-                              <div style={slcStyles.dropdownSub}>{p.phone || p.email || 'No contact'}</div>
+                              <div style={slcStyles.dropdownSub}>{(p.phone && formatPhone(p.phone)) || p.email || 'No contact'}</div>
                             </div>
                           );
                         })}
@@ -937,7 +938,7 @@ export default function ServiceLogContent() {
                   <div style={slcStyles.selectedPatientCard}>
                     <div style={slcStyles.selectedPatientName}>{selectedPatient.displayName}</div>
                     <div style={slcStyles.selectedPatientContact}>
-                      {selectedPatient.phone || selectedPatient.email}
+                      {(selectedPatient.phone && formatPhone(selectedPatient.phone)) || selectedPatient.email}
                     </div>
 
                     {/* Patient's Protocols */}

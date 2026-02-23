@@ -3,6 +3,7 @@
 // Single source of truth for all patient data
 
 import { useState, useEffect, useRef } from 'react';
+import { formatPhone } from '../../lib/format-utils';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -611,7 +612,7 @@ export default function PatientProfile() {
             <h1>{getPatientDisplayName()}</h1>
             <div className="contact-row">
               {patient.email && <span>{patient.email}</span>}
-              {patient.phone && <span>{patient.phone}</span>}
+              {patient.phone && <span>{formatPhone(patient.phone)}</span>}
             </div>
           </div>
 
@@ -1161,7 +1162,7 @@ export default function PatientProfile() {
                         </div>
                         <div className="intake-details">
                           <span>{intake.email}</span>
-                          <span>{intake.phone}</span>
+                          <span>{formatPhone(intake.phone)}</span>
                           {intake.date_of_birth && <span>DOB: {formatDate(intake.date_of_birth)}</span>}
                         </div>
                         <div className="intake-actions">
@@ -1879,7 +1880,7 @@ export default function PatientProfile() {
                 ) : (
                   <>
                     <p>Send symptoms questionnaire link to:</p>
-                    <p><strong>{patient.phone || 'No phone number'}</strong></p>
+                    <p><strong>{formatPhone(patient.phone) || 'No phone number'}</strong></p>
                   </>
                 )}
               </div>
@@ -1905,7 +1906,7 @@ export default function PatientProfile() {
                 <div className="intake-detail-grid">
                   <div className="detail-row"><label>Name</label><span>{selectedIntake.first_name} {selectedIntake.last_name}</span></div>
                   <div className="detail-row"><label>Email</label><span>{selectedIntake.email}</span></div>
-                  <div className="detail-row"><label>Phone</label><span>{selectedIntake.phone}</span></div>
+                  <div className="detail-row"><label>Phone</label><span>{formatPhone(selectedIntake.phone)}</span></div>
                   <div className="detail-row"><label>DOB</label><span>{formatDate(selectedIntake.date_of_birth)}</span></div>
                   <div className="detail-row"><label>Gender</label><span>{selectedIntake.gender}</span></div>
                   <div className="detail-row"><label>Submitted</label><span>{formatDate(selectedIntake.submitted_at)}</span></div>

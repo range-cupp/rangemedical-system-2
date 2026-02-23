@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { formatPhone } from '../../lib/format-utils';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -92,7 +93,7 @@ export default function PatientsList() {
                   </div>
                   <div style={styles.colContact}>
                     <div style={styles.contactEmail}>{patient.email}</div>
-                    <div style={styles.contactPhone}>{patient.phone}</div>
+                    <div style={styles.contactPhone}>{formatPhone(patient.phone)}</div>
                   </div>
                   <div style={styles.colStatus}>
                     {patient.pendingNotifications > 0 && (

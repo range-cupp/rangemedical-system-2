@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import { useState } from 'react';
+import { formatPhone } from '../lib/format-utils';
 
 export default function SocietyOC() {
   const [formData, setFormData] = useState({
@@ -40,16 +41,6 @@ export default function SocietyOC() {
     { icon: '🧬', title: 'Exosome Therapy', desc: 'Advanced regenerative therapy using cellular signaling for tissue repair.' },
     { icon: '🔬', title: 'Diagnostic Labs', desc: 'Comprehensive blood panels to understand your hormones, metabolism, and overall health.' }
   ];
-
-  const formatPhone = (value) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length >= 6) {
-      return '(' + cleaned.substring(0, 3) + ') ' + cleaned.substring(3, 6) + '-' + cleaned.substring(6, 10);
-    } else if (cleaned.length >= 3) {
-      return '(' + cleaned.substring(0, 3) + ') ' + cleaned.substring(3);
-    }
-    return cleaned;
-  };
 
   const handleServiceToggle = (service) => {
     setFormData(prev => ({

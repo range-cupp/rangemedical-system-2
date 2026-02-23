@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import { formatPhone } from '../../lib/format-utils';
 
 const AVAILABLE_FORMS = [
   { id: 'intake', name: 'Medical Intake', path: '/intake', icon: '📋', time: '10 min', required: true },
@@ -72,18 +73,6 @@ export default function SendForms() {
       p.phone?.includes(query)
     );
   }).slice(0, 20); // Limit to 20 results
-
-  const formatPhone = (value) => {
-    if (!value) return '';
-    let digits = value.replace(/\D/g, '');
-    // Strip leading 1 (US country code) if present
-    if (digits.length === 11 && digits.startsWith('1')) {
-      digits = digits.slice(1);
-    }
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-  };
 
   const handlePhoneChange = (e) => {
     setPhone(formatPhone(e.target.value));
@@ -840,7 +829,7 @@ export default function SendForms() {
                   <div className="recent-top">
                     <div>
                       <span className="recent-name">{send.firstName}</span>
-                      <span className="recent-phone"> • {send.phone}</span>
+                      <span className="recent-phone"> • {formatPhone(send.phone)}</span>
                     </div>
                     <span className="recent-time">{send.time}</span>
                   </div>

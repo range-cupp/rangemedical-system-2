@@ -3,6 +3,7 @@
 // Created: 2026-02-08
 
 import { useState, useEffect } from 'react';
+import { formatPhone } from '../../lib/format-utils';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -103,13 +104,6 @@ export default function SuperBowlGiveaway() {
 
   const handleTeamSelect = (team) => {
     setFormData(prev => ({ ...prev, teamPick: team }));
-  };
-
-  const formatPhone = (value) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 6) return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`;
-    return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
   };
 
   const handlePhoneChange = (e) => {

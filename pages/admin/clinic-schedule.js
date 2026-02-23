@@ -3,6 +3,7 @@
 // Range Medical
 
 import { useState, useEffect } from 'react';
+import { formatPhone } from '../../lib/format-utils';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -212,7 +213,7 @@ export default function ClinicSchedule() {
                         {apt.title !== apt.calendarName && <span> • {apt.title}</span>}
                       </div>
                       {apt.patient?.phone && (
-                        <div style={styles.contactInfo}>{apt.patient.phone}</div>
+                        <div style={styles.contactInfo}>{formatPhone(apt.patient.phone)}</div>
                       )}
                     </div>
                   </div>

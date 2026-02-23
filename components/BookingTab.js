@@ -3,6 +3,8 @@
 // Range Medical
 // CREATED: 2026-02-22
 
+import { formatPhone } from '../lib/format-utils';
+
 import { useState, useEffect } from 'react';
 import { CATEGORY_COLORS } from '../lib/protocol-config';
 
@@ -415,7 +417,7 @@ export default function BookingTab({ preselectedPatient = null }) {
                   <div>
                     <div style={styles.selectedName}>{selectedPatient.name}</div>
                     {selectedPatient.email && <div style={styles.selectedDetail}>{selectedPatient.email}</div>}
-                    {selectedPatient.phone && <div style={styles.selectedDetail}>{selectedPatient.phone}</div>}
+                    {selectedPatient.phone && <div style={styles.selectedDetail}>{formatPhone(selectedPatient.phone)}</div>}
                   </div>
                   <button
                     style={styles.clearBtn}
@@ -443,7 +445,7 @@ export default function BookingTab({ preselectedPatient = null }) {
                           onClick={() => selectPatient(p)}
                         >
                           <span style={styles.resultName}>{p.name}</span>
-                          {p.phone && <span style={styles.resultPhone}>{p.phone}</span>}
+                          {p.phone && <span style={styles.resultPhone}>{formatPhone(p.phone)}</span>}
                         </div>
                       ))}
                     </div>

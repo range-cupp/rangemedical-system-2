@@ -57,6 +57,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete, str
   const [categories, setCategories] = useState([]);
 
   const [activeCategory, setActiveCategory] = useState('');
+  const [serviceSearch, setServiceSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [customAmount, setCustomAmount] = useState('');
   const [customDescription, setCustomDescription] = useState('');
@@ -156,6 +157,15 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete, str
   function getItemsByCategory(categoryId) {
     return services.filter(s => s.category === categoryId);
   }
+
+  function getSearchResults() {
+    const q = serviceSearch.toLowerCase().trim();
+    if (!q) return [];
+    return services.filter(s => s.name.toLowerCase().includes(q));
+  }
+
+  const isSearching = serviceSearch.trim().length > 0;
+  const searchResults = isSearching ? getSearchResults() : [];
 
   function getBaseAmount() {
     if (activeCategory === 'custom') {
@@ -401,6 +411,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete, str
     setPatient(initialPatient || null);
     setPatientSearch('');
     setSelectedItem(null);
+    setServiceSearch('');
     setCustomAmount('');
     setCustomDescription('');
     setSelectedCard(null);
@@ -499,29 +510,68 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete, str
               <div style={modalStyles.loading}>Loading services...</div>
             ) : (
               <>
-                {/* Category Tabs */}
-                <div style={modalStyles.categoryTabs}>
-                  {categories.map(cat => (
-                    <button
-                      key={cat}
-                      style={{
-                        ...modalStyles.categoryTab,
-                        ...(activeCategory === cat ? modalStyles.categoryTabActive : {}),
-                      }}
-                      onClick={() => {
-                        setActiveCategory(cat);
-                        setSelectedItem(null);
-                        setDiscountType('none');
-                        setDiscountValue('');
-                      }}
-                    >
-                      {CATEGORY_LABELS[cat] || cat}
-                    </button>
-                  ))}
+                {/* Service Search */}
+                <div style={{ marginBottom: '12px' }}>
+                  <input
+                    type="text"
+                    placeholder="Search services..."
+                    value={serviceSearch}
+                    onChange={e => {
+                      setServiceSearch(e.target.value);
+                      setSelectedItem(null);
+                    }}
+                    style={modalStyles.input}
+                  />
                 </div>
 
+                {/* Category Tabs (hidden while searching) */}
+                {!isSearching && (
+                  <div style={modalStyles.categoryTabs}>
+                    {categories.map(cat => (
+                      <button
+                        key={cat}
+                        style={{
+                          ...modalStyles.categoryTab,
+                          ...(activeCategory === cat ? modalStyles.categoryTabActive : {}),
+                        }}
+                        onClick={() => {
+                          setActiveCategory(cat);
+                          setSelectedItem(null);
+                          setDiscountType('none');
+                          setDiscountValue('');
+                        }}
+                      >
+                        {CATEGORY_LABELS[cat] || cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* Service Items */}
-                {activeCategory !== 'custom' ? (
+                {isSearching ? (
+                  searchResults.length > 0 ? (
+                    <div style={modalStyles.itemGrid}>
+                      {searchResults.map(item => (
+                        <button
+                          key={item.id}
+                          style={{
+                            ...modalStyles.itemCard,
+                            ...(selectedItem?.id === item.id ? modalStyles.itemCardSelected : {}),
+                          }}
+                          onClick={() => setSelectedItem(item)}
+                        >
+                          <div style={modalStyles.itemName}>{item.name}</div>
+                          <div style={modalStyles.itemPrice}>
+                            {formatPrice(item.price)}
+                            {item.recurring && <span style={modalStyles.recurringBadge}>/mo</span>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>No services match "{serviceSearch}"</div>
+                  )
+                ) : activeCategory !== 'custom' ? (
                   <div style={modalStyles.itemGrid}>
                     {getItemsByCategory(activeCategory).map(item => (
                       <button

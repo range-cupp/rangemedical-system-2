@@ -5615,6 +5615,8 @@ function ProtocolsTab({ data, protocols, filter, setFilter, onEdit, onDelete, on
 }
 
 function PatientsTab({ patients, search, setSearch, selected, setSelected, details, detailLoading, data, openPdf, onAssignProtocol, onEditProtocol }) {
+  const [showBookingModal, setShowBookingModal] = useState(false);
+
   const CONSENT_ICONS = {
     hipaa: '🔒',
     hrt: '💉',
@@ -5645,6 +5647,7 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
   };
 
   return (
+    <>
     <div style={styles.patientsLayout}>
       {/* Patient List */}
       <div style={styles.patientList}>
@@ -5711,6 +5714,12 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                 onClick={() => openGHL(selected.ghl_contact_id)}
               >
                 🔗 Open GHL
+              </button>
+              <button
+                style={{ ...styles.actionBtn, backgroundColor: '#2563eb', color: '#fff', border: 'none' }}
+                onClick={() => setShowBookingModal(true)}
+              >
+                📅 Book Appointment
               </button>
             </div>
 
@@ -5869,6 +5878,34 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
         )}
       </div>
     </div>
+
+    {/* Booking Modal */}
+    {showBookingModal && selected && (
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', zIndex: 1000
+      }} onClick={() => setShowBookingModal(false)}>
+        <div style={{
+          background: '#fff', borderRadius: '12px', width: '95%', maxWidth: '1200px',
+          maxHeight: '90vh', overflow: 'auto'
+        }} onClick={e => e.stopPropagation()}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '16px 20px', borderBottom: '1px solid #e5e7eb'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>Book Appointment</h3>
+            <button onClick={() => setShowBookingModal(false)} style={{
+              background: 'none', border: 'none', fontSize: '24px', color: '#666', cursor: 'pointer'
+            }}>×</button>
+          </div>
+          <div style={{ padding: '20px' }}>
+            <BookingTab preselectedPatient={{ id: selected.id, name: selected.name, email: selected.email, phone: selected.phone }} />
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

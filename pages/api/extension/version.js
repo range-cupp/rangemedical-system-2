@@ -4,9 +4,9 @@
 export default function handler(req, res) {
   // Current version info - UPDATE THIS WHEN YOU RELEASE NEW VERSIONS
   const versionInfo = {
-    version: '1.3.3',
-    notes: 'Push to GHL - sync patients from Practice Fusion to GHL',
-    releaseDate: '2026-01-26',
+    version: '1.4.0',
+    notes: 'Fixed: Sex/Gender radio buttons + Date of Birth now auto-fill correctly',
+    releaseDate: '2026-02-09',
     downloadUrl: 'https://app.range-medical.com/api/extension/download'
   };
 

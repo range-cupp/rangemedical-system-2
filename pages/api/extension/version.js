@@ -2,11 +2,10 @@
 // Returns current extension version info
 
 export default function handler(req, res) {
-  // Current version info - UPDATE THIS WHEN YOU RELEASE NEW VERSIONS
   const versionInfo = {
-    version: '1.4.0',
-    notes: 'Fixed: Sex/Gender radio buttons + Date of Birth now auto-fill correctly',
-    releaseDate: '2026-02-09',
+    version: '1.4.1',
+    notes: 'Fix: Sex, DOB, and State now fill correctly. Documents download directly.',
+    releaseDate: '2026-02-24',
     downloadUrl: 'https://app.range-medical.com/api/extension/download'
   };
 

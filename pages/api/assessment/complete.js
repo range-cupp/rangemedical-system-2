@@ -984,7 +984,7 @@ async function sendConsolidatedEmail({ firstName, lastName, email, phone, assess
 
   const { error } = await resend.emails.send({
     from: 'Range Medical <notifications@range-medical.com>',
-    to: 'cupp@range-medical.com',
+    to: 'intake@range-medical.com',
     subject: `Assessment Complete: ${firstName} ${lastName} — ${pathName}`,
     html: emailHtml
   });

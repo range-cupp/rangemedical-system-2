@@ -479,7 +479,7 @@ async function sendEmailNotification(data) {
 
   const { error } = await resend.emails.send({
     from: 'Range Medical <notifications@range-medical.com>',
-    to: 'cupp@range-medical.com',
+    to: 'intake@range-medical.com',
     subject: `New ${pathName} Assessment: ${firstName} ${lastName}`,
     html: emailHtml
   });

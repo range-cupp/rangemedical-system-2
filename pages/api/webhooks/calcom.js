@@ -6,6 +6,7 @@
 // UPDATED: 2026-02-24 - Added CALCOM_APPOINTMENT_ACTIONS mapping
 
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -174,6 +175,13 @@ export default async function handler(req, res) {
         await executeAction(action, patientId, eventTypeSlug, serviceDetails);
       }
 
+      // Send staff notification (fire-and-forget)
+      sendStaffNotification('created', {
+        staffEmail, staffName, patientName: attendee.name,
+        serviceName: eventTitle, startTime, durationMinutes,
+        serviceDetails, bookingDate
+      }).catch(err => console.error('Staff notification failed:', err));
+
       return res.status(200).json({ success: true, message: 'Booking created/synced', action: action || 'none' });
     }
 
@@ -199,6 +207,13 @@ export default async function handler(req, res) {
         console.error('Webhook cancel update error:', error);
       }
 
+      // Send staff notification for cancellation (fire-and-forget)
+      sendStaffNotification('cancelled', {
+        staffEmail, staffName, patientName: attendee.name,
+        serviceName: eventTitle, startTime, durationMinutes,
+        serviceDetails, bookingDate
+      }).catch(err => console.error('Staff cancel notification failed:', err));
+
       return res.status(200).json({ success: true, message: 'Booking cancelled', action: 'cancelled' });
     }
 
@@ -220,6 +235,13 @@ export default async function handler(req, res) {
       if (error) {
         console.error('Webhook reschedule update error:', error);
       }
+
+      // Send staff notification for reschedule (fire-and-forget)
+      sendStaffNotification('rescheduled', {
+        staffEmail, staffName, patientName: attendee.name,
+        serviceName: eventTitle, startTime, durationMinutes,
+        serviceDetails, bookingDate
+      }).catch(err => console.error('Staff reschedule notification failed:', err));
 
       return res.status(200).json({ success: true, message: 'Booking rescheduled', action: 'rescheduled' });
     }
@@ -318,4 +340,162 @@ async function updateLabJourney(patientId, slug) {
 
     console.log(`Lab journey updated: patient ${patientId}, lab ${lab.id} -> ${newStatus}`);
   }
+}
+
+// =====================================================
+// STAFF NOTIFICATION EMAILS
+// =====================================================
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+function formatDateTime(isoString) {
+  if (!isoString) return 'N/A';
+  const d = new Date(isoString);
+  return d.toLocaleString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/Los_Angeles'
+  });
+}
+
+function formatServiceDetails(details) {
+  if (!details || Object.keys(details).length === 0) return '';
+  const labels = {
+    injectionTier: 'Tier',
+    injectionType: 'Type',
+    nadDose: 'NAD+ Dose',
+    ivType: 'IV Type',
+    notes: 'Notes'
+  };
+  return Object.entries(details)
+    .map(([key, val]) => `<strong>${labels[key] || key}:</strong> ${val}`)
+    .join('<br/>');
+}
+
+function generateStaffNotificationHtml(eventType, data) {
+  const { patientName, serviceName, startTime, durationMinutes, serviceDetails, bookingDate } = data;
+
+  const titles = {
+    created: 'New Booking',
+    rescheduled: 'Booking Rescheduled',
+    cancelled: 'Booking Cancelled'
+  };
+
+  const subtitles = {
+    created: 'A new appointment has been booked for you.',
+    rescheduled: 'An appointment has been rescheduled.',
+    cancelled: 'An appointment has been cancelled.'
+  };
+
+  const headerColors = {
+    created: '#000000',
+    rescheduled: '#000000',
+    cancelled: '#000000'
+  };
+
+  const title = titles[eventType] || 'Booking Update';
+  const subtitle = subtitles[eventType] || 'An appointment has been updated.';
+  const detailsHtml = formatServiceDetails(serviceDetails);
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f5f5f5;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f5f5f5;">
+<tr><td align="center" style="padding:40px 20px;">
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color:#ffffff;max-width:600px;">
+
+<!-- Header -->
+<tr><td style="background-color:${headerColors[eventType]};padding:30px;text-align:center;">
+  <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.1em;">RANGE MEDICAL</h1>
+  <p style="margin:10px 0 0;color:#a3a3a3;font-size:14px;">${title}</p>
+</td></tr>
+
+<!-- Content -->
+<tr><td style="padding:40px 30px;">
+  <p style="margin:0 0 25px;color:#404040;font-size:15px;line-height:1.7;">${subtitle}</p>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 25px;">
+  <tr><td style="border-left:4px solid #000000;padding-left:20px;">
+    <h3 style="margin:0 0 15px;color:#000000;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Appointment Details</h3>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td style="padding:4px 0;color:#737373;font-size:14px;width:100px;vertical-align:top;">Patient</td>
+        <td style="padding:4px 0;color:#171717;font-size:15px;font-weight:600;">${patientName || 'Unknown'}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;color:#737373;font-size:14px;vertical-align:top;">Service</td>
+        <td style="padding:4px 0;color:#171717;font-size:15px;font-weight:600;">${serviceName || 'N/A'}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;color:#737373;font-size:14px;vertical-align:top;">Date</td>
+        <td style="padding:4px 0;color:#171717;font-size:15px;">${formatDateTime(startTime)}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;color:#737373;font-size:14px;vertical-align:top;">Duration</td>
+        <td style="padding:4px 0;color:#171717;font-size:15px;">${durationMinutes} minutes</td>
+      </tr>
+    </table>
+  </td></tr>
+  </table>
+
+  ${detailsHtml ? `
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 25px;">
+  <tr><td style="background-color:#fafafa;padding:15px 20px;border-left:3px solid #000000;">
+    <p style="margin:0 0 8px;color:#737373;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Service Details</p>
+    <p style="margin:0;color:#404040;font-size:14px;line-height:1.7;">${detailsHtml}</p>
+  </td></tr>
+  </table>` : ''}
+
+  ${eventType === 'cancelled' ? `
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  <tr><td style="background-color:#fafafa;padding:15px 20px;border-left:3px solid #dc2626;">
+    <p style="margin:0;color:#dc2626;font-size:14px;font-weight:600;">This appointment has been cancelled and removed from your schedule.</p>
+  </td></tr>
+  </table>` : ''}
+
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="background-color:#fafafa;padding:30px;text-align:center;border-top:2px solid #e5e5e5;">
+  <p style="margin:0 0 10px;color:#737373;font-size:13px;">Range Medical Staff Notification</p>
+  <p style="margin:0;color:#000000;font-size:15px;font-weight:600;">(949) 997-3988</p>
+  <p style="margin:15px 0 0;color:#a3a3a3;font-size:12px;">Range Medical &#8226; Newport Beach, CA</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+async function sendStaffNotification(eventType, data) {
+  const { staffEmail, staffName } = data;
+  if (!staffEmail) {
+    console.log('No staff email — skipping notification');
+    return;
+  }
+
+  const subjects = {
+    created: `New Booking: ${data.patientName} - ${data.serviceName}`,
+    rescheduled: `Rescheduled: ${data.patientName} - ${data.serviceName}`,
+    cancelled: `Cancelled: ${data.patientName} - ${data.serviceName}`
+  };
+
+  const html = generateStaffNotificationHtml(eventType, data);
+
+  await resend.emails.send({
+    from: 'Range Medical <noreply@range-medical.com>',
+    replyTo: 'info@range-medical.com',
+    to: staffEmail,
+    subject: subjects[eventType] || `Booking Update: ${data.patientName}`,
+    html
+  });
+
+  console.log(`Staff notification sent: ${eventType} -> ${staffEmail}`);
 }

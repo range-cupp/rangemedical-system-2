@@ -2,44 +2,109 @@
 // Booking Tab - Staff booking interface via Cal.com
 // Range Medical
 // CREATED: 2026-02-22
+// UPDATED: 2026-02-24 - Category groups by slug, cascading dropdowns
 
 import { formatPhone } from '../lib/format-utils';
 
 import { useState, useEffect } from 'react';
-import { CATEGORY_COLORS } from '../lib/protocol-config';
 
-// Keyword-based categorization for Cal.com event types
-const SERVICE_CATEGORY_MAP = {
-  hrt: ['testosterone', 'hrt', 'hormone', 'trt', 'nandrolone', 'hcg'],
-  weight_loss: ['weight', 'semaglutide', 'tirzepatide', 'retatrutide', 'glp'],
-  peptide: ['peptide', 'bpc', 'thymosin', 'sermorelin', 'ipamorelin', 'cjc', 'ghk'],
-  iv: ['iv-', 'iv ', 'infusion', 'drip', 'nad+', 'myers', 'hydration'],
-  hbot: ['hbot', 'hyperbaric', 'oxygen'],
-  rlt: ['red light', 'rlt', 'photobio'],
-  injection: ['injection', 'b12', 'lipo', 'amino', 'glutathione', 'vitamin', 'skinny shot', 'toradol'],
-  labs: ['lab', 'blood draw', 'blood work', 'panel'],
+// ============================================
+// SERVICE CATEGORIES (by Cal.com slug)
+// ============================================
+const SERVICE_CATEGORIES = {
+  'Lab / Blood Draw': [
+    'new-patient-blood-draw',
+    'follow-up-blood-draw',
+    'initial-lab-review',
+    'follow-up-lab-review',
+    'initial-lab-review-telemedicine',
+    'follow-up-lab-review-telemedicine',
+    'follow-up-lab-review-phone',
+  ],
+  'Injections': [
+    'range-injections',
+    'nad-injection',
+    'injection-testosterone',
+    'injection-weight-loss',
+    'injection-peptide',
+    'injection-medical',
+  ],
+  'Therapies': [
+    'hbot',
+    'red-light-therapy',
+  ],
+  'IV Therapy': [
+    'range-iv',
+    'nad-iv-250',
+    'nad-iv-500',
+    'nad-iv-750',
+    'nad-iv-1000',
+    'vitamin-c-iv',
+    'specialty-iv',
+  ],
+  'Consultations': [
+    'initial-consultation',
+    'initial-consultation-peptide',
+    'follow-up-consultation',
+  ],
 };
 
-const CATEGORY_ORDER = ['hrt', 'weight_loss', 'peptide', 'iv', 'hbot', 'rlt', 'injection', 'labs', 'other'];
+const CATEGORY_COLORS = {
+  'Lab / Blood Draw': { bg: '#dbeafe', text: '#1e40af' },
+  'Injections': { bg: '#fef3c7', text: '#92400e' },
+  'Therapies': { bg: '#d1fae5', text: '#065f46' },
+  'IV Therapy': { bg: '#ede9fe', text: '#5b21b6' },
+  'Consultations': { bg: '#fce7f3', text: '#9d174d' },
+};
 
-function categorizeService(eventType) {
-  const text = ((eventType.title || '') + ' ' + (eventType.slug || '')).toLowerCase();
-  for (const [category, keywords] of Object.entries(SERVICE_CATEGORY_MAP)) {
-    if (keywords.some(kw => text.includes(kw))) return category;
-  }
-  return 'other';
-}
+const CATEGORY_ORDER = ['Lab / Blood Draw', 'Injections', 'Therapies', 'IV Therapy', 'Consultations'];
+
+// ============================================
+// CASCADING DROPDOWN CONFIGS
+// ============================================
+const INJECTION_TIERS = [
+  { label: 'Standard ($35)', value: 'Standard ($35)' },
+  { label: 'Premium ($50)', value: 'Premium ($50)' },
+];
+
+const INJECTION_TYPES_BY_TIER = {
+  'Standard ($35)': [
+    'B12 (Methylcobalamin)', 'B-Complex', 'Vitamin D3', 'Biotin',
+    'Amino Blend', 'NAC', 'BCAA',
+  ],
+  'Premium ($50)': [
+    'L-Carnitine', 'Glutathione (200mg)', 'MIC-B12 (Skinny Shot)',
+  ],
+};
+
+const NAD_DOSES = [
+  '50mg ($25)', '75mg ($37.50)', '100mg ($50)', '125mg ($62.50)', '150mg ($75)',
+];
+
+const SPECIALTY_IV_TYPES = [
+  'Glutathione', 'Methylene Blue', 'MB + Vitamin C + Magnesium Combo',
+  'Exosome', 'BYO', 'Hydration',
+];
+
+// ============================================
+// HELPERS
+// ============================================
 
 function groupServicesByCategory(eventTypes) {
-  const groups = {};
-  eventTypes.forEach(et => {
-    const cat = categorizeService(et);
-    if (!groups[cat]) groups[cat] = [];
-    groups[cat].push(et);
-  });
+  const slugMap = {};
+  eventTypes.forEach(et => { slugMap[et.slug] = et; });
+
   return CATEGORY_ORDER
-    .filter(cat => groups[cat] && groups[cat].length > 0)
-    .map(cat => ({ category: cat, services: groups[cat] }));
+    .map(cat => {
+      const slugs = SERVICE_CATEGORIES[cat] || [];
+      const services = slugs.map(s => slugMap[s]).filter(Boolean);
+      return services.length > 0 ? { category: cat, services } : null;
+    })
+    .filter(Boolean);
+}
+
+function needsCascading(slug) {
+  return slug === 'range-injections' || slug === 'nad-injection' || slug === 'specialty-iv';
 }
 
 export default function BookingTab({ preselectedPatient = null }) {
@@ -51,6 +116,12 @@ export default function BookingTab({ preselectedPatient = null }) {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [notes, setNotes] = useState('');
   const [booking, setBooking] = useState(false);
+
+  // Cascading dropdown state
+  const [injectionTier, setInjectionTier] = useState('');
+  const [injectionType, setInjectionType] = useState('');
+  const [nadDose, setNadDose] = useState('');
+  const [ivType, setIvType] = useState('');
 
   // Data state
   const [patientSearch, setPatientSearch] = useState('');
@@ -72,10 +143,10 @@ export default function BookingTab({ preselectedPatient = null }) {
   const [rescheduleSlot, setRescheduleSlot] = useState(null);
   const [rescheduleSlots, setRescheduleSlots] = useState({});
   const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false);
-  const [selectedBlock, setSelectedBlock] = useState(null); // calendar block popover
+  const [selectedBlock, setSelectedBlock] = useState(null);
 
   function getTodayDate() {
-    return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+    return new Date().toLocaleDateString('en-CA');
   }
 
   // Fetch event types on mount
@@ -84,7 +155,7 @@ export default function BookingTab({ preselectedPatient = null }) {
     fetchUpcomingBookings();
   }, []);
 
-  // Handle preselected patient (e.g. booking from patient profile)
+  // Handle preselected patient
   useEffect(() => {
     if (preselectedPatient) {
       setSelectedPatient(preselectedPatient);
@@ -184,8 +255,56 @@ export default function BookingTab({ preselectedPatient = null }) {
 
   const selectService = (service) => {
     setSelectedService(service);
+    // Reset cascading state
+    setInjectionTier('');
+    setInjectionType('');
+    setNadDose('');
+    setIvType('');
+
+    if (needsCascading(service.slug)) {
+      // Stay on step 2 — show cascading dropdowns
+    } else {
+      setStep(3);
+      fetchSlots(service.id, selectedDate);
+    }
+  };
+
+  const handleCascadingComplete = () => {
     setStep(3);
-    fetchSlots(service.id, selectedDate);
+    fetchSlots(selectedService.id, selectedDate);
+  };
+
+  const isCascadingComplete = () => {
+    if (!selectedService) return false;
+    const slug = selectedService.slug;
+    if (slug === 'range-injections') return injectionTier && injectionType;
+    if (slug === 'nad-injection') return !!nadDose;
+    if (slug === 'specialty-iv') return !!ivType;
+    return true;
+  };
+
+  const getServiceDetailsForBooking = () => {
+    if (!selectedService) return null;
+    const slug = selectedService.slug;
+    if (slug === 'range-injections' && injectionTier && injectionType) {
+      return { injectionTier, injectionType };
+    }
+    if (slug === 'nad-injection' && nadDose) {
+      return { nadDose };
+    }
+    if (slug === 'specialty-iv' && ivType) {
+      return { ivType };
+    }
+    return null;
+  };
+
+  const getServiceDetailsSummary = () => {
+    const details = getServiceDetailsForBooking();
+    if (!details) return null;
+    if (details.injectionTier) return `${details.injectionTier} — ${details.injectionType}`;
+    if (details.nadDose) return `NAD+ ${details.nadDose}`;
+    if (details.ivType) return details.ivType;
+    return null;
   };
 
   // ============================================
@@ -215,6 +334,10 @@ export default function BookingTab({ preselectedPatient = null }) {
     if (!selectedPatient || !selectedService || !selectedSlot) return;
     setBooking(true);
     try {
+      const serviceDetails = getServiceDetailsForBooking();
+      const detailsSummary = getServiceDetailsSummary();
+      const fullNotes = [notes, detailsSummary].filter(Boolean).join(' | ');
+
       const res = await fetch('/api/bookings/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -228,19 +351,22 @@ export default function BookingTab({ preselectedPatient = null }) {
           serviceName: selectedService.title,
           serviceSlug: selectedService.slug,
           durationMinutes: selectedService.length,
-          notes
+          notes: fullNotes,
+          serviceDetails
         })
       });
       const json = await res.json();
       if (json.success) {
-        // Reset form
         setStep(1);
         setSelectedPatient(null);
         setSelectedService(null);
         setSelectedSlot(null);
         setNotes('');
         setSelectedDate(getTodayDate());
-        // Refresh bookings list
+        setInjectionTier('');
+        setInjectionType('');
+        setNadDose('');
+        setIvType('');
         fetchUpcomingBookings();
         alert('Booking created successfully!');
       } else {
@@ -362,7 +488,6 @@ export default function BookingTab({ preselectedPatient = null }) {
     });
   };
 
-  // Get all slots as flat array
   const getSlotsList = (slotsObj) => {
     const all = [];
     Object.values(slotsObj || {}).forEach(daySlots => {
@@ -469,7 +594,7 @@ export default function BookingTab({ preselectedPatient = null }) {
               ) : (
                 <div>
                   {groupServicesByCategory(eventTypes).map(({ category, services }) => {
-                    const color = CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
+                    const color = CATEGORY_COLORS[category] || { bg: '#f3f4f6', text: '#374151' };
                     return (
                       <div key={category} style={{ marginBottom: '20px' }}>
                         <div style={{
@@ -482,7 +607,7 @@ export default function BookingTab({ preselectedPatient = null }) {
                           color: color.text,
                           marginBottom: '10px'
                         }}>
-                          {color.label}
+                          {category}
                         </div>
                         <div style={styles.serviceGrid}>
                           {services.map(et => (
@@ -503,6 +628,86 @@ export default function BookingTab({ preselectedPatient = null }) {
                       </div>
                     );
                   })}
+
+                  {/* Cascading Dropdowns */}
+                  {selectedService && needsCascading(selectedService.slug) && (
+                    <div style={styles.cascadingSection}>
+                      {/* Range Injections: Tier + Type */}
+                      {selectedService.slug === 'range-injections' && (
+                        <>
+                          <label style={styles.label}>Injection Tier</label>
+                          <select
+                            value={injectionTier}
+                            onChange={(e) => { setInjectionTier(e.target.value); setInjectionType(''); }}
+                            style={styles.selectInput}
+                          >
+                            <option value="">Select tier...</option>
+                            {INJECTION_TIERS.map(t => (
+                              <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                          </select>
+
+                          {injectionTier && (
+                            <>
+                              <label style={{ ...styles.label, marginTop: '12px' }}>Injection Type</label>
+                              <select
+                                value={injectionType}
+                                onChange={(e) => setInjectionType(e.target.value)}
+                                style={styles.selectInput}
+                              >
+                                <option value="">Select type...</option>
+                                {(INJECTION_TYPES_BY_TIER[injectionTier] || []).map(t => (
+                                  <option key={t} value={t}>{t}</option>
+                                ))}
+                              </select>
+                            </>
+                          )}
+                        </>
+                      )}
+
+                      {/* NAD+ Injection: Dose */}
+                      {selectedService.slug === 'nad-injection' && (
+                        <>
+                          <label style={styles.label}>NAD+ Dose</label>
+                          <select
+                            value={nadDose}
+                            onChange={(e) => setNadDose(e.target.value)}
+                            style={styles.selectInput}
+                          >
+                            <option value="">Select dose...</option>
+                            {NAD_DOSES.map(d => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                        </>
+                      )}
+
+                      {/* Specialty IV: Type */}
+                      {selectedService.slug === 'specialty-iv' && (
+                        <>
+                          <label style={styles.label}>IV Type</label>
+                          <select
+                            value={ivType}
+                            onChange={(e) => setIvType(e.target.value)}
+                            style={styles.selectInput}
+                          >
+                            <option value="">Select IV type...</option>
+                            {SPECIALTY_IV_TYPES.map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </>
+                      )}
+
+                      <button
+                        style={{ ...styles.nextBtn, opacity: isCascadingComplete() ? 1 : 0.5, marginTop: '16px' }}
+                        onClick={handleCascadingComplete}
+                        disabled={!isCascadingComplete()}
+                      >
+                        Next: Select Date & Time
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -563,6 +768,12 @@ export default function BookingTab({ preselectedPatient = null }) {
                   <span style={styles.summaryLabel}>Service</span>
                   <span style={styles.summaryValue}>{selectedService?.title}</span>
                 </div>
+                {getServiceDetailsSummary() && (
+                  <div style={styles.summaryRow}>
+                    <span style={styles.summaryLabel}>Details</span>
+                    <span style={styles.summaryValue}>{getServiceDetailsSummary()}</span>
+                  </div>
+                )}
                 <div style={styles.summaryRow}>
                   <span style={styles.summaryLabel}>Duration</span>
                   <span style={styles.summaryValue}>{selectedService?.length} min</span>
@@ -749,7 +960,7 @@ export default function BookingTab({ preselectedPatient = null }) {
           ) : upcomingBookings.length === 0 ? (
             <div style={styles.noBookings}>No bookings for this week</div>
           ) : (
-            /* WEEK VIEW — Card list (unchanged) */
+            /* WEEK VIEW — Card list */
             <div style={styles.bookingsList}>
               {upcomingBookings.map(b => (
                 <div key={b.id} style={styles.bookingCard}>
@@ -1114,6 +1325,26 @@ const styles = {
   serviceDuration: {
     fontSize: '13px',
     color: '#6b7280'
+  },
+
+  // Cascading dropdown section
+  cascadingSection: {
+    marginTop: '16px',
+    padding: '16px',
+    backgroundColor: '#f9fafb',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  selectInput: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    backgroundColor: 'white',
+    cursor: 'pointer'
   },
 
   // Date navigation

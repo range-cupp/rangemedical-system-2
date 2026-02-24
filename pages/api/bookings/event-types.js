@@ -15,14 +15,16 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch event types from Cal.com' });
     }
 
-    // Return simplified event type data
-    const simplified = eventTypes.map(et => ({
-      id: et.id,
-      title: et.title,
-      slug: et.slug,
-      length: et.lengthInMinutes || et.length,
-      description: et.description
-    }));
+    // Return simplified event type data, filtering out hidden ones
+    const simplified = eventTypes
+      .filter(et => !et.hidden)
+      .map(et => ({
+        id: et.id,
+        title: et.title,
+        slug: et.slug,
+        length: et.lengthInMinutes || et.length,
+        description: et.description
+      }));
 
     return res.status(200).json({ success: true, eventTypes: simplified });
   } catch (error) {

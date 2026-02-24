@@ -24,7 +24,8 @@ export default async function handler(req, res) {
     serviceName,
     serviceSlug,
     durationMinutes,
-    notes
+    notes,
+    serviceDetails
   } = req.body;
 
   if (!eventTypeId || !start || !patientId || !patientName) {
@@ -77,7 +78,8 @@ export default async function handler(req, res) {
         duration_minutes: duration,
         status: 'scheduled',
         notes,
-        booked_by: 'staff'
+        booked_by: 'staff',
+        service_details: serviceDetails || null
       })
       .select()
       .single();

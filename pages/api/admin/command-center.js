@@ -25,11 +25,12 @@ export default async function handler(req, res) {
     const sevenDaysFromNow = new Date(now);
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-    // 1. Get all patients
+    // 1. Get all patients (Supabase defaults to 1000 rows — set explicit high limit)
     const { data: patients, error: patientsError } = await supabase
       .from('patients')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(10000);
 
     if (patientsError) console.error('Patients error:', patientsError);
 
@@ -57,7 +58,8 @@ export default async function handler(req, res) {
     const { data: rawPurchases, error: purchasesError } = await supabase
       .from('purchases')
       .select('*')
-      .order('purchase_date', { ascending: false });
+      .order('purchase_date', { ascending: false })
+      .limit(10000);
 
     if (purchasesError) console.error('Purchases error:', purchasesError);
 

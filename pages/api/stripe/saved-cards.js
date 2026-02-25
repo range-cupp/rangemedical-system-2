@@ -4,7 +4,7 @@
 // DELETE: { payment_method_id } — detach a saved card
 
 import { createClient } from '@supabase/supabase-js';
-import { getStripe } from '../../../lib/stripe';
+import stripe from '../../../lib/stripe';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,9 +12,6 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const stripeMode = req.headers['x-stripe-mode'] || 'live';
-  const stripe = getStripe(stripeMode);
-
   if (req.method === 'GET') {
     try {
       const { patient_id } = req.query;

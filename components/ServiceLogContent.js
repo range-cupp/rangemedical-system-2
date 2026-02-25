@@ -786,7 +786,7 @@ export default function ServiceLogContent() {
                   <tr key={log.id} style={slcStyles.tr}>
                     <td style={slcStyles.td}>{formatDate(log.entry_date || log.created_at)}</td>
                     <td style={slcStyles.td}>
-                      <Link href={`/admin/patients/${log.patient_id}`} style={slcStyles.patientLink}>
+                      <Link href={`/patients/${log.patient_id}`} style={slcStyles.patientLink}>
                         {log.patient_name || 'Unknown'}
                       </Link>
                     </td>

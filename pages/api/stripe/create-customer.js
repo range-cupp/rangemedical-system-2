@@ -3,7 +3,7 @@
 // Idempotent — returns existing customer if already linked
 
 import { createClient } from '@supabase/supabase-js';
-import { getStripe } from '../../../lib/stripe';
+import stripe from '../../../lib/stripe';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,9 +16,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const stripeMode = req.headers['x-stripe-mode'] || 'live';
-    const stripe = getStripe(stripeMode);
-
     const { patient_id, email, name } = req.body;
 
     if (!patient_id) {

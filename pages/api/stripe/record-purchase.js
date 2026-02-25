@@ -3,18 +3,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { getStripe } from '../../../lib/stripe';
+import stripe from '../../../lib/stripe';
 import { generateReceiptHtml } from '../../../lib/receipt-email';
+import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-async function sendReceiptEmail(purchase, stripeMode) {
-  // Skip receipts for test mode
-  if (stripeMode === 'test') return;
-
+async function sendReceiptEmail(purchase) {
   try {
     // Fetch patient info
     const { data: patient, error: patientError } = await supabase
@@ -35,7 +33,6 @@ async function sendReceiptEmail(purchase, stripeMode) {
     let cardLast4 = null;
     if (purchase.stripe_payment_intent_id) {
       try {
-        const stripe = getStripe(stripeMode);
         const pi = await stripe.paymentIntents.retrieve(purchase.stripe_payment_intent_id, {
           expand: ['payment_method'],
         });
@@ -103,6 +100,8 @@ export default async function handler(req, res) {
       discount_type,
       discount_amount,
       original_amount,
+      service_category,
+      service_name,
     } = req.body;
 
     if (!patient_id || !amount) {
@@ -139,10 +138,21 @@ export default async function handler(req, res) {
     }
 
     // Fire-and-forget receipt email
-    const stripeMode = req.headers['x-stripe-mode'] || 'live';
-    sendReceiptEmail(data, stripeMode).catch(err =>
+    sendReceiptEmail(data).catch(err =>
       console.error('Receipt email failed:', err)
     );
+
+    // Fire-and-forget auto-protocol creation/extension
+    if (service_category && service_name) {
+      autoCreateOrExtendProtocol({
+        patientId: patient_id,
+        serviceCategory: service_category,
+        serviceName: service_name,
+        purchaseId: data.id,
+      }).catch(err =>
+        console.error('Auto-protocol failed:', err)
+      );
+    }
 
     return res.status(200).json({ purchase: data });
 

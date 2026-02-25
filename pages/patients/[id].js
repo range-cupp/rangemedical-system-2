@@ -32,6 +32,12 @@ import {
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import BookingTab from '../../components/BookingTab';
 import LabDashboard from '../../components/labs/LabDashboard';
+import { loadStripe } from '@stripe/stripe-js';
+import POSChargeModal from '../../components/POSChargeModal';
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 export default function PatientProfile() {
   const router = useRouter();
@@ -77,6 +83,7 @@ export default function PatientProfile() {
   const [showSymptomsModal, setShowSymptomsModal] = useState(false);
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showChargeModal, setShowChargeModal] = useState(false);
 
   // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -602,12 +609,20 @@ export default function PatientProfile() {
           <div className="header-top">
             <button onClick={() => router.back()} className="back-btn">← Back</button>
             <div className="header-actions">
-              <button onClick={() => setShowBookingModal(true)} className="book-appt-btn">Book Appointment</button>
-              {ghlLink && (
-                <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="ghl-link">
-                  Open in GHL ↗
-                </a>
+              {patient.phone && (
+                <>
+                  <a href={`sms:${patient.phone}`} className="action-btn">📱 Text</a>
+                  <a href={`tel:${patient.phone}`} className="action-btn">📞 Call</a>
+                </>
               )}
+              {patient.email && (
+                <a href={`mailto:${patient.email}`} className="action-btn">📧 Email</a>
+              )}
+              {ghlLink && (
+                <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="action-btn">🔗 Open GHL</a>
+              )}
+              <button onClick={() => setShowBookingModal(true)} className="action-btn action-btn-primary">📅 Book Appointment</button>
+              <button onClick={() => setShowChargeModal(true)} className="action-btn action-btn-charge">💳 Charge</button>
             </div>
           </div>
 
@@ -1952,6 +1967,14 @@ export default function PatientProfile() {
           </div>
         )}
 
+        {/* POS Charge Modal */}
+        <POSChargeModal
+          isOpen={showChargeModal}
+          onClose={() => setShowChargeModal(false)}
+          patient={patient}
+          stripePromise={stripePromise}
+        />
+
         {/* PDF Slide-Out Viewer */}
         {pdfSlideOut.open && (
           <>
@@ -2008,31 +2031,37 @@ export default function PatientProfile() {
           cursor: pointer;
         }
         .back-btn:hover { color: #000; }
-        .ghl-link {
-          font-size: 13px;
-          color: #2563eb;
-          text-decoration: none;
-          padding: 6px 12px;
-          border: 1px solid #2563eb;
-          border-radius: 6px;
-        }
-        .ghl-link:hover { background: #eff6ff; }
         .header-actions {
           display: flex;
           gap: 8px;
           align-items: center;
+          flex-wrap: wrap;
         }
-        .book-appt-btn {
+        .action-btn {
           font-size: 13px;
-          color: #fff;
-          background: #2563eb;
-          padding: 6px 14px;
-          border: none;
+          color: #374151;
+          text-decoration: none;
+          padding: 6px 12px;
+          border: 1px solid #d1d5db;
           border-radius: 6px;
-          font-weight: 500;
+          background: #fff;
           cursor: pointer;
+          font-weight: 500;
+          white-space: nowrap;
         }
-        .book-appt-btn:hover { background: #1d4ed8; }
+        .action-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
+        .action-btn-primary {
+          background: #2563eb;
+          color: #fff;
+          border-color: #2563eb;
+        }
+        .action-btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+        .action-btn-charge {
+          background: #16a34a;
+          color: #fff;
+          border-color: #16a34a;
+        }
+        .action-btn-charge:hover { background: #15803d; border-color: #15803d; }
         .header-main h1 {
           font-size: 28px;
           font-weight: 600;

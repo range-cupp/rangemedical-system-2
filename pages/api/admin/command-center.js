@@ -25,14 +25,22 @@ export default async function handler(req, res) {
     const sevenDaysFromNow = new Date(now);
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-    // 1. Get all patients (Supabase defaults to 1000 rows — set explicit high limit)
-    const { data: patients, error: patientsError } = await supabase
-      .from('patients')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(10000);
-
-    if (patientsError) console.error('Patients error:', patientsError);
+    // 1. Get all patients (paginate past Supabase's 1000-row server limit)
+    let patients = [];
+    let patientOffset = 0;
+    const BATCH = 1000;
+    while (true) {
+      const { data: batch, error } = await supabase
+        .from('patients')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(patientOffset, patientOffset + BATCH - 1);
+      if (error) { console.error('Patients error:', error); break; }
+      if (!batch || batch.length === 0) break;
+      patients = patients.concat(batch);
+      if (batch.length < BATCH) break;
+      patientOffset += BATCH;
+    }
 
     // 2. Get all protocols with patient info (exclude merged protocols)
     const { data: protocols, error: protocolsError } = await supabase
@@ -54,14 +62,21 @@ export default async function handler(req, res) {
 
     if (protocolsError) console.error('Protocols error:', protocolsError);
 
-    // 3. Get all purchases
-    const { data: rawPurchases, error: purchasesError } = await supabase
-      .from('purchases')
-      .select('*')
-      .order('purchase_date', { ascending: false })
-      .limit(10000);
-
-    if (purchasesError) console.error('Purchases error:', purchasesError);
+    // 3. Get all purchases (paginate past Supabase's 1000-row server limit)
+    let rawPurchases = [];
+    let purchaseOffset = 0;
+    while (true) {
+      const { data: batch, error } = await supabase
+        .from('purchases')
+        .select('*')
+        .order('purchase_date', { ascending: false })
+        .range(purchaseOffset, purchaseOffset + BATCH - 1);
+      if (error) { console.error('Purchases error:', error); break; }
+      if (!batch || batch.length === 0) break;
+      rawPurchases = rawPurchases.concat(batch);
+      if (batch.length < BATCH) break;
+      purchaseOffset += BATCH;
+    }
 
     // Process purchases to extract actual payment amount from raw_payload
     const purchases = (rawPurchases || []).map(purchase => {

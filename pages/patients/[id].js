@@ -52,6 +52,7 @@ export default function PatientProfile() {
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [weightLossLogs, setWeightLossLogs] = useState([]);
   const [stats, setStats] = useState({});
   const [hrtLabSchedules, setHrtLabSchedules] = useState({});
@@ -156,6 +157,7 @@ export default function PatientProfile() {
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
         setAppointments(data.appointments || []);
+        setNotes(data.notes || []);
         setWeightLossLogs(data.weightLossLogs || []);
         setStats(data.stats || {});
 
@@ -679,6 +681,7 @@ export default function PatientProfile() {
           <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length})</button>
           <button className={activeTab === 'sessions' ? 'active' : ''} onClick={() => setActiveTab('sessions')}>Sessions ({sessions.length})</button>
           <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Appointments ({appointments.length})</button>
+          <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes ({notes.length})</button>
         </nav>
 
         {/* Tab Content */}
@@ -1260,6 +1263,27 @@ export default function PatientProfile() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Notes Tab */}
+          {activeTab === 'notes' && (
+            <section className="card">
+              <div className="card-header">
+                <h3>Notes ({notes.length})</h3>
+              </div>
+              {notes.length === 0 ? (
+                <div className="empty">No notes found</div>
+              ) : (
+                <div className="notes-list">
+                  {notes.map(note => (
+                    <div key={note.id} className="note-row">
+                      <div className="note-date">{formatShortDate(note.note_date)}</div>
+                      <div className="note-body">{note.body}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </section>
@@ -2524,6 +2548,25 @@ export default function PatientProfile() {
           padding: 4px 10px;
           border-radius: 4px;
           text-transform: capitalize;
+        }
+
+        /* Notes */
+        .notes-list { padding: 16px; }
+        .note-row {
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .note-date {
+          font-size: 13px;
+          font-weight: 600;
+          color: #666;
+          margin-bottom: 4px;
+        }
+        .note-body {
+          font-size: 14px;
+          color: #374151;
+          line-height: 1.5;
+          white-space: pre-wrap;
         }
 
         /* Buttons */

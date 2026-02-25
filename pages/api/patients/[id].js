@@ -394,6 +394,13 @@ export default async function handler(req, res) {
         .eq('category', 'weight_loss')
         .order('entry_date', { ascending: true });
 
+      // ===== NEW: Get patient notes (GHL backup) =====
+      const { data: patientNotes } = await supabase
+        .from('patient_notes')
+        .select('id, body, note_date, source')
+        .eq('patient_id', id)
+        .order('note_date', { ascending: false });
+
       // ===== NEW: Get clinic appointments =====
       let appointments = [];
 
@@ -471,6 +478,7 @@ export default async function handler(req, res) {
         sessions: sessions || [],
         symptomResponses: symptomResponses || [],
         appointments: appointments || [],
+        notes: patientNotes || [],
         weightLossLogs: weightLossLogs || [],
         stats
       });

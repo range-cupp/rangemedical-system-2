@@ -5,6 +5,7 @@
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import { generateDay1Html } from '../../../lib/oxygen-emails';
+import { logComm } from '../../../lib/comms-log';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -42,12 +43,23 @@ export default async function handler(req, res) {
 
     // Send Day 1 email
     const html = generateDay1Html({ firstName });
+    const subject = 'Day 1: The one thing your blood test isn\'t telling you';
 
     await resend.emails.send({
       from: 'Chris Cupp <cupp@range-medical.com>',
       to: email,
-      subject: 'Day 1: The one thing your blood test isn\'t telling you',
+      subject,
       html,
+    });
+
+    await logComm({
+      channel: 'email',
+      messageType: 'oxygen_day_1',
+      message: subject,
+      source: 'oxygen/subscribe',
+      patientName: firstName,
+      recipient: email,
+      subject,
     });
 
     console.log(`[oxygen] Day 1 sent to ${firstName} <${email}>`);
@@ -55,6 +67,18 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error('Oxygen subscribe error:', error);
+
+    await logComm({
+      channel: 'email',
+      messageType: 'oxygen_day_1',
+      message: 'Day 1 send failed',
+      source: 'oxygen/subscribe',
+      recipient: req.body?.email,
+      patientName: req.body?.firstName,
+      status: 'error',
+      errorMessage: error.message,
+    }).catch(() => {});
+
     return res.status(500).json({ error: 'Something went wrong' });
   }
 }

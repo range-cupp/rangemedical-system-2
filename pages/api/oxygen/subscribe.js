@@ -1,6 +1,17 @@
 // POST /api/oxygen/subscribe
 // Handles email opt-in for the 30-day email series
-// TODO: Wire up email provider (Resend, ConvertKit, etc.)
+// Sends Day 1 email immediately via Resend
+
+import { Resend } from 'resend';
+import { createClient } from '@supabase/supabase-js';
+import { generateDay1Html } from '../../../lib/oxygen-emails';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -14,8 +25,32 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Name and email are required' });
     }
 
-    // Log for now — wire up email provider later
-    console.log(`[oxygen] New subscriber: ${firstName} <${email}>`);
+    // Save subscriber to DB
+    const { error: dbError } = await supabase
+      .from('oxygen_subscribers')
+      .upsert({
+        email: email.toLowerCase(),
+        first_name: firstName,
+        subscribed_at: new Date().toISOString(),
+        current_day: 1,
+        status: 'active',
+      }, { onConflict: 'email' });
+
+    if (dbError) {
+      console.error('Oxygen subscriber DB error:', dbError);
+    }
+
+    // Send Day 1 email
+    const html = generateDay1Html({ firstName });
+
+    await resend.emails.send({
+      from: 'Chris Cupp <cupp@range-medical.com>',
+      to: email,
+      subject: 'Day 1: The one thing your blood test isn\'t telling you',
+      html,
+    });
+
+    console.log(`[oxygen] Day 1 sent to ${firstName} <${email}>`);
 
     return res.status(200).json({ success: true });
   } catch (error) {

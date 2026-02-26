@@ -56,7 +56,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
   const [activeCategory, setActiveCategory] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [cartItems, setCartItems] = useState([]);
+  const [cartWarning, setCartWarning] = useState('');
   const [customAmount, setCustomAmount] = useState('');
   const [customDescription, setCustomDescription] = useState('');
 
@@ -163,12 +164,31 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const isSearching = serviceSearch.trim().length > 0;
   const searchResults = isSearching ? getSearchResults() : [];
 
+  function toggleCartItem(item) {
+    const exists = cartItems.find(i => i.id === item.id);
+    if (exists) {
+      setCartItems(cartItems.filter(i => i.id !== item.id));
+      return;
+    }
+    if (item.recurring && cartItems.length > 0) {
+      setCartWarning('Recurring items must be checked out alone');
+      setTimeout(() => setCartWarning(''), 3000);
+      return;
+    }
+    if (!item.recurring && cartItems.some(i => i.recurring)) {
+      setCartWarning('Cannot add items when a recurring item is in cart');
+      setTimeout(() => setCartWarning(''), 3000);
+      return;
+    }
+    setCartItems([...cartItems, item]);
+  }
+
   function getBaseAmount() {
     if (activeCategory === 'custom') {
       const dollars = parseFloat(customAmount);
       return isNaN(dollars) ? 0 : Math.round(dollars * 100);
     }
-    return selectedItem?.price || 0;
+    return cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   }
 
   function getDiscountCents() {
@@ -193,18 +213,26 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     if (activeCategory === 'custom') {
       return customDescription || 'Custom charge';
     }
-    return selectedItem?.name || '';
+    if (cartItems.length === 0) return '';
+    return cartItems.map(i => i.name).join(', ');
   }
 
   function isRecurring() {
-    return selectedItem?.recurring || false;
+    return cartItems.length === 1 && !!cartItems[0]?.recurring;
   }
 
   function canProceedToPayment() {
     if (activeCategory === 'custom') {
       return parseFloat(customAmount) > 0;
     }
-    return selectedItem !== null;
+    return cartItems.length > 0;
+  }
+
+  function getResultMessage(amount) {
+    if (activeCategory === 'custom' || cartItems.length <= 1) {
+      return `Charged ${formatPrice(amount)} for ${getChargeDescription()}`;
+    }
+    return `Charged ${formatPrice(amount)} for ${cartItems.length} items`;
   }
 
   function getDiscountData() {
@@ -216,27 +244,63 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     };
   }
 
-  async function recordPurchase(extraFields) {
-    const amount = getChargeAmount();
-    const description = getChargeDescription();
-    const discountData = getDiscountData();
+  async function recordPurchases(extraFields) {
+    const baseTotal = getBaseAmount();
+    const discountTotal = getDiscountCents();
+    const discountSuffix = discountType === 'percent'
+      ? `${discountValue}% off`
+      : `$${discountValue} off`;
 
-    await fetch('/api/stripe/record-purchase', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        patient_id: patient.id,
-        amount,
-        description: discountData.discount_type
-          ? `${description} (${discountType === 'percent' ? discountValue + '% off' : '$' + discountValue + ' off'})`
-          : description,
-        payment_method: 'stripe',
-        service_category: selectedItem?.category || activeCategory,
-        service_name: selectedItem?.name || customDescription,
-        ...discountData,
-        ...extraFields,
-      }),
-    });
+    // Custom charge — single record
+    if (activeCategory === 'custom') {
+      const amount = getChargeAmount();
+      const desc = getChargeDescription();
+      const discountData = getDiscountData();
+      await fetch('/api/stripe/record-purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          amount,
+          description: discountData.discount_type ? `${desc} (${discountSuffix})` : desc,
+          payment_method: 'stripe',
+          service_category: activeCategory,
+          service_name: customDescription,
+          ...discountData,
+          ...extraFields,
+        }),
+      });
+      return;
+    }
+
+    // Cart items — one record per item with proportional discount
+    for (const item of cartItems) {
+      const itemBase = item.price || 0;
+      const itemDiscount = baseTotal > 0
+        ? Math.round(discountTotal * (itemBase / baseTotal))
+        : 0;
+      const itemAmount = Math.max(itemBase - itemDiscount, 0);
+      const itemName = item.name;
+
+      await fetch('/api/stripe/record-purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          amount: itemAmount,
+          description: itemDiscount > 0 ? `${itemName} (${discountSuffix})` : itemName,
+          payment_method: 'stripe',
+          service_category: item.category,
+          service_name: itemName,
+          ...(itemDiscount > 0 ? {
+            discount_type: discountType,
+            discount_amount: parseFloat(discountValue),
+            original_amount: itemBase,
+          } : {}),
+          ...extraFields,
+        }),
+      });
+    }
   }
 
   async function handlePay() {
@@ -260,7 +324,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           body: JSON.stringify({
             patient_id: patient.id,
             price_amount: amount,
-            interval: selectedItem.interval || 'month',
+            interval: cartItems[0].interval || 'month',
             description,
           }),
         });
@@ -268,7 +332,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         const subData = await subRes.json();
         if (!subRes.ok) throw new Error(subData.error);
 
-        await recordPurchase({
+        await recordPurchases({
           stripe_subscription_id: subData.subscription_id,
           description: `${description} (monthly subscription)`,
         });
@@ -352,10 +416,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
 
     if (paymentIntent.status === 'succeeded') {
-      await recordPurchase({ stripe_payment_intent_id: paymentIntent.id });
+      await recordPurchases({ stripe_payment_intent_id: paymentIntent.id });
 
       setResultStatus('success');
-      setResultMessage(`Charged ${formatPrice(amount)} for ${description}`);
+      setResultMessage(getResultMessage(amount));
       setStep('result');
     }
   }
@@ -376,10 +440,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     if (!piRes.ok) throw new Error(piData.error);
 
     if (piData.status === 'succeeded') {
-      await recordPurchase({ stripe_payment_intent_id: piData.payment_intent_id });
+      await recordPurchases({ stripe_payment_intent_id: piData.payment_intent_id });
 
       setResultStatus('success');
-      setResultMessage(`Charged ${formatPrice(amount)} for ${description}`);
+      setResultMessage(getResultMessage(amount));
       setStep('result');
       return;
     }
@@ -395,10 +459,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       }
 
       if (paymentIntent.status === 'succeeded') {
-        await recordPurchase({ stripe_payment_intent_id: paymentIntent.id });
+        await recordPurchases({ stripe_payment_intent_id: paymentIntent.id });
 
         setResultStatus('success');
-        setResultMessage(`Charged ${formatPrice(amount)} for ${description}`);
+        setResultMessage(getResultMessage(amount));
         setStep('result');
       }
     }
@@ -408,7 +472,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     setStep(initialPatient ? 'select' : 'patient');
     setPatient(initialPatient || null);
     setPatientSearch('');
-    setSelectedItem(null);
+    setCartItems([]);
+    setCartWarning('');
     setServiceSearch('');
     setCustomAmount('');
     setCustomDescription('');
@@ -514,10 +579,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     type="text"
                     placeholder="Search services..."
                     value={serviceSearch}
-                    onChange={e => {
-                      setServiceSearch(e.target.value);
-                      setSelectedItem(null);
-                    }}
+                    onChange={e => setServiceSearch(e.target.value)}
                     style={modalStyles.input}
                   />
                 </div>
@@ -534,7 +596,6 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                         }}
                         onClick={() => {
                           setActiveCategory(cat);
-                          setSelectedItem(null);
                           setDiscountType('none');
                           setDiscountValue('');
                         }}
@@ -554,10 +615,13 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                           key={item.id}
                           style={{
                             ...modalStyles.itemCard,
-                            ...(selectedItem?.id === item.id ? modalStyles.itemCardSelected : {}),
+                            ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
                           }}
-                          onClick={() => setSelectedItem(item)}
+                          onClick={() => toggleCartItem(item)}
                         >
+                          {cartItems.some(i => i.id === item.id) && (
+                            <span style={modalStyles.inCartBadge}>&#10003;</span>
+                          )}
                           <div style={modalStyles.itemName}>{item.name}</div>
                           <div style={modalStyles.itemPrice}>
                             {formatPrice(item.price)}
@@ -576,10 +640,13 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                         key={item.id}
                         style={{
                           ...modalStyles.itemCard,
-                          ...(selectedItem?.id === item.id ? modalStyles.itemCardSelected : {}),
+                          ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
                         }}
-                        onClick={() => setSelectedItem(item)}
+                        onClick={() => toggleCartItem(item)}
                       >
+                        {cartItems.some(i => i.id === item.id) && (
+                          <span style={modalStyles.inCartBadge}>&#10003;</span>
+                        )}
                         <div style={modalStyles.itemName}>{item.name}</div>
                         <div style={modalStyles.itemPrice}>
                           {formatPrice(item.price)}
@@ -613,6 +680,38 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       />
                     </div>
                   </div>
+                )}
+
+                {/* Cart Summary */}
+                {cartItems.length > 0 && activeCategory !== 'custom' && (
+                  <div style={modalStyles.cartSection}>
+                    <div style={modalStyles.discountLabel}>
+                      Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
+                    </div>
+                    {cartItems.map(item => (
+                      <div key={item.id} style={modalStyles.cartRow}>
+                        <span style={{ flex: 1, fontSize: '14px' }}>{item.name}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 500, marginRight: '8px' }}>
+                          {formatPrice(item.price)}
+                        </span>
+                        <button
+                          style={modalStyles.cartRemoveBtn}
+                          onClick={() => setCartItems(prev => prev.filter(i => i.id !== item.id))}
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                    <div style={modalStyles.cartTotal}>
+                      <span>Total</span>
+                      <span>{formatPrice(cartItems.reduce((sum, i) => sum + (i.price || 0), 0))}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Cart Warning */}
+                {cartWarning && (
+                  <div style={modalStyles.cartWarning}>{cartWarning}</div>
                 )}
 
                 {/* Discount Section */}
@@ -704,16 +803,43 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         {/* Step 2: Payment Method */}
         {step === 'payment' && (
           <div style={modalStyles.body}>
-            <div style={modalStyles.chargeSummary}>
-              <span>{getChargeDescription()}</span>
-              <div>
-                {hasDiscount && (
-                  <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px', fontSize: '13px' }}>
-                    {formatPrice(baseAmount)}
-                  </span>
-                )}
-                <strong>{formatPrice(finalAmount)}{isRecurring() ? '/mo' : ''}</strong>
-              </div>
+            <div style={{
+              ...modalStyles.chargeSummary,
+              ...(cartItems.length > 1 ? { flexDirection: 'column', gap: '4px' } : {}),
+            }}>
+              {cartItems.length > 1 ? (
+                <>
+                  {cartItems.map(item => (
+                    <div key={item.id} style={modalStyles.summaryItemRow}>
+                      <span>{item.name}</span>
+                      <span>{formatPrice(item.price)}</span>
+                    </div>
+                  ))}
+                  <div style={modalStyles.summaryTotalRow}>
+                    <span>Total</span>
+                    <div>
+                      {hasDiscount && (
+                        <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px', fontSize: '13px' }}>
+                          {formatPrice(baseAmount)}
+                        </span>
+                      )}
+                      <strong>{formatPrice(finalAmount)}</strong>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span>{getChargeDescription()}</span>
+                  <div>
+                    {hasDiscount && (
+                      <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px', fontSize: '13px' }}>
+                        {formatPrice(baseAmount)}
+                      </span>
+                    )}
+                    <strong>{formatPrice(finalAmount)}{isRecurring() ? '/mo' : ''}</strong>
+                  </div>
+                </>
+              )}
             </div>
 
             {loadingCards ? (
@@ -953,6 +1079,7 @@ const modalStyles = {
     marginBottom: '16px',
   },
   itemCard: {
+    position: 'relative',
     padding: '14px',
     border: '2px solid #e5e7eb',
     borderRadius: '10px',
@@ -1247,5 +1374,74 @@ const modalStyles = {
     fontSize: '15px',
     color: '#333',
     margin: 0,
+  },
+  // Cart styles
+  cartSection: {
+    background: '#f9fafb',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    marginBottom: '16px',
+    border: '1px solid #e5e7eb',
+  },
+  cartRow: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '6px 0',
+    borderBottom: '1px solid #f3f4f6',
+  },
+  cartTotal: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    paddingTop: '8px',
+    fontSize: '15px',
+    fontWeight: 600,
+    color: '#111',
+  },
+  cartRemoveBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#999',
+    fontSize: '18px',
+    cursor: 'pointer',
+    padding: '0 4px',
+    lineHeight: 1,
+  },
+  cartWarning: {
+    background: '#fef3c7',
+    border: '1px solid #f59e0b',
+    borderRadius: '8px',
+    padding: '8px 12px',
+    fontSize: '13px',
+    color: '#92400e',
+    marginBottom: '16px',
+  },
+  inCartBadge: {
+    position: 'absolute',
+    top: '6px',
+    right: '6px',
+    width: '20px',
+    height: '20px',
+    borderRadius: '50%',
+    background: '#16A34A',
+    color: '#fff',
+    fontSize: '12px',
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryItemRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '14px',
+    width: '100%',
+  },
+  summaryTotalRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    borderTop: '1px solid #d1d5db',
+    paddingTop: '6px',
+    marginTop: '4px',
+    width: '100%',
   },
 };

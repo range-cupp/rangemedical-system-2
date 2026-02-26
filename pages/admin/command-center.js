@@ -1689,6 +1689,7 @@ export default function CommandCenter() {
             { id: 'comms', label: 'Comms', icon: '📨' },
             { id: 'booking', label: 'Booking', icon: '📅' },
             { id: 'pos', label: 'POS', icon: '💳' },
+            { id: 'oxygen', label: '30 Days', icon: '📧' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1827,6 +1828,9 @@ export default function CommandCenter() {
           )}
           {activeTab === 'pos' && (
             <POSTab stripePromise={stripePromise} />
+          )}
+          {activeTab === 'oxygen' && (
+            <OxygenTab />
           )}
         </main>
       </div>
@@ -6461,6 +6465,122 @@ function CommsLogTab() {
             Next
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// 30 DAYS (OXYGEN) TAB
+// ============================================
+function OxygenTab() {
+  const [subscribers, setSubscribers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ total: 0, today: 0, thisWeek: 0 });
+
+  useEffect(() => { loadSubscribers(); }, []);
+
+  async function loadSubscribers() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/oxygen/subscribers');
+      const data = await res.json();
+      const subs = data.subscribers || [];
+      setSubscribers(subs);
+
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
+      setStats({
+        total: subs.length,
+        today: subs.filter(s => s.subscribed_at?.startsWith(todayStr)).length,
+        thisWeek: subs.filter(s => new Date(s.subscribed_at) >= weekAgo).length,
+      });
+    } catch (err) {
+      console.error('Load subscribers error:', err);
+    }
+    setLoading(false);
+  }
+
+  const oxygenStyles = {
+    container: { maxWidth: '900px', margin: '0 auto' },
+    statsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' },
+    statCard: { background: '#fafafa', borderRadius: '12px', padding: '20px', textAlign: 'center', border: '1px solid #f0f0f0' },
+    statNum: { fontSize: '32px', fontWeight: '700', color: '#0a0a0a', marginBottom: '4px' },
+    statLabel: { fontSize: '13px', color: '#888', fontWeight: '500' },
+    sectionTitle: { fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1a1a1a' },
+    table: { width: '100%', borderCollapse: 'collapse' },
+    th: { padding: '10px 14px', textAlign: 'left', fontSize: '12px', color: '#888', fontWeight: '600', borderBottom: '2px solid #e5e5e5' },
+    td: { padding: '12px 14px', fontSize: '14px', borderBottom: '1px solid #f5f5f5' },
+    badge: { display: 'inline-block', padding: '2px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' },
+  };
+
+  return (
+    <div style={oxygenStyles.container}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>30 Days Email Series</h2>
+        <button onClick={loadSubscribers} style={{ padding: '6px 14px', border: '1px solid #e5e5e5', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer' }}>
+          Refresh
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div style={oxygenStyles.statsRow}>
+        <div style={oxygenStyles.statCard}>
+          <div style={oxygenStyles.statNum}>{stats.total}</div>
+          <div style={oxygenStyles.statLabel}>Total Subscribers</div>
+        </div>
+        <div style={oxygenStyles.statCard}>
+          <div style={oxygenStyles.statNum}>{stats.today}</div>
+          <div style={oxygenStyles.statLabel}>Today</div>
+        </div>
+        <div style={oxygenStyles.statCard}>
+          <div style={oxygenStyles.statNum}>{stats.thisWeek}</div>
+          <div style={oxygenStyles.statLabel}>This Week</div>
+        </div>
+      </div>
+
+      {/* Subscriber List */}
+      <h3 style={oxygenStyles.sectionTitle}>Subscribers</h3>
+      {loading ? (
+        <div style={{ color: '#888', padding: '12px' }}>Loading...</div>
+      ) : subscribers.length === 0 ? (
+        <div style={{ color: '#888', padding: '20px', textAlign: 'center' }}>No subscribers yet</div>
+      ) : (
+        <table style={oxygenStyles.table}>
+          <thead>
+            <tr>
+              <th style={oxygenStyles.th}>Name</th>
+              <th style={oxygenStyles.th}>Email</th>
+              <th style={oxygenStyles.th}>Day</th>
+              <th style={oxygenStyles.th}>Status</th>
+              <th style={oxygenStyles.th}>Signed Up</th>
+            </tr>
+          </thead>
+          <tbody>
+            {subscribers.map(sub => (
+              <tr key={sub.id}>
+                <td style={{ ...oxygenStyles.td, fontWeight: '500' }}>{sub.first_name}</td>
+                <td style={oxygenStyles.td}>{sub.email}</td>
+                <td style={oxygenStyles.td}>{sub.current_day} / 30</td>
+                <td style={oxygenStyles.td}>
+                  <span style={{
+                    ...oxygenStyles.badge,
+                    background: sub.status === 'active' ? '#dcfce7' : '#f3f4f6',
+                    color: sub.status === 'active' ? '#166534' : '#666',
+                  }}>
+                    {sub.status}
+                  </span>
+                </td>
+                <td style={{ ...oxygenStyles.td, color: '#888', fontSize: '13px' }}>
+                  {new Date(sub.subscribed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

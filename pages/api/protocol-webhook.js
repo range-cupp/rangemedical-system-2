@@ -476,8 +476,9 @@ export default async function handler(req, res) {
         }
       }
 
-      // STEP 4: Send receipt emails for each purchase
-      if (patient?.email && inserted && inserted.length > 0) {
+      // STEP 4: Receipt emails temporarily disabled
+      // Re-enable when ready to switch over
+      if (false && patient?.email && inserted && inserted.length > 0) {
         const resend = new Resend(process.env.RESEND_API_KEY);
         const patientFirstName = (patient.name || '').split(' ')[0] || 'there';
 

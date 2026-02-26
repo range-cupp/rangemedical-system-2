@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import stripe from '../../../lib/stripe';
 import { generateReceiptHtml } from '../../../lib/receipt-email';
+import { generateReceiptPdf } from '../../../lib/receipt-pdf';
 import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
 import { logComm } from '../../../lib/comms-log';
 
@@ -55,7 +56,7 @@ async function sendReceiptEmail(purchase) {
       discountLabel = `$${purchase.discount_amount} off`;
     }
 
-    const html = generateReceiptHtml({
+    const receiptParams = {
       firstName,
       invoiceId: purchase.id,
       date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
@@ -69,19 +70,37 @@ async function sendReceiptEmail(purchase) {
       amountPaidCents: Math.round(purchase.amount * 100),
       cardBrand,
       cardLast4,
-    });
+    };
+
+    const html = generateReceiptHtml(receiptParams);
+
+    // Generate PDF attachment
+    let attachments = [];
+    try {
+      const pdfBytes = await generateReceiptPdf(receiptParams);
+      attachments = [{ filename: 'Range-Medical-Receipt.pdf', content: Buffer.from(pdfBytes) }];
+    } catch (pdfErr) {
+      console.error('Receipt PDF generation failed:', pdfErr.message);
+    }
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: 'Range Medical <noreply@range-medical.com>',
       to: patient.email,
       bcc: 'info@range-medical.com',
-      subject: `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}`,
+      subject: purchase.amount === 0
+        ? 'Your Receipt from Range Medical — Complimentary'
+        : `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}`,
       html,
+      attachments,
     });
 
+    const subjectLine = purchase.amount === 0
+      ? 'Your Receipt from Range Medical — Complimentary'
+      : `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}`;
+    const amountLabel = purchase.amount === 0 ? 'Complimentary' : `$${purchase.amount.toFixed(2)}`;
     console.log(`Receipt email sent to ${patient.email} for purchase ${purchase.id}`);
-    await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt for $${purchase.amount.toFixed(2)} — ${purchase.description}`, source: 'record-purchase', patientId: purchase.patient_id, patientName: patient.name, recipient: patient.email, subject: `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}` });
+    await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt for ${amountLabel} — ${purchase.description}`, source: 'record-purchase', patientId: purchase.patient_id, patientName: patient.name, recipient: patient.email, subject: subjectLine });
   } catch (err) {
     console.error('Receipt email error:', err);
     await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt failed for purchase ${purchase.id}`, source: 'record-purchase', patientId: purchase.patient_id, status: 'error', errorMessage: err.message }).catch(() => {});
@@ -108,7 +127,7 @@ export default async function handler(req, res) {
       service_name,
     } = req.body;
 
-    if (!patient_id || !amount) {
+    if (!patient_id || (amount === undefined || amount === null)) {
       return res.status(400).json({ error: 'patient_id and amount are required' });
     }
 
@@ -141,10 +160,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    // Fire-and-forget receipt email
-    sendReceiptEmail(data).catch(err =>
-      console.error('Receipt email failed:', err)
-    );
+    // Receipt emails temporarily disabled
+    // sendReceiptEmail(data).catch(err =>
+    //   console.error('Receipt email failed:', err)
+    // );
 
     // Fire-and-forget auto-protocol creation/extension
     if (service_category && service_name) {

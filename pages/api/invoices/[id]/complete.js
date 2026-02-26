@@ -53,19 +53,53 @@ export default async function handler(req, res) {
     if (invoice.patient_id && invoice.items?.length > 0) {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
 
+      const hasDiscount = invoice.discount_cents > 0;
+      const subtotalCents = invoice.subtotal_cents || 0;
+
+      // Parse discount type/amount from description (e.g., "20% off" or "$125 off")
+      let discountType = null;
+      let discountAmount = null;
+      if (hasDiscount && invoice.discount_description) {
+        const desc = invoice.discount_description;
+        if (desc.includes('%')) {
+          discountType = 'percent';
+          discountAmount = parseFloat(desc);
+        } else if (desc.includes('$')) {
+          discountType = 'dollar';
+          discountAmount = parseFloat(desc.replace('$', ''));
+        }
+      }
+
       for (const item of invoice.items) {
+        const itemSubtotal = item.price_cents * (item.quantity || 1);
+
+        // Prorate invoice discount across items
+        let itemAmount = itemSubtotal;
+        let itemOriginalAmount = null;
+        if (hasDiscount && subtotalCents > 0) {
+          const proportion = itemSubtotal / subtotalCents;
+          const itemDiscount = Math.round(invoice.discount_cents * proportion);
+          itemAmount = Math.max(itemSubtotal - itemDiscount, 0);
+          itemOriginalAmount = itemSubtotal;
+        }
+
         try {
           await fetch(`${baseUrl}/api/stripe/record-purchase`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               patient_id: invoice.patient_id,
-              amount: item.price_cents * (item.quantity || 1),
+              amount: itemAmount,
               description: item.name,
               service_category: item.category || null,
               service_name: item.name,
               stripe_payment_intent_id,
               payment_method: 'stripe_invoice',
+              ...(hasDiscount && itemOriginalAmount ? {
+                discount_type: discountType,
+                discount_amount: discountAmount,
+                original_amount: itemOriginalAmount,
+              } : {}),
             }),
           });
         } catch (err) {

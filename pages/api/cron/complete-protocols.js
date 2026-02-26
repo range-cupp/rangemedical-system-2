@@ -38,8 +38,9 @@ export default async function handler(req, res) {
     // Find active protocols where end_date is yesterday or earlier
     const { data: expiredProtocols, error: fetchError } = await supabase
       .from('protocols')
-      .select('id, program_name, end_date, patient_id')
+      .select('id, program_name, program_type, end_date, patient_id')
       .eq('status', 'active')
+      .not('program_type', 'in', '("weight_loss","hrt")')
       .lte('end_date', yesterdayStr);
 
     if (fetchError) {
@@ -68,33 +69,6 @@ export default async function handler(req, res) {
           completed++;
         }
       }
-    }
-
-    // Also check patient_protocols table if it exists
-    try {
-      const { data: newExpired, error: newFetchError } = await supabase
-        .from('patient_protocols')
-        .select('id, protocol_name, end_date')
-        .eq('status', 'active')
-        .lte('end_date', yesterdayStr);
-
-      if (!newFetchError && newExpired && newExpired.length > 0) {
-        for (const protocol of newExpired) {
-          const { error: updateError } = await supabase
-            .from('patient_protocols')
-            .update({ 
-              status: 'completed',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', protocol.id);
-
-          if (!updateError) {
-            completed++;
-          }
-        }
-      }
-    } catch (e) {
-      // Table might not exist, that's ok
     }
 
     return res.status(200).json({

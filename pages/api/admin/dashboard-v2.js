@@ -36,12 +36,6 @@ export default async function handler(req, res) {
 
     // Get all active protocols
     const { data: protocols } = await supabase
-      .from('patient_protocols')
-      .select('*')
-      .eq('status', 'active');
-
-    // Fallback: also check old protocols table
-    const { data: oldProtocols } = await supabase
       .from('protocols')
       .select('*')
       .eq('status', 'active');
@@ -82,7 +76,7 @@ export default async function handler(req, res) {
       }
 
       // Weekly check-ins for peptide protocols
-      if (p.protocol_name?.includes('Recovery') || p.protocol_name?.includes('Peptide')) {
+      if (p.program_name?.includes('Recovery') || p.program_name?.includes('Peptide')) {
         // Get last staff checkin alert resolved date
         const daysSinceStart = Math.floor((today - new Date(p.start_date)) / 86400000);
         const weekNumber = Math.floor(daysSinceStart / 7);
@@ -94,21 +88,10 @@ export default async function handler(req, res) {
       }
     }
 
-    // Also process old protocols for backward compatibility
-    for (const p of (oldProtocols || [])) {
-      if (p.end_date && p.end_date <= oneWeekStr && p.end_date >= todayStr) {
-        protocolsEnding.push({
-          ...p,
-          protocol_name: p.program_name || p.primary_peptide,
-          patient_name: p.patient_name
-        });
-      }
-    }
-
     // Calculate stats
     const stats = {
       unassigned_purchases: unassignedCount,
-      active_protocols: (protocols?.length || 0) + (oldProtocols?.length || 0),
+      active_protocols: protocols?.length || 0,
       ending_this_week: protocolsEnding.length,
       needs_attention: refillsDue.length + labsDue.length + weeklyCheckins.length
     };

@@ -25,29 +25,15 @@ export default async function handler(req, res) {
   try {
     // Verify protocol exists and token matches
     let protocol = null;
-    let isOldTable = false;
 
-    // Try old protocols table first
-    const { data: oldProtocol } = await supabase
+    const { data: foundProtocol } = await supabase
       .from('protocols')
       .select('*')
       .eq('id', protocol_id)
       .maybeSingle();
 
-    if (oldProtocol) {
-      protocol = oldProtocol;
-      isOldTable = true;
-    } else {
-      // Try new table
-      const { data: newProtocol } = await supabase
-        .from('patient_protocols')
-        .select('*')
-        .eq('id', protocol_id)
-        .maybeSingle();
-      
-      if (newProtocol) {
-        protocol = newProtocol;
-      }
+    if (foundProtocol) {
+      protocol = foundProtocol;
     }
 
     if (!protocol) {
@@ -84,18 +70,11 @@ export default async function handler(req, res) {
           .eq('completed', true);
 
         const completedCount = allCompleted?.length || 0;
-        
-        if (isOldTable) {
-          await supabase
-            .from('protocols')
-            .update({ injections_completed: completedCount })
-            .eq('id', protocol_id);
-        } else {
-          await supabase
-            .from('patient_protocols')
-            .update({ sessions_completed: completedCount })
-            .eq('id', protocol_id);
-        }
+
+        await supabase
+          .from('protocols')
+          .update({ injections_completed: completedCount, sessions_used: completedCount })
+          .eq('id', protocol_id);
 
         return res.status(200).json({ success: true, completed: newCompleted });
       } else {
@@ -117,18 +96,11 @@ export default async function handler(req, res) {
           .eq('completed', true);
 
         const completedCount = allCompleted?.length || 0;
-        
-        if (isOldTable) {
-          await supabase
-            .from('protocols')
-            .update({ injections_completed: completedCount })
-            .eq('id', protocol_id);
-        } else {
-          await supabase
-            .from('patient_protocols')
-            .update({ sessions_completed: completedCount })
-            .eq('id', protocol_id);
-        }
+
+        await supabase
+          .from('protocols')
+          .update({ injections_completed: completedCount, sessions_used: completedCount })
+          .eq('id', protocol_id);
 
         return res.status(200).json({ success: true, completed: true });
       }
@@ -136,7 +108,7 @@ export default async function handler(req, res) {
 
     // For HRT/Weight Loss (no session number)
     const today = new Date().toISOString().split('T')[0];
-    const nextSessionNum = (protocol.sessions_completed || protocol.injections_completed || 0) + 1;
+    const nextSessionNum = (protocol.sessions_used || protocol.injections_completed || 0) + 1;
 
     await supabase
       .from('injection_logs')
@@ -147,17 +119,10 @@ export default async function handler(req, res) {
         completed_at: today
       });
 
-    if (isOldTable) {
-      await supabase
-        .from('protocols')
-        .update({ injections_completed: nextSessionNum })
-        .eq('id', protocol_id);
-    } else {
-      await supabase
-        .from('patient_protocols')
-        .update({ sessions_completed: nextSessionNum })
-        .eq('id', protocol_id);
-    }
+    await supabase
+      .from('protocols')
+      .update({ injections_completed: nextSessionNum, sessions_used: nextSessionNum })
+      .eq('id', protocol_id);
 
     return res.status(200).json({ success: true, session_number: nextSessionNum });
 

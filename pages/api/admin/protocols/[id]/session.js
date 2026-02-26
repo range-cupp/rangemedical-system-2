@@ -89,15 +89,9 @@ async function updateProtocolCount(protocolId) {
 
   const count = completedLogs?.length || 0;
 
-  // Update old table
+  // Update protocols table
   await supabase
     .from('protocols')
-    .update({ injections_completed: count })
-    .eq('id', protocolId);
-
-  // Also try new table
-  await supabase
-    .from('patient_protocols')
-    .update({ sessions_completed: count })
+    .update({ injections_completed: count, sessions_used: count })
     .eq('id', protocolId);
 }

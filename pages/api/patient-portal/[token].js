@@ -110,36 +110,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Try new patient_protocols table
-    if (protocols.length === 0) {
-      const { data: newProtocols } = await supabase
-        .from('patient_protocols')
-        .select('*')
-        .or(`access_token.eq.${token},id.eq.${token}`);
-
-      if (newProtocols?.length > 0) {
-        const first = newProtocols[0];
-        
-        patient = {
-          id: first.patient_id,
-          first_name: first.patient_name?.split(' ')[0] || 'there',
-          last_name: first.patient_name?.split(' ').slice(1).join(' ') || '',
-          phone: first.patient_phone,
-          email: first.patient_email
-        };
-
-        for (const p of newProtocols) {
-          protocols.push({
-            ...p,
-            protocol_name: p.protocol_name || p.program_name,
-            category: 'peptide',
-            checkin_type: 'recovery',
-            checkin_due: true
-          });
-        }
-      }
-    }
-
     if (protocols.length === 0) {
       return res.status(404).json({ error: 'No protocols found for this link' });
     }

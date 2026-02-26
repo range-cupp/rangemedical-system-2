@@ -25,27 +25,15 @@ export default async function handler(req, res) {
   try {
     // Get current protocol
     let protocol = null;
-    let isOldTable = false;
 
-    const { data: newProtocol } = await supabase
-      .from('patient_protocols')
+    const { data: foundProtocol } = await supabase
+      .from('protocols')
       .select('*')
       .eq('id', id)
       .maybeSingle();
 
-    if (newProtocol) {
-      protocol = newProtocol;
-    } else {
-      const { data: oldProtocol } = await supabase
-        .from('protocols')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      
-      if (oldProtocol) {
-        protocol = oldProtocol;
-        isOldTable = true;
-      }
+    if (foundProtocol) {
+      protocol = foundProtocol;
     }
 
     if (!protocol) {
@@ -64,29 +52,17 @@ export default async function handler(req, res) {
     const newTotal = currentTotal + days;
 
     // Update protocol - also set status back to active
-    if (isOldTable) {
-      await supabase
-        .from('protocols')
-        .update({
-          end_date: newEndDate.toISOString().split('T')[0],
-          total_sessions: newTotal,
-          total_days: newTotal,
-          duration_days: newTotal,
-          status: 'active',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-    } else {
-      await supabase
-        .from('patient_protocols')
-        .update({
-          end_date: newEndDate.toISOString().split('T')[0],
-          total_sessions: newTotal,
-          status: 'active',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-    }
+    await supabase
+      .from('protocols')
+      .update({
+        end_date: newEndDate.toISOString().split('T')[0],
+        total_sessions: newTotal,
+        total_days: newTotal,
+        duration_days: newTotal,
+        status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
 
     // Create new sessions
     const newSessions = [];

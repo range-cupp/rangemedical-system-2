@@ -7,8 +7,9 @@ import Head from 'next/head';
 import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
 import BookingTab from '../../components/BookingTab';
+import CalendarView from '../../components/CalendarView';
 import LabDashboard from '../../components/labs/LabDashboard';
-import { formatCategoryName } from '../../lib/protocol-config';
+import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES } from '../../lib/protocol-config';
 import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { loadStripe } from '@stripe/stripe-js';
@@ -101,9 +102,9 @@ const URGENCY_COLORS = {
 };
 
 // Peptide cycle tracking
-const RECOVERY_CYCLE_MAX_DAYS = 84;
+const RECOVERY_CYCLE_MAX_DAYS = 90;
 const RECOVERY_CYCLE_OFF_DAYS = 14;
-const GH_CYCLE_MAX_DAYS = 84;
+const GH_CYCLE_MAX_DAYS = 90;
 const GH_CYCLE_OFF_DAYS = 28;
 
 const isRecoveryPeptideName = (name) => {
@@ -1186,11 +1187,9 @@ export default function CommandCenter() {
     }
   };
 
-  const SL_WEIGHT_LOSS_MEDS = [
-    { value: 'Semaglutide', label: 'Semaglutide', dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'] },
-    { value: 'Tirzepatide', label: 'Tirzepatide', dosages: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'] },
-    { value: 'Retatrutide', label: 'Retatrutide', dosages: ['1mg', '2mg', '4mg', '6mg', '8mg', '10mg', '12mg'] }
-  ];
+  const SL_WEIGHT_LOSS_MEDS = WEIGHT_LOSS_MEDICATIONS.map(med => ({
+    value: med, label: med, dosages: WEIGHT_LOSS_DOSAGES[med] || []
+  }));
 
   const SL_PEPTIDE_OPTIONS = [
     { value: 'BPC-157', label: 'BPC-157' },
@@ -1824,7 +1823,7 @@ export default function CommandCenter() {
             <CommsLogTab />
           )}
           {activeTab === 'booking' && (
-            <BookingTab />
+            <CalendarView />
           )}
           {activeTab === 'pos' && (
             <POSTab stripePromise={stripePromise} />
@@ -3046,7 +3045,7 @@ export default function CommandCenter() {
                       {/* Warning if new protocol would exceed */}
                       {!cycleExhausted && wouldExceed && newDays > 0 && (
                         <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEF3C7', borderRadius: '6px', fontSize: '13px', color: '#92400E' }}>
-                          <strong>Warning:</strong> This {newDays}-day protocol would push the cycle to {cycleDaysUsed + newDays} / {maxDays} days, exceeding the 12-week limit.
+                          <strong>Warning:</strong> This {newDays}-day protocol would push the cycle to {cycleDaysUsed + newDays} / {maxDays} days, exceeding the 90-day limit.
                         </div>
                       )}
                     </div>
@@ -6471,9 +6470,13 @@ function CommsLogTab() {
 // POS TAB
 // ============================================
 function POSTab({ stripePromise }) {
-  const [view, setView] = useState('charge'); // 'charge' | 'services'
+  const [view, setView] = useState('charge'); // 'charge' | 'services' | 'invoices'
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [chargePatient, setChargePatient] = useState(null);
+
+  // Invoice state
+  const [invoices, setInvoices] = useState([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   // Services state
   const [services, setServices] = useState([]);
@@ -6538,6 +6541,31 @@ function POSTab({ stripePromise }) {
       console.error('Load purchases error:', err);
     }
     setLoadingPurchases(false);
+  }
+
+  async function loadInvoices() {
+    setLoadingInvoices(true);
+    try {
+      const res = await fetch('/api/invoices/list?limit=20');
+      const data = await res.json();
+      setInvoices(data.invoices || []);
+    } catch (err) {
+      console.error('Load invoices error:', err);
+    }
+    setLoadingInvoices(false);
+  }
+
+  async function resendInvoice(invoiceId, via) {
+    try {
+      await fetch(`/api/invoices/${invoiceId}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ via }),
+      });
+      loadInvoices();
+    } catch (err) {
+      console.error('Resend invoice error:', err);
+    }
   }
 
   // Patient search with debounce
@@ -6723,6 +6751,12 @@ function POSTab({ stripePromise }) {
           onClick={() => setView('services')}
         >
           Services & Pricing
+        </button>
+        <button
+          style={{ ...posTabStyles.viewBtn, ...(view === 'invoices' ? posTabStyles.viewBtnActive : {}) }}
+          onClick={() => { setView('invoices'); loadInvoices(); }}
+        >
+          Invoices
         </button>
       </div>
 
@@ -6981,6 +7015,79 @@ function POSTab({ stripePromise }) {
               </tbody>
             </table>
           )}
+        </>
+      )}
+
+      {/* ---- INVOICES VIEW ---- */}
+      {view === 'invoices' && (
+        <>
+          <div style={posTabStyles.section}>
+            <h3 style={posTabStyles.sectionTitle}>Invoices</h3>
+            {loadingInvoices ? (
+              <div style={{ color: '#888', padding: '12px' }}>Loading...</div>
+            ) : invoices.length === 0 ? (
+              <div style={{ color: '#888', padding: '12px' }}>No invoices yet</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e5e5e5' }}>
+                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '12px', color: '#888', fontWeight: '600' }}>Date</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '12px', color: '#888', fontWeight: '600' }}>Patient</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: '12px', color: '#888', fontWeight: '600' }}>Amount</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center', fontSize: '12px', color: '#888', fontWeight: '600' }}>Status</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: '12px', color: '#888', fontWeight: '600' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map(inv => {
+                    const statusColors = {
+                      pending: { bg: '#fef3c7', text: '#92400e' },
+                      sent: { bg: '#dbeafe', text: '#1e40af' },
+                      paid: { bg: '#dcfce7', text: '#166534' },
+                      expired: { bg: '#f3f4f6', text: '#374151' },
+                      cancelled: { bg: '#fee2e2', text: '#dc2626' },
+                    };
+                    const sc = statusColors[inv.status] || statusColors.pending;
+                    const payUrl = `${window.location.origin}/invoice/${inv.id}`;
+                    return (
+                      <tr key={inv.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                        <td style={{ padding: '10px 12px', fontSize: '13px' }}>
+                          {new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '10px 12px', fontSize: '14px', fontWeight: '500' }}>{inv.patient_name}</td>
+                        <td style={{ padding: '10px 12px', fontSize: '14px', fontWeight: '600', textAlign: 'right' }}>
+                          ${(inv.total_cents / 100).toFixed(2)}
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: sc.bg, color: sc.text }}>
+                            {inv.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            {['pending', 'sent'].includes(inv.status) && (
+                              <button
+                                onClick={() => resendInvoice(inv.id, inv.patient_email ? 'email' : 'sms')}
+                                style={{ padding: '4px 10px', border: '1px solid #e5e5e5', borderRadius: '4px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                              >
+                                Resend
+                              </button>
+                            )}
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(payUrl); }}
+                              style={{ padding: '4px 10px', border: '1px solid #e5e5e5', borderRadius: '4px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                            >
+                              Copy Link
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </>
       )}
     </div>

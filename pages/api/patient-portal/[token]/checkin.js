@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   try {
     // Get protocol to find patient_id
     const { data: protocol } = await supabase
-      .from('patient_protocols')
+      .from('protocols')
       .select('patient_id, ghl_contact_id')
       .eq('id', protocol_id)
       .single();

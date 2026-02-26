@@ -9,6 +9,7 @@ import { syncProtocolToGHL } from '../../../lib/ghl-sync';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
 import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, getCycleConfig } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
+import { calculateNextExpectedDate } from '../../../lib/auto-protocol';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -322,6 +323,12 @@ export default async function handler(req, res) {
         vial_size: vialSize ? parseFloat(vialSize) : null,
         supply_type: supplyType || null,
         last_refill_date: startDate, // Initialize refill date to start date
+        next_expected_date: calculateNextExpectedDate({
+          protocolType: programType,
+          startDate,
+          supplyType: supplyType || null,
+          pickupFrequency: pickupFrequencyDays || null,
+        }),
         cycle_start_date: cycleStartDate,
         created_at: new Date().toISOString()
       })

@@ -252,10 +252,10 @@ export default async function handler(req, res) {
             // Check cycle status to determine which re-up message
             if (protocol.cycle_start_date) {
               const cycleDaysUsed = await getCycleDaysUsed(protocol.patient_id, protocol.cycle_start_date);
-              const nearCycleEnd = cycleDaysUsed >= (RECOVERY_CYCLE_MAX_DAYS - 14); // within 14 days of 84-day limit
+              const nearCycleEnd = cycleDaysUsed >= (RECOVERY_CYCLE_MAX_DAYS - 14); // within 14 days of 90-day limit
 
               if (nearCycleEnd) {
-                message = `Hi ${firstName}! Your current peptide supply is wrapping up, and you're nearing the end of your 12-week cycle. After this round, a 2-week rest period is recommended before starting again. Let us know if you have any questions about next steps! - Range Medical`;
+                message = `Hi ${firstName}! Your current peptide supply is wrapping up, and you're nearing the end of your 90-day cycle. After this round, a 2-week rest period is recommended before starting again. Let us know if you have any questions about next steps! - Range Medical`;
               } else {
                 message = `Hi ${firstName}! Your current peptide supply is almost done. Ready for another 30 days? Most patients see continued improvement with extended use. Reply or call us to get your next round started. - Range Medical`;
               }

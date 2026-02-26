@@ -129,11 +129,17 @@ export default function PatientPortal() {
           >
             Track
           </button>
-          <button 
-            onClick={() => setActiveTab('progress')} 
+          <button
+            onClick={() => setActiveTab('progress')}
             style={activeTab === 'progress' ? styles.tabActive : styles.tab}
           >
             Progress
+          </button>
+          <button
+            onClick={() => setActiveTab('appointments')}
+            style={activeTab === 'appointments' ? styles.tabActive : styles.tab}
+          >
+            Appts
           </button>
         </nav>
 
@@ -155,6 +161,9 @@ export default function PatientPortal() {
           )}
           {activeTab === 'progress' && (
             <ProgressTab patient={patient} />
+          )}
+          {activeTab === 'appointments' && (
+            <AppointmentsSection token={token} />
           )}
         </main>
 
@@ -619,6 +628,91 @@ function formatSymptomLabel(key) {
     libido: 'Libido', libido_score: 'Libido'
   };
   return map[key] || key;
+}
+
+// ============================================
+// APPOINTMENTS SECTION
+// ============================================
+
+function AppointmentsSection({ token }) {
+  const [appointments, setAppointments] = useState({ upcoming: [], past: [] });
+  const [loadingAppts, setLoadingAppts] = useState(true);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`/api/appointments/patient/${token}`)
+      .then(res => res.json())
+      .then(data => setAppointments({ upcoming: data.upcoming || [], past: data.past || [] }))
+      .catch(err => console.error('Load appointments error:', err))
+      .finally(() => setLoadingAppts(false));
+  }, [token]);
+
+  const statusBadge = (status) => {
+    const colors = {
+      scheduled: { bg: '#dbeafe', text: '#1e40af' },
+      confirmed: { bg: '#dcfce7', text: '#166534' },
+      checked_in: { bg: '#fef3c7', text: '#92400e' },
+      completed: { bg: '#dcfce7', text: '#166534' },
+      cancelled: { bg: '#fee2e2', text: '#dc2626' },
+      no_show: { bg: '#fee2e2', text: '#dc2626' },
+    };
+    const c = colors[status] || colors.scheduled;
+    return (
+      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: c.bg, color: c.text }}>
+        {status.replace('_', ' ')}
+      </span>
+    );
+  };
+
+  if (loadingAppts) return <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>Loading appointments...</div>;
+
+  return (
+    <div>
+      {/* Upcoming */}
+      <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px', color: '#1a1a1a' }}>Upcoming Appointments</h3>
+      {appointments.upcoming.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', textAlign: 'center', color: '#888' }}>
+          No upcoming appointments
+        </div>
+      ) : (
+        appointments.upcoming.map(appt => (
+          <div key={appt.id} style={{ background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontWeight: '600', fontSize: '15px' }}>{appt.service_name}</span>
+              {statusBadge(appt.status)}
+            </div>
+            <div style={{ fontSize: '14px', color: '#555', marginBottom: '4px' }}>
+              {new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </div>
+            <div style={{ fontSize: '13px', color: '#888' }}>
+              {new Date(appt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} — {appt.duration_minutes} min
+            </div>
+            {appt.location && (
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>{appt.location}</div>
+            )}
+          </div>
+        ))
+      )}
+
+      {/* Past */}
+      {appointments.past.length > 0 && (
+        <>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px', marginTop: '24px', color: '#1a1a1a' }}>Past Appointments</h3>
+          {appointments.past.map(appt => (
+            <div key={appt.id} style={{ background: '#fff', borderRadius: '10px', padding: '12px 16px', marginBottom: '8px', opacity: 0.7 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500' }}>{appt.service_name}</span>
+                {statusBadge(appt.status)}
+              </div>
+              <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                {new Date(appt.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
 }
 
 // ============================================

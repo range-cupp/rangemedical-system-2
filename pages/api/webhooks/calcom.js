@@ -170,6 +170,32 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Database error', details: error.message });
       }
 
+      // Also upsert into native appointments table
+      const slugToCategory = {
+        'new-patient-blood-draw': 'labs', 'follow-up-blood-draw': 'labs',
+        'initial-lab-review': 'labs', 'follow-up-lab-review': 'labs',
+        'range-injections': 'injection', 'nad-injection': 'injection',
+        'injection-testosterone': 'hrt', 'injection-weight-loss': 'weight_loss',
+        'injection-peptide': 'peptide', 'hbot': 'hbot', 'red-light-therapy': 'rlt',
+        'range-iv': 'iv', 'nad-iv-250': 'iv', 'nad-iv-500': 'iv', 'specialty-iv': 'iv',
+        'initial-consultation': 'other', 'follow-up-consultation': 'other',
+      };
+      await supabase.from('appointments').upsert({
+        patient_id: patientId,
+        patient_name: attendee.name || 'Unknown',
+        patient_phone: attendee.phone || null,
+        service_name: eventTitle || eventTypeSlug || 'Cal.com Booking',
+        service_category: slugToCategory[eventTypeSlug] || 'other',
+        start_time: startTime,
+        end_time: endTime,
+        duration_minutes: durationMinutes,
+        status: 'scheduled',
+        source: 'cal_com',
+        cal_com_booking_id: String(calcomBookingId),
+      }, { onConflict: 'cal_com_booking_id' }).then(({ error: apptErr }) => {
+        if (apptErr) console.error('Appointments upsert error:', apptErr);
+      });
+
       // Execute appointment action if patient is known
       if (patientId && action) {
         await executeAction(action, patientId, eventTypeSlug, serviceDetails);
@@ -207,6 +233,16 @@ export default async function handler(req, res) {
         console.error('Webhook cancel update error:', error);
       }
 
+      // Also update appointments table
+      if (calcomBookingId) {
+        await supabase.from('appointments')
+          .update({ status: 'cancelled' })
+          .eq('cal_com_booking_id', String(calcomBookingId))
+          .then(({ error: apptErr }) => {
+            if (apptErr) console.error('Appointments cancel error:', apptErr);
+          });
+      }
+
       // Send staff notification for cancellation (fire-and-forget)
       sendStaffNotification('cancelled', {
         staffEmail, staffName, patientName: attendee.name,
@@ -234,6 +270,16 @@ export default async function handler(req, res) {
 
       if (error) {
         console.error('Webhook reschedule update error:', error);
+      }
+
+      // Also update appointments table
+      if (calcomBookingId) {
+        await supabase.from('appointments')
+          .update({ start_time: startTime, end_time: endTime, duration_minutes: durationMinutes })
+          .eq('cal_com_booking_id', String(calcomBookingId))
+          .then(({ error: apptErr }) => {
+            if (apptErr) console.error('Appointments reschedule error:', apptErr);
+          });
       }
 
       // Send staff notification for reschedule (fire-and-forget)

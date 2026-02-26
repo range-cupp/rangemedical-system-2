@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { addGHLNote } from '../../../../lib/ghl-sync';
+import { calculateNextExpectedDate } from '../../../../lib/auto-protocol';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -67,6 +68,11 @@ export default async function handler(req, res) {
       end_date: newEndDate,
       total_sessions: newTotalSessions,
       last_refill_date: new Date().toISOString().split('T')[0],
+      next_expected_date: calculateNextExpectedDate({
+        protocolType: 'weight_loss',
+        startDate: new Date().toISOString().split('T')[0],
+        pickupFrequency: daysToExtend,
+      }),
       status: 'active', // Reactivate if was expired
       updated_at: new Date().toISOString()
     };

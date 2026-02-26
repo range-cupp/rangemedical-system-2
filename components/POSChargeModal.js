@@ -75,6 +75,11 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const [resultStatus, setResultStatus] = useState(null);
   const [resultMessage, setResultMessage] = useState('');
 
+  // Invoice state
+  const [showInvoiceSend, setShowInvoiceSend] = useState(false);
+  const [invoiceSending, setInvoiceSending] = useState(false);
+  const [invoiceResult, setInvoiceResult] = useState(null); // { success, url, message }
+
   // Load services from DB on mount
   useEffect(() => {
     async function loadServices() {
@@ -242,6 +247,57 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       discount_amount: parseFloat(discountValue),
       original_amount: getBaseAmount(),
     };
+  }
+
+  async function handleSendInvoice(via) {
+    if (!patient) return;
+    setInvoiceSending(true);
+    try {
+      const items = cartItems.map(item => ({
+        name: item.name,
+        category: item.category,
+        price_cents: item.price,
+        quantity: 1,
+      }));
+      const baseAmount = getBaseAmount();
+      const discountCentsVal = getDiscountCents();
+      const finalAmountVal = getFinalAmount();
+
+      // Create invoice
+      const createRes = await fetch('/api/invoices/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          patient_name: patient.name,
+          patient_email: patient.email,
+          patient_phone: patient.phone,
+          items,
+          subtotal_cents: baseAmount,
+          discount_cents: discountCentsVal,
+          discount_description: discountType !== 'none' ? `${discountValue}${discountType === 'percent' ? '%' : '$'} off` : null,
+          total_cents: finalAmountVal,
+          created_by: 'pos_modal',
+        }),
+      });
+      const createData = await createRes.json();
+      if (!createRes.ok) throw new Error(createData.error || 'Could not create invoice');
+
+      // Send invoice
+      const sendRes = await fetch(`/api/invoices/${createData.invoice.id}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ via }),
+      });
+      if (!sendRes.ok) throw new Error('Could not send invoice');
+
+      setInvoiceResult({ success: true, url: createData.payment_url, message: `Invoice sent to ${patient.name}` });
+      setShowInvoiceSend(false);
+    } catch (err) {
+      setInvoiceResult({ success: false, message: err.message });
+    } finally {
+      setInvoiceSending(false);
+    }
   }
 
   async function recordPurchases(extraFields) {
@@ -784,16 +840,99 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       Change Patient
                     </button>
                   )}
-                  <button
-                    style={{
-                      ...modalStyles.primaryBtn,
-                      ...(canProceedToPayment() ? {} : modalStyles.disabledBtn),
-                    }}
-                    disabled={!canProceedToPayment()}
-                    onClick={() => setStep('payment')}
-                  >
-                    Continue to Payment
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                    <button
+                      style={{
+                        ...modalStyles.primaryBtn,
+                        flex: 1,
+                        ...(canProceedToPayment() ? {} : modalStyles.disabledBtn),
+                      }}
+                      disabled={!canProceedToPayment()}
+                      onClick={() => setStep('payment')}
+                    >
+                      Continue to Payment
+                    </button>
+                    {patient && canProceedToPayment() && (
+                      <button
+                        style={{ ...modalStyles.secondaryBtn, flex: 1, background: '#f0f9ff', color: '#1e40af', borderColor: '#bfdbfe' }}
+                        onClick={() => setShowInvoiceSend(true)}
+                      >
+                        Send Invoice
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Invoice send options */}
+                  {showInvoiceSend && (
+                    <div style={{ marginTop: '12px', padding: '14px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                      <p style={{ fontSize: '13px', fontWeight: '600', marginBottom: '10px', color: '#1e40af' }}>Send invoice via:</p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleSendInvoice('sms')}
+                          disabled={invoiceSending}
+                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
+                        >
+                          SMS
+                        </button>
+                        <button
+                          onClick={() => handleSendInvoice('email')}
+                          disabled={invoiceSending}
+                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
+                        >
+                          Email
+                        </button>
+                        <button
+                          onClick={() => handleSendInvoice('both')}
+                          disabled={invoiceSending}
+                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
+                        >
+                          Both
+                        </button>
+                        <button
+                          onClick={() => setShowInvoiceSend(false)}
+                          style={{ padding: '8px 16px', border: '1px solid #e5e5e5', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer', color: '#888' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {invoiceSending && <p style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>Sending...</p>}
+                    </div>
+                  )}
+
+                  {/* Invoice result */}
+                  {invoiceResult && (
+                    <div style={{ marginTop: '12px', padding: '14px', background: invoiceResult.success ? '#dcfce7' : '#fee2e2', borderRadius: '8px' }}>
+                      <p style={{ fontSize: '14px', fontWeight: '600', color: invoiceResult.success ? '#166534' : '#dc2626' }}>
+                        {invoiceResult.message}
+                      </p>
+                      {invoiceResult.success && invoiceResult.url && (
+                        <div style={{ marginTop: '8px' }}>
+                          <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Payment link:</p>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              readOnly
+                              value={invoiceResult.url}
+                              style={{ flex: 1, padding: '6px 10px', border: '1px solid #e5e5e5', borderRadius: '4px', fontSize: '12px', background: '#fff' }}
+                              onClick={e => e.target.select()}
+                            />
+                            <button
+                              onClick={() => navigator.clipboard.writeText(invoiceResult.url)}
+                              style={{ padding: '6px 12px', border: '1px solid #e5e5e5', borderRadius: '4px', background: '#fff', fontSize: '12px', cursor: 'pointer' }}
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => { setInvoiceResult(null); onClose(); onChargeComplete && onChargeComplete(); }}
+                        style={{ ...modalStyles.primaryBtn, marginTop: '10px', background: invoiceResult.success ? '#166534' : '#000' }}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             )}

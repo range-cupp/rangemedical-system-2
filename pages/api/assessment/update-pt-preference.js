@@ -74,27 +74,32 @@ export default async function handler(req, res) {
 
         // If they want PT referral, send an SMS notification
         if (wantsPTRecommendation) {
-          const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+          const notifyRecipients = [
+            process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2', // Chris
+            '6rpcbVD71tCzuFMpz8oV' // Damon
+          ];
           const message = `PT Referral Request!\n\n${firstName} ${lastName}\n${email}\n\nPatient wants Range Sports Therapy referral from injury assessment.`;
 
-          await fetch(
-            'https://services.leadconnectorhq.com/conversations/messages',
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Version': '2021-04-15',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                type: 'SMS',
-                contactId: notifyContactId,
-                message: message
-              })
-            }
-          );
+          for (const contactId of notifyRecipients) {
+            await fetch(
+              'https://services.leadconnectorhq.com/conversations/messages',
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${GHL_API_KEY}`,
+                  'Version': '2021-04-15',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  type: 'SMS',
+                  contactId,
+                  message: message
+                })
+              }
+            );
+          }
 
-          console.log('PT referral SMS notification sent');
+          console.log('PT referral SMS notifications sent');
         }
 
         console.log(`PT preference updated for ${email}: ${ptTag}`);

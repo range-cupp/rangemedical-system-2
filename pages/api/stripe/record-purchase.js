@@ -6,6 +6,7 @@ import { Resend } from 'resend';
 import stripe from '../../../lib/stripe';
 import { generateReceiptHtml } from '../../../lib/receipt-email';
 import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -23,6 +24,7 @@ async function sendReceiptEmail(purchase) {
 
     if (patientError || !patient?.email) {
       console.log('Receipt email skipped — no patient email found');
+      await logComm({ channel: 'email', messageType: 'receipt', message: 'Receipt skipped — no patient email', source: 'record-purchase', patientId: purchase.patient_id, status: 'error', errorMessage: 'No patient email found' });
       return;
     }
 
@@ -79,8 +81,10 @@ async function sendReceiptEmail(purchase) {
     });
 
     console.log(`Receipt email sent to ${patient.email} for purchase ${purchase.id}`);
+    await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt for $${purchase.amount.toFixed(2)} — ${purchase.description}`, source: 'record-purchase', patientId: purchase.patient_id, patientName: patient.name, recipient: patient.email, subject: `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}` });
   } catch (err) {
     console.error('Receipt email error:', err);
+    await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt failed for purchase ${purchase.id}`, source: 'record-purchase', patientId: purchase.patient_id, status: 'error', errorMessage: err.message }).catch(() => {});
   }
 }
 

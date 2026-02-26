@@ -156,6 +156,10 @@ export default function PatientTracker() {
   
   // Completion summary
   const [showCompletionSummary, setShowCompletionSummary] = useState(false);
+
+  // Appointments
+  const [upcomingAppts, setUpcomingAppts] = useState([]);
+  const [showAllAppts, setShowAllAppts] = useState(false);
   
   // Form data for questionnaires
   const [formData, setFormData] = useState({
@@ -212,7 +216,18 @@ export default function PatientTracker() {
       
       // Check refill status
       await checkRefillStatus();
-      
+
+      // Fetch upcoming appointments
+      try {
+        const apptRes = await fetch(`/api/appointments/patient/${token}`);
+        if (apptRes.ok) {
+          const apptData = await apptRes.json();
+          setUpcomingAppts(apptData.upcoming || []);
+        }
+      } catch (apptErr) {
+        console.error('Fetch appointments error:', apptErr);
+      }
+
     } catch (err) {
       setError('Unable to load. Please try again.');
     }
@@ -1314,6 +1329,32 @@ export default function PatientTracker() {
                 </div>
               </button>
             )}
+          </div>
+        )}
+
+        {/* Upcoming Appointments Card */}
+        {upcomingAppts.length > 0 && !activeForm && (
+          <div style={{ margin: '0 20px 20px' }}>
+            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '15px', fontWeight: '600' }}>Upcoming Appointments</span>
+                {upcomingAppts.length > 1 && (
+                  <button onClick={() => setShowAllAppts(!showAllAppts)} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#1e40af', cursor: 'pointer', fontWeight: '500' }}>
+                    {showAllAppts ? 'Show less' : `View all (${upcomingAppts.length})`}
+                  </button>
+                )}
+              </div>
+              {(showAllAppts ? upcomingAppts : upcomingAppts.slice(0, 1)).map(appt => (
+                <div key={appt.id} style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
+                  <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>{appt.service_name}</div>
+                  <div style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+                    {new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at{' '}
+                    {new Date(appt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </div>
+                  {appt.location && <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{appt.location}</div>}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

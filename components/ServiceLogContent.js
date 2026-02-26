@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatPhone } from '../lib/format-utils';
+import { WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES } from '../lib/protocol-config';
 
 // ============================================
 // SERVICE CONFIGURATION
@@ -46,11 +47,9 @@ const TESTOSTERONE_OPTIONS = {
   }
 };
 
-const WEIGHT_LOSS_MEDS = [
-  { value: 'Semaglutide', label: 'Semaglutide', dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'] },
-  { value: 'Tirzepatide', label: 'Tirzepatide', dosages: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'] },
-  { value: 'Retatrutide', label: 'Retatrutide', dosages: ['1mg', '2mg', '4mg', '6mg', '8mg', '10mg', '12mg'] }
-];
+const WEIGHT_LOSS_MEDS = WEIGHT_LOSS_MEDICATIONS.map(med => ({
+  value: med, label: med, dosages: WEIGHT_LOSS_DOSAGES[med] || []
+}));
 
 const VITAMIN_OPTIONS = [
   { value: 'B12', label: 'B12' },
@@ -291,9 +290,10 @@ export default function ServiceLogContent() {
       const term = patientSearch.toLowerCase();
       const filtered = patients.filter(p => {
         const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
+        const nameField = (p.name || '').toLowerCase();
         const phone = (p.phone || '').replace(/\D/g, '');
         const email = (p.email || '').toLowerCase();
-        return fullName.includes(term) || phone.includes(term) || email.includes(term);
+        return fullName.includes(term) || nameField.includes(term) || phone.includes(term) || email.includes(term);
       }).slice(0, 10);
       setFilteredPatients(filtered);
       setShowPatientDropdown(filtered.length > 0 && !selectedPatient);

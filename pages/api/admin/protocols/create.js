@@ -127,24 +127,24 @@ export default async function handler(req, res) {
 
     // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
-      .from('patient_protocols')
+      .from('protocols')
       .insert({
         patient_id: patient_id || null,
         ghl_contact_id: ghl_contact_id || null,
         patient_name: patientName,
         patient_phone: patientPhone,
         patient_email: patientEmail,
-        
-        protocol_name: protocolName,
+
+        program_name: protocolName,
         medication,
-        dosage,
+        selected_dose: dosage,
         frequency,
         delivery_method: deliveryMethod,
-        
+
         start_date: startDate,
         end_date: endDate,
         total_sessions: sessions,
-        sessions_completed: 0,
+        sessions_used: 0,
         
         continuous_days_started: protocolType === 'peptide' ? startDate : null,
         continuous_days_used: 0,

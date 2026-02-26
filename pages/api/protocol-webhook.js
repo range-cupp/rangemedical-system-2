@@ -5,6 +5,9 @@
 // UPDATED: 2026-01-04 - Added raw_payload, variant capture, and GHL API lookup
 
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
+import { generateReceiptHtml } from '../../lib/receipt-email';
+import { logComm } from '../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -472,7 +475,43 @@ export default async function handler(req, res) {
           await addNoteToGHLContact(contactId, noteBody);
         }
       }
-      
+
+      // STEP 4: Send receipt emails for each purchase
+      if (patient?.email && inserted && inserted.length > 0) {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const patientFirstName = (patient.name || '').split(' ')[0] || 'there';
+
+        for (const purchase of inserted) {
+          try {
+            const html = generateReceiptHtml({
+              firstName: patientFirstName,
+              invoiceId: purchase.id,
+              date: new Date(purchase.purchase_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+              description: purchase.product_name || purchase.item_name || 'Payment',
+              originalAmountCents: Math.round((purchase.list_price || purchase.amount || 0) * 100),
+              discountLabel: null,
+              amountPaidCents: Math.round((purchase.amount || 0) * 100),
+              cardBrand: null,
+              cardLast4: null,
+            });
+
+            await resend.emails.send({
+              from: 'Range Medical <noreply@range-medical.com>',
+              to: patient.email,
+              bcc: 'info@range-medical.com',
+              subject: `Your Receipt from Range Medical — $${(purchase.amount || 0).toFixed(2)}`,
+              html,
+            });
+
+            console.log(`GHL receipt email sent to ${patient.email} for purchase ${purchase.id}`);
+            await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt for $${(purchase.amount || 0).toFixed(2)} — ${purchase.product_name || 'Payment'}`, source: 'protocol-webhook', patientId: patient.id, patientName: patient.name, recipient: patient.email, subject: `Your Receipt from Range Medical — $${(purchase.amount || 0).toFixed(2)}` });
+          } catch (receiptErr) {
+            console.error('GHL receipt email error (non-fatal):', receiptErr);
+            await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt failed for GHL purchase ${purchase.id}`, source: 'protocol-webhook', patientId: patient.id, patientName: patient.name, status: 'error', errorMessage: receiptErr.message }).catch(() => {});
+          }
+        }
+      }
+
       return res.status(200).json({ 
         status: 'success', 
         patient_id: patientId,

@@ -16,22 +16,22 @@ export default async function handler(req, res) {
   try {
     const sevenDaysOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // Get HRT protocols (ongoing, no end date or category = hrt)
+    // Get HRT protocols (ongoing, no end date or program_type = hrt)
     const { data: hrtProtocols } = await supabase
-      .from('patient_protocols')
+      .from('protocols')
       .select(`
         id,
         patient_id,
         patient_name,
-        protocol_name,
+        program_name,
         medication,
-        dose,
+        selected_dose,
         frequency,
         start_date,
         status,
         notes
       `)
-      .eq('category', 'hrt')
+      .eq('program_type', 'hrt')
       .eq('status', 'active')
       .order('patient_name', { ascending: true });
 
@@ -40,7 +40,9 @@ export default async function handler(req, res) {
     // This is a simplified version
     const hrtEnriched = (hrtProtocols || []).map(p => ({
       ...p,
-      supply_type: p.notes?.includes('vial') ? 'vial' : 
+      protocol_name: p.program_name,
+      dose: p.selected_dose,
+      supply_type: p.notes?.includes('vial') ? 'vial' :
                    p.notes?.includes('prefilled') ? 'prefilled' : null,
       refill_due: null, // Will need supply tracking to calculate
       last_labs: null   // Will join with labs table
@@ -69,20 +71,20 @@ export default async function handler(req, res) {
 
     // Get Weight Loss protocols (ongoing)
     const { data: weightLossProtocols } = await supabase
-      .from('patient_protocols')
+      .from('protocols')
       .select(`
         id,
         patient_id,
         patient_name,
-        protocol_name,
+        program_name,
         medication,
-        dose,
+        selected_dose,
         frequency,
         start_date,
         status,
         notes
       `)
-      .eq('category', 'weight_loss')
+      .eq('program_type', 'weight_loss')
       .eq('status', 'active')
       .order('patient_name', { ascending: true });
 
@@ -93,6 +95,8 @@ export default async function handler(req, res) {
       const weekNumber = Math.ceil((today - startDate) / (7 * 24 * 60 * 60 * 1000));
       return {
         ...p,
+        protocol_name: p.program_name,
+        dose: p.selected_dose,
         week_number: weekNumber > 0 ? weekNumber : 1,
         next_visit: null // Would need appointment integration
       };

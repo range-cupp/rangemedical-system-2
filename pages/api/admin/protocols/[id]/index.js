@@ -59,26 +59,6 @@ export default async function handler(req, res) {
             completed_at: log?.completed_at
           });
         }
-      } else {
-        // Try new patient_protocols table
-        const { data: newProtocol } = await supabase
-          .from('patient_protocols')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-
-        if (newProtocol) {
-          protocol = newProtocol;
-
-          // Get sessions from protocol_sessions
-          const { data: protocolSessions } = await supabase
-            .from('protocol_sessions')
-            .select('*')
-            .eq('protocol_id', id)
-            .order('session_number', { ascending: true });
-
-          sessions = protocolSessions || [];
-        }
       }
 
       if (!protocol) {
@@ -159,18 +139,6 @@ export default async function handler(req, res) {
         return res.status(200).json(oldUpdate);
       }
 
-      // Try new table
-      const { data: newUpdate, error: newError } = await supabase
-        .from('patient_protocols')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (newUpdate) {
-        return res.status(200).json(newUpdate);
-      }
-
       return res.status(404).json({ error: 'Protocol not found' });
 
     } catch (error) {
@@ -194,15 +162,9 @@ export default async function handler(req, res) {
         .delete()
         .eq('protocol_id', id);
 
-      // Try delete from old table
+      // Delete from protocols table
       const { error: oldError } = await supabase
         .from('protocols')
-        .delete()
-        .eq('id', id);
-
-      // Also try new table (in case it exists there)
-      await supabase
-        .from('patient_protocols')
         .delete()
         .eq('id', id);
 

@@ -95,7 +95,7 @@ const SERVICES = [
     price: 'From $250',
     priceNote: 'Recovery peptide protocol',
     description: 'BPC-157 for tissue repair paired with TB-4 for new blood vessel growth. Pre-filled syringes, one injection per day. First injection done together at the clinic.',
-    highlights: ['10-Day Protocol: $250', '20-Day Protocol: $450', '30-Day Protocol: $675', 'Extended protocols available up to 12 weeks'],
+    highlights: ['10-Day Protocol: $250', '20-Day Protocol: $450', '30-Day Protocol: $675', 'Extended protocols available up to 90 days'],
     categories: ['recovery'],
     link: '/peptide-therapy',
   },

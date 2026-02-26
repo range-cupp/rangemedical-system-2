@@ -315,35 +315,40 @@ ${data.additionalInfo ? `Additional Notes: ${data.additionalInfo}` : ''}`;
 async function sendSMSNotification(data) {
   const { firstName, lastName, email, phone, assessmentPath } = data;
   const ghlApiKey = process.env.GHL_API_KEY;
-  const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
+  const notifyRecipients = [
+    process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2', // Chris
+    '6rpcbVD71tCzuFMpz8oV' // Damon
+  ];
 
   if (!ghlApiKey) return;
 
   const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
   const message = `New Assessment Lead!\n\n${firstName} ${lastName}\n${email}\n${phone}\n\nPath: ${pathName}`;
 
-  const response = await fetch(
-    'https://services.leadconnectorhq.com/conversations/messages',
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${ghlApiKey}`,
-        'Version': '2021-04-15',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: notifyContactId,
-        message: message
-      })
-    }
-  );
+  for (const contactId of notifyRecipients) {
+    const response = await fetch(
+      'https://services.leadconnectorhq.com/conversations/messages',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ghlApiKey}`,
+          'Version': '2021-04-15',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'SMS',
+          contactId,
+          message: message
+        })
+      }
+    );
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    console.error('SMS send error:', errorData);
-  } else {
-    console.log('Assessment SMS notification sent successfully');
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error(`SMS send error for ${contactId}:`, errorData);
+    } else {
+      console.log(`Assessment SMS notification sent to ${contactId}`);
+    }
   }
 }
 

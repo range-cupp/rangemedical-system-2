@@ -11,6 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { updateGHLContact, addGHLNote, createGHLTask } from '../../../lib/ghl-sync';
+import { buildSideEffectGuidance } from '../../../lib/wl-side-effect-guidance';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -258,6 +259,8 @@ Weight: ${parsedWeight} lbs`;
         } else if (sessionsRemaining === 1) {
           thankYouMsg += `\n\nYou have 1 injection remaining in this cycle.`;
         }
+
+        thankYouMsg += buildSideEffectGuidance(firstName, side_effects);
 
         thankYouMsg += `\n\n- Range Medical`;
 

@@ -340,7 +340,7 @@ export default async function handler(req, res) {
 
       // ===== NEW: Get consent forms =====
       let consents = [];
-      const consentFields = 'id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id';
+      const consentFields = 'id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id';
 
       // Try by patient_id first
       const { data: consentsByPatientId } = await supabase
@@ -371,11 +371,39 @@ export default async function handler(req, res) {
         const { data: consentsByEmail } = await supabase
           .from('consents')
           .select(consentFields)
-          .ilike('email', patient.email)  // Case-insensitive match
+          .ilike('email', patient.email)
           .order('submitted_at', { ascending: false });
 
         if (consentsByEmail && consentsByEmail.length > 0) {
           consents = consentsByEmail;
+        }
+      }
+
+      // Try phone (normalized last 10 digits) if we still haven't found any
+      if (consents.length === 0 && patient.phone) {
+        const normalizedPhone = patient.phone.replace(/\D/g, '').slice(-10);
+        if (normalizedPhone.length === 10) {
+          const { data: consentsByPhone } = await supabase
+            .from('consents')
+            .select(consentFields)
+            .or(`phone.ilike.%${normalizedPhone}%`)
+            .order('submitted_at', { ascending: false });
+
+          if (consentsByPhone && consentsByPhone.length > 0) {
+            consents = consentsByPhone;
+          }
+        }
+      }
+
+      // Backfill patient_id on consents found via fallback (ghl, email, phone)
+      if (consents.length > 0) {
+        const unlinkedIds = consents
+          .filter(c => c.patient_id !== id)
+          .map(c => c.id);
+        if (unlinkedIds.length > 0) {
+          await supabase.from('consents')
+            .update({ patient_id: id })
+            .in('id', unlinkedIds);
         }
       }
 

@@ -39,6 +39,23 @@ export default function HIPAANotice() {
         throw new Error(data.error || 'Failed to record acknowledgment');
       }
 
+      // Save consent record to database
+      try {
+        await fetch('/api/consent-forms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            consentType: 'hipaa',
+            consentDate: new Date().toISOString().split('T')[0],
+            consentGiven: true,
+            phone: phone || null,
+            ghlContactId: cid || null,
+          })
+        });
+      } catch (dbErr) {
+        console.error('Consent DB save error:', dbErr);
+      }
+
       setSubmitted(true);
     } catch (error) {
       console.error('Error:', error);

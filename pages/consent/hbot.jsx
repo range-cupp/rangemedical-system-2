@@ -479,6 +479,9 @@ function initializeForm() {
     recipientEmail: 'cupp@range-medical.com, intake@range-medical.com'
   };
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
+
   const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
 
   // ============================================
@@ -786,15 +789,16 @@ function initializeForm() {
       signatureUrl: signatureUrl,
       pdfUrl: pdfUrl,
       consentGiven: formData.consentGiven,
-      healthAnswers: formData.healthAnswers
+      healthAnswers: formData.healthAnswers,
+      ghlContactId: ghlContactId
     };
-    
+
     const response = await fetch(CONFIG.api.consents, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    
+
     return await response.json();
   }
 

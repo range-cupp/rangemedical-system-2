@@ -201,40 +201,44 @@ export default function PRPConsentPage() {
         const pdfUrl = pdfError ? '' :
           `${SUPABASE_URL}/storage/v1/object/public/medical-documents/consents/${pdfFileName}`;
 
-        // Save to database
-        const { error: dbError } = await supabaseClient.from('consents').insert({
-          consent_type: 'prp',
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          date_of_birth: formData.dateOfBirth || null,
-          consent_date: new Date().toISOString().split('T')[0],
-          consent_given: true,
-          signature_url: signatureUrl,
-          pdf_url: pdfUrl,
-          additional_data: {
-            ghl_contact_id: ghlContactId,
-            health_screening: {
-              bloodDisorder: formData.bloodDisorder,
-              bloodDisorderDetails: formData.bloodDisorderDetails,
-              bloodThinners: formData.bloodThinners,
-              bloodThinnersDetails: formData.bloodThinnersDetails,
-              allergies: formData.allergies,
-              allergyDetails: formData.allergyDetails,
-              pregnant: formData.pregnant,
-              nsaids: formData.nsaids,
-              nsaidsDetails: formData.nsaidsDetails,
-              activeInfection: formData.activeInfection,
-              activeInfectionDetails: formData.activeInfectionDetails,
-              cancer: formData.cancer,
-              cancerDetails: formData.cancerDetails,
-            },
-            acknowledgments: formData.acknowledgments
-          }
-        });
-
-        if (dbError) console.error('DB save error:', dbError);
+        // Save to database via server-side API
+        try {
+          await fetch('/api/consent-forms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              consentType: 'prp',
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              phone: formData.phone,
+              dateOfBirth: formData.dateOfBirth,
+              consentDate: new Date().toISOString().split('T')[0],
+              consentGiven: true,
+              signatureUrl: signatureUrl,
+              pdfUrl: pdfUrl,
+              ghlContactId: ghlContactId,
+              additionalData: {
+                health_screening: {
+                  bloodDisorder: formData.bloodDisorder,
+                  bloodDisorderDetails: formData.bloodDisorderDetails,
+                  bloodThinners: formData.bloodThinners,
+                  bloodThinnersDetails: formData.bloodThinnersDetails,
+                  allergies: formData.allergies,
+                  allergyDetails: formData.allergyDetails,
+                  pregnant: formData.pregnant,
+                  nsaids: formData.nsaids,
+                  nsaidsDetails: formData.nsaidsDetails,
+                  activeInfection: formData.activeInfection,
+                  activeInfectionDetails: formData.activeInfectionDetails,
+                  cancer: formData.cancer,
+                  cancerDetails: formData.cancerDetails,
+                },
+                acknowledgments: formData.acknowledgments
+              }
+            })
+          });
+        } catch (dbErr) { console.error('DB save error:', dbErr); }
 
         // Sync to GHL
         try {

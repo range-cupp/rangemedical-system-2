@@ -26,81 +26,79 @@ export default async function handler(req, res) {
     const {
       // Consent type
       consentType,
-      
+
       // Patient info
       firstName,
       lastName,
       email,
       phone,
       dateOfBirth,
-      
+
+      // GHL contact ID (for patient matching)
+      ghlContactId,
+
       // Consent details
       consentDate,
       consentGiven,
-      
+
       // Additional data (optional, for consents with extra fields)
       additionalData,
-      
+
       // File URLs
       signatureUrl,
       pdfUrl
     } = req.body;
 
-    // Validate required fields
-    if (!consentType || !firstName || !lastName || !email || !consentDate) {
+    // Validate required fields (email not required — HIPAA form may only have phone)
+    if (!consentType || !consentDate) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: consentType, firstName, lastName, email, consentDate'
+        error: 'Missing required fields: consentType, consentDate'
       });
     }
 
-    console.log(`📋 Processing ${consentType} consent for ${firstName} ${lastName}`);
+    console.log(`📋 Processing ${consentType} consent for ${firstName || ''} ${lastName || ''}`);
 
-    // Try to find existing patient by email
+    // Match patient in priority order: ghl_contact_id → email (ilike) → phone
     let patientId = null;
-    const { data: existingPatient } = await supabase
-      .from('patients')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .single();
 
-    if (existingPatient) {
-      patientId = existingPatient.id;
-      console.log('Found existing patient:', patientId);
-    } else {
-      // Create new patient record
-      const fullName = `${firstName} ${lastName}`.trim();
-      const { data: newPatient, error: patientError } = await supabase
-        .from('patients')
-        .insert({
-          name: fullName,
-          first_name: firstName,
-          last_name: lastName,
-          email: email.toLowerCase(),
-          phone: phone || null,
-          date_of_birth: dateOfBirth || null
-        })
-        .select('id')
-        .single();
+    if (ghlContactId) {
+      const { data } = await supabase.from('patients').select('id')
+        .eq('ghl_contact_id', ghlContactId).single();
+      if (data) patientId = data.id;
+    }
 
-      if (patientError) {
-        console.error('Error creating patient:', patientError);
-        // Continue without patient link
-      } else {
-        patientId = newPatient.id;
-        console.log('Created new patient:', patientId);
+    if (!patientId && email) {
+      const { data } = await supabase.from('patients').select('id')
+        .ilike('email', email.trim()).single();
+      if (data) patientId = data.id;
+    }
+
+    if (!patientId && phone) {
+      const normalized = phone.replace(/\D/g, '').slice(-10);
+      if (normalized.length === 10) {
+        const { data } = await supabase.from('patients').select('id, phone')
+          .or(`phone.ilike.%${normalized}%`);
+        if (data?.length > 0) patientId = data[0].id;
       }
+    }
+
+    if (patientId) {
+      console.log('Matched patient:', patientId);
+    } else {
+      console.log('No patient match found — saving consent with patient_id: null');
     }
 
     // Insert consent record
     const consentData = {
       patient_id: patientId,
       consent_type: consentType,
-      first_name: firstName,
-      last_name: lastName,
-      email: email.toLowerCase(),
+      first_name: firstName || null,
+      last_name: lastName || null,
+      email: email ? email.toLowerCase() : null,
       phone: phone || null,
       date_of_birth: dateOfBirth || null,
+      ghl_contact_id: ghlContactId || null,
       consent_date: consentDate,
       consent_given: consentGiven || false,
       additional_data: additionalData || {},

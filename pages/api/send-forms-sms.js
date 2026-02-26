@@ -134,22 +134,23 @@ export default async function handler(req, res) {
       );
     }
 
-    // Step 2: Build SMS message
+    // Step 2: Build SMS message with contactId in URLs for patient linking
     const greeting = firstName ? `Hi ${firstName}! ` : '';
-    
+    const cidParam = contactId ? `?cid=${contactId}` : '';
+
     let messageBody;
-    
+
     if (validFormIds.length === 1) {
       // Single form - simple message
       const form = FORM_DEFINITIONS[validFormIds[0]];
-      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
+      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}${cidParam}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
     } else {
       // Multiple forms - list them out
       const formLinks = validFormIds.map(id => {
         const form = FORM_DEFINITIONS[id];
-        return `• ${form.name}: ${baseUrl}${form.path}`;
+        return `• ${form.name}: ${baseUrl}${form.path}${cidParam}`;
       }).join('\n');
-      
+
       messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
     }
 
@@ -173,16 +174,18 @@ export default async function handler(req, res) {
 
     if (!smsResponse.ok) {
       const smsError = await smsResponse.json();
-      console.error('SMS send failed:', smsError);
-      
-      if (smsError.message?.includes('opt') || smsError.message?.includes('consent')) {
-        return res.status(400).json({ 
-          error: 'Patient has opted out of SMS or consent required' 
+      console.error('SMS send failed:', JSON.stringify(smsError));
+
+      const ghlMsg = smsError.message || smsError.msg || JSON.stringify(smsError);
+
+      if (ghlMsg.includes('opt') || ghlMsg.includes('consent')) {
+        return res.status(400).json({
+          error: 'Patient has opted out of SMS or consent required'
         });
       }
-      
-      return res.status(500).json({ 
-        error: 'Failed to send SMS. Check GHL phone settings.' 
+
+      return res.status(500).json({
+        error: `Failed to send SMS: ${ghlMsg}`
       });
     }
 

@@ -261,6 +261,9 @@ function initializeForm() {
   // ============================================
   // SUPABASE CLIENT
   // ============================================
+  const urlParams = new URLSearchParams(window.location.search);
+  const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
+
   const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
 
   // ============================================
@@ -664,7 +667,8 @@ function initializeForm() {
           consentDate: formData.consentDate,
           consentGiven: formData.consentGiven,
           signatureUrl: urls.signatureUrl,
-          pdfUrl: urls.pdfUrl
+          pdfUrl: urls.pdfUrl,
+          ghlContactId: ghlContactId
         })
       });
       return await response.json();

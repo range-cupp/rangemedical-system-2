@@ -39,6 +39,7 @@ export default function RedLightConsentForm() {
   const [showThankYou, setShowThankYou] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   
+  const [ghlContactId, setGhlContactId] = useState('');
   const signaturePadRef = useRef(null);
   const signatureCanvasRef = useRef(null);
   const supabaseRef = useRef(null);
@@ -46,6 +47,8 @@ export default function RedLightConsentForm() {
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     setFormData(prev => ({ ...prev, consentDate: today }));
+    const urlParams = new URLSearchParams(window.location.search);
+    setGhlContactId(urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '');
   }, []);
 
   useEffect(() => {
@@ -377,6 +380,7 @@ export default function RedLightConsentForm() {
       signatureUrl,
       pdfUrl,
       consentGiven: formData.consentGiven,
+      ghlContactId,
       healthAnswers: {
         q1: formData.q1, q2: formData.q2, q3: formData.q3, q4: formData.q4,
         q5: formData.q5, q6: formData.q6, q7: formData.q7

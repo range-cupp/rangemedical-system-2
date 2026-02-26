@@ -32,6 +32,10 @@
     {
       "path": "/api/cron/hrt-injection-reminders",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/oxygen-daily",
+      "schedule": "0 15 * * *"
     }
   ]
 }

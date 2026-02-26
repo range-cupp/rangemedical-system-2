@@ -261,7 +261,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       }));
       const baseAmount = getBaseAmount();
       const discountCentsVal = getDiscountCents();
-      const finalAmountVal = getFinalAmount();
+      const finalAmountVal = getChargeAmount();
 
       // Create invoice
       const createRes = await fetch('/api/invoices/create', {
@@ -360,11 +360,29 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   }
 
   async function handlePay() {
+    const amount = getChargeAmount();
+    const description = getChargeDescription();
+
+    // $0 comp — skip Stripe entirely, just record the purchase
+    if (amount === 0) {
+      setStep('processing');
+      try {
+        await recordPurchases({ payment_method: 'comp' });
+        setResultStatus('success');
+        setResultMessage(`Comped ${description} for ${patient.name}`);
+        setStep('result');
+      } catch (error) {
+        console.error('Comp recording error:', error);
+        setResultStatus('error');
+        setResultMessage(error.message || 'Failed to record comp');
+        setStep('result');
+      }
+      return;
+    }
+
     if (!stripe || !elements) return;
 
     setStep('processing');
-    const amount = getChargeAmount();
-    const description = getChargeDescription();
 
     try {
       // For recurring items, create a subscription

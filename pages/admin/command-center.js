@@ -3096,19 +3096,18 @@ export default function CommandCenter() {
 
                     {(assignForm.supplyType || 'prefilled') === 'prefilled' && (
                       <div style={styles.modalFormGroup}>
-                        <label style={styles.formLabel}>Initial Supply (syringes)</label>
+                        <label style={styles.formLabel}>Quantity (syringes)</label>
                         <select
                           value={assignForm.hrtQuantity || 8}
                           onChange={e => setAssignForm({...assignForm, hrtQuantity: parseInt(e.target.value)})}
                           style={styles.formSelect}
                         >
-                          <option value={4}>4 syringes (2 weeks)</option>
-                          <option value={8}>8 syringes (4 weeks)</option>
-                          <option value={12}>12 syringes (6 weeks)</option>
-                          <option value={16}>16 syringes (8 weeks)</option>
+                          {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                            <option key={n} value={n}>{n} syringe{n > 1 ? 's' : ''}</option>
+                          ))}
                         </select>
                         <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                          At 2x/week — next supply due in {((assignForm.hrtQuantity || 8) / 2)} weeks
+                          At 2x/week — next supply due in {Math.round(((assignForm.hrtQuantity || 8) / 2) * 10) / 10} weeks
                         </div>
                       </div>
                     )}
@@ -3941,7 +3940,7 @@ export default function CommandCenter() {
                                 <label style={fvStyles.label}>Quantity</label>
                                 <select value={firstVisitData.quantity} onChange={e => setFirstVisitData(d => ({ ...d, quantity: parseInt(e.target.value) }))}
                                   style={fvStyles.select}>
-                                  {[1, 2, 3, 4, 5].map(n => (
+                                  {(firstVisitData.pickupType === 'vial' ? [1, 2, 3] : [1, 2, 3, 4, 5, 6, 7, 8]).map(n => (
                                     <option key={n} value={n}>{n} {firstVisitData.pickupType === 'vial' ? `vial${n > 1 ? 's' : ''}` : `prefilled syringe${n > 1 ? 's' : ''}`}</option>
                                   ))}
                                 </select>

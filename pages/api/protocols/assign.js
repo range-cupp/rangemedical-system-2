@@ -58,7 +58,11 @@ export default async function handler(req, res) {
       hrtRemindersEnabled,
       hrtReminderSchedule,
       followupDate,
-      hrtInitialQuantity
+      hrtInitialQuantity,
+      // Membership override fields
+      programTypeOverride,
+      programNameOverride,
+      membershipEndDays
     } = req.body;
 
     // For non-weight-loss, template is required
@@ -160,6 +164,22 @@ export default async function handler(req, res) {
       template = templateData;
       programName = template.name;
       programType = template.category;
+
+      // Apply membership overrides
+      if (programTypeOverride) programType = programTypeOverride;
+      if (programNameOverride) programName = programNameOverride;
+
+      // For memberships, set end_date to N days from start
+      if (membershipEndDays && startDate) {
+        const start = new Date(startDate);
+        start.setDate(start.getDate() + membershipEndDays);
+        endDate = start.toISOString().split('T')[0];
+      }
+
+      // combo_membership is not a valid program_type — should always be overridden
+      if (programType === 'combo_membership' && !programTypeOverride) {
+        programType = 'hbot';
+      }
 
       // Calculate end date from template
       if (supplyDuration && startDate) {
@@ -702,6 +722,92 @@ export default async function handler(req, res) {
       }
     }
 
+    // ============================================
+    // SEND MEMBERSHIP GUIDE SMS (membership protocols only)
+    // Skip if patient has already received the membership guide before
+    // ============================================
+    let membershipGuideSent = false;
+    const isMembership = programName && programName.toLowerCase().includes('membership');
+
+    if (isMembership && finalGhlContactId) {
+      try {
+        // Check if this patient has already received the membership guide
+        const { data: existingMembershipGuide } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', finalPatientId)
+          .eq('log_type', 'membership_guide_sent')
+          .limit(1);
+
+        if (existingMembershipGuide && existingMembershipGuide.length > 0) {
+          console.log('Membership guide already sent to patient', finalPatientId, '- skipping');
+          membershipGuideSent = false;
+        } else {
+
+        // Determine guide URL based on protocol type
+        let membershipGuideUrl = null;
+        if (programName.toLowerCase().includes('combo')) {
+          membershipGuideUrl = 'https://www.range-medical.com/combo-membership-guide';
+        } else if (programType === 'hbot') {
+          membershipGuideUrl = 'https://www.range-medical.com/hbot-membership-guide';
+        } else if (programType === 'rlt' || programType === 'red_light') {
+          membershipGuideUrl = 'https://www.range-medical.com/rlt-membership-guide';
+        }
+
+        if (membershipGuideUrl) {
+          // Look up patient first name
+          const { data: memberPatientData } = await supabase
+            .from('patients')
+            .select('first_name, name')
+            .eq('id', finalPatientId)
+            .single();
+
+          const memberFirstName = memberPatientData?.first_name || (memberPatientData?.name ? memberPatientData.name.split(' ')[0] : 'there');
+
+          const membershipGuideMessage = `Hi ${memberFirstName}! Here's your membership guide: ${membershipGuideUrl} - Range Medical`;
+
+          const memberSmsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
+              'Content-Type': 'application/json',
+              'Version': '2021-04-15'
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: finalGhlContactId,
+              message: membershipGuideMessage
+            })
+          });
+
+          const memberSmsData = await memberSmsRes.json();
+
+          if (memberSmsRes.ok) {
+            // Log to protocol_logs to prevent double-sends
+            await supabase.from('protocol_logs').insert({
+              protocol_id: protocol.id,
+              patient_id: finalPatientId,
+              log_type: 'membership_guide_sent',
+              log_date: new Date().toISOString().split('T')[0],
+              notes: membershipGuideMessage
+            });
+
+            await logComm({ channel: 'sms', messageType: 'membership_guide_sent', message: membershipGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName });
+
+            membershipGuideSent = true;
+            console.log('Membership guide SMS sent to', finalGhlContactId);
+          } else {
+            console.error('Membership guide SMS error:', memberSmsData);
+            await logComm({ channel: 'sms', messageType: 'membership_guide_sent', message: membershipGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: memberSmsData?.message || 'SMS failed' });
+          }
+        }
+
+        } // end else (membership guide not previously sent)
+      } catch (memberGuideError) {
+        console.error('Membership guide SMS error (non-fatal):', memberGuideError);
+      }
+    }
+
     res.status(200).json({
       success: true,
       protocol,
@@ -710,6 +816,7 @@ export default async function handler(req, res) {
       dripEmailSent,
       peptideGuideSent,
       skinGuideSent,
+      membershipGuideSent,
       message: `Protocol created: ${programName}`
     });
 

@@ -9,7 +9,7 @@ import LabsPipelineTab from '../../components/LabsPipelineTab';
 import BookingTab from '../../components/BookingTab';
 import CalendarView from '../../components/CalendarView';
 import LabDashboard from '../../components/labs/LabDashboard';
-import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES } from '../../lib/protocol-config';
+import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS } from '../../lib/protocol-config';
 import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { loadStripe } from '@stripe/stripe-js';
@@ -1119,7 +1119,9 @@ export default function CommandCenter() {
     } else if (logCategory === 'peptide') {
       payload.medication = firstVisitData.medication
         || (assignForm.peptideId ? (peptides.find(p => p.id === assignForm.peptideId)?.name || '') : '');
-      payload.dosage = firstVisitData.dosage || assignForm.selectedDose || '';
+      payload.dosage = firstVisitData.dosage === '__custom__'
+        ? (firstVisitData.customDosage || '')
+        : (firstVisitData.dosage || assignForm.selectedDose || '');
       if (firstVisitData.entryType === 'pickup' || firstVisitData.entryType === 'med_pickup') {
         payload.quantity = firstVisitData.quantity;
       }
@@ -1261,20 +1263,14 @@ export default function CommandCenter() {
   }));
 
   const SL_PEPTIDE_OPTIONS = [
-    { value: 'BPC-157', label: 'BPC-157' },
-    { value: 'TB-500', label: 'TB-500' },
-    { value: 'BPC-157/TB-500', label: 'BPC-157 + TB-500' },
-    { value: 'BPC-157/Thymosin Beta 4', label: 'BPC-157 + Thymosin Beta 4' },
-    { value: 'Sermorelin', label: 'Sermorelin' },
-    { value: 'Tesamorelin', label: 'Tesamorelin' },
-    { value: 'CJC-1295/Ipamorelin', label: 'CJC-1295/Ipamorelin' },
-    { value: 'PT-141', label: 'PT-141' },
-    { value: 'Semax', label: 'Semax' },
-    { value: 'Selank', label: 'Selank' },
-    { value: 'MOTS-C', label: 'MOTS-C' },
-    { value: 'SS-31', label: 'SS-31' },
-    { value: 'AOD-9604', label: 'AOD-9604' },
-    { value: 'Other', label: 'Other (specify in notes)' }
+    ...PEPTIDE_OPTIONS.flatMap(group =>
+      group.options.map(p => ({
+        value: p.value,
+        label: p.value,
+        dosages: p.doses || (p.startingDose === p.maxDose ? [p.startingDose] : [p.startingDose, p.maxDose])
+      }))
+    ),
+    { value: 'Other', label: 'Other (specify in notes)', dosages: [] }
   ];
 
   const SL_IV_OPTIONS = [
@@ -3718,7 +3714,7 @@ export default function CommandCenter() {
                           <div style={fvStyles.formGroup}>
                             <label style={fvStyles.label}>Peptide</label>
                             <select value={firstVisitData.medication || ''}
-                              onChange={e => setFirstVisitData(d => ({ ...d, medication: e.target.value }))}
+                              onChange={e => setFirstVisitData(d => ({ ...d, medication: e.target.value, dosage: '' }))}
                               style={fvStyles.select}>
                               <option value="">Select peptide...</option>
                               {SL_PEPTIDE_OPTIONS.map(p => (
@@ -3727,13 +3723,40 @@ export default function CommandCenter() {
                             </select>
                           </div>
 
-                          <div style={{ marginBottom: (firstVisitData.entryType === 'pickup' || firstVisitData.entryType === 'med_pickup') ? '16px' : 0 }}>
-                            <label style={fvStyles.label}>Dosage</label>
-                            <input type="text" value={firstVisitData.dosage}
-                              onChange={e => setFirstVisitData(d => ({ ...d, dosage: e.target.value }))}
-                              placeholder="e.g. 500mcg"
-                              style={fvStyles.input} />
-                          </div>
+                          {(() => {
+                            const selectedPeptide = SL_PEPTIDE_OPTIONS.find(p => p.value === firstVisitData.medication);
+                            const hasDosages = selectedPeptide?.dosages?.length > 0;
+                            const isCustomDosage = firstVisitData.dosage === '__custom__';
+                            return (
+                              <div style={{ marginBottom: (firstVisitData.entryType === 'pickup' || firstVisitData.entryType === 'med_pickup') ? '16px' : 0 }}>
+                                <label style={fvStyles.label}>Dosage</label>
+                                {hasDosages ? (
+                                  <>
+                                    <select value={isCustomDosage ? '__custom__' : firstVisitData.dosage}
+                                      onChange={e => setFirstVisitData(d => ({ ...d, dosage: e.target.value === '__custom__' ? '__custom__' : e.target.value }))}
+                                      style={fvStyles.select}>
+                                      <option value="">Select dosage...</option>
+                                      {selectedPeptide.dosages.map(d => (
+                                        <option key={d} value={d}>{d}</option>
+                                      ))}
+                                      <option value="__custom__">Custom</option>
+                                    </select>
+                                    {isCustomDosage && (
+                                      <input type="text" value={firstVisitData.customDosage || ''}
+                                        onChange={e => setFirstVisitData(d => ({ ...d, customDosage: e.target.value }))}
+                                        placeholder="Enter custom dosage..."
+                                        style={{ ...fvStyles.input, marginTop: '8px' }} />
+                                    )}
+                                  </>
+                                ) : (
+                                  <input type="text" value={firstVisitData.dosage}
+                                    onChange={e => setFirstVisitData(d => ({ ...d, dosage: e.target.value }))}
+                                    placeholder="e.g. 500mcg"
+                                    style={fvStyles.input} />
+                                )}
+                              </div>
+                            );
+                          })()}
 
                           {(firstVisitData.entryType === 'pickup' || firstVisitData.entryType === 'med_pickup') && (
                             <div style={{ marginBottom: 0 }}>

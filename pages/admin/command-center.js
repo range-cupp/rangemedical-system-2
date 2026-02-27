@@ -1259,7 +1259,7 @@ export default function CommandCenter() {
   };
 
   const SL_WEIGHT_LOSS_MEDS = WEIGHT_LOSS_MEDICATIONS.map(med => ({
-    value: med, label: med, dosages: WEIGHT_LOSS_DOSAGES[med] || []
+    value: med.value, label: med.label, dosages: WEIGHT_LOSS_DOSAGES[med.value] || []
   }));
 
   const SL_PEPTIDE_OPTIONS = [

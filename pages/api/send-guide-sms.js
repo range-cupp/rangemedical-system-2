@@ -121,7 +121,7 @@ export default async function handler(req, res) {
 
     // Step 2: Build and send SMS
     const greeting = firstName ? `Hi ${firstName}! ` : '';
-    const messageBody = `${greeting}Here's your guide: ${baseUrl}${guide.path} - Range Medical\n\nQuestions? (949) 997-3988\nReply STOP to unsubscribe.`;
+    const messageBody = `${greeting}Here's your guide: ${baseUrl}${guide.path} - Range Medical`;
 
     const smsResponse = await fetch(
       'https://services.leadconnectorhq.com/conversations/messages',

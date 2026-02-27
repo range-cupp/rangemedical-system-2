@@ -444,7 +444,7 @@ export default function CommandCenter() {
   const [guideEntryMode, setGuideEntryMode] = useState('search');
   const [guidePhone, setGuidePhone] = useState('');
   const [guideFirstName, setGuideFirstName] = useState('');
-  const [selectedGuide, setSelectedGuide] = useState(null);
+  const [selectedGuides, setSelectedGuides] = useState([]);
   const [guideCategory, setGuideCategory] = useState('all');
   const [guideStatus, setGuideStatus] = useState({ type: '', message: '' });
   const [guideLoading, setGuideLoading] = useState(false);
@@ -2096,8 +2096,8 @@ export default function CommandCenter() {
               setPhone={setGuidePhone}
               firstName={guideFirstName}
               setFirstName={setGuideFirstName}
-              selectedGuide={selectedGuide}
-              setSelectedGuide={setSelectedGuide}
+              selectedGuides={selectedGuides}
+              setSelectedGuides={setSelectedGuides}
               guideCategory={guideCategory}
               setGuideCategory={setGuideCategory}
               status={guideStatus}
@@ -7182,7 +7182,7 @@ function SendFormsTab({
 
 function SendGuidesTab({
   patients, entryMode, setEntryMode, phone, setPhone,
-  firstName, setFirstName, selectedGuide, setSelectedGuide,
+  firstName, setFirstName, selectedGuides, setSelectedGuides,
   guideCategory, setGuideCategory,
   status, setStatus, loading, setLoading, recentSends, setRecentSends,
   patientSearch, setPatientSearch, selectedPatient, setSelectedPatient,
@@ -7223,44 +7223,51 @@ function SendGuidesTab({
       return;
     }
 
-    if (!selectedGuide) {
-      setStatus({ type: 'error', message: 'Please select a guide to send' });
+    if (selectedGuides.length === 0) {
+      setStatus({ type: 'error', message: 'Please select at least one guide to send' });
       return;
     }
 
     setLoading(true);
-    setStatus({ type: 'loading', message: 'Sending guide...' });
+    const guideCount = selectedGuides.length;
+    setStatus({ type: 'loading', message: `Sending ${guideCount} guide${guideCount > 1 ? 's' : ''}...` });
 
     try {
-      const response = await fetch('/api/send-guide-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: digits,
-          firstName: firstName.trim() || null,
-          guideId: selectedGuide
-        })
-      });
+      const results = [];
+      for (const guideId of selectedGuides) {
+        const response = await fetch('/api/send-guide-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: digits,
+            firstName: firstName.trim() || null,
+            guideId
+          })
+        });
+        const result = await response.json();
+        results.push({ guideId, ok: response.ok, result });
+      }
 
-      const result = await response.json();
+      const succeeded = results.filter(r => r.ok);
+      const failed = results.filter(r => !r.ok);
 
-      if (response.ok) {
-        const guideName = AVAILABLE_GUIDES.find(g => g.id === selectedGuide)?.name;
-        setStatus({ type: 'success', message: `✓ ${guideName} sent to ${phone}` });
-        setRecentSends(prev => [{
+      if (succeeded.length > 0) {
+        const names = succeeded.map(r => AVAILABLE_GUIDES.find(g => g.id === r.guideId)?.name).filter(Boolean);
+        setStatus({ type: failed.length > 0 ? 'error' : 'success', message: `✓ Sent ${names.join(', ')} to ${phone}${failed.length > 0 ? ` (${failed.length} failed)` : ''}` });
+        setRecentSends(prev => [...names.map(name => ({
           phone,
           firstName: firstName.trim() || selectedPatient?.name || 'Patient',
-          guide: guideName,
+          guide: name,
           time: new Date().toLocaleTimeString()
-        }, ...prev.slice(0, 9)]);
+        })), ...prev].slice(0, 10));
 
         setPhone('');
         setFirstName('');
         setSelectedPatient(null);
         setPatientSearch('');
-        setSelectedGuide(null);
+        setSelectedGuides([]);
       } else {
-        setStatus({ type: 'error', message: result.error || 'Failed to send' });
+        setStatus({ type: 'error', message: results[0]?.result?.error || 'Failed to send' });
       }
     } catch (error) {
       setStatus({ type: 'error', message: 'Network error. Please try again.' });
@@ -7269,9 +7276,9 @@ function SendGuidesTab({
     }
   };
 
-  const selectedGuideName = selectedGuide
-    ? AVAILABLE_GUIDES.find(g => g.id === selectedGuide)?.name
-    : null;
+  const selectedGuideNames = selectedGuides
+    .map(id => AVAILABLE_GUIDES.find(g => g.id === id)?.name)
+    .filter(Boolean);
 
   return (
     <div style={styles.formsTabContent}>
@@ -7393,17 +7400,19 @@ function SendGuidesTab({
             </div>
           </div>
 
-          {/* Guide Selection */}
+          {/* Guide Selection (multi-select) */}
           <div style={styles.formGroup}>
-            <label style={styles.formLabel}>Select Guide to Send</label>
+            <label style={styles.formLabel}>Select Guides to Send {selectedGuides.length > 0 && `(${selectedGuides.length} selected)`}</label>
             <div style={styles.formsGrid}>
               {filteredGuides.map(guide => {
-                const isSelected = selectedGuide === guide.id;
+                const isSelected = selectedGuides.includes(guide.id);
                 return (
                   <div
                     key={guide.id}
                     style={{ ...styles.formItem, ...(isSelected ? styles.formItemSelected : {}) }}
-                    onClick={() => setSelectedGuide(isSelected ? null : guide.id)}
+                    onClick={() => setSelectedGuides(prev =>
+                      isSelected ? prev.filter(id => id !== guide.id) : [...prev, guide.id]
+                    )}
                   >
                     <span style={styles.formItemIcon}>{guide.icon}</span>
                     <span style={styles.formItemName}>{guide.name}</span>
@@ -7418,11 +7427,11 @@ function SendGuidesTab({
             type="submit"
             style={{
               ...styles.sendBtn,
-              opacity: loading || !selectedGuide || (entryMode === 'search' && !selectedPatient) ? 0.5 : 1,
+              opacity: loading || selectedGuides.length === 0 || (entryMode === 'search' && !selectedPatient) ? 0.5 : 1,
             }}
-            disabled={loading || !selectedGuide || (entryMode === 'search' && !selectedPatient)}
+            disabled={loading || selectedGuides.length === 0 || (entryMode === 'search' && !selectedPatient)}
           >
-            {loading ? 'Sending...' : selectedGuideName ? `Send ${selectedGuideName}` : 'Select a Guide'}
+            {loading ? 'Sending...' : selectedGuides.length > 1 ? `Send ${selectedGuides.length} Guides` : selectedGuideNames.length === 1 ? `Send ${selectedGuideNames[0]}` : 'Select a Guide'}
           </button>
 
           {status.message && (

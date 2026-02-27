@@ -16,6 +16,57 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Guide URL mapping for all protocol types
+// Returns a URL slug (e.g. '/hrt-guide') or null if no guide exists
+function getGuideUrl(programType, programName, medicationName, patientGender) {
+  const name = (programName || '').toLowerCase();
+  const med = (medicationName || '').toLowerCase();
+
+  // HRT
+  if (programType === 'hrt') return '/hrt-guide';
+
+  // Weight Loss — medication-specific
+  if (programType === 'weight_loss') {
+    if (med.includes('tirzepatide')) return '/tirzepatide-guide';
+    if (med.includes('retatrutide')) return '/retatrutide-guide';
+    return null; // semaglutide has no guide yet
+  }
+
+  // IV Therapy — match medication name
+  if (programType === 'iv' || programType === 'iv_therapy') {
+    if (med.includes('cellular reset') || name.includes('cellular reset')) return '/cellular-reset-guide';
+    if (med.includes('mb + vit c') || med.includes('combo') || name.includes('combo')) return '/methylene-blue-combo-iv-guide';
+    if (med.includes('methylene blue')) return '/methylene-blue-iv-guide';
+    if (med.includes('nad')) return '/nad-guide';
+    if (med.includes('glutathione')) return '/glutathione-iv-guide';
+    if (med.includes('vitamin c')) return '/vitamin-c-iv-guide';
+    if (med.includes('range iv') || name.includes('range iv')) return '/range-iv-guide';
+    return null;
+  }
+
+  // HBOT
+  if (programType === 'hbot') return '/hbot-guide';
+
+  // RLT
+  if (programType === 'rlt' || programType === 'red_light') return '/red-light-guide';
+
+  // Combo membership
+  if (name.includes('combo')) return '/combo-membership-guide';
+
+  // The Blu
+  if (med.includes('blu') || name.includes('blu')) return '/the-blu-guide';
+
+  // Labs — gender-specific guides
+  if (programType === 'labs') {
+    const isElite = med.includes('elite') || name.includes('elite');
+    const isMale = patientGender?.toLowerCase() === 'male';
+    if (isElite) return isMale ? '/elite-panel-male-guide' : '/elite-panel-female-guide';
+    return isMale ? '/essential-panel-male-guide' : '/essential-panel-female-guide';
+  }
+
+  return null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -723,88 +774,89 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // SEND MEMBERSHIP GUIDE SMS (membership protocols only)
-    // Skip if patient has already received the membership guide before
+    // SEND GUIDE SMS (all protocol types)
+    // One guide per type per patient — deduped via protocol_logs
     // ============================================
-    let membershipGuideSent = false;
-    const isMembership = programName && programName.toLowerCase().includes('membership');
+    let guideSent = false;
 
-    if (isMembership && finalGhlContactId) {
+    if (finalGhlContactId) {
       try {
-        // Check if this patient has already received the membership guide
-        const { data: existingMembershipGuide } = await supabase
-          .from('protocol_logs')
-          .select('id')
-          .eq('patient_id', finalPatientId)
-          .eq('log_type', 'membership_guide_sent')
-          .limit(1);
-
-        if (existingMembershipGuide && existingMembershipGuide.length > 0) {
-          console.log('Membership guide already sent to patient', finalPatientId, '- skipping');
-          membershipGuideSent = false;
-        } else {
-
-        // Determine guide URL based on protocol type
-        let membershipGuideUrl = null;
-        if (programName.toLowerCase().includes('combo')) {
-          membershipGuideUrl = 'https://www.range-medical.com/combo-membership-guide';
-        } else if (programType === 'hbot') {
-          membershipGuideUrl = 'https://www.range-medical.com/hbot-guide';
-        } else if (programType === 'rlt' || programType === 'red_light') {
-          membershipGuideUrl = 'https://www.range-medical.com/red-light-guide';
-        }
-
-        if (membershipGuideUrl) {
-          // Look up patient first name
-          const { data: memberPatientData } = await supabase
+        // Look up patient gender for lab guides
+        let patientGender = null;
+        if (programType === 'labs') {
+          const { data: genderData } = await supabase
             .from('patients')
-            .select('first_name, name')
+            .select('gender')
             .eq('id', finalPatientId)
             .single();
-
-          const memberFirstName = memberPatientData?.first_name || (memberPatientData?.name ? memberPatientData.name.split(' ')[0] : 'there');
-
-          const membershipGuideMessage = `Hi ${memberFirstName}! Here's your membership guide: ${membershipGuideUrl} - Range Medical`;
-
-          const memberSmsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
-              'Content-Type': 'application/json',
-              'Version': '2021-04-15'
-            },
-            body: JSON.stringify({
-              type: 'SMS',
-              contactId: finalGhlContactId,
-              message: membershipGuideMessage
-            })
-          });
-
-          const memberSmsData = await memberSmsRes.json();
-
-          if (memberSmsRes.ok) {
-            // Log to protocol_logs to prevent double-sends
-            await supabase.from('protocol_logs').insert({
-              protocol_id: protocol.id,
-              patient_id: finalPatientId,
-              log_type: 'membership_guide_sent',
-              log_date: new Date().toISOString().split('T')[0],
-              notes: membershipGuideMessage
-            });
-
-            await logComm({ channel: 'sms', messageType: 'membership_guide_sent', message: membershipGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName });
-
-            membershipGuideSent = true;
-            console.log('Membership guide SMS sent to', finalGhlContactId);
-          } else {
-            console.error('Membership guide SMS error:', memberSmsData);
-            await logComm({ channel: 'sms', messageType: 'membership_guide_sent', message: membershipGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: memberSmsData?.message || 'SMS failed' });
-          }
+          patientGender = genderData?.gender || null;
         }
 
-        } // end else (membership guide not previously sent)
-      } catch (memberGuideError) {
-        console.error('Membership guide SMS error (non-fatal):', memberGuideError);
+        const guideSlug = getGuideUrl(programType, programName, medicationName, patientGender);
+
+        if (guideSlug) {
+          const guideLogType = `guide_sent_${guideSlug.replace(/^\//, '')}`;
+
+          // Check if this patient has already received this specific guide
+          const { data: existingGuide } = await supabase
+            .from('protocol_logs')
+            .select('id')
+            .eq('patient_id', finalPatientId)
+            .eq('log_type', guideLogType)
+            .limit(1);
+
+          if (existingGuide && existingGuide.length > 0) {
+            console.log(`Guide ${guideSlug} already sent to patient ${finalPatientId} - skipping`);
+          } else {
+            // Look up patient first name
+            const { data: guidePatientData } = await supabase
+              .from('patients')
+              .select('first_name, name')
+              .eq('id', finalPatientId)
+              .single();
+
+            const guideFirstName = guidePatientData?.first_name || (guidePatientData?.name ? guidePatientData.name.split(' ')[0] : 'there');
+            const guideUrl = `https://www.range-medical.com${guideSlug}`;
+            const guideMessage = `Hi ${guideFirstName}! Here's your guide: ${guideUrl} - Range Medical`;
+
+            const guideSmsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
+                'Content-Type': 'application/json',
+                'Version': '2021-04-15'
+              },
+              body: JSON.stringify({
+                type: 'SMS',
+                contactId: finalGhlContactId,
+                message: guideMessage
+              })
+            });
+
+            const guideSmsData = await guideSmsRes.json();
+
+            if (guideSmsRes.ok) {
+              // Log to protocol_logs to prevent double-sends
+              await supabase.from('protocol_logs').insert({
+                protocol_id: protocol.id,
+                patient_id: finalPatientId,
+                log_type: guideLogType,
+                log_date: new Date().toISOString().split('T')[0],
+                notes: guideMessage
+              });
+
+              await logComm({ channel: 'sms', messageType: guideLogType, message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName });
+
+              guideSent = true;
+              console.log(`Guide SMS (${guideSlug}) sent to`, finalGhlContactId);
+            } else {
+              console.error('Guide SMS error:', guideSmsData);
+              await logComm({ channel: 'sms', messageType: guideLogType, message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: guideSmsData?.message || 'SMS failed' });
+            }
+          }
+        }
+      } catch (guideError) {
+        console.error('Guide SMS error (non-fatal):', guideError);
       }
     }
 
@@ -816,7 +868,7 @@ export default async function handler(req, res) {
       dripEmailSent,
       peptideGuideSent,
       skinGuideSent,
-      membershipGuideSent,
+      guideSent,
       message: `Protocol created: ${programName}`
     });
 

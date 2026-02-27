@@ -30,6 +30,7 @@ const CATEGORY_COLORS = {
   iv: '#9966FF',
   hbot: '#FFCC00',
   rlt: '#FF6666',
+  combo_membership: '#9333EA',
   injection: '#A0A0A0',
   labs: '#66CCCC',
   other: '#888888',
@@ -42,6 +43,7 @@ const CATEGORY_LABELS = {
   iv: 'IV Therapy',
   hbot: 'HBOT',
   rlt: 'Red Light',
+  combo_membership: 'Combo Membership',
   injection: 'Injection',
   labs: 'Labs',
 };
@@ -91,6 +93,47 @@ const QUICK_SELECTIONS = [
   { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
   { label: 'PRP', forms: ['intake', 'hipaa', 'prp', 'blood-draw'] },
   { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
+];
+
+const AVAILABLE_GUIDES = [
+  { id: 'hrt-guide', name: 'HRT Guide', icon: '💊', category: 'hrt' },
+  { id: 'tirzepatide-guide', name: 'Tirzepatide Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'retatrutide-guide', name: 'Retatrutide Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'weight-loss-medication-guide-page', name: 'WL Medication Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'bpc-tb4-guide', name: 'BPC/TB4 Guide', icon: '🧬', category: 'peptide' },
+  { id: 'glow-guide', name: 'GLOW Guide', icon: '✨', category: 'peptide' },
+  { id: 'ghk-cu-guide', name: 'GHK-Cu Guide', icon: '🧬', category: 'peptide' },
+  { id: '3x-blend-guide', name: '3x Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'nad-guide', name: 'NAD+ Guide', icon: '💧', category: 'iv' },
+  { id: 'methylene-blue-iv-guide', name: 'Methylene Blue Guide', icon: '💧', category: 'iv' },
+  { id: 'methylene-blue-combo-iv-guide', name: 'MB+VitC Combo Guide', icon: '💧', category: 'iv' },
+  { id: 'glutathione-iv-guide', name: 'Glutathione Guide', icon: '💧', category: 'iv' },
+  { id: 'vitamin-c-iv-guide', name: 'Vitamin C Guide', icon: '💧', category: 'iv' },
+  { id: 'range-iv-guide', name: 'Range IV Guide', icon: '💧', category: 'iv' },
+  { id: 'cellular-reset-guide', name: 'Cellular Reset Guide', icon: '💧', category: 'iv' },
+  { id: 'hbot-guide', name: 'HBOT Guide', icon: '🫁', category: 'hbot' },
+  { id: 'red-light-guide', name: 'Red Light Guide', icon: '🔴', category: 'rlt' },
+  { id: 'combo-membership-guide', name: 'Combo Membership', icon: '🏷️', category: 'membership' },
+  { id: 'hbot-membership-guide', name: 'HBOT Membership', icon: '🏷️', category: 'membership' },
+  { id: 'rlt-membership-guide', name: 'RLT Membership', icon: '🏷️', category: 'membership' },
+  { id: 'essential-panel-male-guide', name: 'Essential Male Panel', icon: '🧪', category: 'labs' },
+  { id: 'essential-panel-female-guide', name: 'Essential Female Panel', icon: '🧪', category: 'labs' },
+  { id: 'elite-panel-male-guide', name: 'Elite Male Panel', icon: '🧪', category: 'labs' },
+  { id: 'elite-panel-female-guide', name: 'Elite Female Panel', icon: '🧪', category: 'labs' },
+  { id: 'the-blu-guide', name: 'The Blu', icon: '💎', category: 'other' },
+];
+
+const GUIDE_CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'hrt', label: 'HRT' },
+  { id: 'weight_loss', label: 'Weight Loss' },
+  { id: 'peptide', label: 'Peptides' },
+  { id: 'iv', label: 'IV Therapy' },
+  { id: 'hbot', label: 'HBOT' },
+  { id: 'rlt', label: 'Red Light' },
+  { id: 'membership', label: 'Memberships' },
+  { id: 'labs', label: 'Labs' },
+  { id: 'other', label: 'Other' },
 ];
 
 const URGENCY_COLORS = {
@@ -396,6 +439,19 @@ export default function CommandCenter() {
   const [formPatientSearch, setFormPatientSearch] = useState('');
   const [selectedFormPatient, setSelectedFormPatient] = useState(null);
   const [showFormPatientDropdown, setShowFormPatientDropdown] = useState(false);
+
+  // Send guides state
+  const [guideEntryMode, setGuideEntryMode] = useState('search');
+  const [guidePhone, setGuidePhone] = useState('');
+  const [guideFirstName, setGuideFirstName] = useState('');
+  const [selectedGuide, setSelectedGuide] = useState(null);
+  const [guideCategory, setGuideCategory] = useState('all');
+  const [guideStatus, setGuideStatus] = useState({ type: '', message: '' });
+  const [guideLoading, setGuideLoading] = useState(false);
+  const [recentGuideSends, setRecentGuideSends] = useState([]);
+  const [guidePatientSearch, setGuidePatientSearch] = useState('');
+  const [selectedGuidePatient, setSelectedGuidePatient] = useState(null);
+  const [showGuidePatientDropdown, setShowGuidePatientDropdown] = useState(false);
 
   // Protocol assignment state
   const [templates, setTemplates] = useState({ grouped: {} });
@@ -1080,6 +1136,16 @@ export default function CommandCenter() {
   const isHRTTemplate = () => getSelectedTemplate()?.category === 'hrt';
   const isIVTemplate = () => ['iv', 'iv_therapy'].includes(getSelectedTemplate()?.category);
   const isLabsTemplate = () => getSelectedTemplate()?.category === 'labs';
+  const isComboTemplate = () => getSelectedTemplate()?.category === 'combo_membership';
+  const isHBOTMembership = () => {
+    const t = getSelectedTemplate();
+    return t?.category === 'hbot' && (t?.name || '').toLowerCase().includes('membership');
+  };
+  const isRLTMembership = () => {
+    const t = getSelectedTemplate();
+    return t?.category === 'rlt' && (t?.name || '').toLowerCase().includes('membership');
+  };
+  const isMembershipTemplate = () => isComboTemplate() || isHBOTMembership() || isRLTMembership();
 
   // Build service log payload from template category + firstVisitData
   const buildServiceLogPayload = () => {
@@ -1407,6 +1473,74 @@ export default function CommandCenter() {
             notes: assignForm.notes
           })
         });
+      } else if (isComboTemplate()) {
+        // Combo membership: create TWO protocols (HBOT + RLT)
+        const freqMap = { '1x_week': { hbot: 4, rlt: 4 }, '2x_week': { hbot: 8, rlt: 8 }, '3x_week': { hbot: 12, rlt: 12 } };
+        const freq = freqMap[assignForm.membershipFrequency] || { hbot: 4, rlt: 4 };
+        const patientFullName = selectedPatient.name || `${selectedPatient.first_name || ''} ${selectedPatient.last_name || ''}`.trim();
+
+        // 1. Create HBOT protocol (link purchase to this one)
+        const hbotRes = await fetch('/api/protocols/assign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientId: selectedPatient.id,
+            patientName: patientFullName,
+            templateId: assignForm.templateId,
+            startDate: assignForm.startDate,
+            notes: assignForm.notes,
+            purchaseId: assignForm.purchaseId || null,
+            totalSessions: freq.hbot,
+            programTypeOverride: 'hbot',
+            programNameOverride: 'Combo Membership — HBOT',
+            membershipEndDays: 30,
+            deliveryMethod: 'in_clinic'
+          })
+        });
+
+        // 2. Create RLT protocol (no purchaseId to avoid duplicate linking)
+        const rltRes = await fetch('/api/protocols/assign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientId: selectedPatient.id,
+            patientName: patientFullName,
+            templateId: assignForm.templateId,
+            startDate: assignForm.startDate,
+            notes: assignForm.notes,
+            totalSessions: freq.rlt,
+            programTypeOverride: 'rlt',
+            programNameOverride: 'Combo Membership — RLT',
+            membershipEndDays: 30,
+            deliveryMethod: 'in_clinic'
+          })
+        });
+
+        // Use HBOT response as the primary result
+        res = hbotRes;
+
+        if (!hbotRes.ok || !rltRes.ok) {
+          const errData = !hbotRes.ok ? await hbotRes.json() : await rltRes.json();
+          alert(`Error creating combo protocols: ${errData.error || 'Unknown error'}`);
+        }
+      } else if (isMembershipTemplate() && !isComboTemplate()) {
+        // Individual HBOT or RLT membership
+        const membershipSessions = isHBOTMembership() ? 4 : 12;
+        res = await fetch('/api/protocols/assign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientId: selectedPatient.id,
+            patientName: selectedPatient.name || `${selectedPatient.first_name || ''} ${selectedPatient.last_name || ''}`.trim(),
+            templateId: assignForm.templateId,
+            startDate: assignForm.startDate,
+            notes: assignForm.notes,
+            purchaseId: assignForm.purchaseId || null,
+            totalSessions: membershipSessions,
+            membershipEndDays: 30,
+            deliveryMethod: 'in_clinic'
+          })
+        });
       } else {
         // Create new protocol
         res = await fetch('/api/protocols/assign', {
@@ -1674,6 +1808,17 @@ export default function CommandCenter() {
     ).slice(0, 20);
   }, [formPatientSearch, data?.patients]);
 
+  // Filter patients for send guides
+  const filteredGuidePatients = useMemo(() => {
+    if (!guidePatientSearch || !data?.patients) return [];
+    const query = guidePatientSearch.toLowerCase();
+    return data.patients.filter(p =>
+      p.name?.toLowerCase().includes(query) ||
+      p.email?.toLowerCase().includes(query) ||
+      p.phone?.includes(query)
+    ).slice(0, 20);
+  }, [guidePatientSearch, data?.patients]);
+
   // Filtered protocols
   const filteredProtocols = useMemo(() => {
     if (!data?.protocols) return [];
@@ -1808,6 +1953,7 @@ export default function CommandCenter() {
             { id: 'patients', label: 'Patients', icon: '👥' },
             { id: 'injections', label: 'Service Log', icon: '📋' },
             { id: 'forms', label: 'Send Forms', icon: '📤' },
+            { id: 'guides', label: 'Send Guides', icon: '📖' },
             { id: 'labs', label: 'Labs', icon: '🧪' },
             { id: 'comms', label: 'Comms', icon: '📨' },
             { id: 'booking', label: 'Booking', icon: '📅' },
@@ -1939,6 +2085,34 @@ export default function CommandCenter() {
               filteredPatients={filteredFormPatients}
               showDropdown={showFormPatientDropdown}
               setShowDropdown={setShowFormPatientDropdown}
+            />
+          )}
+          {activeTab === 'guides' && (
+            <SendGuidesTab
+              patients={data?.patients || []}
+              entryMode={guideEntryMode}
+              setEntryMode={setGuideEntryMode}
+              phone={guidePhone}
+              setPhone={setGuidePhone}
+              firstName={guideFirstName}
+              setFirstName={setGuideFirstName}
+              selectedGuide={selectedGuide}
+              setSelectedGuide={setSelectedGuide}
+              guideCategory={guideCategory}
+              setGuideCategory={setGuideCategory}
+              status={guideStatus}
+              setStatus={setGuideStatus}
+              loading={guideLoading}
+              setLoading={setGuideLoading}
+              recentSends={recentGuideSends}
+              setRecentSends={setRecentGuideSends}
+              patientSearch={guidePatientSearch}
+              setPatientSearch={setGuidePatientSearch}
+              selectedPatient={selectedGuidePatient}
+              setSelectedPatient={setSelectedGuidePatient}
+              filteredPatients={filteredGuidePatients}
+              showDropdown={showGuidePatientDropdown}
+              setShowDropdown={setShowGuidePatientDropdown}
             />
           )}
           {activeTab === 'labs' && (
@@ -2976,7 +3150,27 @@ export default function CommandCenter() {
               ) : (
                 <select
                   value={assignForm.templateId}
-                  onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8})}
+                  onChange={e => {
+                    const newTemplateId = e.target.value;
+                    const resetForm = {...assignForm, templateId: newTemplateId, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8, membershipFrequency: ''};
+                    // Auto-detect membership frequency from template name
+                    if (newTemplateId) {
+                      let selectedTpl = null;
+                      for (const category of Object.values(templates.grouped || {})) {
+                        selectedTpl = category.find(t => t.id === newTemplateId);
+                        if (selectedTpl) break;
+                      }
+                      if (selectedTpl) {
+                        const tplName = (selectedTpl.name || '').toLowerCase();
+                        if (tplName.includes('combo membership')) {
+                          if (tplName.includes('3x')) resetForm.membershipFrequency = '3x_week';
+                          else if (tplName.includes('2x')) resetForm.membershipFrequency = '2x_week';
+                          else resetForm.membershipFrequency = '1x_week';
+                        }
+                      }
+                    }
+                    setAssignForm(resetForm);
+                  }}
                   style={styles.formSelect}
                 >
                   <option value="">Select template...</option>
@@ -2988,6 +3182,42 @@ export default function CommandCenter() {
                 </select>
               )}
             </div>
+
+            {/* Combo Membership info banner */}
+            {isComboTemplate() && (
+              <div style={{ padding: '12px 24px', background: '#F5F0FF', borderBottom: '1px solid #E5E5E5' }}>
+                <div style={{ fontSize: '13px', color: '#6D28D9' }}>
+                  <strong>Combo Membership</strong> — This will create two separate protocols: one HBOT and one RLT.
+                </div>
+                {assignForm.membershipFrequency && (() => {
+                  const freqMap = { '1x_week': { hbot: 4, rlt: 4 }, '2x_week': { hbot: 8, rlt: 8 }, '3x_week': { hbot: 12, rlt: 12 } };
+                  const freq = freqMap[assignForm.membershipFrequency];
+                  return freq ? (
+                    <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
+                      {freq.hbot} HBOT + {freq.rlt} RLT sessions per month (30-day period)
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
+
+            {/* HBOT Membership info banner */}
+            {isHBOTMembership() && (
+              <div style={{ padding: '12px 24px', background: '#EFF6FF', borderBottom: '1px solid #E5E5E5' }}>
+                <span style={{ fontSize: '13px', color: '#1E40AF' }}>
+                  <strong>Hyperbaric Recovery Membership:</strong> 4 HBOT sessions per month (30-day period)
+                </span>
+              </div>
+            )}
+
+            {/* RLT Membership info banner */}
+            {isRLTMembership() && (
+              <div style={{ padding: '12px 24px', background: '#FEF2F2', borderBottom: '1px solid #E5E5E5' }}>
+                <span style={{ fontSize: '13px', color: '#DC2626' }}>
+                  <strong>Red Light Reset Membership:</strong> Up to 12 RLT sessions per month (30-day period)
+                </span>
+              </div>
+            )}
 
             {/* Add to existing HRT protocol option */}
             {isHRTTemplate() && existingHRTProtocols.length > 0 && (
@@ -3755,8 +3985,8 @@ export default function CommandCenter() {
               </div>
             )}
 
-            {/* Hide frequency for weight loss and labs */}
-            {!isWeightLossTemplate() && !isLabsTemplate() && (
+            {/* Hide frequency for weight loss, labs, and memberships */}
+            {!isWeightLossTemplate() && !isLabsTemplate() && !isMembershipTemplate() && (
               <div style={styles.modalFormGroup}>
                 <label style={styles.formLabel}>
                   Frequency
@@ -4164,7 +4394,7 @@ export default function CommandCenter() {
               >
                 {isAssigning
                   ? (addToExistingProtocol ? 'Recording...' : extendExistingWL ? 'Extending...' : 'Creating...')
-                  : (addToExistingProtocol ? 'Record Payment' : extendExistingWL ? 'Extend Protocol' : logFirstVisit && !addToExistingProtocol ? 'Assign Protocol & Log Visit' : 'Assign Protocol')}
+                  : (addToExistingProtocol ? 'Record Payment' : extendExistingWL ? 'Extend Protocol' : isComboTemplate() ? 'Create HBOT + RLT Protocols' : logFirstVisit && !addToExistingProtocol ? 'Assign Protocol & Log Visit' : 'Assign Protocol')}
               </button>
             </div>
           </div>
@@ -6940,6 +7170,285 @@ function SendFormsTab({
                     <span style={{ color: '#A3A3A3', fontSize: '12px' }}>{send.time}</span>
                   </div>
                   <div style={{ fontSize: '12px', color: '#737373' }}>{send.forms}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SendGuidesTab({
+  patients, entryMode, setEntryMode, phone, setPhone,
+  firstName, setFirstName, selectedGuide, setSelectedGuide,
+  guideCategory, setGuideCategory,
+  status, setStatus, loading, setLoading, recentSends, setRecentSends,
+  patientSearch, setPatientSearch, selectedPatient, setSelectedPatient,
+  filteredPatients, showDropdown, setShowDropdown
+}) {
+  const handlePhoneChange = (e) => {
+    setPhone(formatPhone(e.target.value));
+  };
+
+  const selectPatient = (patient) => {
+    setSelectedPatient(patient);
+    setPatientSearch(patient.name);
+    setShowDropdown(false);
+    if (patient.phone) setPhone(formatPhone(patient.phone));
+    if (patient.name) {
+      const nameParts = patient.name.split(' ');
+      setFirstName(nameParts[0] || '');
+    }
+  };
+
+  const clearPatient = () => {
+    setSelectedPatient(null);
+    setPatientSearch('');
+    setPhone('');
+    setFirstName('');
+  };
+
+  const filteredGuides = guideCategory === 'all'
+    ? AVAILABLE_GUIDES
+    : AVAILABLE_GUIDES.filter(g => g.category === guideCategory);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length !== 10) {
+      setStatus({ type: 'error', message: 'Please enter a valid 10-digit phone number' });
+      return;
+    }
+
+    if (!selectedGuide) {
+      setStatus({ type: 'error', message: 'Please select a guide to send' });
+      return;
+    }
+
+    setLoading(true);
+    setStatus({ type: 'loading', message: 'Sending guide...' });
+
+    try {
+      const response = await fetch('/api/send-guide-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: digits,
+          firstName: firstName.trim() || null,
+          guideId: selectedGuide
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        const guideName = AVAILABLE_GUIDES.find(g => g.id === selectedGuide)?.name;
+        setStatus({ type: 'success', message: `✓ ${guideName} sent to ${phone}` });
+        setRecentSends(prev => [{
+          phone,
+          firstName: firstName.trim() || selectedPatient?.name || 'Patient',
+          guide: guideName,
+          time: new Date().toLocaleTimeString()
+        }, ...prev.slice(0, 9)]);
+
+        setPhone('');
+        setFirstName('');
+        setSelectedPatient(null);
+        setPatientSearch('');
+        setSelectedGuide(null);
+      } else {
+        setStatus({ type: 'error', message: result.error || 'Failed to send' });
+      }
+    } catch (error) {
+      setStatus({ type: 'error', message: 'Network error. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedGuideName = selectedGuide
+    ? AVAILABLE_GUIDES.find(g => g.id === selectedGuide)?.name
+    : null;
+
+  return (
+    <div style={styles.formsTabContent}>
+      <div style={styles.formsCard}>
+        <h2 style={styles.formsCardTitle}>Send Patient Guide</h2>
+
+        <form onSubmit={handleSubmit}>
+          {/* Mode Toggle */}
+          <div style={styles.modeToggle}>
+            <button
+              type="button"
+              style={{ ...styles.modeBtn, ...(entryMode === 'search' ? styles.modeBtnActive : {}) }}
+              onClick={() => { setEntryMode('search'); clearPatient(); }}
+            >
+              🔍 Search Patient
+            </button>
+            <button
+              type="button"
+              style={{ ...styles.modeBtn, ...(entryMode === 'manual' ? styles.modeBtnActive : {}) }}
+              onClick={() => { setEntryMode('manual'); clearPatient(); }}
+            >
+              ✏️ Enter Manually
+            </button>
+          </div>
+
+          {entryMode === 'search' && (
+            <>
+              {selectedPatient ? (
+                <div style={styles.selectedPatientCard}>
+                  <div style={styles.selectedPatientInfo}>
+                    <div style={styles.selectedPatientName}>✓ {selectedPatient.name}</div>
+                    <div style={styles.selectedPatientPhone}>{formatPhone(selectedPatient.phone) || selectedPatient.email || 'No contact info'}</div>
+                  </div>
+                  <button type="button" style={styles.changePatientBtn} onClick={clearPatient}>
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Search by Name, Email, or Phone</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Start typing patient name..."
+                      value={patientSearch}
+                      onChange={(e) => {
+                        setPatientSearch(e.target.value);
+                        setShowDropdown(true);
+                      }}
+                      onFocus={() => setShowDropdown(true)}
+                      style={styles.formInput}
+                    />
+                    {showDropdown && patientSearch && (
+                      <div style={styles.patientDropdown}>
+                        {filteredPatients.length === 0 ? (
+                          <div style={styles.patientDropdownEmpty}>No patients found</div>
+                        ) : (
+                          filteredPatients.map(patient => (
+                            <div
+                              key={patient.id}
+                              style={styles.patientDropdownItem}
+                              onClick={() => selectPatient(patient)}
+                            >
+                              <div style={{ fontWeight: '600' }}>{patient.name}</div>
+                              <div style={{ fontSize: '12px', color: '#737373' }}>
+                                {formatPhone(patient.phone) || patient.email || 'No contact'}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {(entryMode === 'manual' || selectedPatient) && (
+            <>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Phone Number *</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  placeholder="(555) 555-5555"
+                  style={{ ...styles.formInput, fontSize: '18px', textAlign: 'center', letterSpacing: '0.025em' }}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>First Name (for personalized message)</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Optional"
+                  style={styles.formInput}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Category Filter */}
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>Filter by Category</label>
+            <div style={styles.quickBtns}>
+              {GUIDE_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  style={{ ...styles.quickBtn, ...(guideCategory === cat.id ? styles.quickBtnActive : {}) }}
+                  onClick={() => setGuideCategory(cat.id)}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Guide Selection */}
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>Select Guide to Send</label>
+            <div style={styles.formsGrid}>
+              {filteredGuides.map(guide => {
+                const isSelected = selectedGuide === guide.id;
+                return (
+                  <div
+                    key={guide.id}
+                    style={{ ...styles.formItem, ...(isSelected ? styles.formItemSelected : {}) }}
+                    onClick={() => setSelectedGuide(isSelected ? null : guide.id)}
+                  >
+                    <span style={styles.formItemIcon}>{guide.icon}</span>
+                    <span style={styles.formItemName}>{guide.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Send Button */}
+          <button
+            type="submit"
+            style={{
+              ...styles.sendBtn,
+              opacity: loading || !selectedGuide || (entryMode === 'search' && !selectedPatient) ? 0.5 : 1,
+            }}
+            disabled={loading || !selectedGuide || (entryMode === 'search' && !selectedPatient)}
+          >
+            {loading ? 'Sending...' : selectedGuideName ? `Send ${selectedGuideName}` : 'Select a Guide'}
+          </button>
+
+          {status.message && (
+            <div style={{
+              ...styles.statusMessage,
+              background: status.type === 'error' ? '#FEF2F2' : status.type === 'success' ? '#F0FDF4' : '#F5F5F5',
+              color: status.type === 'error' ? '#DC2626' : status.type === 'success' ? '#16A34A' : '#525252',
+              borderColor: status.type === 'error' ? '#DC2626' : status.type === 'success' ? '#16A34A' : '#D4D4D4',
+            }}>
+              {status.message}
+            </div>
+          )}
+        </form>
+
+        {/* Recent Sends */}
+        {recentSends.length > 0 && (
+          <div style={styles.recentSends}>
+            <div style={styles.recentTitle}>Recent Guide Sends</div>
+            <div style={styles.recentList}>
+              {recentSends.map((send, i) => (
+                <div key={i} style={styles.recentItem}>
+                  <div style={styles.recentTop}>
+                    <span><strong>{send.firstName}</strong> · {formatPhone(send.phone)}</span>
+                    <span style={{ color: '#A3A3A3', fontSize: '12px' }}>{send.time}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#737373' }}>{send.guide}</div>
                 </div>
               ))}
             </div>

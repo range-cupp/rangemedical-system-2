@@ -266,8 +266,34 @@ export default async function handler(req, res) {
         .single();
       
       patient = existingPatient;
+
+      // If patient found by contact ID but has placeholder name, update from payload
+      if (patient && contactName !== 'Unknown') {
+        const nameLower = (patient.name || '').toLowerCase();
+        const isPlaceholder = nameLower === 'unknown' ||
+          nameLower === 'new patient' ||
+          nameLower.startsWith('unknown (');
+
+        if (isPlaceholder) {
+          console.log('Updating placeholder patient name:', patient.name, '->', contactName);
+          const updates = { name: contactName };
+          if (contactEmail && !patient.email) updates.email = contactEmail;
+          if (contactPhone && !patient.phone) updates.phone = contactPhone;
+          if (firstName && !patient.first_name) updates.first_name = firstName;
+
+          await supabase
+            .from('patients')
+            .update(updates)
+            .eq('id', patient.id);
+
+          // Update local object for use in purchase records
+          patient.name = contactName;
+          if (updates.email) patient.email = contactEmail;
+          if (updates.phone) patient.phone = contactPhone;
+        }
+      }
     }
-    
+
     // Try email if no patient found
     if (!patient && contactEmail) {
       const { data: emailPatient } = await supabase

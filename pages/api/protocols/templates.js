@@ -34,6 +34,9 @@ export default async function handler(req, res) {
           t.category = 'iv';
         }
       }
+      if (t.name && t.name.toLowerCase().includes('combo membership')) {
+        t.category = 'combo_membership';
+      }
     }
 
     // Group by category dynamically

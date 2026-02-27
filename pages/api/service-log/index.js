@@ -24,7 +24,8 @@ const CATEGORY_TO_PROGRAM_TYPE = {
   'peptide': 'peptide',
   'iv_therapy': 'iv_therapy',
   'hbot': 'hbot',
-  'red_light': 'red_light'
+  'red_light': 'red_light',
+  'supplement': 'supplement'
 };
 
 export default async function handler(req, res) {
@@ -252,7 +253,10 @@ async function handlePost(req, res) {
     if (logError) throw logError;
 
     // 2. Check for active package and decrement if found
-    const packageUpdate = await checkAndDecrementPackage(patient_id, category, resolvedEntryType, protocol_id);
+    // Skip protocol logic for supplements — they're one-time purchases, not ongoing protocols
+    const packageUpdate = category === 'supplement'
+      ? { no_package: true, reason: 'Supplements do not link to protocols' }
+      : await checkAndDecrementPackage(patient_id, category, resolvedEntryType, protocol_id);
 
     // 3. Update or create protocol based on entry type
     // Use resolvedEntryType (not raw entry_type) to ensure protocol updates always run
@@ -279,25 +283,38 @@ async function handlePost(req, res) {
 
     // Safety net: directly update next_expected_date on the protocol after any injection/session.
     // This guarantees the update even if incrementOrCreateProtocol hit an edge case.
+    // Only apply if this entry is the chronologically latest — don't let backdated entries overwrite.
     const targetProtocolId = protocol_id || protocolUpdate?.protocol_id || (packageUpdate.decremented ? packageUpdate.protocol_id : null);
     if (targetProtocolId && (resolvedEntryType === 'injection' || resolvedEntryType === 'session')) {
-      const nextDate = new Date(logDate + 'T12:00:00');
-      nextDate.setDate(nextDate.getDate() + 7);
-      const nextExpected = nextDate.toISOString().split('T')[0];
+      const { data: latestForSafety } = await supabase
+        .from('service_logs')
+        .select('entry_date')
+        .eq('patient_id', patient_id)
+        .in('entry_type', ['injection', 'session'])
+        .order('entry_date', { ascending: false })
+        .limit(1);
 
-      const { error: safetyErr } = await supabase
-        .from('protocols')
-        .update({
-          next_expected_date: nextExpected,
-          last_visit_date: logDate,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', targetProtocolId);
+      if (!latestForSafety?.[0] || logDate >= latestForSafety[0].entry_date) {
+        const nextDate = new Date(logDate + 'T12:00:00');
+        nextDate.setDate(nextDate.getDate() + 7);
+        const nextExpected = nextDate.toISOString().split('T')[0];
 
-      if (safetyErr) {
-        console.error('[service-log] Safety net update failed:', safetyErr);
+        const { error: safetyErr } = await supabase
+          .from('protocols')
+          .update({
+            next_expected_date: nextExpected,
+            last_visit_date: logDate,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', targetProtocolId);
+
+        if (safetyErr) {
+          console.error('[service-log] Safety net update failed:', safetyErr);
+        } else {
+          console.log('[service-log] Safety net: next_expected_date set to', nextExpected, 'for protocol', targetProtocolId);
+        }
       } else {
-        console.log('[service-log] Safety net: next_expected_date set to', nextExpected, 'for protocol', targetProtocolId);
+        console.log('[service-log] Safety net skipped: backdated entry', logDate, 'is older than latest', latestForSafety[0].entry_date);
       }
     }
 
@@ -555,7 +572,6 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
 
     // Update protocol with pickup info including medication details
     const updateData = {
-      last_refill_date: logDate,
       last_visit_date: logDate,
       updated_at: new Date().toISOString()
     };
@@ -571,31 +587,48 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       updateData.selected_dose = dosage;
     }
 
-    // Calculate next_expected_date based on supply type
-    const pickupDate = new Date(logDate + 'T00:00:00');
-    let daysUntilNext = 14; // default 2 weeks
+    // Only update date-scheduling fields if this is the chronologically latest pickup.
+    // Backdated entries should not overwrite next_expected_date from a more recent pickup.
+    const { data: latestPickup } = await supabase
+      .from('service_logs')
+      .select('entry_date')
+      .eq('patient_id', patient_id)
+      .eq('category', category)
+      .eq('entry_type', 'pickup')
+      .order('entry_date', { ascending: false })
+      .limit(1);
 
-    if (supply_type === 'prefilled_4week' || quantity === 8) {
-      daysUntilNext = 28; // 4 weeks
-    } else if (supply_type === 'prefilled_2week' || quantity === 4) {
-      daysUntilNext = 14; // 2 weeks
-    } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
-      // Vial typically lasts 8-12 weeks depending on dose
-      // Default to 10 weeks for vial
-      daysUntilNext = 70;
-    }
+    const isLatestPickup = !latestPickup?.[0] || logDate >= latestPickup[0].entry_date;
 
-    const nextDate = new Date(pickupDate);
-    nextDate.setDate(nextDate.getDate() + daysUntilNext);
-    updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+    if (isLatestPickup) {
+      updateData.last_refill_date = logDate;
 
-    // For prefilled pickups, extend end_date to match supply period (pickup = billing event)
-    // For vial pickups, don't touch end_date — billing cycle is separate from supply duration
-    const isVial = supply_type === 'vial_10ml' || supply_type === 'vial';
-    if (!isVial) {
-      const currentEndDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
-      if (!currentEndDate || nextDate > currentEndDate) {
-        updateData.end_date = updateData.next_expected_date;
+      // Calculate next_expected_date based on supply type
+      const pickupDate = new Date(logDate + 'T00:00:00');
+      let daysUntilNext = 14; // default 2 weeks
+
+      if (supply_type === 'prefilled_4week' || quantity === 8) {
+        daysUntilNext = 28; // 4 weeks
+      } else if (supply_type === 'prefilled_2week' || quantity === 4) {
+        daysUntilNext = 14; // 2 weeks
+      } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
+        // Vial typically lasts 8-12 weeks depending on dose
+        // Default to 10 weeks for vial
+        daysUntilNext = 70;
+      }
+
+      const nextDate = new Date(pickupDate);
+      nextDate.setDate(nextDate.getDate() + daysUntilNext);
+      updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+
+      // For prefilled pickups, extend end_date to match supply period (pickup = billing event)
+      // For vial pickups, don't touch end_date — billing cycle is separate from supply duration
+      const isVial = supply_type === 'vial_10ml' || supply_type === 'vial';
+      if (!isVial) {
+        const currentEndDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
+        if (!currentEndDate || nextDate > currentEndDate) {
+          updateData.end_date = updateData.next_expected_date;
+        }
       }
     }
 
@@ -682,7 +715,6 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     const newCount = alreadyIncremented ? currentSessions : currentSessions + 1;
 
     const updateData = {
-      last_visit_date: logDate,
       updated_at: new Date().toISOString()
     };
 
@@ -696,29 +728,46 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       updateData.injections_completed = newCount;
     }
 
-    // Calculate next_expected_date
-    // For take-home peptide protocols, next_expected_date = end of supply (end_date)
-    // since the patient self-administers daily at home
-    if (protocol.program_type === 'peptide' && protocol.delivery_method === 'take_home' && protocol.end_date) {
-      updateData.next_expected_date = protocol.end_date;
-    } else {
-      const freq = (protocol.frequency || '').toLowerCase();
-      let dayInterval = 7; // default weekly
-      if (freq.includes('daily') || freq.includes('every day')) dayInterval = 1;
-      else if (freq.includes('10 day')) dayInterval = 10;
-      else if (freq.includes('2 week') || freq.includes('every 2')) dayInterval = 14;
-      else if (freq.includes('monthly')) dayInterval = 28;
-      else if (freq.includes('every other day')) dayInterval = 2;
-      else if (freq.includes('5 on')) dayInterval = 1;
+    // Only update date-scheduling fields if this is the chronologically latest session.
+    // Backdated entries should not overwrite next_expected_date from a more recent visit.
+    const { data: latestSession } = await supabase
+      .from('service_logs')
+      .select('entry_date')
+      .eq('patient_id', patient_id)
+      .eq('category', category)
+      .in('entry_type', ['injection', 'session'])
+      .order('entry_date', { ascending: false })
+      .limit(1);
 
-      const nextDate = new Date(logDate + 'T12:00:00');
-      nextDate.setDate(nextDate.getDate() + dayInterval);
-      updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+    const isLatestSession = !latestSession?.[0] || logDate >= latestSession[0].entry_date;
 
-      // Extend end_date if next_expected_date is past it, so protocol doesn't show
-      // as overdue while patient is still actively being treated
-      if (protocol.end_date && updateData.next_expected_date > protocol.end_date) {
-        updateData.end_date = updateData.next_expected_date;
+    if (isLatestSession) {
+      updateData.last_visit_date = logDate;
+
+      // Calculate next_expected_date
+      // For take-home peptide protocols, next_expected_date = end of supply (end_date)
+      // since the patient self-administers daily at home
+      if (protocol.program_type === 'peptide' && protocol.delivery_method === 'take_home' && protocol.end_date) {
+        updateData.next_expected_date = protocol.end_date;
+      } else {
+        const freq = (protocol.frequency || '').toLowerCase();
+        let dayInterval = 7; // default weekly
+        if (freq.includes('daily') || freq.includes('every day')) dayInterval = 1;
+        else if (freq.includes('10 day')) dayInterval = 10;
+        else if (freq.includes('2 week') || freq.includes('every 2')) dayInterval = 14;
+        else if (freq.includes('monthly')) dayInterval = 28;
+        else if (freq.includes('every other day')) dayInterval = 2;
+        else if (freq.includes('5 on')) dayInterval = 1;
+
+        const nextDate = new Date(logDate + 'T12:00:00');
+        nextDate.setDate(nextDate.getDate() + dayInterval);
+        updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+
+        // Extend end_date if next_expected_date is past it, so protocol doesn't show
+        // as overdue while patient is still actively being treated
+        if (protocol.end_date && updateData.next_expected_date > protocol.end_date) {
+          updateData.end_date = updateData.next_expected_date;
+        }
       }
     }
 
@@ -873,7 +922,8 @@ function getCategoryDisplayName(category) {
     'peptide': 'Peptide Therapy',
     'iv_therapy': 'IV Therapy',
     'hbot': 'Hyperbaric Oxygen Therapy',
-    'red_light': 'Red Light Therapy'
+    'red_light': 'Red Light Therapy',
+    'supplement': 'Supplement / Product'
   };
   return names[category] || category;
 }

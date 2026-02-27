@@ -17,7 +17,8 @@ const SERVICE_TYPES = [
   { id: 'peptide', label: 'Peptide', icon: '🧬', programType: 'peptide' },
   { id: 'iv_therapy', label: 'IV Therapy', icon: '💧', programType: 'iv_therapy' },
   { id: 'hbot', label: 'HBOT', icon: '🫁', programType: 'hbot' },
-  { id: 'red_light', label: 'Red Light Therapy', icon: '🔴', programType: 'red_light' }
+  { id: 'red_light', label: 'Red Light Therapy', icon: '🔴', programType: 'red_light' },
+  { id: 'supplement', label: 'Supplement / Product', icon: '🧴', programType: 'supplement' }
 ];
 
 const TESTOSTERONE_OPTIONS = {
@@ -98,6 +99,17 @@ const IV_OPTIONS = [
   { value: 'Range High-Dose Vitamin C', label: 'Range High-Dose Vitamin C' },
   { value: 'Range Magnesium IV', label: 'Range Magnesium IV' },
   { value: 'Custom Range IV', label: 'Custom Range IV' }
+];
+
+const SUPPLEMENT_OPTIONS = [
+  { value: 'Boron', label: 'Boron' },
+  { value: 'DIM', label: 'DIM' },
+  { value: 'Metagenics', label: 'Metagenics' },
+  { value: 'Vitamin D3', label: 'Vitamin D3' },
+  { value: 'Vitamin K2', label: 'Vitamin K2' },
+  { value: 'CoQ10', label: 'CoQ10' },
+  { value: 'Omega-3', label: 'Omega-3' },
+  { value: 'Other', label: 'Other (specify in notes)' }
 ];
 
 const PROTOCOL_CONFIG = {
@@ -411,6 +423,13 @@ export default function ServiceLogContent() {
         setSelectedProtocolId(null);
         setShowProtocolForm(true);
       }
+    } else if (serviceType.id === 'supplement') {
+      // Supplements: no protocol linking, just a simple purchase record
+      setShowProtocolForm(false);
+      setSelectedProtocolId(null);
+      setAvailableProtocols([]);
+      setEntryType('purchase');
+      setFormData(prev => ({ ...prev, medication: '', quantity: 1 }));
     } else {
       setShowProtocolForm(!protocol);
       setSelectedProtocolId(null);
@@ -556,6 +575,9 @@ export default function ServiceLogContent() {
         } else if (item.serviceType.id === 'red_light') {
           payload.medication = 'Red Light Session';
           payload.duration = item.formData.duration || 20;
+        } else if (item.serviceType.id === 'supplement') {
+          payload.medication = item.formData.medication;
+          payload.quantity = item.formData.quantity || 1;
         }
 
         if (item.createProtocol && item.protocolData) {
@@ -697,6 +719,7 @@ export default function ServiceLogContent() {
     switch (entryType) {
       case 'pickup': return { label: '📦 Pickup', bg: '#dbeafe', color: '#1d4ed8' };
       case 'session': return { label: '✅ Session', bg: '#f3e8ff', color: '#7c3aed' };
+      case 'purchase': return { label: '🧴 Purchase', bg: '#fef3c7', color: '#92400e' };
       default: return { label: '💉 Injection', bg: '#dcfce7', color: '#166534' };
     }
   };
@@ -850,6 +873,7 @@ export default function ServiceLogContent() {
                     <option value="injection">Injection</option>
                     <option value="pickup">Pickup</option>
                     <option value="session">Session</option>
+                    <option value="purchase">Purchase</option>
                   </select>
                 </div>
                 <div>
@@ -1686,6 +1710,36 @@ export default function ServiceLogContent() {
                             </div>
                           </div>
                         )}
+                      </>
+                    )}
+
+                    {/* === SUPPLEMENT / PRODUCT === */}
+                    {currentServiceType.id === 'supplement' && (
+                      <>
+                        <div style={slcStyles.formGroup}>
+                          <label style={slcStyles.label}>Product</label>
+                          <select
+                            value={formData.medication}
+                            onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value }))}
+                            style={slcStyles.select}
+                          >
+                            <option value="">Select product...</option>
+                            {SUPPLEMENT_OPTIONS.map(s => (
+                              <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={slcStyles.formGroup}>
+                          <label style={slcStyles.label}>Quantity</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={formData.quantity}
+                            onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                            style={slcStyles.input}
+                          />
+                        </div>
                       </>
                     )}
 

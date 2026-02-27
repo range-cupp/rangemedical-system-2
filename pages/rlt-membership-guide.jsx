@@ -414,7 +414,7 @@ export default function RLTMembershipGuide() {
         }
 
         .safety-card.warning li::before {
-          content: "\u2715";
+          content: "✕";
           position: absolute;
           left: 0;
           color: #171717;
@@ -422,7 +422,7 @@ export default function RLTMembershipGuide() {
         }
 
         .safety-card.effects li::before {
-          content: "\u2022";
+          content: "•";
           position: absolute;
           left: 0;
           color: #737373;

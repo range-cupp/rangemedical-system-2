@@ -1852,6 +1852,7 @@ export default function CommandCenter() {
           {activeTab === 'leads' && (
             <LeadsTab
               data={data}
+              patients={data?.patients || []}
               leads={filteredLeads}
               filter={leadFilter}
               setFilter={setLeadFilter}
@@ -5738,10 +5739,30 @@ const dueSoonStyles = {
   },
 };
 
-function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase, onRefresh }) {
+function isSingleSession(itemName) {
+  if (!itemName) return false;
+  const name = itemName.toLowerCase();
+  if (/pack|membership|protocol/i.test(name)) return false;
+  return /\biv\b|hbot|hyperbaric|red\s*light|rlt|single|injection/i.test(name);
+}
+
+function detectServiceCategory(itemName) {
+  if (!itemName) return { category: 'iv_therapy', medication: itemName, duration: 45 };
+  const name = itemName.toLowerCase();
+  if (/hbot|hyperbaric/i.test(name)) return { category: 'hbot', medication: 'HBOT Session', duration: 60 };
+  if (/red\s*light|rlt/i.test(name)) return { category: 'red_light', medication: 'Red Light Session', duration: 20 };
+  if (/injection/i.test(name)) return { category: 'vitamin', medication: itemName, duration: null };
+  return { category: 'iv_therapy', medication: itemName, duration: 45 };
+}
+
+function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurchase, onRefresh }) {
   const [expandedLead, setExpandedLead] = useState(null);
   const [showSection, setShowSection] = useState('purchases'); // 'purchases' or 'leads'
   const [dismissingId, setDismissingId] = useState(null);
+  const [logVisitPurchase, setLogVisitPurchase] = useState(null);
+  const [logVisitDate, setLogVisitDate] = useState('');
+  const [logVisitNotes, setLogVisitNotes] = useState('');
+  const [loggingVisitId, setLoggingVisitId] = useState(null);
 
   const purchasesNeedingProtocol = data?.purchasesNeedingProtocol || [];
 
@@ -5759,6 +5780,61 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase, onRefr
       alert('Error dismissing purchase');
     } finally {
       setDismissingId(null);
+    }
+  };
+
+  const handleLogVisit = async () => {
+    if (!logVisitPurchase) return;
+    const purchase = logVisitPurchase;
+    setLoggingVisitId(purchase.id);
+
+    try {
+      // Find patient
+      const patient = (patients || []).find(p =>
+        p.id === purchase.patient_id ||
+        p.name?.toLowerCase() === purchase.patient_name?.toLowerCase() ||
+        p.ghl_contact_id === purchase.ghl_contact_id
+      );
+      if (!patient) {
+        alert('Patient "' + purchase.patient_name + '" not found in system. They may need to be added first.');
+        return;
+      }
+
+      const service = detectServiceCategory(purchase.item_name);
+
+      // 1. Log the service entry
+      const logRes = await fetch('/api/service-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          category: service.category,
+          entry_type: 'session',
+          entry_date: logVisitDate,
+          medication: service.medication,
+          duration: service.duration,
+          notes: logVisitNotes || null,
+        }),
+      });
+      if (!logRes.ok) {
+        alert('Failed to log service entry');
+        return;
+      }
+
+      // 2. Dismiss the purchase
+      const dismissRes = await fetch(`/api/purchases/${purchase.id}/dismiss`, { method: 'POST' });
+      if (!dismissRes.ok) {
+        alert('Service logged but failed to dismiss purchase');
+      }
+
+      // 3. Refresh and close
+      setLogVisitPurchase(null);
+      onRefresh && onRefresh();
+    } catch (err) {
+      console.error('Error logging visit:', err);
+      alert('Error logging visit');
+    } finally {
+      setLoggingVisitId(null);
     }
   };
 
@@ -5819,6 +5895,28 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase, onRefr
                   >
                     + Assign Protocol
                   </button>
+                  {isSingleSession(p.item_name) && (
+                    <button
+                      onClick={() => {
+                        setLogVisitPurchase(p);
+                        setLogVisitDate(new Date().toISOString().split('T')[0]);
+                        setLogVisitNotes('');
+                      }}
+                      style={{
+                        padding: '8px 14px',
+                        background: '#0891B2',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Log Visit
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDismissPurchase(p.id)}
                     disabled={dismissingId === p.id}
@@ -5935,6 +6033,78 @@ function LeadsTab({ data, leads, filter, setFilter, onAssignFromPurchase, onRefr
         )}
       </div>
         </>
+      )}
+
+      {/* Log Visit Modal */}
+      {logVisitPurchase && (
+        <div style={styles.modalOverlay} onClick={() => !loggingVisitId && setLogVisitPurchase(null)}>
+          <div style={{ ...styles.modal, maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Log Visit</h3>
+              <button style={styles.modalCloseBtn} onClick={() => !loggingVisitId && setLogVisitPurchase(null)}>&times;</button>
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Patient</label>
+                <div style={{ fontSize: '15px', color: '#111827' }}>{logVisitPurchase.patient_name}</div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Service</label>
+                <div style={{ fontSize: '15px', color: '#111827' }}>
+                  {detectServiceCategory(logVisitPurchase.item_name).medication}
+                  <span style={{ fontSize: '12px', color: '#6B7280', marginLeft: '8px' }}>
+                    ({detectServiceCategory(logVisitPurchase.item_name).category.replace(/_/g, ' ')})
+                  </span>
+                </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '6px' }}>Date</label>
+                <input
+                  type="date"
+                  value={logVisitDate}
+                  onChange={e => setLogVisitDate(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '6px' }}>Notes (optional)</label>
+                <textarea
+                  value={logVisitNotes}
+                  onChange={e => setLogVisitNotes(e.target.value)}
+                  placeholder="Any notes about the visit..."
+                  rows={2}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setLogVisitPurchase(null)}
+                  disabled={!!loggingVisitId}
+                  style={{ padding: '8px 16px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogVisit}
+                  disabled={!!loggingVisitId || !logVisitDate}
+                  style={{
+                    padding: '8px 20px',
+                    background: loggingVisitId ? '#93C5FD' : '#0891B2',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: loggingVisitId ? 'wait' : 'pointer',
+                    opacity: (!logVisitDate || loggingVisitId) ? 0.6 : 1,
+                  }}
+                >
+                  {loggingVisitId ? 'Logging...' : 'Log Visit'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

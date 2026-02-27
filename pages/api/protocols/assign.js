@@ -333,7 +333,6 @@ export default async function handler(req, res) {
         hrt_reminders_enabled: hrtRemindersEnabled || false,
         hrt_reminder_schedule: hrtReminderSchedule || null,
         hrt_followup_date: followupDate || null,
-        hrt_initial_quantity: hrtInitialQuantity ? parseInt(hrtInitialQuantity) : null,
         last_refill_date: startDate, // Initialize refill date to start date
         next_expected_date: (() => {
           // For HRT take-home, calculate next supply date from initial quantity

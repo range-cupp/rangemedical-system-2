@@ -1178,9 +1178,9 @@ export default function ServiceLogContent() {
                                   onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
                                   style={slcStyles.select}
                                 >
-                                  <option value="4">4 syringes (2 weeks)</option>
-                                  <option value="6">6 syringes (3 weeks)</option>
-                                  <option value="8">8 syringes (4 weeks)</option>
+                                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                                    <option key={n} value={n}>{n} syringe{n > 1 ? 's' : ''}</option>
+                                  ))}
                                 </select>
                               </div>
                             )}

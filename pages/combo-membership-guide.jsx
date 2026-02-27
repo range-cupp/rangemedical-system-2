@@ -73,8 +73,36 @@ export default function ComboMembershipGuide() {
         </div>
       </section>
 
-      {/* What Is HBOT */}
+      {/* Membership Options */}
       <section className="section">
+        <div className="container">
+          <div className="section-kicker">Options</div>
+          <h2 className="section-title">Choose Your Frequency</h2>
+          <p className="section-subtitle">All plans include both HBOT and RLT sessions on a 30-day rolling period.</p>
+
+          <div className="protocol-grid">
+            <div className="protocol-card">
+              <div className="protocol-days">1x / Week</div>
+              <div className="protocol-price">$899</div>
+              <p className="protocol-desc">4 HBOT + 4 RLT sessions per month. Great for maintaining a baseline of recovery and cellular support.</p>
+            </div>
+            <div className="protocol-card featured">
+              <span className="protocol-badge">Most Popular</span>
+              <div className="protocol-days">2x / Week</div>
+              <div className="protocol-price">$1,499</div>
+              <p className="protocol-desc">8 HBOT + 8 RLT sessions per month. The sweet spot for consistent progress and compounding benefits.</p>
+            </div>
+            <div className="protocol-card">
+              <div className="protocol-days">3x / Week</div>
+              <div className="protocol-price">$1,999</div>
+              <p className="protocol-desc">12 HBOT + 12 RLT sessions per month. Maximum frequency for accelerated recovery and peak performance.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What Is HBOT */}
+      <section className="section section-gray">
         <div className="container">
           <div className="section-kicker">Therapy 1</div>
           <h2 className="section-title">Hyperbaric Oxygen Therapy (HBOT)</h2>
@@ -83,7 +111,7 @@ export default function ComboMembershipGuide() {
       </section>
 
       {/* What Is RLT */}
-      <section className="section section-gray">
+      <section className="section">
         <div className="container">
           <div className="section-kicker">Therapy 2</div>
           <h2 className="section-title">Red Light Therapy (RLT)</h2>
@@ -382,6 +410,67 @@ export default function ComboMembershipGuide() {
           line-height: 1.7;
         }
 
+        /* Protocol Grid */
+        .protocol-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+
+        .protocol-card {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.5rem;
+          text-align: center;
+          transition: all 0.2s;
+        }
+
+        .protocol-card:hover {
+          border-color: #000000;
+        }
+
+        .protocol-card.featured {
+          border: 2px solid #000000;
+          position: relative;
+        }
+
+        .protocol-badge {
+          position: absolute;
+          top: -0.75rem;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #000000;
+          color: #ffffff;
+          padding: 0.25rem 0.75rem;
+          border-radius: 100px;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .protocol-days {
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #737373;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 0.25rem;
+        }
+
+        .protocol-price {
+          font-size: 1.75rem;
+          font-weight: 700;
+          margin-bottom: 0.75rem;
+        }
+
+        .protocol-desc {
+          font-size: 0.8125rem;
+          color: #525252;
+          line-height: 1.6;
+        }
+
         /* Steps */
         .steps-list {
           margin-top: 1rem;
@@ -482,7 +571,7 @@ export default function ComboMembershipGuide() {
         }
 
         .safety-card.warning li::before {
-          content: "\\2715";
+          content: "\u2715";
           position: absolute;
           left: 0;
           color: #171717;
@@ -490,7 +579,7 @@ export default function ComboMembershipGuide() {
         }
 
         .safety-card.effects li::before {
-          content: "\\2022";
+          content: "\u2022";
           position: absolute;
           left: 0;
           color: #737373;
@@ -587,6 +676,15 @@ export default function ComboMembershipGuide() {
           .info-grid,
           .safety-grid {
             grid-template-columns: 1fr;
+          }
+
+          .protocol-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+
+          .protocol-card.featured {
+            order: -1;
           }
 
           .section-title {

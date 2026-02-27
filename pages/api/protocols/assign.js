@@ -653,7 +653,7 @@ export default async function handler(req, res) {
 
         const skinFirstName = skinPatientData?.first_name || (skinPatientData?.name ? skinPatientData.name.split(' ')[0] : 'there');
 
-        const skinGuideMessage = `Hi ${skinFirstName}! Here's your guide to your GLOW skin peptide protocol: https://www.range-medical.com/glow-guide - Range Medical`;
+        const skinGuideMessage = `Hi ${skinFirstName}! Here's your guide to your GLOW peptide protocol: https://www.range-medical.com/glow-guide - Range Medical`;
 
         const skinSmsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
           method: 'POST',

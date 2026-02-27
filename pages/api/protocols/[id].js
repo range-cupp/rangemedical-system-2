@@ -109,10 +109,11 @@ async function getProtocol(id, res) {
       }));
 
       // Merge all sources, deduplicate by date+weight to avoid double entries
-      const merged = [...weightCheckins, ...serviceCheckins];
+      // service_logs first so they win over protocol_logs duplicates
+      const merged = [...serviceCheckins, ...weightCheckins];
       const deduped = new Map();
       for (const entry of merged) {
-        const key = `${entry.log_date}_${entry.weight || 'no-weight'}_${entry.id}`;
+        const key = `${entry.log_date}_${entry.weight || 'no-weight'}`;
         if (!deduped.has(key)) {
           deduped.set(key, entry);
         }

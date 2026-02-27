@@ -1996,7 +1996,7 @@ const slcStyles = {
     border: '2px solid #e5e7eb',
     borderTop: 'none',
     borderRadius: '0 0 8px 8px',
-    maxHeight: '200px',
+    maxHeight: '240px',
     overflowY: 'auto',
     zIndex: 10
   },
@@ -2006,10 +2006,11 @@ const slcStyles = {
     borderBottom: '1px solid #f3f4f6'
   },
   dropdownName: {
-    fontWeight: '500'
+    fontWeight: '500',
+    fontSize: '15px'
   },
   dropdownSub: {
-    fontSize: '12px',
+    fontSize: '13px',
     color: '#6b7280'
   },
 

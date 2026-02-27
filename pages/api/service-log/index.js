@@ -381,13 +381,20 @@ async function handlePut(req, res) {
 
 // DELETE - Remove log entry
 async function handleDelete(req, res) {
-  const { id } = req.query;
+  const { id, source } = req.query;
 
   if (!id) {
     return res.status(400).json({ success: false, error: 'Missing log ID' });
   }
 
   try {
+    // If source is specified, delete from that table directly
+    if (source === 'protocol_logs') {
+      const { error } = await supabase.from('protocol_logs').delete().eq('id', id);
+      if (error) throw error;
+      return res.status(200).json({ success: true });
+    }
+
     // Try service_logs first
     const { data: sData, error: sError } = await supabase
       .from('service_logs')
@@ -406,6 +413,16 @@ async function handleDelete(req, res) {
         .select();
 
       if (iError) throw iError;
+
+      // If nothing was deleted from injection_logs, try protocol_logs
+      if (!iData || iData.length === 0) {
+        const { error: pError } = await supabase
+          .from('protocol_logs')
+          .delete()
+          .eq('id', id);
+
+        if (pError) throw pError;
+      }
     }
 
     return res.status(200).json({ success: true });

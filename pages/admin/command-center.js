@@ -567,6 +567,32 @@ export default function CommandCenter() {
     }
   };
 
+  const deleteWeightCheckin = async (item) => {
+    if (!window.confirm('Delete this weight check-in?')) return;
+    try {
+      const sourceParam = item.source === 'service_log' ? '' : '&source=protocol_logs';
+      const res = await fetch(`/api/service-log?id=${item.id}${sourceParam}`, { method: 'DELETE' });
+      if (res.ok) {
+        setProtocolDetailPanel(prev => {
+          const updatedCheckins = prev.weightCheckins.filter(c => c.id !== item.id);
+          const withWeight = updatedCheckins.filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+          const startW = prev.protocol?.starting_weight || withWeight[0]?.weight;
+          const currentW = withWeight[withWeight.length - 1]?.weight;
+          const change = startW && currentW ? currentW - startW : null;
+          return {
+            ...prev,
+            weightCheckins: updatedCheckins,
+            weightProgress: withWeight.length > 0 && prev.weightProgress ? {
+              ...prev.weightProgress, currentWeight: currentW, change, changePercent: startW ? ((change / startW) * 100) : null
+            } : null
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Error deleting weight check-in:', err);
+    }
+  };
+
   const openProtocolDetail = async (protocol) => {
     setProtocolDetailPanel({
       open: true,
@@ -2356,6 +2382,13 @@ export default function CommandCenter() {
                                   >
                                     {item.weight ? `${item.weight} lbs` : '—'}
                                     <span style={{ fontSize: '11px', color: '#9CA3AF' }}>✏️</span>
+                                    <button
+                                      onClick={e => { e.stopPropagation(); deleteWeightCheckin(item); }}
+                                      title="Delete check-in"
+                                      style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', fontSize: '14px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', lineHeight: 1 }}
+                                      onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.background = '#fef2f2'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.background = 'none'; }}
+                                    >✕</button>
                                   </div>
                                 )}
                                 {item.dosage && (

@@ -460,6 +460,7 @@ export default function CommandCenter() {
 
   // Weight check-in inline editing state
   const [editingWeightCheckin, setEditingWeightCheckin] = useState(null); // { id, weight, source }
+  const [editingStartingWeight, setEditingStartingWeight] = useState(null); // string value or null
 
   // SMS check-in modal state
   const [smsModal, setSmsModal] = useState({
@@ -556,8 +557,10 @@ export default function CommandCenter() {
             ).filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
             const startW = prev.protocol.starting_weight || updatedCheckins[0]?.weight;
             const currentW = updatedCheckins[updatedCheckins.length - 1]?.weight;
-            const change = startW && currentW ? currentW - startW : null;
-            return { ...prev.weightProgress, currentWeight: currentW, change, changePercent: startW ? ((change / startW) * 100) : null };
+            const rawChange = startW && currentW ? currentW - startW : null;
+            const change = rawChange !== null ? parseFloat(rawChange.toFixed(1)) : null;
+            const changePercent = startW && rawChange !== null ? parseFloat(((rawChange / startW) * 100).toFixed(1)) : null;
+            return { ...prev.weightProgress, currentWeight: currentW, change, changePercent, isLoss: rawChange !== null ? rawChange < 0 : null };
           })() : null
         }));
         setEditingWeightCheckin(null);
@@ -578,12 +581,14 @@ export default function CommandCenter() {
           const withWeight = updatedCheckins.filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
           const startW = prev.protocol?.starting_weight || withWeight[0]?.weight;
           const currentW = withWeight[withWeight.length - 1]?.weight;
-          const change = startW && currentW ? currentW - startW : null;
+          const rawChange = startW && currentW ? currentW - startW : null;
+          const change = rawChange !== null ? parseFloat(rawChange.toFixed(1)) : null;
+          const changePercent = startW && rawChange !== null ? parseFloat(((rawChange / startW) * 100).toFixed(1)) : null;
           return {
             ...prev,
             weightCheckins: updatedCheckins,
             weightProgress: withWeight.length > 0 && prev.weightProgress ? {
-              ...prev.weightProgress, currentWeight: currentW, change, changePercent: startW ? ((change / startW) * 100) : null
+              ...prev.weightProgress, currentWeight: currentW, change, changePercent, isLoss: rawChange !== null ? rawChange < 0 : null
             } : null
           };
         });
@@ -591,6 +596,44 @@ export default function CommandCenter() {
     } catch (err) {
       console.error('Error deleting weight check-in:', err);
     }
+  };
+
+  const saveStartingWeight = async () => {
+    const value = parseFloat(editingStartingWeight);
+    if (!value || isNaN(value)) { setEditingStartingWeight(null); return; }
+    try {
+      const res = await fetch(`/api/protocols/${protocolDetailPanel.protocol.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ starting_weight: value })
+      });
+      if (res.ok) {
+        setProtocolDetailPanel(prev => {
+          const updatedProtocol = { ...prev.protocol, starting_weight: value };
+          const withWeight = prev.weightCheckins.filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+          const startW = value;
+          const currentW = withWeight[withWeight.length - 1]?.weight;
+          const rawChange = startW && currentW ? currentW - startW : null;
+          const change = rawChange !== null ? parseFloat(rawChange.toFixed(1)) : null;
+          const changePercent = startW && rawChange !== null ? parseFloat(((rawChange / startW) * 100).toFixed(1)) : null;
+          return {
+            ...prev,
+            protocol: updatedProtocol,
+            weightProgress: withWeight.length > 0 ? {
+              ...(prev.weightProgress || {}),
+              startingWeight: value,
+              currentWeight: currentW,
+              change,
+              changePercent,
+              isLoss: rawChange !== null ? rawChange < 0 : null
+            } : null
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Error saving starting weight:', err);
+    }
+    setEditingStartingWeight(null);
   };
 
   const openProtocolDetail = async (protocol) => {
@@ -2288,9 +2331,26 @@ export default function CommandCenter() {
                           <div style={styles.weightProgressStats}>
                             <div style={styles.weightStat}>
                               <span style={styles.weightStatLabel}>Starting</span>
-                              <span style={styles.weightStatValue}>
-                                {protocolDetailPanel.weightProgress.startingWeight} lbs
-                              </span>
+                              {editingStartingWeight !== null ? (
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={editingStartingWeight}
+                                  onChange={e => setEditingStartingWeight(e.target.value)}
+                                  onBlur={saveStartingWeight}
+                                  onKeyDown={e => { if (e.key === 'Enter') saveStartingWeight(); if (e.key === 'Escape') setEditingStartingWeight(null); }}
+                                  autoFocus
+                                  style={{ width: '80px', fontSize: '20px', fontWeight: '700', textAlign: 'center', border: '1px solid #4A90D9', borderRadius: '4px', padding: '2px 4px', outline: 'none' }}
+                                />
+                              ) : (
+                                <span
+                                  style={{ ...styles.weightStatValue, cursor: 'pointer', borderBottom: '1px dashed #999' }}
+                                  onClick={() => setEditingStartingWeight(String(protocolDetailPanel.weightProgress.startingWeight))}
+                                  title="Click to edit starting weight"
+                                >
+                                  {protocolDetailPanel.weightProgress.startingWeight} lbs
+                                </span>
+                              )}
                             </div>
                             <div style={styles.weightProgressArrow}>
                               {protocolDetailPanel.weightProgress.isLoss ? '→' : '→'}

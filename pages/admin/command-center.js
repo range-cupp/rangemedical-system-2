@@ -1569,7 +1569,8 @@ export default function CommandCenter() {
           checkin_reminder_enabled: editingProtocol.checkin_reminder_enabled || false,
           medication: editingProtocol.medication || null,
           frequency: editingProtocol.frequency || null,
-          pickup_frequency: editingProtocol.pickup_frequency || null
+          pickup_frequency: editingProtocol.pickup_frequency || null,
+          starting_weight: editingProtocol.starting_weight || null
         })
       });
 
@@ -3885,7 +3886,7 @@ export default function CommandCenter() {
               </div>
 
               {/* Only show pickup/refill/supply fields for take-home protocol types */}
-              {!['iv', 'hbot', 'rlt', 'injection'].includes(editingProtocol.program_type) && (
+              {!['iv', 'hbot', 'rlt', 'injection', 'weight_loss'].includes(editingProtocol.program_type) && (
                 <>
                   <div style={styles.modalFormGroup}>
                     <label style={styles.formLabel}>{editingProtocol.delivery_method === 'in_clinic' ? 'Next Injection Date' : 'Next Pickup Date'}</label>

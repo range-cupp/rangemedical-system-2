@@ -1,11 +1,11 @@
 import Layout from '../components/Layout';
 import Head from 'next/head';
 
-export default function ComboMembershipGuide() {
+export default function MethyleneBlueComboIVGuide() {
   return (
     <Layout
-      title="Combo Membership Guide | Range Medical"
-      description="Your guide to the Hyperbaric + Red Light combo membership. Schedule, pricing, and how to get the most from your sessions. Range Medical, Newport Beach. (949) 997-3988"
+      title="Methylene Blue Combo IV Guide | Range Medical"
+      description="Your guide to the Methylene Blue + Vitamin C + Magnesium combo IV. Mitochondrial support, immune power, and cellular recovery in one session. Range Medical, Newport Beach. (949) 997-3988"
     >
       <Head>
         <script
@@ -14,9 +14,9 @@ export default function ComboMembershipGuide() {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "MedicalWebPage",
-              "name": "Combo Membership Guide — HBOT + Red Light Therapy",
-              "description": "Patient guide for the HBOT + Red Light Therapy combo membership including pricing, session expectations, and safety information.",
-              "url": "https://www.range-medical.com/combo-membership-guide",
+              "name": "Methylene Blue Combo IV Guide",
+              "description": "Patient guide for the Methylene Blue + High-Dose Vitamin C + Magnesium combo IV therapy.",
+              "url": "https://www.range-medical.com/methylene-blue-combo-iv-guide",
               "provider": {
                 "@type": "MedicalBusiness",
                 "name": "Range Medical",
@@ -38,12 +38,12 @@ export default function ComboMembershipGuide() {
       {/* Hero */}
       <section className="peptide-hero">
         <div className="container">
-          <span className="hero-badge">Your Combo Membership Guide</span>
-          <h1>Hyperbaric + Red Light Combo Membership</h1>
-          <p className="hero-sub">Everything you need to know about your membership — your schedule, what each session includes, and how to get the most from it.</p>
+          <span className="hero-badge">Your Methylene Blue Combo IV Guide</span>
+          <h1>Methylene Blue + High-Dose Vitamin C + Magnesium</h1>
+          <p className="hero-sub">Everything you need to know about your combination infusion — mitochondrial support, immune power, and cellular recovery in one session.</p>
           <div className="hero-dose">
-            <div><span>HBOT:</span> 60 min at 2.0 ATA</div>
-            <div><span>RLT:</span> 20 min full-body</div>
+            <div><span>Price:</span> $750</div>
+            <div><span>Duration:</span> 90–120 minutes</div>
           </div>
         </div>
       </section>
@@ -52,60 +52,51 @@ export default function ComboMembershipGuide() {
       <section className="section">
         <div className="container">
           <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">Two Therapies, One Visit</h2>
-          <p className="section-subtitle">Your combo membership pairs both therapies into one visit. Each session includes a Hyperbaric Oxygen session (60 min) and a Red Light Therapy session (20 min) back to back.</p>
-          <p className="body-text">Consistent combo sessions create compounding cellular benefits. HBOT floods your tissues with oxygen from the inside while RLT stimulates cellular repair from the outside. Together, they accelerate recovery, reduce inflammation, and support your body from multiple angles.</p>
+          <h2 className="section-title">Three Powerhouses, One Session</h2>
+          <p className="section-subtitle">This combination pairs methylene blue's mitochondrial benefits with high-dose Vitamin C's immune and antioxidant power plus magnesium's role in muscle function, nerve signaling, and over 300 enzymatic reactions.</p>
+          <p className="body-text">Together, they provide a comprehensive cellular recharge — targeting energy production, immune defense, and recovery from multiple pathways simultaneously.</p>
         </div>
       </section>
 
-      {/* Membership Tiers */}
+      {/* How It Works */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Pricing</div>
-          <h2 className="section-title">Choose Your Frequency</h2>
-          <p className="section-subtitle">3-month minimum, then month-to-month. All plans include both HBOT and RLT sessions.</p>
-
-          <div className="protocol-grid">
-            <div className="protocol-card">
-              <div className="protocol-days">1x / Week</div>
-              <div className="protocol-price">$899<span className="price-period">/mo</span></div>
-              <p className="protocol-desc">4 HBOT + 4 Red Light sessions per month. $225/visit. Great for maintaining a baseline of recovery.</p>
-            </div>
-            <div className="protocol-card featured">
-              <span className="protocol-badge">Most Popular</span>
-              <div className="protocol-days">2x / Week</div>
-              <div className="protocol-price">$1,499<span className="price-period">/mo</span></div>
-              <p className="protocol-desc">8 HBOT + 8 Red Light sessions per month. $187/visit. The sweet spot for compounding benefits.</p>
-            </div>
-            <div className="protocol-card">
-              <div className="protocol-days">3x / Week</div>
-              <div className="protocol-price">$1,999<span className="price-period">/mo</span></div>
-              <p className="protocol-desc">12 HBOT + 12 Red Light sessions per month. $167/visit. Maximum frequency for accelerated results.</p>
-            </div>
-          </div>
-
-          <div className="combo-box" style={{ marginTop: '1.5rem' }}>
-            <h3>How It Compares</h3>
-            <p>Walk-in singles: $270/visit (HBOT $185 + RLT $85). Combo membership saves you $45–$103 per visit depending on your plan.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Each Session */}
-      <section className="section">
-        <div className="container">
-          <div className="section-kicker">Your Sessions</div>
-          <h2 className="section-title">What Each Visit Includes</h2>
-          <p className="section-subtitle">Most patients do Red Light first, then Hyperbaric. Both can be done in the same visit.</p>
+          <div className="section-kicker">How It Works</div>
+          <h2 className="section-title">What Each Component Does</h2>
+          <p className="section-subtitle">Multi-pathway cellular support — energy production, immune defense, and recovery.</p>
 
           <div className="info-grid">
             <div className="info-card">
-              <h3>🫁 Hyperbaric Oxygen Therapy</h3>
-              <p>60 minutes at 2.0 ATA. Relax in the pressurized chamber while concentrated oxygen reaches every tissue in your body. Supports recovery, reduces inflammation, and boosts cellular energy.</p>
+              <h3>⚡ Methylene Blue</h3>
+              <p>Mitochondrial electron support, brain clarity, and cellular energy. Crosses the blood-brain barrier for direct cognitive support.</p>
             </div>
             <div className="info-card">
-              <h3>💡 Red Light Therapy</h3>
-              <p>20-minute full-body treatment using 660nm red and 850nm near-infrared wavelengths. Stimulates mitochondria, boosts ATP production, and supports tissue repair.</p>
+              <h3>🛡️ High-Dose Vitamin C</h3>
+              <p>Immune support, free radical scavenging, collagen production, and tissue repair. Therapeutic doses far beyond what oral supplements provide.</p>
+            </div>
+            <div className="info-card">
+              <h3>💤 Magnesium</h3>
+              <p>Muscle relaxation, nerve function, sleep support, and inflammation reduction. Involved in over 300 enzymatic reactions.</p>
+            </div>
+            <div className="info-card">
+              <h3>🎯 Together</h3>
+              <p>Multi-pathway cellular support — energy production from methylene blue, immune defense from Vitamin C, and recovery from magnesium. The complete cellular recharge.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="section">
+        <div className="container">
+          <div className="section-kicker">Pricing</div>
+          <h2 className="section-title">Methylene Blue Combo IV</h2>
+
+          <div className="protocol-grid single">
+            <div className="protocol-card featured">
+              <div className="protocol-days">Complete Combo</div>
+              <div className="protocol-price">$750</div>
+              <p className="protocol-desc">Methylene Blue + High-Dose Vitamin C + Magnesium. 90–120 minute session. The full cellular recharge.</p>
             </div>
           </div>
         </div>
@@ -115,35 +106,35 @@ export default function ComboMembershipGuide() {
       <section className="section section-gray">
         <div className="container">
           <div className="section-kicker">Instructions</div>
-          <h2 className="section-title">Getting the Most from Your Membership</h2>
+          <h2 className="section-title">What to Know Before Your Session</h2>
 
           <div className="steps-list">
             <div className="step-item">
               <div className="step-number">1</div>
               <div className="step-content">
-                <h4>Stay Hydrated</h4>
-                <p>Drink plenty of water before and after sessions. Hydration supports oxygen circulation and the cellular processes both therapies activate.</p>
+                <h4>Medication Check</h4>
+                <p>Inform your provider of ALL medications — especially SSRIs, SNRIs, and MAOIs. This is critical. Methylene blue cannot be combined with serotonergic medications.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">2</div>
               <div className="step-content">
-                <h4>Be Consistent</h4>
-                <p>The benefits of both therapies build over time with regular use. Stick to your schedule — consistency compounds results.</p>
+                <h4>Eat a Light Meal</h4>
+                <p>Have a light meal before your session. Don't come on an empty stomach — it helps prevent nausea.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">3</div>
               <div className="step-content">
-                <h4>Expose Skin for RLT</h4>
-                <p>Red and near-infrared light can't penetrate clothing. For RLT sessions, expose the target area directly to the panels.</p>
+                <h4>Hydrate Well</h4>
+                <p>Drink plenty of water before and after. The combined infusion works best when you're well hydrated.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">4</div>
               <div className="step-content">
-                <h4>Comfortable Clothing for HBOT</h4>
-                <p>Wear loose, comfortable clothing. No metal jewelry in the chamber. Avoid lotions, oils, or perfumes before HBOT sessions.</p>
+                <h4>Plan for 2 Hours</h4>
+                <p>The combined infusion takes 90–120 minutes. Bring something to read, watch, or work on. Expect blue-green urine for 24–48 hours (normal).</p>
               </div>
             </div>
           </div>
@@ -155,64 +146,52 @@ export default function ComboMembershipGuide() {
         <div className="container">
           <div className="section-kicker">Timeline</div>
           <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">Benefits build each month as your body adapts and cells become more efficient.</p>
+          <p className="section-subtitle">Benefits from all three components begin quickly.</p>
 
           <div className="timeline-grid">
             <div className="timeline-card">
-              <h4>Month 1</h4>
-              <p>Body adapts. Early improvements in sleep, energy, and recovery. Your cells are beginning to respond to consistent treatment.</p>
+              <h4>During Session</h4>
+              <p>Warmth from magnesium, mental clarity from methylene blue. Some patients feel calm and focused during the infusion.</p>
             </div>
             <div className="timeline-card">
-              <h4>Month 2–3</h4>
-              <p>Compounding benefits. Noticeable improvements across energy, inflammation, and recovery. This is where the magic happens.</p>
+              <h4>24–48 Hours</h4>
+              <p>Improved energy, reduced inflammation, immune support. Your cells are actively using all three components for repair and defense.</p>
             </div>
             <div className="timeline-card">
-              <h4>Ongoing</h4>
-              <p>Sustained optimization. Many patients stay on the membership after their initial 3-month commitment because the benefits continue to build.</p>
+              <h4>Regular Sessions</h4>
+              <p>Deep cellular optimization across multiple systems. Sustained improvements in energy, clarity, immune function, and recovery.</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6-Week Reset Callout */}
-      <section className="section">
-        <div className="container">
-          <div className="combo-box">
-            <h3>Already Considering the 6-Week Reset?</h3>
-            <p>The Cellular Energy Reset ($3,999) is the most structured program — 18 HBOT + 18 Red Light sessions over 6 weeks with weekly check-ins and a money-back guarantee. The combo membership is ideal for patients who want ongoing access at their own pace.</p>
           </div>
         </div>
       </section>
 
       {/* Safety */}
-      <section className="section section-gray">
+      <section className="section">
         <div className="container">
           <div className="section-kicker">Safety</div>
           <h2 className="section-title">Important Safety Information</h2>
 
           <div className="safety-grid">
             <div className="safety-card warning">
-              <h4>Contraindications:</h4>
+              <h4>Do Not Use If You:</h4>
               <ul>
-                <li>Untreated pneumothorax (HBOT)</li>
-                <li>Certain lung conditions (HBOT)</li>
-                <li>Untreated ear or sinus infections (HBOT)</li>
-                <li>Severe claustrophobia (HBOT)</li>
-                <li>Active cancerous lesions (RLT)</li>
-                <li>Photosensitivity medications (RLT)</li>
-                <li>Pregnancy</li>
+                <li>Take SSRIs, SNRIs, or MAOIs (risk of serotonin syndrome)</li>
+                <li>Take other serotonergic medications</li>
+                <li>Have G6PD deficiency</li>
+                <li>Are pregnant or breastfeeding</li>
+                <li>Have kidney disease (consult provider for high-dose Vitamin C)</li>
               </ul>
             </div>
             <div className="safety-card effects">
               <h4>Possible Side Effects:</h4>
               <ul>
-                <li>Mild ear pressure during HBOT pressurization</li>
-                <li>Temporary lightheadedness after HBOT</li>
-                <li>Mild warmth or tingling during RLT</li>
-                <li>Temporary skin redness from RLT (resolves quickly)</li>
-                <li>Slight fatigue (typically resolves within hours)</li>
+                <li>Blue-green urine and stool (normal from methylene blue)</li>
+                <li>Warmth or flushing (from magnesium — normal and temporary)</li>
+                <li>Mild nausea</li>
+                <li>Temporary headache</li>
+                <li>Vein irritation at IV site</li>
               </ul>
-              <p className="safety-note">Side effects are generally mild and short-lived. We screen for all contraindications before your first session.</p>
+              <p className="safety-note">G6PD screening may be required for high-dose Vitamin C. Inform your provider of ALL medications before treatment.</p>
             </div>
           </div>
 
@@ -226,7 +205,7 @@ export default function ComboMembershipGuide() {
       <section className="final-cta">
         <div className="container">
           <h2>Questions? We're Here.</h2>
-          <p>Whether you need to schedule sessions or have questions about your membership, our team can help.</p>
+          <p>Whether you have questions about medications or want to schedule your session, our team can help.</p>
           <div className="cta-buttons">
             <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988</a>
             <a href="sms:+19499973988" className="btn-outline-white">Text Us</a>
@@ -257,17 +236,13 @@ export default function ComboMembershipGuide() {
         .info-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.75rem; }
         .info-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.75rem; }
         .info-card p { font-size: 0.9rem; color: #525252; line-height: 1.7; }
-        .combo-box { background: #000000; color: #ffffff; border-radius: 12px; padding: 1.75rem; text-align: center; }
-        .combo-box h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem; color: #ffffff; }
-        .combo-box p { font-size: 0.9rem; color: rgba(255,255,255,0.85); line-height: 1.7; }
         .protocol-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .protocol-grid.single { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
         .protocol-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.2s; }
         .protocol-card:hover { border-color: #000000; }
         .protocol-card.featured { border: 2px solid #000000; position: relative; }
-        .protocol-badge { position: absolute; top: -0.75rem; left: 50%; transform: translateX(-50%); background: #000000; color: #ffffff; padding: 0.25rem 0.75rem; border-radius: 100px; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
         .protocol-days { font-size: 0.8125rem; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
         .protocol-price { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem; }
-        .price-period { font-size: 1rem; font-weight: 400; color: #737373; }
         .protocol-desc { font-size: 0.8125rem; color: #525252; line-height: 1.6; }
         .steps-list { margin-top: 1.5rem; }
         .step-item { display: flex; gap: 1rem; padding: 1.25rem 0; border-bottom: 1px solid #e5e5e5; }
@@ -303,7 +278,6 @@ export default function ComboMembershipGuide() {
           .hero-dose { flex-direction: column; gap: 0.5rem; }
           .info-grid, .safety-grid, .timeline-grid { grid-template-columns: 1fr; }
           .protocol-grid { grid-template-columns: 1fr; gap: 1rem; }
-          .protocol-card.featured { order: -1; }
           .section-title { font-size: 1.5rem; }
           .cta-buttons { flex-direction: column; align-items: center; }
         }

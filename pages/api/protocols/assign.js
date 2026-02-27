@@ -749,9 +749,9 @@ export default async function handler(req, res) {
         if (programName.toLowerCase().includes('combo')) {
           membershipGuideUrl = 'https://www.range-medical.com/combo-membership-guide';
         } else if (programType === 'hbot') {
-          membershipGuideUrl = 'https://www.range-medical.com/hbot-membership-guide';
+          membershipGuideUrl = 'https://www.range-medical.com/hbot-guide';
         } else if (programType === 'rlt' || programType === 'red_light') {
-          membershipGuideUrl = 'https://www.range-medical.com/rlt-membership-guide';
+          membershipGuideUrl = 'https://www.range-medical.com/red-light-guide';
         }
 
         if (membershipGuideUrl) {

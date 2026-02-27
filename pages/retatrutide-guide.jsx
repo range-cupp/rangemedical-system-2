@@ -1,11 +1,11 @@
 import Layout from '../components/Layout';
 import Head from 'next/head';
 
-export default function RLTMembershipGuide() {
+export default function RetatrutideGuide() {
   return (
     <Layout
-      title="Red Light Reset Membership Guide | Range Medical"
-      description="Your guide to Red Light Therapy membership. What to expect, session tips, and safety information. Range Medical, Newport Beach. (949) 997-3988"
+      title="Retatrutide Weight Loss Guide | Range Medical"
+      description="Your guide to retatrutide weight loss therapy. How it works, injection instructions, and what to expect. Range Medical, Newport Beach. (949) 997-3988"
     >
       <Head>
         <script
@@ -14,9 +14,9 @@ export default function RLTMembershipGuide() {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "MedicalWebPage",
-              "name": "Red Light Reset Membership Guide",
-              "description": "Patient guide for Red Light Therapy membership including session expectations, tips, and safety information.",
-              "url": "https://www.range-medical.com/rlt-membership-guide",
+              "name": "Retatrutide Weight Loss Guide",
+              "description": "Patient guide for retatrutide weight loss therapy including injection instructions, dosing, and safety information.",
+              "url": "https://www.range-medical.com/retatrutide-guide",
               "provider": {
                 "@type": "MedicalBusiness",
                 "name": "Range Medical",
@@ -38,107 +38,164 @@ export default function RLTMembershipGuide() {
       {/* Hero */}
       <section className="peptide-hero">
         <div className="container">
-          <span className="hero-badge">Membership Guide</span>
-          <h1>Your Red Light Reset Membership Guide</h1>
-          <p className="hero-sub">Everything you need to know about your RLT membership — how it works, what to expect, and how to get the most out of every session.</p>
+          <span className="hero-badge">Your Weight Loss Protocol Guide</span>
+          <h1>Retatrutide</h1>
+          <p className="hero-sub">Everything you need to know about your weight loss medication — how it works, how to inject, and what to expect.</p>
           <div className="hero-dose">
-            <div><span>Sessions:</span> Up to 12 per month</div>
-            <div><span>Period:</span> 30-day rolling</div>
+            <div><span>Type:</span> Triple Receptor Agonist</div>
+            <div><span>Frequency:</span> 1x per week</div>
           </div>
         </div>
       </section>
 
-      {/* What Is RLT */}
+      {/* The Basics */}
       <section className="section">
         <div className="container">
           <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">What Is Red Light Therapy?</h2>
-          <p className="section-subtitle">Red Light Therapy (RLT) uses specific wavelengths of light to support your body at the cellular level.</p>
-          <p className="body-text">Our panels deliver 660nm red light and 850nm near-infrared light. Red light (660nm) is absorbed by cells near the surface — supporting collagen production and skin health. Near-infrared light (850nm) penetrates deeper into tissue — reaching muscles, joints, and bones to support recovery and reduce inflammation. Together, these wavelengths boost cellular energy production (ATP), helping your body repair and regenerate more efficiently.</p>
+          <h2 className="section-title">What Is Retatrutide?</h2>
+          <p className="section-subtitle">Retatrutide is a triple receptor agonist — it targets GLP-1, GIP, and glucagon receptors simultaneously. This three-pronged approach addresses hunger, metabolism, and fat burning from multiple angles.</p>
+          <p className="body-text">While other medications target one or two pathways, retatrutide works on three. The addition of glucagon receptor activation means your body actively burns more fat for energy — on top of the appetite reduction and improved metabolism.</p>
         </div>
       </section>
 
-      {/* Your Membership */}
+      {/* How It Works */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Your Plan</div>
-          <h2 className="section-title">Your RLT Membership</h2>
-          <p className="section-subtitle">Frequent, consistent sessions are the key to getting results with red light therapy.</p>
+          <div className="section-kicker">How It Works</div>
+          <h2 className="section-title">Three Pathways, One Medication</h2>
+          <p className="section-subtitle">Each receptor plays a different role in weight management.</p>
 
           <div className="info-grid">
             <div className="info-card">
-              <h3>Up to 12 Sessions / Month</h3>
-              <p>Your membership includes up to 12 in-clinic RLT sessions per 30-day rolling period. We recommend 2-3 sessions per week for optimal results.</p>
+              <h3>🧠 GLP-1 Receptor</h3>
+              <p>Reduces appetite and slows stomach emptying. You feel full longer and eat less without fighting cravings.</p>
             </div>
             <div className="info-card">
-              <h3>30-Day Rolling Period</h3>
-              <p>Your membership renews every 30 days from your start date. Sessions reset each period — unused sessions do not roll over.</p>
+              <h3>⚡ GIP Receptor</h3>
+              <p>Improves insulin sensitivity and nutrient processing. Your body handles food more efficiently and stores less fat.</p>
+            </div>
+            <div className="info-card">
+              <h3>🔥 Glucagon Receptor</h3>
+              <p>Activates fat burning and increases energy expenditure. Your body uses stored fat for fuel — even at rest.</p>
+            </div>
+            <div className="info-card">
+              <h3>🎯 Together</h3>
+              <p>Three biological pathways addressed simultaneously. Appetite reduction + improved metabolism + active fat burning = faster, more sustainable results.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* What to Expect */}
+      {/* Pricing */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Your Visit</div>
-          <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">Each session is quick, relaxing, and requires zero downtime.</p>
+          <div className="section-kicker">Protocols</div>
+          <h2 className="section-title">Dosing & Pricing</h2>
+          <p className="section-subtitle">One injection per week. Standard protocol increases dose every 4 weeks. All-inclusive pricing — medication, supplies, monthly check-ins, dose adjustments, and nutrition guidance.</p>
+
+          <div className="dose-table">
+            <div className="dose-row">
+              <span className="dose-amount">2 mg</span>
+              <span className="dose-price">$500/mo</span>
+            </div>
+            <div className="dose-row">
+              <span className="dose-amount">4 mg</span>
+              <span className="dose-price">$600/mo</span>
+            </div>
+            <div className="dose-row">
+              <span className="dose-amount">6 mg</span>
+              <span className="dose-price">$700/mo</span>
+            </div>
+            <div className="dose-row">
+              <span className="dose-amount">8 mg</span>
+              <span className="dose-price">$750/mo</span>
+            </div>
+            <div className="dose-row">
+              <span className="dose-amount">10 mg</span>
+              <span className="dose-price">$800/mo</span>
+            </div>
+            <div className="dose-row">
+              <span className="dose-amount">12 mg</span>
+              <span className="dose-price">$850/mo</span>
+            </div>
+          </div>
+
+          <div className="tip-box" style={{ marginTop: '1.5rem' }}>
+            <strong>📋 Baseline Labs Required</strong>
+            <p>Before starting, we need baseline labs to ensure this medication is safe and appropriate for you. Essential Panel: $350 / Elite Panel: $750.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Instructions */}
+      <section className="section section-gray">
+        <div className="container">
+          <div className="section-kicker">Instructions</div>
+          <h2 className="section-title">How to Use Your Injections</h2>
+          <p className="section-subtitle">We teach you at the clinic — most people self-inject at home in under a minute.</p>
 
           <div className="steps-list">
             <div className="step-item">
               <div className="step-number">1</div>
               <div className="step-content">
-                <h4>Check In</h4>
-                <p>Arrive at the clinic and check in with our team. We'll get you set up in the red light room.</p>
+                <h4>Prep</h4>
+                <p>Wash your hands. Clean the injection site with an alcohol pad. Take medication out of the fridge a few minutes early to reach room temperature.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">2</div>
               <div className="step-content">
-                <h4>Position at the Panels</h4>
-                <p>Stand or sit in front of the red light panels. Expose the target area directly to the light for maximum absorption — clothing blocks the wavelengths.</p>
+                <h4>Inject</h4>
+                <p>Inject subcutaneously (just under the skin) into the abdomen, upper thigh, or back of the arm. Pinch the skin, insert at a 45° angle, inject slowly.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">3</div>
               <div className="step-content">
-                <h4>20-Minute Session</h4>
-                <p>Relax while the panels deliver therapeutic wavelengths. The light feels warm but comfortable — no UV exposure, no burning.</p>
+                <h4>Same Day Each Week</h4>
+                <p>Pick the same day each week for consistency. Set a phone reminder so you never miss a dose.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">4</div>
               <div className="step-content">
-                <h4>You're Done</h4>
-                <p>Get dressed and go about your day. No recovery time needed — many people do RLT sessions during lunch breaks or before/after workouts.</p>
+                <h4>Rotate Sites</h4>
+                <p>Don't inject in the same spot every week. Rotate between abdomen, thighs, and arms to prevent irritation.</p>
               </div>
             </div>
+          </div>
+
+          <div className="tip-box">
+            <strong>💡 Pro Tips</strong>
+            <p>Titration is critical — standard protocol increases every 4 weeks. Stay hydrated. High-protein diet supports best results. If GI side effects occur, slow the titration. Store medication in the refrigerator.</p>
           </div>
         </div>
       </section>
 
-      {/* Tips */}
-      <section className="section section-gray">
+      {/* Timeline */}
+      <section className="section section-dark">
         <div className="container">
-          <div className="section-kicker">Tips</div>
-          <h2 className="section-title">Getting the Most Out of RLT</h2>
+          <div className="section-kicker">Timeline</div>
+          <h2 className="section-title">What to Expect</h2>
+          <p className="section-subtitle">Clinical trials showed up to 24% body weight loss at 48 weeks at the highest doses.</p>
 
-          <div className="tip-box">
-            <strong>Expose Skin Directly</strong>
-            <p>Red and near-infrared light can't penetrate clothing. For the best results, expose the target area directly to the panels.</p>
-          </div>
-          <div className="tip-box">
-            <strong>Aim for 2-3 Sessions Per Week</strong>
-            <p>Consistency matters more than duration. Regular sessions throughout the week deliver better cumulative results than sporadic longer sessions.</p>
-          </div>
-          <div className="tip-box">
-            <strong>Stay Hydrated</strong>
-            <p>Proper hydration supports the cellular processes that red light therapy activates. Drink water before and after your session.</p>
-          </div>
-          <div className="tip-box">
-            <strong>Combine with HBOT</strong>
-            <p>Red light therapy pairs well with Hyperbaric Oxygen Therapy. Many members do both in the same visit for compounding benefits.</p>
+          <div className="timeline-grid">
+            <div className="timeline-card">
+              <h4>Week 1–4</h4>
+              <p>Starting dose (2mg). Body adjusts. Early appetite changes begin. Mild GI side effects may occur.</p>
+            </div>
+            <div className="timeline-card">
+              <h4>Week 5–8</h4>
+              <p>Dose increases. Noticeable appetite suppression and early weight loss. Energy levels begin improving.</p>
+            </div>
+            <div className="timeline-card">
+              <h4>Month 3–6</h4>
+              <p>Therapeutic dose reached. Consistent fat loss. Energy improving. Body composition visibly changing.</p>
+            </div>
+            <div className="timeline-card">
+              <h4>Month 6–12</h4>
+              <p>Significant body composition changes. Approaching goal weight. Discuss maintenance plan with your provider.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -151,23 +208,30 @@ export default function RLTMembershipGuide() {
 
           <div className="safety-grid">
             <div className="safety-card warning">
-              <h4>Contraindications:</h4>
+              <h4>Do Not Use If You:</h4>
               <ul>
-                <li>Photosensitivity medications (tetracycline, doxycycline, etc.)</li>
-                <li>Active skin cancer or lesions in the treatment area</li>
-                <li>History of epilepsy or seizures triggered by light</li>
-                <li>Pregnancy (as a precaution)</li>
+                <li>Are pregnant or breastfeeding</li>
+                <li>Have a history of medullary thyroid cancer or MEN 2</li>
+                <li>Have a history of pancreatitis</li>
+                <li>Have severe gastrointestinal disease</li>
+                <li>Are allergic to any ingredient</li>
               </ul>
             </div>
             <div className="safety-card effects">
               <h4>Possible Side Effects:</h4>
               <ul>
-                <li>Mild warmth or tingling in the treated area</li>
-                <li>Temporary skin redness (resolves within hours)</li>
-                <li>Occasional mild headache</li>
+                <li>Nausea (most common, usually temporary)</li>
+                <li>Diarrhea or constipation</li>
+                <li>Injection site reactions</li>
+                <li>Decreased appetite (intended effect)</li>
+                <li>Mild fatigue during initial adjustment</li>
               </ul>
-              <p className="safety-note">Side effects are generally mild and short-lived. RLT uses no UV light and does not cause burns or skin damage. If you experience anything unusual, let our team know.</p>
+              <p className="safety-note">Retatrutide is currently used off-label/compounded and is not yet FDA-approved. Monitored closely by your provider. GI side effects typically resolve within 1–2 weeks of each dose increase.</p>
             </div>
+          </div>
+
+          <div className="disclaimer">
+            <p><strong>Important:</strong> Individual results vary. These treatments are not FDA-approved to diagnose, treat, cure, or prevent any disease. All protocols are monitored by licensed providers.</p>
           </div>
         </div>
       </section>
@@ -176,7 +240,7 @@ export default function RLTMembershipGuide() {
       <section className="final-cta">
         <div className="container">
           <h2>Questions? We're Here.</h2>
-          <p>Whether you need to schedule a session or have questions about your membership, our team can help.</p>
+          <p>Whether you need a dose adjustment or have questions about your protocol, our team can help.</p>
           <div className="cta-buttons">
             <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988</a>
             <a href="sms:+19499973988" className="btn-outline-white">Text Us</a>
@@ -186,13 +250,11 @@ export default function RLTMembershipGuide() {
       </section>
 
       <style jsx>{`
-        /* Hero */
         .peptide-hero {
           background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
           padding: 3.5rem 1.5rem 3rem;
           text-align: center;
         }
-
         .peptide-hero h1 {
           font-size: 2.25rem;
           font-weight: 700;
@@ -200,7 +262,6 @@ export default function RLTMembershipGuide() {
           letter-spacing: -0.02em;
           margin-bottom: 1rem;
         }
-
         .hero-badge {
           display: inline-block;
           background: #000000;
@@ -211,7 +272,6 @@ export default function RLTMembershipGuide() {
           font-weight: 600;
           margin-bottom: 1.25rem;
         }
-
         .hero-sub {
           font-size: 1.0625rem;
           color: #525252;
@@ -219,7 +279,6 @@ export default function RLTMembershipGuide() {
           margin: 0 auto;
           line-height: 1.7;
         }
-
         .hero-dose {
           display: inline-flex;
           gap: 1.5rem;
@@ -231,21 +290,20 @@ export default function RLTMembershipGuide() {
           font-size: 0.9rem;
           color: #525252;
         }
-
         .hero-dose span {
           font-weight: 600;
           color: #171717;
         }
-
-        /* Sections */
         .section {
           padding: 3.5rem 1.5rem;
         }
-
         .section-gray {
           background: #fafafa;
         }
-
+        .section-dark {
+          background: #000000;
+          color: #ffffff;
+        }
         .section-kicker {
           font-size: 0.75rem;
           font-weight: 700;
@@ -254,14 +312,15 @@ export default function RLTMembershipGuide() {
           color: #737373;
           margin-bottom: 0.5rem;
         }
-
+        .section-dark .section-kicker {
+          color: rgba(255,255,255,0.6);
+        }
         .section-title {
           font-size: 1.75rem;
           font-weight: 700;
           letter-spacing: -0.02em;
           margin-bottom: 0.75rem;
         }
-
         .section-subtitle {
           font-size: 1rem;
           color: #525252;
@@ -269,65 +328,83 @@ export default function RLTMembershipGuide() {
           line-height: 1.7;
           margin-bottom: 2rem;
         }
-
+        .section-dark .section-subtitle {
+          color: rgba(255,255,255,0.8);
+        }
+        .section-dark .section-title {
+          color: #ffffff;
+        }
         .body-text {
           font-size: 0.95rem;
           color: #525252;
           line-height: 1.7;
         }
-
         .container {
           max-width: 800px;
           margin: 0 auto;
         }
-
-        /* Info Grid */
         .info-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1.5rem;
           margin-top: 1.5rem;
         }
-
         .info-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
           border-radius: 12px;
           padding: 1.75rem;
         }
-
         .info-card h3 {
           font-size: 1.125rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
         }
-
         .info-card p {
           font-size: 0.9rem;
           color: #525252;
           line-height: 1.7;
         }
-
-        /* Steps */
+        .dose-table {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        .dose-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem 1.5rem;
+          border-bottom: 1px solid #e5e5e5;
+        }
+        .dose-row:last-child {
+          border-bottom: none;
+        }
+        .dose-amount {
+          font-weight: 600;
+          font-size: 1rem;
+          color: #171717;
+        }
+        .dose-price {
+          font-weight: 700;
+          font-size: 1rem;
+          color: #000000;
+        }
         .steps-list {
           margin-top: 1.5rem;
         }
-
         .step-item {
           display: flex;
-          align-items: flex-start;
           gap: 1rem;
           padding: 1.25rem 0;
           border-bottom: 1px solid #e5e5e5;
         }
-
         .step-item:last-child {
           border-bottom: none;
         }
-
         .step-number {
           width: 2rem;
-          min-width: 2rem;
           height: 2rem;
           background: #000000;
           color: #ffffff;
@@ -339,71 +416,77 @@ export default function RLTMembershipGuide() {
           font-size: 0.875rem;
           flex-shrink: 0;
         }
-
-        .step-content {
-          flex: 1;
-        }
-
         .step-content h4 {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.25rem;
         }
-
         .step-content p {
           font-size: 0.9rem;
           color: #525252;
           line-height: 1.6;
         }
-
-        /* Tip Box */
         .tip-box {
           background: #ffffff;
           border-left: 4px solid #000000;
           padding: 1.25rem 1.5rem;
-          margin-bottom: 1rem;
+          margin-top: 1.5rem;
           border-radius: 0 8px 8px 0;
         }
-
         .tip-box strong {
           display: block;
           margin-bottom: 0.25rem;
         }
-
         .tip-box p {
           font-size: 0.9rem;
           color: #525252;
           line-height: 1.6;
           margin: 0;
         }
-
-        /* Safety */
+        .timeline-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-top: 1.5rem;
+        }
+        .timeline-card {
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 12px;
+          padding: 1.5rem;
+        }
+        .timeline-card h4 {
+          font-size: 1rem;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+        }
+        .timeline-card p {
+          font-size: 0.875rem;
+          color: rgba(255,255,255,0.8);
+          line-height: 1.6;
+        }
         .safety-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1.5rem;
         }
-
         .safety-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
           border-radius: 12px;
           padding: 1.5rem;
         }
-
         .safety-card h4 {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
           color: #171717;
         }
-
         .safety-card ul {
           list-style: none;
           padding: 0;
           margin: 0;
         }
-
         .safety-card li {
           font-size: 0.875rem;
           color: #525252;
@@ -412,7 +495,6 @@ export default function RLTMembershipGuide() {
           position: relative;
           line-height: 1.5;
         }
-
         .safety-card.warning li::before {
           content: "✕";
           position: absolute;
@@ -420,7 +502,6 @@ export default function RLTMembershipGuide() {
           color: #171717;
           font-weight: 600;
         }
-
         .safety-card.effects li::before {
           content: "•";
           position: absolute;
@@ -428,35 +509,42 @@ export default function RLTMembershipGuide() {
           color: #737373;
           font-weight: 700;
         }
-
         .safety-note {
           font-size: 0.8125rem;
           color: #737373;
           margin-top: 0.75rem;
           padding-left: 0;
         }
-
-        /* Final CTA */
+        .disclaimer {
+          background: #fafafa;
+          border: 1px solid #e5e5e5;
+          border-radius: 8px;
+          padding: 1.25rem;
+          margin-top: 1.5rem;
+        }
+        .disclaimer p {
+          font-size: 0.8125rem;
+          color: #737373;
+          line-height: 1.6;
+          margin: 0;
+        }
         .final-cta {
           background: #000000;
           color: #ffffff;
           padding: 3.5rem 1.5rem;
           text-align: center;
         }
-
         .final-cta h2 {
           font-size: 1.75rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
           letter-spacing: -0.02em;
         }
-
         .final-cta p {
           font-size: 1rem;
           color: rgba(255,255,255,0.8);
           margin-bottom: 1.5rem;
         }
-
         .cta-buttons {
           display: flex;
           justify-content: center;
@@ -464,7 +552,6 @@ export default function RLTMembershipGuide() {
           flex-wrap: wrap;
           margin-bottom: 1.5rem;
         }
-
         .btn-white {
           display: inline-block;
           background: #ffffff;
@@ -476,12 +563,10 @@ export default function RLTMembershipGuide() {
           font-size: 0.9375rem;
           transition: all 0.2s;
         }
-
         .btn-white:hover {
           background: #f5f5f5;
           transform: translateY(-1px);
         }
-
         .btn-outline-white {
           display: inline-block;
           background: transparent;
@@ -494,37 +579,30 @@ export default function RLTMembershipGuide() {
           font-size: 0.9375rem;
           transition: all 0.2s;
         }
-
         .btn-outline-white:hover {
           background: #ffffff;
           color: #000000;
         }
-
         .cta-location {
           font-size: 0.9rem;
           color: rgba(255,255,255,0.7);
         }
-
-        /* Responsive */
         @media (max-width: 768px) {
           .peptide-hero h1 {
             font-size: 1.875rem;
           }
-
           .hero-dose {
             flex-direction: column;
             gap: 0.5rem;
           }
-
           .info-grid,
-          .safety-grid {
+          .safety-grid,
+          .timeline-grid {
             grid-template-columns: 1fr;
           }
-
           .section-title {
             font-size: 1.5rem;
           }
-
           .cta-buttons {
             flex-direction: column;
             align-items: center;

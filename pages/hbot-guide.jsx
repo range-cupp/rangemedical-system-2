@@ -1,11 +1,11 @@
 import Layout from '../components/Layout';
 import Head from 'next/head';
 
-export default function ComboMembershipGuide() {
+export default function HBOTGuide() {
   return (
     <Layout
-      title="Combo Membership Guide | Range Medical"
-      description="Your guide to the Hyperbaric + Red Light combo membership. Schedule, pricing, and how to get the most from your sessions. Range Medical, Newport Beach. (949) 997-3988"
+      title="Hyperbaric Oxygen Therapy Guide | Range Medical"
+      description="Your guide to hyperbaric oxygen therapy (HBOT). How it works, what a session is like, and what to expect. Range Medical, Newport Beach. (949) 997-3988"
     >
       <Head>
         <script
@@ -14,9 +14,9 @@ export default function ComboMembershipGuide() {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "MedicalWebPage",
-              "name": "Combo Membership Guide — HBOT + Red Light Therapy",
-              "description": "Patient guide for the HBOT + Red Light Therapy combo membership including pricing, session expectations, and safety information.",
-              "url": "https://www.range-medical.com/combo-membership-guide",
+              "name": "Hyperbaric Oxygen Therapy Guide",
+              "description": "Patient guide for hyperbaric oxygen therapy including session expectations, pricing, and safety information.",
+              "url": "https://www.range-medical.com/hbot-guide",
               "provider": {
                 "@type": "MedicalBusiness",
                 "name": "Range Medical",
@@ -38,12 +38,12 @@ export default function ComboMembershipGuide() {
       {/* Hero */}
       <section className="peptide-hero">
         <div className="container">
-          <span className="hero-badge">Your Combo Membership Guide</span>
-          <h1>Hyperbaric + Red Light Combo Membership</h1>
-          <p className="hero-sub">Everything you need to know about your membership — your schedule, what each session includes, and how to get the most from it.</p>
+          <span className="hero-badge">Your Hyperbaric Oxygen Therapy Guide</span>
+          <h1>Hyperbaric Oxygen Therapy</h1>
+          <p className="hero-sub">Everything you need to know about HBOT — how it works, what a session is like, and what to expect.</p>
           <div className="hero-dose">
-            <div><span>HBOT:</span> 60 min at 2.0 ATA</div>
-            <div><span>RLT:</span> 20 min full-body</div>
+            <div><span>Pressure:</span> 2.0 ATA</div>
+            <div><span>Session:</span> 60 minutes</div>
           </div>
         </div>
       </section>
@@ -52,60 +52,63 @@ export default function ComboMembershipGuide() {
       <section className="section">
         <div className="container">
           <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">Two Therapies, One Visit</h2>
-          <p className="section-subtitle">Your combo membership pairs both therapies into one visit. Each session includes a Hyperbaric Oxygen session (60 min) and a Red Light Therapy session (20 min) back to back.</p>
-          <p className="body-text">Consistent combo sessions create compounding cellular benefits. HBOT floods your tissues with oxygen from the inside while RLT stimulates cellular repair from the outside. Together, they accelerate recovery, reduce inflammation, and support your body from multiple angles.</p>
+          <h2 className="section-title">What Is HBOT?</h2>
+          <p className="section-subtitle">You relax in a pressurized chamber while breathing pure oxygen at 2.0 ATA (atmospheres absolute). Under pressure, oxygen dissolves into your blood plasma at much higher concentrations than normal breathing.</p>
+          <p className="body-text">This oxygen-rich blood reaches tissues that need it most — supporting recovery, reducing inflammation, and promoting cellular repair throughout your entire body.</p>
         </div>
       </section>
 
-      {/* Membership Tiers */}
+      {/* Sessions & Packs */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Pricing</div>
-          <h2 className="section-title">Choose Your Frequency</h2>
-          <p className="section-subtitle">3-month minimum, then month-to-month. All plans include both HBOT and RLT sessions.</p>
+          <div className="section-kicker">Sessions</div>
+          <h2 className="section-title">Sessions & Packs</h2>
+          <p className="section-subtitle">Start with a single session or save with a pack.</p>
+
+          <div className="protocol-grid">
+            <div className="protocol-card">
+              <div className="protocol-days">Single Session</div>
+              <div className="protocol-price">$185</div>
+              <p className="protocol-desc">60 minutes at 2.0 ATA. Try HBOT or use as a one-off session.</p>
+            </div>
+            <div className="protocol-card featured">
+              <span className="protocol-badge">Best Value</span>
+              <div className="protocol-days">5-Pack</div>
+              <div className="protocol-price">$850</div>
+              <p className="protocol-desc">$170/session. Great for building initial momentum.</p>
+            </div>
+            <div className="protocol-card">
+              <div className="protocol-days">10-Pack</div>
+              <div className="protocol-price">$1,600</div>
+              <p className="protocol-desc">$160/session. Best pack value for committed protocols.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Memberships */}
+      <section className="section">
+        <div className="container">
+          <div className="section-kicker">Memberships</div>
+          <h2 className="section-title">HBOT Memberships</h2>
+          <p className="section-subtitle">3-month minimum, then month-to-month. Additional sessions on membership: $150 each.</p>
 
           <div className="protocol-grid">
             <div className="protocol-card">
               <div className="protocol-days">1x / Week</div>
-              <div className="protocol-price">$899<span className="price-period">/mo</span></div>
-              <p className="protocol-desc">4 HBOT + 4 Red Light sessions per month. $225/visit. Great for maintaining a baseline of recovery.</p>
+              <div className="protocol-price">$549<span className="price-period">/mo</span></div>
+              <p className="protocol-desc">4 sessions per month. Maintain a baseline of recovery and cellular support.</p>
             </div>
             <div className="protocol-card featured">
               <span className="protocol-badge">Most Popular</span>
               <div className="protocol-days">2x / Week</div>
-              <div className="protocol-price">$1,499<span className="price-period">/mo</span></div>
-              <p className="protocol-desc">8 HBOT + 8 Red Light sessions per month. $187/visit. The sweet spot for compounding benefits.</p>
+              <div className="protocol-price">$1,049<span className="price-period">/mo</span></div>
+              <p className="protocol-desc">8 sessions per month. Consistent progress and compounding benefits.</p>
             </div>
             <div className="protocol-card">
               <div className="protocol-days">3x / Week</div>
-              <div className="protocol-price">$1,999<span className="price-period">/mo</span></div>
-              <p className="protocol-desc">12 HBOT + 12 Red Light sessions per month. $167/visit. Maximum frequency for accelerated results.</p>
-            </div>
-          </div>
-
-          <div className="combo-box" style={{ marginTop: '1.5rem' }}>
-            <h3>How It Compares</h3>
-            <p>Walk-in singles: $270/visit (HBOT $185 + RLT $85). Combo membership saves you $45–$103 per visit depending on your plan.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Each Session */}
-      <section className="section">
-        <div className="container">
-          <div className="section-kicker">Your Sessions</div>
-          <h2 className="section-title">What Each Visit Includes</h2>
-          <p className="section-subtitle">Most patients do Red Light first, then Hyperbaric. Both can be done in the same visit.</p>
-
-          <div className="info-grid">
-            <div className="info-card">
-              <h3>🫁 Hyperbaric Oxygen Therapy</h3>
-              <p>60 minutes at 2.0 ATA. Relax in the pressurized chamber while concentrated oxygen reaches every tissue in your body. Supports recovery, reduces inflammation, and boosts cellular energy.</p>
-            </div>
-            <div className="info-card">
-              <h3>💡 Red Light Therapy</h3>
-              <p>20-minute full-body treatment using 660nm red and 850nm near-infrared wavelengths. Stimulates mitochondria, boosts ATP production, and supports tissue repair.</p>
+              <div className="protocol-price">$1,499<span className="price-period">/mo</span></div>
+              <p className="protocol-desc">12 sessions per month. Maximum frequency for accelerated results.</p>
             </div>
           </div>
         </div>
@@ -115,35 +118,35 @@ export default function ComboMembershipGuide() {
       <section className="section section-gray">
         <div className="container">
           <div className="section-kicker">Instructions</div>
-          <h2 className="section-title">Getting the Most from Your Membership</h2>
+          <h2 className="section-title">What to Know Before Your Session</h2>
 
           <div className="steps-list">
             <div className="step-item">
               <div className="step-number">1</div>
               <div className="step-content">
-                <h4>Stay Hydrated</h4>
-                <p>Drink plenty of water before and after sessions. Hydration supports oxygen circulation and the cellular processes both therapies activate.</p>
+                <h4>Wear Comfortable Clothing</h4>
+                <p>Loose-fitting clothing works best. No metal jewelry in the chamber.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">2</div>
               <div className="step-content">
-                <h4>Be Consistent</h4>
-                <p>The benefits of both therapies build over time with regular use. Stick to your schedule — consistency compounds results.</p>
+                <h4>Equalize Ear Pressure</h4>
+                <p>As the chamber pressurizes, equalize your ears as you would on an airplane — swallow, yawn, or pinch your nose and gently blow.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">3</div>
               <div className="step-content">
-                <h4>Expose Skin for RLT</h4>
-                <p>Red and near-infrared light can't penetrate clothing. For RLT sessions, expose the target area directly to the panels.</p>
+                <h4>Relax for 60 Minutes</h4>
+                <p>Read, listen to music, or sleep. The session is 60 minutes at pressure. Many patients find it deeply relaxing.</p>
               </div>
             </div>
             <div className="step-item">
               <div className="step-number">4</div>
               <div className="step-content">
-                <h4>Comfortable Clothing for HBOT</h4>
-                <p>Wear loose, comfortable clothing. No metal jewelry in the chamber. Avoid lotions, oils, or perfumes before HBOT sessions.</p>
+                <h4>Hydrate Before and After</h4>
+                <p>Good hydration supports oxygen circulation and recovery. Drink plenty of water before and after your session.</p>
               </div>
             </div>
           </div>
@@ -155,64 +158,50 @@ export default function ComboMembershipGuide() {
         <div className="container">
           <div className="section-kicker">Timeline</div>
           <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">Benefits build each month as your body adapts and cells become more efficient.</p>
+          <p className="section-subtitle">Benefits build with consistent sessions.</p>
 
           <div className="timeline-grid">
             <div className="timeline-card">
-              <h4>Month 1</h4>
-              <p>Body adapts. Early improvements in sleep, energy, and recovery. Your cells are beginning to respond to consistent treatment.</p>
+              <h4>First Session</h4>
+              <p>Some notice improved energy and clarity. Mild ear pressure is normal and resolves quickly.</p>
             </div>
             <div className="timeline-card">
-              <h4>Month 2–3</h4>
-              <p>Compounding benefits. Noticeable improvements across energy, inflammation, and recovery. This is where the magic happens.</p>
+              <h4>Sessions 5–10</h4>
+              <p>Cumulative benefits — reduced inflammation, improved recovery, better sleep quality.</p>
             </div>
             <div className="timeline-card">
-              <h4>Ongoing</h4>
-              <p>Sustained optimization. Many patients stay on the membership after their initial 3-month commitment because the benefits continue to build.</p>
+              <h4>Sessions 10–20+</h4>
+              <p>Deeper tissue healing, sustained energy, cognitive improvements. This is where the compounding effect really shows.</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6-Week Reset Callout */}
-      <section className="section">
-        <div className="container">
-          <div className="combo-box">
-            <h3>Already Considering the 6-Week Reset?</h3>
-            <p>The Cellular Energy Reset ($3,999) is the most structured program — 18 HBOT + 18 Red Light sessions over 6 weeks with weekly check-ins and a money-back guarantee. The combo membership is ideal for patients who want ongoing access at their own pace.</p>
           </div>
         </div>
       </section>
 
       {/* Safety */}
-      <section className="section section-gray">
+      <section className="section">
         <div className="container">
           <div className="section-kicker">Safety</div>
           <h2 className="section-title">Important Safety Information</h2>
 
           <div className="safety-grid">
             <div className="safety-card warning">
-              <h4>Contraindications:</h4>
+              <h4>Do Not Use If You Have:</h4>
               <ul>
-                <li>Untreated pneumothorax (HBOT)</li>
-                <li>Certain lung conditions (HBOT)</li>
-                <li>Untreated ear or sinus infections (HBOT)</li>
-                <li>Severe claustrophobia (HBOT)</li>
-                <li>Active cancerous lesions (RLT)</li>
-                <li>Photosensitivity medications (RLT)</li>
+                <li>Untreated pneumothorax</li>
+                <li>Certain lung conditions</li>
+                <li>Active ear infections</li>
+                <li>Severe claustrophobia</li>
                 <li>Pregnancy</li>
               </ul>
             </div>
             <div className="safety-card effects">
               <h4>Possible Side Effects:</h4>
               <ul>
-                <li>Mild ear pressure during HBOT pressurization</li>
-                <li>Temporary lightheadedness after HBOT</li>
-                <li>Mild warmth or tingling during RLT</li>
-                <li>Temporary skin redness from RLT (resolves quickly)</li>
-                <li>Slight fatigue (typically resolves within hours)</li>
+                <li>Mild ear pressure during pressurization</li>
+                <li>Temporary lightheadedness</li>
+                <li>Slight fatigue (resolves within hours)</li>
               </ul>
-              <p className="safety-note">Side effects are generally mild and short-lived. We screen for all contraindications before your first session.</p>
+              <p className="safety-note">We screen for all contraindications before your first session. Let our team know if you experience anything unusual.</p>
             </div>
           </div>
 
@@ -226,7 +215,7 @@ export default function ComboMembershipGuide() {
       <section className="final-cta">
         <div className="container">
           <h2>Questions? We're Here.</h2>
-          <p>Whether you need to schedule sessions or have questions about your membership, our team can help.</p>
+          <p>Whether you want to schedule a session or explore a membership, our team can help.</p>
           <div className="cta-buttons">
             <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988</a>
             <a href="sms:+19499973988" className="btn-outline-white">Text Us</a>
@@ -253,13 +242,6 @@ export default function ComboMembershipGuide() {
         .section-dark .section-title { color: #ffffff; }
         .body-text { font-size: 0.95rem; color: #525252; line-height: 1.7; }
         .container { max-width: 800px; margin: 0 auto; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-        .info-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.75rem; }
-        .info-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.75rem; }
-        .info-card p { font-size: 0.9rem; color: #525252; line-height: 1.7; }
-        .combo-box { background: #000000; color: #ffffff; border-radius: 12px; padding: 1.75rem; text-align: center; }
-        .combo-box h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem; color: #ffffff; }
-        .combo-box p { font-size: 0.9rem; color: rgba(255,255,255,0.85); line-height: 1.7; }
         .protocol-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
         .protocol-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.2s; }
         .protocol-card:hover { border-color: #000000; }
@@ -301,9 +283,10 @@ export default function ComboMembershipGuide() {
         @media (max-width: 768px) {
           .peptide-hero h1 { font-size: 1.875rem; }
           .hero-dose { flex-direction: column; gap: 0.5rem; }
-          .info-grid, .safety-grid, .timeline-grid { grid-template-columns: 1fr; }
+          .timeline-grid { grid-template-columns: 1fr; }
           .protocol-grid { grid-template-columns: 1fr; gap: 1rem; }
           .protocol-card.featured { order: -1; }
+          .safety-grid { grid-template-columns: 1fr; }
           .section-title { font-size: 1.5rem; }
           .cta-buttons { flex-direction: column; align-items: center; }
         }

@@ -316,6 +316,7 @@ export default function HBOTMembershipGuide() {
 
         .step-item {
           display: flex;
+          align-items: flex-start;
           gap: 1rem;
           padding: 1.25rem 0;
           border-bottom: 1px solid #e5e5e5;
@@ -327,6 +328,7 @@ export default function HBOTMembershipGuide() {
 
         .step-number {
           width: 2rem;
+          min-width: 2rem;
           height: 2rem;
           background: #000000;
           color: #ffffff;
@@ -337,6 +339,10 @@ export default function HBOTMembershipGuide() {
           font-weight: 700;
           font-size: 0.875rem;
           flex-shrink: 0;
+        }
+
+        .step-content {
+          flex: 1;
         }
 
         .step-content h4 {

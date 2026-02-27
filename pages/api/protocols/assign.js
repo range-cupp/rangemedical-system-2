@@ -57,7 +57,8 @@ export default async function handler(req, res) {
       hrtType,
       hrtRemindersEnabled,
       hrtReminderSchedule,
-      followupDate
+      followupDate,
+      hrtInitialQuantity
     } = req.body;
 
     // For non-weight-loss, template is required
@@ -332,13 +333,26 @@ export default async function handler(req, res) {
         hrt_reminders_enabled: hrtRemindersEnabled || false,
         hrt_reminder_schedule: hrtReminderSchedule || null,
         hrt_followup_date: followupDate || null,
+        hrt_initial_quantity: hrtInitialQuantity ? parseInt(hrtInitialQuantity) : null,
         last_refill_date: startDate, // Initialize refill date to start date
-        next_expected_date: calculateNextExpectedDate({
-          protocolType: programType,
-          startDate,
-          supplyType: supplyType || null,
-          pickupFrequency: pickupFrequencyDays || null,
-        }),
+        next_expected_date: (() => {
+          // For HRT take-home, calculate next supply date from initial quantity
+          if (programType === 'hrt' && hrtInitialQuantity && (deliveryMethod || 'take_home') === 'take_home') {
+            const perWeek = injectionsPerWeek ? parseInt(injectionsPerWeek) : 2;
+            const qty = parseInt(hrtInitialQuantity);
+            const weeksSupply = qty / perWeek;
+            const supplyDays = Math.round(weeksSupply * 7);
+            const nextDate = new Date(startDate + 'T12:00:00');
+            nextDate.setDate(nextDate.getDate() + supplyDays);
+            return nextDate.toISOString().split('T')[0];
+          }
+          return calculateNextExpectedDate({
+            protocolType: programType,
+            startDate,
+            supplyType: supplyType || null,
+            pickupFrequency: pickupFrequencyDays || null,
+          });
+        })(),
         cycle_start_date: cycleStartDate,
         created_at: new Date().toISOString()
       })

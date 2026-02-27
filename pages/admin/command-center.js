@@ -1030,6 +1030,7 @@ export default function CommandCenter() {
       hrtRemindersEnabled: true,
       followupDate: '',
       supplyType: 'prefilled',
+      hrtQuantity: 8,
     });
     setLogFirstVisit(true);
     setFirstVisitData({
@@ -1445,7 +1446,8 @@ export default function CommandCenter() {
             injectionsPerWeek: isHRTTemplate() ? 2 : undefined,
             hrtRemindersEnabled: isHRTTemplate() ? (assignForm.hrtRemindersEnabled !== false) : undefined,
             hrtReminderSchedule: isHRTTemplate() ? (assignForm.hrtReminderSchedule || null) : undefined,
-            followupDate: isHRTTemplate() ? (assignForm.followupDate || null) : undefined
+            followupDate: isHRTTemplate() ? (assignForm.followupDate || null) : undefined,
+            hrtInitialQuantity: isHRTTemplate() ? (assignForm.hrtQuantity || null) : undefined
           })
         });
       }
@@ -2973,7 +2975,7 @@ export default function CommandCenter() {
               ) : (
                 <select
                   value={assignForm.templateId}
-                  onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled'})}
+                  onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8})}
                   style={styles.formSelect}
                 >
                   <option value="">Select template...</option>
@@ -3078,7 +3080,7 @@ export default function CommandCenter() {
                   </select>
                 </div>
 
-                {assignForm.deliveryMethod === 'take_home' && (
+                {(assignForm.deliveryMethod || 'take_home') === 'take_home' && (
                   <>
                     <div style={styles.modalFormGroup}>
                       <label style={styles.formLabel}>Supply Type *</label>
@@ -3091,6 +3093,40 @@ export default function CommandCenter() {
                         <option value="vial">Vial (10ml)</option>
                       </select>
                     </div>
+
+                    {(assignForm.supplyType || 'prefilled') === 'prefilled' && (
+                      <div style={styles.modalFormGroup}>
+                        <label style={styles.formLabel}>Initial Supply (syringes)</label>
+                        <select
+                          value={assignForm.hrtQuantity || 8}
+                          onChange={e => setAssignForm({...assignForm, hrtQuantity: parseInt(e.target.value)})}
+                          style={styles.formSelect}
+                        >
+                          <option value={4}>4 syringes (2 weeks)</option>
+                          <option value={8}>8 syringes (4 weeks)</option>
+                          <option value={12}>12 syringes (6 weeks)</option>
+                          <option value={16}>16 syringes (8 weeks)</option>
+                        </select>
+                        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                          At 2x/week — next supply due in {((assignForm.hrtQuantity || 8) / 2)} weeks
+                        </div>
+                      </div>
+                    )}
+
+                    {(assignForm.supplyType) === 'vial' && (
+                      <div style={styles.modalFormGroup}>
+                        <label style={styles.formLabel}>Vial Quantity</label>
+                        <select
+                          value={assignForm.hrtQuantity || 1}
+                          onChange={e => setAssignForm({...assignForm, hrtQuantity: parseInt(e.target.value)})}
+                          style={styles.formSelect}
+                        >
+                          {[1, 2, 3].map(n => (
+                            <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''} (10ml)</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     <div style={styles.modalFormGroup}>
                       <label style={styles.formLabel}>Injection Reminder Schedule</label>

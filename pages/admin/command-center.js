@@ -670,6 +670,23 @@ export default function CommandCenter() {
           labSchedule = matchDrawsToLogs(schedule, bloodDrawLogs, patientLabs);
         }
 
+        // Check monthly IV usage for HRT protocols
+        let monthlyIVUsed = null;
+        if (isHRTProtocol(proto.program_type) && proto.patient_id && proto.last_payment_date) {
+          try {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const ivRes = await fetch(`/api/service-log?patient_id=${proto.patient_id}&category=iv&since=${thirtyDaysAgo.toISOString().split('T')[0]}`);
+            if (ivRes.ok) {
+              const ivData = await ivRes.json();
+              const ivLogs = ivData.logs || ivData.data || [];
+              if (ivLogs.length > 0) {
+                monthlyIVUsed = ivLogs[0].service_date || ivLogs[0].created_at?.split('T')[0];
+              }
+            }
+          } catch {}
+        }
+
         setProtocolDetailPanel(prev => ({
           ...prev,
           protocol: proto,
@@ -677,6 +694,7 @@ export default function CommandCenter() {
           activityLogs: result.activityLogs || [],
           weightProgress: result.weightProgress,
           labSchedule,
+          monthlyIVUsed,
           loading: false
         }));
       }
@@ -1005,7 +1023,13 @@ export default function CommandCenter() {
       pickupFrequency: '',
       injectionFrequency: '',
       injectionDay: '',
-      checkinReminderEnabled: false
+      checkinReminderEnabled: false,
+      // HRT specific fields
+      hrtType: 'male',
+      hrtReminderSchedule: 'mon_thu',
+      hrtRemindersEnabled: true,
+      followupDate: '',
+      supplyType: 'prefilled',
     });
     setLogFirstVisit(true);
     setFirstVisitData({
@@ -1258,6 +1282,13 @@ export default function CommandCenter() {
     }
   };
 
+  // Parse dose volume from dose string like '0.4ml/80mg' → 0.4
+  const parseDoseVolume = (doseStr) => {
+    if (!doseStr) return null;
+    const match = doseStr.match(/([\d.]+)ml/);
+    return match ? parseFloat(match[1]) : null;
+  };
+
   const SL_WEIGHT_LOSS_MEDS = WEIGHT_LOSS_MEDICATIONS.map(med => ({
     value: med.value, label: med.label, dosages: WEIGHT_LOSS_DOSAGES[med.value] || []
   }));
@@ -1402,11 +1433,19 @@ export default function CommandCenter() {
               : null,
             // Weight loss specific fields
             wlMedication: assignForm.wlMedication || null,
-            medication: assignForm.wlMedication || assignForm.ivType || null,
+            medication: isHRTTemplate() ? 'Testosterone Cypionate' : (assignForm.wlMedication || assignForm.ivType || null),
             pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
             injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
             injectionDay: assignForm.injectionDay || null,
-            checkinReminderEnabled: assignForm.checkinReminderEnabled || false
+            checkinReminderEnabled: assignForm.checkinReminderEnabled || false,
+            // HRT specific fields
+            hrtType: isHRTTemplate() ? (assignForm.hrtType || 'male') : undefined,
+            supplyType: isHRTTemplate() ? (assignForm.supplyType || null) : undefined,
+            dosePerInjection: isHRTTemplate() ? parseDoseVolume(assignForm.customDose || assignForm.selectedDose) : undefined,
+            injectionsPerWeek: isHRTTemplate() ? 2 : undefined,
+            hrtRemindersEnabled: isHRTTemplate() ? (assignForm.hrtRemindersEnabled !== false) : undefined,
+            hrtReminderSchedule: isHRTTemplate() ? (assignForm.hrtReminderSchedule || null) : undefined,
+            followupDate: isHRTTemplate() ? (assignForm.followupDate || null) : undefined
           })
         });
       }
@@ -1416,6 +1455,15 @@ export default function CommandCenter() {
         const isNewProtocol = !addToExistingProtocol && !extendExistingWL && !addToExistingVitamin;
         if (logFirstVisit && isNewProtocol && !isLabsTemplate()) {
           try {
+            // Sync HRT assign form fields into firstVisitData before building payload
+            if (isHRTTemplate()) {
+              firstVisitData.hrtType = assignForm.hrtType || 'male';
+              firstVisitData.dosage = assignForm.customDose || assignForm.selectedDose || firstVisitData.dosage;
+              firstVisitData.entryType = assignForm.deliveryMethod === 'in_clinic' ? 'injection' : (firstVisitData.entryType || 'injection');
+              if (assignForm.deliveryMethod === 'take_home' && assignForm.supplyType) {
+                firstVisitData.pickupType = assignForm.supplyType === 'vial' ? 'vial' : 'prefilled';
+              }
+            }
             const servicePayload = buildServiceLogPayload();
             if (servicePayload) {
               const logRes = await fetch('/api/service-log', {
@@ -1566,7 +1614,14 @@ export default function CommandCenter() {
           medication: editingProtocol.medication || null,
           frequency: editingProtocol.frequency || null,
           pickup_frequency: editingProtocol.pickup_frequency || null,
-          starting_weight: editingProtocol.starting_weight || null
+          starting_weight: editingProtocol.starting_weight || null,
+          // HRT specific fields
+          hrt_type: editingProtocol.hrt_type || null,
+          dose_per_injection: editingProtocol.dose_per_injection || null,
+          injections_per_week: editingProtocol.injections_per_week || null,
+          hrt_followup_date: editingProtocol.hrt_followup_date || null,
+          hrt_reminders_enabled: editingProtocol.hrt_reminders_enabled || false,
+          hrt_reminder_schedule: editingProtocol.hrt_reminder_schedule || null
         })
       });
 
@@ -2094,8 +2149,100 @@ export default function CommandCenter() {
                           </div>
                         )
                       )}
+                      {/* HRT Follow-Up Date */}
+                      {protocolDetailPanel.protocol.program_type === 'hrt' && protocolDetailPanel.protocol.hrt_followup_date && (
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>8-Week Follow-Up</span>
+                          <span style={{
+                            ...styles.protocolDetailValue,
+                            color: (() => {
+                              const fu = new Date(protocolDetailPanel.protocol.hrt_followup_date + 'T12:00:00');
+                              const now = new Date();
+                              const diff = Math.ceil((fu - now) / (1000 * 60 * 60 * 24));
+                              return diff < 0 ? '#DC2626' : diff <= 7 ? '#F59E0B' : '#16A34A';
+                            })(),
+                            fontWeight: 600
+                          }}>
+                            {formatDate(protocolDetailPanel.protocol.hrt_followup_date)}
+                            {(() => {
+                              const fu = new Date(protocolDetailPanel.protocol.hrt_followup_date + 'T12:00:00');
+                              const now = new Date();
+                              const diff = Math.ceil((fu - now) / (1000 * 60 * 60 * 24));
+                              if (diff < 0) return ' (overdue)';
+                              if (diff <= 7) return ` (in ${diff} days)`;
+                              return '';
+                            })()}
+                          </span>
+                        </div>
+                      )}
+                      {/* HRT Supply Type */}
+                      {protocolDetailPanel.protocol.program_type === 'hrt' && protocolDetailPanel.protocol.supply_type && (
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>Supply Type</span>
+                          <span style={styles.protocolDetailValue}>
+                            {protocolDetailPanel.protocol.supply_type === 'vial' ? 'Vial (10ml)' : protocolDetailPanel.protocol.supply_type === 'prefilled' ? 'Prefilled Syringes' : protocolDetailPanel.protocol.supply_type}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* HRT Supply Tracking */}
+                  {protocolDetailPanel.protocol.program_type === 'hrt' && protocolDetailPanel.protocol.delivery_method === 'take_home' && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>Supply Tracking</h4>
+                      <div style={styles.protocolDetailGrid}>
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>Last Supply</span>
+                          <span style={styles.protocolDetailValue}>
+                            {protocolDetailPanel.protocol.last_refill_date ? formatDate(protocolDetailPanel.protocol.last_refill_date) : 'Not recorded'}
+                          </span>
+                        </div>
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>Next Supply Due</span>
+                          <span style={(() => {
+                            const refill = getVialRefillDate(protocolDetailPanel.protocol);
+                            if (!refill) return styles.protocolDetailValue;
+                            const now = new Date();
+                            const diff = Math.ceil((refill - now) / (1000 * 60 * 60 * 24));
+                            return { ...styles.protocolDetailValue, color: diff <= 7 ? '#DC2626' : diff <= 14 ? '#F59E0B' : '#16A34A', fontWeight: 600 };
+                          })()}>
+                            {(() => {
+                              const refill = getVialRefillDate(protocolDetailPanel.protocol);
+                              if (!refill) return 'N/A';
+                              const diff = Math.ceil((refill - new Date()) / (1000 * 60 * 60 * 24));
+                              const label = refill.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              return `${label} (${diff <= 0 ? 'overdue' : `~${diff} days`})`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Monthly IV Status (HRT membership) */}
+                  {protocolDetailPanel.protocol.program_type === 'hrt' && protocolDetailPanel.protocol.last_payment_date && (
+                    <div style={styles.protocolDetailSection}>
+                      <h4 style={styles.protocolDetailSectionTitle}>Monthly Complimentary IV</h4>
+                      <div style={{ padding: '8px 0' }}>
+                        {protocolDetailPanel.monthlyIVUsed ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
+                            <span style={{ fontSize: '14px', color: '#16A34A', fontWeight: 500 }}>
+                              Used — {formatDate(protocolDetailPanel.monthlyIVUsed)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B' }} />
+                            <span style={{ fontSize: '14px', color: '#D97706', fontWeight: 500 }}>
+                              Available — not yet scheduled this period
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* HRT Lab Draw Schedule */}
                   {protocolDetailPanel.labSchedule.length > 0 && (
@@ -2826,7 +2973,7 @@ export default function CommandCenter() {
               ) : (
                 <select
                   value={assignForm.templateId}
-                  onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: ''})}
+                  onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled'})}
                   style={styles.formSelect}
                 >
                   <option value="">Select template...</option>
@@ -2872,6 +3019,144 @@ export default function CommandCenter() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* HRT Protocol Options */}
+            {isHRTTemplate() && !addToExistingProtocol && (
+              <>
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>HRT Type *</label>
+                  <select
+                    value={assignForm.hrtType || 'male'}
+                    onChange={e => {
+                      const hrtType = e.target.value;
+                      setAssignForm({...assignForm, hrtType, selectedDose: '', medication: 'Testosterone Cypionate', frequency: '2x per week', deliveryMethod: assignForm.deliveryMethod || 'take_home'});
+                    }}
+                    style={styles.formSelect}
+                  >
+                    <option value="male">{SL_TESTOSTERONE_OPTIONS.male.label}</option>
+                    <option value="female">{SL_TESTOSTERONE_OPTIONS.female.label}</option>
+                  </select>
+                </div>
+
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Dosage *</label>
+                  <select
+                    value={assignForm.selectedDose || ''}
+                    onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value, customDose: null})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select dosage...</option>
+                    {SL_TESTOSTERONE_OPTIONS[assignForm.hrtType || 'male'].dosages.map(d => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {assignForm.selectedDose === 'custom' && (
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Custom Dosage</label>
+                    <input
+                      type="text"
+                      value={assignForm.customDose || ''}
+                      onChange={e => setAssignForm({...assignForm, customDose: e.target.value})}
+                      placeholder="e.g. 0.45ml/90mg"
+                      style={styles.formInput}
+                    />
+                  </div>
+                )}
+
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Delivery Method *</label>
+                  <select
+                    value={assignForm.deliveryMethod || 'take_home'}
+                    onChange={e => setAssignForm({...assignForm, deliveryMethod: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="in_clinic">In Clinic</option>
+                    <option value="take_home">Take Home</option>
+                  </select>
+                </div>
+
+                {assignForm.deliveryMethod === 'take_home' && (
+                  <>
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Supply Type *</label>
+                      <select
+                        value={assignForm.supplyType || 'prefilled'}
+                        onChange={e => setAssignForm({...assignForm, supplyType: e.target.value})}
+                        style={styles.formSelect}
+                      >
+                        <option value="prefilled">Prefilled Syringes</option>
+                        <option value="vial">Vial (10ml)</option>
+                      </select>
+                    </div>
+
+                    <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Injection Reminder Schedule</label>
+                      <select
+                        value={assignForm.hrtReminderSchedule || 'mon_thu'}
+                        onChange={e => setAssignForm({...assignForm, hrtReminderSchedule: e.target.value})}
+                        style={styles.formSelect}
+                      >
+                        <option value="mon_thu">Monday / Thursday</option>
+                        <option value="tue_fri">Tuesday / Friday</option>
+                      </select>
+                    </div>
+
+                    <div style={{ padding: '0 24px', marginBottom: '12px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={assignForm.hrtRemindersEnabled !== false}
+                          onChange={e => setAssignForm({...assignForm, hrtRemindersEnabled: e.target.checked})}
+                          style={{ width: '18px', height: '18px' }}
+                        />
+                        <span style={{ fontSize: '14px', color: '#374151' }}>
+                          Send injection reminder SMS
+                        </span>
+                      </label>
+                      <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px', marginLeft: '28px' }}>
+                        Patient will receive a text at 9 AM on scheduled injection days
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>8-Week Follow-Up Date</label>
+                  <input
+                    type="date"
+                    value={assignForm.followupDate || ''}
+                    onChange={e => setAssignForm({...assignForm, followupDate: e.target.value})}
+                    style={styles.formInput}
+                  />
+                  <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                    Auto-calculated from start date (56 days). Edit if needed.
+                  </div>
+                </div>
+
+                {/* Lab Schedule Preview */}
+                {assignForm.startDate && (() => {
+                  const labSchedule = getHRTLabSchedule(assignForm.startDate);
+                  if (!labSchedule || labSchedule.length === 0) return null;
+                  return (
+                    <div style={{ padding: '0 24px 12px', gridColumn: 'span 2' }}>
+                      <label style={{ ...styles.formLabel, marginBottom: '8px', display: 'block' }}>Lab Schedule Preview</label>
+                      <div style={{ background: '#F0F9FF', borderRadius: '8px', padding: '12px', border: '1px solid #BAE6FD' }}>
+                        {labSchedule.slice(0, 2).map(draw => (
+                          <div key={draw.label} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0EA5E9', flexShrink: 0 }} />
+                            <span style={{ fontSize: '13px', color: '#1E40AF' }}>
+                              <strong>{draw.label}:</strong> {draw.weekLabel}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
             )}
 
             {/* Add to existing Weight Loss protocol option */}
@@ -3491,7 +3776,17 @@ export default function CommandCenter() {
                 <input
                   type="date"
                   value={assignForm.startDate}
-                  onChange={e => setAssignForm({...assignForm, startDate: e.target.value})}
+                  onChange={e => {
+                    const newDate = e.target.value;
+                    const updates = { ...assignForm, startDate: newDate };
+                    // Auto-calculate HRT follow-up date (56 days from start)
+                    if (isHRTTemplate() && newDate) {
+                      const start = new Date(newDate + 'T12:00:00');
+                      start.setDate(start.getDate() + 56);
+                      updates.followupDate = start.toISOString().split('T')[0];
+                    }
+                    setAssignForm(updates);
+                  }}
                   style={styles.formInput}
                 />
               </div>
@@ -4115,9 +4410,20 @@ export default function CommandCenter() {
               )}
 
               {/* Dose - dropdown for known types, text for others */}
-              <div style={editingProtocol.program_type === 'weight_loss' ? styles.modalFormGroup : { ...styles.modalFormGroup, gridColumn: 'span 2' }}>
+              <div style={editingProtocol.program_type === 'weight_loss' || editingProtocol.program_type === 'hrt' ? styles.modalFormGroup : { ...styles.modalFormGroup, gridColumn: 'span 2' }}>
                 <label style={styles.formLabel}>Dose</label>
-                {editingProtocol.program_type === 'weight_loss' ? (
+                {editingProtocol.program_type === 'hrt' ? (
+                  <select
+                    value={editingProtocol.selected_dose || ''}
+                    onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">Select dose...</option>
+                    {SL_TESTOSTERONE_OPTIONS[editingProtocol.hrt_type || (editingProtocol.selected_dose && parseFloat(editingProtocol.selected_dose?.split('/')[1]) > 50 ? 'male' : 'female') || 'male'].dosages.map(d => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))}
+                  </select>
+                ) : editingProtocol.program_type === 'weight_loss' ? (
                   <select
                     value={editingProtocol.selected_dose || ''}
                     onChange={e => setEditingProtocol({...editingProtocol, selected_dose: e.target.value})}
@@ -4227,6 +4533,80 @@ export default function CommandCenter() {
                       Sends check-in link at 9 AM on injection day
                     </span>
                   </div>
+                </>
+              )}
+
+              {/* HRT specific edit fields */}
+              {editingProtocol.program_type === 'hrt' && (
+                <>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>HRT Type</label>
+                    <select
+                      value={editingProtocol.hrt_type || (editingProtocol.selected_dose && parseFloat(editingProtocol.selected_dose?.split('/')[1]) > 50 ? 'male' : 'female')}
+                      onChange={e => setEditingProtocol({...editingProtocol, hrt_type: e.target.value, selected_dose: ''})}
+                      style={styles.formSelect}
+                    >
+                      <option value="male">Male (200mg/ml)</option>
+                      <option value="female">Female (100mg/ml)</option>
+                    </select>
+                  </div>
+
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Supply Type</label>
+                    <select
+                      value={editingProtocol.supply_type || ''}
+                      onChange={e => setEditingProtocol({...editingProtocol, supply_type: e.target.value})}
+                      style={styles.formSelect}
+                    >
+                      <option value="">Not set</option>
+                      <option value="prefilled">Prefilled Syringes</option>
+                      <option value="vial">Vial (10ml)</option>
+                    </select>
+                  </div>
+
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>8-Week Follow-Up Date</label>
+                    <input
+                      type="date"
+                      value={editingProtocol.hrt_followup_date || ''}
+                      onChange={e => setEditingProtocol({...editingProtocol, hrt_followup_date: e.target.value})}
+                      style={styles.formInput}
+                    />
+                  </div>
+
+                  {editingProtocol.delivery_method === 'take_home' && (
+                    <>
+                      <div style={styles.modalFormGroup}>
+                        <label style={styles.formLabel}>Injection Reminder Schedule</label>
+                        <select
+                          value={editingProtocol.hrt_reminder_schedule || ''}
+                          onChange={e => setEditingProtocol({...editingProtocol, hrt_reminder_schedule: e.target.value})}
+                          style={styles.formSelect}
+                        >
+                          <option value="">Not set</option>
+                          <option value="mon_thu">Monday / Thursday</option>
+                          <option value="tue_fri">Tuesday / Friday</option>
+                        </select>
+                      </div>
+
+                      <div style={styles.modalFormGroup}>
+                        <label style={styles.formLabel}>Injection Reminder SMS</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={editingProtocol.hrt_reminders_enabled || false}
+                              onChange={e => setEditingProtocol({...editingProtocol, hrt_reminders_enabled: e.target.checked})}
+                              style={{ width: '18px', height: '18px' }}
+                            />
+                            <span style={{ fontSize: '14px', color: '#374151' }}>
+                              {editingProtocol.hrt_reminders_enabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 

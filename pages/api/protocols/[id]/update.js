@@ -40,7 +40,14 @@ export default async function handler(req, res) {
       medication,
       pickup_frequency,
       frequency,
-      starting_weight
+      starting_weight,
+      // HRT specific fields
+      hrt_type,
+      dose_per_injection,
+      injections_per_week,
+      hrt_followup_date,
+      hrt_reminders_enabled,
+      hrt_reminder_schedule
     } = req.body;
 
     const updateData = {};
@@ -66,6 +73,13 @@ export default async function handler(req, res) {
     if (pickup_frequency !== undefined) updateData.pickup_frequency = pickup_frequency || null;
     if (frequency !== undefined) updateData.frequency = frequency || null;
     if (starting_weight !== undefined) updateData.starting_weight = starting_weight ? parseFloat(starting_weight) : null;
+    // HRT specific fields
+    if (hrt_type !== undefined) updateData.hrt_type = hrt_type || null;
+    if (dose_per_injection !== undefined) updateData.dose_per_injection = dose_per_injection ? parseFloat(dose_per_injection) : null;
+    if (injections_per_week !== undefined) updateData.injections_per_week = injections_per_week ? parseInt(injections_per_week) : null;
+    if (hrt_followup_date !== undefined) updateData.hrt_followup_date = hrt_followup_date || null;
+    if (hrt_reminders_enabled !== undefined) updateData.hrt_reminders_enabled = hrt_reminders_enabled;
+    if (hrt_reminder_schedule !== undefined) updateData.hrt_reminder_schedule = hrt_reminder_schedule || null;
 
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();

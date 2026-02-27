@@ -52,7 +52,12 @@ export default async function handler(req, res) {
       dosePerInjection,
       injectionsPerWeek,
       vialSize,
-      supplyType
+      supplyType,
+      // HRT additional fields
+      hrtType,
+      hrtRemindersEnabled,
+      hrtReminderSchedule,
+      followupDate
     } = req.body;
 
     // For non-weight-loss, template is required
@@ -322,6 +327,11 @@ export default async function handler(req, res) {
         injections_per_week: injectionsPerWeek ? parseInt(injectionsPerWeek) : null,
         vial_size: vialSize ? parseFloat(vialSize) : null,
         supply_type: supplyType || null,
+        // HRT additional fields
+        hrt_type: hrtType || null,
+        hrt_reminders_enabled: hrtRemindersEnabled || false,
+        hrt_reminder_schedule: hrtReminderSchedule || null,
+        hrt_followup_date: followupDate || null,
         last_refill_date: startDate, // Initialize refill date to start date
         next_expected_date: calculateNextExpectedDate({
           protocolType: programType,

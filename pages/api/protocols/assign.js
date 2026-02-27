@@ -622,6 +622,86 @@ export default async function handler(req, res) {
       }
     }
 
+    // ============================================
+    // SEND SKIN PEPTIDE GUIDE SMS (GLOW protocols only, not KLOW)
+    // Skip if patient has already received the skin guide before
+    // ============================================
+    let skinGuideSent = false;
+    const isSkinPeptide = (name) => name && name.toLowerCase().includes('glow') && !name.toLowerCase().includes('klow');
+
+    if (programType === 'peptide' && isSkinPeptide(medicationName) && finalGhlContactId) {
+      try {
+        // Check if this patient has already received the skin peptide guide
+        const { data: existingSkinGuide } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', finalPatientId)
+          .eq('log_type', 'skin_guide_sent')
+          .limit(1);
+
+        if (existingSkinGuide && existingSkinGuide.length > 0) {
+          console.log('Skin peptide guide already sent to patient', finalPatientId, '- skipping');
+          skinGuideSent = false;
+        } else {
+
+        // Look up patient first name
+        const { data: skinPatientData } = await supabase
+          .from('patients')
+          .select('first_name, name')
+          .eq('id', finalPatientId)
+          .single();
+
+        const skinFirstName = skinPatientData?.first_name || (skinPatientData?.name ? skinPatientData.name.split(' ')[0] : 'there');
+
+        const skinGuideMessage = `Hi ${skinFirstName}! Here's your guide to your GLOW skin peptide protocol: https://www.range-medical.com/glow-guide - Range Medical`;
+
+        const skinSmsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Version': '2021-04-15'
+          },
+          body: JSON.stringify({
+            type: 'SMS',
+            contactId: finalGhlContactId,
+            message: skinGuideMessage
+          })
+        });
+
+        const skinSmsData = await skinSmsRes.json();
+
+        if (skinSmsRes.ok) {
+          // Mark guide sent on protocol
+          await supabase
+            .from('protocols')
+            .update({ peptide_guide_sent: true })
+            .eq('id', protocol.id);
+
+          // Log to protocol_logs to prevent double-sends
+          await supabase.from('protocol_logs').insert({
+            protocol_id: protocol.id,
+            patient_id: finalPatientId,
+            log_type: 'skin_guide_sent',
+            log_date: new Date().toISOString().split('T')[0],
+            notes: skinGuideMessage
+          });
+
+          await logComm({ channel: 'sms', messageType: 'skin_guide_sent', message: skinGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName });
+
+          skinGuideSent = true;
+          console.log('Skin peptide guide SMS sent to', finalGhlContactId);
+        } else {
+          console.error('Skin peptide guide SMS error:', skinSmsData);
+          await logComm({ channel: 'sms', messageType: 'skin_guide_sent', message: skinGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: skinSmsData?.message || 'SMS failed' });
+        }
+
+        } // end else (skin guide not previously sent)
+      } catch (skinGuideError) {
+        console.error('Skin peptide guide SMS error (non-fatal):', skinGuideError);
+      }
+    }
+
     res.status(200).json({
       success: true,
       protocol,
@@ -629,6 +709,7 @@ export default async function handler(req, res) {
       ghlSynced: !!finalGhlContactId,
       dripEmailSent,
       peptideGuideSent,
+      skinGuideSent,
       message: `Protocol created: ${programName}`
     });
 

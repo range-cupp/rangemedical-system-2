@@ -555,7 +555,9 @@ const styles = {
     flex: 1,
     marginLeft: '240px',
     background: '#f5f5f5',
-    minHeight: '100vh'
+    minHeight: '100vh',
+    minWidth: 0,
+    overflow: 'hidden'
   },
   mobileHeader: {
     display: 'none',

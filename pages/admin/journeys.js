@@ -1,10 +1,11 @@
 // /pages/admin/journeys.js
-// Journey Board - Kanban view of patient protocol journeys
+// Journey Board - Kanban + List views of patient protocol journeys
 // Range Medical System V2
 
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 import JourneyBoard from '../../components/JourneyBoard';
+import JourneyListView from '../../components/JourneyListView';
 
 const PROTOCOL_TYPES = [
   { key: 'hrt', label: 'HRT' },
@@ -19,6 +20,7 @@ const PROTOCOL_TYPES = [
 
 export default function JourneysPage() {
   const [selectedType, setSelectedType] = useState('hrt');
+  const [viewMode, setViewMode] = useState('list');
   const [columns, setColumns] = useState([]);
   const [summary, setSummary] = useState(null);
   const [template, setTemplate] = useState(null);
@@ -113,22 +115,58 @@ export default function JourneysPage() {
     }
   };
 
+  // Extract stages array from the template for list view
+  const stages = template?.stages || [];
+
   return (
     <AdminLayout title="Journey Board">
-      {/* Protocol Type Selector */}
-      <div style={styles.typeSelector}>
-        {PROTOCOL_TYPES.map(type => (
+      {/* Protocol Type Selector + View Toggle */}
+      <div style={styles.topBar}>
+        <div style={styles.typeSelector}>
+          {PROTOCOL_TYPES.map(type => (
+            <button
+              key={type.key}
+              onClick={() => setSelectedType(type.key)}
+              style={{
+                ...styles.typeBtn,
+                ...(selectedType === type.key ? styles.typeBtnActive : {})
+              }}
+            >
+              {type.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={styles.viewToggle}>
           <button
-            key={type.key}
-            onClick={() => setSelectedType(type.key)}
+            onClick={() => setViewMode('list')}
             style={{
-              ...styles.typeBtn,
-              ...(selectedType === type.key ? styles.typeBtnActive : {})
+              ...styles.viewBtn,
+              ...(viewMode === 'list' ? styles.viewBtnActive : {})
             }}
+            title="List view"
           >
-            {type.label}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            List
           </button>
-        ))}
+          <button
+            onClick={() => setViewMode('board')}
+            style={{
+              ...styles.viewBtn,
+              ...(viewMode === 'board' ? styles.viewBtnActive : {})
+            }}
+            title="Board view"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+            </svg>
+            Board
+          </button>
+        </div>
       </div>
 
       {/* Template Info Bar */}
@@ -136,7 +174,7 @@ export default function JourneysPage() {
         <div style={styles.templateBar}>
           <span style={styles.templateName}>{template.name}</span>
           <span style={styles.templateStages}>
-            {(template.stages || []).length} stages
+            {stages.length} stages
           </span>
         </div>
       )}
@@ -162,11 +200,21 @@ export default function JourneysPage() {
         </div>
       )}
 
-      {/* Journey Board */}
-      {(hasTemplates || loading) && (
+      {/* Journey Views */}
+      {(hasTemplates || loading) && viewMode === 'board' && (
         <JourneyBoard
           columns={columns}
           summary={summary}
+          onAdvance={handleAdvance}
+          loading={loading}
+        />
+      )}
+
+      {(hasTemplates || loading) && viewMode === 'list' && (
+        <JourneyListView
+          columns={columns}
+          summary={summary}
+          stages={stages}
           onAdvance={handleAdvance}
           loading={loading}
         />
@@ -176,10 +224,17 @@ export default function JourneysPage() {
 }
 
 const styles = {
+  topBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '16px',
+    marginBottom: '20px',
+    flexWrap: 'wrap'
+  },
   typeSelector: {
     display: 'flex',
     gap: '6px',
-    marginBottom: '20px',
     flexWrap: 'wrap'
   },
   typeBtn: {
@@ -197,6 +252,33 @@ const styles = {
     background: '#000',
     color: '#fff',
     borderColor: '#000'
+  },
+  viewToggle: {
+    display: 'flex',
+    gap: '2px',
+    background: '#f3f4f6',
+    borderRadius: '8px',
+    padding: '3px',
+    flexShrink: 0
+  },
+  viewBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 14px',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    background: 'transparent',
+    color: '#6b7280',
+    transition: 'all 0.15s'
+  },
+  viewBtnActive: {
+    background: '#fff',
+    color: '#111',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
   },
   templateBar: {
     display: 'flex',

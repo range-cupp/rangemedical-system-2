@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatPhone } from '../lib/format-utils';
 import { WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES } from '../lib/protocol-config';
+import SignatureCanvas from './SignatureCanvas';
 
 // ============================================
 // SERVICE CONFIGURATION
@@ -216,6 +217,15 @@ export default function ServiceLogContent() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [showPFReminder, setShowPFReminder] = useState(false);
+
+  // Dispensing & signature state
+  const [dispensingData, setDispensingData] = useState({
+    administered_by: '',
+    lot_number: '',
+    expiration_date: ''
+  });
+  const [signatureDataUrl, setSignatureDataUrl] = useState(null);
 
   // Protocol selection state (for services with multiple active protocols)
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
@@ -338,6 +348,8 @@ export default function ServiceLogContent() {
     setCurrentServiceType(null);
     setSelectedProtocolId(null);
     setAvailableProtocols([]);
+    setDispensingData({ administered_by: '', lot_number: '', expiration_date: '' });
+    setSignatureDataUrl(null);
   };
 
   const resetFormData = () => {
@@ -511,7 +523,11 @@ export default function ServiceLogContent() {
           entry_type: item.entryType,
           entry_date: visitDate,
           notes: item.formData.notes || null,
-          protocol_id: item.protocolId || null
+          protocol_id: item.protocolId || null,
+          administered_by: dispensingData.administered_by || null,
+          lot_number: dispensingData.lot_number || null,
+          expiration_date: dispensingData.expiration_date || null,
+          signature_url: signatureDataUrl || null
         };
 
         if (item.serviceType.id === 'testosterone') {
@@ -636,13 +652,16 @@ export default function ServiceLogContent() {
     setSubmitting(false);
 
     if (errors.length === 0) {
+      const patientName = selectedPatient.displayName;
       closeModal();
       fetchLogs();
       // Re-fetch protocols so UI reflects updated next_expected_date
       if (selectedPatient) {
         fetchPatientProtocols(selectedPatient.id);
       }
-      alert(`✓ ${results.length} service(s) logged for ${selectedPatient.displayName}`);
+      // Show Practice Fusion reminder instead of simple alert
+      setShowPFReminder(true);
+      setTimeout(() => setShowPFReminder(false), 8000);
     } else {
       alert(`Logged ${results.length} service(s), ${errors.length} error(s):\n${errors.map(e => e.error).join('\n')}`);
       if (results.length > 0) {
@@ -744,6 +763,17 @@ export default function ServiceLogContent() {
 
   return (
     <div style={slcStyles.wrapper}>
+      {/* Practice Fusion Reminder */}
+      {showPFReminder && (
+        <div style={slcStyles.pfReminder}>
+          <span style={slcStyles.pfIcon}>🏥</span>
+          <div>
+            <strong>Don't forget:</strong> Log this service in Practice Fusion as well for the clinical record.
+          </div>
+          <button onClick={() => setShowPFReminder(false)} style={slcStyles.pfDismiss}>×</button>
+        </div>
+      )}
+
       {/* Top bar with button */}
       <div style={slcStyles.topBar}>
         <button style={slcStyles.newEntryBtn} onClick={openModal}>
@@ -1054,6 +1084,54 @@ export default function ServiceLogContent() {
                     + Add Service
                   </button>
                 </div>
+
+                {/* Dispensing Details */}
+                {visitItems.length > 0 && (
+                  <div style={slcStyles.dispensingSection}>
+                    <div style={slcStyles.dispensingSectionTitle}>Dispensing Details</div>
+                    <div style={slcStyles.dispensingRow}>
+                      <div style={slcStyles.formGroup}>
+                        <label style={slcStyles.label}>Administered By</label>
+                        <input
+                          type="text"
+                          placeholder="Staff name"
+                          value={dispensingData.administered_by}
+                          onChange={(e) => setDispensingData({ ...dispensingData, administered_by: e.target.value })}
+                          style={slcStyles.input}
+                        />
+                      </div>
+                      <div style={slcStyles.formGroup}>
+                        <label style={slcStyles.label}>Lot #</label>
+                        <input
+                          type="text"
+                          placeholder="Lot number"
+                          value={dispensingData.lot_number}
+                          onChange={(e) => setDispensingData({ ...dispensingData, lot_number: e.target.value })}
+                          style={slcStyles.input}
+                        />
+                      </div>
+                      <div style={slcStyles.formGroup}>
+                        <label style={slcStyles.label}>Exp. Date</label>
+                        <input
+                          type="date"
+                          value={dispensingData.expiration_date}
+                          onChange={(e) => setDispensingData({ ...dispensingData, expiration_date: e.target.value })}
+                          style={slcStyles.input}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Signature Capture */}
+                    <div style={{ marginTop: '12px' }}>
+                      <SignatureCanvas
+                        onSignature={(dataUrl) => setSignatureDataUrl(dataUrl)}
+                        width={360}
+                        height={120}
+                        label="Patient Signature"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Save Visit */}
                 {visitItems.length > 0 && (
@@ -1780,6 +1858,50 @@ export default function ServiceLogContent() {
 const slcStyles = {
   wrapper: {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  },
+  pfReminder: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 16px',
+    background: '#eff6ff',
+    border: '1px solid #93c5fd',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    fontSize: '14px',
+    color: '#1e40af',
+    animation: 'fadeIn 0.3s ease-out'
+  },
+  pfIcon: { fontSize: '20px', flexShrink: 0 },
+  pfDismiss: {
+    marginLeft: 'auto',
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    cursor: 'pointer',
+    color: '#6b7280',
+    padding: '0 4px',
+    flexShrink: 0
+  },
+  dispensingSection: {
+    marginTop: '16px',
+    padding: '16px',
+    background: '#f9fafb',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  dispensingSectionTitle: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#374151',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginBottom: '12px'
+  },
+  dispensingRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gap: '12px'
   },
   topBar: {
     display: 'flex',

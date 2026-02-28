@@ -4,8 +4,8 @@
 
 import { useState, useEffect } from 'react';
 import { formatPhone } from '../../lib/format-utils';
-import Head from 'next/head';
 import Link from 'next/link';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function PatientsList() {
   const [loading, setLoading] = useState(true);
@@ -175,33 +175,18 @@ export default function PatientsList() {
   };
 
   if (loading) {
-    return <div style={styles.loading}>Loading patients...</div>;
+    return <AdminLayout title="Patients"><div style={styles.loading}>Loading patients...</div></AdminLayout>;
   }
 
   return (
-    <>
-      <Head>
-        <title>Patients | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>Patients</h1>
-            <div style={styles.subtitle}>{filteredPatients.length} patients</div>
-          </div>
-          <div style={styles.navLinks}>
-            <button onClick={openMergeModal} style={styles.mergeBtn}>
-              Merge Patients
-            </button>
-            <Link href="/admin/pipeline" style={styles.navLink}>
-              Pipeline
-            </Link>
-            <Link href="/admin/command-center" style={styles.navLink}>
-              Command Center
-            </Link>
-          </div>
-        </div>
+    <AdminLayout
+      title={`Patients (${filteredPatients.length})`}
+      actions={
+        <button onClick={openMergeModal} style={styles.mergeBtn}>
+          Merge Patients
+        </button>
+      }
+    >
 
         {/* Search */}
         <div style={styles.searchContainer}>
@@ -246,7 +231,6 @@ export default function PatientsList() {
             ))}
           </div>
         )}
-      </div>
 
       {/* Merge Modal */}
       {showMergeModal && (
@@ -454,7 +438,7 @@ export default function PatientsList() {
           </div>
         </div>
       )}
-    </>
+    </AdminLayout>
   );
 }
 

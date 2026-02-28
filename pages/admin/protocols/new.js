@@ -27,7 +27,7 @@ const PROTOCOL_TYPES = {
     staffCheckinDays: 7
   },
   hrt: {
-    name: 'HRT - Testosterone',
+    name: 'HRT Protocol',
     medications: ['Testosterone Cypionate'],
     dosages: [
       { value: '0.3ml/60mg', label: '0.3ml / 60mg' },

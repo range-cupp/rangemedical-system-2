@@ -26,7 +26,7 @@ const PROTOCOL_TYPES = {
     ]
   },
   hrt_male: {
-    name: 'HRT - Male',
+    name: 'HRT Protocol',
     category: 'HRT',
     medications: ['Testosterone Cypionate 200mg/ml'],
     dosages: ['0.3ml / 60mg', '0.4ml / 80mg', '0.5ml / 100mg'],
@@ -34,7 +34,7 @@ const PROTOCOL_TYPES = {
     ongoing: true
   },
   hrt_female: {
-    name: 'HRT - Female',
+    name: 'HRT Protocol',
     category: 'HRT',
     medications: ['Testosterone Cypionate 100mg/ml'],
     dosages: ['0.1ml / 10mg', '0.2ml / 20mg', '0.3ml / 30mg', '0.4ml / 40mg', '0.5ml / 50mg'],

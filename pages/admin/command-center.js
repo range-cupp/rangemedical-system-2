@@ -9,7 +9,7 @@ import LabsPipelineTab from '../../components/LabsPipelineTab';
 import BookingTab from '../../components/BookingTab';
 import CalendarView from '../../components/CalendarView';
 import LabDashboard from '../../components/labs/LabDashboard';
-import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS } from '../../lib/protocol-config';
+import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS, HRT_MEDICATIONS, HRT_SECONDARY_MEDICATIONS } from '../../lib/protocol-config';
 import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { loadStripe } from '@stripe/stripe-js';
@@ -664,9 +664,29 @@ export default function CommandCenter() {
         body: JSON.stringify({ starting_weight: value })
       });
       if (res.ok) {
+        // Also update the earliest service_log weight check-in to match
+        const firstServiceLogCheckin = protocolDetailPanel.weightCheckins
+          ?.filter(c => c.source === 'service_log' && c.weight)
+          .sort((a, b) => new Date(a.log_date) - new Date(b.log_date))[0];
+        if (firstServiceLogCheckin) {
+          try {
+            await fetch(`/api/service-log?id=${firstServiceLogCheckin.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ weight: value })
+            });
+          } catch (e) {
+            console.error('Error updating first check-in weight:', e);
+          }
+        }
+
         setProtocolDetailPanel(prev => {
           const updatedProtocol = { ...prev.protocol, starting_weight: value };
-          const withWeight = prev.weightCheckins.filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+          // Update the first service_log check-in weight in local state too
+          const updatedCheckins = firstServiceLogCheckin
+            ? prev.weightCheckins.map(c => c.id === firstServiceLogCheckin.id ? { ...c, weight: value } : c)
+            : prev.weightCheckins;
+          const withWeight = updatedCheckins.filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
           const startW = value;
           const currentW = withWeight[withWeight.length - 1]?.weight;
           const rawChange = startW && currentW ? currentW - startW : null;
@@ -675,6 +695,7 @@ export default function CommandCenter() {
           return {
             ...prev,
             protocol: updatedProtocol,
+            weightCheckins: updatedCheckins,
             weightProgress: withWeight.length > 0 ? {
               ...(prev.weightProgress || {}),
               startingWeight: value,
@@ -1026,7 +1047,7 @@ export default function CommandCenter() {
       p.program_type === 'hrt' && p.status === 'active'
     );
     setExistingHRTProtocols(activeHRTProtocols);
-    setAddToExistingProtocol(null);
+    setAddToExistingProtocol(activeHRTProtocols.length > 0 ? activeHRTProtocols[0].id : null);
 
     // Check for existing WL protocols for this patient (active or expired within 30 days)
     const now = new Date();
@@ -1568,16 +1589,17 @@ export default function CommandCenter() {
               : null,
             // Weight loss specific fields
             wlMedication: assignForm.wlMedication || null,
-            medication: isHRTTemplate() ? 'Testosterone Cypionate' : (assignForm.wlMedication || assignForm.ivType || null),
+            medication: isHRTTemplate() ? HRT_MEDICATIONS[0] : (assignForm.wlMedication || assignForm.ivType || null),
             pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
             injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
             injectionDay: assignForm.injectionDay || null,
             checkinReminderEnabled: assignForm.checkinReminderEnabled || false,
             // HRT specific fields
+            secondaryMedication: isHRTTemplate() ? (assignForm.hrtSecondaryMedication || null) : undefined,
             hrtType: isHRTTemplate() ? (assignForm.hrtType || 'male') : undefined,
             supplyType: isHRTTemplate() ? (assignForm.supplyType || null) : undefined,
             dosePerInjection: isHRTTemplate() ? parseDoseVolume(assignForm.customDose || assignForm.selectedDose) : undefined,
-            injectionsPerWeek: isHRTTemplate() ? 2 : undefined,
+            injectionsPerWeek: isHRTTemplate() ? (assignForm.hrtReminderSchedule === 'daily' ? 7 : 2) : undefined,
             hrtRemindersEnabled: isHRTTemplate() ? (assignForm.hrtRemindersEnabled !== false) : undefined,
             hrtReminderSchedule: isHRTTemplate() ? (assignForm.hrtReminderSchedule || null) : undefined,
             followupDate: isHRTTemplate() ? (assignForm.followupDate || null) : undefined,
@@ -1757,7 +1779,8 @@ export default function CommandCenter() {
           injections_per_week: editingProtocol.injections_per_week || null,
           hrt_followup_date: editingProtocol.hrt_followup_date || null,
           hrt_reminders_enabled: editingProtocol.hrt_reminders_enabled || false,
-          hrt_reminder_schedule: editingProtocol.hrt_reminder_schedule || null
+          hrt_reminder_schedule: editingProtocol.hrt_reminder_schedule || null,
+          secondary_medication: editingProtocol.secondary_medication || null
         })
       });
 
@@ -2223,6 +2246,14 @@ export default function CommandCenter() {
                           {protocolDetailPanel.protocol.medication || '-'}
                         </span>
                       </div>
+                      {protocolDetailPanel.protocol.secondary_medication && (
+                        <div style={styles.protocolDetailItem}>
+                          <span style={styles.protocolDetailLabel}>Secondary Med</span>
+                          <span style={styles.protocolDetailValue}>
+                            {protocolDetailPanel.protocol.secondary_medication}
+                          </span>
+                        </div>
+                      )}
                       <div style={styles.protocolDetailItem}>
                         <span style={styles.protocolDetailLabel}>Dose</span>
                         <span style={styles.protocolDetailValue}>
@@ -2292,7 +2323,7 @@ export default function CommandCenter() {
                           </span>
                         </div>
                       )}
-                      {protocolDetailPanel.protocol.total_sessions > 0 && !(protocolDetailPanel.protocol.program_type === 'peptide' && protocolDetailPanel.protocol.delivery_method === 'take_home') && (
+                      {protocolDetailPanel.protocol.total_sessions > 0 && !(['peptide', 'weight_loss'].includes(protocolDetailPanel.protocol.program_type) && protocolDetailPanel.protocol.delivery_method === 'take_home') && (
                         protocolDetailPanel.protocol.program_type === 'injection' && protocolDetailPanel.protocol.delivery_method === 'take_home' ? (
                           <>
                             <div style={styles.protocolDetailItem}>
@@ -2577,6 +2608,7 @@ export default function CommandCenter() {
                             <option value="">Not set</option>
                             <option value="mon_thu">Monday / Thursday</option>
                             <option value="tue_fri">Tuesday / Friday</option>
+                            <option value="daily">Daily (Subcutaneous)</option>
                           </select>
                         </div>
                         <div style={{ flex: 1, minWidth: '160px' }}>
@@ -3152,7 +3184,7 @@ export default function CommandCenter() {
                   value={assignForm.templateId}
                   onChange={e => {
                     const newTemplateId = e.target.value;
-                    const resetForm = {...assignForm, templateId: newTemplateId, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8, membershipFrequency: ''};
+                    const resetForm = {...assignForm, templateId: newTemplateId, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8, membershipFrequency: '', hrtSecondaryMedication: ''};
                     // Auto-detect membership frequency from template name
                     if (newTemplateId) {
                       let selectedTpl = null;
@@ -3263,12 +3295,26 @@ export default function CommandCenter() {
                     value={assignForm.hrtType || 'male'}
                     onChange={e => {
                       const hrtType = e.target.value;
-                      setAssignForm({...assignForm, hrtType, selectedDose: '', medication: 'Testosterone Cypionate', frequency: '2x per week', deliveryMethod: assignForm.deliveryMethod || 'take_home'});
+                      setAssignForm({...assignForm, hrtType, selectedDose: '', medication: HRT_MEDICATIONS[0], frequency: assignForm.hrtReminderSchedule === 'daily' ? '7x per week' : '2x per week', deliveryMethod: assignForm.deliveryMethod || 'take_home'});
                     }}
                     style={styles.formSelect}
                   >
                     <option value="male">{SL_TESTOSTERONE_OPTIONS.male.label}</option>
                     <option value="female">{SL_TESTOSTERONE_OPTIONS.female.label}</option>
+                  </select>
+                </div>
+
+                <div style={styles.modalFormGroup}>
+                  <label style={styles.formLabel}>Secondary Medication</label>
+                  <select
+                    value={assignForm.hrtSecondaryMedication || ''}
+                    onChange={e => setAssignForm({...assignForm, hrtSecondaryMedication: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">None</option>
+                    {HRT_SECONDARY_MEDICATIONS.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -3367,6 +3413,7 @@ export default function CommandCenter() {
                       >
                         <option value="mon_thu">Monday / Thursday</option>
                         <option value="tue_fri">Tuesday / Friday</option>
+                        <option value="daily">Daily (Subcutaneous)</option>
                       </select>
                     </div>
 
@@ -4744,6 +4791,23 @@ export default function CommandCenter() {
                 )}
               </div>
 
+              {/* Secondary Medication (HRT only) */}
+              {editingProtocol.program_type === 'hrt' && (
+                <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
+                  <label style={styles.formLabel}>Secondary Medication</label>
+                  <select
+                    value={editingProtocol.secondary_medication || ''}
+                    onChange={e => setEditingProtocol({...editingProtocol, secondary_medication: e.target.value})}
+                    style={styles.formSelect}
+                  >
+                    <option value="">None</option>
+                    {HRT_SECONDARY_MEDICATIONS.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Frequency */}
               <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
                 <label style={styles.formLabel}>Frequency</label>
@@ -4852,6 +4916,7 @@ export default function CommandCenter() {
                           <option value="">Not set</option>
                           <option value="mon_thu">Monday / Thursday</option>
                           <option value="tue_fri">Tuesday / Friday</option>
+                          <option value="daily">Daily (Subcutaneous)</option>
                         </select>
                       </div>
 

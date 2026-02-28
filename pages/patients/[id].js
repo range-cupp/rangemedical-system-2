@@ -60,8 +60,17 @@ export default function PatientProfile() {
   const [appointments, setAppointments] = useState([]);
   const [notes, setNotes] = useState([]);
   const [weightLossLogs, setWeightLossLogs] = useState([]);
+  const [serviceLogs, setServiceLogs] = useState([]);
+  const [commsLog, setCommsLog] = useState([]);
+  const [allPurchases, setAllPurchases] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [stats, setStats] = useState({});
   const [hrtLabSchedules, setHrtLabSchedules] = useState({});
+
+  // Timeline state
+  const [timeline, setTimeline] = useState([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineFilter, setTimelineFilter] = useState('all');
 
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
@@ -166,6 +175,10 @@ export default function PatientProfile() {
         setAppointments(data.appointments || []);
         setNotes(data.notes || []);
         setWeightLossLogs(data.weightLossLogs || []);
+        setServiceLogs(data.serviceLogs || []);
+        setCommsLog(data.commsLog || []);
+        setAllPurchases(data.allPurchases || []);
+        setInvoices(data.invoices || []);
         setStats(data.stats || {});
 
         // Compute HRT lab schedules for active HRT protocols
@@ -226,6 +239,20 @@ export default function PatientProfile() {
       console.error('Error fetching lab documents:', error);
     } finally {
       setLoadingDocs(false);
+    }
+  };
+
+  const fetchTimeline = async (filter = 'all') => {
+    if (!id) return;
+    try {
+      setTimelineLoading(true);
+      const res = await fetch(`/api/patients/${id}/timeline?filter=${filter}&limit=100`);
+      const data = await res.json();
+      setTimeline(data.events || []);
+    } catch (error) {
+      console.error('Error fetching timeline:', error);
+    } finally {
+      setTimelineLoading(false);
     }
   };
 
@@ -692,11 +719,12 @@ export default function PatientProfile() {
         <nav className="tabs">
           <button className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>Overview</button>
           <button className={activeTab === 'protocols' ? 'active' : ''} onClick={() => setActiveTab('protocols')}>Protocols ({stats.activeCount})</button>
+          <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => { setActiveTab('timeline'); if (timeline.length === 0) fetchTimeline(); }}>Timeline</button>
           <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
-          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length})</button>
-          <button className={activeTab === 'sessions' ? 'active' : ''} onClick={() => setActiveTab('sessions')}>Sessions ({sessions.length})</button>
           <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Appointments ({appointments.length})</button>
-          <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes ({notes.length})</button>
+          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length})</button>
+          <button className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>Payments</button>
+          <button className={activeTab === 'communications' ? 'active' : ''} onClick={() => setActiveTab('communications')}>Communications</button>
         </nav>
 
         {/* Tab Content */}
@@ -1210,29 +1238,56 @@ export default function PatientProfile() {
             </>
           )}
 
-          {/* Sessions Tab */}
-          {activeTab === 'sessions' && (
-            <section className="card">
-              <div className="card-header">
-                <h3>Sessions & Visits ({sessions.length})</h3>
+          {/* Timeline Tab */}
+          {activeTab === 'timeline' && (
+            <>
+              <div className="timeline-filters">
+                {['all', 'services', 'protocols', 'documents', 'appointments', 'communications'].map(f => (
+                  <button
+                    key={f}
+                    className={timelineFilter === f ? 'filter-chip active' : 'filter-chip'}
+                    onClick={() => { setTimelineFilter(f); fetchTimeline(f); }}
+                  >
+                    {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
               </div>
-              {sessions.length === 0 ? (
-                <div className="empty">No sessions recorded</div>
-              ) : (
-                <div className="session-list">
-                  {sessions.map(session => (
-                    <div key={session.id} className="session-row">
-                      <div className="session-date">{formatShortDate(session.session_date)}</div>
-                      <div className="session-info">
-                        <strong>{session.protocols?.program_name || 'Session'}</strong>
-                        {session.session_number && <span>Session #{session.session_number}</span>}
-                      </div>
-                      {session.notes && <div className="session-notes">{session.notes}</div>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+              <section className="card">
+                {timelineLoading ? (
+                  <div className="empty">Loading timeline...</div>
+                ) : timeline.length === 0 ? (
+                  <div className="empty">No events found</div>
+                ) : (
+                  <div className="timeline-list">
+                    {timeline.map((event, idx) => {
+                      const typeIcons = {
+                        service: { icon: '💊', color: '#7c3aed' },
+                        protocol_created: { icon: '📋', color: '#2563eb' },
+                        consent_signed: { icon: '✍️', color: '#059669' },
+                        intake_submitted: { icon: '📝', color: '#d97706' },
+                        appointment: { icon: '📅', color: '#0891b2' },
+                        communication: { icon: '💬', color: '#6366f1' },
+                        note: { icon: '📌', color: '#64748b' }
+                      };
+                      const style = typeIcons[event.type] || { icon: '•', color: '#6b7280' };
+
+                      return (
+                        <div key={`${event.type}-${event.metadata?.id || idx}`} className="timeline-event">
+                          <div className="timeline-dot" style={{ background: style.color }}>{style.icon}</div>
+                          <div className="timeline-content">
+                            <div className="timeline-header">
+                              <span className="timeline-title">{event.title}</span>
+                              <span className="timeline-date">{formatDate(event.date)}</span>
+                            </div>
+                            {event.detail && <div className="timeline-detail">{event.detail}</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </>
           )}
 
           {/* Appointments Tab */}
@@ -1283,22 +1338,109 @@ export default function PatientProfile() {
             </section>
           )}
 
-          {/* Notes Tab */}
-          {activeTab === 'notes' && (
+          {/* Payments Tab */}
+          {activeTab === 'payments' && (
+            <>
+              <section className="card">
+                <div className="card-header">
+                  <h3>Invoices ({invoices.length})</h3>
+                </div>
+                {invoices.length === 0 ? (
+                  <div className="empty">No invoices found</div>
+                ) : (
+                  <div className="payments-list">
+                    {invoices.map(inv => {
+                      const statusColors = {
+                        paid: { bg: '#dcfce7', text: '#166534' },
+                        pending: { bg: '#fef3c7', text: '#92400e' },
+                        overdue: { bg: '#fee2e2', text: '#dc2626' },
+                        void: { bg: '#f3f4f6', text: '#6b7280' },
+                        draft: { bg: '#f3f4f6', text: '#6b7280' }
+                      };
+                      const invStatus = (inv.status || 'pending').toLowerCase();
+                      const invStyle = statusColors[invStatus] || statusColors.pending;
+
+                      return (
+                        <div key={inv.id} className="payment-row">
+                          <div className="payment-info">
+                            <strong>{inv.description || inv.line_items?.[0]?.description || 'Invoice'}</strong>
+                            <span className="payment-date">{formatDate(inv.created_at)}</span>
+                          </div>
+                          <div className="payment-amount">${(inv.total_amount || inv.amount || 0).toFixed(2)}</div>
+                          <span className="payment-status" style={{ background: invStyle.bg, color: invStyle.text }}>
+                            {invStatus}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="card">
+                <div className="card-header">
+                  <h3>Purchases ({allPurchases.length})</h3>
+                </div>
+                {allPurchases.length === 0 ? (
+                  <div className="empty">No purchases found</div>
+                ) : (
+                  <div className="payments-list">
+                    {allPurchases.map(purchase => (
+                      <div key={purchase.id} className="payment-row">
+                        <div className="payment-info">
+                          <strong>{purchase.product_name || 'Purchase'}</strong>
+                          <span className="payment-date">{formatDate(purchase.purchased_at || purchase.created_at)}</span>
+                        </div>
+                        <div className="payment-amount">${(purchase.amount_paid || 0).toFixed(2)}</div>
+                        <span className="payment-status" style={{
+                          background: purchase.protocol_assigned ? '#dcfce7' : '#fef3c7',
+                          color: purchase.protocol_assigned ? '#166534' : '#92400e'
+                        }}>
+                          {purchase.protocol_assigned ? 'assigned' : 'pending'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+
+          {/* Communications Tab */}
+          {activeTab === 'communications' && (
             <section className="card">
               <div className="card-header">
-                <h3>Notes ({notes.length})</h3>
+                <h3>Communications ({commsLog.length})</h3>
               </div>
-              {notes.length === 0 ? (
-                <div className="empty">No notes found</div>
+              {commsLog.length === 0 ? (
+                <div className="empty">No communications found</div>
               ) : (
-                <div className="notes-list">
-                  {notes.map(note => (
-                    <div key={note.id} className="note-row">
-                      <div className="note-date">{formatShortDate(note.note_date)}</div>
-                      <div className="note-body">{note.body}</div>
-                    </div>
-                  ))}
+                <div className="comms-list">
+                  {commsLog.map(comm => {
+                    const isEmail = comm.channel === 'email';
+                    const isInbound = comm.direction === 'inbound';
+
+                    return (
+                      <div key={comm.id} className={`comms-row ${isInbound ? 'inbound' : 'outbound'}`}>
+                        <div className="comms-icon">{isEmail ? '📧' : '💬'}</div>
+                        <div className="comms-content">
+                          <div className="comms-header">
+                            <span className="comms-type">
+                              {isInbound ? 'Received' : 'Sent'} {isEmail ? 'Email' : 'SMS'}
+                            </span>
+                            <span className="comms-date">{formatDate(comm.created_at)}</span>
+                          </div>
+                          <div className="comms-message-type">{(comm.message_type || 'message').replace(/_/g, ' ')}</div>
+                          {comm.body && (
+                            <div className="comms-body">{comm.body.substring(0, 200)}{comm.body.length > 200 ? '...' : ''}</div>
+                          )}
+                          {comm.status && (
+                            <span className="comms-status">{comm.status}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -1673,6 +1815,7 @@ export default function PatientProfile() {
                         <select value={editForm.injectionsPerWeek} onChange={e => setEditForm({...editForm, injectionsPerWeek: e.target.value})}>
                           <option value="1">1x per week</option>
                           <option value="2">2x per week</option>
+                          <option value="7">7x per week (daily)</option>
                         </select>
                       </div>
                     </div>
@@ -2852,6 +2995,118 @@ export default function PatientProfile() {
           display: flex;
           gap: 12px;
           margin-top: 16px;
+        }
+
+        /* Timeline */
+        .timeline-filters {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+        }
+        .filter-chip {
+          padding: 6px 14px;
+          border: 1px solid #d1d5db;
+          background: #fff;
+          border-radius: 20px;
+          font-size: 13px;
+          cursor: pointer;
+          color: #6b7280;
+        }
+        .filter-chip:hover { border-color: #000; color: #000; }
+        .filter-chip.active {
+          background: #000;
+          color: #fff;
+          border-color: #000;
+        }
+        .timeline-list { padding: 16px; }
+        .timeline-event {
+          display: flex;
+          gap: 12px;
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .timeline-event:last-child { border-bottom: none; }
+        .timeline-dot {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          flex-shrink: 0;
+        }
+        .timeline-content { flex: 1; min-width: 0; }
+        .timeline-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .timeline-title { font-weight: 500; font-size: 14px; }
+        .timeline-date { font-size: 12px; color: #9ca3af; white-space: nowrap; }
+        .timeline-detail { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+        /* Payments */
+        .payments-list { padding: 0; }
+        .payment-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .payment-row:last-child { border-bottom: none; }
+        .payment-info { flex: 1; min-width: 0; }
+        .payment-info strong { display: block; font-size: 14px; }
+        .payment-date { font-size: 12px; color: #9ca3af; }
+        .payment-amount { font-weight: 600; font-size: 15px; white-space: nowrap; }
+        .payment-status {
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 500;
+          text-transform: capitalize;
+          white-space: nowrap;
+        }
+
+        /* Communications */
+        .comms-list { padding: 0; }
+        .comms-row {
+          display: flex;
+          gap: 12px;
+          padding: 12px 16px;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .comms-row:last-child { border-bottom: none; }
+        .comms-row.inbound { background: #f9fafb; }
+        .comms-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+        .comms-content { flex: 1; min-width: 0; }
+        .comms-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2px;
+        }
+        .comms-type { font-weight: 500; font-size: 13px; }
+        .comms-date { font-size: 12px; color: #9ca3af; }
+        .comms-message-type {
+          font-size: 12px;
+          color: #6b7280;
+          text-transform: capitalize;
+          margin-bottom: 4px;
+        }
+        .comms-body {
+          font-size: 13px;
+          color: #374151;
+          line-height: 1.4;
+        }
+        .comms-status {
+          display: inline-block;
+          font-size: 11px;
+          color: #9ca3af;
+          margin-top: 4px;
         }
 
         /* Slide-Out PDF Viewer */

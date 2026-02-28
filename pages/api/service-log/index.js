@@ -200,7 +200,11 @@ async function handlePost(req, res) {
     supply_type,
     duration,
     notes,
-    protocol_id // optional: link to a specific protocol (e.g. when patient has multiple vitamin protocols)
+    protocol_id, // optional: link to a specific protocol (e.g. when patient has multiple vitamin protocols)
+    administered_by,
+    lot_number,
+    expiration_date,
+    signature_url
   } = req.body;
 
   if (!patient_id || !category) {
@@ -224,7 +228,12 @@ async function handlePost(req, res) {
       quantity: quantity ? parseInt(quantity) : null,
       supply_type: supply_type || null,
       duration: duration ? parseInt(duration) : null,
-      notes: notes || null
+      notes: notes || null,
+      administered_by: administered_by || null,
+      lot_number: lot_number || null,
+      expiration_date: expiration_date || null,
+      signature_url: signature_url || null,
+      signed_at: signature_url ? new Date().toISOString() : null
     };
 
     // Try service_logs first, fall back to injection_logs
@@ -583,7 +592,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       updateData.medication = medication;
       updateData.program_name = medication;
     }
-    if (dosage) {
+    if (dosage && category !== 'weight_loss') {
       updateData.selected_dose = dosage;
     }
 

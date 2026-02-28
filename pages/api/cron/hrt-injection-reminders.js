@@ -36,6 +36,7 @@ function getTodayDateStr() {
 
 // Check if today matches the schedule
 function isScheduledDay(schedule) {
+  if (schedule === 'daily') return true;
   const dayName = getTodayDayName();
   if (schedule === 'mon_thu') return dayName === 'Monday' || dayName === 'Thursday';
   if (schedule === 'tue_fri') return dayName === 'Tuesday' || dayName === 'Friday';

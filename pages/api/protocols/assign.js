@@ -110,6 +110,7 @@ export default async function handler(req, res) {
       hrtReminderSchedule,
       followupDate,
       hrtInitialQuantity,
+      secondaryMedication,
       // Membership override fields
       programTypeOverride,
       programNameOverride,
@@ -215,6 +216,9 @@ export default async function handler(req, res) {
       template = templateData;
       programName = template.name;
       programType = template.category;
+
+      // Standardize HRT program name
+      if (programType === 'hrt') programName = 'HRT Protocol';
 
       // Apply membership overrides
       if (programTypeOverride) programType = programTypeOverride;
@@ -368,6 +372,88 @@ export default async function handler(req, res) {
       }
     }
 
+    // ============================================
+    // DUPLICATE PREVENTION — For take-home HRT/weight_loss/peptide,
+    // check if an active protocol already exists. If so, extend it
+    // instead of creating a duplicate.
+    // ============================================
+    const takeHomeTypes = ['hrt', 'weight_loss', 'peptide'];
+    if (takeHomeTypes.includes(programType) && deliveryMethod !== 'in_clinic') {
+      const { data: existingProtocols } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('patient_id', finalPatientId)
+        .eq('program_type', programType)
+        .eq('status', 'active');
+
+      // Find a matching protocol (same medication if specified)
+      const matchingProtocol = (existingProtocols || []).find(p => {
+        if (medicationName && p.medication) {
+          return p.medication.toLowerCase() === medicationName.toLowerCase();
+        }
+        return true; // If no medication specified, match any active protocol of this type
+      });
+
+      if (matchingProtocol) {
+        console.log(`Duplicate prevention: Found existing active ${programType} protocol ${matchingProtocol.id} for patient ${finalPatientId}. Extending instead of creating new.`);
+
+        // Calculate new end date (extend by 30 days)
+        const currentEndDate = matchingProtocol.end_date ? new Date(matchingProtocol.end_date + 'T12:00:00') : new Date();
+        const today = new Date();
+        const startFrom = currentEndDate < today ? today : currentEndDate;
+        const newEnd = new Date(startFrom);
+        newEnd.setDate(newEnd.getDate() + 30);
+        const newEndDate = newEnd.toISOString().split('T')[0];
+
+        // Extend the existing protocol
+        const { data: updatedProtocol, error: updateError } = await supabase
+          .from('protocols')
+          .update({
+            end_date: newEndDate,
+            last_payment_date: new Date().toISOString().split('T')[0],
+            status: 'active',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', matchingProtocol.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Error extending existing protocol:', updateError);
+          throw updateError;
+        }
+
+        // Link purchase to existing protocol
+        if (purchaseId) {
+          await supabase
+            .from('purchases')
+            .update({
+              protocol_id: matchingProtocol.id,
+              protocol_created: true
+            })
+            .eq('id', purchaseId);
+        }
+
+        // Create a payment log entry
+        await supabase
+          .from('protocol_logs')
+          .insert({
+            protocol_id: matchingProtocol.id,
+            patient_id: finalPatientId,
+            log_type: 'payment',
+            log_date: new Date().toISOString().split('T')[0],
+            notes: `Monthly payment recorded (auto-linked from purchase). New end date: ${newEndDate}`
+          });
+
+        return res.status(200).json({
+          success: true,
+          linkedToExisting: true,
+          protocol: updatedProtocol,
+          message: `Linked to existing ${programType} protocol and extended end date to ${newEndDate}`
+        });
+      }
+    }
+
     // Create the protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
@@ -404,6 +490,7 @@ export default async function handler(req, res) {
         hrt_reminders_enabled: hrtRemindersEnabled || false,
         hrt_reminder_schedule: hrtReminderSchedule || null,
         hrt_followup_date: followupDate || null,
+        secondary_medication: secondaryMedication || null,
         last_refill_date: startDate, // Initialize refill date to start date
         next_expected_date: (() => {
           // For HRT take-home, calculate next supply date from initial quantity

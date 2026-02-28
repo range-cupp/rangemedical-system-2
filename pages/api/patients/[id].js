@@ -407,6 +407,18 @@ export default async function handler(req, res) {
         }
       }
 
+      // V2: Backfill patient_id on intakes found via fallback (same logic as consents)
+      if (intakes.length > 0) {
+        const unlinkedIntakeIds = intakes
+          .filter(i => i.patient_id !== id)
+          .map(i => i.id);
+        if (unlinkedIntakeIds.length > 0) {
+          await supabase.from('intakes')
+            .update({ patient_id: id })
+            .in('id', unlinkedIntakeIds);
+        }
+      }
+
       // ===== NEW: Get medical documents =====
       const { data: medicalDocuments } = await supabase
         .from('medical_documents')
@@ -421,6 +433,36 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .eq('category', 'weight_loss')
         .order('entry_date', { ascending: true });
+
+      // ===== V2: All service logs (for timeline) =====
+      const { data: serviceLogs } = await supabase
+        .from('service_logs')
+        .select('id, category, entry_type, entry_date, medication, dosage, quantity, dispensed_by, notes, created_at')
+        .eq('patient_id', id)
+        .order('entry_date', { ascending: false })
+        .limit(100);
+
+      // ===== V2: Communications log =====
+      const { data: commsLog } = await supabase
+        .from('comms_log')
+        .select('id, channel, message_type, body, status, recipient, subject, direction, created_at')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      // ===== V2: All purchases (not just pending) =====
+      const { data: allPurchases } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('patient_id', id)
+        .order('purchase_date', { ascending: false });
+
+      // ===== V2: Invoices =====
+      const { data: invoices } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false });
 
       // ===== NEW: Get patient notes (GHL backup) =====
       const { data: patientNotes } = await supabase
@@ -508,6 +550,11 @@ export default async function handler(req, res) {
         appointments: appointments || [],
         notes: patientNotes || [],
         weightLossLogs: weightLossLogs || [],
+        // V2 additions
+        serviceLogs: serviceLogs || [],
+        commsLog: commsLog || [],
+        allPurchases: allPurchases || [],
+        invoices: invoices || [],
         stats
       });
 

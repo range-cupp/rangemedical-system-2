@@ -3,9 +3,8 @@
 // Range Medical
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
-import AdminNav from '../../../components/AdminNav';
+import AdminLayout from '../../../components/AdminLayout';
 
 function calculateCurrentDay(startDate) {
   if (!startDate) return 0;
@@ -67,18 +66,7 @@ export default function ProtocolsPage() {
   const totalCount = protocols.length;
 
   return (
-    <>
-      <Head>
-        <title>Protocols | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
-        <AdminNav 
-          title="Protocols" 
-          subtitle={`${activeCount} active / ${totalCount} total`} 
-        />
-
-        <main style={styles.main}>
+    <AdminLayout title={`Protocols (${activeCount} active / ${totalCount} total)`}>
           {/* Toolbar */}
           <div style={styles.toolbar}>
             <input
@@ -191,9 +179,7 @@ export default function ProtocolsPage() {
               </table>
             )}
           </div>
-        </main>
-      </div>
-    </>
+    </AdminLayout>
   );
 }
 

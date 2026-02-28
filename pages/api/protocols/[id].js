@@ -79,6 +79,7 @@ async function getProtocol(id, res) {
         .select('id, entry_date, medication, dosage, weight, notes')
         .eq('patient_id', data.patient_id)
         .eq('category', 'weight_loss')
+        .neq('entry_type', 'pickup')
         .order('entry_date', { ascending: false }),
       supabase
         .from('injection_logs')

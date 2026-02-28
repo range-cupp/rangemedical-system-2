@@ -607,7 +607,10 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       const pickupDate = new Date(logDate + 'T00:00:00');
       let daysUntilNext = 14; // default 2 weeks
 
-      if (supply_type === 'prefilled_4week' || quantity === 8) {
+      if (category === 'weight_loss' && quantity) {
+        // Weight loss pickups: quantity = weeks of supply (1-4)
+        daysUntilNext = quantity * 7;
+      } else if (supply_type === 'prefilled_4week' || quantity === 8) {
         daysUntilNext = 28; // 4 weeks
       } else if (supply_type === 'prefilled_2week' || quantity === 4) {
         daysUntilNext = 14; // 2 weeks
@@ -820,7 +823,10 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
     const pickupDate = new Date(logDate + 'T00:00:00');
     let daysUntilNext = 14; // default 2 weeks
 
-    if (supply_type === 'prefilled_4week' || quantity === 8) {
+    if (category === 'weight_loss' && quantity) {
+      // Weight loss pickups: quantity = weeks of supply (1-4)
+      daysUntilNext = quantity * 7;
+    } else if (supply_type === 'prefilled_4week' || quantity === 8) {
       daysUntilNext = 28;
     } else if (supply_type === 'prefilled_2week' || quantity === 4) {
       daysUntilNext = 14;

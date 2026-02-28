@@ -11,15 +11,13 @@ const statusColors = {
   cancelled: { background: '#f3f4f6', color: '#6b7280' }
 };
 
-function ProgressBar({ currentStageIndex, totalStages, stages, currentStageKey }) {
-  const progress = totalStages > 0 ? ((currentStageIndex + 1) / totalStages) * 100 : 0;
-
+function ProgressBar({ currentStageIndex, totalStages, stages, isUnassigned }) {
   return (
     <div style={listStyles.progressWrapper}>
       <div style={listStyles.progressTrack}>
         {stages.map((stage, i) => {
-          const isCompleted = i < currentStageIndex;
-          const isCurrent = i === currentStageIndex;
+          const isCompleted = !isUnassigned && i < currentStageIndex;
+          const isCurrent = !isUnassigned && i === currentStageIndex;
           const segmentWidth = `${100 / stages.length}%`;
 
           return (
@@ -39,7 +37,7 @@ function ProgressBar({ currentStageIndex, totalStages, stages, currentStageKey }
         })}
       </div>
       <span style={listStyles.progressLabel}>
-        {currentStageIndex + 1} of {totalStages}
+        {isUnassigned ? 0 : currentStageIndex + 1} of {totalStages}
       </span>
     </div>
   );
@@ -146,7 +144,9 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
             {allPatients.map(patient => {
               const days = daysSince(patient.startDate);
               const statusStyle = statusColors[patient.status] || statusColors.active;
+              const isUnassigned = patient.stageKey === '_unassigned';
               const nextStage = getNextStage(patient.stageKey);
+              const firstStage = stageList.length > 0 ? stageList[0] : null;
 
               return (
                 <tr key={patient.protocolId} style={listStyles.tr}>
@@ -156,14 +156,19 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
                     </Link>
                   </td>
                   <td style={listStyles.td}>
-                    <span style={listStyles.stageBadge}>{patient.stageLabel}</span>
+                    <span style={{
+                      ...listStyles.stageBadge,
+                      ...(isUnassigned ? { background: '#fef3c7', color: '#92400e' } : {})
+                    }}>
+                      {patient.stageLabel}
+                    </span>
                   </td>
                   <td style={listStyles.td}>
                     <ProgressBar
                       currentStageIndex={patient.stageIndex >= 0 ? patient.stageIndex : 0}
                       totalStages={stageList.length}
                       stages={stageList}
-                      currentStageKey={patient.stageKey}
+                      isUnassigned={isUnassigned}
                     />
                   </td>
                   <td style={listStyles.td}>
@@ -190,7 +195,15 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
                     </span>
                   </td>
                   <td style={{ ...listStyles.td, textAlign: 'right' }}>
-                    {nextStage && onAdvance ? (
+                    {isUnassigned && firstStage && onAdvance ? (
+                      <button
+                        onClick={() => onAdvance(patient.protocolId, firstStage.key, '_unassigned')}
+                        style={listStyles.startBtn}
+                        title={`Start journey at ${firstStage.label}`}
+                      >
+                        Start Journey
+                      </button>
+                    ) : nextStage && onAdvance ? (
                       <button
                         onClick={() => onAdvance(patient.protocolId, nextStage.key, patient.stageKey)}
                         style={listStyles.advanceBtn}
@@ -333,6 +346,18 @@ const listStyles = {
     fontWeight: '500',
     cursor: 'pointer',
     color: '#374151',
+    whiteSpace: 'nowrap',
+    transition: 'all 0.15s'
+  },
+  startBtn: {
+    padding: '5px 12px',
+    background: '#000',
+    border: '1px solid #000',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    color: '#fff',
     whiteSpace: 'nowrap',
     transition: 'all 0.15s'
   }

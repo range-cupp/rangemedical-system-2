@@ -2,6 +2,7 @@
 // List/table view for patient journeys with progress bars
 // Range Medical System V2
 
+import { useState } from 'react';
 import Link from 'next/link';
 
 const statusColors = {
@@ -90,14 +91,6 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   };
 
-  const getNextStage = (currentKey) => {
-    const idx = stageList.findIndex(s => s.key === currentKey);
-    if (idx >= 0 && idx < stageList.length - 1) {
-      return stageList[idx + 1];
-    }
-    return null;
-  };
-
   if (allPatients.length === 0) {
     return (
       <div style={{ padding: '48px', textAlign: 'center', color: '#9ca3af' }}>
@@ -137,7 +130,7 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
               <th style={listStyles.th}>Protocol</th>
               <th style={listStyles.th}>Days</th>
               <th style={listStyles.th}>Status</th>
-              <th style={{ ...listStyles.th, textAlign: 'right' }}>Action</th>
+              <th style={{ ...listStyles.th, textAlign: 'right' }}>Assign Stage</th>
             </tr>
           </thead>
           <tbody>
@@ -145,8 +138,6 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
               const days = daysSince(patient.startDate);
               const statusStyle = statusColors[patient.status] || statusColors.active;
               const isUnassigned = patient.stageKey === '_unassigned';
-              const nextStage = getNextStage(patient.stageKey);
-              const firstStage = stageList.length > 0 ? stageList[0] : null;
 
               return (
                 <tr key={patient.protocolId} style={listStyles.tr}>
@@ -195,27 +186,28 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
                     </span>
                   </td>
                   <td style={{ ...listStyles.td, textAlign: 'right' }}>
-                    {isUnassigned && firstStage && onAdvance ? (
-                      <button
-                        onClick={() => onAdvance(patient.protocolId, firstStage.key, '_unassigned')}
-                        style={listStyles.startBtn}
-                        title={`Start journey at ${firstStage.label}`}
-                      >
-                        Start Journey
-                      </button>
-                    ) : nextStage && onAdvance ? (
-                      <button
-                        onClick={() => onAdvance(patient.protocolId, nextStage.key, patient.stageKey)}
-                        style={listStyles.advanceBtn}
-                        title={`Advance to ${nextStage.label}`}
-                      >
-                        {nextStage.label} →
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>
-                        {patient.stageIndex === stageList.length - 1 ? 'Final stage' : '—'}
-                      </span>
-                    )}
+                    <select
+                      value={isUnassigned ? '' : patient.stageKey}
+                      onChange={(e) => {
+                        const newStage = e.target.value;
+                        if (newStage && newStage !== patient.stageKey && onAdvance) {
+                          onAdvance(patient.protocolId, newStage, patient.stageKey || '_unassigned');
+                        }
+                      }}
+                      style={{
+                        ...listStyles.stageSelect,
+                        ...(isUnassigned ? listStyles.stageSelectUnassigned : {})
+                      }}
+                    >
+                      {isUnassigned && (
+                        <option value="">— Select Stage —</option>
+                      )}
+                      {stageList.map((stage, i) => (
+                        <option key={stage.key} value={stage.key}>
+                          {i + 1}. {stage.label}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                 </tr>
               );
@@ -337,28 +329,21 @@ const listStyles = {
     fontWeight: '500',
     whiteSpace: 'nowrap'
   },
-  advanceBtn: {
-    padding: '5px 12px',
-    background: '#fff',
+  stageSelect: {
+    padding: '6px 10px',
     border: '1px solid #d1d5db',
     borderRadius: '6px',
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer',
     color: '#374151',
-    whiteSpace: 'nowrap',
-    transition: 'all 0.15s'
+    background: '#fff',
+    minWidth: '160px',
+    appearance: 'auto'
   },
-  startBtn: {
-    padding: '5px 12px',
-    background: '#000',
+  stageSelectUnassigned: {
     border: '1px solid #000',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    color: '#fff',
-    whiteSpace: 'nowrap',
-    transition: 'all 0.15s'
+    fontWeight: '600',
+    color: '#000'
   }
 };

@@ -12,12 +12,14 @@ const boardStyles = {
     gap: '12px',
     overflowX: 'auto',
     paddingBottom: '16px',
-    minHeight: '400px'
+    minHeight: '400px',
+    WebkitOverflowScrolling: 'touch',
+    minWidth: 0,
   },
   column: {
     minWidth: '260px',
-    maxWidth: '300px',
-    flex: '1 0 260px',
+    width: '260px',
+    flex: '0 0 260px',
     background: '#f5f5f5',
     borderRadius: '10px',
     display: 'flex',

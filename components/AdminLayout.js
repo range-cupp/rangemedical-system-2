@@ -596,7 +596,8 @@ const styles = {
     alignItems: 'center'
   },
   main: {
-    padding: '24px'
+    padding: '24px',
+    overflowX: 'auto'
   }
 };
 

@@ -160,10 +160,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    // Receipt emails temporarily disabled
-    // sendReceiptEmail(data).catch(err =>
-    //   console.error('Receipt email failed:', err)
-    // );
+    // Send receipt email (with PDF attachment) after purchase
+    sendReceiptEmail(data).catch(err =>
+      console.error('Receipt email failed:', err)
+    );
 
     // Fire-and-forget auto-protocol creation/extension
     if (service_category && service_name) {

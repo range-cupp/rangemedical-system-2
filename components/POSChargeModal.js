@@ -172,9 +172,11 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         { label: 'Add-Ons', match: i => !i.recurring && i.name.toLowerCase().includes('additional') },
       ],
       weight_loss: [
+        { label: 'Tirzepatide — Monthly Programs', match: i => i.name.toLowerCase().includes('tirzepatide') && i.recurring },
+        { label: 'Tirzepatide — Single Injections', match: i => i.name.toLowerCase().includes('tirzepatide') && !i.recurring },
+        { label: 'Retatrutide — Monthly Programs', match: i => i.name.toLowerCase().includes('retatrutide') && i.recurring },
+        { label: 'Retatrutide — Single Injections', match: i => i.name.toLowerCase().includes('retatrutide') && !i.recurring },
         { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },
-        { label: 'Tirzepatide', match: i => i.name.toLowerCase().includes('tirzepatide') },
-        { label: 'Retatrutide', match: i => i.name.toLowerCase().includes('retatrutide') },
       ],
       iv_therapy: [
         { label: 'NAD+', match: i => i.name.toLowerCase().includes('nad') },

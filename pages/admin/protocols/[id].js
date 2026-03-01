@@ -192,12 +192,37 @@ function normalizeProtocol(p) {
   };
 }
 
+// Get today in Pacific time
+function getPacificToday() {
+  const now = new Date();
+  const pacific = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  pacific.setHours(0, 0, 0, 0);
+  return pacific;
+}
+
+// Get a date for a protocol day number based on start_date (in Pacific time)
+function getDateForDay(startDate, dayNum) {
+  if (!startDate) return null;
+  const parts = startDate.split('-');
+  const start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  start.setDate(start.getDate() + dayNum - 1);
+  return start;
+}
+
+// Format a short date like "Feb 28"
+function formatShortDate(date) {
+  if (!date) return '';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[date.getMonth()]} ${date.getDate()}`;
+}
+
 function calculateCurrentDay(startDate) {
   if (!startDate) return null;
-  const start = new Date(startDate);
-  const today = new Date();
+  // Parse start date without timezone shift
+  const parts = startDate.split('-');
+  const start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
   start.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
+  const today = getPacificToday();
   const diffTime = today - start;
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
   return diffDays;
@@ -322,16 +347,16 @@ export default function ProtocolDetail() {
 
   const buildCheckinSchedule = (p, duration) => {
     if (!p.start_date) return;
-    const start = new Date(p.start_date);
+    const parts = p.start_date.split('-');
+    const start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
     const checkins = [];
     const intervalDays = 7;
 
     for (let day = intervalDays; day <= duration; day += intervalDays) {
       const checkinDate = new Date(start);
       checkinDate.setDate(start.getDate() + day);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       checkinDate.setHours(0, 0, 0, 0);
+      const today = getPacificToday();
 
       const isPast = checkinDate < today;
       const isToday = checkinDate.getTime() === today.getTime();
@@ -608,16 +633,17 @@ export default function ProtocolDetail() {
                 <div style={styles.calendarGrid}>
                   {Array.from({ length: isInjectionProtocol ? totalUnits : totalDays }, (_, i) => {
                     const num = i + 1;
-                    const isPast = isInjectionProtocol 
-                      ? currentInjection > num 
+                    const isPast = isInjectionProtocol
+                      ? currentInjection > num
                       : currentDay > num;
-                    const isCurrent = isInjectionProtocol 
-                      ? currentInjection === num 
+                    const isCurrent = isInjectionProtocol
+                      ? currentInjection === num
                       : currentDay === num;
-                    const isFuture = isInjectionProtocol 
-                      ? currentInjection < num 
+                    const isFuture = isInjectionProtocol
+                      ? currentInjection < num
                       : currentDay < num;
-                    
+                    const cellDate = getDateForDay(protocol?.start_date, num);
+
                     return (
                       <div
                         key={num}
@@ -630,6 +656,15 @@ export default function ProtocolDetail() {
                         }}
                       >
                         <div style={styles.dayNumber}>{num}</div>
+                        <div style={{
+                          fontSize: '9px',
+                          fontWeight: '500',
+                          opacity: isPast || isCurrent ? 0.85 : 0.6,
+                          marginTop: '1px',
+                          letterSpacing: '-0.2px'
+                        }}>
+                          {cellDate ? formatShortDate(cellDate) : ''}
+                        </div>
                         {isPast && <div style={styles.checkmark}>✓</div>}
                         {isCurrent && <div style={styles.todayLabel}>{isInjectionProtocol ? 'NEXT' : 'TODAY'}</div>}
                       </div>
@@ -1019,11 +1054,11 @@ const styles = {
   // Calendar
   card: { background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   cardTitle: { margin: '0 0 16px', fontSize: '15px', fontWeight: '600' },
-  calendarGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(56px, 1fr))', gap: '8px' },
-  calendarDay: { aspectRatio: '1', border: '2px solid', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '14px' },
+  calendarGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: '8px' },
+  calendarDay: { minHeight: '72px', border: '2px solid', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '14px', padding: '4px 2px' },
   dayNumber: { fontWeight: '600', fontSize: '16px' },
-  checkmark: { fontSize: '10px', marginTop: '2px' },
-  todayLabel: { fontSize: '8px', fontWeight: '600', marginTop: '2px' },
+  checkmark: { fontSize: '10px', marginTop: '1px' },
+  todayLabel: { fontSize: '8px', fontWeight: '600', marginTop: '1px' },
   legend: { display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px', fontSize: '12px', color: '#666' },
   legendDot: { display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', background: '#22c55e', marginRight: '4px', verticalAlign: 'middle' },
   

@@ -6,6 +6,8 @@
 const API_KEY = 'cal_live_bb31571d015c6664d0e4f4f0beee8200';
 const V2_BASE = 'https://api.cal.com/v2';
 const LOCATION_IN_PERSON = [{ type: 'address', address: 'Range Medical, 1901 Westcliff Dr Suite 9 & 10, Newport Beach, CA 92660', public: true }];
+const LOCATION_TLAB = { type: 'address', address: 'TLAB Wellness Center, 1025 Ortega Way B, Placentia, CA 92870', public: true };
+const LOCATION_IV_DUAL = [LOCATION_IN_PERSON[0], LOCATION_TLAB]; // Range Medical + TLAB for mobile IVs
 const LOCATION_VIDEO = [{ type: 'integration', integration: 'google-meet' }];
 const LOCATION_PHONE = [{ type: 'phone', phone: '+19499973988', public: true }];
 
@@ -33,13 +35,13 @@ const EVENT_TYPES = [
   { slug: 'red-light-therapy', title: 'Red Light Therapy', length: 30, description: 'Red light therapy session at Range Medical.', locations: LOCATION_IN_PERSON },
 
   // IV THERAPY
-  { slug: 'range-iv', title: 'Range IV', length: 60, description: 'IV therapy session. Your blend of vitamins and minerals customized to how you\'re feeling.', locations: LOCATION_IN_PERSON },
+  { slug: 'range-iv', title: 'Range IV', length: 60, description: 'IV therapy session. Your blend of vitamins and minerals customized to how you\'re feeling.', locations: LOCATION_IV_DUAL },
   { slug: 'nad-iv-250', title: 'NAD+ IV (250mg)', length: 60, description: 'NAD+ IV infusion — 250mg dose. Approximately 1 hour.', locations: LOCATION_IN_PERSON },
   { slug: 'nad-iv-500', title: 'NAD+ IV (500mg)', length: 90, description: 'NAD+ IV infusion — 500mg dose. Approximately 1.5 hours.', locations: LOCATION_IN_PERSON },
   { slug: 'nad-iv-750', title: 'NAD+ IV (750mg)', length: 120, description: 'NAD+ IV infusion — 750mg dose. Approximately 2 hours.', locations: LOCATION_IN_PERSON },
   { slug: 'nad-iv-1000', title: 'NAD+ IV (1000mg)', length: 180, description: 'NAD+ IV infusion — 1000mg dose. Approximately 3 hours.', locations: LOCATION_IN_PERSON },
   { slug: 'vitamin-c-iv', title: 'Vitamin C IV', length: 90, description: 'High-dose Vitamin C IV infusion.', locations: LOCATION_IN_PERSON },
-  { slug: 'specialty-iv', title: 'Specialty IV', length: 60, description: 'Specialty IV therapy session.', locations: LOCATION_IN_PERSON },
+  { slug: 'specialty-iv', title: 'Specialty IV', length: 60, description: 'Specialty IV therapy session.', locations: LOCATION_IV_DUAL },
 
   // CONSULTATIONS
   { slug: 'initial-consultation', title: 'Initial Consultation', length: 30, description: 'Initial consultation with Dr. Burgess to discuss your health goals.', locations: LOCATION_IN_PERSON },

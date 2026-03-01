@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -208,6 +209,28 @@ export default async function handler(req, res) {
         serviceDetails, bookingDate
       }).catch(err => console.error('Staff notification failed:', err));
 
+      // Send patient notification — email + SMS with quiet hours (fire-and-forget)
+      if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
+        const bookingLocation = bookingData.location || bookingData.metadata?.location || null;
+        sendAppointmentNotification({
+          type: 'confirmation',
+          patient: {
+            id: patientId,
+            name: attendee.name,
+            email: attendee.email,
+            phone: attendee.phone || null,
+          },
+          appointment: {
+            serviceName: eventTitle,
+            startTime,
+            endTime,
+            durationMinutes,
+            location: bookingLocation,
+            notes: serviceDetails.notes || null,
+          },
+        }).catch(err => console.error('Patient confirmation notification failed:', err));
+      }
+
       return res.status(200).json({ success: true, message: 'Booking created/synced', action: action || 'none' });
     }
 
@@ -250,6 +273,25 @@ export default async function handler(req, res) {
         serviceDetails, bookingDate
       }).catch(err => console.error('Staff cancel notification failed:', err));
 
+      // Send patient cancellation notification (fire-and-forget)
+      if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
+        sendAppointmentNotification({
+          type: 'cancellation',
+          patient: {
+            id: existing?.patient_id || null,
+            name: attendee.name,
+            email: attendee.email,
+            phone: attendee.phone || null,
+          },
+          appointment: {
+            serviceName: eventTitle,
+            startTime,
+            endTime,
+            durationMinutes,
+          },
+        }).catch(err => console.error('Patient cancellation notification failed:', err));
+      }
+
       return res.status(200).json({ success: true, message: 'Booking cancelled', action: 'cancelled' });
     }
 
@@ -288,6 +330,32 @@ export default async function handler(req, res) {
         serviceName: eventTitle, startTime, durationMinutes,
         serviceDetails, bookingDate
       }).catch(err => console.error('Staff reschedule notification failed:', err));
+
+      // Send patient reschedule notification (fire-and-forget)
+      if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
+        // Look up patient_id from calcom_bookings
+        const { data: rescheduledBooking } = await supabase
+          .from('calcom_bookings')
+          .select('patient_id')
+          .eq('calcom_uid', calcomUid)
+          .single();
+
+        sendAppointmentNotification({
+          type: 'reschedule',
+          patient: {
+            id: rescheduledBooking?.patient_id || null,
+            name: attendee.name,
+            email: attendee.email,
+            phone: attendee.phone || null,
+          },
+          appointment: {
+            serviceName: eventTitle,
+            startTime,
+            endTime,
+            durationMinutes,
+          },
+        }).catch(err => console.error('Patient reschedule notification failed:', err));
+      }
 
       return res.status(200).json({ success: true, message: 'Booking rescheduled', action: 'rescheduled' });
     }

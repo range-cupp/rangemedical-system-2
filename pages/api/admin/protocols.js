@@ -154,7 +154,10 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { patient_id, ghl_contact_id, status, search, limit, sort, direction } = req.query;
 
-    let query = supabase.from('protocols').select('*', { count: 'exact' });
+    let query = supabase.from('protocols').select(`
+      *,
+      patients(id, name, first_name, last_name, email, phone)
+    `, { count: 'exact' });
 
     if (patient_id) {
       query = query.eq('patient_id', patient_id);
@@ -191,7 +194,24 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch protocols', details: error.message });
     }
 
-    return res.status(200).json({ protocols: data, total: count });
+    // Merge patient name from the joined patients table (single source of truth)
+    const protocols = (data || []).map(protocol => {
+      const p = protocol.patients;
+      const patientName = p
+        ? (p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.name || protocol.patient_name)
+        : protocol.patient_name;
+      const patientEmail = p?.email || protocol.patient_email;
+      const patientPhone = p?.phone || protocol.patient_phone;
+
+      return {
+        ...protocol,
+        patient_name: patientName || 'Unknown',
+        patient_email: patientEmail,
+        patient_phone: patientPhone
+      };
+    });
+
+    return res.status(200).json({ protocols, total: count });
   }
 
   // PUT - Update protocol

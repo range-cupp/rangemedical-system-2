@@ -51,6 +51,7 @@ export default function ProtocolsPage() {
       return (
         (p.patient_name || '').toLowerCase().includes(s) ||
         (p.program_name || '').toLowerCase().includes(s) ||
+        (p.medication || '').toLowerCase().includes(s) ||
         (p.primary_peptide || '').toLowerCase().includes(s)
       );
     }
@@ -130,13 +131,16 @@ export default function ProtocolsPage() {
                     return (
                       <tr key={protocol.id} style={styles.tr}>
                         <td style={styles.td}>
-                          <div style={styles.patientName}>{protocol.patient_name}</div>
-                          {protocol.patient_phone && (
-                            <div style={styles.patientPhone}>{protocol.patient_phone}</div>
+                          {protocol.patient_id ? (
+                            <Link href={`/admin/patients/${protocol.patient_id}`} style={styles.patientLink}>
+                              {protocol.patient_name || 'Unknown'}
+                            </Link>
+                          ) : (
+                            <div style={styles.patientName}>{protocol.patient_name || 'Unknown'}</div>
                           )}
                         </td>
                         <td style={styles.td}>{protocol.program_name || protocol.program_type}</td>
-                        <td style={styles.td}>{protocol.primary_peptide || '—'}</td>
+                        <td style={styles.td}>{protocol.medication || protocol.primary_peptide || protocol.selected_dose || '—'}</td>
                         <td style={styles.td}>
                           {protocol.start_date ? new Date(protocol.start_date).toLocaleDateString('en-US', {
                             month: 'short',
@@ -266,10 +270,11 @@ const styles = {
   patientName: {
     fontWeight: '500'
   },
-  patientPhone: {
-    fontSize: '12px',
-    color: '#666',
-    marginTop: '2px'
+  patientLink: {
+    fontWeight: '600',
+    color: '#111',
+    textDecoration: 'none',
+    fontSize: '14px'
   },
   progressContainer: {
     display: 'flex',

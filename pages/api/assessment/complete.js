@@ -177,6 +177,56 @@ export default async function handler(req, res) {
       }
     }
 
+    // 1b. Push demographics to patient profile (single source of truth)
+    if (supabase && email) {
+      try {
+        const normalizedEmail = email.toLowerCase().trim();
+        const { data: patientMatch } = await supabase
+          .from('patients')
+          .select('id, date_of_birth, gender, address, city, state, zip_code')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
+
+        if (patientMatch) {
+          const demographicUpdates = {};
+
+          // Only update fields that are empty on the patient — don't overwrite existing data
+          if (!patientMatch.date_of_birth && intakeData.dob) {
+            demographicUpdates.date_of_birth = intakeData.dob;
+          }
+          if (!patientMatch.gender && intakeData.gender) {
+            demographicUpdates.gender = intakeData.gender;
+          }
+          if (!patientMatch.address && intakeData.streetAddress) {
+            demographicUpdates.address = intakeData.streetAddress;
+          }
+          if (!patientMatch.city && intakeData.city) {
+            demographicUpdates.city = intakeData.city;
+          }
+          if (!patientMatch.state && intakeData.state) {
+            demographicUpdates.state = intakeData.state;
+          }
+          if (!patientMatch.zip_code && intakeData.postalCode) {
+            demographicUpdates.zip_code = intakeData.postalCode;
+          }
+
+          if (Object.keys(demographicUpdates).length > 0) {
+            const { error: demoError } = await supabase
+              .from('patients')
+              .update(demographicUpdates)
+              .eq('id', patientMatch.id);
+            if (demoError) {
+              console.error('Patient demographics update error:', demoError);
+            } else {
+              console.log(`Updated patient ${patientMatch.id} demographics from assessment:`, Object.keys(demographicUpdates).join(', '));
+            }
+          }
+        }
+      } catch (demoErr) {
+        console.error('Demographics push error:', demoErr);
+      }
+    }
+
     // 2. Generate PDF
     let pdfUrl = null;
     try {

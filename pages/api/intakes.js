@@ -220,6 +220,37 @@ export default async function handler(req, res) {
     console.log('✅ Photo ID saved:', data.photo_id_url ? 'YES' : 'NO');
     console.log('✅ Signature saved:', data.signature_url ? 'YES' : 'NO');
 
+    // Push demographics to patient profile (single source of truth)
+    if (intakeRecord.email) {
+      try {
+        const normalizedEmail = intakeRecord.email.toLowerCase().trim();
+        const { data: patientMatch } = await supabase
+          .from('patients')
+          .select('id, date_of_birth, gender, address, city, state, zip_code')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
+
+        if (patientMatch) {
+          const demoUpdates = {};
+          if (!patientMatch.date_of_birth && intakeRecord.date_of_birth) demoUpdates.date_of_birth = intakeRecord.date_of_birth;
+          if (!patientMatch.gender && intakeRecord.gender) demoUpdates.gender = intakeRecord.gender;
+          if (!patientMatch.address && intakeRecord.street_address) demoUpdates.address = intakeRecord.street_address;
+          if (!patientMatch.city && intakeRecord.city) demoUpdates.city = intakeRecord.city;
+          if (!patientMatch.state && intakeRecord.state) demoUpdates.state = intakeRecord.state;
+          if (!patientMatch.zip_code && intakeRecord.postal_code) demoUpdates.zip_code = intakeRecord.postal_code;
+
+          if (Object.keys(demoUpdates).length > 0) {
+            // Also link intake to patient
+            await supabase.from('intakes').update({ patient_id: patientMatch.id }).eq('id', data.id);
+            await supabase.from('patients').update(demoUpdates).eq('id', patientMatch.id);
+            console.log(`Updated patient ${patientMatch.id} demographics from intake:`, Object.keys(demoUpdates).join(', '));
+          }
+        }
+      } catch (demoErr) {
+        console.error('Demographics push error:', demoErr);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Intake form saved successfully',

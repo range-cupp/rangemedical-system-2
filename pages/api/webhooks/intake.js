@@ -112,6 +112,32 @@ export default async function handler(req, res) {
     if (patient) {
       intakeData.patient_id = patient.id;
       intakeData.ghl_contact_id = patient.ghl_contact_id || intakeData.ghl_contact_id;
+
+      // Push demographics to patient profile (single source of truth)
+      try {
+        // Fetch current patient demographics to avoid overwriting
+        const { data: fullPatient } = await supabase
+          .from('patients')
+          .select('date_of_birth, gender, address, city, state, zip_code')
+          .eq('id', patient.id)
+          .single();
+
+        const p = fullPatient || {};
+        const demoUpdates = {};
+        if (!p.date_of_birth && intakeData.date_of_birth) demoUpdates.date_of_birth = intakeData.date_of_birth;
+        if (!p.gender && intakeData.gender) demoUpdates.gender = intakeData.gender;
+        if (!p.address && intakeData.address) demoUpdates.address = intakeData.address;
+        if (!p.city && intakeData.city) demoUpdates.city = intakeData.city;
+        if (!p.state && intakeData.state) demoUpdates.state = intakeData.state;
+        if (!p.zip_code && intakeData.zip) demoUpdates.zip_code = intakeData.zip;
+
+        if (Object.keys(demoUpdates).length > 0) {
+          await supabase.from('patients').update(demoUpdates).eq('id', patient.id);
+          console.log(`Updated patient ${patient.id} demographics from webhook intake:`, Object.keys(demoUpdates).join(', '));
+        }
+      } catch (demoErr) {
+        console.error('Demographics push from webhook error:', demoErr);
+      }
     }
 
     // Check for existing intake from same person (avoid duplicates)

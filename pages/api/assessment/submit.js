@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { capitalizeName } from '../admin/capitalize-names';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -104,6 +105,60 @@ export default async function handler(req, res) {
       }
     } else {
       console.warn('Supabase not configured, skipping database save');
+    }
+
+    // 1b. Create or find patient record
+    let patientId = null;
+    if (supabase) {
+      try {
+        const normalizedEmail = email.toLowerCase().trim();
+        const capFirst = capitalizeName(firstName);
+        const capLast = capitalizeName(lastName);
+
+        // Check if patient with this email already exists
+        const { data: existingPatient } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
+
+        if (existingPatient) {
+          patientId = existingPatient.id;
+          console.log(`Assessment: linked to existing patient ${patientId} (${normalizedEmail})`);
+        } else {
+          // Create new patient
+          const { data: newPatient, error: patientError } = await supabase
+            .from('patients')
+            .insert({
+              first_name: capFirst,
+              last_name: capLast,
+              name: `${capFirst} ${capLast}`,
+              email: normalizedEmail,
+              phone: phone || null,
+              source: 'assessment',
+            })
+            .select('id')
+            .single();
+
+          if (patientError) {
+            console.error('Patient creation from assessment error:', patientError);
+          } else {
+            patientId = newPatient.id;
+            console.log(`Assessment: created new patient ${patientId} for ${capFirst} ${capLast}`);
+          }
+        }
+
+        // Link assessment_lead to patient
+        if (patientId && savedLead?.id) {
+          await supabase
+            .from('assessment_leads')
+            .update({ patient_id: patientId })
+            .eq('id', savedLead.id);
+        }
+      } catch (patientErr) {
+        console.error('Patient upsert from assessment error:', patientErr);
+        // Continue — don't block the user flow
+      }
     }
 
     // 2. Sync to GoHighLevel

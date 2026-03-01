@@ -12,17 +12,18 @@ const PROTOCOL_TYPES = {
   peptide: {
     name: 'Recovery Peptide',
     category: 'Peptide',
-    medications: ['BPC-157 / TB-500', 'BPC-157', 'TB-500'],
+    medications: ['BPC-157 / Thymosin Beta-4'],
     dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
     frequencies: [
       { value: 'daily', label: 'Once daily' },
       { value: '2x_daily', label: 'Twice daily' }
     ],
     durations: [
+      { value: 7, label: '7 days' },
       { value: 10, label: '10 days' },
-      { value: 30, label: '30 days' },
-      { value: 60, label: '60 days' },
-      { value: 90, label: '90 days' }
+      { value: 14, label: '14 days' },
+      { value: 20, label: '20 days' },
+      { value: 30, label: '30 days' }
     ]
   },
   hrt_male: {
@@ -357,9 +358,11 @@ export default function PurchasesPage() {
 function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [patient, setPatient] = useState(null);
+  const [patientLoading, setPatientLoading] = useState(true);
 
   const initialType = CATEGORY_TO_TYPE[purchase?.category] || 'peptide';
-  
+
   // Handle both object {value, label} and plain number formats for injections
   const getInitialInjections = () => {
     const firstInjection = PROTOCOL_TYPES[initialType]?.injections?.[0];
@@ -368,10 +371,6 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 
   const [form, setForm] = useState({
     protocolType: initialType,
-    patientName: purchase?.patient_name || '',
-    patientPhone: purchase?.patient_phone || '',
-    patientEmail: purchase?.patient_email || '',
-    ghlContactId: purchase?.ghl_contact_id || '',
     medication: '',
     dosage: '',
     dosageNotes: '',
@@ -383,6 +382,46 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     totalInjections: getInitialInjections(),
     notes: ''
   });
+
+  // Look up patient from patients table (single source of truth)
+  useEffect(() => {
+    async function lookupPatient() {
+      setPatientLoading(true);
+      try {
+        // Try by ghl_contact_id first, then by name
+        let found = null;
+        if (purchase?.ghl_contact_id) {
+          const res = await fetch(`/api/admin/patients?search=${encodeURIComponent(purchase.ghl_contact_id)}&limit=1`);
+          if (res.ok) {
+            const data = await res.json();
+            const patients = data.patients || data || [];
+            found = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+          }
+        }
+        if (!found && purchase?.patient_name) {
+          const res = await fetch(`/api/admin/patients?search=${encodeURIComponent(purchase.patient_name)}&limit=5`);
+          if (res.ok) {
+            const data = await res.json();
+            const patients = data.patients || data || [];
+            // Match by name
+            const purchaseName = (purchase.patient_name || '').toLowerCase().trim();
+            found = patients.find(p => {
+              const fullName = (p.first_name && p.last_name)
+                ? `${p.first_name} ${p.last_name}`.toLowerCase()
+                : (p.name || '').toLowerCase();
+              return fullName === purchaseName;
+            }) || patients[0];
+          }
+        }
+        setPatient(found || null);
+      } catch (err) {
+        console.error('Patient lookup error:', err);
+      } finally {
+        setPatientLoading(false);
+      }
+    }
+    lookupPatient();
+  }, [purchase]);
 
   const selectedType = PROTOCOL_TYPES[form.protocolType];
   const isSessionBased = !!selectedType?.sessions;
@@ -409,9 +448,18 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     }));
   };
 
+  // Build patient name from the patients table (source of truth)
+  const patientName = patient
+    ? (patient.first_name && patient.last_name ? `${patient.first_name} ${patient.last_name}` : patient.name)
+    : purchase?.patient_name || 'Unknown';
+  const patientPhone = patient?.phone || purchase?.patient_phone || '';
+  const patientEmail = patient?.email || purchase?.patient_email || '';
+  const patientId = patient?.id || null;
+  const ghlContactId = patient?.ghl_contact_id || purchase?.ghl_contact_id || '';
+
   const handleSubmit = async () => {
-    if (!form.patientName?.trim()) {
-      setError('Patient name is required');
+    if (!patientName?.trim()) {
+      setError('Could not determine patient name');
       return;
     }
 
@@ -482,10 +530,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       };
 
       const protocolData = {
-        ghl_contact_id: form.ghlContactId || null,
-        patient_name: form.patientName,
-        patient_email: form.patientEmail,
-        patient_phone: form.patientPhone,
+        patient_id: patientId,
+        ghl_contact_id: ghlContactId || null,
+        patient_name: patientName,
+        patient_email: patientEmail,
+        patient_phone: patientPhone,
         purchase_id: purchase.id,
         program_name: buildProtocolName(),
         program_type: programTypeMap[form.protocolType] || 'recovery_jumpstart_10day',
@@ -535,29 +584,26 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         <div style={modalStyles.body}>
           {error && <div style={modalStyles.error}>{error}</div>}
 
-          {/* Patient */}
+          {/* Patient (read-only from patients table) */}
           <div style={modalStyles.section}>
             <h3 style={modalStyles.sectionTitle}>Patient</h3>
-            <div style={modalStyles.grid}>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>Name *</label>
-                <input
-                  type="text"
-                  value={form.patientName}
-                  onChange={e => setForm({ ...form, patientName: e.target.value })}
-                  style={modalStyles.input}
-                />
+            {patientLoading ? (
+              <div style={{ padding: '12px', color: '#9ca3af', fontSize: '14px' }}>Looking up patient...</div>
+            ) : (
+              <div style={modalStyles.patientCard}>
+                <div style={modalStyles.patientCardName}>{patientName}</div>
+                <div style={modalStyles.patientCardDetails}>
+                  {patientEmail && <span>{patientEmail}</span>}
+                  {patientEmail && patientPhone && <span style={{ color: '#d1d5db' }}> · </span>}
+                  {patientPhone && <span>{patientPhone}</span>}
+                </div>
+                {!patient && (
+                  <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>
+                    Patient not found in database — using purchase data
+                  </div>
+                )}
               </div>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>Phone</label>
-                <input
-                  type="tel"
-                  value={form.patientPhone}
-                  onChange={e => setForm({ ...form, patientPhone: e.target.value })}
-                  style={modalStyles.input}
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Protocol Type */}
@@ -1072,6 +1118,22 @@ const modalStyles = {
   },
   section: {
     marginBottom: '20px'
+  },
+  patientCard: {
+    padding: '12px 16px',
+    background: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px'
+  },
+  patientCardName: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#111'
+  },
+  patientCardDetails: {
+    fontSize: '13px',
+    color: '#6b7280',
+    marginTop: '2px'
   },
   sectionTitle: {
     fontSize: '12px',

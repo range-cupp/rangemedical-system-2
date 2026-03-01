@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
     // Add search filter if provided
     if (search) {
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%,ghl_contact_id.eq.${search}`);
     }
 
     const { data: patients, error } = await query;

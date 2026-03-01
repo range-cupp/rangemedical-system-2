@@ -133,7 +133,7 @@ export default async function handler(req, res) {
       }
 
       // Find matching patient
-      const nameKey = namePart.toLowerCase();
+      const nameKey = `${firstName}-${nameParts.slice(1).join('-')}`.toLowerCase();
       const nameKeySpace = `${firstName.toLowerCase()} ${lastName.toLowerCase()}`;
       let patient = patientsByName[nameKey] || patientsByName[nameKeySpace];
 

@@ -520,18 +520,30 @@ export default function ProtocolDetail() {
   };
 
   // Calculations
-  const isInjectionProtocol = (protocol?.program_type || '').includes('injection') || 
-                              (protocol?.program_name || '').toLowerCase().includes('injection');
-  
+  const programType = protocol?.program_type || '';
+  const programName = (protocol?.program_name || '').toLowerCase();
+
+  // Injection protocols: single injections & injection packs
+  const isInjectionProtocol = programType.includes('injection') || programName.includes('injection');
+
+  // Weight loss protocols: track weekly injections using sessions_used as source of truth
+  const isWeightLoss = programType.includes('weight_loss') ||
+                       ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m));
+
   // Session-based protocols (HBOT, Red Light, IV Therapy, Injection Packs)
-  const isSessionBased = ['hbot', 'hbot_sessions', 'red_light', 'red_light_sessions', 'rlt', 
-                          'iv_therapy', 'iv', 'iv_sessions', 'injection_pack'].includes(protocol?.program_type);
-  
+  const isSessionBased = ['hbot', 'hbot_sessions', 'red_light', 'red_light_sessions', 'rlt',
+                          'iv_therapy', 'iv', 'iv_sessions', 'injection_pack'].includes(programType);
+
   // For session-based: track sessions_completed vs total_sessions
   const totalSessions = protocol?.total_sessions || 0;
   const sessionsCompleted = protocol?.sessions_completed || 0;
   const sessionsRemaining = totalSessions - sessionsCompleted;
-  
+
+  // Weight loss: sessions_used is the source of truth (actual logged injections)
+  const wlTotalInjections = protocol?.total_sessions || 4;
+  const wlSessionsUsed = protocol?.sessions_used || 0;
+  const wlInjectionsRemaining = wlTotalInjections - wlSessionsUsed;
+
   // For injection protocols: total = total_sessions (injection count)
   // For day protocols: total = duration_days (adjusted for frequency)
   const rawDuration = protocol?.duration_days || protocol?.total_sessions || 10;
@@ -540,8 +552,8 @@ export default function ProtocolDetail() {
   const totalUnits = isSessionBased ? (protocol?.total_sessions || rawDuration) : effectiveCalendarDays;
   const totalDays = effectiveCalendarDays;
   const currentDay = calculateCurrentDay(protocol?.start_date);
-  
-  // Calculate current injection based on frequency
+
+  // Calculate current injection based on frequency (for injection packs, not weight loss)
   const getFrequencyPerWeek = (freq) => {
     if (!freq) return 1;
     const match = freq.match(/(\d+)x/);
@@ -552,18 +564,20 @@ export default function ProtocolDetail() {
     if (freq === '2x_weekly') return 2;
     return 1;
   };
-  
+
   const frequencyPerWeek = getFrequencyPerWeek(protocol?.dose_frequency);
-  const currentInjection = isInjectionProtocol 
+  const currentInjection = isInjectionProtocol
     ? Math.min(Math.ceil(currentDay * frequencyPerWeek / 7), totalUnits)
     : currentDay;
-  
+
   const isActive = protocol?.status === 'active';
-  const isComplete = isSessionBased 
-    ? sessionsRemaining <= 0
-    : (isInjectionProtocol 
-        ? currentInjection >= totalUnits 
-        : currentDay > totalDays);
+  const isComplete = isWeightLoss
+    ? wlInjectionsRemaining <= 0
+    : isSessionBased
+      ? sessionsRemaining <= 0
+      : (isInjectionProtocol
+          ? currentInjection >= totalUnits
+          : currentDay > totalDays);
 
   if (loading) {
     return <div style={styles.loadingContainer}><div style={styles.loading}>Loading...</div></div>;
@@ -612,23 +626,28 @@ export default function ProtocolDetail() {
             {!isEditing && (
               <div style={styles.dayCard}>
                 <div style={styles.dayLabel}>
-                  {isSessionBased ? 'SESSIONS USED' : (isInjectionProtocol ? 'CURRENT INJECTION' : 'CURRENT DAY')}
+                  {isWeightLoss ? 'CURRENT INJECTION' : isSessionBased ? 'SESSIONS USED' : (isInjectionProtocol ? 'CURRENT INJECTION' : 'CURRENT DAY')}
                 </div>
                 <div style={styles.dayDisplay}>
                   <span style={styles.currentDay}>
                     {isComplete ? '✓' : (
+                      isWeightLoss ? (wlSessionsUsed > 0 ? wlSessionsUsed : '—') :
                       isSessionBased ? sessionsCompleted : (
                         isInjectionProtocol ? (currentInjection > 0 ? currentInjection : '—') : (currentDay > 0 ? currentDay : '—')
                       )
                     )}
                   </span>
                   <span style={styles.dayDivider}>/</span>
-                  <span style={styles.totalDays}>{isSessionBased ? totalSessions : totalUnits}</span>
+                  <span style={styles.totalDays}>{isWeightLoss ? wlTotalInjections : isSessionBased ? totalSessions : totalUnits}</span>
                 </div>
                 <div style={styles.dayStatus}>
                   {isComplete ? (
                     <span style={styles.completeText}>
-                      {isSessionBased ? 'All Sessions Used' : 'Protocol Complete'}
+                      {isWeightLoss ? 'All Injections Complete' : isSessionBased ? 'All Sessions Used' : 'Protocol Complete'}
+                    </span>
+                  ) : isWeightLoss ? (
+                    <span style={styles.activeText}>
+                      {wlInjectionsRemaining} injection{wlInjectionsRemaining !== 1 ? 's' : ''} remaining
                     </span>
                   ) : isSessionBased ? (
                     <span style={styles.activeText}>
@@ -638,7 +657,7 @@ export default function ProtocolDetail() {
                     <span style={styles.notStartedText}>Not Started Yet</span>
                   ) : (
                     <span style={styles.activeText}>
-                      {isInjectionProtocol 
+                      {isInjectionProtocol
                         ? `${totalUnits - currentInjection} injections remaining`
                         : `${totalDays - currentDay} days remaining`
                       }
@@ -699,8 +718,77 @@ export default function ProtocolDetail() {
               </div>
             )}
 
-            {/* Calendar Grid for Injection/Day protocols */}
-            {!isEditing && !isSessionBased && (
+            {/* Injection Calendar for Weight Loss (weekly intervals, sessions_used as truth) */}
+            {!isEditing && isWeightLoss && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>Injection Calendar</h2>
+                <div style={styles.calendarGrid}>
+                  {Array.from({ length: wlTotalInjections }, (_, i) => {
+                    const num = i + 1;
+                    const isCompleted = num <= wlSessionsUsed;
+                    const isNext = num === wlSessionsUsed + 1;
+                    const isFuture = num > wlSessionsUsed + 1;
+                    // Weekly intervals: use injection_day to find the right weekday
+                    const weeklyDate = protocol?.start_date ? (() => {
+                      const parts = protocol.start_date.split('-');
+                      const startD = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                      // If injection_day is set, find first occurrence of that day on or after start
+                      const injDay = protocol.injection_day;
+                      if (injDay) {
+                        const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+                        const targetDay = dayMap[injDay];
+                        if (targetDay !== undefined) {
+                          const currentDay = startD.getDay();
+                          const daysUntil = (targetDay - currentDay + 7) % 7;
+                          const firstInjDate = new Date(startD);
+                          firstInjDate.setDate(firstInjDate.getDate() + daysUntil);
+                          firstInjDate.setDate(firstInjDate.getDate() + (num - 1) * 7);
+                          return firstInjDate;
+                        }
+                      }
+                      // Fallback: weekly from start_date
+                      const d = new Date(startD);
+                      d.setDate(d.getDate() + (num - 1) * 7);
+                      return d;
+                    })() : null;
+
+                    return (
+                      <div
+                        key={num}
+                        style={{
+                          ...styles.calendarDay,
+                          background: isCompleted ? '#22c55e' : isNext ? '#000' : '#fff',
+                          color: isCompleted || isNext ? '#fff' : '#000',
+                          borderColor: isCompleted ? '#22c55e' : isNext ? '#000' : '#e5e5e5',
+                          opacity: isFuture ? 0.5 : 1
+                        }}
+                      >
+                        <div style={styles.dayNumber}>{num}</div>
+                        <div style={{
+                          fontSize: '9px',
+                          fontWeight: '500',
+                          opacity: isCompleted || isNext ? 0.85 : 0.6,
+                          marginTop: '1px',
+                          letterSpacing: '-0.2px'
+                        }}>
+                          {weeklyDate ? formatShortDate(weeklyDate) : ''}
+                        </div>
+                        {isCompleted && <div style={styles.checkmark}>✓</div>}
+                        {isNext && <div style={styles.todayLabel}>NEXT</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={styles.legend}>
+                  <span><span style={styles.legendDot} /> Complete</span>
+                  <span><span style={{ ...styles.legendDot, background: '#000' }} /> Next</span>
+                  <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Upcoming</span>
+                </div>
+              </div>
+            )}
+
+            {/* Calendar Grid for Injection/Day protocols (non-weight-loss) */}
+            {!isEditing && !isSessionBased && !isWeightLoss && (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>
                   {isInjectionProtocol ? 'Injection Tracker' : 'Injection Calendar'}

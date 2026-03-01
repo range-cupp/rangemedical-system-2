@@ -2,8 +2,9 @@
 // Daily cron to send recovery peptide SMS automations
 // Runs at 8:00 AM PST (0 16 * * * UTC) — handles:
 //   1. 10-day protocol day-7 follow-up
-//   2. 30-day protocol weekly check-ins (day 7, 14, 21)
+//   2. 30-day protocol weekly check-ins (day 7, 14, 21) with check-in form link
 //   3. 30-day protocol re-up text (~day 25, cycle-aware)
+//   4. Follow-up reminder if check-in not completed (day after check-in was due)
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -16,6 +17,7 @@ const supabase = createClient(
 );
 
 const GHL_API_KEY = process.env.GHL_API_KEY;
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
 
 // Get today's date string in Pacific Time (YYYY-MM-DD)
 function getPacificDate() {
@@ -176,7 +178,12 @@ export default async function handler(req, res) {
           .from('protocol_logs')
           .select('protocol_id, log_type')
           .in('protocol_id', protocolIds)
-          .in('log_type', ['peptide_followup', 'peptide_weekly_checkin_1', 'peptide_weekly_checkin_2', 'peptide_weekly_checkin_3', 'peptide_reup'])
+          .in('log_type', [
+            'peptide_followup', 'peptide_reup',
+            'peptide_weekly_checkin_1', 'peptide_weekly_checkin_2', 'peptide_weekly_checkin_3',
+            'peptide_checkin_followup_1', 'peptide_checkin_followup_2', 'peptide_checkin_followup_3',
+            'peptide_checkin'
+          ])
       : { data: [] };
 
     // Build a lookup set: "protocolId:logType"
@@ -225,7 +232,8 @@ export default async function handler(req, res) {
           const logType = `peptide_weekly_checkin_${weekNum}`;
           const logKey = `${protocol.id}:${logType}`;
           if (!logSet.has(logKey)) {
-            const message = `Hi ${firstName}! Week ${weekNum} check-in on your recovery peptide protocol. How are you feeling? Any changes in pain, mobility, or recovery? Reply anytime and let us know. - Range Medical`;
+            const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId}`;
+            const message = `Hi ${firstName}! Week ${weekNum} check-in on your recovery peptide protocol. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
 
             const smsResult = await sendSMS(ghlContactId, message);
             if (smsResult.success) {
@@ -236,6 +244,62 @@ export default async function handler(req, res) {
             } else {
               await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
               results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, error: smsResult.error });
+            }
+            continue;
+          }
+        }
+
+        // -------------------------------------------------------
+        // 2B. CHECK-IN FOLLOW-UP: fires day 8/15/22 if no response
+        // -------------------------------------------------------
+        let followupWeek = null;
+        if (days >= 8 && days <= 10) followupWeek = 1;
+        else if (days >= 15 && days <= 17) followupWeek = 2;
+        else if (days >= 22 && days <= 24) followupWeek = 3;
+
+        if (followupWeek) {
+          const followupLogType = `peptide_checkin_followup_${followupWeek}`;
+          const followupLogKey = `${protocol.id}:${followupLogType}`;
+          const checkinLogKey = `${protocol.id}:peptide_checkin`;
+
+          // Only send follow-up if: check-in reminder was sent BUT no check-in response received
+          const reminderWasSent = logSet.has(`${protocol.id}:peptide_weekly_checkin_${followupWeek}`);
+          const alreadyFollowedUp = logSet.has(followupLogKey);
+
+          // Check for actual check-in response near this week's expected date
+          let hasCheckinResponse = false;
+          if (reminderWasSent && !alreadyFollowedUp) {
+            const expectedDay = followupWeek * 7; // day 7, 14, 21
+            const startParts = protocol.start_date.split('-');
+            const checkStart = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
+            checkStart.setDate(checkStart.getDate() + expectedDay - 3); // 3 days before
+            const checkEnd = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
+            checkEnd.setDate(checkEnd.getDate() + expectedDay + 3); // 3 days after
+
+            const { data: checkinLogs } = await supabase
+              .from('protocol_logs')
+              .select('id')
+              .eq('protocol_id', protocol.id)
+              .eq('log_type', 'peptide_checkin')
+              .gte('log_date', checkStart.toISOString().split('T')[0])
+              .lte('log_date', checkEnd.toISOString().split('T')[0])
+              .limit(1);
+
+            hasCheckinResponse = (checkinLogs && checkinLogs.length > 0);
+          }
+
+          if (reminderWasSent && !alreadyFollowedUp && !hasCheckinResponse) {
+            const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId}`;
+            const message = `Hi ${firstName}! Just a quick follow-up — we haven't received your Week ${followupWeek} check-in yet. It only takes 30 seconds:\n\n${checkinUrl}\n\nYour feedback helps us make sure your recovery is on track. - Range Medical`;
+
+            const smsResult = await sendSMS(ghlContactId, message);
+            if (smsResult.success) {
+              await logSent(protocol.id, patient.id, followupLogType, message);
+              await logComm({ channel: 'sms', messageType: followupLogType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
+              logSet.add(followupLogKey);
+              results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `checkin_followup_${followupWeek}` });
+            } else {
+              results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `checkin_followup_${followupWeek}`, error: smsResult.error });
             }
             continue;
           }

@@ -116,14 +116,15 @@ const SUPPLEMENT_OPTIONS = [
 const PROTOCOL_CONFIG = {
   peptide: {
     frequencies: [
-      { value: 'daily', label: 'Once daily' },
-      { value: '2x_daily', label: 'Twice daily' }
+      { value: 'daily', label: 'Daily' },
+      { value: '2x_daily', label: 'Twice Daily' }
     ],
     durations: [
+      { value: 7, label: '7 days' },
       { value: 10, label: '10 days' },
-      { value: 30, label: '30 days' },
-      { value: 60, label: '60 days' },
-      { value: 90, label: '90 days' }
+      { value: 14, label: '14 days' },
+      { value: 20, label: '20 days' },
+      { value: 30, label: '30 days' }
     ]
   },
   hrt: {

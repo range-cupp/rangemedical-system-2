@@ -16,8 +16,8 @@ const PROTOCOL_TYPES = {
     medications: ['BPC-157 / Thymosin Beta-4'],
     dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
     frequencies: [
-      { value: 'daily', label: 'Once daily' },
-      { value: '2x_daily', label: 'Twice daily' }
+      { value: 'daily', label: 'Daily' },
+      { value: '2x_daily', label: 'Twice Daily' }
     ],
     durations: [
       { value: 7, label: '7 days' },
@@ -155,6 +155,22 @@ function detectProtocolType(programType, medication) {
   return 'peptide';
 }
 
+// Normalize freetext frequency values to standard codes
+function normalizeFrequencyValue(freq) {
+  if (!freq) return null;
+  const f = freq.toLowerCase().trim();
+  // Exact matches first
+  if (f === 'daily' || f === 'once daily' || f === '1x daily' || f === '1x_daily') return 'daily';
+  if (f === '2x daily' || f === 'twice daily' || f === '2x_daily') return '2x_daily';
+  if (f === '2x weekly' || f === '2x_weekly' || f === 'twice weekly') return '2x_weekly';
+  if (f === 'weekly' || f === 'once per week' || f === 'once weekly') return 'weekly';
+  if (f === 'per session' || f === 'per_session') return 'per_session';
+  // Ambiguous like "Daily or 2x daily" — default to daily (user sets exact in edit mode)
+  if (f.includes('daily')) return 'daily';
+  if (f.includes('weekly')) return 'weekly';
+  return freq;
+}
+
 // Normalize protocol fields - handles both old and new column names
 function normalizeProtocol(p) {
   if (!p) return p;
@@ -182,8 +198,8 @@ function normalizeProtocol(p) {
     primary_peptide: p.primary_peptide || p.medication || null,
     // Dosage: dose_amount OR selected_dose OR starting_dose
     dose_amount: p.dose_amount || p.selected_dose || p.starting_dose || null,
-    // Frequency: dose_frequency OR frequency
-    dose_frequency: p.dose_frequency || p.frequency || null,
+    // Frequency: dose_frequency OR frequency (normalize freetext values)
+    dose_frequency: normalizeFrequencyValue(p.dose_frequency || p.frequency),
     // Delivery: injection_location OR delivery_method
     injection_location: p.injection_location || p.delivery_method || null,
     // Duration
@@ -226,6 +242,14 @@ function calculateCurrentDay(startDate) {
   const diffTime = today - start;
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
   return diffDays;
+}
+
+// Calculate effective calendar days based on frequency
+// A 30-day supply taken twice daily = 15 actual days
+function getEffectiveDays(durationDays, frequency) {
+  if (!durationDays) return durationDays;
+  if (frequency === '2x_daily') return Math.ceil(durationDays / 2);
+  return durationDays;
 }
 
 export default function ProtocolDetail() {
@@ -283,6 +307,7 @@ export default function ProtocolDetail() {
 
       const detectedType = detectProtocolType(enrichedProtocol.program_type, enrichedProtocol.primary_peptide);
       const durationVal = enrichedProtocol.duration_days || enrichedProtocol.total_sessions || 30;
+      const freq = enrichedProtocol.dose_frequency || enrichedProtocol.frequency || 'daily';
       setForm({
         protocolType: detectedType,
         patientName: patientName || '',
@@ -290,7 +315,7 @@ export default function ProtocolDetail() {
         patientEmail: patientEmail || '',
         medication: enrichedProtocol.primary_peptide || '',
         dosage: enrichedProtocol.dose_amount || '',
-        frequency: enrichedProtocol.dose_frequency || 'daily',
+        frequency: freq,
         deliveryMethod: enrichedProtocol.injection_location || 'take_home',
         startDate: enrichedProtocol.start_date || '',
         duration: durationVal,
@@ -300,9 +325,11 @@ export default function ProtocolDetail() {
       });
 
       // Build check-in schedule for take-home protocols
+      // Use effective days (accounts for twice daily cutting duration in half)
+      const effectiveDuration = getEffectiveDays(durationVal, freq);
       const delivery = enrichedProtocol.injection_location;
-      if (delivery === 'take_home' && enrichedProtocol.start_date && durationVal > 7) {
-        buildCheckinSchedule(enrichedProtocol, durationVal, id);
+      if (delivery === 'take_home' && enrichedProtocol.start_date && effectiveDuration > 7) {
+        buildCheckinSchedule(enrichedProtocol, effectiveDuration, id);
       } else {
         setCheckinSchedule([]);
       }
@@ -444,11 +471,12 @@ export default function ProtocolDetail() {
         'injection_pack': 'injection_pack'
       };
 
-      // Calculate end date
+      // Calculate end date using effective days (twice daily = half the calendar days)
+      const effectiveDays = getEffectiveDays(parseInt(form.duration), form.frequency);
       let endDate = null;
-      if (form.startDate && form.duration) {
+      if (form.startDate && effectiveDays) {
         const start = new Date(form.startDate);
-        start.setDate(start.getDate() + parseInt(form.duration) - 1);
+        start.setDate(start.getDate() + effectiveDays - 1);
         endDate = start.toISOString().split('T')[0];
       }
 
@@ -503,9 +531,12 @@ export default function ProtocolDetail() {
   const sessionsRemaining = totalSessions - sessionsCompleted;
   
   // For injection protocols: total = total_sessions (injection count)
-  // For day protocols: total = duration_days
-  const totalUnits = protocol?.total_sessions || protocol?.duration_days || 10;
-  const totalDays = protocol?.duration_days || protocol?.total_sessions || 10;
+  // For day protocols: total = duration_days (adjusted for frequency)
+  const rawDuration = protocol?.duration_days || protocol?.total_sessions || 10;
+  const protocolFrequency = protocol?.dose_frequency || 'daily';
+  const effectiveCalendarDays = getEffectiveDays(rawDuration, protocolFrequency);
+  const totalUnits = isSessionBased ? (protocol?.total_sessions || rawDuration) : effectiveCalendarDays;
+  const totalDays = effectiveCalendarDays;
   const currentDay = calculateCurrentDay(protocol?.start_date);
   
   // Calculate current injection based on frequency
@@ -920,7 +951,14 @@ export default function ProtocolDetail() {
                     </div>
                     {selectedType?.durations ? (
                       <div style={styles.field}>
-                        <label style={styles.label}>Duration</label>
+                        <label style={styles.label}>
+                          Duration (doses)
+                          {form.frequency === '2x_daily' && form.duration && (
+                            <span style={{ color: '#666', fontWeight: '400' }}>
+                              {' '}→ {Math.ceil(parseInt(form.duration) / 2)} actual days
+                            </span>
+                          )}
+                        </label>
                         <select value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} style={styles.select}>
                           {selectedType.durations.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                         </select>
@@ -996,6 +1034,14 @@ export default function ProtocolDetail() {
                     <div style={styles.detailLabel}>End Date</div>
                     <div style={styles.detailValue}>{formatDate(protocol?.end_date)}</div>
                   </div>
+                  {protocolFrequency === '2x_daily' && (
+                    <div style={styles.detailItem}>
+                      <div style={styles.detailLabel}>Supply Duration</div>
+                      <div style={styles.detailValue}>
+                        {rawDuration} doses → {effectiveCalendarDays} days
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1101,7 +1147,7 @@ function formatDate(d) {
 }
 
 function formatFrequency(f) {
-  const map = { daily: 'Once daily', '2x_daily': 'Twice daily', '2x_weekly': '2x per week', weekly: 'Weekly', per_session: 'Per session' };
+  const map = { daily: 'Daily', '2x_daily': 'Twice Daily', '2x_weekly': '2x per week', weekly: 'Weekly', per_session: 'Per session' };
   return map[f] || f || '—';
 }
 

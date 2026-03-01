@@ -15,8 +15,8 @@ const PROTOCOL_TYPES = {
     medications: ['BPC-157 / Thymosin Beta-4'],
     dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
     frequencies: [
-      { value: 'daily', label: 'Once daily' },
-      { value: '2x_daily', label: 'Twice daily' }
+      { value: 'daily', label: 'Daily' },
+      { value: '2x_daily', label: 'Twice Daily' }
     ],
     durations: [
       { value: 7, label: '7 days' },

@@ -75,8 +75,10 @@ export default async function handler(req, res) {
     if (protocolType === 'peptide') {
       const days = parseInt(duration) || 10;
       sessions = days;
+      // Twice daily = supply lasts half as long
+      const effectiveDays = frequency === '2x_daily' ? Math.ceil(days / 2) : days;
       const end = new Date(startDate);
-      end.setDate(end.getDate() + days - 1);
+      end.setDate(end.getDate() + effectiveDays - 1);
       endDate = end.toISOString().split('T')[0];
     } else if (protocolType === 'red_light' || protocolType === 'hbot') {
       sessions = parseInt(totalSessions) || 1;

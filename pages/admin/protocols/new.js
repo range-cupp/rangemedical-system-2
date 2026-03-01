@@ -12,14 +12,15 @@ const PROTOCOL_TYPES = {
     medications: ['BPC-157 / TB-500', 'BPC-157', 'TB-500', 'Other'],
     dosages: ['500mcg / 500mcg', '500mcg', '250mcg', 'Custom'],
     frequencies: [
-      { value: 'daily', label: 'Once daily' },
-      { value: '2x_daily', label: 'Twice daily' }
+      { value: 'daily', label: 'Daily' },
+      { value: '2x_daily', label: 'Twice Daily' }
     ],
     durations: [
+      { value: 7, label: '7 days' },
       { value: 10, label: '10 days' },
-      { value: 30, label: '30 days' },
-      { value: 60, label: '60 days' },
-      { value: 90, label: '90 days' }
+      { value: 14, label: '14 days' },
+      { value: 20, label: '20 days' },
+      { value: 30, label: '30 days' }
     ],
     maxContinuous: 120,
     breakDays: 14,
@@ -335,7 +336,14 @@ export default function NewProtocol() {
                     {/* Duration for peptides */}
                     {selectedType.durations && (
                       <div style={styles.field}>
-                        <label style={styles.label}>Duration *</label>
+                        <label style={styles.label}>
+                          Duration (doses) *
+                          {form.frequency === '2x_daily' && form.duration && (
+                            <span style={{ color: '#666', fontWeight: '400' }}>
+                              {' '}→ {Math.ceil(parseInt(form.duration) / 2)} actual days
+                            </span>
+                          )}
+                        </label>
                         <select
                           value={form.duration}
                           onChange={e => setForm({ ...form, duration: e.target.value, totalSessions: e.target.value })}

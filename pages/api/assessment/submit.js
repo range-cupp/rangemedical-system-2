@@ -135,7 +135,6 @@ export default async function handler(req, res) {
               name: `${capFirst} ${capLast}`,
               email: normalizedEmail,
               phone: phone || null,
-              source: 'assessment',
             })
             .select('id')
             .single();

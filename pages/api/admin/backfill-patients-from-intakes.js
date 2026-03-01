@@ -121,7 +121,6 @@ export default async function handler(req, res) {
           city: intake.city,
           state: intake.state,
           zip: intake.postal_code,
-          source: 'intake_backfill',
           created_at: intake.submitted_at || new Date().toISOString()
         };
 
@@ -224,7 +223,6 @@ export default async function handler(req, res) {
               email: lead.email.toLowerCase().trim(),
               phone: lead.phone || null,
               ghl_contact_id: lead.ghl_contact_id || null,
-              source: 'assessment',
             })
             .select('id')
             .single();

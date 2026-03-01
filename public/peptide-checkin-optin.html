@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Medical - Weekly Check-In Agreement</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💉</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 440px; margin: 0 auto; }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo h1 {
+      font-size: 24px;
+      color: #111;
+      margin-bottom: 4px;
+    }
+    .logo p {
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .greeting {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .greeting h2 {
+      font-size: 20px;
+      color: #111;
+      margin-bottom: 8px;
+    }
+    .greeting p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .protocol-info {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 24px;
+    }
+    .protocol-info p {
+      font-size: 13px;
+      color: #166534;
+    }
+    .protocol-info strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .info-section {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .info-section h3 {
+      font-size: 15px;
+      color: #111;
+      margin-bottom: 12px;
+    }
+    .info-section ul {
+      list-style: none;
+      padding: 0;
+    }
+    .info-section li {
+      font-size: 14px;
+      color: #374151;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .info-section li:last-child {
+      border-bottom: none;
+    }
+    .info-section li .icon {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .choice-section {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .choice-section p {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      background: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn:hover {
+      border-color: #9ca3af;
+    }
+    .btn-yes {
+      border-color: #111;
+      background: #111;
+      color: #fff;
+    }
+    .btn-yes:hover {
+      background: #333;
+      border-color: #333;
+    }
+    .btn-no {
+      color: #6b7280;
+    }
+    .btn-no:hover {
+      border-color: #9ca3af;
+      color: #374151;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-screen .icon { font-size: 64px; margin-bottom: 20px; }
+    .success-screen h2 { font-size: 24px; color: #111; margin-bottom: 12px; }
+    .success-screen p { color: #6b7280; font-size: 15px; line-height: 1.6; }
+
+    .declined-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .declined-screen .icon { font-size: 64px; margin-bottom: 20px; }
+    .declined-screen h2 { font-size: 24px; color: #111; margin-bottom: 12px; }
+    .declined-screen p { color: #6b7280; font-size: 15px; line-height: 1.6; }
+
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 14px;
+    }
+
+    .loading-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .loading-screen p { color: #6b7280; font-size: 15px; }
+
+    .invalid-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .invalid-screen .icon { font-size: 48px; margin-bottom: 16px; }
+    .invalid-screen h2 { font-size: 20px; color: #991b1b; margin-bottom: 12px; }
+    .invalid-screen p { color: #6b7280; font-size: 14px; }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    .footer a { color: #6b7280; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>Range Medical</h1>
+      <p>Recovery Peptide Protocol</p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingScreen" class="card loading-screen">
+      <p>Loading your information...</p>
+    </div>
+
+    <!-- Invalid Link -->
+    <div id="invalidScreen" class="card invalid-screen">
+      <div class="icon">&#9888;&#65039;</div>
+      <h2>Invalid Link</h2>
+      <p>This link is invalid or has expired. Please use the link from your most recent text.</p>
+      <p style="margin-top: 16px;">Questions? Call us at <a href="tel:9499973988" style="color: #111; font-weight: 600;">(949) 997-3988</a></p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainScreen" class="card" style="display: none;">
+      <div class="greeting">
+        <h2>Hi <span id="patientFirstName">there</span>! 👋</h2>
+        <p>You've just started your recovery peptide protocol. We'd like to send you brief weekly check-ins via text to make sure everything is going smoothly.</p>
+      </div>
+
+      <div id="protocolInfo" class="protocol-info" style="display: none;">
+        <p><strong>💉 Your Protocol</strong></p>
+        <p><span id="currentMedication">Recovery Peptide</span> · <span id="protocolDuration">30</span> days</p>
+      </div>
+
+      <div class="info-section">
+        <h3>What to expect:</h3>
+        <ul>
+          <li><span class="icon">📱</span><span>A quick text each week with a link to a 30-second check-in form</span></li>
+          <li><span class="icon">📋</span><span>Simple questions about how you're feeling and any side effects</span></li>
+          <li><span class="icon">👨‍⚕️</span><span>Our team reviews your responses and follows up if needed</span></li>
+          <li><span class="icon">🔒</span><span>Your responses are private and only shared with your care team</span></li>
+        </ul>
+      </div>
+
+      <div id="errorMsg" class="error"></div>
+
+      <div class="choice-section">
+        <p>Would you like to receive weekly check-in texts?</p>
+        <div class="btn-group">
+          <button class="btn btn-yes" id="btnYes" onclick="submitChoice(true)">Yes, I'm in!</button>
+          <button class="btn btn-no" id="btnNo" onclick="submitChoice(false)">No thanks</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Opted In Success -->
+    <div id="successScreen" class="card success-screen">
+      <div class="icon">🎉</div>
+      <h2>You're all set!</h2>
+      <p>You'll receive your first check-in text around day 7 of your protocol. It only takes 30 seconds to complete.</p>
+      <p style="margin-top: 16px; font-size: 14px;">Questions anytime? Just reply to any of our texts or call <a href="tel:9499973988" style="color: #111; font-weight: 600;">(949) 997-3988</a></p>
+    </div>
+
+    <!-- Declined -->
+    <div id="declinedScreen" class="card declined-screen">
+      <div class="icon">👍</div>
+      <h2>No problem!</h2>
+      <p>You won't receive weekly check-in texts. If you change your mind or have any questions about your protocol, don't hesitate to reach out.</p>
+      <p style="margin-top: 16px; font-size: 14px;">Call us anytime at <a href="tel:9499973988" style="color: #111; font-weight: 600;">(949) 997-3988</a></p>
+    </div>
+
+    <div class="footer">
+      <p>Range Medical · Newport Beach, CA</p>
+      <p><a href="tel:9499973988">(949) 997-3988</a></p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://app.range-medical.com/api';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const contactId = urlParams.get('id') || urlParams.get('contact_id') || urlParams.get('cid');
+    const protocolId = urlParams.get('protocol_id') || urlParams.get('pid');
+
+    const loadingScreen = document.getElementById('loadingScreen');
+    const invalidScreen = document.getElementById('invalidScreen');
+    const mainScreen = document.getElementById('mainScreen');
+    const successScreen = document.getElementById('successScreen');
+    const declinedScreen = document.getElementById('declinedScreen');
+    const errorMsg = document.getElementById('errorMsg');
+
+    async function init() {
+      if (!contactId) {
+        showInvalid();
+        return;
+      }
+
+      loadingScreen.style.display = 'block';
+
+      try {
+        let url = `${API_BASE}/peptide-checkin/optin-info?contact_id=${contactId}`;
+        if (protocolId) url += `&protocol_id=${protocolId}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!res.ok || !data.patient) {
+          showInvalid();
+          return;
+        }
+
+        // If already opted in, show success directly
+        if (data.already_opted_in) {
+          loadingScreen.style.display = 'none';
+          successScreen.style.display = 'block';
+          return;
+        }
+
+        document.getElementById('patientFirstName').textContent = data.patient.first_name || 'there';
+
+        if (data.protocol) {
+          document.getElementById('currentMedication').textContent = data.protocol.medication || 'Recovery Peptide';
+          document.getElementById('protocolDuration').textContent = data.protocol.total_days || '30';
+          document.getElementById('protocolInfo').style.display = 'block';
+        }
+
+        loadingScreen.style.display = 'none';
+        mainScreen.style.display = 'block';
+
+      } catch (err) {
+        console.error('Init error:', err);
+        showInvalid();
+      }
+    }
+
+    function showInvalid() {
+      loadingScreen.style.display = 'none';
+      invalidScreen.style.display = 'block';
+    }
+
+    async function submitChoice(optIn) {
+      const btnYes = document.getElementById('btnYes');
+      const btnNo = document.getElementById('btnNo');
+      btnYes.disabled = true;
+      btnNo.disabled = true;
+      btnYes.textContent = optIn ? 'Saving...' : 'Yes, I\'m in!';
+      btnNo.textContent = optIn ? 'No thanks' : 'Saving...';
+      errorMsg.style.display = 'none';
+
+      try {
+        const body = {
+          contact_id: contactId,
+          opt_in: optIn
+        };
+        if (protocolId) body.protocol_id = protocolId;
+
+        const res = await fetch(`${API_BASE}/peptide-checkin/optin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const result = await res.json();
+
+        if (res.ok && result.success) {
+          mainScreen.style.display = 'none';
+          if (optIn) {
+            successScreen.style.display = 'block';
+          } else {
+            declinedScreen.style.display = 'block';
+          }
+        } else {
+          errorMsg.textContent = result.error || 'Something went wrong. Please try again.';
+          errorMsg.style.display = 'block';
+          btnYes.disabled = false;
+          btnNo.disabled = false;
+          btnYes.textContent = 'Yes, I\'m in!';
+          btnNo.textContent = 'No thanks';
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Unable to save. Please check your connection and try again.';
+        errorMsg.style.display = 'block';
+        btnYes.disabled = false;
+        btnNo.disabled = false;
+        btnYes.textContent = 'Yes, I\'m in!';
+        btnNo.textContent = 'No thanks';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

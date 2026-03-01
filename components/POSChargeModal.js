@@ -160,6 +160,80 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     return services.filter(s => s.category === categoryId);
   }
 
+  // Sub-group definitions for categories that benefit from segmentation
+  // Returns { subgroups: [{ label, items }], ungrouped: [] }
+  function getSubGroupedItems(categoryId) {
+    const items = getItemsByCategory(categoryId);
+
+    const SUBGROUP_RULES = {
+      hbot: [
+        { label: 'Session Packs', match: i => !i.recurring && !i.name.toLowerCase().includes('additional') },
+        { label: 'Memberships', match: i => i.recurring },
+        { label: 'Add-Ons', match: i => !i.recurring && i.name.toLowerCase().includes('additional') },
+      ],
+      weight_loss: [
+        { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },
+        { label: 'Tirzepatide', match: i => i.name.toLowerCase().includes('tirzepatide') },
+        { label: 'Retatrutide', match: i => i.name.toLowerCase().includes('retatrutide') },
+      ],
+      iv_therapy: [
+        { label: 'NAD+', match: i => i.name.toLowerCase().includes('nad') },
+        { label: 'Drip IVs', match: i => !i.name.toLowerCase().includes('nad') && !i.name.toLowerCase().includes('shot') && !i.name.toLowerCase().includes('injection') },
+        { label: 'Injections', match: i => i.name.toLowerCase().includes('shot') || i.name.toLowerCase().includes('injection') },
+      ],
+      specialty_iv: [
+        { label: 'Specialty IVs', match: () => true },
+      ],
+      red_light: [
+        { label: 'Session Packs', match: i => !i.recurring },
+        { label: 'Memberships', match: i => i.recurring },
+      ],
+      combo_membership: [
+        { label: 'HBOT + Red Light Combos', match: () => true },
+      ],
+      injection_standard: [
+        { label: 'Standard Injections', match: () => true },
+      ],
+      injection_premium: [
+        { label: 'Premium Injections', match: () => true },
+      ],
+      injection_pack: [
+        { label: 'Injection Packs', match: () => true },
+      ],
+      labs: [
+        { label: "Men's Panels", match: i => i.name.toLowerCase().includes("men's") || i.name.toLowerCase().includes('male') },
+        { label: "Women's Panels", match: i => i.name.toLowerCase().includes("women's") || i.name.toLowerCase().includes('female') },
+        { label: 'General', match: () => true },
+      ],
+    };
+
+    const rules = SUBGROUP_RULES[categoryId];
+    if (!rules) return null; // No sub-grouping defined
+
+    const assigned = new Set();
+    const subgroups = [];
+
+    for (const rule of rules) {
+      const matched = items.filter(i => !assigned.has(i.id) && rule.match(i));
+      if (matched.length > 0) {
+        matched.forEach(i => assigned.add(i.id));
+        subgroups.push({ label: rule.label, items: matched });
+      }
+    }
+
+    // Any remaining unmatched items
+    const ungrouped = items.filter(i => !assigned.has(i.id));
+
+    return { subgroups, ungrouped };
+  }
+
+  // Check if a category should use sub-grouped rendering
+  function shouldSubGroup(categoryId) {
+    if (categoryId === 'peptide' || categoryId === 'custom') return false;
+    const result = getSubGroupedItems(categoryId);
+    return result && result.subgroups.length > 0;
+  }
+
   // Parse peptide names into groups: "Peptide Protocol — 10 Day — BPC-157 (500mcg)"
   // → { baseName: "BPC-157", duration: "10 Day", detail: "500mcg", shortLabel: "10 Day · 500mcg" }
   function getGroupedPeptides() {
@@ -707,7 +781,14 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
             {step === 'result' && (resultStatus === 'success' ? 'Payment Complete' : 'Payment Failed')}
           </h2>
           {patient && step !== 'patient' && (
-            <div style={modalStyles.patientName}>{patient.name}</div>
+            <div style={modalStyles.patientName}>
+              {patient.name}
+              {(patient.phone || patient.city) && (
+                <div style={{ fontSize: '12px', color: '#999', fontWeight: 400, marginTop: 2 }}>
+                  {[patient.phone, [patient.city, patient.state].filter(Boolean).join(', ')].filter(Boolean).join(' • ')}
+                </div>
+              )}
+            </div>
           )}
           <button style={modalStyles.closeBtn} onClick={handleClose}>×</button>
         </div>
@@ -743,7 +824,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       }}
                     >
                       <div style={{ fontWeight: 500 }}>{p.name}</div>
-                      {p.email && <div style={{ fontSize: '12px', color: '#888' }}>{p.email}</div>}
+                      <div style={{ fontSize: '12px', color: '#888' }}>
+                        {[p.email, p.phone, [p.city, p.state].filter(Boolean).join(', ')].filter(Boolean).join(' • ')}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -857,27 +940,94 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     );
                   })()
                 ) : activeCategory !== 'custom' ? (
-                  <div style={modalStyles.itemGrid}>
-                    {getItemsByCategory(activeCategory).map(item => (
-                      <button
-                        key={item.id}
-                        style={{
-                          ...modalStyles.itemCard,
-                          ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
-                        }}
-                        onClick={() => toggleCartItem(item)}
-                      >
-                        {cartItems.some(i => i.id === item.id) && (
-                          <span style={modalStyles.inCartBadge}>&#10003;</span>
-                        )}
-                        <div style={modalStyles.itemName}>{item.name}</div>
-                        <div style={modalStyles.itemPrice}>
-                          {formatPrice(item.price)}
-                          {item.recurring && <span style={modalStyles.recurringBadge}>/mo</span>}
+                  shouldSubGroup(activeCategory) ? (
+                    // Sub-grouped view
+                    (() => {
+                      const { subgroups, ungrouped } = getSubGroupedItems(activeCategory);
+                      return (
+                        <div style={{ marginBottom: '16px' }}>
+                          {subgroups.map(sg => (
+                            <div key={sg.label} style={modalStyles.subGroup}>
+                              <div style={modalStyles.subGroupHeader}>{sg.label}</div>
+                              <div style={modalStyles.itemGrid}>
+                                {sg.items.map(item => (
+                                  <button
+                                    key={item.id}
+                                    style={{
+                                      ...modalStyles.itemCard,
+                                      ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
+                                    }}
+                                    onClick={() => toggleCartItem(item)}
+                                  >
+                                    {cartItems.some(i => i.id === item.id) && (
+                                      <span style={modalStyles.inCartBadge}>&#10003;</span>
+                                    )}
+                                    <div style={modalStyles.itemName}>{item.name}</div>
+                                    <div style={modalStyles.itemPrice}>
+                                      {formatPrice(item.price)}
+                                      {item.recurring && <span style={modalStyles.recurringBadge}>/mo</span>}
+                                    </div>
+                                    {item.description && (
+                                      <div style={modalStyles.itemDescription}>{item.description}</div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          {ungrouped.length > 0 && (
+                            <div style={modalStyles.subGroup}>
+                              <div style={modalStyles.subGroupHeader}>Other</div>
+                              <div style={modalStyles.itemGrid}>
+                                {ungrouped.map(item => (
+                                  <button
+                                    key={item.id}
+                                    style={{
+                                      ...modalStyles.itemCard,
+                                      ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
+                                    }}
+                                    onClick={() => toggleCartItem(item)}
+                                  >
+                                    {cartItems.some(i => i.id === item.id) && (
+                                      <span style={modalStyles.inCartBadge}>&#10003;</span>
+                                    )}
+                                    <div style={modalStyles.itemName}>{item.name}</div>
+                                    <div style={modalStyles.itemPrice}>
+                                      {formatPrice(item.price)}
+                                      {item.recurring && <span style={modalStyles.recurringBadge}>/mo</span>}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                      );
+                    })()
+                  ) : (
+                    // Flat grid (fallback)
+                    <div style={modalStyles.itemGrid}>
+                      {getItemsByCategory(activeCategory).map(item => (
+                        <button
+                          key={item.id}
+                          style={{
+                            ...modalStyles.itemCard,
+                            ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
+                          }}
+                          onClick={() => toggleCartItem(item)}
+                        >
+                          {cartItems.some(i => i.id === item.id) && (
+                            <span style={modalStyles.inCartBadge}>&#10003;</span>
+                          )}
+                          <div style={modalStyles.itemName}>{item.name}</div>
+                          <div style={modalStyles.itemPrice}>
+                            {formatPrice(item.price)}
+                            {item.recurring && <span style={modalStyles.recurringBadge}>/mo</span>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )
                 ) : (
                   <div style={modalStyles.customForm}>
                     <div style={modalStyles.fieldGroup}>
@@ -989,7 +1139,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                           <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px' }}>
                             {formatPrice(baseAmount)}
                           </span>
-                          <strong style={{ color: '#16A34A' }}>{formatPrice(finalAmount)}</strong>
+                          <strong>{formatPrice(finalAmount)}</strong>
                           <span style={{ fontSize: '12px', color: '#888', marginLeft: '6px' }}>
                             (save {formatPrice(discountCents)})
                           </span>
@@ -1324,16 +1474,18 @@ const modalStyles = {
     padding: '20px 24px 16px',
     borderBottom: '1px solid #e5e7eb',
     position: 'relative',
+    background: '#000',
   },
   title: {
     margin: 0,
     fontSize: '18px',
     fontWeight: 600,
-    color: '#111',
+    color: '#fff',
+    letterSpacing: '0.02em',
   },
   patientName: {
     fontSize: '14px',
-    color: '#666',
+    color: '#ccc',
     marginTop: '4px',
   },
   closeBtn: {
@@ -1343,7 +1495,7 @@ const modalStyles = {
     background: 'none',
     border: 'none',
     fontSize: '24px',
-    color: '#999',
+    color: '#888',
     cursor: 'pointer',
     width: '32px',
     height: '32px',
@@ -1374,9 +1526,9 @@ const modalStyles = {
     fontWeight: 500,
   },
   categoryTabActive: {
-    background: '#16A34A',
+    background: '#000',
     color: '#fff',
-    border: '1px solid #16A34A',
+    border: '1px solid #000',
   },
   itemGrid: {
     display: 'grid',
@@ -1395,8 +1547,28 @@ const modalStyles = {
     transition: 'border-color 0.15s',
   },
   itemCardSelected: {
-    borderColor: '#16A34A',
-    background: '#f0fdf4',
+    borderColor: '#000',
+    background: '#f5f5f5',
+  },
+  // Sub-group styles (used across all grouped categories)
+  subGroup: {
+    marginBottom: '20px',
+  },
+  subGroupHeader: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    padding: '6px 0 8px 2px',
+    borderBottom: '1px solid #e5e7eb',
+    marginBottom: '10px',
+  },
+  itemDescription: {
+    fontSize: '11px',
+    color: '#888',
+    marginTop: '2px',
+    lineHeight: '1.3',
   },
   // Grouped peptide styles
   peptideGroup: {
@@ -1442,7 +1614,7 @@ const modalStyles = {
   itemPrice: {
     fontSize: '16px',
     fontWeight: 700,
-    color: '#16A34A',
+    color: '#000',
   },
   recurringBadge: {
     fontSize: '12px',
@@ -1508,9 +1680,9 @@ const modalStyles = {
     fontWeight: 500,
   },
   discountBtnActive: {
-    background: '#16A34A',
+    background: '#000',
     color: '#fff',
-    border: '1px solid #16A34A',
+    border: '1px solid #000',
   },
   discountInputWrap: {
     display: 'flex',
@@ -1575,7 +1747,7 @@ const modalStyles = {
     padding: '10px 24px',
     borderRadius: '8px',
     border: 'none',
-    background: '#16A34A',
+    background: '#000',
     color: '#fff',
     fontSize: '14px',
     fontWeight: 600,
@@ -1600,7 +1772,7 @@ const modalStyles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 16px',
-    background: '#f0fdf4',
+    background: '#f5f5f5',
     borderRadius: '8px',
     marginBottom: '16px',
     fontSize: '15px',
@@ -1674,7 +1846,7 @@ const modalStyles = {
     width: '40px',
     height: '40px',
     border: '3px solid #e5e7eb',
-    borderTopColor: '#16A34A',
+    borderTopColor: '#000',
     borderRadius: '50%',
     animation: 'pos-spin 0.8s linear infinite',
     marginBottom: '16px',
@@ -1691,7 +1863,7 @@ const modalStyles = {
     width: '56px',
     height: '56px',
     borderRadius: '50%',
-    background: '#16A34A',
+    background: '#000',
     color: '#fff',
     fontSize: '28px',
     display: 'flex',
@@ -1763,7 +1935,7 @@ const modalStyles = {
     width: '20px',
     height: '20px',
     borderRadius: '50%',
-    background: '#16A34A',
+    background: '#000',
     color: '#fff',
     fontSize: '12px',
     fontWeight: 700,

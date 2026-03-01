@@ -133,6 +133,11 @@ export default function PatientProfile() {
   const [symptomsSent, setSymptomsSent] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Patient edit mode
+  const [editingPatient, setEditingPatient] = useState(false);
+  const [patientEditForm, setPatientEditForm] = useState({});
+  const [savingPatient, setSavingPatient] = useState(false);
+
   // Load data
   useEffect(() => {
     if (id) {
@@ -604,6 +609,50 @@ export default function PatientProfile() {
   const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
   const isInjectionTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('injection');
 
+  // Patient edit handlers
+  const startEditingPatient = () => {
+    setPatientEditForm({
+      first_name: patient.first_name || '',
+      last_name: patient.last_name || '',
+      email: patient.email || '',
+      phone: patient.phone || '',
+      date_of_birth: patient.date_of_birth || '',
+      gender: patient.gender || '',
+      address: patient.address || '',
+      city: patient.city || '',
+      state: patient.state || '',
+      zip: patient.zip || '',
+    });
+    setEditingPatient(true);
+  };
+
+  const cancelEditingPatient = () => {
+    setEditingPatient(false);
+    setPatientEditForm({});
+  };
+
+  const savePatientEdits = async () => {
+    setSavingPatient(true);
+    try {
+      const res = await fetch(`/api/patients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patientEditForm),
+      });
+      if (res.ok) {
+        const { patient: updated } = await res.json();
+        setPatient(updated);
+        setEditingPatient(false);
+      } else {
+        console.error('Failed to save patient');
+      }
+    } catch (err) {
+      console.error('Save patient error:', err);
+    } finally {
+      setSavingPatient(false);
+    }
+  };
+
   // Loading states
   if (!router.isReady) return <div className="loading">Loading...</div>;
   if (loading) return <div className="loading">Loading patient...</div>;
@@ -662,35 +711,105 @@ export default function PatientProfile() {
           </div>
 
           {/* Demographics */}
-          <div className="demographics-grid">
-            <div className="demo-item">
-              <label>Date of Birth</label>
-              {patient.date_of_birth ? (
-                <span>{formatDate(patient.date_of_birth)}</span>
-              ) : intakeDemographics?.date_of_birth ? (
-                <span>{formatDate(intakeDemographics.date_of_birth)} <span className="from-intake">(from intake)</span></span>
+          <div className="demographics-section">
+            <div className="demographics-header">
+              {!editingPatient ? (
+                <button onClick={startEditingPatient} className="edit-demographics-btn">✏️ Edit</button>
               ) : (
-                <span>—</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={savePatientEdits} disabled={savingPatient} className="save-demographics-btn">{savingPatient ? 'Saving...' : 'Save'}</button>
+                  <button onClick={cancelEditingPatient} className="cancel-demographics-btn">Cancel</button>
+                </div>
               )}
             </div>
-            <div className="demo-item">
-              <label>Gender</label>
-              {patient.gender ? (
-                <span>{patient.gender}</span>
-              ) : intakeDemographics?.gender ? (
-                <span>{intakeDemographics.gender} <span className="from-intake">(from intake)</span></span>
-              ) : (
-                <span>—</span>
-              )}
-            </div>
-            <div className="demo-item">
-              <label>Location</label>
-              <span>{patient.city && patient.state ? `${patient.city}, ${patient.state}` : '—'}</span>
-            </div>
-            <div className="demo-item">
-              <label>Patient Since</label>
-              <span>{patient.created_at ? formatDate(patient.created_at) : '—'}</span>
-            </div>
+            {!editingPatient ? (
+              <div className="demographics-grid">
+                <div className="demo-item">
+                  <label>Date of Birth</label>
+                  {patient.date_of_birth ? (
+                    <span>{formatDate(patient.date_of_birth)}</span>
+                  ) : intakeDemographics?.date_of_birth ? (
+                    <span>{formatDate(intakeDemographics.date_of_birth)} <span className="from-intake">(from intake)</span></span>
+                  ) : (
+                    <span>—</span>
+                  )}
+                </div>
+                <div className="demo-item">
+                  <label>Gender</label>
+                  {patient.gender ? (
+                    <span>{patient.gender}</span>
+                  ) : intakeDemographics?.gender ? (
+                    <span>{intakeDemographics.gender} <span className="from-intake">(from intake)</span></span>
+                  ) : (
+                    <span>—</span>
+                  )}
+                </div>
+                <div className="demo-item">
+                  <label>Phone</label>
+                  <span>{patient.phone ? formatPhone(patient.phone) : '—'}</span>
+                </div>
+                <div className="demo-item">
+                  <label>Address</label>
+                  <span>{patient.address || '—'}</span>
+                </div>
+                <div className="demo-item">
+                  <label>City, State, Zip</label>
+                  <span>{[patient.city, patient.state, patient.zip].filter(Boolean).join(', ') || '—'}</span>
+                </div>
+                <div className="demo-item">
+                  <label>Patient Since</label>
+                  <span>{patient.created_at ? formatDate(patient.created_at) : '—'}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="demographics-edit-grid">
+                <div className="edit-field">
+                  <label>First Name</label>
+                  <input type="text" value={patientEditForm.first_name} onChange={e => setPatientEditForm(f => ({ ...f, first_name: e.target.value }))} />
+                </div>
+                <div className="edit-field">
+                  <label>Last Name</label>
+                  <input type="text" value={patientEditForm.last_name} onChange={e => setPatientEditForm(f => ({ ...f, last_name: e.target.value }))} />
+                </div>
+                <div className="edit-field">
+                  <label>Email</label>
+                  <input type="email" value={patientEditForm.email} onChange={e => setPatientEditForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div className="edit-field">
+                  <label>Phone</label>
+                  <input type="tel" value={patientEditForm.phone} onChange={e => setPatientEditForm(f => ({ ...f, phone: e.target.value }))} />
+                </div>
+                <div className="edit-field">
+                  <label>Date of Birth</label>
+                  <input type="date" value={patientEditForm.date_of_birth} onChange={e => setPatientEditForm(f => ({ ...f, date_of_birth: e.target.value }))} />
+                </div>
+                <div className="edit-field">
+                  <label>Gender</label>
+                  <select value={patientEditForm.gender} onChange={e => setPatientEditForm(f => ({ ...f, gender: e.target.value }))}>
+                    <option value="">—</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="edit-field edit-field-full">
+                  <label>Address</label>
+                  <input type="text" value={patientEditForm.address} onChange={e => setPatientEditForm(f => ({ ...f, address: e.target.value }))} placeholder="Street address" />
+                </div>
+                <div className="edit-field">
+                  <label>City</label>
+                  <input type="text" value={patientEditForm.city} onChange={e => setPatientEditForm(f => ({ ...f, city: e.target.value }))} />
+                </div>
+                <div className="edit-field">
+                  <label>State</label>
+                  <input type="text" value={patientEditForm.state} onChange={e => setPatientEditForm(f => ({ ...f, state: e.target.value }))} />
+                </div>
+                <div className="edit-field">
+                  <label>Zip</label>
+                  <input type="text" value={patientEditForm.zip} onChange={e => setPatientEditForm(f => ({ ...f, zip: e.target.value }))} />
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
@@ -2216,14 +2335,53 @@ export default function PatientProfile() {
           color: #666;
           font-size: 14px;
         }
-        .demographics-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
+        .demographics-section {
           margin-top: 20px;
           padding: 16px;
           background: #f9fafb;
           border-radius: 8px;
+        }
+        .demographics-header {
+          display: flex;
+          justify-content: flex-end;
+          margin-bottom: 8px;
+        }
+        .edit-demographics-btn {
+          background: none;
+          border: none;
+          font-size: 12px;
+          color: #6b7280;
+          cursor: pointer;
+          padding: 2px 8px;
+          border-radius: 4px;
+        }
+        .edit-demographics-btn:hover { background: #e5e7eb; color: #111; }
+        .save-demographics-btn {
+          background: #2563eb;
+          color: #fff;
+          border: none;
+          font-size: 12px;
+          padding: 4px 14px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
+        }
+        .save-demographics-btn:hover { background: #1d4ed8; }
+        .save-demographics-btn:disabled { opacity: 0.6; }
+        .cancel-demographics-btn {
+          background: #fff;
+          border: 1px solid #d1d5db;
+          font-size: 12px;
+          padding: 4px 14px;
+          border-radius: 4px;
+          cursor: pointer;
+          color: #374151;
+        }
+        .cancel-demographics-btn:hover { background: #f3f4f6; }
+        .demographics-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
         }
         .demo-item label {
           display: block;
@@ -2241,6 +2399,36 @@ export default function PatientProfile() {
           font-size: 11px;
           color: #6b7280;
           font-style: italic;
+        }
+        .demographics-edit-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+        }
+        .edit-field label {
+          display: block;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: #6b7280;
+          margin-bottom: 4px;
+        }
+        .edit-field input, .edit-field select {
+          width: 100%;
+          padding: 6px 10px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 13px;
+          background: #fff;
+          box-sizing: border-box;
+        }
+        .edit-field input:focus, .edit-field select:focus {
+          outline: none;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+        }
+        .edit-field-full {
+          grid-column: 1 / -1;
         }
 
         /* Pending Section */
@@ -3169,6 +3357,7 @@ export default function PatientProfile() {
         /* Responsive */
         @media (max-width: 768px) {
           .demographics-grid { grid-template-columns: repeat(2, 1fr); }
+          .demographics-edit-grid { grid-template-columns: repeat(2, 1fr); }
           .tabs { overflow-x: auto; }
           .tabs button { padding: 12px 16px; white-space: nowrap; }
           .pending-card { flex-direction: column; gap: 12px; align-items: flex-start; }

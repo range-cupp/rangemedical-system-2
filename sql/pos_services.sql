@@ -38,12 +38,22 @@ INSERT INTO pos_services (name, category, price, recurring, sort_order) VALUES
   ('Inner Beauty IV', 'iv_therapy', 27500, false, 7),
   ('B12 Shot', 'iv_therapy', 3500, false, 8);
 
--- Regenerative
+-- HBOT
 INSERT INTO pos_services (name, category, price, recurring, sort_order) VALUES
-  ('HBOT Session', 'regenerative', 15000, false, 1),
-  ('HBOT 10-Pack', 'regenerative', 120000, false, 2),
-  ('Red Light Therapy', 'regenerative', 7500, false, 3),
-  ('RLT 10-Pack', 'regenerative', 60000, false, 4);
+  ('HBOT — Single Session', 'hbot', 18500, false, 1),
+  ('HBOT — 5-Session Pack', 'hbot', 85000, false, 2),
+  ('HBOT — 10-Session Pack', 'hbot', 160000, false, 3),
+  ('HBOT — Additional Member Session', 'hbot', 15000, false, 4);
+
+INSERT INTO pos_services (name, category, price, recurring, interval, sort_order) VALUES
+  ('HBOT Membership — 1x/Week', 'hbot', 54900, true, 'month', 5),
+  ('HBOT Membership — 2x/Week', 'hbot', 99900, true, 'month', 6),
+  ('HBOT Membership — 3x/Week', 'hbot', 139900, true, 'month', 7);
+
+-- Red Light Therapy
+INSERT INTO pos_services (name, category, price, recurring, sort_order) VALUES
+  ('Red Light Therapy', 'regenerative', 7500, false, 1),
+  ('RLT 10-Pack', 'regenerative', 60000, false, 2);
 
 -- Weight Loss (Monthly)
 INSERT INTO pos_services (name, category, price, recurring, interval, sort_order) VALUES

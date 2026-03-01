@@ -30,14 +30,15 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Purchase not found' });
     }
 
-    // Fetch patient name
+    // Fetch patient info
     const { data: patient } = await supabase
       .from('patients')
-      .select('name')
+      .select('name, phone, address, city, state, zip')
       .eq('id', purchase.patient_id)
       .single();
 
     const firstName = ((patient?.name) || '').split(' ')[0] || 'Patient';
+    const patientAddress = patient ? [patient.address, [patient.city, patient.state, patient.zip].filter(Boolean).join(', ')].filter(Boolean).join(', ') : null;
 
     // Get card details from Stripe if available
     let cardBrand = null;
@@ -71,6 +72,9 @@ export default async function handler(req, res) {
 
     const pdfBytes = await generateReceiptPdf({
       firstName,
+      patientName: patient?.name || null,
+      patientPhone: patient?.phone || null,
+      patientAddress,
       invoiceId: purchase.id,
       date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
         year: 'numeric',

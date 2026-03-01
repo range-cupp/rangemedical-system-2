@@ -19,7 +19,7 @@ async function sendReceiptEmail(purchase) {
     // Fetch patient info
     const { data: patient, error: patientError } = await supabase
       .from('patients')
-      .select('name, email')
+      .select('name, email, phone, address, city, state, zip')
       .eq('id', purchase.patient_id)
       .single();
 
@@ -30,6 +30,7 @@ async function sendReceiptEmail(purchase) {
     }
 
     const firstName = (patient.name || '').split(' ')[0] || 'there';
+    const patientName = patient.name || firstName;
 
     // Get card details from Stripe PaymentIntent
     let cardBrand = null;
@@ -56,8 +57,14 @@ async function sendReceiptEmail(purchase) {
       discountLabel = `$${purchase.discount_amount} off`;
     }
 
+    // Build patient address line
+    const patientAddress = [patient.address, [patient.city, patient.state, patient.zip].filter(Boolean).join(', ')].filter(Boolean).join(', ');
+
     const receiptParams = {
       firstName,
+      patientName: patient.name,
+      patientPhone: patient.phone || null,
+      patientAddress: patientAddress || null,
       invoiceId: purchase.id,
       date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
         year: 'numeric',

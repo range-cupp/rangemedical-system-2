@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     // Search by name (case insensitive)
     const { data: patients, error } = await supabase
       .from('patients')
-      .select('id, name, email, phone, ghl_contact_id')
+      .select('id, name, email, phone, ghl_contact_id, address, city, state, zip')
       .ilike('name', `%${q}%`)
       .order('name')
       .limit(20);

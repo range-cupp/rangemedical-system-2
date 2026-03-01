@@ -97,10 +97,22 @@ const PRODUCTS = [
     prices: [{ amount: 160000, nickname: null }],
   },
   {
-    name: 'Hyperbaric Recovery Membership',
-    description: '4 HBOT sessions per month. Additional sessions at $150 each.',
+    name: 'HBOT Membership — 1x/Week',
+    description: '4 HBOT sessions per month. Additional sessions at $150 each. 3-month minimum. $137/session — Save 26%.',
     category: 'hbot',
     prices: [{ amount: 54900, nickname: null, recurring: true, commitment: '3_month_minimum' }],
+  },
+  {
+    name: 'HBOT Membership — 2x/Week',
+    description: '8 HBOT sessions per month. Additional sessions at $150 each. 3-month minimum. $125/session — Save 32%.',
+    category: 'hbot',
+    prices: [{ amount: 99900, nickname: null, recurring: true, commitment: '3_month_minimum' }],
+  },
+  {
+    name: 'HBOT Membership — 3x/Week',
+    description: '12 HBOT sessions per month. Additional sessions at $150 each. 3-month minimum. $117/session — Save 37%.',
+    category: 'hbot',
+    prices: [{ amount: 139900, nickname: null, recurring: true, commitment: '3_month_minimum' }],
   },
   {
     name: 'HBOT — Additional Member Session',

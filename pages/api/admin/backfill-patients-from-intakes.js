@@ -162,7 +162,7 @@ export default async function handler(req, res) {
 
     const { data: leads, error: leadsError } = await supabase
       .from('assessment_leads')
-      .select('id, first_name, last_name, email, phone, patient_id, ghl_contact_id')
+      .select('id, first_name, last_name, email, phone, ghl_contact_id')
       .order('created_at', { ascending: true });
 
     if (!leadsError && leads) {
@@ -184,12 +184,7 @@ export default async function handler(req, res) {
       for (const lead of leads) {
         leadsProcessed++;
 
-        if (lead.patient_id) {
-          leadsAlreadyLinked++;
-          continue;
-        }
-
-        // Try to match by email
+        // Try to match by email — skip if patient already exists
         let matched = null;
         if (lead.email) {
           matched = pByEmail[lead.email.toLowerCase().trim()] || null;
@@ -201,8 +196,7 @@ export default async function handler(req, res) {
         }
 
         if (matched) {
-          await supabase.from('assessment_leads').update({ patient_id: matched.id }).eq('id', lead.id);
-          leadsLinked++;
+          leadsAlreadyLinked++;
         } else if (lead.first_name && lead.email) {
           // Create patient from assessment lead
           const firstName = lead.first_name.trim();
@@ -224,7 +218,6 @@ export default async function handler(req, res) {
             .single();
 
           if (!createErr && newPatient) {
-            await supabase.from('assessment_leads').update({ patient_id: newPatient.id }).eq('id', lead.id);
             leadsCreated++;
             // Add to lookup for future iterations
             if (lead.email) pByEmail[lead.email.toLowerCase().trim()] = newPatient;

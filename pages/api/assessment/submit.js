@@ -147,13 +147,8 @@ export default async function handler(req, res) {
           }
         }
 
-        // Link assessment_lead to patient
-        if (patientId && savedLead?.id) {
-          await supabase
-            .from('assessment_leads')
-            .update({ patient_id: patientId })
-            .eq('id', savedLead.id);
-        }
+        // Note: assessment_leads table doesn't have patient_id column
+        // Patient is linked by email match instead
       } catch (patientErr) {
         console.error('Patient upsert from assessment error:', patientErr);
         // Continue — don't block the user flow

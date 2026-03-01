@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 import JourneyBoard from '../../components/JourneyBoard';
 import JourneyListView from '../../components/JourneyListView';
+import ProtocolSlidePanel from '../../components/ProtocolSlidePanel';
 
 const PROTOCOL_TYPES = [
   { key: 'hrt', label: 'HRT' },
@@ -27,6 +28,7 @@ export default function JourneysPage() {
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [hasTemplates, setHasTemplates] = useState(true);
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
 
   const fetchBoard = useCallback(async (type) => {
     setLoading(true);
@@ -206,6 +208,7 @@ export default function JourneysPage() {
           columns={columns}
           summary={summary}
           onAdvance={handleAdvance}
+          onProtocolClick={setSelectedProtocol}
           loading={loading}
         />
       )}
@@ -216,9 +219,16 @@ export default function JourneysPage() {
           summary={summary}
           stages={stages}
           onAdvance={handleAdvance}
+          onProtocolClick={setSelectedProtocol}
           loading={loading}
         />
       )}
+      <ProtocolSlidePanel
+        isOpen={!!selectedProtocol}
+        onClose={() => setSelectedProtocol(null)}
+        protocolId={selectedProtocol?.protocolId}
+        cardData={selectedProtocol}
+      />
     </AdminLayout>
   );
 }

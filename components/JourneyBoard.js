@@ -95,7 +95,7 @@ const boardStyles = {
   }
 };
 
-export default function JourneyBoard({ columns, summary, onAdvance, loading }) {
+export default function JourneyBoard({ columns, summary, onAdvance, onProtocolClick, loading }) {
   const [dragItem, setDragItem] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
@@ -205,6 +205,7 @@ export default function JourneyBoard({ columns, summary, onAdvance, loading }) {
                       onDragStart={handleDragStart}
                       onDragEnd={handleDragEnd}
                       isDragging={dragItem?.protocolId === card.protocolId}
+                      onClick={onProtocolClick}
                     />
                   ))
                 )}

@@ -2,6 +2,7 @@
 // Patient card for the Journey Board Kanban columns
 // Range Medical System V2
 
+import { useRef } from 'react';
 import Link from 'next/link';
 
 const cardStyles = {
@@ -75,7 +76,8 @@ const statusColors = {
   cancelled: { background: '#f3f4f6', color: '#6b7280' }
 };
 
-export default function JourneyCard({ card, onDragStart, onDragEnd, isDragging }) {
+export default function JourneyCard({ card, onDragStart, onDragEnd, isDragging, onClick }) {
+  const didDrag = useRef(false);
   const statusStyle = statusColors[card.status] || statusColors.active;
 
   const formatDate = (dateStr) => {
@@ -101,16 +103,26 @@ export default function JourneyCard({ card, onDragStart, onDragEnd, isDragging }
       }}
       draggable
       onDragStart={(e) => {
+        didDrag.current = true;
         e.dataTransfer.setData('text/plain', JSON.stringify({
           protocolId: card.protocolId,
           currentStage: card.currentStage
         }));
         onDragStart && onDragStart(card);
       }}
-      onDragEnd={() => onDragEnd && onDragEnd()}
+      onDragEnd={() => {
+        onDragEnd && onDragEnd();
+        // Reset drag flag after a tick so click handler can check it
+        setTimeout(() => { didDrag.current = false; }, 0);
+      }}
+      onClick={() => {
+        if (!didDrag.current && onClick) {
+          onClick(card);
+        }
+      }}
     >
       <div style={cardStyles.nameRow}>
-        <Link href={`/patients/${card.patientId}`} style={cardStyles.name}>
+        <Link href={`/patients/${card.patientId}`} style={cardStyles.name} onClick={(e) => e.stopPropagation()}>
           {card.patientName}
         </Link>
         <span style={{ ...cardStyles.statusBadge, ...statusStyle }}>

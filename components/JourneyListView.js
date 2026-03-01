@@ -2,7 +2,7 @@
 // List/table view for patient journeys with progress bars
 // Range Medical System V2
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 
 const statusColors = {
@@ -44,7 +44,9 @@ function ProgressBar({ currentStageIndex, totalStages, stages, isUnassigned }) {
   );
 }
 
-export default function JourneyListView({ columns, summary, stages, onAdvance, loading }) {
+export default function JourneyListView({ columns, summary, stages, onAdvance, onProtocolClick, loading }) {
+  const [hoveredRow, setHoveredRow] = useState(null);
+
   if (loading) {
     return (
       <div style={{ padding: '48px', textAlign: 'center', color: '#9ca3af' }}>
@@ -140,9 +142,18 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
               const isUnassigned = patient.stageKey === '_unassigned';
 
               return (
-                <tr key={patient.protocolId} style={listStyles.tr}>
+                <tr
+                  key={patient.protocolId}
+                  style={{
+                    ...listStyles.tr,
+                    ...(hoveredRow === patient.protocolId ? { background: '#f9fafb' } : {})
+                  }}
+                  onClick={() => onProtocolClick && onProtocolClick(patient)}
+                  onMouseEnter={() => setHoveredRow(patient.protocolId)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                >
                   <td style={listStyles.td}>
-                    <Link href={`/patients/${patient.patientId}`} style={listStyles.patientLink}>
+                    <Link href={`/patients/${patient.patientId}`} style={listStyles.patientLink} onClick={(e) => e.stopPropagation()}>
                       {patient.patientName}
                     </Link>
                   </td>
@@ -188,6 +199,7 @@ export default function JourneyListView({ columns, summary, stages, onAdvance, l
                   <td style={{ ...listStyles.td, textAlign: 'right' }}>
                     <select
                       value={isUnassigned ? '' : patient.stageKey}
+                      onClick={(e) => e.stopPropagation()}
                       onChange={(e) => {
                         const newStage = e.target.value;
                         if (newStage && newStage !== patient.stageKey && onAdvance) {
@@ -260,7 +272,8 @@ const listStyles = {
     whiteSpace: 'nowrap'
   },
   tr: {
-    transition: 'background 0.1s'
+    transition: 'background 0.1s',
+    cursor: 'pointer'
   },
   td: {
     padding: '12px 16px',

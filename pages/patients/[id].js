@@ -621,7 +621,7 @@ export default function PatientProfile() {
       address: patient.address || '',
       city: patient.city || '',
       state: patient.state || '',
-      zip: patient.zip || '',
+      zip_code: patient.zip_code || '',
     });
     setEditingPatient(true);
   };
@@ -754,7 +754,7 @@ export default function PatientProfile() {
                 </div>
                 <div className="demo-item">
                   <label>City, State, Zip</label>
-                  <span>{[patient.city, patient.state, patient.zip].filter(Boolean).join(', ') || '—'}</span>
+                  <span>{[patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ') || '—'}</span>
                 </div>
                 <div className="demo-item">
                   <label>Patient Since</label>
@@ -806,7 +806,7 @@ export default function PatientProfile() {
                 </div>
                 <div className="edit-field">
                   <label>Zip</label>
-                  <input type="text" value={patientEditForm.zip} onChange={e => setPatientEditForm(f => ({ ...f, zip: e.target.value }))} />
+                  <input type="text" value={patientEditForm.zip_code} onChange={e => setPatientEditForm(f => ({ ...f, zip_code: e.target.value }))} />
                 </div>
               </div>
             )}

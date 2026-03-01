@@ -19,7 +19,7 @@ async function sendReceiptEmail(purchase) {
     // Fetch patient info
     const { data: patient, error: patientError } = await supabase
       .from('patients')
-      .select('name, email, phone, address, city, state, zip')
+      .select('name, email, phone, address, city, state, zip_code')
       .eq('id', purchase.patient_id)
       .single();
 
@@ -58,7 +58,7 @@ async function sendReceiptEmail(purchase) {
     }
 
     // Build patient address line
-    const patientAddress = [patient.address, [patient.city, patient.state, patient.zip].filter(Boolean).join(', ')].filter(Boolean).join(', ');
+    const patientAddress = [patient.address, [patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ')].filter(Boolean).join(', ');
 
     const receiptParams = {
       firstName,

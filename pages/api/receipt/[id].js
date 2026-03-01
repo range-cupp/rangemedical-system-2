@@ -33,12 +33,12 @@ export default async function handler(req, res) {
     // Fetch patient info
     const { data: patient } = await supabase
       .from('patients')
-      .select('name, phone, address, city, state, zip')
+      .select('name, phone, address, city, state, zip_code')
       .eq('id', purchase.patient_id)
       .single();
 
     const firstName = ((patient?.name) || '').split(' ')[0] || 'Patient';
-    const patientAddress = patient ? [patient.address, [patient.city, patient.state, patient.zip].filter(Boolean).join(', ')].filter(Boolean).join(', ') : null;
+    const patientAddress = patient ? [patient.address, [patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ')].filter(Boolean).join(', ') : null;
 
     // Get card details from Stripe if available
     let cardBrand = null;

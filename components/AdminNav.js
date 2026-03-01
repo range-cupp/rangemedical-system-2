@@ -65,12 +65,13 @@ const styles = {
   title: {
     margin: 0,
     fontSize: '20px',
-    fontWeight: '600'
+    fontWeight: '600',
+    color: '#fff'
   },
   subtitle: {
     margin: '2px 0 0',
     fontSize: '13px',
-    opacity: 0.7
+    color: 'rgba(255,255,255,0.7)'
   },
   nav: {
     display: 'flex',

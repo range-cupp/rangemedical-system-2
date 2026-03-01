@@ -10,12 +10,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Capitalize a name properly: "john" → "John", "o'brien" → "O'Brien", "mary-jane" → "Mary-Jane"
+// Capitalize a name properly:
+// "john" → "John", "o'brien" → "O'Brien", "mary-jane" → "Mary-Jane"
+// "mclaughlin" → "McLaughlin", "mcdonald" → "McDonald"
 export function capitalizeName(name) {
   if (!name) return name;
+  // Skip obviously corrupted names (contain form data, emails, etc.)
+  if (name.length > 60) return name;
   return name
     .trim()
-    .split(/\s+/)
+    .replace(/\s+/g, ' ')
+    .split(' ')
     .map(word => {
       if (!word) return word;
       // Handle apostrophes: O'Brien, D'Angelo
@@ -24,15 +29,24 @@ export function capitalizeName(name) {
           part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
         ).join("'");
       }
-      // Handle hyphens: Mary-Jane
+      // Handle hyphens: Mary-Jane, Jenkins-Kearney
       if (word.includes('-')) {
-        return word.split('-').map(part =>
-          part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-        ).join('-');
+        return word.split('-').map(part => capitalizeWord(part)).join('-');
       }
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      return capitalizeWord(word);
     })
     .join(' ');
+}
+
+// Capitalize a single word, handling Mc/Mac prefixes
+function capitalizeWord(word) {
+  if (!word) return word;
+  const lower = word.toLowerCase();
+  // Handle Mc prefix: McDonald, McLaughlin, McCormick, McGreevy, McNeal, McLane
+  if (lower.length > 2 && lower.startsWith('mc')) {
+    return 'Mc' + lower.charAt(2).toUpperCase() + lower.slice(3);
+  }
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 }
 
 export default async function handler(req, res) {

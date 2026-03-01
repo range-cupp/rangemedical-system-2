@@ -13,17 +13,18 @@ const PROTOCOL_TYPES = {
   peptide: {
     name: 'Recovery Peptide',
     programTypes: ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'peptide'],
-    medications: ['BPC-157 / TB-500', 'BPC-157', 'TB-500'],
+    medications: ['BPC-157 / Thymosin Beta-4'],
     dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
     frequencies: [
       { value: 'daily', label: 'Once daily' },
       { value: '2x_daily', label: 'Twice daily' }
     ],
     durations: [
+      { value: 7, label: '7 days' },
       { value: 10, label: '10 days' },
-      { value: 30, label: '30 days' },
-      { value: 60, label: '60 days' },
-      { value: 90, label: '90 days' }
+      { value: 14, label: '14 days' },
+      { value: 20, label: '20 days' },
+      { value: 30, label: '30 days' }
     ]
   },
   hrt_male: {
@@ -154,6 +155,43 @@ function detectProtocolType(programType, medication) {
   return 'peptide';
 }
 
+// Normalize protocol fields - handles both old and new column names
+function normalizeProtocol(p) {
+  if (!p) return p;
+
+  // Calculate duration from dates if missing
+  let durationDays = p.duration_days || p.total_days;
+  if (!durationDays && p.start_date && p.end_date) {
+    const start = new Date(p.start_date);
+    const end = new Date(p.end_date);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    durationDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    if (durationDays < 1) durationDays = null;
+  }
+
+  // Parse duration from program_name if still missing (e.g., "Peptide Therapy - 30 Day")
+  if (!durationDays && p.program_name) {
+    const match = p.program_name.match(/(\d+)\s*day/i);
+    if (match) durationDays = parseInt(match[1]);
+  }
+
+  return {
+    ...p,
+    // Medication: primary_peptide OR medication
+    primary_peptide: p.primary_peptide || p.medication || null,
+    // Dosage: dose_amount OR selected_dose OR starting_dose
+    dose_amount: p.dose_amount || p.selected_dose || p.starting_dose || null,
+    // Frequency: dose_frequency OR frequency
+    dose_frequency: p.dose_frequency || p.frequency || null,
+    // Delivery: injection_location OR delivery_method
+    injection_location: p.injection_location || p.delivery_method || null,
+    // Duration
+    duration_days: durationDays || null,
+    total_days: durationDays || null
+  };
+}
+
 function calculateCurrentDay(startDate) {
   if (!startDate) return null;
   const start = new Date(startDate);
@@ -177,6 +215,7 @@ export default function ProtocolDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({});
   const [labSchedule, setLabSchedule] = useState([]);
+  const [checkinSchedule, setCheckinSchedule] = useState([]);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -188,29 +227,64 @@ export default function ProtocolDetail() {
       const res = await fetch(`/api/admin/protocols/${id}`);
       if (!res.ok) throw new Error('Protocol not found');
       const data = await res.json();
-      const p = data.protocol || data;
-      setProtocol(p);
-      
-      const detectedType = detectProtocolType(p.program_type, p.primary_peptide);
+      const p = normalizeProtocol(data.protocol || data);
+
+      // Fetch patient name from patients table if missing
+      let patientName = p.patient_name;
+      let patientPhone = p.patient_phone;
+      let patientEmail = p.patient_email;
+      if (p.patient_id && !patientName) {
+        try {
+          const patientRes = await fetch(`/api/admin/patients?id=${p.patient_id}`);
+          const patientData = await patientRes.json();
+          const patient = patientData?.[0];
+          if (patient) {
+            patientName = patient.first_name && patient.last_name
+              ? `${patient.first_name} ${patient.last_name}`
+              : patient.name || patientName;
+            patientPhone = patientPhone || patient.phone;
+            patientEmail = patientEmail || patient.email;
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      const enrichedProtocol = {
+        ...p,
+        patient_name: patientName,
+        patient_phone: patientPhone,
+        patient_email: patientEmail
+      };
+      setProtocol(enrichedProtocol);
+
+      const detectedType = detectProtocolType(enrichedProtocol.program_type, enrichedProtocol.primary_peptide);
+      const durationVal = enrichedProtocol.duration_days || enrichedProtocol.total_sessions || 30;
       setForm({
         protocolType: detectedType,
-        patientName: p.patient_name || '',
-        patientPhone: p.patient_phone || '',
-        patientEmail: p.patient_email || '',
-        medication: p.primary_peptide || '',
-        dosage: p.dose_amount || '',
-        frequency: p.dose_frequency || 'daily',
-        deliveryMethod: p.injection_location || 'take_home',
-        startDate: p.start_date || '',
-        duration: p.duration_days || p.total_sessions || 10,
-        totalSessions: p.total_sessions || p.duration_days || 10,
-        status: p.status || 'active',
-        notes: p.notes || ''
+        patientName: patientName || '',
+        patientPhone: patientPhone || '',
+        patientEmail: patientEmail || '',
+        medication: enrichedProtocol.primary_peptide || '',
+        dosage: enrichedProtocol.dose_amount || '',
+        frequency: enrichedProtocol.dose_frequency || 'daily',
+        deliveryMethod: enrichedProtocol.injection_location || 'take_home',
+        startDate: enrichedProtocol.start_date || '',
+        duration: durationVal,
+        totalSessions: enrichedProtocol.total_sessions || durationVal,
+        status: enrichedProtocol.status || 'active',
+        notes: enrichedProtocol.notes || ''
       });
 
+      // Build check-in schedule for take-home protocols
+      const delivery = enrichedProtocol.injection_location;
+      if (delivery === 'take_home' && enrichedProtocol.start_date && durationVal > 7) {
+        buildCheckinSchedule(enrichedProtocol, durationVal);
+      } else {
+        setCheckinSchedule([]);
+      }
+
       // Fetch blood draw schedule for HRT protocols
-      if (isHRTProtocol(p.program_type) && p.start_date) {
-        fetchLabSchedule(p);
+      if (isHRTProtocol(enrichedProtocol.program_type) && enrichedProtocol.start_date) {
+        fetchLabSchedule(enrichedProtocol);
       } else {
         setLabSchedule([]);
       }
@@ -244,6 +318,32 @@ export default function ProtocolDetail() {
       const schedule = getHRTLabSchedule(p.start_date);
       setLabSchedule(schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null })));
     }
+  };
+
+  const buildCheckinSchedule = (p, duration) => {
+    if (!p.start_date) return;
+    const start = new Date(p.start_date);
+    const checkins = [];
+    const intervalDays = 7;
+
+    for (let day = intervalDays; day <= duration; day += intervalDays) {
+      const checkinDate = new Date(start);
+      checkinDate.setDate(start.getDate() + day);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      checkinDate.setHours(0, 0, 0, 0);
+
+      const isPast = checkinDate < today;
+      const isToday = checkinDate.getTime() === today.getTime();
+
+      checkins.push({
+        label: `Week ${day / 7} Check-in`,
+        date: checkinDate.toISOString().split('T')[0],
+        dayNumber: day,
+        status: isToday ? 'today' : isPast ? 'past' : 'upcoming'
+      });
+    }
+    setCheckinSchedule(checkins);
   };
 
   const selectedType = PROTOCOL_TYPES[form.protocolType];
@@ -293,10 +393,15 @@ export default function ProtocolDetail() {
           patient_phone: form.patientPhone,
           patient_email: form.patientEmail,
           program_type: programTypeMap[form.protocolType] || protocol.program_type,
+          // Write to both old and new field names
           primary_peptide: form.medication,
+          medication: form.medication,
           dose_amount: form.dosage,
+          selected_dose: form.dosage,
           dose_frequency: form.frequency,
+          frequency: form.frequency,
           injection_location: form.deliveryMethod,
+          delivery_method: form.deliveryMethod,
           start_date: form.startDate,
           end_date: endDate,
           duration_days: parseInt(form.duration),
@@ -375,12 +480,12 @@ export default function ProtocolDetail() {
         <header style={styles.header}>
           <div>
             <Link href="/admin/protocols" style={styles.backLink}>← Protocols</Link>
-            <h1 style={styles.title}>{protocol?.patient_name}</h1>
+            <h1 style={styles.title}>{protocol?.patient_name || 'Patient'}</h1>
             <p style={styles.subtitle}>{protocol?.program_name || PROTOCOL_TYPES[form.protocolType]?.name}</p>
           </div>
           <div style={styles.headerActions}>
             {protocol?.patient_id && (
-              <Link href={`/patients/${protocol.patient_id}`} style={styles.headerBtn}>
+              <Link href={`/admin/patients/${protocol.patient_id}`} style={styles.headerBtn}>
                 Patient Profile
               </Link>
             )}
@@ -535,6 +640,56 @@ export default function ProtocolDetail() {
                   <span><span style={styles.legendDot} /> {isInjectionProtocol ? 'Complete' : 'Past'}</span>
                   <span><span style={{ ...styles.legendDot, background: '#000' }} /> {isInjectionProtocol ? 'Next' : 'Today'}</span>
                   <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> {isInjectionProtocol ? 'Upcoming' : 'Future'}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Weekly Check-in Schedule (Take-Home protocols) */}
+            {!isEditing && checkinSchedule.length > 0 && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>📱 Weekly Check-in Schedule</h2>
+                <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#666' }}>
+                  Automated text reminders every 7 days
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                  {checkinSchedule.map((checkin, idx) => {
+                    const isLast = idx === checkinSchedule.length - 1;
+                    const statusColor = checkin.status === 'past' ? '#22c55e' : checkin.status === 'today' ? '#f59e0b' : '#9ca3af';
+                    const statusBg = checkin.status === 'past' ? '#dcfce7' : checkin.status === 'today' ? '#fef3c7' : '#f3f4f6';
+                    return (
+                      <div key={checkin.dayNumber} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
+                          <div style={{
+                            width: '12px', height: '12px', borderRadius: '50%',
+                            background: statusColor, border: '2px solid #fff',
+                            boxShadow: `0 0 0 2px ${statusColor}`, flexShrink: 0, marginTop: '4px'
+                          }}>
+                            {checkin.status === 'past' && (
+                              <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>✓</span>
+                            )}
+                          </div>
+                          {!isLast && (
+                            <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '32px' }} />
+                          )}
+                        </div>
+                        <div style={{ flex: 1, paddingBottom: isLast ? '0' : '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{checkin.label}</span>
+                            <span style={{
+                              fontSize: '11px', fontWeight: '600', padding: '2px 8px',
+                              borderRadius: '10px', background: statusBg, color: statusColor,
+                              textTransform: 'uppercase'
+                            }}>
+                              {checkin.status === 'past' ? '✓ Sent' : checkin.status === 'today' ? 'Today' : 'Scheduled'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                            Day {checkin.dayNumber} · {formatDate(checkin.date)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -787,7 +942,7 @@ export default function ProtocolDetail() {
               <h2 style={styles.cardTitle}>Actions</h2>
               <div style={styles.actionStack}>
                 {protocol?.patient_id && (
-                  <a href={`/patients/${protocol.patient_id}`} target="_blank" style={styles.actionBtn}>
+                  <a href={`/admin/patients/${protocol.patient_id}`} target="_blank" style={styles.actionBtn}>
                     👁️ View Patient Profile
                   </a>
                 )}
@@ -805,7 +960,7 @@ export default function ProtocolDetail() {
                 <h2 style={styles.cardTitle}>Profile Link</h2>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/patients/${protocol.patient_id}`);
+                    navigator.clipboard.writeText(`${window.location.origin}/admin/patients/${protocol.patient_id}`);
                     setSuccess('Copied!');
                   }}
                   style={styles.copyBtn}

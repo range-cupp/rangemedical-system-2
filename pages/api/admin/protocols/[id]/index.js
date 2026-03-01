@@ -96,7 +96,12 @@ export default async function handler(req, res) {
       status,
       special_instructions,
       notes,
-      reminders_enabled
+      reminders_enabled,
+      // New field names (keep both in sync)
+      medication,
+      selected_dose,
+      frequency,
+      delivery_method
     } = req.body;
 
     try {
@@ -124,7 +129,12 @@ export default async function handler(req, res) {
       if (special_instructions !== undefined) updateData.special_instructions = special_instructions;
       if (notes !== undefined) updateData.notes = notes;
       if (reminders_enabled !== undefined) updateData.reminders_enabled = reminders_enabled;
-      
+      // New field names
+      if (medication !== undefined) updateData.medication = medication;
+      if (selected_dose !== undefined) updateData.selected_dose = selected_dose;
+      if (frequency !== undefined) updateData.frequency = frequency;
+      if (delivery_method !== undefined) updateData.delivery_method = delivery_method;
+
       updateData.updated_at = new Date().toISOString();
 
       // Try old table first

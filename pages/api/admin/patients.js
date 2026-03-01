@@ -15,7 +15,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { limit = 1000, search } = req.query;
+    const { limit = 1000, search, id } = req.query;
+
+    // Direct lookup by ID
+    if (id) {
+      const { data: patient, error: idError } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (idError) {
+        return res.status(500).json({ error: 'Failed to fetch patient' });
+      }
+      return res.status(200).json(patient ? [patient] : []);
+    }
 
     // Build query
     let query = supabase

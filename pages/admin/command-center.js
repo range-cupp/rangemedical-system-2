@@ -5113,6 +5113,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol 
     p.urgency === 'critical' || p.urgency === 'warning'
   ).slice(0, 10);
   const sessionAlerts = data?.sessionAlerts || [];
+  const consentAlerts = data?.consentAlerts || [];
   const upcomingLabDraws = data?.upcomingLabDraws || [];
 
   return (
@@ -5151,6 +5152,50 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol 
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Missing Consent Alerts Banner */}
+      {consentAlerts.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #FFF7ED 0%, #FFFBF5 100%)',
+          border: '1px solid #F59E0B',
+          borderRadius: 12,
+          padding: '16px 20px',
+          display: 'flex',
+          gap: 16,
+          alignItems: 'flex-start',
+        }}>
+          <div style={{ fontSize: 24 }}>📋</div>
+          <div style={{ flex: 1 }}>
+            <strong style={{ fontSize: 14, color: '#92400E' }}>
+              {consentAlerts.length} Missing Consent{consentAlerts.length > 1 ? 's' : ''} — Signature Required
+            </strong>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {consentAlerts.slice(0, 5).map((alert, i) => {
+                const patientName = alert.patients?.name ||
+                  `${alert.patients?.first_name || ''} ${alert.patients?.last_name || ''}`.trim() || 'Patient';
+                const medication = alert.trigger_data?.medication || 'Peptide';
+                return (
+                  <div key={alert.id || i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                    <span style={{
+                      background: '#FDE68A',
+                      color: '#92400E',
+                      padding: '1px 8px',
+                      borderRadius: 8,
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}>NO CONSENT</span>
+                    <span style={{ fontWeight: 500, color: '#111' }}>{patientName}</span>
+                    <span style={{ color: '#6B7280' }}>— {medication}</span>
+                  </div>
+                );
+              })}
+              {consentAlerts.length > 5 && (
+                <span style={{ fontSize: 12, color: '#92400E' }}>+ {consentAlerts.length - 5} more</span>
+              )}
             </div>
           </div>
         </div>

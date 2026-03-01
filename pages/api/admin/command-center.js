@@ -237,6 +237,7 @@ export default async function handler(req, res) {
     const sessionAlerts = activeAlerts.filter(a =>
       a.alert_type === 'sessions_exhausted' || a.alert_type === 'sessions_exceeded'
     );
+    const consentAlerts = activeAlerts.filter(a => a.alert_type === 'missing_consent');
 
     const stats = {
       totalPatients: (patients || []).length,
@@ -255,6 +256,7 @@ export default async function handler(req, res) {
       ).length,
       activeAlerts: activeAlerts.length,
       sessionAlerts: sessionAlerts.length,
+      consentAlerts: consentAlerts.length,
     };
 
     // Protocol counts by category
@@ -407,6 +409,7 @@ export default async function handler(req, res) {
       upcomingLabDraws,
       alerts: alerts || [],
       sessionAlerts,
+      consentAlerts,
     });
 
   } catch (error) {

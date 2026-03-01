@@ -32,6 +32,66 @@ export default async function handler(req, res) {
     const thirtyDaysStr = thirtyDaysAgo.toISOString().split('T')[0];
 
     let alertsCreated = 0;
+    let consentAlertsCreated = 0;
+
+    // -------------------------------------------------------
+    // MISSING CONSENT CHECK
+    // Active peptide protocols without a signed peptide consent
+    // -------------------------------------------------------
+    const { data: peptideProtocols } = await supabase
+      .from('protocols')
+      .select('id, patient_id, medication, patients!inner(id, name, first_name, last_name)')
+      .eq('status', 'active')
+      .eq('program_type', 'peptide');
+
+    for (const protocol of (peptideProtocols || [])) {
+      const patient = protocol.patients;
+      if (!patient) continue;
+
+      // Check for existing active missing_consent alert for this patient
+      const { data: existingConsentAlert } = await supabase
+        .from('alerts')
+        .select('id')
+        .eq('patient_id', patient.id)
+        .eq('alert_type', 'missing_consent')
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle();
+
+      if (existingConsentAlert) continue;
+
+      // Check if patient has a peptide consent on file
+      const { data: consent } = await supabase
+        .from('consents')
+        .select('id')
+        .eq('patient_id', patient.id)
+        .ilike('consent_type', '%peptide%')
+        .limit(1)
+        .maybeSingle();
+
+      if (!consent) {
+        const patientName = patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+        await supabase
+          .from('alerts')
+          .insert({
+            patient_id: patient.id,
+            alert_type: 'missing_consent',
+            message: `${patientName} — active peptide protocol (${protocol.medication}) but no signed peptide consent on file`,
+            severity: 'high',
+            status: 'active',
+            trigger_data: {
+              protocol_id: protocol.id,
+              medication: protocol.medication,
+              consent_type: 'peptide'
+            }
+          });
+        consentAlertsCreated++;
+      }
+    }
+
+    // -------------------------------------------------------
+    // AT-RISK PATIENT ALERTS (existing logic)
+    // -------------------------------------------------------
 
     // Get all patients with active protocols
     const { data: patients } = await supabase
@@ -49,12 +109,13 @@ export default async function handler(req, res) {
 
       if (!protocols?.length) continue;
 
-      // Check for existing active alert
+      // Check for existing active alert (skip missing_consent — those are separate)
       const { data: existingAlert } = await supabase
         .from('alerts')
-        .select('id')
+        .select('id, alert_type')
         .eq('patient_id', patient.id)
         .eq('status', 'active')
+        .neq('alert_type', 'missing_consent')
         .limit(1)
         .maybeSingle();
 
@@ -159,6 +220,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       alerts_created: alertsCreated,
+      consent_alerts_created: consentAlertsCreated,
       patients_checked: patients?.length || 0
     });
 

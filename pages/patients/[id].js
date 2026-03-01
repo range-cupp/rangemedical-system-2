@@ -1261,35 +1261,42 @@ export default function PatientProfile() {
                   <div className="empty">No consent forms found</div>
                 ) : (
                   <div className="consent-list">
-                    {consents.map(consent => (
-                      <div key={consent.id} className="consent-card">
-                        <div className="consent-header">
-                          <span className="consent-icon">
-                            {consent.consent_type === 'hipaa' ? '🔒' :
-                             consent.consent_type === 'hrt' ? '💉' :
-                             consent.consent_type === 'peptide' ? '🧬' :
-                             consent.consent_type === 'weight-loss' ? '⚖️' :
-                             consent.consent_type === 'iv' ? '💧' :
-                             consent.consent_type === 'hbot' ? '🫁' :
-                             consent.consent_type === 'blood-draw' ? '🩸' : '📝'}
-                          </span>
-                          <div>
-                            <strong>{consent.consent_type ? consent.consent_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Consent'} Consent</strong>
-                            <span className={`consent-status ${consent.consent_given ? 'signed' : 'pending'}`}>
-                              {consent.consent_given ? '✓ Signed' : 'Pending'}
-                            </span>
+                    {consents.map(consent => {
+                      const ct = (consent.consent_type || '').toLowerCase();
+                      const icon = ct.includes('hipaa') ? '🔒' :
+                        ct.includes('hrt') ? '💉' :
+                        ct.includes('peptide') ? '🧬' :
+                        ct.includes('weight') ? '⚖️' :
+                        ct.includes('iv') ? '💧' :
+                        ct.includes('hbot') ? '🫁' :
+                        ct.includes('blood') ? '🩸' :
+                        ct.includes('prp') ? '💉' :
+                        ct.includes('red-light') || ct.includes('red_light') ? '🔴' : '📝';
+                      const typeName = consent.consent_type
+                        ? consent.consent_type.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                        : 'General';
+                      return (
+                        <div key={consent.id} className="consent-card">
+                          <div className="consent-header">
+                            <span className="consent-icon">{icon}</span>
+                            <div className="consent-title-group">
+                              <strong>{typeName}</strong>
+                              <span className={`consent-status ${consent.consent_given ? 'signed' : 'pending'}`}>
+                                {consent.consent_given ? '✓ Signed' : '○ Pending'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="consent-meta">
+                            <span>{consent.first_name} {consent.last_name}</span>
+                            <span className="consent-date">{formatDate(consent.consent_date || consent.submitted_at)}</span>
+                          </div>
+                          <div className="consent-actions">
+                            {consent.pdf_url && <button onClick={() => openPdfViewer(consent.pdf_url, `${typeName} Consent`)} className="btn-secondary-sm">View PDF</button>}
+                            {consent.signature_url && <button onClick={() => openPdfViewer(consent.signature_url, 'Signature')} className="btn-text">Signature</button>}
                           </div>
                         </div>
-                        <div className="consent-details">
-                          <span>{consent.first_name} {consent.last_name}</span>
-                          <span>{formatDate(consent.consent_date || consent.submitted_at)}</span>
-                        </div>
-                        <div className="consent-actions">
-                          {consent.pdf_url && <button onClick={() => openPdfViewer(consent.pdf_url, `${consent.consent_type || 'Consent'} Form`)} className="btn-secondary-sm">View PDF</button>}
-                          {consent.signature_url && <button onClick={() => openPdfViewer(consent.signature_url, 'Signature')} className="btn-text">Signature</button>}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -2707,49 +2714,54 @@ export default function PatientProfile() {
         .intake-actions { display: flex; gap: 8px; }
 
         /* Consent Cards */
-        .consent-list { padding: 16px; }
+        .consent-list { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
         .consent-card {
-          padding: 16px;
+          padding: 14px 16px;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          margin-bottom: 12px;
-          background: #fafafa;
+          border-radius: 10px;
+          background: #fff;
+          transition: border-color 0.15s;
         }
+        .consent-card:hover { border-color: #d1d5db; }
         .consent-header {
           display: flex;
-          gap: 12px;
-          margin-bottom: 8px;
-          align-items: flex-start;
+          gap: 10px;
+          align-items: center;
+          margin-bottom: 6px;
         }
-        .consent-icon { font-size: 20px; }
-        .consent-header > div {
+        .consent-icon { font-size: 18px; line-height: 1; }
+        .consent-title-group {
           display: flex;
-          flex-direction: column;
-          gap: 4px;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
         }
-        .consent-header strong { font-size: 15px; }
+        .consent-title-group strong { font-size: 14px; font-weight: 600; color: #111; }
         .consent-status {
-          font-size: 12px;
+          font-size: 11px;
+          font-weight: 500;
           padding: 2px 8px;
-          border-radius: 4px;
-          display: inline-block;
-          width: fit-content;
+          border-radius: 10px;
+          white-space: nowrap;
         }
         .consent-status.signed {
           background: #dcfce7;
-          color: #166534;
+          color: #15803d;
         }
         .consent-status.pending {
           background: #fef3c7;
-          color: #92400e;
+          color: #a16207;
         }
-        .consent-details {
+        .consent-meta {
+          display: flex;
+          gap: 12px;
           font-size: 13px;
-          color: #666;
-          margin-bottom: 12px;
+          color: #6b7280;
+          margin-bottom: 10px;
+          padding-left: 28px;
         }
-        .consent-details span { margin-right: 16px; }
-        .consent-actions { display: flex; gap: 8px; }
+        .consent-date { color: #9ca3af; }
+        .consent-actions { display: flex; gap: 8px; padding-left: 28px; }
 
         /* Document Cards */
         .document-list { padding: 16px; }

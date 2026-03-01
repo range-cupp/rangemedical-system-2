@@ -233,6 +233,44 @@ export default async function handler(req, res) {
       });
     }
 
+    // Auto-assign journey template and initial stage
+    try {
+      const { data: template } = await supabase
+        .from('journey_templates')
+        .select('id, stages')
+        .eq('protocol_type', protocolType)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (template && template.stages && template.stages.length > 0) {
+        const initialStage = template.stages[0].key;
+
+        await supabase
+          .from('protocols')
+          .update({
+            journey_template_id: template.id,
+            current_journey_stage: initialStage
+          })
+          .eq('id', protocol.id);
+
+        // Log the initial journey event
+        await supabase.from('journey_events').insert({
+          patient_id: patient_id || null,
+          protocol_id: protocol.id,
+          current_stage: initialStage,
+          previous_stage: null,
+          trigger_type: 'auto',
+          triggered_by: 'system',
+          notes: `Protocol created — placed at ${initialStage}`
+        });
+
+        console.log(`✓ Journey assigned: ${protocolType} template → ${initialStage}`);
+      }
+    } catch (journeyErr) {
+      console.error('Journey assignment error (non-fatal):', journeyErr);
+      // Don't fail protocol creation over journey issues
+    }
+
     // Send opt-in SMS for peptide protocols (ask patient to agree to weekly check-ins)
     if (protocolType === 'peptide' && ghl_contact_id && GHL_API_KEY) {
       const firstName = patientName ? patientName.split(' ')[0] : 'there';

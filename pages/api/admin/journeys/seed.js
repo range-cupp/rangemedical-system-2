@@ -49,12 +49,61 @@ const DEFAULT_TEMPLATES = [
     name: 'Peptide Therapy Journey',
     is_default: true,
     stages: [
-      { key: 'consult_complete', label: 'Consult Complete', description: 'Provider consultation done', order: 0 },
-      { key: 'dispensed', label: 'Dispensed', description: 'Peptide dispensed to patient', order: 1 },
-      { key: 'active', label: 'Active Treatment', description: 'Patient actively on peptide protocol', order: 2 },
-      { key: 'midpoint_review', label: 'Midpoint Review', description: 'Mid-cycle check-in', order: 3 },
-      { key: 'cycle_complete', label: 'Cycle Complete', description: 'Current cycle finished', order: 4 },
-      { key: 'renewal_decision', label: 'Renewal Decision', description: 'Continue, switch, or conclude', order: 5 }
+      {
+        key: 'consult_complete',
+        label: 'Consult Complete',
+        description: 'Provider consultation done, protocol created',
+        order: 0,
+        auto_conditions: { days_elapsed: 0 }
+      },
+      {
+        key: 'forms_pending',
+        label: 'Forms Pending',
+        description: 'Intake, HIPAA, and consent forms sent — awaiting completion',
+        order: 1,
+        auto_conditions: { forms_complete: true }
+      },
+      {
+        key: 'dispensed',
+        label: 'Dispensed',
+        description: 'First injection given, take-home supply dispensed',
+        order: 2,
+        auto_conditions: { days_elapsed: 1 }
+      },
+      {
+        key: 'opt_in_sent',
+        label: 'Opt-in Sent',
+        description: 'Weekly check-in opt-in SMS sent, awaiting patient response',
+        order: 3,
+        auto_conditions: { optin_complete: true }
+      },
+      {
+        key: 'active',
+        label: 'Active Treatment',
+        description: 'Patient actively on peptide protocol with weekly check-ins',
+        order: 4,
+        auto_conditions: { days_at_midpoint: true }
+      },
+      {
+        key: 'midpoint_review',
+        label: 'Midpoint Review',
+        description: 'Mid-cycle progress review and check-in',
+        order: 5,
+        auto_conditions: { protocol_ending_soon: 5 }
+      },
+      {
+        key: 'nearing_completion',
+        label: 'Nearing Completion',
+        description: 'Final days of current cycle',
+        order: 6,
+        auto_conditions: { protocol_ended: true }
+      },
+      {
+        key: 'cycle_complete',
+        label: 'Cycle Complete / Renewal',
+        description: 'Cycle finished — eligible for renewal up to 90 continuous days',
+        order: 7
+      }
     ]
   },
   {
@@ -120,9 +169,14 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { update, types } = req.body || {};
+    const filterTypes = types ? types.split(',').map(t => t.trim()) : null;
     const results = [];
 
     for (const template of DEFAULT_TEMPLATES) {
+      // Filter to specific types if requested
+      if (filterTypes && !filterTypes.includes(template.protocol_type)) continue;
+
       // Check if a default template already exists for this type
       const { data: existing } = await supabase
         .from('journey_templates')
@@ -132,7 +186,23 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (existing) {
-        results.push({ type: template.protocol_type, action: 'skipped', reason: 'default already exists' });
+        if (update) {
+          // Update existing template with new stages
+          const { data, error } = await supabase
+            .from('journey_templates')
+            .update({ stages: template.stages, name: template.name })
+            .eq('id', existing.id)
+            .select()
+            .single();
+
+          if (error) {
+            results.push({ type: template.protocol_type, action: 'update_error', error: error.message });
+          } else {
+            results.push({ type: template.protocol_type, action: 'updated', id: data.id });
+          }
+        } else {
+          results.push({ type: template.protocol_type, action: 'skipped', reason: 'default already exists (pass update=true to overwrite)' });
+        }
         continue;
       }
 
@@ -153,6 +223,7 @@ export default async function handler(req, res) {
       success: true,
       results,
       created: results.filter(r => r.action === 'created').length,
+      updated: results.filter(r => r.action === 'updated').length,
       skipped: results.filter(r => r.action === 'skipped').length
     });
 

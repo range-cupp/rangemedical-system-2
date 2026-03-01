@@ -212,6 +212,36 @@ export default async function handler(req, res) {
               .update({ pdf_url: pdfUrl })
               .eq('id', leadId);
           }
+
+          // Link PDF as a medical document on the patient profile
+          if (pdfUrl && email) {
+            try {
+              const normalizedEmail = email.toLowerCase().trim();
+              const { data: patientMatch } = await supabase
+                .from('patients')
+                .select('id')
+                .eq('email', normalizedEmail)
+                .maybeSingle();
+
+              if (patientMatch) {
+                const pathLabel = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
+                const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                await supabase
+                  .from('medical_documents')
+                  .insert({
+                    patient_id: patientMatch.id,
+                    document_name: `Range Assessment — ${pathLabel} (${dateStr})`,
+                    document_url: pdfUrl,
+                    document_type: 'Assessment',
+                    notes: `Completed ${pathLabel} assessment`,
+                    uploaded_by: 'System'
+                  });
+                console.log(`Linked assessment PDF as medical document for patient ${patientMatch.id}`);
+              }
+            } catch (docErr) {
+              console.error('Medical document link error:', docErr);
+            }
+          }
         }
       }
     } catch (pdfError) {

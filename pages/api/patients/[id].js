@@ -566,22 +566,70 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     try {
-      const updates = req.body;
+      const body = req.body;
 
-      const { data, error } = await supabase
+      // Only allow fields that exist in the patients table
+      const allowedFields = [
+        'first_name', 'last_name', 'name', 'email', 'phone',
+        'date_of_birth', 'gender', 'ghl_contact_id',
+        'address', 'city', 'state', 'zip_code',
+        'notes', 'tags', 'status'
+      ];
+
+      const updates = {};
+      for (const [key, value] of Object.entries(body)) {
+        if (allowedFields.includes(key)) {
+          updates[key] = value;
+        }
+      }
+
+      // Auto-sync the full name field
+      if (updates.first_name !== undefined || updates.last_name !== undefined) {
+        const firstName = updates.first_name ?? body.first_name ?? '';
+        const lastName = updates.last_name ?? body.last_name ?? '';
+        updates.name = `${firstName} ${lastName}`.trim() || null;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update' });
+      }
+
+      // Try update — if columns don't exist, retry without them
+      let { data, error } = await supabase
         .from('patients')
         .update(updates)
         .eq('id', id)
         .select()
         .single();
 
+      // If a column doesn't exist, strip unknown columns and retry
+      if (error && error.message && error.message.includes('column')) {
+        const maybeNewColumns = ['address', 'city', 'state', 'zip_code'];
+        const retryUpdates = { ...updates };
+        maybeNewColumns.forEach(col => delete retryUpdates[col]);
+
+        if (Object.keys(retryUpdates).length > 0) {
+          console.log('Retrying patient update without address columns');
+          const retry = await supabase
+            .from('patients')
+            .update(retryUpdates)
+            .eq('id', id)
+            .select()
+            .single();
+          data = retry.data;
+          error = retry.error;
+        }
+      }
+
       if (error) {
-        return res.status(500).json({ error: 'Failed to update patient' });
+        console.error('Patient update error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to update patient' });
       }
 
       return res.status(200).json({ patient: data });
     } catch (error) {
-      return res.status(500).json({ error: 'Server error' });
+      console.error('Patient PATCH error:', error);
+      return res.status(500).json({ error: error.message || 'Server error' });
     }
   }
 

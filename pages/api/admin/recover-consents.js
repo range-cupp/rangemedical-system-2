@@ -21,35 +21,55 @@ export default async function handler(req, res) {
   const dryRun = req.query.execute !== 'true';
 
   try {
-    // 1. Get all consent PDFs from storage
-    const { data: storagePdfs, error: storageError } = await supabase.storage
-      .from('medical-documents')
-      .list('consents', { limit: 500, sortBy: { column: 'created_at', order: 'desc' } });
+    // 1. Get all consent PDFs from storage (root + subfolders)
+    const consentFolders = [
+      { prefix: 'consents', type: null },           // root: blood-draw, peptide, iv, hrt, prp, exosome
+      { prefix: 'consents/hbot-consent', type: 'hbot' },
+      { prefix: 'consents/weight-loss-consent', type: 'weight-loss' },
+      { prefix: 'consents/red-light-consent', type: 'red-light' },
+    ];
 
-    if (storageError) throw new Error('Storage error: ' + storageError.message);
+    let allStoragePdfs = [];
+    for (const folder of consentFolders) {
+      const { data, error } = await supabase.storage
+        .from('medical-documents')
+        .list(folder.prefix, { limit: 500, sortBy: { column: 'created_at', order: 'desc' } });
+      if (error) continue;
+      for (const f of (data || [])) {
+        if (f.name && f.name.includes('.pdf')) {
+          allStoragePdfs.push({ ...f, _folder: folder.prefix, _typeOverride: folder.type });
+        }
+      }
+    }
 
     // 2. Get all existing consent pdf_urls from DB
     const { data: dbConsents } = await supabase
       .from('consents')
       .select('pdf_url')
-      .limit(1000);
+      .limit(2000);
 
+    // Match by filename regardless of folder path
     const dbFilenames = new Set((dbConsents || [])
       .filter(c => c.pdf_url)
       .map(c => c.pdf_url.split('/').pop()));
 
     // 3. Find PDFs missing from DB
-    const missingPdfs = (storagePdfs || []).filter(f => {
-      if (!f.name || !f.created_at) return false;
-      // Skip directory entries
-      if (!f.name.includes('.pdf')) return false;
-      return !dbFilenames.has(f.name);
-    });
+    const missingPdfs = allStoragePdfs.filter(f => !dbFilenames.has(f.name));
 
-    // 4. Get all signatures from storage for matching
-    const { data: signatures } = await supabase.storage
-      .from('medical-documents')
-      .list('signatures', { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } });
+    // 4. Get all signatures from storage (root + subfolders)
+    const sigFolders = ['signatures', 'signatures/hbot-consent', 'signatures/weight-loss-consent', 'signatures/red-light-consent'];
+    let allSignatures = [];
+    for (const sf of sigFolders) {
+      const { data } = await supabase.storage
+        .from('medical-documents')
+        .list(sf, { limit: 500, sortBy: { column: 'created_at', order: 'desc' } });
+      for (const s of (data || [])) {
+        if (s.name && (s.name.endsWith('.jpg') || s.name.endsWith('.png'))) {
+          allSignatures.push({ ...s, _folder: sf });
+        }
+      }
+    }
+    const signatures = allSignatures;
 
     // 5. Get all patients for matching
     const { data: patients } = await supabase
@@ -79,29 +99,38 @@ export default async function handler(req, res) {
       const filename = pdf.name;
       const createdAt = pdf.created_at;
 
-      // Parse filename: {type}-consent-{First}-{Last}-{timestamp}.pdf
-      const match = filename.match(/^(.+?)-consent-(.+)-(\d{10,})\.pdf$/);
-      if (!match) {
-        results.skipped.push({ filename, reason: 'unparseable filename' });
+      let dbConsentType, firstName, lastName, timestamp, nameParts;
+
+      // Try Format 1: root folder — {type}-consent-{First}-{Last}-{ts}.pdf
+      const match1 = filename.match(/^(.+?)-consent-(.+)-(\d{10,})\.pdf$/);
+      // Try Format 2: subfolder — {safename}-{ts}.pdf (type from folder)
+      const match2 = filename.match(/^(.+)-(\d{10,})\.pdf$/);
+
+      if (match1) {
+        dbConsentType = match1[1];
+        const namePart = match1[2];
+        timestamp = parseInt(match1[3]);
+        nameParts = namePart.split('-').filter(p => p);
+        firstName = nameParts[0];
+        lastName = nameParts.slice(1).join(' ');
+      } else if (match2 && pdf._typeOverride) {
+        // Subfolder format: type comes from folder, name from safeName
+        dbConsentType = pdf._typeOverride;
+        const safeName = match2[1]; // e.g. "rickson-galvez" or "julie-ann-nguyen"
+        timestamp = parseInt(match2[2]);
+        // safeName is lowercased with hyphens — split and capitalize
+        const parts = safeName.split('-').filter(p => p);
+        if (parts.length < 2) {
+          results.skipped.push({ filename, folder: pdf._folder, reason: 'cannot parse name from safeName' });
+          continue;
+        }
+        nameParts = parts;
+        firstName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+        lastName = parts.slice(1).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+      } else {
+        results.skipped.push({ filename, folder: pdf._folder, reason: 'unparseable filename' });
         continue;
       }
-
-      const consentType = match[1]; // e.g. "blood-draw", "peptide", "iv-injection"
-      const namePart = match[2]; // e.g. "Michelle-Kim"
-      const timestamp = parseInt(match[3]);
-
-      // Normalize consent type for DB (some use underscore)
-      const dbConsentType = consentType; // keep as-is, matches DB format
-
-      // Parse name
-      const nameParts = namePart.split('-');
-      if (nameParts.length < 2) {
-        results.skipped.push({ filename, reason: 'cannot parse name' });
-        continue;
-      }
-      const firstName = nameParts[0];
-      // Last name might have multiple parts (e.g., "Van-Engelen")
-      const lastName = nameParts.slice(1).join(' ');
 
       // Find matching patient
       const nameKey = namePart.toLowerCase();
@@ -160,14 +189,13 @@ export default async function handler(req, res) {
       }
 
       // Find matching signature (closest timestamp)
-      const sigNameLower = `${firstName}-${nameParts[nameParts.length - 1]}`.toLowerCase();
       let bestSig = null;
+      let bestSigFolder = null;
       let bestTimeDiff = Infinity;
       for (const sig of (signatures || [])) {
         if (!sig.name) continue;
         const sigLower = sig.name.toLowerCase();
         if (sigLower.includes(firstName.toLowerCase()) && sigLower.includes(nameParts[nameParts.length - 1].toLowerCase())) {
-          // Extract timestamp from signature filename
           const sigMatch = sig.name.match(/(\d{10,})/);
           if (sigMatch) {
             const sigTs = parseInt(sigMatch[1]);
@@ -175,13 +203,14 @@ export default async function handler(req, res) {
             if (diff < bestTimeDiff && diff < 60000) { // Within 1 minute
               bestTimeDiff = diff;
               bestSig = sig.name;
+              bestSigFolder = sig._folder || 'signatures';
             }
           }
         }
       }
 
-      const pdfUrl = `${STORAGE_BASE}/consents/${filename}`;
-      const signatureUrl = bestSig ? `${STORAGE_BASE}/signatures/${bestSig}` : null;
+      const pdfUrl = `${STORAGE_BASE}/${pdf._folder}/${filename}`;
+      const signatureUrl = bestSig ? `${STORAGE_BASE}/${bestSigFolder}/${bestSig}` : null;
       const consentDate = new Date(timestamp).toISOString().split('T')[0];
 
       const record = {
@@ -214,7 +243,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       dryRun,
       message: dryRun ? 'DRY RUN - no records created. Add ?execute=true to actually recover.' : 'Recovery complete.',
-      totalStoragePdfs: storagePdfs?.length || 0,
+      totalStoragePdfs: allStoragePdfs.length,
       totalDbConsents: dbConsents?.length || 0,
       missingPdfs: missingPdfs.length,
       summary: {

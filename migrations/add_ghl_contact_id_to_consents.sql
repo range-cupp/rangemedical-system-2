@@ -11,3 +11,6 @@ CREATE INDEX IF NOT EXISTS idx_consents_ghl_contact_id ON consents(ghl_contact_i
 -- Also create index on email and phone for fallback matching
 CREATE INDEX IF NOT EXISTS idx_consents_email ON consents(email);
 CREATE INDEX IF NOT EXISTS idx_consents_patient_id ON consents(patient_id);
+
+-- Make email column nullable (HIPAA forms may only have phone, not email)
+ALTER TABLE consents ALTER COLUMN email DROP NOT NULL;

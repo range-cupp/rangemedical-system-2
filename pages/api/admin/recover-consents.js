@@ -162,7 +162,7 @@ export default async function handler(req, res) {
         consent_type: dbConsentType,
         first_name: firstName,
         last_name: lastName,
-        email: patient.email || null,
+        email: patient.email || '',
         phone: patient.phone || null,
         ghl_contact_id: patient.ghl_contact_id || null,
         consent_date: consentDate,

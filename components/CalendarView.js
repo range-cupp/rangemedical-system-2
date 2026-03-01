@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getCategoryStyle } from '../lib/protocol-config';
-import { APPOINTMENT_SERVICES, getAllServices } from '../lib/appointment-services';
+import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS } from '../lib/appointment-services';
 
 const STATUS_LABELS = {
   scheduled: { label: 'Scheduled', bg: '#dbeafe', text: '#1e40af' },
@@ -30,7 +30,7 @@ export default function CalendarView({ preselectedPatient = null }) {
   const popoverRef = useRef(null);
 
   // New appointment wizard state
-  const [wizardStep, setWizardStep] = useState(0); // 0=patient, 1=service, 2=datetime, 3=confirm
+  const [wizardStep, setWizardStep] = useState(0); // 0=patient, 1=service, 2=provider, 3=datetime, 4=confirm
   const [selectedPatient, setSelectedPatient] = useState(preselectedPatient);
   const [patientSearch, setPatientSearch] = useState('');
   const [patientResults, setPatientResults] = useState([]);
@@ -40,9 +40,11 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [walkInPhone, setWalkInPhone] = useState('');
   const [selectedService, setSelectedService] = useState(null);
   const [selectedServiceGroup, setSelectedServiceGroup] = useState(null);
+  const [selectedProvider, setSelectedProvider] = useState(null);
   const [apptDate, setApptDate] = useState('');
   const [apptTime, setApptTime] = useState('');
   const [apptNotes, setApptNotes] = useState('');
+  const [sendNotification, setSendNotification] = useState(true);
   const [creating, setCreating] = useState(false);
 
   // Reschedule state
@@ -133,11 +135,13 @@ export default function CalendarView({ preselectedPatient = null }) {
         patient_phone: isWalkIn ? walkInPhone : selectedPatient?.phone,
         service_name: selectedService.name,
         service_category: selectedService.category,
+        provider: selectedProvider?.name || null,
         start_time: startDT.toISOString(),
         end_time: endDT.toISOString(),
         duration_minutes: duration,
         notes: apptNotes || null,
         created_by: 'command_center',
+        send_notification: sendNotification,
       };
 
       const res = await fetch('/api/appointments/create', {
@@ -174,9 +178,11 @@ export default function CalendarView({ preselectedPatient = null }) {
     setWalkInPhone('');
     setSelectedService(null);
     setSelectedServiceGroup(null);
+    setSelectedProvider(null);
     setApptDate('');
     setApptTime('');
     setApptNotes('');
+    setSendNotification(true);
   };
 
   // ===================== Status Changes =====================
@@ -446,6 +452,12 @@ export default function CalendarView({ preselectedPatient = null }) {
               <span style={styles.popoverLabel}>Service</span>
               <span style={styles.popoverValue}>{appt.service_name}</span>
             </div>
+            {appt.provider && (
+              <div style={styles.popoverRow}>
+                <span style={styles.popoverLabel}>Provider</span>
+                <span style={styles.popoverValue}>{appt.provider}</span>
+              </div>
+            )}
             <div style={styles.popoverRow}>
               <span style={styles.popoverLabel}>Date</span>
               <span style={styles.popoverValue}>
@@ -529,7 +541,7 @@ export default function CalendarView({ preselectedPatient = null }) {
 
       {/* Step indicators */}
       <div style={styles.stepIndicators}>
-        {['Patient', 'Service', 'Date/Time', 'Confirm'].map((label, i) => (
+        {['Patient', 'Service', 'Provider', 'Date/Time', 'Confirm'].map((label, i) => (
           <div key={label} style={{ ...styles.stepDot, ...(wizardStep >= i ? styles.stepDotActive : {}) }}>
             <div style={styles.stepDotNum}>{i + 1}</div>
             <div style={styles.stepDotLabel}>{label}</div>
@@ -629,7 +641,20 @@ export default function CalendarView({ preselectedPatient = null }) {
               {APPOINTMENT_SERVICES[selectedServiceGroup].map(svc => (
                 <div
                   key={svc.name}
-                  onClick={() => { setSelectedService(svc); setWizardStep(2); }}
+                  onClick={() => {
+                    setSelectedService(svc);
+                    // Check providers for this category
+                    const providers = PROVIDERS[svc.category] || PROVIDERS['other'] || [];
+                    if (providers.length === 1) {
+                      // Auto-select single provider and skip to date/time
+                      setSelectedProvider(providers[0]);
+                      setWizardStep(3);
+                    } else {
+                      // Show provider selection
+                      setSelectedProvider(null);
+                      setWizardStep(2);
+                    }
+                  }}
                   style={{
                     ...styles.serviceItem,
                     ...(selectedService?.name === svc.name ? { background: '#e0e7ff', borderColor: '#3730a3' } : {}),
@@ -646,8 +671,33 @@ export default function CalendarView({ preselectedPatient = null }) {
         </div>
       )}
 
-      {/* Step 2: Date/Time */}
+      {/* Step 2: Provider */}
       {wizardStep === 2 && (
+        <div>
+          <p style={styles.wizardLabel}>
+            {selectedService?.name} — {selectedService?.duration} min
+          </p>
+          <label style={styles.fieldLabel}>Select Provider</label>
+          <div style={styles.serviceList}>
+            {(PROVIDERS[selectedService?.category] || PROVIDERS['other'] || []).map(prov => (
+              <div
+                key={prov.name}
+                onClick={() => { setSelectedProvider(prov); setWizardStep(3); }}
+                style={{
+                  ...styles.serviceItem,
+                  ...(selectedProvider?.name === prov.name ? { background: '#e0e7ff', borderColor: '#3730a3' } : {}),
+                }}
+              >
+                <span style={{ fontWeight: '500' }}>{prov.label}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => { setWizardStep(1); setSelectedProvider(null); }} style={{ ...styles.linkBtn, marginTop: '12px' }}>← Back</button>
+        </div>
+      )}
+
+      {/* Step 3: Date/Time */}
+      {wizardStep === 3 && (
         <div>
           <p style={styles.wizardLabel}>
             {selectedService?.name} — {selectedService?.duration} min
@@ -689,19 +739,19 @@ export default function CalendarView({ preselectedPatient = null }) {
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={() => setWizardStep(3)}
+              onClick={() => setWizardStep(4)}
               disabled={!apptDate || !apptTime}
               style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime) ? 1 : 0.5 }}
             >
               Next
             </button>
-            <button onClick={() => setWizardStep(1)} style={styles.linkBtn}>← Back</button>
+            <button onClick={() => setWizardStep(2)} style={styles.linkBtn}>← Back</button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Confirm */}
-      {wizardStep === 3 && (
+      {/* Step 4: Confirm */}
+      {wizardStep === 4 && (
         <div>
           <div style={styles.confirmCard}>
             <div style={styles.confirmRow}>
@@ -711,6 +761,10 @@ export default function CalendarView({ preselectedPatient = null }) {
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Service</span>
               <span>{selectedService?.name}</span>
+            </div>
+            <div style={styles.confirmRow}>
+              <span style={styles.confirmLabel}>Provider</span>
+              <span>{selectedProvider?.label || 'N/A'}</span>
             </div>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Duration</span>
@@ -731,6 +785,18 @@ export default function CalendarView({ preselectedPatient = null }) {
               </div>
             )}
           </div>
+
+          {/* Notification toggle */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', cursor: 'pointer', fontSize: '13px', color: '#555' }}>
+            <input
+              type="checkbox"
+              checked={sendNotification}
+              onChange={e => setSendNotification(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#000' }}
+            />
+            Send confirmation to patient (email & text)
+          </label>
+
           <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
             <button
               onClick={createAppointment}
@@ -739,7 +805,7 @@ export default function CalendarView({ preselectedPatient = null }) {
             >
               {creating ? 'Creating...' : 'Book Appointment'}
             </button>
-            <button onClick={() => setWizardStep(2)} style={styles.linkBtn}>← Back</button>
+            <button onClick={() => setWizardStep(3)} style={styles.linkBtn}>← Back</button>
           </div>
         </div>
       )}

@@ -1,8 +1,9 @@
 // POST /api/appointments/create
-// Creates a new appointment and logs the "created" event
+// Creates a new appointment, logs the event, and sends patient notification
+// Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { logComm } from '../../../lib/comms-log';
+import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -29,11 +30,14 @@ export default async function handler(req, res) {
       notes,
       source,
       created_by,
+      send_notification = true,
     } = req.body;
 
     if (!patient_name || !service_name || !start_time || !end_time || !duration_minutes) {
       return res.status(400).json({ error: 'patient_name, service_name, start_time, end_time, and duration_minutes are required' });
     }
+
+    const appointmentLocation = location || 'Range Medical — Newport Beach';
 
     const { data: appointment, error } = await supabase
       .from('appointments')
@@ -44,7 +48,7 @@ export default async function handler(req, res) {
         service_name,
         service_category: service_category || null,
         provider: provider || null,
-        location: location || 'Range Medical — Newport Beach',
+        location: appointmentLocation,
         start_time,
         end_time,
         duration_minutes,
@@ -66,62 +70,42 @@ export default async function handler(req, res) {
       appointment_id: appointment.id,
       event_type: 'created',
       new_status: 'scheduled',
-      metadata: { created_by, source: source || 'manual' },
+      metadata: { created_by, source: source || 'manual', send_notification },
     });
 
-    // Fire-and-forget: send confirmation SMS if patient has a GHL contact ID
-    if (patient_id) {
-      sendConfirmationSMS(patient_id, appointment).catch(err =>
-        console.error('Confirmation SMS failed:', err)
-      );
+    // Send patient notification (email + SMS) if enabled
+    if (send_notification && patient_id) {
+      // Look up patient email/phone
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('id, name, email, phone')
+        .eq('id', patient_id)
+        .single();
+
+      if (patient) {
+        sendAppointmentNotification({
+          type: 'confirmation',
+          patient: {
+            id: patient.id,
+            name: patient.name,
+            email: patient.email,
+            phone: patient.phone || patient_phone,
+          },
+          appointment: {
+            serviceName: service_name,
+            startTime: start_time,
+            endTime: end_time,
+            durationMinutes: duration_minutes,
+            location: appointmentLocation,
+            notes,
+          },
+        }).catch(err => console.error('Appointment notification error:', err));
+      }
     }
 
     return res.status(200).json({ appointment });
   } catch (error) {
     console.error('Create appointment error:', error);
     return res.status(500).json({ error: error.message });
-  }
-}
-
-async function sendConfirmationSMS(patientId, appointment) {
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('ghl_contact_id, name')
-    .eq('id', patientId)
-    .single();
-
-  if (!patient?.ghl_contact_id) return;
-
-  const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
-  const apptTime = new Date(appointment.start_time).toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit',
-  });
-
-  const message = `Hi ${patient.name.split(' ')[0]}! Your appointment for ${appointment.service_name} has been scheduled for ${apptDate} at ${apptTime}. See you at Range Medical!`;
-
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
-    await fetch(`${baseUrl}/api/ghl/send-sms`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contact_id: patient.ghl_contact_id,
-        message,
-      }),
-    });
-
-    await logComm({
-      channel: 'sms',
-      messageType: 'appointment_confirmation',
-      message,
-      source: 'appointments/create',
-      patientId,
-      patientName: patient.name,
-      ghlContactId: patient.ghl_contact_id,
-    });
-  } catch (err) {
-    console.error('Confirmation SMS error:', err);
   }
 }

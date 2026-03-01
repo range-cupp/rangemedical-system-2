@@ -131,14 +131,13 @@ export default function RedLightConsentForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const uploadSignature = async (patientName) => {
+  const uploadSignature = async (firstName, lastName) => {
     const dataUrl = signaturePadRef.current.toDataURL('image/png');
     const response = await fetch(dataUrl);
     const blob = await response.blob();
-    
+
     const timestamp = Date.now();
-    const safeName = patientName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const fileName = `signatures/red-light-consent/${safeName}-${timestamp}.png`;
+    const fileName = `signatures/${firstName}-${lastName}-${timestamp}.png`;
 
     const { error } = await supabaseRef.current.storage
       .from('medical-documents')
@@ -153,10 +152,9 @@ export default function RedLightConsentForm() {
     return urlData.publicUrl;
   };
 
-  const uploadPDF = async (pdfBlob, patientName) => {
+  const uploadPDF = async (pdfBlob, firstName, lastName) => {
     const timestamp = Date.now();
-    const safeName = patientName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const fileName = `consents/red-light-consent/${safeName}-${timestamp}.pdf`;
+    const fileName = `consents/red-light-consent-${firstName}-${lastName}-${timestamp}.pdf`;
 
     const { error } = await supabaseRef.current.storage
       .from('medical-documents')
@@ -438,13 +436,13 @@ export default function RedLightConsentForm() {
       const patientName = `${formData.firstName} ${formData.lastName}`;
 
       setStatus({ type: 'loading', message: 'Uploading signature...' });
-      const signatureUrl = await uploadSignature(patientName);
+      const signatureUrl = await uploadSignature(formData.firstName, formData.lastName);
 
       setStatus({ type: 'loading', message: 'Creating PDF...' });
       const pdfBlob = generatePDF();
 
       setStatus({ type: 'loading', message: 'Uploading PDF...' });
-      const pdfUrl = await uploadPDF(pdfBlob, patientName);
+      const pdfUrl = await uploadPDF(pdfBlob, formData.firstName, formData.lastName);
 
       setStatus({ type: 'loading', message: 'Saving to database...' });
       await saveToDatabase(signatureUrl, pdfUrl);

@@ -735,13 +735,12 @@ function initializeForm() {
   // ============================================
   // UPLOAD FUNCTIONS
   // ============================================
-  async function uploadSignatureToSupabase(signatureDataUrl, patientName) {
+  async function uploadSignatureToSupabase(signatureDataUrl, firstName, lastName) {
     const response = await fetch(signatureDataUrl);
     const blob = await response.blob();
-    
+
     const timestamp = Date.now();
-    const safeName = patientName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const fileName = `signatures/hbot-consent/${safeName}-${timestamp}.jpg`;
+    const fileName = `signatures/${firstName}-${lastName}-${timestamp}.jpg`;
     
     const { data, error } = await supabaseClient.storage
       .from('medical-documents')
@@ -756,10 +755,9 @@ function initializeForm() {
     return urlData.publicUrl;
   }
 
-  async function uploadPDFToSupabase(pdfBlob, patientName) {
+  async function uploadPDFToSupabase(pdfBlob, firstName, lastName) {
     const timestamp = Date.now();
-    const safeName = patientName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const fileName = `consents/hbot-consent/${safeName}-${timestamp}.pdf`;
+    const fileName = `consents/hbot-consent-${firstName}-${lastName}-${timestamp}.pdf`;
     
     const { data, error } = await supabaseClient.storage
       .from('medical-documents')
@@ -1111,13 +1109,13 @@ function initializeForm() {
       const patientName = `${formData.firstName} ${formData.lastName}`;
       
       showStatus('Uploading signature...', 'loading');
-      const signatureUrl = await uploadSignatureToSupabase(formData.signature, patientName);
-      
+      const signatureUrl = await uploadSignatureToSupabase(formData.signature, formData.firstName, formData.lastName);
+
       showStatus('Making PDF...', 'loading');
       const pdfBlob = generatePDF(formData);
-      
+
       showStatus('Uploading PDF...', 'loading');
-      const pdfUrl = await uploadPDFToSupabase(pdfBlob, patientName);
+      const pdfUrl = await uploadPDFToSupabase(pdfBlob, formData.firstName, formData.lastName);
       
       showStatus('Saving to database...', 'loading');
       try {

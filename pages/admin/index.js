@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [recentProtocols, setRecentProtocols] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentComms, setRecentComms] = useState([]);
+  const [consentAlerts, setConsentAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,12 +21,13 @@ export default function Dashboard() {
   const fetchDashboard = async () => {
     try {
       // Fetch all data concurrently
-      const [protocolsRes, purchasesRes, appointmentsRes, commsRes, invoicesRes] = await Promise.all([
+      const [protocolsRes, purchasesRes, appointmentsRes, commsRes, invoicesRes, alertsRes] = await Promise.all([
         fetch('/api/admin/protocols').then(r => r.json()).catch(() => ({})),
         fetch('/api/admin/purchases').then(r => r.json()).catch(() => ({})),
         fetch('/api/appointments/list').then(r => r.json()).catch(() => ({})),
         fetch('/api/admin/comms-log?limit=10').then(r => r.json()).catch(() => ({})),
         fetch('/api/invoices/list?limit=200').then(r => r.json()).catch(() => ({})),
+        fetch('/api/admin/alerts', { headers: { 'x-admin-password': 'range2024' } }).then(r => r.json()).catch(() => ({})),
       ]);
 
       const protocols = protocolsRes.protocols || protocolsRes || [];
@@ -68,6 +70,10 @@ export default function Dashboard() {
       setRecentProtocols(activeProtocols.slice(0, 8));
       setTodayAppointments(todayAppts.slice(0, 6));
       setRecentComms(comms.slice(0, 5));
+
+      // Consent alerts
+      const alerts = alertsRes.alerts || [];
+      setConsentAlerts(alerts.filter(a => a.alert_type === 'missing_consent'));
 
     } catch (err) {
       console.error('Dashboard error:', err);
@@ -147,6 +153,49 @@ export default function Dashboard() {
               <div style={styles.statLabel}>Recent Messages</div>
             </div>
           </div>
+
+          {/* Missing Consent Alerts */}
+          {consentAlerts.length > 0 && (
+            <div style={{
+              background: '#FFFBEB',
+              border: '1px solid #F59E0B',
+              borderRadius: 12,
+              padding: '16px 20px',
+              marginBottom: 24,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>📋</span>
+                <strong style={{ fontSize: 14, color: '#92400E' }}>
+                  {consentAlerts.length} Missing Consent{consentAlerts.length !== 1 ? 's' : ''} — Signature Required
+                </strong>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {consentAlerts.slice(0, 8).map((alert) => {
+                  const patientName = alert.patients?.name ||
+                    `${alert.patients?.first_name || ''} ${alert.patients?.last_name || ''}`.trim() || 'Patient';
+                  const medication = alert.trigger_data?.medication || '';
+                  const consentType = alert.trigger_data?.consent_type || 'peptide';
+                  return (
+                    <div key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <span style={{
+                        background: '#FDE68A', color: '#92400E', padding: '1px 8px',
+                        borderRadius: 8, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                      }}>NO {consentType.toUpperCase()} CONSENT</span>
+                      <Link href={`/patients/${alert.patient_id}`} style={{ fontWeight: 500, color: '#111', textDecoration: 'none' }}>
+                        {patientName}
+                      </Link>
+                      {medication && <span style={{ color: '#6B7280' }}>— {medication}</span>}
+                    </div>
+                  );
+                })}
+                {consentAlerts.length > 8 && (
+                  <span style={{ fontSize: 12, color: '#92400E', marginTop: 4 }}>
+                    + {consentAlerts.length - 8} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div style={styles.section}>

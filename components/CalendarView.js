@@ -260,12 +260,87 @@ export default function CalendarView({ preselectedPatient = null }) {
   };
 
   // ===================== DAY VIEW =====================
+
+  // Assign columns to overlapping appointments (Google Calendar-style)
+  const assignColumns = (appts) => {
+    if (!appts.length) return [];
+
+    // Add timing metadata
+    const items = appts.map(appt => {
+      const start = new Date(appt.start_time);
+      const startMin = start.getHours() * 60 + start.getMinutes();
+      const endMin = startMin + (appt.duration_minutes || 30);
+      return { appt, startMin, endMin };
+    }).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+
+    // Greedy column assignment: assign each appointment to the first available column
+    const columns = []; // columns[col] = endMin of the last appointment in that column
+    const result = [];
+
+    for (const item of items) {
+      let placed = false;
+      for (let col = 0; col < columns.length; col++) {
+        if (item.startMin >= columns[col]) {
+          columns[col] = item.endMin;
+          result.push({ ...item, column: col });
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        result.push({ ...item, column: columns.length });
+        columns.push(item.endMin);
+      }
+    }
+
+    // Find the max columns for each overlap cluster
+    // Two appointments are in the same cluster if there's any chain of overlaps connecting them
+    const totalCols = columns.length;
+
+    // For better width calculation, find the actual max columns each appointment overlaps with
+    // by looking at what's concurrent at each point in time
+    for (const item of result) {
+      let maxConcurrent = 1;
+      for (const other of result) {
+        if (other === item) continue;
+        // Check if they overlap in time
+        if (other.startMin < item.endMin && other.endMin > item.startMin) {
+          maxConcurrent++;
+        }
+      }
+      // The total columns for this appointment is the max of its own column+1 and concurrent count
+      item.totalColumns = Math.max(item.column + 1, maxConcurrent);
+    }
+
+    // Normalize: ensure all overlapping appointments agree on the same totalColumns
+    // Do a pass where we set totalColumns to the max of any overlapping appointment
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const item of result) {
+        for (const other of result) {
+          if (other === item) continue;
+          if (other.startMin < item.endMin && other.endMin > item.startMin) {
+            const maxTC = Math.max(item.totalColumns, other.totalColumns);
+            if (item.totalColumns !== maxTC) { item.totalColumns = maxTC; changed = true; }
+            if (other.totalColumns !== maxTC) { other.totalColumns = maxTC; changed = true; }
+          }
+        }
+      }
+    }
+
+    return result;
+  };
+
   const renderDayView = () => {
     const dayAppts = appointments.filter(a =>
       formatDateISO(new Date(a.start_time)) === formatDateISO(currentDate)
     );
     const now = new Date();
     const showTimeLine = isToday(currentDate);
+
+    // Calculate column layout for overlapping appointments
+    const columnized = assignColumns(dayAppts);
 
     return (
       <div style={styles.dayGrid}>
@@ -278,13 +353,21 @@ export default function CalendarView({ preselectedPatient = null }) {
           </div>
         ))}
         {/* Appointment blocks */}
-        {dayAppts.map(appt => {
+        {columnized.map(({ appt, column, totalColumns }) => {
           const start = new Date(appt.start_time);
           const startHour = start.getHours() + start.getMinutes() / 60;
           const top = (startHour - 8) * 60;
           const height = Math.max(appt.duration_minutes || 30, 20);
           if (top < 0 || startHour > 18) return null;
           const catStyle = getApptStyle(appt);
+
+          // Calculate horizontal position based on column
+          const gridLeft = 75; // px after time labels
+          const gridRight = 10;
+          const colWidthPercent = 100 / totalColumns;
+          const leftPercent = column * colWidthPercent;
+          // Small gap between columns for visual separation
+          const gapPx = totalColumns > 1 ? 2 : 0;
 
           return (
             <div
@@ -295,14 +378,18 @@ export default function CalendarView({ preselectedPatient = null }) {
                 ...catStyle,
                 top: `${top}px`,
                 height: `${height}px`,
+                left: `calc(${gridLeft}px + (100% - ${gridLeft + gridRight}px) * ${leftPercent / 100} + ${gapPx}px)`,
+                right: 'auto',
+                width: `calc((100% - ${gridLeft + gridRight}px) * ${colWidthPercent / 100} - ${gapPx * 2}px)`,
               }}
             >
               <div style={styles.apptBlockName}>{appt.patient_name}</div>
-              <div style={styles.apptBlockService}>{appt.service_name}</div>
-              <div style={styles.apptBlockTime}>
-                {formatTime(appt.start_time)} – {formatTime(appt.end_time)}
-              </div>
-              {getStatusBadge(appt.status)}
+              {height >= 35 && <div style={styles.apptBlockService}>{appt.service_name}</div>}
+              {height >= 50 && (
+                <div style={styles.apptBlockTime}>
+                  {formatTime(appt.start_time)} – {formatTime(appt.end_time)}
+                </div>
+              )}
             </div>
           );
         })}

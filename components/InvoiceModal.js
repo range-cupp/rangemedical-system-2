@@ -4,6 +4,33 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// Category display names
+const CATEGORY_LABELS = {
+  programs: 'Programs',
+  combo_membership: 'Combo Memberships',
+  hbot: 'HBOT',
+  red_light: 'Red Light Therapy',
+  hrt: 'HRT',
+  weight_loss: 'Weight Loss',
+  iv_therapy: 'IV Therapy',
+  specialty_iv: 'Specialty IV',
+  injection_standard: 'Standard Injections',
+  injection_premium: 'Premium Injections',
+  injection_pack: 'Injection Packs',
+  nad_injection: 'NAD+ Injections',
+  peptide: 'Peptides',
+  labs: 'Lab Panels',
+  assessment: 'Assessments',
+  custom: 'Custom',
+};
+
+// Category display order
+const CATEGORY_ORDER = [
+  'peptide', 'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
+  'injection_pack', 'nad_injection', 'hbot', 'red_light', 'weight_loss', 'hrt',
+  'combo_membership', 'programs', 'labs', 'assessment', 'custom',
+];
+
 export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, preselectedPatient }) {
   // Patient search
   const [patient, setPatient] = useState(preselectedPatient || null);
@@ -13,8 +40,16 @@ export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, presel
   const [searchingPatients, setSearchingPatients] = useState(false);
   const searchTimeout = useRef(null);
 
+  // Service catalog
+  const [services, setServices] = useState([]);
+  const [servicesLoaded, setServicesLoaded] = useState(false);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [showServicePicker, setShowServicePicker] = useState(false);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const servicePickerRef = useRef(null);
+
   // Line items
-  const [items, setItems] = useState([{ name: '', category: '', price: '', quantity: 1 }]);
+  const [items, setItems] = useState([]);
 
   // Discount
   const [discountType, setDiscountType] = useState('none');
@@ -32,18 +67,45 @@ export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, presel
     if (preselectedPatient) setPatient(preselectedPatient);
   }, [preselectedPatient]);
 
+  // Load services catalog
+  useEffect(() => {
+    if (isOpen && !servicesLoaded) {
+      fetch('/api/pos/services?active=true')
+        .then(res => res.json())
+        .then(data => {
+          setServices(data.services || []);
+          setServicesLoaded(true);
+        })
+        .catch(err => console.error('Failed to load services:', err));
+    }
+  }, [isOpen, servicesLoaded]);
+
+  // Close service picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (servicePickerRef.current && !servicePickerRef.current.contains(e.target)) {
+        setShowServicePicker(false);
+      }
+    };
+    if (showServicePicker) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showServicePicker]);
+
   // Reset on close
   useEffect(() => {
     if (!isOpen) {
       setPatient(preselectedPatient || null);
       setPatientSearch('');
-      setItems([{ name: '', category: '', price: '', quantity: 1 }]);
+      setItems([]);
       setDiscountType('none');
       setDiscountValue('');
       setNotes('');
       setSendVia('email');
       setCreating(false);
       setError('');
+      setServiceSearch('');
+      setShowServicePicker(false);
+      setActiveCategory(null);
     }
   }, [isOpen, preselectedPatient]);
 
@@ -79,6 +141,40 @@ export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, presel
     setShowDropdown(false);
   };
 
+  // Service catalog helpers
+  const groupedServices = CATEGORY_ORDER.reduce((acc, cat) => {
+    const catServices = services.filter(s => s.category === cat);
+    if (catServices.length > 0) acc[cat] = catServices;
+    return acc;
+  }, {});
+
+  // Also include any categories not in CATEGORY_ORDER
+  services.forEach(s => {
+    if (!groupedServices[s.category]) {
+      groupedServices[s.category] = services.filter(sv => sv.category === s.category);
+    }
+  });
+
+  const filteredServices = serviceSearch.trim()
+    ? services.filter(s =>
+        s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+        (CATEGORY_LABELS[s.category] || s.category).toLowerCase().includes(serviceSearch.toLowerCase())
+      )
+    : [];
+
+  const addServiceToItems = (service) => {
+    setItems([...items, {
+      name: service.name,
+      category: service.category,
+      price: (service.price / 100).toFixed(2),
+      quantity: 1,
+      serviceId: service.id,
+    }]);
+    setShowServicePicker(false);
+    setServiceSearch('');
+    setActiveCategory(null);
+  };
+
   // Line items
   const updateItem = (index, field, value) => {
     const updated = [...items];
@@ -86,12 +182,11 @@ export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, presel
     setItems(updated);
   };
 
-  const addItem = () => {
-    setItems([...items, { name: '', category: '', price: '', quantity: 1 }]);
+  const addCustomItem = () => {
+    setItems([...items, { name: '', category: 'custom', price: '', quantity: 1 }]);
   };
 
   const removeItem = (index) => {
-    if (items.length <= 1) return;
     setItems(items.filter((_, i) => i !== index));
   };
 
@@ -118,7 +213,7 @@ export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, presel
   const formatCents = (c) => '$' + (c / 100).toFixed(2);
 
   // Validate
-  const isValid = patient && items.every(i => i.name && parseFloat(i.price) > 0) && totalCents > 0;
+  const isValid = patient && items.length > 0 && items.every(i => i.name && parseFloat(i.price) > 0) && totalCents > 0;
 
   // Create
   const handleCreate = async () => {
@@ -246,46 +341,130 @@ export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, presel
           {/* Line Items */}
           <div style={styles.section}>
             <label style={styles.label}>Line Items</label>
+
+            {/* Current items in cart */}
             {items.map((item, idx) => (
-              <div key={idx} style={styles.lineItem}>
-                <input
-                  type="text"
-                  placeholder="Service or product name"
-                  value={item.name}
-                  onChange={e => updateItem(idx, 'name', e.target.value)}
-                  style={{ ...styles.input, flex: 2 }}
-                />
-                <input
-                  type="number"
-                  placeholder="Price"
-                  value={item.price}
-                  onChange={e => updateItem(idx, 'price', e.target.value)}
-                  style={{ ...styles.input, flex: 1, minWidth: '80px' }}
-                  step="0.01"
-                  min="0"
-                />
-                <input
-                  type="number"
-                  placeholder="Qty"
-                  value={item.quantity}
-                  onChange={e => updateItem(idx, 'quantity', e.target.value)}
-                  style={{ ...styles.input, width: '60px', flex: 'none' }}
-                  min="1"
-                />
-                {items.length > 1 && (
-                  <button
-                    onClick={() => removeItem(idx)}
-                    style={styles.removeBtn}
-                    title="Remove item"
-                  >
-                    ✕
-                  </button>
-                )}
+              <div key={idx} style={styles.cartItem}>
+                <div style={styles.cartItemInfo}>
+                  <span style={styles.cartItemName}>{item.name}</span>
+                  <span style={styles.cartItemMeta}>
+                    {CATEGORY_LABELS[item.category] || item.category}
+                  </span>
+                </div>
+                <div style={styles.cartItemRight}>
+                  <input
+                    type="number"
+                    value={item.quantity}
+                    onChange={e => updateItem(idx, 'quantity', e.target.value)}
+                    style={styles.qtyInput}
+                    min="1"
+                  />
+                  <span style={styles.cartItemPrice}>
+                    ${(parseFloat(item.price) * (parseInt(item.quantity) || 1)).toFixed(2)}
+                  </span>
+                  <button onClick={() => removeItem(idx)} style={styles.removeBtn} title="Remove">✕</button>
+                </div>
               </div>
             ))}
-            <button onClick={addItem} style={styles.addItemBtn}>
-              + Add Item
-            </button>
+
+            {/* Service picker */}
+            <div ref={servicePickerRef} style={{ position: 'relative', marginTop: items.length > 0 ? '8px' : '0' }}>
+              <input
+                type="text"
+                value={serviceSearch}
+                onChange={e => {
+                  setServiceSearch(e.target.value);
+                  setShowServicePicker(true);
+                  setActiveCategory(null);
+                }}
+                onFocus={() => setShowServicePicker(true)}
+                placeholder={items.length > 0 ? '+ Add another service or product...' : 'Search services and products...'}
+                style={styles.input}
+              />
+
+              {showServicePicker && (
+                <div style={styles.servicePicker}>
+                  {/* Search results mode */}
+                  {serviceSearch.trim() ? (
+                    filteredServices.length > 0 ? (
+                      <div style={styles.serviceList}>
+                        {filteredServices.slice(0, 15).map(s => (
+                          <div
+                            key={s.id}
+                            onClick={() => addServiceToItems(s)}
+                            style={styles.serviceItem}
+                          >
+                            <div>
+                              <div style={styles.serviceName}>{s.name}</div>
+                              <div style={styles.serviceCat}>{CATEGORY_LABELS[s.category] || s.category}</div>
+                            </div>
+                            <span style={styles.servicePrice}>${(s.price / 100).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={styles.noResults}>
+                        No matching services found
+                        <button
+                          onClick={() => { addCustomItem(); setShowServicePicker(false); setServiceSearch(''); }}
+                          style={styles.customItemBtn}
+                        >
+                          + Add custom item
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    /* Browse by category mode */
+                    <div>
+                      {!activeCategory ? (
+                        <div style={styles.categoryList}>
+                          {Object.entries(groupedServices).map(([cat, catServices]) => (
+                            <div
+                              key={cat}
+                              onClick={() => setActiveCategory(cat)}
+                              style={styles.categoryItem}
+                            >
+                              <span style={styles.categoryName}>{CATEGORY_LABELS[cat] || cat}</span>
+                              <span style={styles.categoryCount}>{catServices.length}</span>
+                            </div>
+                          ))}
+                          <div
+                            onClick={() => { addCustomItem(); setShowServicePicker(false); }}
+                            style={{ ...styles.categoryItem, color: '#666', fontStyle: 'italic' }}
+                          >
+                            <span>+ Custom amount</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div
+                            onClick={() => setActiveCategory(null)}
+                            style={styles.backBtn}
+                          >
+                            ← {CATEGORY_LABELS[activeCategory] || activeCategory}
+                          </div>
+                          <div style={styles.serviceList}>
+                            {(groupedServices[activeCategory] || []).map(s => (
+                              <div
+                                key={s.id}
+                                onClick={() => addServiceToItems(s)}
+                                style={styles.serviceItem}
+                              >
+                                <div style={styles.serviceName}>{s.name}</div>
+                                <span style={styles.servicePrice}>
+                                  ${(s.price / 100).toFixed(2)}
+                                  {s.recurring && <span style={styles.recurringBadge}>/mo</span>}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Discount */}
@@ -532,11 +711,54 @@ const styles = {
     cursor: 'pointer',
     color: '#666',
   },
-  lineItem: {
+  cartItem: {
     display: 'flex',
-    gap: '8px',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '8px',
+    padding: '10px 12px',
+    background: '#f9fafb',
+    borderRadius: '8px',
+    marginBottom: '6px',
+    border: '1px solid #e5e7eb',
+  },
+  cartItemInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    flex: 1,
+    minWidth: 0,
+  },
+  cartItemName: {
+    fontSize: '14px',
+    fontWeight: '500',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  cartItemMeta: {
+    fontSize: '11px',
+    color: '#999',
+  },
+  cartItemRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexShrink: 0,
+  },
+  cartItemPrice: {
+    fontSize: '14px',
+    fontWeight: '600',
+    minWidth: '60px',
+    textAlign: 'right',
+  },
+  qtyInput: {
+    width: '44px',
+    padding: '4px 6px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    fontSize: '13px',
+    textAlign: 'center',
+    fontFamily: 'inherit',
   },
   removeBtn: {
     background: 'none',
@@ -544,19 +766,104 @@ const styles = {
     fontSize: '14px',
     cursor: 'pointer',
     color: '#999',
-    padding: '8px',
+    padding: '4px 6px',
     flexShrink: 0,
   },
-  addItemBtn: {
-    padding: '8px 14px',
+  servicePicker: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: '#fff',
+    border: '1px solid #ddd',
+    borderRadius: '10px',
+    marginTop: '4px',
+    maxHeight: '280px',
+    overflowY: 'auto',
+    zIndex: 20,
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+  },
+  categoryList: {
+    padding: '4px 0',
+  },
+  categoryItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 14px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f5f5f5',
+    fontSize: '14px',
+    transition: 'background 0.1s',
+  },
+  categoryName: {
+    fontWeight: '500',
+  },
+  categoryCount: {
+    fontSize: '12px',
+    color: '#999',
+    background: '#f3f4f6',
+    padding: '2px 8px',
+    borderRadius: '10px',
+  },
+  backBtn: {
+    padding: '10px 14px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    borderBottom: '1px solid #e5e5e5',
+    color: '#666',
+  },
+  serviceList: {
+    padding: '4px 0',
+  },
+  serviceItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 14px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f5f5f5',
+    transition: 'background 0.1s',
+  },
+  serviceName: {
+    fontSize: '14px',
+    fontWeight: '400',
+  },
+  serviceCat: {
+    fontSize: '11px',
+    color: '#999',
+    marginTop: '2px',
+  },
+  servicePrice: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#111',
+    flexShrink: 0,
+  },
+  recurringBadge: {
+    fontSize: '11px',
+    color: '#666',
+    fontWeight: '400',
+  },
+  noResults: {
+    padding: '16px',
+    textAlign: 'center',
+    fontSize: '13px',
+    color: '#999',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    alignItems: 'center',
+  },
+  customItemBtn: {
+    padding: '6px 14px',
     border: '1px dashed #ccc',
     borderRadius: '8px',
     background: 'none',
     fontSize: '13px',
     cursor: 'pointer',
     color: '#666',
-    width: '100%',
-    marginTop: '4px',
   },
   discountRow: {
     display: 'flex',

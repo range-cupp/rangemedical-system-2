@@ -576,10 +576,18 @@ export default async function handler(req, res) {
         'notes', 'tags', 'status'
       ];
 
+      // Date fields that need empty-string → null conversion
+      const dateFields = ['date_of_birth'];
+
       const updates = {};
       for (const [key, value] of Object.entries(body)) {
         if (allowedFields.includes(key)) {
-          updates[key] = value;
+          // Convert empty strings to null for date fields
+          if (dateFields.includes(key) && (value === '' || value === null)) {
+            updates[key] = null;
+          } else {
+            updates[key] = value;
+          }
         }
       }
 

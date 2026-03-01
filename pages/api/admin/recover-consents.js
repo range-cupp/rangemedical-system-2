@@ -115,7 +115,7 @@ export default async function handler(req, res) {
         patient = patientsByName[`${fnLower}-${lnLower}`];
       }
 
-      // Fuzzy match: try each patient
+      // Fuzzy match: try each patient (in-memory)
       if (!patient) {
         for (const p of (patients || [])) {
           const pfn = (p.first_name || '').toLowerCase();
@@ -125,6 +125,33 @@ export default async function handler(req, res) {
             break;
           }
         }
+      }
+
+      // DB fallback 1: direct ILIKE on first_name + last_name
+      if (!patient) {
+        const { data } = await supabase.from('patients').select('id, name, first_name, last_name, email, phone, ghl_contact_id')
+          .ilike('first_name', firstName)
+          .ilike('last_name', lastName.replace(/ /g, '%'))
+          .limit(1);
+        if (data?.length > 0) patient = data[0];
+      }
+
+      // DB fallback 2: partial first name match (Ken → Kenneth, etc.)
+      if (!patient) {
+        const lastNamePart = nameParts[nameParts.length - 1];
+        const { data } = await supabase.from('patients').select('id, name, first_name, last_name, email, phone, ghl_contact_id')
+          .ilike('first_name', `${firstName}%`)
+          .ilike('last_name', lastNamePart)
+          .limit(3);
+        if (data?.length === 1) patient = data[0]; // Only use if exactly 1 match
+      }
+
+      // DB fallback 3: search the full 'name' field
+      if (!patient) {
+        const { data } = await supabase.from('patients').select('id, name, first_name, last_name, email, phone, ghl_contact_id')
+          .ilike('name', `%${firstName}%${nameParts[nameParts.length - 1]}%`)
+          .limit(3);
+        if (data?.length === 1) patient = data[0]; // Only use if exactly 1 match
       }
 
       if (!patient) {

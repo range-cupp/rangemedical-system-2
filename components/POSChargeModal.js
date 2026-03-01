@@ -289,10 +289,12 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   }
 
   function getResultMessage(amount) {
+    const hasPeptides = cartItems.some(i => i.category === 'peptide');
+    const suffix = hasPeptides ? '\nProtocol created & journey started' : '';
     if (activeCategory === 'custom' || cartItems.length <= 1) {
-      return `Charged ${formatPrice(amount)} for ${getChargeDescription()}`;
+      return `Charged ${formatPrice(amount)} for ${getChargeDescription()}${suffix}`;
     }
-    return `Charged ${formatPrice(amount)} for ${cartItems.length} items`;
+    return `Charged ${formatPrice(amount)} for ${cartItems.length} items${suffix}`;
   }
 
   function getDiscountData() {
@@ -414,6 +416,62 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
   }
 
+  // After successful payment, auto-create protocols for peptide purchases
+  // Patient has already done consult + forms, so start at 'dispensed' stage
+  async function createProtocolsForPeptides() {
+    if (!patient) return;
+
+    const peptideItems = cartItems.filter(i => i.category === 'peptide');
+    if (peptideItems.length === 0) return;
+
+    for (const item of peptideItems) {
+      try {
+        // Parse: "Peptide Protocol — 10 Day — BPC-157 (500mcg)"
+        const parts = item.name.split(' — ');
+        if (parts.length < 3) continue;
+
+        const durationStr = parts[1].trim(); // "10 Day"
+        const peptidePart = parts.slice(2).join(' — ').trim(); // "BPC-157 (500mcg)"
+        const duration = parseInt(durationStr) || 10;
+
+        // Split base name from dose detail
+        const parenMatch = peptidePart.match(/^(.+?)\s*\((.+)\)$/);
+        const medication = parenMatch ? parenMatch[1].trim() : peptidePart;
+        const dosage = parenMatch ? parenMatch[2].trim() : '';
+
+        const today = new Date();
+        const startDate = today.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD
+
+        await fetch('/api/admin/protocols/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: patient.id,
+            ghl_contact_id: patient.ghl_contact_id || null,
+            protocolType: 'peptide',
+            patientName: patient.name,
+            patientPhone: patient.phone || '',
+            patientEmail: patient.email || '',
+            medication,
+            dosage,
+            frequency: 'daily',
+            deliveryMethod: 'Subcutaneous Injection',
+            startDate,
+            duration,
+            notes: `Auto-created from POS purchase: ${item.name}`,
+            initial_journey_stage: 'dispensed',
+            source: 'pos',
+          }),
+        });
+
+        console.log(`✓ Protocol auto-created for ${patient.name}: ${medication} ${duration}-day`);
+      } catch (err) {
+        console.error('Auto-create protocol error (non-fatal):', err);
+        // Don't fail the payment over protocol creation issues
+      }
+    }
+  }
+
   async function handlePay() {
     const amount = getChargeAmount();
     const description = getChargeDescription();
@@ -423,6 +481,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       setStep('processing');
       try {
         await recordPurchases({ payment_method: 'comp' });
+        await createProtocolsForPeptides();
         setResultStatus('success');
         setResultMessage(`Comped ${description} for ${patient.name}`);
         setStep('result');
@@ -546,6 +605,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
     if (paymentIntent.status === 'succeeded') {
       await recordPurchases({ stripe_payment_intent_id: paymentIntent.id });
+      await createProtocolsForPeptides();
 
       setResultStatus('success');
       setResultMessage(getResultMessage(amount));
@@ -570,6 +630,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
     if (piData.status === 'succeeded') {
       await recordPurchases({ stripe_payment_intent_id: piData.payment_intent_id });
+      await createProtocolsForPeptides();
 
       setResultStatus('success');
       setResultMessage(getResultMessage(amount));
@@ -589,6 +650,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
       if (paymentIntent.status === 'succeeded') {
         await recordPurchases({ stripe_payment_intent_id: paymentIntent.id });
+        await createProtocolsForPeptides();
 
         setResultStatus('success');
         setResultMessage(getResultMessage(amount));

@@ -62,7 +62,9 @@ export default async function handler(req, res) {
       supplyDispensedDate,
       currentDose,
       baselineLabsDate,
-      notes
+      notes,
+      initial_journey_stage,  // Optional: skip to a specific journey stage (e.g. 'dispensed' for POS purchases)
+      source                   // Optional: 'pos', 'admin', etc.
     } = req.body;
 
     if (!protocolType || !patientName || !startDate) {
@@ -243,7 +245,14 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (template && template.stages && template.stages.length > 0) {
-        const initialStage = template.stages[0].key;
+        // Use the requested initial stage if valid, otherwise default to first stage
+        let initialStage = template.stages[0].key;
+        if (initial_journey_stage) {
+          const validStage = template.stages.find(s => s.key === initial_journey_stage);
+          if (validStage) {
+            initialStage = initial_journey_stage;
+          }
+        }
 
         await supabase
           .from('protocols')
@@ -254,17 +263,18 @@ export default async function handler(req, res) {
           .eq('id', protocol.id);
 
         // Log the initial journey event
+        const sourceLabel = source === 'pos' ? 'POS purchase' : 'Protocol created';
         await supabase.from('journey_events').insert({
           patient_id: patient_id || null,
           protocol_id: protocol.id,
           current_stage: initialStage,
           previous_stage: null,
           trigger_type: 'auto',
-          triggered_by: 'system',
-          notes: `Protocol created — placed at ${initialStage}`
+          triggered_by: source || 'system',
+          notes: `${sourceLabel} — placed at ${initialStage}`
         });
 
-        console.log(`✓ Journey assigned: ${protocolType} template → ${initialStage}`);
+        console.log(`✓ Journey assigned: ${protocolType} template → ${initialStage} (source: ${source || 'admin'})`);
       }
     } catch (journeyErr) {
       console.error('Journey assignment error (non-fatal):', journeyErr);

@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       created_by,
     } = req.body;
 
-    if (!patient_name || !items || !total_cents) {
+    if (!patient_name || !items || total_cents == null) {
       return res.status(400).json({ error: 'patient_name, items, and total_cents are required' });
     }
 

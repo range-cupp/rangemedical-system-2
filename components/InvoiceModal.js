@@ -213,7 +213,8 @@ export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, presel
   const formatCents = (c) => '$' + (c / 100).toFixed(2);
 
   // Validate
-  const isValid = patient && items.length > 0 && items.every(i => i.name && parseFloat(i.price) > 0) && totalCents > 0;
+  // Allow $0 invoices for comps (100% discount)
+  const isValid = patient && items.length > 0 && items.every(i => i.name && parseFloat(i.price) > 0) && subtotalCents > 0;
 
   // Create
   const handleCreate = async () => {

@@ -80,13 +80,13 @@ export default function JourneyCard({ card, onDragStart, onDragEnd, isDragging }
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + 'T12:00:00');
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const daysSinceStart = () => {
     if (!card.startDate) return null;
-    const start = new Date(card.startDate);
+    const start = new Date(card.startDate + 'T12:00:00');
     const now = new Date();
     return Math.floor((now - start) / (1000 * 60 * 60 * 24));
   };

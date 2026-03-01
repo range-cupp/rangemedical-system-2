@@ -182,7 +182,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         { label: 'Injections', match: i => i.name.toLowerCase().includes('shot') || i.name.toLowerCase().includes('injection') },
       ],
       specialty_iv: [
-        { label: 'Specialty IVs', match: () => true },
+        { label: 'NAD+ IV', match: i => i.name.toLowerCase().includes('nad+') },
+        { label: 'High-Dose Vitamin C', match: i => i.name.toLowerCase().includes('vitamin c') },
+        { label: 'Glutathione IV', match: i => i.name.toLowerCase().includes('glutathione') },
+        { label: 'Methylene Blue', match: i => i.name.toLowerCase().includes('methylene') },
       ],
       red_light: [
         { label: 'Session Packs', match: i => !i.recurring },

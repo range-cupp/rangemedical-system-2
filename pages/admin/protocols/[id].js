@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
+import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
 
 // Protocol Types
 const PROTOCOL_TYPES = {
@@ -753,6 +754,11 @@ export default function ProtocolDetail() {
               </div>
             )}
 
+            {/* 90-Day Cycle Progress (Peptide protocols only) */}
+            {!isEditing && (protocol?.program_type || '').includes('peptide') && (
+              <CycleProgressCard protocol={protocol} />
+            )}
+
             {/* Weekly Check-in Schedule (Take-Home protocols) */}
             {!isEditing && checkinSchedule.length > 0 && (
               <div style={styles.card}>
@@ -1151,6 +1157,119 @@ function formatFrequency(f) {
   const map = { daily: 'Daily', '2x_daily': 'Twice Daily', '2x_weekly': '2x per week', weekly: 'Weekly', per_session: 'Per session' };
   return map[f] || f || '—';
 }
+
+// 90-Day Cycle Progress Card for peptide protocols
+function CycleProgressCard({ protocol }) {
+  const [cycleData, setCycleData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const medication = protocol?.primary_peptide || protocol?.medication || '';
+  const cycleType = isRecoveryPeptide(medication) ? 'recovery' : isGHPeptide(medication) ? 'gh' : null;
+  const maxDays = cycleType === 'gh' ? GH_CYCLE_MAX_DAYS : RECOVERY_CYCLE_MAX_DAYS;
+  const offDays = cycleType === 'gh' ? GH_CYCLE_OFF_DAYS : RECOVERY_CYCLE_OFF_DAYS;
+  const offLabel = cycleType === 'gh' ? '4-week' : '2-week';
+  const cycleLabel = cycleType === 'gh' ? 'Growth Hormone Peptide Cycle' : 'Recovery Peptide Cycle';
+
+  useEffect(() => {
+    if (!protocol?.patient_id || !cycleType) { setLoading(false); return; }
+    fetch(`/api/protocols/cycle-info?patientId=${protocol.patient_id}&cycleType=${cycleType}`)
+      .then(r => r.json())
+      .then(data => { if (data.success) setCycleData(data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [protocol?.patient_id, cycleType]);
+
+  if (!cycleType || loading || !cycleData?.hasCycle) return null;
+
+  const { cycleDaysUsed, daysRemaining, cycleExhausted, offPeriodEnds, subProtocols, cycleStartDate } = cycleData;
+  const pct = Math.min(100, Math.round((cycleDaysUsed / maxDays) * 100));
+  const barColor = pct < 60 ? '#22c55e' : pct < 85 ? '#f59e0b' : '#ef4444';
+
+  // Calculate cycle end date
+  const cycleEnd = new Date(cycleStartDate + 'T12:00:00');
+  cycleEnd.setDate(cycleEnd.getDate() + maxDays);
+  const cycleEndStr = cycleEnd.toISOString().split('T')[0];
+
+  return (
+    <div style={cycleStyles.card}>
+      <h2 style={cycleStyles.title}>🔄 {cycleLabel}</h2>
+
+      {/* Big day counter */}
+      <div style={{ textAlign: 'center', margin: '20px 0 12px' }}>
+        <span style={{ fontSize: '56px', fontWeight: '700', color: barColor, lineHeight: 1 }}>{cycleDaysUsed}</span>
+        <span style={{ fontSize: '20px', fontWeight: '500', color: '#9ca3af', marginLeft: '4px' }}>/ {maxDays}</span>
+        <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>days used in cycle</div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={cycleStyles.barBg}>
+        <div style={{ ...cycleStyles.barFill, width: `${pct}%`, background: barColor }} />
+      </div>
+
+      {/* Dates row */}
+      <div style={cycleStyles.dateRow}>
+        <span>Started {formatDate(cycleStartDate)}</span>
+        <span>Cycle ends {formatDate(cycleEndStr)}</span>
+      </div>
+
+      {/* Remaining */}
+      <div style={{ fontSize: '14px', color: '#374151', marginTop: '12px', textAlign: 'center' }}>
+        {cycleExhausted ? (
+          <span style={{ color: '#ef4444', fontWeight: '600' }}>Cycle complete — {offLabel} off period recommended</span>
+        ) : (
+          <span><strong>{daysRemaining}</strong> days remaining in cycle</span>
+        )}
+      </div>
+
+      {/* Off period end date */}
+      {cycleExhausted && offPeriodEnds && (
+        <div style={cycleStyles.offWarning}>
+          Off period ends <strong>{formatDate(offPeriodEnds)}</strong>
+        </div>
+      )}
+
+      {/* Sub-protocols in this cycle */}
+      {subProtocols && subProtocols.length > 1 && (
+        <div style={{ borderTop: '1px solid #e5e7eb', marginTop: '16px', paddingTop: '12px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>
+            Protocols in this cycle
+          </div>
+          {subProtocols.map(sp => (
+            <div key={sp.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '4px 0', color: '#374151' }}>
+              <span>{sp.medication}</span>
+              <span style={{ color: '#6b7280' }}>{sp.days}d · {formatDate(sp.startDate)} — {formatDate(sp.endDate)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const cycleStyles = {
+  card: {
+    background: '#fff', borderRadius: '12px', padding: '24px',
+    marginBottom: '20px', border: '1px solid #e5e7eb'
+  },
+  title: {
+    fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px'
+  },
+  barBg: {
+    height: '12px', background: '#e5e7eb', borderRadius: '6px',
+    overflow: 'hidden', margin: '12px 0'
+  },
+  barFill: {
+    height: '100%', borderRadius: '6px', transition: 'width 0.3s ease'
+  },
+  dateRow: {
+    display: 'flex', justifyContent: 'space-between',
+    fontSize: '12px', color: '#6b7280'
+  },
+  offWarning: {
+    marginTop: '8px', padding: '10px 14px', background: '#fef3c7',
+    borderRadius: '8px', fontSize: '13px', color: '#92400e', textAlign: 'center'
+  }
+};
 
 const styles = {
   container: { minHeight: '100vh', background: '#f5f5f5', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' },

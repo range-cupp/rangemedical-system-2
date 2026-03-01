@@ -150,6 +150,39 @@ const CATEGORY_TO_TYPE = {
   'Injection': 'single_injection'
 };
 
+// Classify purchase into action type: 'protocol' | 'session' | 'product'
+function getPurchaseActionType(purchase) {
+  const cat = (purchase.category || '').toLowerCase();
+  const item = (purchase.item_name || '').toLowerCase();
+
+  // Always protocol: peptide, hrt, weight_loss
+  if (['peptide', 'hrt', 'weight_loss'].includes(cat)) return 'protocol';
+
+  // Always protocol: combo memberships, injection packs by category
+  if (cat === 'combo_membership' || cat === 'injection_pack') return 'protocol';
+
+  // Product categories: no tracking needed
+  if (['other', 'custom', 'assessment', 'programs'].includes(cat)) return 'product';
+
+  // Session-based categories: pack vs single
+  const isPackOrMulti = (
+    item.includes('pack') ||
+    item.includes('membership') ||
+    /\d+[\s-]?session/i.test(item) ||
+    /\d+[\s-]?pack/i.test(item)
+  );
+  if (isPackOrMulti) return 'protocol';
+
+  // Remaining service categories are single sessions
+  if (['hbot', 'red_light', 'iv_therapy', 'specialty_iv',
+       'injection_standard', 'injection_premium', 'nad_injection', 'injection'].includes(cat)) {
+    return 'session';
+  }
+
+  // Fallback: protocol (safe default)
+  return 'protocol';
+}
+
 export default function PurchasesPage() {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,6 +190,7 @@ export default function PurchasesPage() {
   const [filter, setFilter] = useState('all');
   const [createModal, setCreateModal] = useState(null);
   const [addToExistingModal, setAddToExistingModal] = useState(null);
+  const [logSessionModal, setLogSessionModal] = useState(null);
 
   useEffect(() => {
     fetchPurchases();
@@ -198,7 +232,7 @@ export default function PurchasesPage() {
     new Date(b.payment_date || b.purchase_date || b.created_at || 0) - new Date(a.payment_date || a.purchase_date || a.created_at || 0)
   );
 
-  const unassignedCount = purchases.filter(p => !p.protocol_id).length;
+  const unassignedCount = purchases.filter(p => !p.protocol_id && !p.session_logged && getPurchaseActionType(p) !== 'product').length;
   const totalCount = purchases.length;
   const totalRevenue = purchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
@@ -301,22 +335,35 @@ export default function PurchasesPage() {
                           <Link href={`/admin/protocols/${purchase.protocol_id}`} style={styles.protocolLink}>
                             View Protocol →
                           </Link>
-                        ) : (
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              onClick={() => setCreateModal(purchase)}
-                              style={styles.createBtn}
-                            >
-                              + Create
-                            </button>
-                            <button
-                              onClick={() => setAddToExistingModal(purchase)}
-                              style={styles.addToExistingBtn}
-                            >
-                              + Add to Existing
-                            </button>
-                          </div>
-                        )}
+                        ) : purchase.session_logged ? (
+                          <span style={styles.sessionLoggedBadge}>✓ Logged</span>
+                        ) : (() => {
+                          const actionType = getPurchaseActionType(purchase);
+                          const cat = (purchase.category || '').toLowerCase();
+                          if (actionType === 'protocol') {
+                            return (
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                <button onClick={() => setCreateModal(purchase)} style={styles.createBtn}>
+                                  + Create
+                                </button>
+                                {cat !== 'peptide' && (
+                                  <button onClick={() => setAddToExistingModal(purchase)} style={styles.addToExistingBtn}>
+                                    + Add to Existing
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          }
+                          if (actionType === 'session') {
+                            return (
+                              <button onClick={() => setLogSessionModal(purchase)} style={styles.logSessionBtn}>
+                                Log Session
+                              </button>
+                            );
+                          }
+                          // product
+                          return <span style={styles.saleBadge}>Sale</span>;
+                        })()}
                       </td>
                     </tr>
                   ))}
@@ -345,6 +392,18 @@ export default function PurchasesPage() {
             onClose={() => setAddToExistingModal(null)}
             onSuccess={() => {
               setAddToExistingModal(null);
+              fetchPurchases();
+            }}
+          />
+        )}
+
+        {/* Log Session Modal */}
+        {logSessionModal && (
+          <LogSessionModal
+            purchase={logSessionModal}
+            onClose={() => setLogSessionModal(null)}
+            onSuccess={() => {
+              setLogSessionModal(null);
               fetchPurchases();
             }}
           />
@@ -936,6 +995,193 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
   );
 }
 
+// Log Session Modal — for single IVs, injections, and one-off sessions
+function LogSessionModal({ purchase, onClose, onSuccess }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [patient, setPatient] = useState(null);
+  const [patientLoading, setPatientLoading] = useState(true);
+  const [form, setForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    medication: purchase?.item_name || '',
+    notes: ''
+  });
+
+  // Patient lookup (same pattern as CreateProtocolModal)
+  useEffect(() => {
+    async function lookupPatient() {
+      setPatientLoading(true);
+      try {
+        let found = null;
+        if (purchase?.ghl_contact_id) {
+          const res = await fetch(`/api/admin/patients?search=${encodeURIComponent(purchase.ghl_contact_id)}&limit=1`);
+          if (res.ok) {
+            const data = await res.json();
+            const patients = data.patients || data || [];
+            found = patients.find(p => p.ghl_contact_id === purchase.ghl_contact_id);
+          }
+        }
+        if (!found && purchase?.patient_name) {
+          const res = await fetch(`/api/admin/patients?search=${encodeURIComponent(purchase.patient_name)}&limit=5`);
+          if (res.ok) {
+            const data = await res.json();
+            const patients = data.patients || data || [];
+            const purchaseName = (purchase.patient_name || '').toLowerCase().trim();
+            found = patients.find(p => {
+              const fullName = (p.first_name && p.last_name)
+                ? `${p.first_name} ${p.last_name}`.toLowerCase()
+                : (p.name || '').toLowerCase();
+              return fullName === purchaseName;
+            }) || patients[0];
+          }
+        }
+        setPatient(found || null);
+      } catch (err) {
+        console.error('Patient lookup error:', err);
+      } finally {
+        setPatientLoading(false);
+      }
+    }
+    lookupPatient();
+  }, [purchase]);
+
+  const patientName = patient
+    ? (patient.first_name && patient.last_name ? `${patient.first_name} ${patient.last_name}` : patient.name)
+    : purchase?.patient_name || 'Unknown';
+
+  // Map purchase category to service_log category
+  const getServiceCategory = () => {
+    const cat = (purchase?.category || '').toLowerCase();
+    const map = {
+      'hbot': 'hbot', 'red_light': 'red_light',
+      'iv_therapy': 'iv_therapy', 'specialty_iv': 'iv_therapy',
+      'injection_standard': 'vitamin', 'injection_premium': 'vitamin',
+      'nad_injection': 'vitamin', 'injection': 'vitamin'
+    };
+    return map[cat] || cat;
+  };
+
+  const handleSubmit = async () => {
+    if (!patient?.id) {
+      setError('No patient found — cannot log session');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      // 1. Create service log entry
+      const logRes = await fetch('/api/service-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          category: getServiceCategory(),
+          entry_type: 'session',
+          entry_date: form.date,
+          medication: form.medication,
+          notes: form.notes || `Logged from purchase: ${purchase.item_name}`
+        })
+      });
+      if (!logRes.ok) {
+        const data = await logRes.json();
+        throw new Error(data.error || 'Failed to create service log');
+      }
+
+      // 2. Mark purchase as logged
+      await fetch(`/api/admin/purchases/${purchase.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_logged: true })
+      });
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={modalStyles.overlay} onClick={onClose}>
+      <div style={{ ...modalStyles.modal, maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+        <div style={modalStyles.header}>
+          <div>
+            <h2 style={modalStyles.title}>Log Session</h2>
+            <p style={modalStyles.subtitle}>{purchase.item_name} (${purchase.amount})</p>
+          </div>
+          <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
+        </div>
+
+        <div style={modalStyles.body}>
+          {error && <div style={modalStyles.error}>{error}</div>}
+
+          {/* Patient */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#666', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Patient</label>
+            {patientLoading ? (
+              <div style={{ padding: '8px', color: '#9ca3af', fontSize: '14px' }}>Looking up patient...</div>
+            ) : (
+              <div style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: '8px', fontSize: '14px', fontWeight: '500' }}>
+                {patientName}
+                {!patient?.id && <span style={{ color: '#dc2626', fontSize: '12px', marginLeft: '8px' }}>⚠ Not found in system</span>}
+              </div>
+            )}
+          </div>
+
+          {/* Date */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#666', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Session Date</label>
+            <input
+              type="date"
+              value={form.date}
+              onChange={e => setForm({ ...form, date: e.target.value })}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+            />
+          </div>
+
+          {/* Medication / Service */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#666', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Service</label>
+            <input
+              type="text"
+              value={form.medication}
+              onChange={e => setForm({ ...form, medication: e.target.value })}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+            />
+          </div>
+
+          {/* Notes */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#666', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Notes (optional)</label>
+            <textarea
+              value={form.notes}
+              onChange={e => setForm({ ...form, notes: e.target.value })}
+              rows={2}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }}
+            />
+          </div>
+        </div>
+
+        <div style={modalStyles.footer}>
+          <button onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || patientLoading || !patient?.id}
+            style={{
+              ...modalStyles.submitBtn,
+              background: '#22c55e',
+              opacity: (!patient?.id || saving) ? 0.5 : 1
+            }}
+          >
+            {saving ? 'Logging...' : '✓ Log Session'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const styles = {
   container: {
     minHeight: '100vh',
@@ -1052,6 +1298,34 @@ const styles = {
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer'
+  },
+  logSessionBtn: {
+    padding: '6px 12px',
+    background: '#22c55e',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  saleBadge: {
+    display: 'inline-block',
+    padding: '4px 10px',
+    background: '#f3f4f6',
+    color: '#6b7280',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  sessionLoggedBadge: {
+    display: 'inline-block',
+    padding: '4px 10px',
+    background: '#dcfce7',
+    color: '#166534',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500'
   }
 };
 

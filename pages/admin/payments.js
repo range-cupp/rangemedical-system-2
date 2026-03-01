@@ -2,10 +2,16 @@
 // Payments page - POS and Invoices with create, send, void actions
 // Range Medical System V2
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import InvoiceModal from '../../components/InvoiceModal';
+import POSChargeModal from '../../components/POSChargeModal';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 export default function PaymentsPage() {
   const [tab, setTab] = useState('invoices');
@@ -19,9 +25,61 @@ export default function PaymentsPage() {
   const [sendingId, setSendingId] = useState(null);
   const [actionMsg, setActionMsg] = useState('');
 
+  // POS state
+  const [showChargeModal, setShowChargeModal] = useState(false);
+  const [chargePatient, setChargePatient] = useState(null);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [patientResults, setPatientResults] = useState([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [searchingPatients, setSearchingPatients] = useState(false);
+  const [recentPurchases, setRecentPurchases] = useState([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(true);
+  const searchTimeout = useRef(null);
+
   useEffect(() => {
     fetchInvoices();
+    loadRecentPurchases();
   }, []);
+
+  // Patient search with debounce
+  useEffect(() => {
+    if (!patientSearch || patientSearch.length < 2) {
+      setPatientResults([]);
+      setShowPatientDropdown(false);
+      return;
+    }
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(async () => {
+      setSearchingPatients(true);
+      try {
+        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(patientSearch)}`);
+        const data = await res.json();
+        setPatientResults(data.patients || []);
+        setShowPatientDropdown(true);
+      } catch (err) {
+        console.error('Patient search error:', err);
+      }
+      setSearchingPatients(false);
+    }, 300);
+    return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
+  }, [patientSearch]);
+
+  const loadRecentPurchases = async () => {
+    setLoadingPurchases(true);
+    try {
+      const res = await fetch('/api/admin/purchases?limit=10&source=stripe_pos');
+      const data = await res.json();
+      setRecentPurchases(data.purchases || []);
+    } catch (err) {
+      console.error('Load purchases error:', err);
+    }
+    setLoadingPurchases(false);
+  };
+
+  const formatPurchaseDate = (d) => {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+  };
 
   const fetchInvoices = async () => {
     try {
@@ -389,14 +447,120 @@ export default function PaymentsPage() {
           </div>
         </>
       ) : (
-        <div style={styles.card}>
-          <div style={styles.empty}>
-            <p>POS Checkout is available from any patient profile.</p>
-            <Link href="/admin/patients" style={styles.link}>
-              Go to Patients
-            </Link>
+        <>
+          {/* Patient Search + Quick Charge */}
+          <div style={styles.posSection}>
+            <h3 style={styles.posSectionTitle}>New Charge</h3>
+            <div style={styles.posSearchWrap}>
+              <input
+                type="text"
+                placeholder="Search patient by name..."
+                value={patientSearch}
+                onChange={e => setPatientSearch(e.target.value)}
+                style={styles.posSearchInput}
+              />
+              {searchingPatients && (
+                <div style={{ position: 'absolute', right: '12px', top: '12px', color: '#888', fontSize: '13px' }}>
+                  Searching...
+                </div>
+              )}
+              {showPatientDropdown && patientResults.length > 0 && (
+                <div style={styles.posDropdown}>
+                  {patientResults.map(p => (
+                    <div
+                      key={p.id}
+                      style={styles.posDropdownItem}
+                      onClick={() => {
+                        setChargePatient(p);
+                        setPatientSearch('');
+                        setShowPatientDropdown(false);
+                        setShowChargeModal(true);
+                      }}
+                    >
+                      <div style={{ fontWeight: 500 }}>{p.name}</div>
+                      {p.email && <div style={{ fontSize: '12px', color: '#888' }}>{p.email}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showPatientDropdown && patientResults.length === 0 && patientSearch.length >= 2 && !searchingPatients && (
+                <div style={styles.posDropdown}>
+                  <div style={{ padding: '12px', color: '#888', textAlign: 'center' }}>No patients found</div>
+                </div>
+              )}
+            </div>
+            <button
+              style={styles.posChargeBtn}
+              onClick={() => {
+                setChargePatient(null);
+                setShowChargeModal(true);
+              }}
+            >
+              Quick Charge (search in modal)
+            </button>
           </div>
-        </div>
+
+          {/* Recent Charges */}
+          <div style={styles.posSection}>
+            <h3 style={styles.posSectionTitle}>Recent Charges</h3>
+            <div style={styles.card}>
+              {loadingPurchases ? (
+                <div style={styles.loading}>Loading recent charges...</div>
+              ) : recentPurchases.length === 0 ? (
+                <div style={styles.empty}>No recent charges</div>
+              ) : (
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Description</th>
+                      <th style={styles.th}>Patient</th>
+                      <th style={styles.th}>Amount</th>
+                      <th style={styles.th}>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentPurchases.map(p => (
+                      <tr key={p.id} style={styles.tr}>
+                        <td style={styles.td}>
+                          <span style={{ fontWeight: '500' }}>{p.description || 'Charge'}</span>
+                        </td>
+                        <td style={styles.td}>
+                          {p.patient_name || '—'}
+                        </td>
+                        <td style={styles.td}>
+                          <span style={{ fontWeight: '500', color: '#16a34a' }}>
+                            ${p.amount?.toFixed(2)}
+                          </span>
+                          {p.discount_type && (
+                            <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px' }}>
+                              ({p.discount_type === 'percent' ? `${p.discount_amount}% off` : `$${p.discount_amount} off`})
+                            </span>
+                          )}
+                        </td>
+                        <td style={styles.td}>
+                          <span style={{ color: '#888' }}>{formatPurchaseDate(p.purchase_date)}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          {/* POS Charge Modal */}
+          <POSChargeModal
+            isOpen={showChargeModal}
+            onClose={() => setShowChargeModal(false)}
+            patient={chargePatient}
+            stripePromise={stripePromise}
+            onChargeComplete={() => {
+              loadRecentPurchases();
+              setActionMsg('Charge completed successfully');
+              setTimeout(() => setActionMsg(''), 3000);
+            }}
+          />
+        </>
       )}
 
       {/* Create Invoice Modal */}
@@ -642,5 +806,59 @@ const styles = {
     textDecoration: 'none',
     fontSize: '14px',
     fontWeight: '500'
-  }
+  },
+  // POS styles
+  posSection: {
+    marginBottom: '24px',
+  },
+  posSectionTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    margin: '0 0 12px 0',
+    color: '#111',
+  },
+  posSearchWrap: {
+    position: 'relative',
+    maxWidth: '400px',
+    marginBottom: '16px',
+  },
+  posSearchInput: {
+    width: '100%',
+    padding: '10px 14px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '15px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit',
+  },
+  posDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: '#fff',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    zIndex: 10,
+    maxHeight: '240px',
+    overflowY: 'auto',
+  },
+  posDropdownItem: {
+    padding: '10px 14px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f3f4f6',
+    fontSize: '14px',
+  },
+  posChargeBtn: {
+    padding: '10px 24px',
+    borderRadius: '8px',
+    border: 'none',
+    background: '#000',
+    color: '#fff',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+  },
 };

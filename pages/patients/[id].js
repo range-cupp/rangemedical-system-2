@@ -841,7 +841,7 @@ export default function PatientProfile() {
           <button className={activeTab === 'protocols' ? 'active' : ''} onClick={() => setActiveTab('protocols')}>Protocols ({stats.activeCount})</button>
           <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => { setActiveTab('timeline'); if (timeline.length === 0) fetchTimeline(); }}>Timeline</button>
           <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
-          <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Appointments ({appointments.length})</button>
+          <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Visits ({appointments.length + serviceLogs.length})</button>
           <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length})</button>
           <button className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>Payments</button>
           <button className={activeTab === 'communications' ? 'active' : ''} onClick={() => setActiveTab('communications')}>Communications</button>
@@ -1417,52 +1417,108 @@ export default function PatientProfile() {
             </>
           )}
 
-          {/* Appointments Tab */}
+          {/* Visits Tab (Appointments + Sessions) */}
           {activeTab === 'appointments' && (
-            <section className="card">
-              <div className="card-header">
-                <h3>Clinic Appointments ({appointments.length})</h3>
-              </div>
-              {appointments.length === 0 ? (
-                <div className="empty">No appointments found</div>
-              ) : (
-                <div className="appointments-list">
-                  {appointments.map(apt => {
-                    const aptDate = new Date(apt.start_time);
-                    const isPast = aptDate < new Date();
-                    const isUpcoming = !isPast;
-                    const status = (apt.status || 'scheduled').toLowerCase();
-                    const statusColors = {
-                      scheduled: { bg: '#fef3c7', text: '#92400e' },
-                      confirmed: { bg: '#dbeafe', text: '#1e40af' },
-                      showed: { bg: '#dcfce7', text: '#166534' },
-                      completed: { bg: '#dcfce7', text: '#166534' },
-                      no_show: { bg: '#fee2e2', text: '#dc2626' },
-                      cancelled: { bg: '#f3f4f6', text: '#6b7280' }
-                    };
-                    const statusStyle = statusColors[status] || statusColors.scheduled;
-
-                    return (
-                      <div key={apt.id} className={`appointment-row ${isUpcoming ? 'upcoming' : 'past'}`}>
-                        <div className="apt-date">
-                          <div className="apt-day">{aptDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}</div>
-                          <div className="apt-time">{aptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}</div>
-                        </div>
-                        <div className="apt-details">
-                          <strong>{apt.calendar_name || 'Appointment'}</strong>
-                          {apt.appointment_title && apt.appointment_title !== apt.calendar_name && (
-                            <span className="apt-title">{apt.appointment_title}</span>
-                          )}
-                        </div>
-                        <span className="apt-status" style={{ background: statusStyle.bg, color: statusStyle.text }}>
-                          {status.replace('_', ' ')}
-                        </span>
-                      </div>
-                    );
-                  })}
+            <>
+              {/* Appointments Section */}
+              <section className="card">
+                <div className="card-header">
+                  <h3>Appointments ({appointments.length})</h3>
                 </div>
-              )}
-            </section>
+                {appointments.length === 0 ? (
+                  <div className="empty">No appointments found</div>
+                ) : (
+                  <div className="appointments-list">
+                    {appointments.map(apt => {
+                      const aptDate = new Date(apt.start_time);
+                      const isPast = aptDate < new Date();
+                      const isUpcoming = !isPast;
+                      const status = (apt.status || 'scheduled').toLowerCase();
+                      const statusColors = {
+                        scheduled: { bg: '#fef3c7', text: '#92400e' },
+                        confirmed: { bg: '#dbeafe', text: '#1e40af' },
+                        showed: { bg: '#dcfce7', text: '#166534' },
+                        completed: { bg: '#dcfce7', text: '#166534' },
+                        no_show: { bg: '#fee2e2', text: '#dc2626' },
+                        cancelled: { bg: '#f3f4f6', text: '#6b7280' }
+                      };
+                      const statusStyle = statusColors[status] || statusColors.scheduled;
+
+                      return (
+                        <div key={apt.id} className={`appointment-row ${isUpcoming ? 'upcoming' : 'past'}`}>
+                          <div className="apt-date">
+                            <div className="apt-day">{aptDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}</div>
+                            <div className="apt-time">{aptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}</div>
+                          </div>
+                          <div className="apt-details">
+                            <strong>{apt.calendar_name || 'Appointment'}</strong>
+                            {apt.appointment_title && apt.appointment_title !== apt.calendar_name && (
+                              <span className="apt-title">{apt.appointment_title}</span>
+                            )}
+                          </div>
+                          <span className="apt-status" style={{ background: statusStyle.bg, color: statusStyle.text }}>
+                            {status.replace('_', ' ')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              {/* Session History Section */}
+              <section className="card" style={{ marginTop: '16px' }}>
+                <div className="card-header">
+                  <h3>Session History ({serviceLogs.length})</h3>
+                </div>
+                {serviceLogs.length === 0 ? (
+                  <div className="empty">No sessions logged yet</div>
+                ) : (
+                  <div className="appointments-list">
+                    {[...serviceLogs]
+                      .sort((a, b) => new Date(b.entry_date || b.created_at) - new Date(a.entry_date || a.created_at))
+                      .map(log => {
+                        const logDate = new Date(log.entry_date || log.created_at);
+                        const categoryLabels = {
+                          hbot: 'HBOT', red_light: 'Red Light', iv_therapy: 'IV Therapy',
+                          vitamin: 'Injection', testosterone: 'HRT', weight_loss: 'Weight Loss',
+                          peptide: 'Peptide', supplement: 'Supplement'
+                        };
+                        const categoryColors = {
+                          hbot: { bg: '#e0e7ff', text: '#3730a3' },
+                          red_light: { bg: '#fee2e2', text: '#dc2626' },
+                          iv_therapy: { bg: '#ffedd5', text: '#c2410c' },
+                          vitamin: { bg: '#fef9c3', text: '#854d0e' },
+                          testosterone: { bg: '#f3e8ff', text: '#7c3aed' },
+                          weight_loss: { bg: '#dbeafe', text: '#1e40af' },
+                          peptide: { bg: '#dcfce7', text: '#166534' }
+                        };
+                        const cat = log.category || '';
+                        const catLabel = categoryLabels[cat] || cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Session';
+                        const catStyle = categoryColors[cat] || { bg: '#f3f4f6', text: '#374151' };
+                        const entryType = log.entry_type || 'session';
+
+                        return (
+                          <div key={log.id} className="appointment-row past">
+                            <div className="apt-date">
+                              <div className="apt-day">{logDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                              <div className="apt-time" style={{ textTransform: 'capitalize' }}>{entryType}</div>
+                            </div>
+                            <div className="apt-details">
+                              <strong>{log.medication || catLabel}</strong>
+                              {log.dosage && <span className="apt-title">{log.dosage}</span>}
+                              {log.notes && <span className="apt-title" style={{ color: '#6b7280', fontSize: '12px' }}>{log.notes}</span>}
+                            </div>
+                            <span className="apt-status" style={{ background: catStyle.bg, color: catStyle.text }}>
+                              {catLabel}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </section>
+            </>
           )}
 
           {/* Payments Tab */}

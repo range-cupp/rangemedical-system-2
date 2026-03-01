@@ -1,5 +1,6 @@
 // /pages/api/patients/[id]/comms.js
 // Per-patient communications API
+// Supports channel filter and pagination
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
@@ -15,19 +16,26 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(500, parseInt(req.query.limit) || 200);
+  const channel = req.query.channel; // 'sms' | 'email' | undefined (all)
 
   if (!id) {
     return res.status(400).json({ error: 'Patient ID required' });
   }
 
   try {
-    const { data: comms, error } = await supabase
+    let query = supabase
       .from('comms_log')
-      .select('*')
+      .select('id, channel, message_type, message, status, recipient, subject, direction, source, created_at')
       .eq('patient_id', id)
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    if (channel === 'sms' || channel === 'email') {
+      query = query.eq('channel', channel);
+    }
+
+    const { data: comms, error } = await query;
 
     if (error) throw error;
 

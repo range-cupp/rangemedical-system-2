@@ -32,6 +32,7 @@ import {
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import BookingTab from '../../components/BookingTab';
 import LabDashboard from '../../components/labs/LabDashboard';
+import ConversationView from '../../components/ConversationView';
 import { loadStripe } from '@stripe/stripe-js';
 import POSChargeModal from '../../components/POSChargeModal';
 
@@ -1527,42 +1528,12 @@ export default function PatientProfile() {
 
           {/* Communications Tab */}
           {activeTab === 'communications' && (
-            <section className="card">
-              <div className="card-header">
-                <h3>Communications ({commsLog.length})</h3>
-              </div>
-              {commsLog.length === 0 ? (
-                <div className="empty">No communications found</div>
-              ) : (
-                <div className="comms-list">
-                  {commsLog.map(comm => {
-                    const isEmail = comm.channel === 'email';
-                    const isInbound = comm.direction === 'inbound';
-
-                    return (
-                      <div key={comm.id} className={`comms-row ${isInbound ? 'inbound' : 'outbound'}`}>
-                        <div className="comms-icon">{isEmail ? '📧' : '💬'}</div>
-                        <div className="comms-content">
-                          <div className="comms-header">
-                            <span className="comms-type">
-                              {isInbound ? 'Received' : 'Sent'} {isEmail ? 'Email' : 'SMS'}
-                            </span>
-                            <span className="comms-date">{formatDate(comm.created_at)}</span>
-                          </div>
-                          <div className="comms-message-type">{(comm.message_type || 'message').replace(/_/g, ' ')}</div>
-                          {comm.body && (
-                            <div className="comms-body">{comm.body.substring(0, 200)}{comm.body.length > 200 ? '...' : ''}</div>
-                          )}
-                          {comm.status && (
-                            <span className="comms-status">{comm.status}</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+            <ConversationView
+              patientId={id}
+              patientName={patient?.name || patient?.full_name}
+              patientPhone={patient?.phone}
+              ghlContactId={patient?.ghl_contact_id}
+            />
           )}
         </div>
 

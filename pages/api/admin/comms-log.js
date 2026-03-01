@@ -22,13 +22,15 @@ export default async function handler(req, res) {
       channel,
       search,
       days = '30',
+      patient_id,
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+    const maxLimit = patient_id ? 500 : 100; // Allow higher limit for per-patient queries
+    const limitNum = Math.min(maxLimit, Math.max(1, parseInt(limit)));
     const offset = (pageNum - 1) * limitNum;
 
-    // Date filter
+    // Date filter (skip if patient_id is provided — show all history)
     const daysNum = parseInt(days) || 30;
     const since = new Date();
     since.setDate(since.getDate() - daysNum);
@@ -37,9 +39,17 @@ export default async function handler(req, res) {
     let query = supabase
       .from('comms_log')
       .select('*', { count: 'exact' })
-      .gte('created_at', since.toISOString())
       .order('created_at', { ascending: false })
       .range(offset, offset + limitNum - 1);
+
+    // Only apply date filter if not filtering by patient
+    if (!patient_id) {
+      query = query.gte('created_at', since.toISOString());
+    }
+
+    if (patient_id) {
+      query = query.eq('patient_id', patient_id);
+    }
 
     if (channel && (channel === 'sms' || channel === 'email')) {
       query = query.eq('channel', channel);

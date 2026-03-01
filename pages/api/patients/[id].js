@@ -445,10 +445,10 @@ export default async function handler(req, res) {
       // ===== V2: Communications log =====
       const { data: commsLog } = await supabase
         .from('comms_log')
-        .select('id, channel, message_type, body, status, recipient, subject, direction, created_at')
+        .select('id, channel, message_type, message, status, recipient, subject, direction, source, created_at')
         .eq('patient_id', id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(200);
 
       // ===== V2: All purchases (not just pending) =====
       const { data: allPurchases } = await supabase

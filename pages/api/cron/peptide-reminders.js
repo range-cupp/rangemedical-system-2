@@ -1,14 +1,12 @@
 // /pages/api/cron/peptide-reminders.js
-// Daily cron to send recovery peptide SMS automations
+// Daily cron for recovery peptide protocols
 // Runs at 8:00 AM PST (0 16 * * * UTC) — handles:
-//   1. 10-day protocol day-7 follow-up
-//   2. 30-day protocol weekly check-ins (day 7, 14, 21) with check-in form link
-//   3. 30-day protocol re-up text (~day 25, cycle-aware)
-//   4. Follow-up reminder if check-in not completed (day after check-in was due)
+//   1. Context-aware weekly check-ins (Week N of Total) with check-in form link
+//   2. Protocol ending alert (internal system alert for staff follow-up)
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS } from '../../../lib/protocol-config';
+import { isRecoveryPeptide } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
@@ -19,7 +17,7 @@ const supabase = createClient(
 const GHL_API_KEY = process.env.GHL_API_KEY;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
 
-// Get today's date string in Pacific Time (YYYY-MM-DD)
+// Get today's date in Pacific Time
 function getPacificDate() {
   const now = new Date();
   return new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
@@ -93,25 +91,14 @@ function protocolDuration(startDate, endDate) {
   return Math.round((end - start) / (1000 * 60 * 60 * 24));
 }
 
-// Get cycle days used for a patient's recovery peptide cycle
-async function getCycleDaysUsed(patientId, cycleStartDate) {
-  const { data: cycleProtocols } = await supabase
-    .from('protocols')
-    .select('id, start_date, end_date')
-    .eq('patient_id', patientId)
-    .eq('program_type', 'peptide')
-    .eq('cycle_start_date', cycleStartDate)
-    .not('status', 'in', '("cancelled","merged")');
-
-  if (!cycleProtocols || cycleProtocols.length === 0) return 0;
-
-  let totalDays = 0;
-  for (const p of cycleProtocols) {
-    const s = new Date(p.start_date + 'T12:00:00');
-    const e = p.end_date ? new Date(p.end_date + 'T12:00:00') : new Date();
-    totalDays += Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
-  }
-  return totalDays;
+// Calculate days until protocol ends
+function daysUntilEnd(endDate) {
+  if (!endDate) return 999;
+  const now = getPacificDate();
+  now.setHours(0, 0, 0, 0);
+  const end = new Date(endDate + 'T12:00:00');
+  end.setHours(0, 0, 0, 0);
+  return Math.floor((end - now) / (1000 * 60 * 60 * 24));
 }
 
 export default async function handler(req, res) {
@@ -130,10 +117,10 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const results = { sent: [], skipped: [], errors: [] };
+  const results = { sent: [], skipped: [], errors: [], alerts: [] };
 
   try {
-    // Get all active peptide protocols with reminders enabled
+    // Get all active recovery peptide protocols with reminders enabled
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select(`
@@ -142,7 +129,6 @@ export default async function handler(req, res) {
         medication,
         start_date,
         end_date,
-        cycle_start_date,
         peptide_reminders_enabled,
         patients!inner (
           id,
@@ -172,18 +158,19 @@ export default async function handler(req, res) {
     console.log(`Found ${recoveryProtocols.length} active recovery peptide protocols with reminders enabled`);
 
     // Get all existing logs for these protocols to check for double-sends
+    // Build log_type list dynamically — we need peptide_weekly_checkin_1 through _N
     const protocolIds = recoveryProtocols.map(p => p.id);
+    const checkinLogTypes = [];
+    for (let w = 1; w <= 12; w++) {
+      checkinLogTypes.push(`peptide_weekly_checkin_${w}`);
+    }
+
     const { data: existingLogs } = protocolIds.length > 0
       ? await supabase
           .from('protocol_logs')
           .select('protocol_id, log_type')
           .in('protocol_id', protocolIds)
-          .in('log_type', [
-            'peptide_followup', 'peptide_reup',
-            'peptide_weekly_checkin_1', 'peptide_weekly_checkin_2', 'peptide_weekly_checkin_3',
-            'peptide_checkin_followup_1', 'peptide_checkin_followup_2', 'peptide_checkin_followup_3',
-            'peptide_checkin'
-          ])
+          .in('log_type', checkinLogTypes)
       : { data: [] };
 
     // Build a lookup set: "protocolId:logType"
@@ -195,149 +182,87 @@ export default async function handler(req, res) {
       const ghlContactId = patient.ghl_contact_id;
       const days = daysSince(protocol.start_date);
       const duration = protocolDuration(protocol.start_date, protocol.end_date);
+      const totalWeeks = Math.floor(duration / 7);
 
       // -------------------------------------------------------
-      // 1. 10-DAY FOLLOW-UP: duration 8-14 days, fires day 7-9
+      // 1. WEEKLY CHECK-IN: fires every 7 days (with 2-day catch-up window)
+      //    Context-aware: "Week N of Total"
       // -------------------------------------------------------
-      if (duration >= 8 && duration <= 14 && days >= 7 && days <= 9) {
-        const logKey = `${protocol.id}:peptide_followup`;
-        if (!logSet.has(logKey)) {
-          const message = `Hi ${firstName}! It's been about a week on your recovery peptide protocol. How are you feeling? Most patients see the best results with 20-30 days of continued use. Let us know if you'd like to keep going — we're here to help! - Range Medical`;
+      if (totalWeeks >= 1) {
+        let sentThisRun = false;
 
-          const smsResult = await sendSMS(ghlContactId, message);
-          if (smsResult.success) {
-            await logSent(protocol.id, patient.id, 'peptide_followup', message);
-            await logComm({ channel: 'sms', messageType: 'peptide_followup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
-            logSet.add(logKey);
-            results.sent.push({ patient: patient.name, protocolId: protocol.id, type: 'followup' });
-          } else {
-            await logComm({ channel: 'sms', messageType: 'peptide_followup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
-            results.errors.push({ patient: patient.name, protocolId: protocol.id, type: 'followup', error: smsResult.error });
+        for (let weekNum = 1; weekNum <= totalWeeks; weekNum++) {
+          const targetDay = weekNum * 7;
+
+          // 2-day catch-up window: fire on targetDay, targetDay+1, or targetDay+2
+          if (days >= targetDay && days <= targetDay + 2) {
+            const logType = `peptide_weekly_checkin_${weekNum}`;
+            const logKey = `${protocol.id}:${logType}`;
+
+            if (!logSet.has(logKey)) {
+              const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId}`;
+              const message = `Hi ${firstName}! Week ${weekNum} of ${totalWeeks} check-in on your recovery peptide protocol. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
+
+              const smsResult = await sendSMS(ghlContactId, message);
+              if (smsResult.success) {
+                await logSent(protocol.id, patient.id, logType, message);
+                await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
+                logSet.add(logKey);
+                results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}_of_${totalWeeks}` });
+              } else {
+                await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
+                results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, error: smsResult.error });
+              }
+              sentThisRun = true;
+              break; // Only one text per protocol per run
+            }
           }
-          continue; // Only one text per protocol per run
         }
+
+        if (sentThisRun) continue;
       }
 
       // -------------------------------------------------------
-      // 2. 30-DAY WEEKLY CHECK-IN: duration 25-35 days, day 7/14/21
+      // 2. PROTOCOL ENDING ALERT: within 3 days of end_date
+      //    Creates an internal system alert for staff follow-up
       // -------------------------------------------------------
-      if (duration >= 25 && duration <= 35) {
-        // Determine which week check-in to send (with 2-day window each)
-        let weekNum = null;
-        if (days >= 7 && days <= 9) weekNum = 1;
-        else if (days >= 14 && days <= 16) weekNum = 2;
-        else if (days >= 21 && days <= 23) weekNum = 3;
+      const remaining = daysUntilEnd(protocol.end_date);
+      if (remaining >= 0 && remaining <= 3) {
+        // Check if an active protocol_ending alert already exists for this protocol
+        const { data: existingAlert } = await supabase
+          .from('alerts')
+          .select('id')
+          .eq('patient_id', patient.id)
+          .eq('alert_type', 'protocol_ending')
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
 
-        if (weekNum) {
-          const logType = `peptide_weekly_checkin_${weekNum}`;
-          const logKey = `${protocol.id}:${logType}`;
-          if (!logSet.has(logKey)) {
-            const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId}`;
-            const message = `Hi ${firstName}! Week ${weekNum} check-in on your recovery peptide protocol. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
+        if (!existingAlert) {
+          const endDateFormatted = new Date(protocol.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const alertMessage = `${patient.name} — ${protocol.medication} protocol ends ${endDateFormatted}`;
 
-            const smsResult = await sendSMS(ghlContactId, message);
-            if (smsResult.success) {
-              await logSent(protocol.id, patient.id, logType, message);
-              await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
-              logSet.add(logKey);
-              results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}` });
-            } else {
-              await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
-              results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, error: smsResult.error });
-            }
-            continue;
-          }
-        }
-
-        // -------------------------------------------------------
-        // 2B. CHECK-IN FOLLOW-UP: fires day 8/15/22 if no response
-        // -------------------------------------------------------
-        let followupWeek = null;
-        if (days >= 8 && days <= 10) followupWeek = 1;
-        else if (days >= 15 && days <= 17) followupWeek = 2;
-        else if (days >= 22 && days <= 24) followupWeek = 3;
-
-        if (followupWeek) {
-          const followupLogType = `peptide_checkin_followup_${followupWeek}`;
-          const followupLogKey = `${protocol.id}:${followupLogType}`;
-          const checkinLogKey = `${protocol.id}:peptide_checkin`;
-
-          // Only send follow-up if: check-in reminder was sent BUT no check-in response received
-          const reminderWasSent = logSet.has(`${protocol.id}:peptide_weekly_checkin_${followupWeek}`);
-          const alreadyFollowedUp = logSet.has(followupLogKey);
-
-          // Check for actual check-in response near this week's expected date
-          let hasCheckinResponse = false;
-          if (reminderWasSent && !alreadyFollowedUp) {
-            const expectedDay = followupWeek * 7; // day 7, 14, 21
-            const startParts = protocol.start_date.split('-');
-            const checkStart = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
-            checkStart.setDate(checkStart.getDate() + expectedDay - 3); // 3 days before
-            const checkEnd = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
-            checkEnd.setDate(checkEnd.getDate() + expectedDay + 3); // 3 days after
-
-            const { data: checkinLogs } = await supabase
-              .from('protocol_logs')
-              .select('id')
-              .eq('protocol_id', protocol.id)
-              .eq('log_type', 'peptide_checkin')
-              .gte('log_date', checkStart.toISOString().split('T')[0])
-              .lte('log_date', checkEnd.toISOString().split('T')[0])
-              .limit(1);
-
-            hasCheckinResponse = (checkinLogs && checkinLogs.length > 0);
-          }
-
-          if (reminderWasSent && !alreadyFollowedUp && !hasCheckinResponse) {
-            const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId}`;
-            const message = `Hi ${firstName}! Just a quick follow-up — we haven't received your Week ${followupWeek} check-in yet. It only takes 30 seconds:\n\n${checkinUrl}\n\nYour feedback helps us make sure your recovery is on track. - Range Medical`;
-
-            const smsResult = await sendSMS(ghlContactId, message);
-            if (smsResult.success) {
-              await logSent(protocol.id, patient.id, followupLogType, message);
-              await logComm({ channel: 'sms', messageType: followupLogType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
-              logSet.add(followupLogKey);
-              results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `checkin_followup_${followupWeek}` });
-            } else {
-              results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `checkin_followup_${followupWeek}`, error: smsResult.error });
-            }
-            continue;
-          }
-        }
-
-        // -------------------------------------------------------
-        // 3. 30-DAY RE-UP: fires day 25-27, cycle-aware
-        // -------------------------------------------------------
-        if (days >= 25 && days <= 27) {
-          const logKey = `${protocol.id}:peptide_reup`;
-          if (!logSet.has(logKey)) {
-            let message;
-
-            // Check cycle status to determine which re-up message
-            if (protocol.cycle_start_date) {
-              const cycleDaysUsed = await getCycleDaysUsed(protocol.patient_id, protocol.cycle_start_date);
-              const nearCycleEnd = cycleDaysUsed >= (RECOVERY_CYCLE_MAX_DAYS - 14); // within 14 days of 90-day limit
-
-              if (nearCycleEnd) {
-                message = `Hi ${firstName}! Your current peptide supply is wrapping up, and you're nearing the end of your 90-day cycle. After this round, a 2-week rest period is recommended before starting again. Let us know if you have any questions about next steps! - Range Medical`;
-              } else {
-                message = `Hi ${firstName}! Your current peptide supply is almost done. Ready for another 30 days? Most patients see continued improvement with extended use. Reply or call us to get your next round started. - Range Medical`;
+          const { error: alertError } = await supabase
+            .from('alerts')
+            .insert({
+              patient_id: patient.id,
+              alert_type: 'protocol_ending',
+              message: alertMessage,
+              severity: 'medium',
+              status: 'active',
+              trigger_data: {
+                protocol_id: protocol.id,
+                medication: protocol.medication,
+                end_date: protocol.end_date,
+                days_remaining: remaining
               }
-            } else {
-              // No cycle tracking — use default re-up
-              message = `Hi ${firstName}! Your current peptide supply is almost done. Ready for another 30 days? Most patients see continued improvement with extended use. Reply or call us to get your next round started. - Range Medical`;
-            }
+            });
 
-            const smsResult = await sendSMS(ghlContactId, message);
-            if (smsResult.success) {
-              await logSent(protocol.id, patient.id, 'peptide_reup', message);
-              await logComm({ channel: 'sms', messageType: 'peptide_reup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
-              logSet.add(logKey);
-              results.sent.push({ patient: patient.name, protocolId: protocol.id, type: 'reup' });
-            } else {
-              await logComm({ channel: 'sms', messageType: 'peptide_reup', message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
-              results.errors.push({ patient: patient.name, protocolId: protocol.id, type: 'reup', error: smsResult.error });
-            }
+          if (!alertError) {
+            results.alerts.push({ patient: patient.name, protocolId: protocol.id, daysRemaining: remaining });
+            console.log(`Alert created: ${alertMessage}`);
+          } else {
+            console.error('Failed to create protocol ending alert:', alertError);
           }
         }
       }
@@ -350,7 +275,8 @@ export default async function handler(req, res) {
         totalProtocols: recoveryProtocols.length,
         sent: results.sent.length,
         skipped: results.skipped.length,
-        errors: results.errors.length
+        errors: results.errors.length,
+        alerts: results.alerts.length
       },
       details: results
     });

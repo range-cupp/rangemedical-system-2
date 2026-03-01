@@ -112,6 +112,7 @@ export default function BookingTab({ preselectedPatient = null }) {
   const [step, setStep] = useState(preselectedPatient ? 2 : 1); // 1=patient, 2=service, 3=datetime, 4=confirm
   const [selectedPatient, setSelectedPatient] = useState(preselectedPatient);
   const [selectedService, setSelectedService] = useState(null);
+  const [selectedProvider, setSelectedProvider] = useState(null); // { userId, name, username, email }
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [notes, setNotes] = useState('');
@@ -187,11 +188,15 @@ export default function BookingTab({ preselectedPatient = null }) {
     }
   };
 
-  const fetchSlots = async (eventTypeId, date) => {
+  const fetchSlots = async (eventTypeId, date, memberUsername = null) => {
     setLoadingSlots(true);
     setSlots({});
     try {
-      const res = await fetch(`/api/bookings/slots?eventTypeId=${eventTypeId}&date=${date}`);
+      let url = `/api/bookings/slots?eventTypeId=${eventTypeId}&date=${date}`;
+      if (memberUsername) {
+        url += `&memberUsername=${encodeURIComponent(memberUsername)}`;
+      }
+      const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         setSlots(json.slots || {});
@@ -255,6 +260,7 @@ export default function BookingTab({ preselectedPatient = null }) {
 
   const selectService = (service) => {
     setSelectedService(service);
+    setSelectedProvider(null);
     // Reset cascading state
     setInjectionTier('');
     setInjectionType('');
@@ -264,14 +270,33 @@ export default function BookingTab({ preselectedPatient = null }) {
     if (needsCascading(service.slug)) {
       // Stay on step 2 — show cascading dropdowns
     } else {
-      setStep(3);
-      fetchSlots(service.id, selectedDate);
+      // If service has multiple hosts, stay on step 2 to pick provider
+      // Otherwise advance to date/time
+      if (!service.hosts || service.hosts.length <= 1) {
+        // Single or no host — auto-select and advance
+        if (service.hosts?.length === 1) setSelectedProvider(service.hosts[0]);
+        setStep(3);
+        fetchSlots(service.id, selectedDate);
+      }
+      // Multiple hosts: stay on step 2, provider picker shown below
     }
   };
 
-  const handleCascadingComplete = () => {
+  const selectProvider = (provider) => {
+    setSelectedProvider(provider);
     setStep(3);
-    fetchSlots(selectedService.id, selectedDate);
+    fetchSlots(selectedService.id, selectedDate, provider.username || null);
+  };
+
+  const handleCascadingComplete = () => {
+    // If service has multiple hosts after cascading, show provider picker
+    if (selectedService?.hosts?.length > 1 && !selectedProvider) {
+      // Stay on step 2 — provider picker will show
+      return;
+    }
+    if (selectedService?.hosts?.length === 1) setSelectedProvider(selectedService.hosts[0]);
+    setStep(3);
+    fetchSlots(selectedService.id, selectedDate, selectedProvider?.username || null);
   };
 
   const isCascadingComplete = () => {
@@ -315,7 +340,7 @@ export default function BookingTab({ preselectedPatient = null }) {
     setSelectedDate(newDate);
     setSelectedSlot(null);
     if (selectedService) {
-      fetchSlots(selectedService.id, newDate);
+      fetchSlots(selectedService.id, newDate, selectedProvider?.username || null);
     }
   };
 
@@ -352,7 +377,9 @@ export default function BookingTab({ preselectedPatient = null }) {
           serviceSlug: selectedService.slug,
           durationMinutes: selectedService.length,
           notes: fullNotes,
-          serviceDetails
+          serviceDetails,
+          hostUserId: selectedProvider?.userId || null,
+          hostName: selectedProvider?.name || null,
         })
       });
       const json = await res.json();
@@ -360,6 +387,7 @@ export default function BookingTab({ preselectedPatient = null }) {
         setStep(1);
         setSelectedPatient(null);
         setSelectedService(null);
+        setSelectedProvider(null);
         setSelectedSlot(null);
         setNotes('');
         setSelectedDate(getTodayDate());
@@ -699,13 +727,65 @@ export default function BookingTab({ preselectedPatient = null }) {
                         </>
                       )}
 
-                      <button
-                        style={{ ...styles.nextBtn, opacity: isCascadingComplete() ? 1 : 0.5, marginTop: '16px' }}
-                        onClick={handleCascadingComplete}
-                        disabled={!isCascadingComplete()}
-                      >
-                        Next: Select Date & Time
-                      </button>
+                      {/* If cascading service has multiple providers, show picker after cascading */}
+                      {isCascadingComplete() && selectedService?.hosts?.length > 1 ? (
+                        <div style={{ marginTop: '16px' }}>
+                          <label style={styles.label}>Select Provider</label>
+                          <div style={styles.providerGrid}>
+                            {selectedService.hosts.map(host => (
+                              <div
+                                key={host.userId || host.name}
+                                style={{
+                                  ...styles.providerCard,
+                                  ...(selectedProvider?.userId === host.userId ? styles.providerCardSelected : {})
+                                }}
+                                onClick={() => {
+                                  setSelectedProvider(host);
+                                  setStep(3);
+                                  fetchSlots(selectedService.id, selectedDate, host.username || null);
+                                }}
+                              >
+                                <div style={styles.providerAvatar}>
+                                  {(host.name || '?').charAt(0).toUpperCase()}
+                                </div>
+                                <div style={styles.providerName}>{host.name}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          style={{ ...styles.nextBtn, opacity: isCascadingComplete() ? 1 : 0.5, marginTop: '16px' }}
+                          onClick={handleCascadingComplete}
+                          disabled={!isCascadingComplete()}
+                        >
+                          Next: Select Date & Time
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Provider Selection — for non-cascading services with multiple hosts */}
+                  {selectedService && !needsCascading(selectedService.slug) && selectedService.hosts?.length > 1 && (
+                    <div style={styles.cascadingSection}>
+                      <label style={styles.label}>Select Provider</label>
+                      <div style={styles.providerGrid}>
+                        {selectedService.hosts.map(host => (
+                          <div
+                            key={host.userId || host.name}
+                            style={{
+                              ...styles.providerCard,
+                              ...(selectedProvider?.userId === host.userId ? styles.providerCardSelected : {})
+                            }}
+                            onClick={() => selectProvider(host)}
+                          >
+                            <div style={styles.providerAvatar}>
+                              {(host.name || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div style={styles.providerName}>{host.name}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -716,6 +796,14 @@ export default function BookingTab({ preselectedPatient = null }) {
           {/* Step 3: Date & Time */}
           {step === 3 && (
             <div style={styles.stepContent}>
+              {selectedProvider && (
+                <div style={styles.providerBanner}>
+                  <span style={styles.providerBannerAvatar}>
+                    {(selectedProvider.name || '?').charAt(0).toUpperCase()}
+                  </span>
+                  <span>Scheduling with <strong>{selectedProvider.name}</strong></span>
+                </div>
+              )}
               <label style={styles.label}>Select Date</label>
               <div style={styles.dateNav}>
                 <button style={styles.dateNavBtn} onClick={() => navigateDate(-1)}>&larr;</button>
@@ -772,6 +860,12 @@ export default function BookingTab({ preselectedPatient = null }) {
                   <div style={styles.summaryRow}>
                     <span style={styles.summaryLabel}>Details</span>
                     <span style={styles.summaryValue}>{getServiceDetailsSummary()}</span>
+                  </div>
+                )}
+                {selectedProvider && (
+                  <div style={styles.summaryRow}>
+                    <span style={styles.summaryLabel}>Provider</span>
+                    <span style={styles.summaryValue}>{selectedProvider.name}</span>
                   </div>
                 )}
                 <div style={styles.summaryRow}>
@@ -1334,6 +1428,73 @@ const styles = {
     backgroundColor: '#f9fafb',
     borderRadius: '8px',
     border: '1px solid #e5e7eb'
+  },
+
+  // Provider selection
+  providerGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+    gap: '10px'
+  },
+  providerCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '16px 12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    backgroundColor: 'white',
+    transition: 'all 0.15s'
+  },
+  providerCardSelected: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
+    boxShadow: '0 0 0 2px #2563eb'
+  },
+  providerAvatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: '#111827',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '16px',
+    fontWeight: '600'
+  },
+  providerName: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#111827',
+    textAlign: 'center'
+  },
+  providerBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 14px',
+    backgroundColor: '#eff6ff',
+    border: '1px solid #bfdbfe',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    fontSize: '13px',
+    color: '#1e40af'
+  },
+  providerBannerAvatar: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: '#1e40af',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '13px',
+    fontWeight: '600',
+    flexShrink: 0
   },
   selectInput: {
     width: '100%',

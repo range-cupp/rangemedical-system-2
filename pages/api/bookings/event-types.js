@@ -23,7 +23,14 @@ export default async function handler(req, res) {
         title: et.title,
         slug: et.slug,
         length: et.lengthInMinutes || et.length,
-        description: et.description
+        description: et.description,
+        // Include hosts for provider selection
+        hosts: (et.hosts || []).map(h => ({
+          userId: h.userId,
+          name: h.name || h.user?.name || '',
+          username: h.username || h.user?.username || '',
+          email: h.email || h.user?.email || '',
+        })).filter(h => h.name || h.userId)
       }));
 
     return res.status(200).json({ success: true, eventTypes: simplified });

@@ -25,7 +25,9 @@ export default async function handler(req, res) {
     serviceSlug,
     durationMinutes,
     notes,
-    serviceDetails
+    serviceDetails,
+    hostUserId,
+    hostName,
   } = req.body;
 
   if (!eventTypeId || !start || !patientId || !patientName) {
@@ -43,7 +45,8 @@ export default async function handler(req, res) {
       name: patientName,
       email,
       phoneNumber: patientPhone,
-      notes
+      notes,
+      hostUserId: hostUserId ? parseInt(hostUserId) : undefined,
     });
 
     if (calResult.error) {
@@ -79,7 +82,8 @@ export default async function handler(req, res) {
         status: 'scheduled',
         notes,
         booked_by: 'staff',
-        service_details: serviceDetails || null
+        service_details: serviceDetails || null,
+        provider_name: hostName || null
       })
       .select()
       .single();

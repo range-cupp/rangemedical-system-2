@@ -149,7 +149,6 @@ export default async function handler(req, res) {
 
         start_date: startDate,
         end_date: endDate,
-        total_days: protocolType === 'peptide' ? (parseInt(duration) || null) : null,
         total_sessions: sessions,
         sessions_used: 0,
         

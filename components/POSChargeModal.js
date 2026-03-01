@@ -160,6 +160,61 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     return services.filter(s => s.category === categoryId);
   }
 
+  // Parse peptide names into groups: "Peptide Protocol — 10 Day — BPC-157 (500mcg)"
+  // → { baseName: "BPC-157", duration: "10 Day", detail: "500mcg", shortLabel: "10 Day · 500mcg" }
+  function getGroupedPeptides() {
+    const items = getItemsByCategory('peptide');
+    const groups = {};
+
+    for (const item of items) {
+      const parts = item.name.split(' — ');
+      if (parts.length < 3) {
+        // Fallback for non-standard names
+        if (!groups['Other']) groups['Other'] = [];
+        groups['Other'].push({ ...item, shortLabel: item.name, duration: '', detail: '' });
+        continue;
+      }
+
+      const duration = parts[1].trim(); // "10 Day"
+      const peptidePart = parts.slice(2).join(' — ').trim(); // "BPC-157 (500mcg)"
+
+      // Split base name from parenthetical detail
+      const parenMatch = peptidePart.match(/^(.+?)\s*\((.+)\)$/);
+      let baseName, detail;
+      if (parenMatch) {
+        baseName = parenMatch[1].trim();
+        detail = parenMatch[2].trim();
+      } else {
+        baseName = peptidePart;
+        detail = '';
+      }
+
+      const shortLabel = detail ? `${duration} · ${detail}` : duration;
+
+      if (!groups[baseName]) groups[baseName] = [];
+      groups[baseName].push({ ...item, shortLabel, duration, detail, baseName });
+    }
+
+    // Sort groups: most items first, then alphabetically
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+      if (groups[b].length !== groups[a].length) return groups[b].length - groups[a].length;
+      return a.localeCompare(b);
+    });
+
+    // Sort variants within each group by duration then detail
+    const durationOrder = { '10 Day': 1, '20 Day': 2, '30 Day': 3 };
+    for (const key of sortedKeys) {
+      groups[key].sort((a, b) => {
+        const da = durationOrder[a.duration] || 99;
+        const db = durationOrder[b.duration] || 99;
+        if (da !== db) return da - db;
+        return a.detail.localeCompare(b.detail);
+      });
+    }
+
+    return { groups, sortedKeys };
+  }
+
   function getSearchResults() {
     const q = serviceSearch.toLowerCase().trim();
     if (!q) return [];
@@ -707,6 +762,38 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                   ) : (
                     <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>No services match "{serviceSearch}"</div>
                   )
+                ) : activeCategory === 'peptide' ? (
+                  // Grouped peptide view
+                  (() => {
+                    const { groups, sortedKeys } = getGroupedPeptides();
+                    return (
+                      <div style={{ marginBottom: '16px' }}>
+                        {sortedKeys.map(groupName => (
+                          <div key={groupName} style={modalStyles.peptideGroup}>
+                            <div style={modalStyles.peptideGroupHeader}>{groupName}</div>
+                            <div style={modalStyles.peptideGroupGrid}>
+                              {groups[groupName].map(item => (
+                                <button
+                                  key={item.id}
+                                  style={{
+                                    ...modalStyles.peptideVariantCard,
+                                    ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
+                                  }}
+                                  onClick={() => toggleCartItem(item)}
+                                >
+                                  {cartItems.some(i => i.id === item.id) && (
+                                    <span style={modalStyles.inCartBadge}>&#10003;</span>
+                                  )}
+                                  <div style={modalStyles.peptideVariantLabel}>{item.shortLabel}</div>
+                                  <div style={modalStyles.itemPrice}>{formatPrice(item.price)}</div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
                 ) : activeCategory !== 'custom' ? (
                   <div style={modalStyles.itemGrid}>
                     {getItemsByCategory(activeCategory).map(item => (
@@ -1248,6 +1335,41 @@ const modalStyles = {
   itemCardSelected: {
     borderColor: '#16A34A',
     background: '#f0fdf4',
+  },
+  // Grouped peptide styles
+  peptideGroup: {
+    marginBottom: '20px',
+  },
+  peptideGroupHeader: {
+    fontSize: '13px',
+    fontWeight: 700,
+    color: '#111',
+    textTransform: 'uppercase',
+    letterSpacing: '0.3px',
+    padding: '8px 0 8px 2px',
+    borderBottom: '2px solid #111',
+    marginBottom: '10px',
+  },
+  peptideGroupGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '8px',
+  },
+  peptideVariantCard: {
+    position: 'relative',
+    padding: '10px 12px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    background: '#fafafa',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'border-color 0.15s',
+  },
+  peptideVariantLabel: {
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#333',
+    marginBottom: '3px',
   },
   itemName: {
     fontSize: '14px',

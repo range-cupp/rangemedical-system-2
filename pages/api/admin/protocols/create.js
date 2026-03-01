@@ -236,8 +236,9 @@ export default async function handler(req, res) {
     // Send opt-in SMS for peptide protocols (ask patient to agree to weekly check-ins)
     if (protocolType === 'peptide' && ghl_contact_id && GHL_API_KEY) {
       const firstName = patientName ? patientName.split(' ')[0] : 'there';
-      const optinUrl = `${BASE_URL}/peptide-checkin-optin.html?contact_id=${ghl_contact_id}&protocol_id=${protocol.id}`;
-      const optinMessage = `Hi ${firstName}! You've started your recovery peptide protocol at Range Medical. We offer quick weekly check-ins via text to track your progress — takes just 30 seconds.\n\nWould you like to opt in?\n${optinUrl}\n\n- Range Medical`;
+      const shortCode = accessToken.substring(0, 8);
+      const optinUrl = `${BASE_URL}/optin/${shortCode}`;
+      const optinMessage = `Hi ${firstName}! You've started your recovery peptide protocol at Range Medical. We'd like to send quick weekly check-ins via text to track your progress — just 30 seconds each.\n\nTap here to get started:\n${optinUrl}\n\n- Range Medical`;
 
       try {
         const smsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {

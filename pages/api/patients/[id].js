@@ -434,10 +434,10 @@ export default async function handler(req, res) {
         .eq('category', 'weight_loss')
         .order('entry_date', { ascending: true });
 
-      // ===== V2: All service logs (for timeline) =====
+      // ===== V2: All service logs (for timeline + visits tab) =====
       const { data: serviceLogs } = await supabase
         .from('service_logs')
-        .select('id, category, entry_type, entry_date, medication, dosage, quantity, dispensed_by, notes, created_at')
+        .select('id, category, entry_type, entry_date, medication, dosage, quantity, administered_by, notes, created_at')
         .eq('patient_id', id)
         .order('entry_date', { ascending: false })
         .limit(100);

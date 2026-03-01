@@ -1276,7 +1276,7 @@ export default function PatientProfile() {
                         ? consent.consent_type.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
                         : 'General';
                       return (
-                        <div key={consent.id} className="consent-card">
+                        <div key={consent.id} className="consent-card" onClick={() => consent.pdf_url && openPdfViewer(consent.pdf_url, `${typeName} Consent`)}>
                           <div className="consent-header">
                             <span className="consent-icon">{icon}</span>
                             <div className="consent-title-group">
@@ -1291,8 +1291,8 @@ export default function PatientProfile() {
                             <span className="consent-date">{formatDate(consent.consent_date || consent.submitted_at)}</span>
                           </div>
                           <div className="consent-actions">
-                            {consent.pdf_url && <button onClick={() => openPdfViewer(consent.pdf_url, `${typeName} Consent`)} className="btn-secondary-sm">View PDF</button>}
-                            {consent.signature_url && <button onClick={() => openPdfViewer(consent.signature_url, 'Signature')} className="btn-text">Signature</button>}
+                            {consent.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(consent.pdf_url, `${typeName} Consent`); }} className="btn-secondary-sm">View PDF</button>}
+                            {consent.signature_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(consent.signature_url, 'Signature'); }} className="btn-text">Signature</button>}
                           </div>
                         </div>
                       );
@@ -1311,7 +1311,7 @@ export default function PatientProfile() {
                 ) : (
                   <div className="intake-list full">
                     {intakes.map(intake => (
-                      <div key={intake.id} className="intake-card" onClick={() => { setSelectedIntake(intake); setShowIntakeModal(true); }}>
+                      <div key={intake.id} className="intake-card" onClick={() => intake.pdf_url && openPdfViewer(intake.pdf_url, `${intake.first_name} ${intake.last_name} — Medical Intake`)}>
                         <div className="intake-header">
                           <span className="intake-icon">📋</span>
                           <div>
@@ -1325,7 +1325,7 @@ export default function PatientProfile() {
                           {intake.date_of_birth && <span>DOB: {formatDate(intake.date_of_birth)}</span>}
                         </div>
                         <div className="intake-actions">
-                          {intake.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.pdf_url, 'Medical Intake'); }} className="btn-secondary-sm">View PDF</button>}
+                          {intake.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.pdf_url, `${intake.first_name} ${intake.last_name} — Medical Intake`); }} className="btn-secondary-sm">View PDF</button>}
                           {intake.photo_id_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.photo_id_url, 'Photo ID'); }} className="btn-text">Photo ID</button>}
                         </div>
                       </div>
@@ -2721,8 +2721,9 @@ export default function PatientProfile() {
           border-radius: 10px;
           background: #fff;
           transition: border-color 0.15s;
+          cursor: pointer;
         }
-        .consent-card:hover { border-color: #d1d5db; }
+        .consent-card:hover { border-color: #d1d5db; background: #fafafa; }
         .consent-header {
           display: flex;
           gap: 10px;

@@ -175,14 +175,15 @@ function normalizeFrequencyValue(freq) {
 function normalizeProtocol(p) {
   if (!p) return p;
 
-  // Calculate duration from dates if missing
-  let durationDays = p.duration_days || p.total_days;
+  // Calculate duration - check multiple sources
+  let durationDays = p.duration_days || p.total_days || p.total_sessions;
   if (!durationDays && p.start_date && p.end_date) {
     const start = new Date(p.start_date);
     const end = new Date(p.end_date);
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
-    durationDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    // +1 because both start and end are inclusive
+    durationDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
     if (durationDays < 1) durationDays = null;
   }
 
@@ -480,7 +481,7 @@ export default function ProtocolDetail() {
         endDate = start.toISOString().split('T')[0];
       }
 
-      const res = await fetch(`/api/admin/protocols?id=${id}`, {
+      const res = await fetch(`/api/admin/protocols/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

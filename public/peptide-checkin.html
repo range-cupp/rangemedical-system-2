@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Medical - Recovery Check-In</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💉</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 440px; margin: 0 auto; }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo h1 {
+      font-size: 24px;
+      color: #111;
+      margin-bottom: 4px;
+    }
+    .logo p {
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .greeting {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .greeting h2 {
+      font-size: 20px;
+      color: #111;
+      margin-bottom: 8px;
+    }
+    .greeting p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .form-group { margin-bottom: 24px; }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: border-color 0.15s;
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #111;
+    }
+
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* Feeling scale */
+    .feeling-scale {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .feeling-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 10px 8px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      flex: 1;
+      transition: all 0.15s;
+      background: #fff;
+    }
+    .feeling-option:hover {
+      border-color: #9ca3af;
+    }
+    .feeling-option.selected {
+      border-color: #111;
+      background: #111;
+    }
+    .feeling-option .emoji {
+      font-size: 28px;
+    }
+    .feeling-option .feeling-label {
+      font-size: 10px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .feeling-option.selected .feeling-label {
+      color: #fff;
+    }
+
+    /* Yes/No toggle */
+    .toggle-group {
+      display: flex;
+      gap: 8px;
+    }
+    .toggle-btn {
+      flex: 1;
+      padding: 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      background: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .toggle-btn:hover {
+      border-color: #9ca3af;
+    }
+    .toggle-btn.selected {
+      border-color: #111;
+      background: #111;
+      color: #fff;
+    }
+    .toggle-btn.selected-no {
+      border-color: #dc2626;
+      background: #dc2626;
+      color: #fff;
+    }
+
+    /* Side effects grid */
+    .side-effects-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .checkbox-item:hover {
+      background: #f3f4f6;
+    }
+    .checkbox-item.none-option {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+    .checkbox-item.none-option:hover {
+      background: #dcfce7;
+    }
+    .checkbox-item span {
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .protocol-info {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 20px;
+    }
+    .protocol-info p {
+      font-size: 13px;
+      color: #166534;
+    }
+    .protocol-info strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 16px;
+      background: #111;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    button[type="submit"]:hover { background: #333; }
+    button[type="submit"]:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-screen .icon { font-size: 64px; margin-bottom: 20px; }
+    .success-screen h2 { font-size: 24px; color: #111; margin-bottom: 12px; }
+    .success-screen p { color: #6b7280; font-size: 15px; line-height: 1.6; }
+
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 14px;
+    }
+
+    .loading-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .loading-screen p { color: #6b7280; font-size: 15px; }
+
+    .invalid-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .invalid-screen .icon { font-size: 48px; margin-bottom: 16px; }
+    .invalid-screen h2 { font-size: 20px; color: #991b1b; margin-bottom: 12px; }
+    .invalid-screen p { color: #6b7280; font-size: 14px; }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    .footer a { color: #6b7280; text-decoration: none; }
+
+    #otherSideEffectInput {
+      display: none;
+      margin-top: 12px;
+    }
+    #otherSideEffectInput input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 16px;
+      font-family: inherit;
+    }
+    #otherSideEffectInput input:focus {
+      outline: none;
+      border-color: #111;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>Range Medical</h1>
+      <p>Recovery Peptide Check-In</p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingScreen" class="card loading-screen">
+      <p>Loading your information...</p>
+    </div>
+
+    <!-- Invalid Link -->
+    <div id="invalidScreen" class="card invalid-screen">
+      <div class="icon">⚠️</div>
+      <h2>Invalid Link</h2>
+      <p>This check-in link is invalid or has expired. Please use the link from your most recent text.</p>
+      <p style="margin-top: 16px;">Questions? Call us at <a href="tel:9499973988" style="color: #111; font-weight: 600;">(949) 997-3988</a></p>
+    </div>
+
+    <!-- Main Form -->
+    <div id="formScreen" class="card" style="display: none;">
+      <div class="greeting">
+        <h2>Hi <span id="patientFirstName">there</span>! 👋</h2>
+        <p>Time for your weekly recovery check-in. Just a few quick questions to make sure everything is going well.</p>
+      </div>
+
+      <div id="protocolInfo" class="protocol-info" style="display: none;">
+        <p><strong>💉 Your Protocol</strong></p>
+        <p><span id="currentMedication">-</span> · Day <span id="currentDay">-</span> of <span id="totalDays">-</span></p>
+      </div>
+
+      <div id="errorMsg" class="error"></div>
+
+      <form id="checkInForm" onsubmit="submitForm(event)">
+        <!-- Feeling Scale -->
+        <div class="form-group">
+          <label>How are you feeling this week?</label>
+          <div class="feeling-scale">
+            <div class="feeling-option" onclick="selectFeeling(1, this)">
+              <span class="emoji">😣</span>
+              <span class="feeling-label">Poor</span>
+            </div>
+            <div class="feeling-option" onclick="selectFeeling(2, this)">
+              <span class="emoji">😕</span>
+              <span class="feeling-label">Fair</span>
+            </div>
+            <div class="feeling-option" onclick="selectFeeling(3, this)">
+              <span class="emoji">😐</span>
+              <span class="feeling-label">OK</span>
+            </div>
+            <div class="feeling-option" onclick="selectFeeling(4, this)">
+              <span class="emoji">😊</span>
+              <span class="feeling-label">Good</span>
+            </div>
+            <div class="feeling-option" onclick="selectFeeling(5, this)">
+              <span class="emoji">🤩</span>
+              <span class="feeling-label">Great</span>
+            </div>
+          </div>
+          <input type="hidden" name="feeling" id="feelingInput" value="">
+        </div>
+
+        <!-- Taking Injections -->
+        <div class="form-group">
+          <label>Are you taking your injections as scheduled?</label>
+          <div class="toggle-group">
+            <div class="toggle-btn" onclick="selectAdherence('yes', this)">✅ Yes</div>
+            <div class="toggle-btn" onclick="selectAdherence('no', this)">❌ No</div>
+          </div>
+          <input type="hidden" name="adherence" id="adherenceInput" value="">
+        </div>
+
+        <!-- Side Effects -->
+        <div class="form-group">
+          <label>Any side effects?</label>
+          <div class="side-effects-grid">
+            <label class="checkbox-item none-option">
+              <input type="checkbox" name="side_effects" value="None" id="noSideEffects" onchange="handleNoneSelected()">
+              <span>None ✓</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Injection Site Pain" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Injection Pain</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Bruising" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Bruising</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Redness" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Redness</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Nausea" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Nausea</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Fatigue" class="side-effect-cb" onchange="handleSideEffectSelected()">
+              <span>Fatigue</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="side_effects" value="Other" id="otherSideEffect" class="side-effect-cb" onchange="handleOtherSelected()">
+              <span>Other</span>
+            </label>
+          </div>
+          <div id="otherSideEffectInput">
+            <input type="text" name="other_side_effect" placeholder="Please describe...">
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label>Anything else you'd like us to know?</label>
+          <textarea name="notes" placeholder="How's your recovery going? Any questions?"></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn">Submit Check-In</button>
+      </form>
+    </div>
+
+    <!-- Success Screen -->
+    <div id="successScreen" class="card success-screen">
+      <div class="icon">✅</div>
+      <h2>Thanks for checking in!</h2>
+      <p>Your feedback has been recorded. We'll reach out if we have any concerns or recommendations.</p>
+      <p style="margin-top: 20px; font-size: 14px;">Keep up the recovery! 💪</p>
+    </div>
+
+    <div class="footer">
+      <p>Range Medical · Newport Beach, CA</p>
+      <p><a href="tel:9499973988">(949) 997-3988</a></p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://app.range-medical.com/api';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const contactId = urlParams.get('id') || urlParams.get('contact_id') || urlParams.get('cid');
+
+    const loadingScreen = document.getElementById('loadingScreen');
+    const invalidScreen = document.getElementById('invalidScreen');
+    const formScreen = document.getElementById('formScreen');
+    const successScreen = document.getElementById('successScreen');
+    const errorMsg = document.getElementById('errorMsg');
+
+    let selectedFeeling = 0;
+    let selectedAdherence = '';
+
+    async function init() {
+      if (!contactId) {
+        showInvalid();
+        return;
+      }
+
+      loadingScreen.style.display = 'block';
+
+      try {
+        const res = await fetch(`${API_BASE}/peptide-checkin/info?contact_id=${contactId}`);
+        const data = await res.json();
+
+        if (!res.ok || !data.patient) {
+          showInvalid();
+          return;
+        }
+
+        document.getElementById('patientFirstName').textContent = data.patient.first_name || 'there';
+
+        if (data.protocol) {
+          document.getElementById('currentMedication').textContent = data.protocol.medication || 'Recovery Peptide';
+          document.getElementById('currentDay').textContent = data.protocol.current_day || '-';
+          document.getElementById('totalDays').textContent = data.protocol.total_days || '-';
+          document.getElementById('protocolInfo').style.display = 'block';
+        }
+
+        loadingScreen.style.display = 'none';
+        formScreen.style.display = 'block';
+
+      } catch (err) {
+        console.error('Init error:', err);
+        showInvalid();
+      }
+    }
+
+    function showInvalid() {
+      loadingScreen.style.display = 'none';
+      invalidScreen.style.display = 'block';
+    }
+
+    function selectFeeling(value, el) {
+      selectedFeeling = value;
+      document.getElementById('feelingInput').value = value;
+      document.querySelectorAll('.feeling-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function selectAdherence(value, el) {
+      selectedAdherence = value;
+      document.getElementById('adherenceInput').value = value;
+      document.querySelectorAll('.toggle-btn').forEach(b => {
+        b.classList.remove('selected', 'selected-no');
+      });
+      el.classList.add(value === 'yes' ? 'selected' : 'selected-no');
+    }
+
+    async function submitForm(e) {
+      e.preventDefault();
+
+      if (!selectedFeeling) {
+        errorMsg.textContent = 'Please select how you\'re feeling.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+      if (!selectedAdherence) {
+        errorMsg.textContent = 'Please let us know if you\'re taking injections as scheduled.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const form = e.target;
+      const btn = document.getElementById('submitBtn');
+      const originalText = btn.textContent;
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      errorMsg.style.display = 'none';
+
+      const sideEffects = [];
+      form.querySelectorAll('input[name="side_effects"]:checked').forEach(cb => {
+        if (cb.value === 'Other') {
+          const otherText = form.other_side_effect.value.trim();
+          sideEffects.push(otherText ? 'Other: ' + otherText : 'Other');
+        } else {
+          sideEffects.push(cb.value);
+        }
+      });
+
+      const data = {
+        contact_id: contactId,
+        feeling: selectedFeeling,
+        adherence: selectedAdherence,
+        side_effects: sideEffects,
+        notes: form.notes.value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/peptide-checkin/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+
+        if (res.ok && result.success) {
+          formScreen.style.display = 'none';
+          successScreen.style.display = 'block';
+        } else {
+          errorMsg.textContent = result.error || 'Something went wrong. Please try again.';
+          errorMsg.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Unable to submit. Please check your connection and try again.';
+        errorMsg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+    function handleNoneSelected() {
+      if (document.getElementById('noSideEffects').checked) {
+        document.querySelectorAll('.side-effect-cb').forEach(cb => cb.checked = false);
+        document.getElementById('otherSideEffectInput').style.display = 'none';
+      }
+    }
+
+    function handleSideEffectSelected() {
+      if (document.querySelector('.side-effect-cb:checked')) {
+        document.getElementById('noSideEffects').checked = false;
+      }
+    }
+
+    function handleOtherSelected() {
+      const otherCb = document.getElementById('otherSideEffect');
+      document.getElementById('otherSideEffectInput').style.display = otherCb.checked ? 'block' : 'none';
+      if (otherCb.checked) document.getElementById('noSideEffects').checked = false;
+    }
+
+    init();
+  </script>
+</body>
+</html>

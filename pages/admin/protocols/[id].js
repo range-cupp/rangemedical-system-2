@@ -302,7 +302,7 @@ export default function ProtocolDetail() {
       // Build check-in schedule for take-home protocols
       const delivery = enrichedProtocol.injection_location;
       if (delivery === 'take_home' && enrichedProtocol.start_date && durationVal > 7) {
-        buildCheckinSchedule(enrichedProtocol, durationVal);
+        buildCheckinSchedule(enrichedProtocol, durationVal, id);
       } else {
         setCheckinSchedule([]);
       }
@@ -345,10 +345,24 @@ export default function ProtocolDetail() {
     }
   };
 
-  const buildCheckinSchedule = (p, duration) => {
+  const buildCheckinSchedule = async (p, duration, protocolId) => {
     if (!p.start_date) return;
     const parts = p.start_date.split('-');
     const start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    const today = getPacificToday();
+
+    // Fetch existing check-in logs
+    let checkinLogs = [];
+    try {
+      const logsRes = await fetch(`/api/admin/protocols/${protocolId}`);
+      const logsData = await logsRes.json();
+      // Also check protocol_logs via the /api/protocols endpoint
+      const logsRes2 = await fetch(`/api/protocols/${protocolId}`);
+      const logsData2 = await logsRes2.json();
+      const allLogs = logsData2.activityLogs || [];
+      checkinLogs = allLogs.filter(l => l.log_type === 'peptide_checkin' || l.log_type === 'checkin');
+    } catch (e) { /* ignore */ }
+
     const checkins = [];
     const intervalDays = 7;
 
@@ -356,16 +370,44 @@ export default function ProtocolDetail() {
       const checkinDate = new Date(start);
       checkinDate.setDate(start.getDate() + day);
       checkinDate.setHours(0, 0, 0, 0);
-      const today = getPacificToday();
 
       const isPast = checkinDate < today;
       const isToday = checkinDate.getTime() === today.getTime();
 
+      // Find matching check-in log within ±3 days of expected date
+      const checkinDateStr = checkinDate.toISOString().split('T')[0];
+      const matchedLog = checkinLogs.find(log => {
+        if (!log.log_date) return false;
+        const logDate = new Date(log.log_date);
+        logDate.setHours(0, 0, 0, 0);
+        const diff = Math.abs(logDate - checkinDate) / (1000 * 60 * 60 * 24);
+        return diff <= 3;
+      });
+
+      // Parse check-in data from notes
+      let checkinData = null;
+      if (matchedLog && matchedLog.notes) {
+        const notes = matchedLog.notes;
+        const feelingMatch = notes.match(/Feeling:\s*([^|]+)/);
+        const adherenceMatch = notes.match(/Adherence:\s*(\w+)/);
+        const sideEffectsMatch = notes.match(/Side effects:\s*([^|]+)/);
+        const patientNotesMatch = notes.match(/Notes:\s*(.+)$/);
+
+        checkinData = {
+          date: matchedLog.log_date,
+          feeling: feelingMatch ? feelingMatch[1].trim() : null,
+          adherence: adherenceMatch ? adherenceMatch[1].trim() : null,
+          sideEffects: sideEffectsMatch ? sideEffectsMatch[1].trim() : null,
+          patientNotes: patientNotesMatch ? patientNotesMatch[1].trim() : null
+        };
+      }
+
       checkins.push({
         label: `Week ${day / 7} Check-in`,
-        date: checkinDate.toISOString().split('T')[0],
+        date: checkinDateStr,
         dayNumber: day,
-        status: isToday ? 'today' : isPast ? 'past' : 'upcoming'
+        status: matchedLog ? 'completed' : isToday ? 'today' : isPast ? 'overdue' : 'upcoming',
+        checkinData
       });
     }
     setCheckinSchedule(checkins);
@@ -689,8 +731,16 @@ export default function ProtocolDetail() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                   {checkinSchedule.map((checkin, idx) => {
                     const isLast = idx === checkinSchedule.length - 1;
-                    const statusColor = checkin.status === 'past' ? '#22c55e' : checkin.status === 'today' ? '#f59e0b' : '#9ca3af';
-                    const statusBg = checkin.status === 'past' ? '#dcfce7' : checkin.status === 'today' ? '#fef3c7' : '#f3f4f6';
+                    const statusColor = checkin.status === 'completed' ? '#22c55e'
+                      : checkin.status === 'overdue' ? '#dc2626'
+                      : checkin.status === 'today' ? '#f59e0b' : '#9ca3af';
+                    const statusBg = checkin.status === 'completed' ? '#dcfce7'
+                      : checkin.status === 'overdue' ? '#fee2e2'
+                      : checkin.status === 'today' ? '#fef3c7' : '#f3f4f6';
+                    const statusLabel = checkin.status === 'completed' ? '✓ Responded'
+                      : checkin.status === 'overdue' ? 'No Response'
+                      : checkin.status === 'today' ? 'Today' : 'Scheduled';
+
                     return (
                       <div key={checkin.dayNumber} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
@@ -699,12 +749,12 @@ export default function ProtocolDetail() {
                             background: statusColor, border: '2px solid #fff',
                             boxShadow: `0 0 0 2px ${statusColor}`, flexShrink: 0, marginTop: '4px'
                           }}>
-                            {checkin.status === 'past' && (
+                            {checkin.status === 'completed' && (
                               <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>✓</span>
                             )}
                           </div>
                           {!isLast && (
-                            <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '32px' }} />
+                            <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: checkin.checkinData ? '80px' : '32px' }} />
                           )}
                         </div>
                         <div style={{ flex: 1, paddingBottom: isLast ? '0' : '12px' }}>
@@ -715,12 +765,46 @@ export default function ProtocolDetail() {
                               borderRadius: '10px', background: statusBg, color: statusColor,
                               textTransform: 'uppercase'
                             }}>
-                              {checkin.status === 'past' ? '✓ Sent' : checkin.status === 'today' ? 'Today' : 'Scheduled'}
+                              {statusLabel}
                             </span>
                           </div>
                           <div style={{ fontSize: '13px', color: '#6b7280' }}>
                             Day {checkin.dayNumber} · {formatDate(checkin.date)}
                           </div>
+                          {/* Show check-in response data */}
+                          {checkin.checkinData && (
+                            <div style={{
+                              marginTop: '8px', padding: '10px 12px',
+                              background: '#f9fafb', borderRadius: '8px',
+                              fontSize: '13px', color: '#374151'
+                            }}>
+                              {checkin.checkinData.feeling && (
+                                <div style={{ marginBottom: '4px' }}>
+                                  <span style={{ color: '#6b7280' }}>Feeling:</span>{' '}
+                                  <span style={{ fontWeight: '500' }}>{checkin.checkinData.feeling}</span>
+                                </div>
+                              )}
+                              {checkin.checkinData.adherence && (
+                                <div style={{ marginBottom: '4px' }}>
+                                  <span style={{ color: '#6b7280' }}>On Schedule:</span>{' '}
+                                  <span style={{ fontWeight: '500' }}>
+                                    {checkin.checkinData.adherence === 'Yes' ? '✅ Yes' : '❌ No'}
+                                  </span>
+                                </div>
+                              )}
+                              {checkin.checkinData.sideEffects && checkin.checkinData.sideEffects !== 'None' && (
+                                <div style={{ marginBottom: '4px' }}>
+                                  <span style={{ color: '#6b7280' }}>Side Effects:</span>{' '}
+                                  <span style={{ fontWeight: '500', color: '#dc2626' }}>{checkin.checkinData.sideEffects}</span>
+                                </div>
+                              )}
+                              {checkin.checkinData.patientNotes && (
+                                <div style={{ marginTop: '4px', fontStyle: 'italic', color: '#6b7280' }}>
+                                  &ldquo;{checkin.checkinData.patientNotes}&rdquo;
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

@@ -107,7 +107,7 @@ export default async function handler(req, res) {
           console.log(`Linked intake ${intake.id} to existing patient ${matchedPatient.id}`);
         }
       } else {
-        // Create new patient from intake
+        // Create new patient from intake (only columns that exist in patients table)
         const newPatient = {
           ghl_contact_id: intake.ghl_contact_id || null,
           first_name: intake.first_name,
@@ -117,10 +117,6 @@ export default async function handler(req, res) {
           phone: intake.phone,
           date_of_birth: intake.date_of_birth,
           gender: intake.gender,
-          address: intake.street_address,
-          city: intake.city,
-          state: intake.state,
-          zip: intake.postal_code,
           created_at: intake.submitted_at || new Date().toISOString()
         };
 

@@ -112,6 +112,7 @@ export default async function handler(req, res) {
           ghl_contact_id: intake.ghl_contact_id || null,
           first_name: intake.first_name,
           last_name: intake.last_name,
+          name: `${intake.first_name || ''} ${intake.last_name || ''}`.trim() || null,
           email: intake.email,
           phone: intake.phone,
           date_of_birth: intake.date_of_birth,
@@ -120,7 +121,6 @@ export default async function handler(req, res) {
           city: intake.city,
           state: intake.state,
           zip: intake.postal_code,
-          country: intake.country,
           source: 'intake_backfill',
           created_at: intake.submitted_at || new Date().toISOString()
         };
@@ -159,12 +159,100 @@ export default async function handler(req, res) {
       }
     }
 
+    // Also backfill from assessment_leads
+    let leadsProcessed = 0;
+    let leadsCreated = 0;
+    let leadsLinked = 0;
+    let leadsAlreadyLinked = 0;
+
+    const { data: leads, error: leadsError } = await supabase
+      .from('assessment_leads')
+      .select('id, first_name, last_name, email, phone, patient_id, ghl_contact_id')
+      .order('created_at', { ascending: true });
+
+    if (!leadsError && leads) {
+      // Refresh patient lookup maps (new patients may have been created above)
+      const { data: refreshedPatients } = await supabase
+        .from('patients')
+        .select('id, ghl_contact_id, email, phone, first_name, last_name');
+
+      const pByEmail = {};
+      const pByPhone = {};
+      refreshedPatients?.forEach(p => {
+        if (p.email) pByEmail[p.email.toLowerCase().trim()] = p;
+        if (p.phone) {
+          const norm = p.phone.replace(/\D/g, '').slice(-10);
+          if (norm.length === 10) pByPhone[norm] = p;
+        }
+      });
+
+      for (const lead of leads) {
+        leadsProcessed++;
+
+        if (lead.patient_id) {
+          leadsAlreadyLinked++;
+          continue;
+        }
+
+        // Try to match by email
+        let matched = null;
+        if (lead.email) {
+          matched = pByEmail[lead.email.toLowerCase().trim()] || null;
+        }
+        // Try by phone
+        if (!matched && lead.phone) {
+          const norm = lead.phone.replace(/\D/g, '').slice(-10);
+          if (norm.length === 10) matched = pByPhone[norm];
+        }
+
+        if (matched) {
+          await supabase.from('assessment_leads').update({ patient_id: matched.id }).eq('id', lead.id);
+          leadsLinked++;
+        } else if (lead.first_name && lead.email) {
+          // Create patient from assessment lead
+          const firstName = lead.first_name.trim();
+          const lastName = (lead.last_name || '').trim();
+          const capFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+          const capLast = lastName ? lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase() : '';
+
+          const { data: newPatient, error: createErr } = await supabase
+            .from('patients')
+            .insert({
+              first_name: capFirst,
+              last_name: capLast || null,
+              name: `${capFirst} ${capLast}`.trim(),
+              email: lead.email.toLowerCase().trim(),
+              phone: lead.phone || null,
+              ghl_contact_id: lead.ghl_contact_id || null,
+              source: 'assessment',
+            })
+            .select('id')
+            .single();
+
+          if (!createErr && newPatient) {
+            await supabase.from('assessment_leads').update({ patient_id: newPatient.id }).eq('id', lead.id);
+            leadsCreated++;
+            // Add to lookup for future iterations
+            if (lead.email) pByEmail[lead.email.toLowerCase().trim()] = newPatient;
+          } else if (createErr) {
+            results.errors.push({ leadId: lead.id, name: `${lead.first_name} ${lead.last_name}`, error: createErr.message });
+          }
+        }
+      }
+    }
+
     console.log('Backfill complete:', results);
 
     return res.status(200).json({
       success: true,
-      results,
-      message: `Processed ${results.intakesProcessed} intakes. Created ${results.patientsCreated} new patients, linked ${results.patientsLinked} to existing, ${results.alreadyLinked} already linked.`
+      results: {
+        ...results,
+        leadsProcessed,
+        leadsCreated,
+        leadsLinked,
+        leadsAlreadyLinked,
+      },
+      message: `Intakes: ${results.intakesProcessed} processed, ${results.patientsCreated} created, ${results.patientsLinked} linked. Leads: ${leadsProcessed} processed, ${leadsCreated} created, ${leadsLinked} linked.`
     });
 
   } catch (error) {

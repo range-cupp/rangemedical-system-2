@@ -25,12 +25,18 @@ export default async function handler(req, res) {
         length: et.lengthInMinutes || et.length,
         description: et.description,
         // Include hosts for provider selection
-        hosts: (et.hosts || []).map(h => ({
-          userId: h.userId,
-          name: h.name || h.user?.name || '',
-          username: h.username || h.user?.username || '',
-          email: h.email || h.user?.email || '',
-        })).filter(h => h.name || h.userId)
+        // Cal.com sometimes returns empty names — fall back to username
+        hosts: (et.hosts || []).map(h => {
+          const username = h.username || h.user?.username || '';
+          const rawName = h.name || h.user?.name || '';
+          // If name is empty, capitalize the username as display name
+          const displayName = rawName || (username ? username.charAt(0).toUpperCase() + username.slice(1).replace(/-.*$/, '') : '');
+          return {
+            userId: h.userId,
+            name: displayName,
+            username,
+          };
+        }).filter(h => h.userId)
       }));
 
     return res.status(200).json({ success: true, eventTypes: simplified });

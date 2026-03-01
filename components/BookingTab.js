@@ -378,8 +378,8 @@ export default function BookingTab({ preselectedPatient = null }) {
           durationMinutes: selectedService.length,
           notes: fullNotes,
           serviceDetails,
-          hostUserId: selectedProvider?.userId || null,
-          hostName: selectedProvider?.name || null,
+          hostUserId: selectedProvider?.userId !== 'any' ? (selectedProvider?.userId || null) : null,
+          hostName: selectedProvider?.userId !== 'any' ? (selectedProvider?.name || null) : null,
         })
       });
       const json = await res.json();
@@ -770,6 +770,19 @@ export default function BookingTab({ preselectedPatient = null }) {
                     <div style={styles.cascadingSection}>
                       <label style={styles.label}>Select Provider</label>
                       <div style={styles.providerGrid}>
+                        {/* Any Provider option */}
+                        <div
+                          style={{
+                            ...styles.providerCard,
+                            ...(selectedProvider?.userId === 'any' ? styles.providerCardSelected : {})
+                          }}
+                          onClick={() => selectProvider({ userId: 'any', name: 'Any Available', username: null })}
+                        >
+                          <div style={{ ...styles.providerAvatar, backgroundColor: '#6b7280' }}>
+                            ★
+                          </div>
+                          <div style={styles.providerName}>Any Available</div>
+                        </div>
                         {selectedService.hosts.map(host => (
                           <div
                             key={host.userId || host.name}
@@ -796,7 +809,7 @@ export default function BookingTab({ preselectedPatient = null }) {
           {/* Step 3: Date & Time */}
           {step === 3 && (
             <div style={styles.stepContent}>
-              {selectedProvider && (
+              {selectedProvider && selectedProvider.userId !== 'any' && (
                 <div style={styles.providerBanner}>
                   <span style={styles.providerBannerAvatar}>
                     {(selectedProvider.name || '?').charAt(0).toUpperCase()}

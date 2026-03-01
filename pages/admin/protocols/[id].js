@@ -267,6 +267,8 @@ export default function ProtocolDetail() {
   const [form, setForm] = useState({});
   const [labSchedule, setLabSchedule] = useState([]);
   const [checkinSchedule, setCheckinSchedule] = useState([]);
+  const [injectionLogs, setInjectionLogs] = useState([]);
+  const [weightProgress, setWeightProgress] = useState(null);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -342,6 +344,18 @@ export default function ProtocolDetail() {
       } else {
         setLabSchedule([]);
       }
+
+      // Fetch injection logs + weight progress for weight loss protocols
+      const pt = (enrichedProtocol.program_type || '').toLowerCase();
+      const pn = (enrichedProtocol.program_name || '').toLowerCase();
+      const wl = pt.includes('weight_loss') ||
+        ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => pn.includes(m) || (enrichedProtocol.primary_peptide || '').toLowerCase().includes(m));
+      if (wl) {
+        fetchInjectionLogs(id);
+      } else {
+        setInjectionLogs([]);
+        setWeightProgress(null);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -371,6 +385,32 @@ export default function ProtocolDetail() {
       // Still show schedule without completion data
       const schedule = getHRTLabSchedule(p.start_date);
       setLabSchedule(schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null })));
+    }
+  };
+
+  const fetchInjectionLogs = async (protocolId) => {
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}`);
+      const data = await res.json();
+      // Combine weightCheckins + activityLogs (injections) into a single timeline
+      const checkins = data.weightCheckins || [];
+      const activity = (data.activityLogs || []).filter(l => l.log_type === 'injection');
+      // Merge and deduplicate by id
+      const allEntries = [...checkins, ...activity];
+      const seen = new Set();
+      const unique = allEntries.filter(e => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id);
+        return true;
+      });
+      // Sort by date descending (most recent first)
+      unique.sort((a, b) => new Date(b.log_date) - new Date(a.log_date));
+      setInjectionLogs(unique);
+      setWeightProgress(data.weightProgress || null);
+    } catch (err) {
+      console.error('Error fetching injection logs:', err);
+      setInjectionLogs([]);
+      setWeightProgress(null);
     }
   };
 
@@ -783,6 +823,120 @@ export default function ProtocolDetail() {
                   <span><span style={styles.legendDot} /> Complete</span>
                   <span><span style={{ ...styles.legendDot, background: '#000' }} /> Next</span>
                   <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Upcoming</span>
+                </div>
+              </div>
+            )}
+
+            {/* Weight Progress Card (weight loss only) */}
+            {!isEditing && isWeightLoss && weightProgress && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>⚖️ Weight Progress</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center', padding: '8px 0' }}>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Starting</div>
+                    <div style={{ fontSize: '24px', fontWeight: '700' }}>{weightProgress.startingWeight}</div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>lbs</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '24px', color: '#d1d5db' }}>→</div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Current</div>
+                    <div style={{ fontSize: '24px', fontWeight: '700' }}>{weightProgress.currentWeight}</div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>lbs</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '24px', color: '#d1d5db' }}>=</div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Change</div>
+                    <div style={{
+                      fontSize: '24px', fontWeight: '700',
+                      color: weightProgress.isLoss ? '#22c55e' : weightProgress.change === '0.0' ? '#6b7280' : '#ef4444'
+                    }}>
+                      {weightProgress.isLoss ? '↓' : weightProgress.change === '0.0' ? '' : '↑'} {Math.abs(parseFloat(weightProgress.change))}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>lbs ({weightProgress.changePercent}%)</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Injection Log (weight loss only) */}
+            {!isEditing && isWeightLoss && injectionLogs.length > 0 && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>💉 Injection Log</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                  {injectionLogs.map((log, idx) => {
+                    const isLast = idx === injectionLogs.length - 1;
+                    // Parse date timezone-safe
+                    const rawDate = log.log_date;
+                    const logDate = rawDate && rawDate.length === 10
+                      ? new Date(rawDate + 'T12:00:00')
+                      : new Date(rawDate);
+                    const dateStr = logDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+                    // Parse notes for structured data
+                    const notes = log.notes || '';
+                    const doseMatch = notes.match(/Dose:\s*([^|]+)/);
+                    const sideEffectsMatch = notes.match(/Side effects:\s*([^|]+)/);
+                    const dose = log.dosage || (doseMatch ? doseMatch[1].trim() : null);
+                    const sideEffects = sideEffectsMatch ? sideEffectsMatch[1].trim() : null;
+                    // Remaining notes after structured fields
+                    let freeNotes = notes
+                      .replace(/Dose:\s*[^|]+\|?\s*/g, '')
+                      .replace(/Side effects:\s*[^|]+\|?\s*/g, '')
+                      .replace(/^Injection #\d+$/, '')
+                      .trim();
+
+                    return (
+                      <div key={log.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
+                          <div style={{
+                            width: '12px', height: '12px', borderRadius: '50%',
+                            background: '#22c55e', border: '2px solid #fff',
+                            boxShadow: '0 0 0 2px #22c55e', flexShrink: 0, marginTop: '4px'
+                          }}>
+                            <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>✓</span>
+                          </div>
+                          {!isLast && (
+                            <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '40px' }} />
+                          )}
+                        </div>
+                        <div style={{ flex: 1, paddingBottom: isLast ? '0' : '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{dateStr}</span>
+                            {log.log_type === 'injection' && (
+                              <span style={{
+                                fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                                borderRadius: '10px', background: '#e0e7ff', color: '#3730a3',
+                                textTransform: 'uppercase'
+                              }}>
+                                In Clinic
+                              </span>
+                            )}
+                            {log.log_type === 'checkin' && (
+                              <span style={{
+                                fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                                borderRadius: '10px', background: '#f3f4f6', color: '#6b7280',
+                                textTransform: 'uppercase'
+                              }}>
+                                Take Home
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: '#6b7280' }}>
+                            {dose && <span>💊 {dose}</span>}
+                            {log.weight && <span>⚖️ {log.weight} lbs</span>}
+                            {sideEffects && sideEffects !== 'None' && (
+                              <span style={{ color: '#dc2626' }}>⚠️ {sideEffects}</span>
+                            )}
+                          </div>
+                          {freeNotes && (
+                            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', fontStyle: 'italic' }}>
+                              {freeNotes}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

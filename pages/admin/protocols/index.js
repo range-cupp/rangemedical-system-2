@@ -122,9 +122,19 @@ export default function ProtocolsPage() {
                 </thead>
                 <tbody>
                   {sorted.map(protocol => {
+                    // Detect weight loss protocols — use sessions_used (source of truth)
+                    const programType = (protocol.program_type || '').toLowerCase();
+                    const programName = (protocol.program_name || '').toLowerCase();
+                    const isWeightLoss = programType.includes('weight_loss') ||
+                      ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m) || (protocol.medication || '').toLowerCase().includes(m));
+
                     const total = protocol.total_sessions || protocol.duration_days || 10;
-                    const current = calculateCurrentDay(protocol.start_date);
-                    const isEnded = current > total;
+                    const current = isWeightLoss
+                      ? (protocol.sessions_used || 0)
+                      : calculateCurrentDay(protocol.start_date);
+                    const isEnded = isWeightLoss
+                      ? current >= total
+                      : current > total;
                     const isActive = protocol.status === 'active';
                     const progress = Math.min(100, Math.round((current / total) * 100));
 
@@ -142,7 +152,7 @@ export default function ProtocolsPage() {
                         <td style={styles.td}>{protocol.program_name || protocol.program_type}</td>
                         <td style={styles.td}>{protocol.medication || protocol.primary_peptide || protocol.selected_dose || '—'}</td>
                         <td style={styles.td}>
-                          {protocol.start_date ? new Date(protocol.start_date).toLocaleDateString('en-US', {
+                          {protocol.start_date ? new Date(protocol.start_date + 'T12:00:00').toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric'

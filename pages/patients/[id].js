@@ -1478,7 +1478,11 @@ export default function PatientProfile() {
                     {[...serviceLogs]
                       .sort((a, b) => new Date(b.entry_date || b.created_at) - new Date(a.entry_date || a.created_at))
                       .map(log => {
-                        const logDate = new Date(log.entry_date || log.created_at);
+                        // Parse date-only strings timezone-safe (avoid UTC midnight shift)
+                        const rawDate = log.entry_date || log.created_at;
+                        const logDate = rawDate && rawDate.length === 10
+                          ? new Date(rawDate + 'T12:00:00')
+                          : new Date(rawDate);
                         const categoryLabels = {
                           hbot: 'HBOT', red_light: 'Red Light', iv_therapy: 'IV Therapy',
                           vitamin: 'Injection', testosterone: 'HRT', weight_loss: 'Weight Loss',

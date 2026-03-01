@@ -21,12 +21,16 @@ export default async function handler(req, res) {
   const dryRun = req.query.execute !== 'true';
 
   try {
-    // 1. Get all consent PDFs from storage (root + subfolders)
+    // 1. Get all consent PDFs from storage (root + ALL subfolders)
     const consentFolders = [
-      { prefix: 'consents', type: null },           // root: blood-draw, peptide, iv, hrt, prp, exosome
+      { prefix: 'consents', type: null },
       { prefix: 'consents/hbot-consent', type: 'hbot' },
       { prefix: 'consents/weight-loss-consent', type: 'weight-loss' },
       { prefix: 'consents/red-light-consent', type: 'red-light' },
+      { prefix: 'consents/peptide-consent', type: 'peptide' },
+      { prefix: 'consents/iv-injection-consent', type: 'iv-injection' },
+      { prefix: 'consents/hrt-consent', type: 'hrt' },
+      { prefix: 'consents/exosome-iv-consent', type: 'exosome-iv' },
     ];
 
     let allStoragePdfs = [];
@@ -57,7 +61,11 @@ export default async function handler(req, res) {
     const missingPdfs = allStoragePdfs.filter(f => !dbFilenames.has(f.name));
 
     // 4. Get all signatures from storage (root + subfolders)
-    const sigFolders = ['signatures', 'signatures/hbot-consent', 'signatures/weight-loss-consent', 'signatures/red-light-consent'];
+    const sigFolders = [
+      'signatures', 'signatures/hbot-consent', 'signatures/weight-loss-consent',
+      'signatures/red-light-consent', 'signatures/peptide-consent',
+      'signatures/iv-injection-consent', 'signatures/hrt-consent', 'signatures/exosome-iv-consent'
+    ];
     let allSignatures = [];
     for (const sf of sigFolders) {
       const { data } = await supabase.storage

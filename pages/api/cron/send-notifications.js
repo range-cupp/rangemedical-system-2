@@ -26,9 +26,9 @@ function normalizePhone(phone) {
 
 // Send SMS via Twilio REST API
 async function sendSMS(to, message) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+  const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
+  const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
+  const fromNumber = (process.env.TWILIO_PHONE_NUMBER || '').trim();
 
   if (!accountSid || !authToken || !fromNumber) {
     return { success: false, error: 'Twilio not configured' };

@@ -83,23 +83,28 @@ export default async function handler(req, res) {
         .single();
 
       if (patient) {
-        sendAppointmentNotification({
-          type: 'confirmation',
-          patient: {
-            id: patient.id,
-            name: patient.name,
-            email: patient.email,
-            phone: patient.phone || patient_phone,
-          },
-          appointment: {
-            serviceName: service_name,
-            startTime: start_time,
-            endTime: end_time,
-            durationMinutes: duration_minutes,
-            location: appointmentLocation,
-            notes,
-          },
-        }).catch(err => console.error('Appointment notification error:', err));
+        try {
+          await sendAppointmentNotification({
+            type: 'confirmation',
+            patient: {
+              id: patient.id,
+              name: patient.name,
+              email: patient.email,
+              phone: patient.phone || patient_phone,
+            },
+            appointment: {
+              serviceName: service_name,
+              startTime: start_time,
+              endTime: end_time,
+              durationMinutes: duration_minutes,
+              location: appointmentLocation,
+              notes,
+            },
+          });
+        } catch (err) {
+          console.error('Appointment notification error:', err);
+          // Don't fail the appointment creation if notification fails
+        }
       }
     }
 

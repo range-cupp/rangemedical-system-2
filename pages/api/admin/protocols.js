@@ -245,51 +245,65 @@ export default async function handler(req, res) {
   }
 
   // GET - List protocols (with optional filters)
+  // Uses pagination to bypass Supabase's 1000-row hard cap
   if (req.method === 'GET') {
-    const { patient_id, ghl_contact_id, status, search, limit, sort, direction } = req.query;
-
-    let query = supabase.from('protocols').select(`
-      *,
-      patients(id, name, first_name, last_name, email, phone)
-    `, { count: 'exact' });
-
-    if (patient_id) {
-      query = query.eq('patient_id', patient_id);
-    }
-    if (ghl_contact_id) {
-      query = query.eq('ghl_contact_id', ghl_contact_id);
-    }
-    if (status) {
-      // Handle comma-separated status values
-      const statuses = status.split(',').map(s => s.trim());
-      if (statuses.length === 1) {
-        query = query.eq('status', statuses[0]);
-      } else {
-        query = query.in('status', statuses);
-      }
-    }
-    if (search) {
-      query = query.or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%,program_name.ilike.%${search}%`);
-    }
-    
-    // Always set explicit limit to override Supabase default of 1000
-    const maxLimit = limit ? parseInt(limit) : 10000;
-    query = query.limit(maxLimit);
+    const { patient_id, ghl_contact_id, status, search, sort, direction } = req.query;
 
     // Sorting
     const sortField = sort || 'created_at';
     const sortAscending = direction !== 'desc';
-    
-    query = query.order(sortField, { ascending: sortAscending, nullsFirst: false });
 
-    const { data, error, count } = await query;
+    // Helper to build a query with all filters applied
+    const buildQuery = () => {
+      let q = supabase.from('protocols').select(`
+        *,
+        patients(id, name, first_name, last_name, email, phone)
+      `, { count: 'exact' });
 
-    if (error) {
-      return res.status(500).json({ error: 'Failed to fetch protocols', details: error.message });
+      if (patient_id) q = q.eq('patient_id', patient_id);
+      if (ghl_contact_id) q = q.eq('ghl_contact_id', ghl_contact_id);
+      if (status) {
+        const statuses = status.split(',').map(s => s.trim());
+        if (statuses.length === 1) {
+          q = q.eq('status', statuses[0]);
+        } else {
+          q = q.in('status', statuses);
+        }
+      }
+      if (search) {
+        q = q.or(`patient_name.ilike.%${search}%,patient_email.ilike.%${search}%,program_name.ilike.%${search}%`);
+      }
+      q = q.order(sortField, { ascending: sortAscending, nullsFirst: false });
+      return q;
+    };
+
+    // Paginate through all results (Supabase caps at 1000 per query)
+    const PAGE_SIZE = 1000;
+    let allData = [];
+    let from = 0;
+    let hasMore = true;
+    let totalCount = null;
+
+    while (hasMore) {
+      const { data: batch, error, count } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+
+      if (error) {
+        return res.status(500).json({ error: 'Failed to fetch protocols', details: error.message });
+      }
+
+      if (totalCount === null) totalCount = count;
+
+      if (batch && batch.length > 0) {
+        allData = allData.concat(batch);
+        from += PAGE_SIZE;
+        hasMore = batch.length === PAGE_SIZE;
+      } else {
+        hasMore = false;
+      }
     }
 
     // Merge patient name from the joined patients table (single source of truth)
-    const protocols = (data || []).map(protocol => {
+    const protocols = allData.map(protocol => {
       const p = protocol.patients;
       const patientName = p
         ? (p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.name || protocol.patient_name)
@@ -305,7 +319,7 @@ export default async function handler(req, res) {
       };
     });
 
-    return res.status(200).json({ protocols, total: count });
+    return res.status(200).json({ protocols, total: totalCount });
   }
 
   // PUT - Update protocol

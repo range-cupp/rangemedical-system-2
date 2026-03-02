@@ -15,50 +15,57 @@ export default async function handler(req, res) {
     const { category, search, days, limit, source } = req.query;
 
     try {
-      let query = supabase
-        .from('purchases')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
+      // Helper to build query with all filters
+      const buildQuery = () => {
+        let q = supabase
+          .from('purchases')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false });
 
-      // Category filter
-      if (category && category !== 'All') {
-        query = query.eq('category', category);
+        if (category && category !== 'All') q = q.eq('category', category);
+        if (source) q = q.eq('source', source);
+        if (days && days !== 'all') {
+          const daysAgo = new Date();
+          daysAgo.setDate(daysAgo.getDate() - parseInt(days));
+          q = q.gte('created_at', daysAgo.toISOString());
+        }
+        if (search) {
+          q = q.or(`patient_name.ilike.%${search}%,item_name.ilike.%${search}%,patient_email.ilike.%${search}%`);
+        }
+        return q;
+      };
+
+      // Paginate to bypass Supabase 1000-row cap
+      const PAGE_SIZE = 1000;
+      let allPurchases = [];
+      let from = 0;
+      let hasMore = true;
+      let totalCount = null;
+
+      while (hasMore) {
+        const { data: batch, error, count } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+
+        if (error) {
+          console.error('Purchases fetch error:', error);
+          return res.status(500).json({ error: 'Failed to fetch purchases', details: error.message });
+        }
+
+        if (totalCount === null) totalCount = count;
+
+        if (batch && batch.length > 0) {
+          allPurchases = allPurchases.concat(batch);
+          from += PAGE_SIZE;
+          hasMore = batch.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
       }
 
-      // Source filter
-      if (source) {
-        query = query.eq('source', source);
-      }
-
-      // Date filter
-      if (days && days !== 'all') {
-        const daysAgo = new Date();
-        daysAgo.setDate(daysAgo.getDate() - parseInt(days));
-        query = query.gte('created_at', daysAgo.toISOString());
-      }
-
-      // Search
-      if (search) {
-        query = query.or(`patient_name.ilike.%${search}%,item_name.ilike.%${search}%,patient_email.ilike.%${search}%`);
-      }
-
-      // Limit - use provided limit or fetch all (up to 10000)
-      const maxLimit = limit ? parseInt(limit) : 10000;
-      query = query.limit(maxLimit);
-
-      const { data: purchases, error, count } = await query;
-
-      if (error) {
-        console.error('Purchases fetch error:', error);
-        return res.status(500).json({ error: 'Failed to fetch purchases', details: error.message });
-      }
-
-      // Calculate stats
-      const total = count || purchases?.length || 0;
-      const revenue = purchases?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+      const total = totalCount || allPurchases.length;
+      const revenue = allPurchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
       return res.status(200).json({
-        purchases: purchases || [],
+        purchases: allPurchases,
         total,
         revenue
       });

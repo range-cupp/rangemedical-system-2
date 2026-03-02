@@ -269,6 +269,9 @@ export default function ProtocolDetail() {
   const [checkinSchedule, setCheckinSchedule] = useState([]);
   const [injectionLogs, setInjectionLogs] = useState([]);
   const [weightProgress, setWeightProgress] = useState(null);
+  const [logModal, setLogModal] = useState(null); // { injectionNum, date, isCompleted }
+  const [logForm, setLogForm] = useState({ weight: '', dose: '', notes: '' });
+  const [logSaving, setLogSaving] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -411,6 +414,41 @@ export default function ProtocolDetail() {
       console.error('Error fetching injection logs:', err);
       setInjectionLogs([]);
       setWeightProgress(null);
+    }
+  };
+
+  const handleCalendarDayClick = (injectionNum, date) => {
+    setLogForm({ weight: '', dose: protocol?.primary_peptide || '', notes: '' });
+    setLogModal({
+      injectionNum,
+      date: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    });
+  };
+
+  const handleLogInjection = async () => {
+    if (!logModal) return;
+    setLogSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${id}/log-injection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_date: logModal.date,
+          weight: logForm.weight ? parseFloat(logForm.weight) : null,
+          dose: logForm.dose || null,
+          notes: logForm.notes || null,
+          delivery_method: 'take_home',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to log injection');
+      setSuccess(`Injection #${data.injection_number} logged`);
+      setLogModal(null);
+      fetchProtocol(); // Refresh all data
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLogSaving(false);
     }
   };
 
@@ -795,12 +833,14 @@ export default function ProtocolDetail() {
                     return (
                       <div
                         key={num}
+                        onClick={() => !isCompleted && !isFuture && handleCalendarDayClick(num, weeklyDate)}
                         style={{
                           ...styles.calendarDay,
                           background: isCompleted ? '#22c55e' : isNext ? '#000' : '#fff',
                           color: isCompleted || isNext ? '#fff' : '#000',
                           borderColor: isCompleted ? '#22c55e' : isNext ? '#000' : '#e5e5e5',
-                          opacity: isFuture ? 0.5 : 1
+                          opacity: isFuture ? 0.5 : 1,
+                          cursor: !isCompleted && !isFuture ? 'pointer' : 'default',
                         }}
                       >
                         <div style={styles.dayNumber}>{num}</div>
@@ -1386,6 +1426,73 @@ export default function ProtocolDetail() {
           </div>
         </div>
       </div>
+
+      {/* Log Injection Modal */}
+      {logModal && (
+        <>
+          <div onClick={() => setLogModal(null)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            width: '90%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
+              Log Injection #{logModal.injectionNum}
+            </h3>
+            <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
+              {logModal.date}
+            </p>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Weight (lbs)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={logForm.weight}
+                onChange={e => setLogForm({ ...logForm, weight: e.target.value })}
+                placeholder="e.g. 185.5"
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Dose</label>
+              <input
+                type="text"
+                value={logForm.dose}
+                onChange={e => setLogForm({ ...logForm, dose: e.target.value })}
+                placeholder="e.g. 2mg"
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Notes</label>
+              <input
+                type="text"
+                value={logForm.notes}
+                onChange={e => setLogForm({ ...logForm, notes: e.target.value })}
+                placeholder="Optional"
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setLogModal(null)} style={{
+                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                background: '#fff', cursor: 'pointer', fontSize: 14
+              }}>Cancel</button>
+              <button onClick={handleLogInjection} disabled={logSaving} style={{
+                padding: '8px 20px', border: 'none', borderRadius: 6,
+                background: '#000', color: '#fff', cursor: logSaving ? 'wait' : 'pointer',
+                fontSize: 14, fontWeight: 600, opacity: logSaving ? 0.6 : 1
+              }}>{logSaving ? 'Saving...' : 'Log Injection'}</button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

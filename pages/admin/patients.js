@@ -46,7 +46,7 @@ export default function PatientsList() {
 
   const fetchPatients = async () => {
     try {
-      const res = await fetch('/api/admin/patients?limit=1000');
+      const res = await fetch('/api/admin/patients?limit=10000');
       if (res.ok) {
         const data = await res.json();
         const patientList = Array.isArray(data) ? data : (data.patients || []);

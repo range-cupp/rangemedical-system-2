@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { limit = 1000, search, id } = req.query;
+    const { limit = 10000, search, id } = req.query;
 
     // Direct lookup by ID
     if (id) {

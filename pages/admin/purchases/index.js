@@ -597,17 +597,16 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         purchase_id: purchase.id,
         program_name: buildProtocolName(),
         program_type: programTypeMap[form.protocolType] || 'recovery_jumpstart_10day',
-        primary_peptide: form.medication,
-        dose_amount: form.dosage || form.dosageNotes || '',
-        dose_frequency: form.frequency,
-        injection_location: form.deliveryMethod,
+        // Use actual DB column names (single source of truth)
+        medication: form.medication,
+        selected_dose: form.dosage || form.dosageNotes || '',
+        frequency: form.frequency,
+        delivery_method: form.deliveryMethod,
         start_date: form.startDate,
-        duration_days: getDurationDays(),
         total_sessions: getTotalSessions(),
         end_date: calculateEndDate(),
         notes: form.dosageNotes ? `Dosage: ${form.dosageNotes}${form.notes ? '\n' + form.notes : ''}` : form.notes,
-        status: 'active',
-        amount: purchase.amount
+        status: 'active'
       };
 
       const res = await fetch('/api/admin/protocols', {

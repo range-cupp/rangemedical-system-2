@@ -10,30 +10,27 @@ const supabase = createClient(
 export default async function handler(req, res) {
   // POST - Create new protocol
   if (req.method === 'POST') {
-    const {
-      patient_id,
-      ghl_contact_id,
-      patient_name,
-      patient_email,
-      patient_phone,
-      purchase_id,
-      program_name,
-      program_type,
-      injection_location,
-      duration_days,
-      total_sessions,
-      primary_peptide,
-      secondary_peptide,
-      dose_amount,
-      dose_frequency,
-      injection_days,
-      start_date,
-      end_date,
-      special_instructions,
-      reminders_enabled,
-      status,
-      notes
-    } = req.body;
+    const body = req.body;
+    // Accept both old and new field names, map to actual DB columns
+    const patient_id = body.patient_id;
+    const ghl_contact_id = body.ghl_contact_id;
+    const patient_name = body.patient_name;
+    const patient_email = body.patient_email;
+    const patient_phone = body.patient_phone;
+    const purchase_id = body.purchase_id;
+    const program_name = body.program_name;
+    const program_type = body.program_type;
+    const total_sessions = body.total_sessions;
+    const start_date = body.start_date;
+    const end_date = body.end_date;
+    const status = body.status;
+    const notes = body.notes;
+    // Map old names → actual DB columns
+    const medication = body.medication || body.primary_peptide || null;
+    const secondary_medication = body.secondary_medication || body.secondary_peptide || null;
+    const selected_dose = body.selected_dose || body.dose_amount || null;
+    const frequency = body.frequency || body.dose_frequency || 'daily';
+    const delivery_method = body.delivery_method || body.injection_location || 'take_home';
 
     // Validate required fields - only patient_name and program_type are truly required
     if (!patient_name || !program_type) {
@@ -65,7 +62,7 @@ export default async function handler(req, res) {
     const crypto = require('crypto');
     const accessToken = crypto.randomBytes(16).toString('hex');
 
-    // Create protocol
+    // Create protocol — use actual DB column names only
     const protocolData = {
       patient_id: resolvedPatientId,
       ghl_contact_id: effectiveGhlContactId,
@@ -74,21 +71,18 @@ export default async function handler(req, res) {
       patient_phone,
       program_name: program_name || program_type,
       program_type,
-      injection_location: injection_location || 'take_home',
-      duration_days: duration_days || null,
+      medication,
+      secondary_medication,
+      selected_dose,
+      frequency,
+      delivery_method,
       total_sessions: total_sessions || null,
-      primary_peptide: primary_peptide || null,
-      secondary_peptide: secondary_peptide || null,
-      dose_amount: dose_amount || null,
-      dose_frequency: dose_frequency || 'daily',
       start_date: start_date || new Date().toISOString().split('T')[0],
       end_date: end_date || null,
-      special_instructions: special_instructions || null,
       notes: notes || null,
-      reminders_enabled: reminders_enabled !== false,
       status: status || 'active',
       access_token: accessToken,
-      injections_completed: 0,
+      sessions_used: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -220,53 +214,37 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Protocol ID required' });
     }
 
-    const {
-      patient_name,
-      patient_email,
-      patient_phone,
-      ghl_contact_id,
-      program_name,
-      program_type,
-      start_date,
-      duration_days,
-      status,
-      primary_peptide,
-      secondary_peptide,
-      dose_amount,
-      dose_frequency,
-      special_instructions,
-      notes,
-      reminders_enabled
-    } = req.body;
+    const b = req.body;
 
-    // Calculate end_date if start_date and duration_days provided
-    let end_date = null;
-    if (start_date && duration_days) {
-      const endDateObj = new Date(start_date);
-      endDateObj.setDate(endDateObj.getDate() + parseInt(duration_days));
-      end_date = endDateObj.toISOString().split('T')[0];
-    }
-
+    // Map old field names → actual DB columns
     const updateData = {
-      patient_name,
-      patient_email,
-      patient_phone,
-      ghl_contact_id,
-      program_name,
-      program_type,
-      start_date,
-      end_date,
-      duration_days,
-      status,
-      primary_peptide,
-      secondary_peptide,
-      dose_amount,
-      dose_frequency,
-      special_instructions,
-      notes,
-      reminders_enabled,
+      patient_name: b.patient_name,
+      patient_email: b.patient_email,
+      patient_phone: b.patient_phone,
+      ghl_contact_id: b.ghl_contact_id,
+      program_name: b.program_name,
+      program_type: b.program_type,
+      start_date: b.start_date,
+      end_date: b.end_date,
+      total_sessions: b.total_sessions,
+      status: b.status,
+      notes: b.notes,
+      // Map to actual DB column names
+      medication: b.medication || b.primary_peptide,
+      secondary_medication: b.secondary_medication || b.secondary_peptide,
+      selected_dose: b.selected_dose || b.dose_amount,
+      frequency: b.frequency || b.dose_frequency,
+      delivery_method: b.delivery_method || b.injection_location,
       updated_at: new Date().toISOString()
     };
+
+    // Calculate end_date if start_date and duration provided
+    if (b.start_date && (b.duration_days || b.total_sessions)) {
+      const days = parseInt(b.duration_days || b.total_sessions);
+      const endDateObj = new Date(b.start_date);
+      endDateObj.setDate(endDateObj.getDate() + days);
+      updateData.end_date = endDateObj.toISOString().split('T')[0];
+    }
 
     // Remove undefined values
     Object.keys(updateData).forEach(key => {

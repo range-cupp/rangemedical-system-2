@@ -196,15 +196,17 @@ function normalizeProtocol(p) {
 
   return {
     ...p,
-    // Medication: primary_peptide OR medication
-    primary_peptide: p.primary_peptide || p.medication || null,
-    // Dosage: dose_amount OR selected_dose OR starting_dose
-    dose_amount: p.dose_amount || p.selected_dose || p.starting_dose || null,
-    // Frequency: dose_frequency OR frequency (normalize freetext values)
-    dose_frequency: normalizeFrequencyValue(p.dose_frequency || p.frequency),
-    // Delivery: injection_location OR delivery_method
-    injection_location: p.injection_location || p.delivery_method || null,
-    // Duration
+    // Normalize to actual DB column names (single source of truth)
+    medication: p.medication || p.primary_peptide || null,
+    selected_dose: p.selected_dose || p.dose_amount || p.starting_dose || null,
+    frequency: normalizeFrequencyValue(p.frequency || p.dose_frequency),
+    delivery_method: p.delivery_method || p.injection_location || null,
+    // Also keep legacy aliases for backwards compat in view templates
+    primary_peptide: p.medication || p.primary_peptide || null,
+    dose_amount: p.selected_dose || p.dose_amount || p.starting_dose || null,
+    dose_frequency: normalizeFrequencyValue(p.frequency || p.dose_frequency),
+    injection_location: p.delivery_method || p.injection_location || null,
+    // Duration (computed from multiple sources)
     duration_days: durationDays || null,
     total_days: durationDays || null
   };
@@ -575,18 +577,13 @@ export default function ProtocolDetail() {
           patient_phone: form.patientPhone,
           patient_email: form.patientEmail,
           program_type: programTypeMap[form.protocolType] || protocol.program_type,
-          // Write to both old and new field names
-          primary_peptide: form.medication,
+          // Use actual DB column names (single source of truth)
           medication: form.medication,
-          dose_amount: form.dosage,
           selected_dose: form.dosage,
-          dose_frequency: form.frequency,
           frequency: form.frequency,
-          injection_location: form.deliveryMethod,
           delivery_method: form.deliveryMethod,
           start_date: form.startDate,
           end_date: endDate,
-          duration_days: parseInt(form.duration),
           total_sessions: parseInt(form.duration),
           status: form.status,
           notes: form.notes

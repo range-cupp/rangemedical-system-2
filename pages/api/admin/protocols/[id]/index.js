@@ -78,62 +78,38 @@ export default async function handler(req, res) {
 
   // PUT - Update protocol
   if (req.method === 'PUT') {
-    const {
-      patient_name,
-      patient_phone,
-      patient_email,
-      program_name,
-      program_type,
-      primary_peptide,
-      secondary_peptide,
-      dose_amount,
-      dose_frequency,
-      injection_location,
-      start_date,
-      end_date,
-      duration_days,
-      total_sessions,
-      status,
-      special_instructions,
-      notes,
-      reminders_enabled,
-      // New field names (keep both in sync)
-      medication,
-      selected_dose,
-      frequency,
-      delivery_method
-    } = req.body;
+    const b = req.body;
 
     try {
-      // Build update object
+      // Build update object — map to actual DB columns only
       const updateData = {};
-      
-      if (patient_name !== undefined) updateData.patient_name = patient_name;
-      if (patient_phone !== undefined) updateData.patient_phone = patient_phone;
-      if (patient_email !== undefined) updateData.patient_email = patient_email;
-      if (program_name !== undefined) updateData.program_name = program_name;
-      if (program_type !== undefined) updateData.program_type = program_type;
-      if (primary_peptide !== undefined) updateData.primary_peptide = primary_peptide;
-      if (secondary_peptide !== undefined) updateData.secondary_peptide = secondary_peptide;
-      if (dose_amount !== undefined) updateData.dose_amount = dose_amount;
-      if (dose_frequency !== undefined) updateData.dose_frequency = dose_frequency;
-      if (injection_location !== undefined) updateData.injection_location = injection_location;
-      if (start_date !== undefined) updateData.start_date = start_date;
-      if (end_date !== undefined) updateData.end_date = end_date;
-      if (duration_days !== undefined) {
-        updateData.duration_days = duration_days;
-        updateData.total_days = duration_days; // Keep both in sync
-      }
-      if (total_sessions !== undefined) updateData.total_sessions = total_sessions;
-      if (status !== undefined) updateData.status = status;
-      if (special_instructions !== undefined) updateData.special_instructions = special_instructions;
-      if (notes !== undefined) updateData.notes = notes;
-      if (reminders_enabled !== undefined) updateData.reminders_enabled = reminders_enabled;
-      // New field names
-      if (medication !== undefined) updateData.medication = medication;
-      if (selected_dose !== undefined) updateData.selected_dose = selected_dose;
-      if (frequency !== undefined) updateData.frequency = frequency;
-      if (delivery_method !== undefined) updateData.delivery_method = delivery_method;
+
+      if (b.patient_name !== undefined) updateData.patient_name = b.patient_name;
+      if (b.patient_phone !== undefined) updateData.patient_phone = b.patient_phone;
+      if (b.patient_email !== undefined) updateData.patient_email = b.patient_email;
+      if (b.program_name !== undefined) updateData.program_name = b.program_name;
+      if (b.program_type !== undefined) updateData.program_type = b.program_type;
+      if (b.start_date !== undefined) updateData.start_date = b.start_date;
+      if (b.end_date !== undefined) updateData.end_date = b.end_date;
+      if (b.total_sessions !== undefined) updateData.total_sessions = b.total_sessions;
+      if (b.status !== undefined) updateData.status = b.status;
+      if (b.notes !== undefined) updateData.notes = b.notes;
+
+      // Map old field names → actual DB columns (accept either)
+      const med = b.medication ?? b.primary_peptide;
+      if (med !== undefined) updateData.medication = med;
+
+      const secMed = b.secondary_medication ?? b.secondary_peptide;
+      if (secMed !== undefined) updateData.secondary_medication = secMed;
+
+      const dose = b.selected_dose ?? b.dose_amount;
+      if (dose !== undefined) updateData.selected_dose = dose;
+
+      const freq = b.frequency ?? b.dose_frequency;
+      if (freq !== undefined) updateData.frequency = freq;
+
+      const delivery = b.delivery_method ?? b.injection_location;
+      if (delivery !== undefined) updateData.delivery_method = delivery;
 
       updateData.updated_at = new Date().toISOString();
 

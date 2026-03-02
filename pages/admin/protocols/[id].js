@@ -277,6 +277,13 @@ export default function ProtocolDetail() {
     if (id) fetchProtocol();
   }, [id]);
 
+  // Auto-enter edit mode if ?edit=true
+  useEffect(() => {
+    if (router.query.edit === 'true' && protocol && !isEditing) {
+      setIsEditing(true);
+    }
+  }, [router.query.edit, protocol]);
+
   const fetchProtocol = async () => {
     setLoading(true);
     try {

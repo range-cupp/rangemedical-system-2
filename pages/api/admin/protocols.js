@@ -308,6 +308,18 @@ export default async function handler(req, res) {
       .delete()
       .eq('protocol_id', id);
 
+    // Delete protocol logs
+    await supabase
+      .from('protocol_logs')
+      .delete()
+      .eq('protocol_id', id);
+
+    // Delete protocol sessions
+    await supabase
+      .from('protocol_sessions')
+      .delete()
+      .eq('protocol_id', id);
+
     // Delete protocol
     const { error } = await supabase
       .from('protocols')

@@ -145,21 +145,27 @@ export default function ProtocolsPage() {
                 </thead>
                 <tbody>
                   {sorted.map(protocol => {
-                    // Detect weight loss protocols — use sessions_used (source of truth)
+                    // Detect protocol category
                     const programType = (protocol.program_type || '').toLowerCase();
                     const programName = (protocol.program_name || '').toLowerCase();
-                    const isWeightLoss = programType.includes('weight_loss') ||
-                      ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m) || (protocol.medication || '').toLowerCase().includes(m));
+
+                    // HRT / ongoing protocols
+                    const isOngoing = programType.includes('hrt') ||
+                      programName.includes('hrt') || programName.includes('testosterone');
+
+                    // Weight loss protocols — use sessions_used (source of truth)
+                    const isWeightLoss = !isOngoing && (programType.includes('weight_loss') ||
+                      ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m) || (protocol.medication || '').toLowerCase().includes(m)));
 
                     const total = protocol.total_sessions || protocol.duration_days || 10;
                     const current = isWeightLoss
                       ? (protocol.sessions_used || 0)
                       : calculateCurrentDay(protocol.start_date);
-                    const isEnded = isWeightLoss
+                    const isEnded = isOngoing ? false : (isWeightLoss
                       ? current >= total
-                      : current > total;
+                      : current > total);
                     const isActive = protocol.status === 'active';
-                    const progress = Math.min(100, Math.round((current / total) * 100));
+                    const progress = isOngoing ? 100 : Math.min(100, Math.round((current / total) * 100));
 
                     return (
                       <tr key={protocol.id} style={styles.tr}>
@@ -183,16 +189,31 @@ export default function ProtocolsPage() {
                         </td>
                         <td style={styles.td}>
                           <div style={styles.progressContainer}>
-                            <div style={styles.progressBar}>
-                              <div style={{ 
-                                ...styles.progressFill, 
-                                width: `${progress}%`,
-                                background: isEnded ? '#22c55e' : '#000'
-                              }} />
-                            </div>
-                            <span style={styles.progressText}>
-                              {isEnded ? `✓ ${total}/${total}` : `${current}/${total}`}
-                            </span>
+                            {isOngoing ? (
+                              <span style={{
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: isActive ? '#166534' : '#666',
+                                background: isActive ? '#dcfce7' : '#f3f4f6',
+                                padding: '3px 10px',
+                                borderRadius: '10px'
+                              }}>
+                                Ongoing
+                              </span>
+                            ) : (
+                              <>
+                                <div style={styles.progressBar}>
+                                  <div style={{
+                                    ...styles.progressFill,
+                                    width: `${progress}%`,
+                                    background: isEnded ? '#22c55e' : '#000'
+                                  }} />
+                                </div>
+                                <span style={styles.progressText}>
+                                  {isEnded ? `✓ ${total}/${total}` : `${current}/${total}`}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </td>
                         <td style={styles.td}>

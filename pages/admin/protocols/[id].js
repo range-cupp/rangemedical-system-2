@@ -448,15 +448,19 @@ export default function ProtocolDetail() {
   const programType = protocol?.program_type || '';
   const programName = (protocol?.program_name || '').toLowerCase();
 
+  // HRT protocols — ongoing membership, not finite
+  const isOngoing = isHRTProtocol(programType) ||
+    programName.includes('hrt') || programName.includes('testosterone');
+
   // Injection protocols: single injections & injection packs
-  const isInjectionProtocol = programType.includes('injection') || programName.includes('injection');
+  const isInjectionProtocol = !isOngoing && (programType.includes('injection') || programName.includes('injection'));
 
   // Weight loss protocols: track weekly injections using sessions_used as source of truth
-  const isWeightLoss = programType.includes('weight_loss') ||
-                       ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m));
+  const isWeightLoss = !isOngoing && (programType.includes('weight_loss') ||
+                       ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m)));
 
   // Session-based protocols (HBOT, Red Light, IV Therapy, Injection Packs)
-  const isSessionBased = ['hbot', 'hbot_sessions', 'red_light', 'red_light_sessions', 'rlt',
+  const isSessionBased = !isOngoing && ['hbot', 'hbot_sessions', 'red_light', 'red_light_sessions', 'rlt',
                           'iv_therapy', 'iv', 'iv_sessions', 'injection_pack'].includes(programType);
 
   // For session-based: track sessions_completed vs total_sessions
@@ -468,6 +472,14 @@ export default function ProtocolDetail() {
   const wlTotalInjections = protocol?.total_sessions || 4;
   const wlSessionsUsed = protocol?.sessions_used || 0;
   const wlInjectionsRemaining = wlTotalInjections - wlSessionsUsed;
+
+  // HRT ongoing calculations
+  const hrtWeeksOnProtocol = isOngoing && protocol?.start_date
+    ? Math.max(0, Math.floor((getPacificToday() - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24 * 7)))
+    : 0;
+  const hrtMonthsOnProtocol = isOngoing && protocol?.start_date
+    ? Math.max(0, Math.floor((getPacificToday() - new Date(protocol.start_date)) / (1000 * 60 * 60 * 24 * 30.44)))
+    : 0;
 
   // For injection protocols: total = total_sessions (injection count)
   // For day protocols: total = duration_days (adjusted for frequency)
@@ -496,13 +508,13 @@ export default function ProtocolDetail() {
     : currentDay;
 
   const isActive = protocol?.status === 'active';
-  const isComplete = isWeightLoss
+  const isComplete = isOngoing ? false : (isWeightLoss
     ? wlInjectionsRemaining <= 0
     : isSessionBased
       ? sessionsRemaining <= 0
       : (isInjectionProtocol
           ? currentInjection >= totalUnits
-          : currentDay > totalDays);
+          : currentDay > totalDays));
 
   if (loading) {
     return <div style={styles.loadingContainer}><div style={styles.loading}>Loading...</div></div>;
@@ -548,7 +560,7 @@ export default function ProtocolDetail() {
           {/* Left: Main Content */}
           <div style={styles.mainCol}>
             {/* BIG DAY/SESSION DISPLAY */}
-            {!isEditing && (
+            {!isEditing && !isOngoing && (
               <div style={styles.dayCard}>
                 <div style={styles.dayLabel}>
                   {isWeightLoss ? 'CURRENT INJECTION' : isSessionBased ? 'SESSIONS USED' : (isInjectionProtocol ? 'CURRENT INJECTION' : 'CURRENT DAY')}
@@ -589,7 +601,56 @@ export default function ProtocolDetail() {
                     </span>
                   )}
                 </div>
-                
+
+                {/* Status Badge */}
+                <div style={{ marginTop: '16px' }}>
+                  <span style={{
+                    padding: '6px 16px',
+                    borderRadius: '20px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    background: isActive ? '#dcfce7' : '#f3f4f6',
+                    color: isActive ? '#166534' : '#666'
+                  }}>
+                    {protocol?.status}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* HRT / ONGOING MEMBERSHIP DISPLAY */}
+            {!isEditing && isOngoing && (
+              <div style={styles.dayCard}>
+                <div style={styles.dayLabel}>ONGOING MEMBERSHIP</div>
+                <div style={styles.dayDisplay}>
+                  <span style={{ fontSize: '48px', fontWeight: '700', color: '#000' }}>
+                    {hrtMonthsOnProtocol}
+                  </span>
+                  <span style={{ fontSize: '20px', color: '#999', marginLeft: '8px', alignSelf: 'flex-end', paddingBottom: '8px' }}>
+                    {hrtMonthsOnProtocol === 1 ? 'month' : 'months'}
+                  </span>
+                </div>
+                <div style={styles.dayStatus}>
+                  <span style={styles.activeText}>
+                    {protocol?.medication || 'HRT Protocol'} · {
+                      protocol?.frequency === '2x_weekly' ? '2x per week' :
+                      protocol?.frequency === 'weekly' ? 'Weekly' :
+                      protocol?.frequency || '2x per week'
+                    }
+                  </span>
+                </div>
+                {protocol?.selected_dose && (
+                  <div style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
+                    Dose: {protocol.selected_dose}
+                  </div>
+                )}
+                <div style={{ marginTop: '4px', fontSize: '13px', color: '#999' }}>
+                  Started {protocol?.start_date ? new Date(protocol.start_date + 'T12:00:00').toLocaleDateString('en-US', {
+                    month: 'long', day: 'numeric', year: 'numeric'
+                  }) : 'N/A'}
+                </div>
+
                 {/* Status Badge */}
                 <div style={{ marginTop: '16px' }}>
                   <span style={{
@@ -828,8 +889,8 @@ export default function ProtocolDetail() {
               </div>
             )}
 
-            {/* Calendar Grid for Injection/Day protocols (non-weight-loss) */}
-            {!isEditing && !isSessionBased && !isWeightLoss && (
+            {/* Calendar Grid for Injection/Day protocols (non-weight-loss, non-ongoing) */}
+            {!isEditing && !isSessionBased && !isWeightLoss && !isOngoing && (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>
                   {isInjectionProtocol ? 'Injection Tracker' : 'Injection Calendar'}

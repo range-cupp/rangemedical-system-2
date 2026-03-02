@@ -427,6 +427,142 @@ export default function HyperbaricOxygenTherapy() {
           </div>
         </section>
 
+        {/* ===== PRICING SECTION ===== */}
+        <section className="hbot-section" id="hbot-pricing">
+          <div className="hbot-container">
+            <div className="hbot-animate" style={{ textAlign: 'center', marginBottom: '3rem' }}>
+              <div className="hbot-kicker">Pricing</div>
+              <h2>Choose the path that fits your goals.</h2>
+              <div className="hbot-divider" style={{ margin: '1.25rem auto' }}></div>
+              <p className="hbot-body-text" style={{ textAlign: 'center', margin: '0 auto' }}>
+                Whether you want a full protocol, a regular weekly schedule, or just a few sessions — we have an option for you.
+              </p>
+            </div>
+
+            {/* Tier 1: Full Protocol */}
+            <div className="hbot-animate">
+              <div className="hbot-pricing-tier-label">I'm Ready for a Full Protocol</div>
+              <div className="hbot-pricing-featured">
+                <div className="hbot-pricing-guarantee-badge">Money-Back Guarantee</div>
+                <h3 className="hbot-pricing-featured-title">Six-Week Cellular Energy Reset</h3>
+                <div className="hbot-pricing-featured-price">$3,999</div>
+                <ul className="hbot-pricing-featured-list">
+                  <li>18 HBOT + 18 Red Light sessions over 6 weeks</li>
+                  <li>3 sessions per week of each therapy</li>
+                  <li>Weekly provider check-ins</li>
+                  <li>Full money-back guarantee if no improvement</li>
+                </ul>
+                <div className="hbot-pricing-featured-note">Includes Red Light Therapy · Structured protocol with weekly check-ins</div>
+                <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-dark">Get Started</a>
+              </div>
+            </div>
+
+            {/* Tier 2: Memberships */}
+            <div className="hbot-animate" style={{ marginTop: '3rem' }}>
+              <div className="hbot-pricing-tier-label">I Want a Regular Weekly Schedule</div>
+              <div className="hbot-pricing-membership-grid">
+                <div className="hbot-pricing-membership-card">
+                  <h3>HBOT Membership — 1x/Week</h3>
+                  <div className="hbot-pricing-membership-price">$549 <span>/mo</span></div>
+                  <ul>
+                    <li>4 HBOT sessions per month</li>
+                    <li>Additional sessions $150 each</li>
+                    <li>3-month minimum commitment</li>
+                  </ul>
+                  <div className="hbot-pricing-per-session">$137/session · Save 26% vs singles</div>
+                  <a href="https://buy.stripe.com/aFa3cudha3NC9xv0kV08g03" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline">Choose Plan</a>
+                </div>
+                <div className="hbot-pricing-membership-card hbot-pricing-popular">
+                  <div className="hbot-pricing-popular-badge">Most Popular</div>
+                  <h3>HBOT Membership — 2x/Week</h3>
+                  <div className="hbot-pricing-membership-price">$999 <span>/mo</span></div>
+                  <ul>
+                    <li>8 HBOT sessions per month</li>
+                    <li>Additional sessions $150 each</li>
+                    <li>3-month minimum commitment</li>
+                  </ul>
+                  <div className="hbot-pricing-per-session">$125/session · Save 32% vs singles</div>
+                  <a href="https://buy.stripe.com/4gM7sK7WQ1FudNL8Rr08g04" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-dark">Choose Plan</a>
+                </div>
+                <div className="hbot-pricing-membership-card">
+                  <h3>HBOT Membership — 3x/Week</h3>
+                  <div className="hbot-pricing-membership-price">$1,399 <span>/mo</span></div>
+                  <ul>
+                    <li>12 HBOT sessions per month</li>
+                    <li>Additional sessions $150 each</li>
+                    <li>3-month minimum commitment</li>
+                  </ul>
+                  <div className="hbot-pricing-per-session">$117/session · Save 37% vs singles</div>
+                  <a href="https://buy.stripe.com/14A00ia4Y0BqgZX0kV08g05" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline">Choose Plan</a>
+                </div>
+              </div>
+            </div>
+
+            {/* Tier 3: Session Packs */}
+            <div className="hbot-animate" style={{ marginTop: '3rem' }}>
+              <div className="hbot-pricing-tier-label">I Want to Buy Sessions as Needed — No Commitment</div>
+              <div className="hbot-pricing-packs-grid">
+                <div className="hbot-pricing-pack-card">
+                  <div className="hbot-pricing-pack-name">Single Session</div>
+                  <div className="hbot-pricing-pack-price">$185</div>
+                  <div className="hbot-pricing-pack-detail">Drop in anytime</div>
+                  <a href="https://buy.stripe.com/aFabJ02Cw6ZO6ljgjT08g06" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline-sm">Book Now</a>
+                </div>
+                <div className="hbot-pricing-pack-card">
+                  <div className="hbot-pricing-pack-name">5-Session Pack</div>
+                  <div className="hbot-pricing-pack-price">$850</div>
+                  <div className="hbot-pricing-pack-detail">$170/session · Save $75</div>
+                  <a href="https://buy.stripe.com/00w8wO1ys83SfVT2t308g07" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline-sm">Buy Pack</a>
+                </div>
+                <div className="hbot-pricing-pack-card">
+                  <div className="hbot-pricing-pack-name">10-Session Pack</div>
+                  <div className="hbot-pricing-pack-price">$1,600</div>
+                  <div className="hbot-pricing-pack-detail">$160/session · Save $250</div>
+                  <a href="https://buy.stripe.com/9B6aEW4KE4RG7pn1oZ08g08" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline-sm">Buy Pack</a>
+                </div>
+              </div>
+            </div>
+
+            {/* Per-Session Cost Comparison */}
+            <div className="hbot-animate" style={{ marginTop: '2.5rem' }}>
+              <div className="hbot-pricing-comparison">
+                <div className="hbot-pricing-comparison-title">Per-Session Cost</div>
+                <div className="hbot-pricing-comparison-row">
+                  <div className="hbot-pricing-comparison-item">
+                    <div className="hbot-pricing-comparison-label">Single</div>
+                    <div className="hbot-pricing-comparison-value">$185</div>
+                  </div>
+                  <div className="hbot-pricing-comparison-item">
+                    <div className="hbot-pricing-comparison-label">5-Pack</div>
+                    <div className="hbot-pricing-comparison-value">$170</div>
+                    <div className="hbot-pricing-comparison-save">Save 8%</div>
+                  </div>
+                  <div className="hbot-pricing-comparison-item">
+                    <div className="hbot-pricing-comparison-label">10-Pack</div>
+                    <div className="hbot-pricing-comparison-value">$160</div>
+                    <div className="hbot-pricing-comparison-save">Save 14%</div>
+                  </div>
+                  <div className="hbot-pricing-comparison-item">
+                    <div className="hbot-pricing-comparison-label">1x/Week</div>
+                    <div className="hbot-pricing-comparison-value">$137</div>
+                    <div className="hbot-pricing-comparison-save">Save 26%</div>
+                  </div>
+                  <div className="hbot-pricing-comparison-item">
+                    <div className="hbot-pricing-comparison-label">2x/Week</div>
+                    <div className="hbot-pricing-comparison-value">$125</div>
+                    <div className="hbot-pricing-comparison-save">Save 32%</div>
+                  </div>
+                  <div className="hbot-pricing-comparison-item">
+                    <div className="hbot-pricing-comparison-label">3x/Week</div>
+                    <div className="hbot-pricing-comparison-value">$117</div>
+                    <div className="hbot-pricing-comparison-save">Save 37%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="hbot-section-alt">
           <div className="hbot-container">
@@ -1033,6 +1169,317 @@ export default function HyperbaricOxygenTherapy() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
+        /* ===== PRICING STYLES ===== */
+        .hbot-pricing-tier-label {
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 1rem;
+        }
+
+        /* Featured card (Six-Week Reset) */
+        .hbot-pricing-featured {
+          border: 2px solid #171717;
+          border-radius: 12px;
+          padding: 2.5rem;
+          position: relative;
+          background: #fff;
+        }
+
+        .hbot-pricing-guarantee-badge {
+          display: inline-block;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          padding: 0.375rem 0.75rem;
+          background: #171717;
+          color: #fff;
+          border-radius: 4px;
+          margin-bottom: 1.25rem;
+        }
+
+        .hbot-pricing-featured-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.5rem;
+        }
+
+        .hbot-pricing-featured-price {
+          font-size: 2.75rem;
+          font-weight: 800;
+          color: #171717;
+          letter-spacing: -0.02em;
+          margin-bottom: 1.5rem;
+        }
+
+        .hbot-pricing-featured-list {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 1.5rem;
+        }
+
+        .hbot-pricing-featured-list li {
+          font-size: 0.9375rem;
+          color: #525252;
+          padding: 0.375rem 0;
+          padding-left: 1.25rem;
+          position: relative;
+        }
+
+        .hbot-pricing-featured-list li::before {
+          content: '•';
+          position: absolute;
+          left: 0;
+          color: #171717;
+          font-weight: 700;
+        }
+
+        .hbot-pricing-featured-note {
+          font-size: 0.8125rem;
+          color: #737373;
+          border-top: 1px solid #e5e5e5;
+          padding-top: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        /* Membership grid */
+        .hbot-pricing-membership-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.25rem;
+        }
+
+        .hbot-pricing-membership-card {
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 2rem;
+          background: #fff;
+          position: relative;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .hbot-pricing-membership-card:hover {
+          border-color: #171717;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .hbot-pricing-popular {
+          border: 2px solid #171717;
+        }
+
+        .hbot-pricing-popular-badge {
+          position: absolute;
+          top: -11px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          padding: 0.25rem 0.75rem;
+          background: #171717;
+          color: #fff;
+          border-radius: 4px;
+          white-space: nowrap;
+        }
+
+        .hbot-pricing-membership-card h3 {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.75rem;
+        }
+
+        .hbot-pricing-membership-price {
+          font-size: 2.25rem;
+          font-weight: 800;
+          color: #171717;
+          letter-spacing: -0.02em;
+          margin-bottom: 1.25rem;
+        }
+
+        .hbot-pricing-membership-price span {
+          font-size: 1rem;
+          font-weight: 500;
+          color: #737373;
+        }
+
+        .hbot-pricing-membership-card ul {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 1.25rem;
+        }
+
+        .hbot-pricing-membership-card ul li {
+          font-size: 0.875rem;
+          color: #525252;
+          padding: 0.3rem 0;
+          padding-left: 1.25rem;
+          position: relative;
+        }
+
+        .hbot-pricing-membership-card ul li::before {
+          content: '•';
+          position: absolute;
+          left: 0;
+          color: #171717;
+          font-weight: 700;
+        }
+
+        .hbot-pricing-per-session {
+          font-size: 0.8125rem;
+          color: #737373;
+          border-top: 1px solid #e5e5e5;
+          padding-top: 1rem;
+          margin-bottom: 1.25rem;
+        }
+
+        /* Session packs grid */
+        .hbot-pricing-packs-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.25rem;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 2rem;
+          background: #fff;
+        }
+
+        .hbot-pricing-pack-card {
+          text-align: center;
+          padding: 1.5rem 1rem;
+          border: 1px solid #e5e5e5;
+          border-radius: 8px;
+        }
+
+        .hbot-pricing-pack-name {
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.5rem;
+        }
+
+        .hbot-pricing-pack-price {
+          font-size: 2rem;
+          font-weight: 800;
+          color: #171717;
+          letter-spacing: -0.02em;
+          margin-bottom: 0.25rem;
+        }
+
+        .hbot-pricing-pack-detail {
+          font-size: 0.8125rem;
+          color: #737373;
+          margin-bottom: 1rem;
+        }
+
+        /* Comparison table */
+        .hbot-pricing-comparison {
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1.5rem 2rem;
+          background: #fff;
+        }
+
+        .hbot-pricing-comparison-title {
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 1rem;
+        }
+
+        .hbot-pricing-comparison-row {
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 1rem;
+          text-align: center;
+        }
+
+        .hbot-pricing-comparison-label {
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: #737373;
+          margin-bottom: 0.25rem;
+        }
+
+        .hbot-pricing-comparison-value {
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #171717;
+        }
+
+        .hbot-pricing-comparison-save {
+          font-size: 0.6875rem;
+          color: #737373;
+          margin-top: 0.125rem;
+        }
+
+        /* Pricing buttons */
+        .hbot-pricing-btn-dark {
+          display: inline-block;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 0.75rem 2rem;
+          background: #171717;
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: background 0.2s ease, transform 0.2s ease;
+          cursor: pointer;
+        }
+
+        .hbot-pricing-btn-dark:hover {
+          background: #333;
+          transform: translateY(-1px);
+        }
+
+        .hbot-pricing-btn-outline {
+          display: inline-block;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 0.75rem 2rem;
+          background: #fff;
+          color: #171717;
+          border: 1px solid #e5e5e5;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .hbot-pricing-btn-outline:hover {
+          border-color: #171717;
+          transform: translateY(-1px);
+        }
+
+        .hbot-pricing-btn-outline-sm {
+          display: inline-block;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          padding: 0.5rem 1.5rem;
+          background: #fff;
+          color: #171717;
+          border: 1px solid #e5e5e5;
+          border-radius: 6px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .hbot-pricing-btn-outline-sm:hover {
+          border-color: #171717;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .hbot-section {
@@ -1084,6 +1531,23 @@ export default function HyperbaricOxygenTherapy() {
 
           .hbot-cta-buttons {
             flex-direction: column;
+          }
+
+          .hbot-pricing-membership-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .hbot-pricing-packs-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .hbot-pricing-comparison-row {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+          }
+
+          .hbot-pricing-featured {
+            padding: 1.5rem;
           }
         }
       `}</style>

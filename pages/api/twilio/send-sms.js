@@ -52,6 +52,10 @@ export default async function handler(req, res) {
     params.append('From', fromNumber);
     params.append('Body', message);
 
+    // Add delivery status callback so we can track actual delivery
+    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com').replace(/\/$/, '');
+    params.append('StatusCallback', `${baseUrl}/api/twilio/status-callback`);
+
     const twilioRes = await fetch(twilioUrl, {
       method: 'POST',
       headers: {
@@ -83,7 +87,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Log the sent message
+    // Log the sent message with Twilio message SID for delivery tracking
     await logComm({
       channel: 'sms',
       messageType: message_type || 'direct_sms',
@@ -92,12 +96,13 @@ export default async function handler(req, res) {
       patientId: patient_id || null,
       patientName: patient_name || null,
       recipient: normalizedTo,
+      twilioMessageSid: twilioData.sid || null,
     });
 
     // Also store in comms_log with direction for conversation view
     await supabase
       .from('comms_log')
-      .update({ direction: 'outbound' })
+      .update({ direction: 'outbound', twilio_message_sid: twilioData.sid || null })
       .eq('source', 'twilio/send-sms')
       .eq('patient_id', patient_id)
       .order('created_at', { ascending: false })

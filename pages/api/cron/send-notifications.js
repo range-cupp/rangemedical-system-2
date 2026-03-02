@@ -47,6 +47,10 @@ async function sendSMS(to, message) {
     params.append('From', fromNumber);
     params.append('Body', message);
 
+    // Track delivery status
+    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com').replace(/\/$/, '');
+    params.append('StatusCallback', `${baseUrl}/api/twilio/status-callback`);
+
     const response = await fetch(twilioUrl, {
       method: 'POST',
       headers: {

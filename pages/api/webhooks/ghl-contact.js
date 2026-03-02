@@ -89,8 +89,73 @@ export default async function handler(req, res) {
     }
 
     console.log('✅ Contact synced:', contactData.first_name, contactData.last_name);
-    
-    return res.status(200).json({ 
+
+    // Also create/link patient record if we have email or phone
+    const email = (contactData.email || '').toLowerCase().trim();
+    const patientName = `${contactData.first_name} ${contactData.last_name}`.trim();
+
+    if (email || contactData.phone) {
+      try {
+        // Check if patient already exists
+        let patientQuery = supabase.from('patients').select('id, tags, ghl_contact_id');
+        if (email) {
+          patientQuery = patientQuery.eq('email', email);
+        } else {
+          patientQuery = patientQuery.ilike('phone', `%${contactData.phone.replace(/\D/g, '').slice(-10)}`);
+        }
+
+        const { data: existingPatient } = await patientQuery.maybeSingle();
+
+        // Build tags from GHL contact tags
+        const ghlTags = Array.isArray(contactData.tags) ? contactData.tags : [];
+        const patientTags = [...new Set([...ghlTags.map(t => t.toLowerCase().replace(/\s+/g, '-'))])];
+
+        if (existingPatient) {
+          // Update existing patient with GHL contact ID and merge tags
+          const existingTags = Array.isArray(existingPatient.tags) ? existingPatient.tags : [];
+          const mergedTags = [...new Set([...existingTags, ...patientTags])];
+          const updateData = { ghl_contact_id: contactId };
+          if (mergedTags.length > 0) updateData.tags = mergedTags;
+
+          await supabase.from('patients').update(updateData).eq('id', existingPatient.id);
+          console.log(`📋 Linked GHL contact to existing patient: ${patientName}`);
+        } else if (email && contactData.first_name) {
+          // Create new patient from GHL contact
+          const newPatientData = {
+            first_name: contactData.first_name,
+            last_name: contactData.last_name,
+            name: patientName,
+            email,
+            phone: contactData.phone || null,
+            ghl_contact_id: contactId,
+          };
+          if (patientTags.length > 0) newPatientData.tags = patientTags;
+
+          const { data: newPt, error: ptErr } = await supabase
+            .from('patients')
+            .insert(newPatientData)
+            .select('id')
+            .single();
+
+          if (ptErr) {
+            // tags column might not exist — retry without
+            if (ptErr.message && ptErr.message.includes('tags')) {
+              delete newPatientData.tags;
+              await supabase.from('patients').insert(newPatientData);
+            } else if (!ptErr.message.includes('duplicate')) {
+              console.error('Patient creation from GHL error:', ptErr.message);
+            }
+          } else {
+            console.log(`📋 Created new patient from GHL contact: ${patientName} (${newPt.id})`);
+          }
+        }
+      } catch (ptErr) {
+        console.error('Patient sync from GHL error:', ptErr.message);
+        // Non-fatal — don't fail the webhook
+      }
+    }
+
+    return res.status(200).json({
       message: 'Contact synced successfully',
       contact: {
         id: contactId,

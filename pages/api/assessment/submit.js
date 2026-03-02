@@ -122,28 +122,66 @@ export default async function handler(req, res) {
           .eq('email', normalizedEmail)
           .maybeSingle();
 
+        // Build patient tags from assessment
+        const patientTags = ['research-lead', `assessment-${assessmentPath}`];
+
         if (existingPatient) {
           patientId = existingPatient.id;
           console.log(`Assessment: linked to existing patient ${patientId} (${normalizedEmail})`);
+
+          // Merge tags with existing patient tags (don't duplicate)
+          try {
+            const { data: fullPatient } = await supabase
+              .from('patients')
+              .select('tags')
+              .eq('id', patientId)
+              .single();
+
+            const existingTags = Array.isArray(fullPatient?.tags) ? fullPatient.tags : [];
+            const mergedTags = [...new Set([...existingTags, ...patientTags])];
+
+            await supabase
+              .from('patients')
+              .update({ tags: mergedTags })
+              .eq('id', patientId);
+          } catch (tagErr) {
+            // tags column may not exist yet — non-fatal
+            console.log('Could not update patient tags:', tagErr.message);
+          }
         } else {
-          // Create new patient
-          const { data: newPatient, error: patientError } = await supabase
+          // Create new patient with tags
+          const insertData = {
+            first_name: capFirst,
+            last_name: capLast,
+            name: `${capFirst} ${capLast}`,
+            email: normalizedEmail,
+            phone: phone || null,
+            tags: patientTags,
+          };
+
+          let { data: newPatient, error: patientError } = await supabase
             .from('patients')
-            .insert({
-              first_name: capFirst,
-              last_name: capLast,
-              name: `${capFirst} ${capLast}`,
-              email: normalizedEmail,
-              phone: phone || null,
-            })
+            .insert(insertData)
             .select('id')
             .single();
+
+          // If tags column doesn't exist, retry without it
+          if (patientError && patientError.message && patientError.message.includes('tags')) {
+            delete insertData.tags;
+            const retry = await supabase
+              .from('patients')
+              .insert(insertData)
+              .select('id')
+              .single();
+            newPatient = retry.data;
+            patientError = retry.error;
+          }
 
           if (patientError) {
             console.error('Patient creation from assessment error:', patientError);
           } else {
             patientId = newPatient.id;
-            console.log(`Assessment: created new patient ${patientId} for ${capFirst} ${capLast}`);
+            console.log(`Assessment: created new patient ${patientId} for ${capFirst} ${capLast} [tags: ${patientTags.join(', ')}]`);
           }
         }
 

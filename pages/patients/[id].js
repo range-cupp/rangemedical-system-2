@@ -30,6 +30,7 @@ import {
   getDoseOptions
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
+import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
 import BookingTab from '../../components/BookingTab';
 import LabDashboard from '../../components/labs/LabDashboard';
 import ConversationView from '../../components/ConversationView';
@@ -67,6 +68,7 @@ export default function PatientProfile() {
   const [invoices, setInvoices] = useState([]);
   const [stats, setStats] = useState({});
   const [hrtLabSchedules, setHrtLabSchedules] = useState({});
+  const [cycleInfo, setCycleInfo] = useState(null);
 
   // Timeline state
   const [timeline, setTimeline] = useState([]);
@@ -151,6 +153,24 @@ export default function PatientProfile() {
       fetchLabDocuments();
     }
   }, [id]);
+
+  // Fetch 90-day cycle info when we have a patient with recovery peptide protocols
+  useEffect(() => {
+    if (!id || !activeProtocols.length) return;
+    const hasRecoveryPeptide = activeProtocols.some(p => {
+      const med = p.medication || '';
+      const pt = (p.program_type || '').toLowerCase();
+      const pn = (p.program_name || '').toLowerCase();
+      return isRecoveryPeptide(med) || pt.includes('recovery') || pt.includes('peptide') ||
+             pn.includes('recovery') || pn.includes('bpc') || pn.includes('thymosin');
+    });
+    if (hasRecoveryPeptide) {
+      fetch(`/api/protocols/cycle-info?patientId=${id}&cycleType=recovery`)
+        .then(r => r.json())
+        .then(data => { if (data.success) setCycleInfo(data); })
+        .catch(() => {});
+    }
+  }, [id, activeProtocols]);
 
   // Close PDF viewer on Escape key
   useEffect(() => {
@@ -942,6 +962,55 @@ export default function PatientProfile() {
                   <h3>Active Protocols</h3>
                   <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add</button>
                 </div>
+
+                {/* 90-Day Recovery Peptide Cycle Tracker */}
+                {cycleInfo?.hasCycle && (
+                  <div style={{
+                    margin: '0 16px 12px',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    background: cycleInfo.cycleExhausted ? '#fef2f2' : cycleInfo.daysRemaining <= 20 ? '#fffbeb' : '#f0fdf4',
+                    border: `1px solid ${cycleInfo.cycleExhausted ? '#fecaca' : cycleInfo.daysRemaining <= 20 ? '#fde68a' : '#bbf7d0'}`
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#6b7280' }}>
+                        Recovery Peptide Cycle
+                      </span>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        color: cycleInfo.cycleExhausted ? '#dc2626' : cycleInfo.daysRemaining <= 20 ? '#d97706' : '#16a34a'
+                      }}>
+                        {cycleInfo.cycleDaysUsed} / {cycleInfo.maxDays} days
+                      </span>
+                    </div>
+                    <div style={{ background: '#e5e7eb', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%',
+                        borderRadius: '4px',
+                        width: `${Math.min(100, Math.round((cycleInfo.cycleDaysUsed / cycleInfo.maxDays) * 100))}%`,
+                        background: cycleInfo.cycleExhausted ? '#dc2626' : cycleInfo.daysRemaining <= 20 ? '#f59e0b' : '#22c55e',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                      {cycleInfo.cycleExhausted ? (
+                        <span style={{ color: '#dc2626', fontWeight: '600' }}>
+                          Cycle complete — 2-week off period recommended
+                          {cycleInfo.offPeriodEnds && ` (ends ${new Date(cycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`}
+                        </span>
+                      ) : (
+                        <span><strong>{cycleInfo.daysRemaining}</strong> days remaining before mandatory off period</span>
+                      )}
+                    </div>
+                    {cycleInfo.subProtocols?.length > 1 && (
+                      <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
+                        {cycleInfo.subProtocols.length} protocols in this cycle
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {activeProtocols.length === 0 ? (
                   <div className="empty">No active protocols</div>
                 ) : (

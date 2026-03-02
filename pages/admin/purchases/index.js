@@ -277,6 +277,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const [error, setError] = useState(null);
   const [patient, setPatient] = useState(null);
   const [patientLoading, setPatientLoading] = useState(true);
+  const [cycleInfo, setCycleInfo] = useState(null);
 
   const initialType = CATEGORY_TO_TYPE[purchase?.category] || 'peptide';
 
@@ -340,11 +341,40 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     lookupPatient();
   }, [purchase]);
 
+  // Fetch 90-day cycle info for recovery/GH peptide protocols
+  useEffect(() => {
+    if (!patient?.id) return;
+    const isPeptideType = form.protocolType === 'peptide' || form.protocolType === 'gh_peptide';
+    if (!isPeptideType) { setCycleInfo(null); return; }
+    const cycleType = form.protocolType === 'gh_peptide' ? 'gh' : 'recovery';
+    fetch(`/api/protocols/cycle-info?patientId=${patient.id}&cycleType=${cycleType}`)
+      .then(r => r.json())
+      .then(data => { if (data.success) setCycleInfo(data); else setCycleInfo(null); })
+      .catch(() => setCycleInfo(null));
+  }, [patient?.id, form.protocolType]);
+
   const selectedType = PROTOCOL_TYPES[form.protocolType];
   const isSessionBased = !!selectedType?.sessions;
   const isInjectionBased = !!selectedType?.injections;
   const isOngoing = selectedType?.ongoing;
   const hasDosageNotes = selectedType?.hasDosageNotes;
+
+  // Calculate if this new protocol would exceed the 90-day cycle limit
+  const cycleWarning = (() => {
+    if (!cycleInfo?.hasCycle) return null;
+    const newDuration = parseInt(form.duration) || 0;
+    const wouldTotal = cycleInfo.cycleDaysUsed + newDuration;
+    if (cycleInfo.cycleExhausted) {
+      return { level: 'error', message: `Patient has already used ${cycleInfo.cycleDaysUsed}/${cycleInfo.maxDays} days in current cycle. A ${cycleInfo.offDays}-day off period is recommended${cycleInfo.offPeriodEnds ? ` (ends ${new Date(cycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})` : ''}.` };
+    }
+    if (wouldTotal > cycleInfo.maxDays) {
+      return { level: 'warning', message: `Adding ${newDuration} days would bring this patient to ${wouldTotal}/${cycleInfo.maxDays} days — exceeds the 90-day cycle limit. ${cycleInfo.daysRemaining} days remaining.` };
+    }
+    if (cycleInfo.daysRemaining <= 20) {
+      return { level: 'info', message: `Patient has used ${cycleInfo.cycleDaysUsed}/${cycleInfo.maxDays} days. ${cycleInfo.daysRemaining} days remaining in cycle.` };
+    }
+    return { level: 'ok', message: `${cycleInfo.cycleDaysUsed}/${cycleInfo.maxDays} cycle days used. ${cycleInfo.daysRemaining} remaining.` };
+  })();
 
   const handleTypeChange = (type) => {
     const typeConfig = PROTOCOL_TYPES[type];
@@ -513,6 +543,34 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
               </div>
             )}
           </div>
+
+          {/* 90-Day Cycle Warning */}
+          {cycleWarning && (form.protocolType === 'peptide' || form.protocolType === 'gh_peptide') && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              lineHeight: '1.4',
+              background: cycleWarning.level === 'error' ? '#fef2f2' :
+                          cycleWarning.level === 'warning' ? '#fffbeb' :
+                          cycleWarning.level === 'info' ? '#eff6ff' : '#f0fdf4',
+              border: `1px solid ${
+                cycleWarning.level === 'error' ? '#fecaca' :
+                cycleWarning.level === 'warning' ? '#fde68a' :
+                cycleWarning.level === 'info' ? '#bfdbfe' : '#bbf7d0'
+              }`,
+              color: cycleWarning.level === 'error' ? '#991b1b' :
+                     cycleWarning.level === 'warning' ? '#92400e' :
+                     cycleWarning.level === 'info' ? '#1e40af' : '#166534'
+            }}>
+              <strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {cycleWarning.level === 'error' ? '⛔ Cycle Limit Reached' :
+                 cycleWarning.level === 'warning' ? '⚠️ Cycle Limit Warning' :
+                 '💊 90-Day Cycle'}
+              </strong>
+              <div style={{ marginTop: '2px' }}>{cycleWarning.message}</div>
+            </div>
+          )}
 
           {/* Protocol Type */}
           <div style={modalStyles.section}>

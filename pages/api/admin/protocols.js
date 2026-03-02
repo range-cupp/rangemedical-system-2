@@ -1,6 +1,7 @@
 // /pages/api/admin/protocols.js
 // Protocol creation API - Range Medical
 import { createClient } from '@supabase/supabase-js';
+import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -62,6 +63,103 @@ export default async function handler(req, res) {
     const crypto = require('crypto');
     const accessToken = crypto.randomBytes(16).toString('hex');
 
+    // ===== 90-DAY CYCLE TRACKING =====
+    // For recovery peptides (BPC-157, Thymosin Beta-4, etc.) and GH peptides,
+    // track consecutive days across protocols with a shared cycle_start_date.
+    // Max 90 days per cycle, then mandatory off period.
+    let cycleStartDate = null;
+    const isRecovery = isRecoveryPeptide(medication);
+    const isGH = isGHPeptide(medication);
+
+    if ((isRecovery || isGH) && resolvedPatientId) {
+      const maxDays = isGH ? GH_CYCLE_MAX_DAYS : RECOVERY_CYCLE_MAX_DAYS;
+      const offDays = isGH ? GH_CYCLE_OFF_DAYS : RECOVERY_CYCLE_OFF_DAYS;
+      const filterFn = isGH ? isGHPeptide : isRecoveryPeptide;
+
+      // Fetch existing peptide protocols for this patient
+      const { data: existingProtocols } = await supabase
+        .from('protocols')
+        .select('id, medication, start_date, end_date, status, cycle_start_date')
+        .eq('patient_id', resolvedPatientId)
+        .not('status', 'in', '("cancelled","merged")')
+        .order('start_date', { ascending: false });
+
+      // Filter to matching peptide type
+      const matchingProtocols = (existingProtocols || []).filter(p => filterFn(p.medication));
+
+      if (matchingProtocols.length === 0) {
+        // No prior cycle — start fresh
+        cycleStartDate = start_date || new Date().toISOString().split('T')[0];
+      } else {
+        // Find protocols with cycle_start_date set, or infer from dates
+        const withCycle = matchingProtocols.filter(p => p.cycle_start_date);
+
+        if (withCycle.length > 0) {
+          // Use the latest existing cycle
+          const latestCycleDate = withCycle.sort((a, b) => b.cycle_start_date.localeCompare(a.cycle_start_date))[0].cycle_start_date;
+          const cycleProtocols = withCycle.filter(p => p.cycle_start_date === latestCycleDate);
+
+          // Calculate days used in this cycle
+          let cycleDaysUsed = 0;
+          for (const p of cycleProtocols) {
+            const s = new Date(p.start_date + 'T12:00:00');
+            const e = p.end_date ? new Date(p.end_date + 'T12:00:00') : new Date();
+            cycleDaysUsed += Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
+          }
+
+          if (cycleDaysUsed >= maxDays) {
+            // Cycle exhausted — check if off period has passed
+            const latestEnd = cycleProtocols
+              .filter(p => p.end_date)
+              .map(p => new Date(p.end_date + 'T12:00:00'))
+              .sort((a, b) => b - a)[0];
+
+            const offEnd = latestEnd ? new Date(latestEnd) : new Date();
+            offEnd.setDate(offEnd.getDate() + offDays);
+
+            if (new Date() >= offEnd) {
+              // Off period passed — start new cycle
+              cycleStartDate = start_date || new Date().toISOString().split('T')[0];
+            } else {
+              // Still in off period — start new cycle anyway but warn (handled by client)
+              cycleStartDate = start_date || new Date().toISOString().split('T')[0];
+            }
+          } else {
+            // Cycle not exhausted — continue same cycle
+            cycleStartDate = latestCycleDate;
+          }
+        } else {
+          // No cycle_start_date on existing protocols — infer from earliest matching protocol
+          const earliest = matchingProtocols.sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+
+          // Calculate total days across all matching protocols
+          let totalDaysUsed = 0;
+          let latestEndDate = null;
+          for (const p of matchingProtocols) {
+            const s = new Date(p.start_date + 'T12:00:00');
+            const e = p.end_date ? new Date(p.end_date + 'T12:00:00') : new Date();
+            totalDaysUsed += Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
+            if (!latestEndDate || e > latestEndDate) latestEndDate = e;
+          }
+
+          if (totalDaysUsed >= maxDays) {
+            // Inferred cycle exhausted — start new cycle
+            cycleStartDate = start_date || new Date().toISOString().split('T')[0];
+          } else {
+            // Continue inferred cycle — use earliest start_date as cycle start
+            cycleStartDate = earliest.start_date;
+            // Backfill cycle_start_date on existing matching protocols
+            for (const p of matchingProtocols) {
+              await supabase
+                .from('protocols')
+                .update({ cycle_start_date: earliest.start_date })
+                .eq('id', p.id);
+            }
+          }
+        }
+      }
+    }
+
     // Create protocol — use actual DB column names only
     const protocolData = {
       patient_id: resolvedPatientId,
@@ -83,6 +181,7 @@ export default async function handler(req, res) {
       status: status || 'active',
       access_token: accessToken,
       sessions_used: 0,
+      cycle_start_date: cycleStartDate,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };

@@ -2,6 +2,7 @@
 // GET cycle status for a patient's peptide protocols (recovery or GH)
 // Query param: cycleType ("recovery" | "gh", defaults to "recovery")
 // Returns cycle days used, remaining, sub-protocols, and off-period info
+// Works with or without cycle_start_date — falls back to date-based grouping
 
 import { createClient } from '@supabase/supabase-js';
 import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
@@ -28,14 +29,12 @@ export default async function handler(req, res) {
   const offDays = cycleType === 'gh' ? GH_CYCLE_OFF_DAYS : RECOVERY_CYCLE_OFF_DAYS;
 
   try {
-    // Fetch all peptide protocols for this patient that have a cycle_start_date
+    // Fetch ALL peptide protocols for this patient (not just those with cycle_start_date)
     const { data: protocols, error } = await supabase
       .from('protocols')
-      .select('id, medication, start_date, end_date, status, cycle_start_date, program_type')
+      .select('id, medication, start_date, end_date, status, cycle_start_date, program_type, program_name')
       .eq('patient_id', patientId)
-      .eq('program_type', 'peptide')
       .not('status', 'in', '("cancelled","merged")')
-      .not('cycle_start_date', 'is', null)
       .order('start_date', { ascending: true });
 
     if (error) {
@@ -43,8 +42,19 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    // Filter to only the requested peptide type
-    const matchingProtocols = (protocols || []).filter(p => filterFn(p.medication));
+    // Filter to only the requested peptide type by medication name
+    // Also include protocols with peptide-like program types as fallback
+    const matchingProtocols = (protocols || []).filter(p => {
+      if (filterFn(p.medication)) return true;
+      // Fallback: check program_type / program_name for recovery peptides
+      if (cycleType === 'recovery') {
+        const pt = (p.program_type || '').toLowerCase();
+        const pn = (p.program_name || '').toLowerCase();
+        return pt.includes('recovery') || pt.includes('peptide') ||
+               pn.includes('recovery') || pn.includes('bpc') || pn.includes('thymosin');
+      }
+      return false;
+    });
 
     if (matchingProtocols.length === 0) {
       return res.status(200).json({
@@ -62,16 +72,27 @@ export default async function handler(req, res) {
       });
     }
 
-    // Find the latest cycle (most recent cycle_start_date)
-    const cycleGroups = {};
-    for (const p of matchingProtocols) {
-      const key = p.cycle_start_date;
-      if (!cycleGroups[key]) cycleGroups[key] = [];
-      cycleGroups[key].push(p);
-    }
+    // Try to group by cycle_start_date first
+    const withCycle = matchingProtocols.filter(p => p.cycle_start_date);
+    let cycleProtocols;
+    let latestCycleDate;
 
-    const latestCycleDate = Object.keys(cycleGroups).sort().pop();
-    const cycleProtocols = cycleGroups[latestCycleDate];
+    if (withCycle.length > 0) {
+      // Group by cycle_start_date
+      const cycleGroups = {};
+      for (const p of withCycle) {
+        const key = p.cycle_start_date;
+        if (!cycleGroups[key]) cycleGroups[key] = [];
+        cycleGroups[key].push(p);
+      }
+      latestCycleDate = Object.keys(cycleGroups).sort().pop();
+      cycleProtocols = cycleGroups[latestCycleDate];
+    } else {
+      // Fallback: group all consecutive protocols as one cycle
+      // Use the earliest start_date as the cycle start
+      latestCycleDate = matchingProtocols[0].start_date;
+      cycleProtocols = matchingProtocols;
+    }
 
     // Calculate total days used in this cycle
     let cycleDaysUsed = 0;
@@ -96,7 +117,6 @@ export default async function handler(req, res) {
     // Calculate off period end date if cycle is exhausted
     let offPeriodEnds = null;
     if (cycleExhausted) {
-      // Find the latest end_date in this cycle
       const latestEnd = cycleProtocols
         .filter(p => p.end_date)
         .map(p => new Date(p.end_date + 'T12:00:00'))

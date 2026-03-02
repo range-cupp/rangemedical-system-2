@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     }
 
     // Create protocol_sessions for the injection calendar
-    const totalDays = duration_days || total_sessions || 10;
+    const totalDays = body.duration_days || total_sessions || 10;
     const startDateObj = new Date(start_date || new Date());
     const sessions = [];
 

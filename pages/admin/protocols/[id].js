@@ -8,153 +8,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
-
-// Protocol Types
-const PROTOCOL_TYPES = {
-  peptide: {
-    name: 'Recovery Peptide',
-    programTypes: ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'peptide'],
-    medications: ['BPC-157 / Thymosin Beta-4'],
-    dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
-    frequencies: [
-      { value: 'daily', label: 'Daily' },
-      { value: '2x_daily', label: 'Twice Daily' }
-    ],
-    durations: [
-      { value: 7, label: '7 days' },
-      { value: 10, label: '10 days' },
-      { value: 14, label: '14 days' },
-      { value: 20, label: '20 days' },
-      { value: 30, label: '30 days' }
-    ]
-  },
-  hrt_male: {
-    name: 'HRT Protocol',
-    programTypes: ['hrt_male_membership', 'hrt_male'],
-    medications: ['Testosterone Cypionate 200mg/ml'],
-    dosages: ['0.3ml / 60mg', '0.4ml / 80mg', '0.5ml / 100mg'],
-    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
-    ongoing: true
-  },
-  hrt_female: {
-    name: 'HRT Protocol',
-    programTypes: ['hrt_female_membership', 'hrt_female'],
-    medications: ['Testosterone Cypionate 100mg/ml'],
-    dosages: ['0.1ml / 10mg', '0.2ml / 20mg', '0.3ml / 30mg', '0.4ml / 40mg', '0.5ml / 50mg'],
-    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
-    ongoing: true
-  },
-  weight_loss_semaglutide: {
-    name: 'Weight Loss - Semaglutide',
-    programTypes: ['weight_loss_program', 'weight_loss_semaglutide'],
-    medications: ['Semaglutide'],
-    dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'],
-    frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    ongoing: true
-  },
-  weight_loss_tirzepatide: {
-    name: 'Weight Loss - Tirzepatide',
-    programTypes: ['weight_loss_tirzepatide'],
-    medications: ['Tirzepatide'],
-    dosages: ['2.5mg', '5.0mg', '7.5mg', '10.0mg', '12.5mg'],
-    frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    ongoing: true
-  },
-  weight_loss_retatrutide: {
-    name: 'Weight Loss - Retatrutide',
-    programTypes: ['weight_loss_retatrutide'],
-    medications: ['Retatrutide'],
-    dosages: ['2mg', '4mg', '6mg', '8mg', '10mg', '12mg'],
-    frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    ongoing: true
-  },
-  single_injection: {
-    name: 'Single Injection',
-    programTypes: ['single_injection'],
-    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
-    injections: [1],
-    frequencies: [{ value: 'single', label: 'Single injection' }],
-    hasDosageNotes: true
-  },
-  injection_pack: {
-    name: 'Injection Pack',
-    programTypes: ['injection_pack', 'injection'],
-    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
-    injections: [5, 10, 12, 20, 24],
-    frequencies: [
-      { value: '1x_weekly', label: '1x per week' },
-      { value: '2x_weekly', label: '2x per week' },
-      { value: '3x_weekly', label: '3x per week' },
-      { value: '4x_weekly', label: '4x per week' },
-      { value: '5x_weekly', label: '5x per week' },
-      { value: '6x_weekly', label: '6x per week' },
-      { value: '7x_weekly', label: '7x per week' }
-    ],
-    hasDosageNotes: true
-  },
-  red_light: {
-    name: 'Red Light Therapy',
-    programTypes: ['red_light_sessions', 'red_light'],
-    sessions: [1, 5, 10, 20],
-    frequencies: [{ value: 'per_session', label: 'Per session' }]
-  },
-  hbot: {
-    name: 'Hyperbaric Oxygen Therapy',
-    programTypes: ['hbot_sessions', 'hbot'],
-    sessions: [1, 5, 10, 20],
-    frequencies: [{ value: 'per_session', label: 'Per session' }]
-  },
-  iv_therapy: {
-    name: 'IV Therapy',
-    programTypes: ['iv_therapy'],
-    medications: [
-      'Range IV',
-      'NAD+ IV 250mg',
-      'NAD+ IV 500mg',
-      'NAD+ IV 750mg',
-      'NAD+ IV 1000mg',
-      'Glutathione IV 1g',
-      'Glutathione IV 2g',
-      'Glutathione IV 3g',
-      'Vitamin C IV 25g',
-      'Vitamin C IV 50g',
-      'Vitamin C IV 75g',
-      'Methylene Blue IV',
-      'MB + Vit C + Mag Combo',
-      'Exosome IV',
-      'BYO IV',
-      'Hydration IV'
-    ],
-    sessions: [1, 5, 10],
-    frequencies: [{ value: 'per_session', label: 'Per session' }]
-  }
-};
-
-function detectProtocolType(programType, medication) {
-  if (!programType) return 'peptide';
-  const pt = programType.toLowerCase();
-  const med = (medication || '').toLowerCase();
-  
-  // Check weight loss by medication first
-  if (pt.includes('weight_loss') || med.includes('semaglutide') || med.includes('tirzepatide') || med.includes('retatrutide')) {
-    if (med.includes('tirzepatide')) return 'weight_loss_tirzepatide';
-    if (med.includes('retatrutide')) return 'weight_loss_retatrutide';
-    return 'weight_loss_semaglutide';
-  }
-  
-  // Check HRT by gender hint
-  if (pt.includes('hrt')) {
-    if (pt.includes('female') || med.includes('100mg/ml')) return 'hrt_female';
-    return 'hrt_male';
-  }
-  
-  for (const [key, config] of Object.entries(PROTOCOL_TYPES)) {
-    if (config.programTypes?.some(t => pt.includes(t.toLowerCase()))) {
-      return key;
-    }
-  }
-  return 'peptide';
-}
+import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType } from '../../../lib/protocol-types';
 
 // Normalize freetext frequency values to standard codes
 function normalizeFrequencyValue(freq) {
@@ -549,17 +403,6 @@ export default function ProtocolDetail() {
     setSuccess('');
 
     try {
-      const programTypeMap = {
-        'peptide': form.duration == 10 ? 'recovery_jumpstart_10day' : 
-                   form.duration == 30 ? 'month_program_30day' : 'recovery_jumpstart_10day',
-        'hrt': 'hrt_male_membership',
-        'weight_loss': 'weight_loss_program',
-        'red_light': 'red_light_sessions',
-        'hbot': 'hbot_sessions',
-        'iv_therapy': 'iv_therapy',
-        'injection_pack': 'injection_pack'
-      };
-
       // Calculate end date using effective days (twice daily = half the calendar days)
       const effectiveDays = getEffectiveDays(parseInt(form.duration), form.frequency);
       let endDate = null;
@@ -576,7 +419,7 @@ export default function ProtocolDetail() {
           patient_name: form.patientName,
           patient_phone: form.patientPhone,
           patient_email: form.patientEmail,
-          program_type: programTypeMap[form.protocolType] || protocol.program_type,
+          program_type: getDBProgramType(form.protocolType, form.duration),
           // Use actual DB column names (single source of truth)
           medication: form.medication,
           selected_dose: form.dosage,

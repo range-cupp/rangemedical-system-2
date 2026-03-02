@@ -6,149 +6,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import AdminNav from '../../../components/AdminNav';
-
-// Protocol Types Configuration
-const PROTOCOL_TYPES = {
-  peptide: {
-    name: 'Recovery Peptide',
-    category: 'Peptide',
-    medications: ['BPC-157 / Thymosin Beta-4'],
-    dosages: ['500mcg / 500mcg', '500mcg', '250mcg'],
-    frequencies: [
-      { value: 'daily', label: 'Daily' },
-      { value: '2x_daily', label: 'Twice Daily' }
-    ],
-    durations: [
-      { value: 7, label: '7 days' },
-      { value: 10, label: '10 days' },
-      { value: 14, label: '14 days' },
-      { value: 20, label: '20 days' },
-      { value: 30, label: '30 days' }
-    ]
-  },
-  hrt_male: {
-    name: 'HRT Protocol',
-    category: 'HRT',
-    medications: ['Testosterone Cypionate 200mg/ml'],
-    dosages: ['0.3ml / 60mg', '0.4ml / 80mg', '0.5ml / 100mg'],
-    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
-    ongoing: true
-  },
-  hrt_female: {
-    name: 'HRT Protocol',
-    category: 'HRT',
-    medications: ['Testosterone Cypionate 100mg/ml'],
-    dosages: ['0.1ml / 10mg', '0.2ml / 20mg', '0.3ml / 30mg', '0.4ml / 40mg', '0.5ml / 50mg'],
-    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
-    ongoing: true
-  },
-  weight_loss_semaglutide: {
-    name: 'Semaglutide',
-    category: 'Weight Loss',
-    medications: ['Semaglutide'],
-    dosages: ['0.25mg', '0.5mg', '1.0mg', '1.7mg', '2.4mg'],
-    frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    injections: [
-      { value: 4, label: '4 injections (1 month)' },
-      { value: 8, label: '8 injections (2 months)' },
-      { value: 12, label: '12 injections (3 months)' }
-    ]
-  },
-  weight_loss_tirzepatide: {
-    name: 'Tirzepatide',
-    category: 'Weight Loss',
-    medications: ['Tirzepatide'],
-    dosages: ['2.5mg', '5.0mg', '7.5mg', '10.0mg', '12.5mg'],
-    frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    injections: [
-      { value: 4, label: '4 injections (1 month)' },
-      { value: 8, label: '8 injections (2 months)' },
-      { value: 12, label: '12 injections (3 months)' }
-    ]
-  },
-  weight_loss_retatrutide: {
-    name: 'Retatrutide',
-    category: 'Weight Loss',
-    medications: ['Retatrutide'],
-    dosages: ['2mg', '4mg', '6mg', '8mg', '10mg', '12mg'],
-    frequencies: [{ value: 'weekly', label: 'Once per week' }],
-    injections: [
-      { value: 4, label: '4 injections (1 month)' },
-      { value: 8, label: '8 injections (2 months)' },
-      { value: 12, label: '12 injections (3 months)' }
-    ]
-  },
-  single_injection: {
-    name: 'Single Injection',
-    category: 'Injection',
-    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
-    injections: [1],
-    frequencies: [{ value: 'single', label: 'Single injection' }],
-    hasDosageNotes: true
-  },
-  injection_pack: {
-    name: 'Injection Pack',
-    category: 'Injection',
-    medications: ['Amino Blend', 'B12', 'B-Complex', 'Biotin', 'Vitamin D3', 'NAC', 'BCAA', 'L-Carnitine', 'Glutathione', 'NAD+'],
-    injections: [5, 10, 12, 20, 24],
-    frequencies: [
-      { value: '1x_weekly', label: '1x per week' },
-      { value: '2x_weekly', label: '2x per week' },
-      { value: '3x_weekly', label: '3x per week' },
-      { value: '4x_weekly', label: '4x per week' },
-      { value: '5x_weekly', label: '5x per week' },
-      { value: '6x_weekly', label: '6x per week' },
-      { value: '7x_weekly', label: '7x per week' }
-    ],
-    hasDosageNotes: true
-  },
-  red_light: {
-    name: 'Red Light Therapy',
-    category: 'Red Light',
-    sessions: [1, 5, 10, 20],
-    frequencies: [{ value: 'per_session', label: 'Per session' }]
-  },
-  hbot: {
-    name: 'HBOT',
-    category: 'Hyperbaric',
-    sessions: [1, 5, 10, 20],
-    frequencies: [{ value: 'per_session', label: 'Per session' }]
-  },
-  iv_therapy: {
-    name: 'IV Therapy',
-    category: 'IV Therapy',
-    medications: [
-      'Range IV',
-      'NAD+ IV 250mg',
-      'NAD+ IV 500mg',
-      'NAD+ IV 750mg',
-      'NAD+ IV 1000mg',
-      'Glutathione IV 1g',
-      'Glutathione IV 2g',
-      'Glutathione IV 3g',
-      'Vitamin C IV 25g',
-      'Vitamin C IV 50g',
-      'Vitamin C IV 75g',
-      'Methylene Blue IV',
-      'MB + Vit C + Mag Combo',
-      'Exosome IV',
-      'BYO IV',
-      'Hydration IV'
-    ],
-    sessions: [1, 5, 10],
-    frequencies: [{ value: 'per_session', label: 'Per session' }]
-  }
-};
-
-const CATEGORY_TO_TYPE = {
-  'Peptide': 'peptide',
-  'HRT': 'hrt_male',
-  'Weight Loss': 'weight_loss_semaglutide',
-  'Red Light': 'red_light',
-  'Hyperbaric': 'hbot',
-  'IV Therapy': 'iv_therapy',
-  'Injection': 'single_injection'
-};
+import { PROTOCOL_TYPES, CATEGORY_TO_TYPE, getDBProgramType } from '../../../lib/protocol-types';
 
 // Classify purchase into action type: 'protocol' | 'session' | 'product'
 function getPurchaseActionType(purchase) {
@@ -526,20 +384,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     setError(null);
 
     try {
-      const programTypeMap = {
-        'peptide': form.duration == 10 ? 'recovery_jumpstart_10day' : 
-                   form.duration == 30 ? 'month_program_30day' : 'recovery_jumpstart_10day',
-        'hrt_male': 'hrt_male_membership',
-        'hrt_female': 'hrt_female_membership',
-        'weight_loss_semaglutide': 'weight_loss_program',
-        'weight_loss_tirzepatide': 'weight_loss_program',
-        'weight_loss_retatrutide': 'weight_loss_program',
-        'single_injection': 'injection_pack',
-        'injection_pack': 'injection_pack',
-        'red_light': 'red_light_sessions',
-        'hbot': 'hbot_sessions',
-        'iv_therapy': 'iv_therapy'
-      };
+      const dbProgramType = getDBProgramType(form.protocolType, form.duration);
 
       const buildProtocolName = () => {
         const type = form.protocolType;
@@ -596,7 +441,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         patient_phone: patientPhone,
         purchase_id: purchase.id,
         program_name: buildProtocolName(),
-        program_type: programTypeMap[form.protocolType] || 'recovery_jumpstart_10day',
+        program_type: dbProgramType,
         // Use actual DB column names (single source of truth)
         medication: form.medication,
         selected_dose: form.dosage || form.dosageNotes || '',
@@ -616,8 +461,12 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.details || data.error || 'Failed to create protocol');
+        let errorMsg = 'Failed to create protocol';
+        try {
+          const data = await res.json();
+          errorMsg = data.details || data.error || errorMsg;
+        } catch (e) { /* response may be empty */ }
+        throw new Error(errorMsg);
       }
 
       onSuccess();

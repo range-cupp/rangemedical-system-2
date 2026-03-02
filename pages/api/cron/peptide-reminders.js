@@ -1,7 +1,7 @@
 // /pages/api/cron/peptide-reminders.js
 // Daily cron for recovery peptide protocols
 // Runs at 8:00 AM PST (0 16 * * * UTC) — handles:
-//   1. Context-aware weekly check-ins (Week N of Total) with check-in form link
+//   1. Weekly check-ins (every 7 days) with check-in form link
 //   2. Protocol ending alert (internal system alert for staff follow-up)
 // Range Medical
 
@@ -186,7 +186,6 @@ export default async function handler(req, res) {
 
       // -------------------------------------------------------
       // 1. WEEKLY CHECK-IN: fires every 7 days (with 2-day catch-up window)
-      //    Context-aware: "Week N of Total"
       // -------------------------------------------------------
       if (totalWeeks >= 1) {
         let sentThisRun = false;
@@ -201,7 +200,7 @@ export default async function handler(req, res) {
 
             if (!logSet.has(logKey)) {
               const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId}`;
-              const message = `Hi ${firstName}! Week ${weekNum} of ${totalWeeks} check-in on your recovery peptide protocol. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
+              const message = `Hi ${firstName}! Time for your recovery peptide check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
 
               const smsResult = await sendSMS(ghlContactId, message);
               if (smsResult.success) {

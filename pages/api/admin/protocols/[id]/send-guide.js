@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../../../lib/comms-log';
+import { syncPatientContactToGHL } from '../../../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -31,10 +32,10 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // Get patient info
+    // Get patient info — patient profile is the source of truth for phone/contact data
     const { data: patient } = await supabase
       .from('patients')
-      .select('id, name, first_name, ghl_contact_id')
+      .select('id, name, first_name, ghl_contact_id, phone, email')
       .eq('id', protocol.patient_id)
       .single();
 
@@ -44,6 +45,11 @@ export default async function handler(req, res) {
     }
 
     const firstName = patient?.first_name || (patient?.name ? patient.name.split(' ')[0] : 'there');
+
+    // Sync patient's current phone to GHL before sending (source of truth = patient profile)
+    if (patient?.phone) {
+      await syncPatientContactToGHL(ghlContactId, { phone: patient.phone });
+    }
 
     // Check if guide was already sent (check protocol flag AND protocol_logs)
     if (protocol.peptide_guide_sent) {

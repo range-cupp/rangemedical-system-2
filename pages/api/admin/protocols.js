@@ -32,7 +32,6 @@ export default async function handler(req, res) {
       special_instructions,
       reminders_enabled,
       status,
-      amount,
       notes
     } = req.body;
 
@@ -88,7 +87,6 @@ export default async function handler(req, res) {
       notes: notes || null,
       reminders_enabled: reminders_enabled !== false,
       status: status || 'active',
-      amount: amount || null,
       access_token: accessToken,
       injections_completed: 0,
       created_at: new Date().toISOString(),

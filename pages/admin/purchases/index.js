@@ -561,9 +561,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                       style={modalStyles.select}
                     >
                       <option value="">Select...</option>
-                      {selectedType.dosages.map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
+                      {selectedType.dosages.map(d => {
+                        const val = typeof d === 'object' ? d.value : d;
+                        const lbl = typeof d === 'object' ? d.label : d;
+                        return <option key={val} value={val}>{lbl}</option>;
+                      })}
                     </select>
                   </div>
                 )}

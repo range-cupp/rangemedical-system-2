@@ -5,10 +5,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatPhone } from '../lib/format-utils';
 import { WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES } from '../lib/protocol-config';
+import { PROTOCOL_TYPES, getDeliveryLabel } from '../lib/protocol-types';
 import SignatureCanvas from './SignatureCanvas';
 
 // ============================================
-// SERVICE CONFIGURATION
+// SERVICE CONFIGURATION — derived from /lib/protocol-types.js (single source of truth)
 // ============================================
 
 const SERVICE_TYPES = [
@@ -22,86 +23,50 @@ const SERVICE_TYPES = [
   { id: 'supplement', label: 'Supplement / Product', icon: '🧴', programType: 'supplement' }
 ];
 
+// HRT dosages & delivery — from protocol-types single source of truth
 const TESTOSTERONE_OPTIONS = {
   male: {
-    label: 'Male HRT (200mg/ml)',
-    dosages: [
-      { value: '0.2ml/40mg', label: '0.2ml (40mg)' },
-      { value: '0.3ml/60mg', label: '0.3ml (60mg)' },
-      { value: '0.35ml/70mg', label: '0.35ml (70mg)' },
-      { value: '0.4ml/80mg', label: '0.4ml (80mg)' },
-      { value: '0.5ml/100mg', label: '0.5ml (100mg)' },
-      { value: 'custom', label: 'Custom dose' }
-    ]
+    label: PROTOCOL_TYPES.hrt_male.medications[0],
+    dosages: PROTOCOL_TYPES.hrt_male.dosages,
+    deliveryMethods: PROTOCOL_TYPES.hrt_male.deliveryMethods
   },
   female: {
-    label: 'Female HRT (100mg/ml)',
-    dosages: [
-      { value: '0.1ml/10mg', label: '0.1ml (10mg)' },
-      { value: '0.15ml/15mg', label: '0.15ml (15mg)' },
-      { value: '0.2ml/20mg', label: '0.2ml (20mg)' },
-      { value: '0.25ml/25mg', label: '0.25ml (25mg)' },
-      { value: '0.3ml/30mg', label: '0.3ml (30mg)' },
-      { value: '0.4ml/40mg', label: '0.4ml (40mg)' },
-      { value: '0.5ml/50mg', label: '0.5ml (50mg)' },
-      { value: 'custom', label: 'Custom dose' }
-    ]
+    label: PROTOCOL_TYPES.hrt_female.medications[0],
+    dosages: PROTOCOL_TYPES.hrt_female.dosages,
+    deliveryMethods: PROTOCOL_TYPES.hrt_female.deliveryMethods
   }
 };
 
+// Weight loss — from protocol-config (already shared)
 const WEIGHT_LOSS_MEDS = WEIGHT_LOSS_MEDICATIONS.map(med => ({
   value: med, label: med, dosages: WEIGHT_LOSS_DOSAGES[med] || []
 }));
 
+// Vitamins / injections — from protocol-types single source of truth + service-specific extras
+const _injectionMeds = PROTOCOL_TYPES.single_injection.medications;
 const VITAMIN_OPTIONS = [
-  { value: 'B12', label: 'B12' },
-  { value: 'B-Complex', label: 'B-Complex' },
-  { value: 'Amino Blend', label: 'Amino Blend' },
-  { value: 'Biotin', label: 'Biotin' },
-  { value: 'Vitamin D3', label: 'Vitamin D3' },
-  { value: 'Glutathione', label: 'Glutathione' },
+  ..._injectionMeds.map(m => ({ value: m, label: m })),
+  // Service-log extras not sold as standalone protocols
   { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
   { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
-  { value: 'L-Carnitine', label: 'L-Carnitine' },
   { value: 'Lipo-C', label: 'Lipo-C' },
   { value: 'Taurine', label: 'Taurine' },
   { value: 'Toradol', label: 'Toradol' }
 ];
 
+// Peptides — from protocol-types single source of truth (recovery + GH)
+const _recoveryMeds = PROTOCOL_TYPES.peptide.medications;
+const _ghMeds = PROTOCOL_TYPES.gh_peptide.medications;
+const _allPeptideMeds = [...new Set([..._recoveryMeds, ..._ghMeds])];
 const PEPTIDE_OPTIONS = [
-  { value: 'BPC-157', label: 'BPC-157' },
-  { value: 'TB-500', label: 'TB-500' },
-  { value: 'BPC-157/TB-500', label: 'BPC-157 + TB-500' },
-  { value: 'BPC-157/Thymosin Beta 4', label: 'BPC-157 + Thymosin Beta 4' },
-  { value: 'Sermorelin', label: 'Sermorelin' },
-  { value: 'Tesamorelin', label: 'Tesamorelin' },
-  { value: 'CJC-1295/Ipamorelin', label: 'CJC-1295/Ipamorelin' },
-  { value: 'PT-141', label: 'PT-141' },
-  { value: 'Semax', label: 'Semax' },
-  { value: 'Selank', label: 'Selank' },
-  { value: 'MOTS-C', label: 'MOTS-C' },
-  { value: 'SS-31', label: 'SS-31' },
-  { value: 'AOD-9604', label: 'AOD-9604' },
+  ..._allPeptideMeds.map(m => ({ value: m, label: m })),
   { value: 'Other', label: 'Other (specify in notes)' }
 ];
 
-const IV_OPTIONS = [
-  { value: 'Range Energy IV', label: 'Range Energy IV' },
-  { value: 'Range Hydration IV', label: 'Range Hydration IV' },
-  { value: 'Range Immune IV', label: 'Range Immune IV' },
-  { value: 'Range Glow IV', label: 'Range Glow IV' },
-  { value: 'Range Brain IV', label: 'Range Brain IV' },
-  { value: 'Range Performance IV', label: 'Range Performance IV' },
-  { value: 'Range NAD+ IV 250mg', label: 'Range NAD+ IV 250mg' },
-  { value: 'Range NAD+ IV 500mg', label: 'Range NAD+ IV 500mg' },
-  { value: 'Range NAD+ IV 750mg', label: 'Range NAD+ IV 750mg' },
-  { value: 'Range NAD+ IV 1000mg', label: 'Range NAD+ IV 1000mg' },
-  { value: 'Range Methylene Blue IV', label: 'Range Methylene Blue IV' },
-  { value: 'Range High-Dose Vitamin C', label: 'Range High-Dose Vitamin C' },
-  { value: 'Range Magnesium IV', label: 'Range Magnesium IV' },
-  { value: 'Custom Range IV', label: 'Custom Range IV' }
-];
+// IV Therapy — from protocol-types single source of truth
+const IV_OPTIONS = PROTOCOL_TYPES.iv_therapy.medications.map(m => ({ value: m, label: m }));
 
+// Supplements — service-log only (not protocol-based)
 const SUPPLEMENT_OPTIONS = [
   { value: 'Boron', label: 'Boron' },
   { value: 'DIM', label: 'DIM' },
@@ -113,51 +78,36 @@ const SUPPLEMENT_OPTIONS = [
   { value: 'Other', label: 'Other (specify in notes)' }
 ];
 
+// Protocol config — frequencies & durations from protocol-types
 const PROTOCOL_CONFIG = {
   peptide: {
-    frequencies: [
-      { value: 'daily', label: 'Daily' },
-      { value: '2x_daily', label: 'Twice Daily' }
-    ],
-    durations: [
-      { value: 7, label: '7 days' },
-      { value: 10, label: '10 days' },
-      { value: 14, label: '14 days' },
-      { value: 20, label: '20 days' },
-      { value: 30, label: '30 days' }
-    ]
+    frequencies: PROTOCOL_TYPES.peptide.frequencies,
+    durations: PROTOCOL_TYPES.peptide.durations
   },
   hrt: {
-    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
-    supplyTypes: [
-      { value: 'prefilled', label: 'Prefilled Syringes (8/month)' },
-      { value: 'vial', label: 'Vial (10ml)' }
-    ]
+    frequencies: PROTOCOL_TYPES.hrt_male.frequencies,
+    deliveryMethods: PROTOCOL_TYPES.hrt_male.deliveryMethods
   },
   weight_loss: {
-    frequencies: [{ value: 'weekly', label: 'Once per week' }]
+    frequencies: PROTOCOL_TYPES.weight_loss_semaglutide.frequencies
   },
   vitamin: {
     frequencies: [
-      { value: 'daily', label: 'Daily' },
-      { value: '5x_weekly', label: '5 times a week' },
-      { value: '4x_weekly', label: '4 times a week' },
-      { value: '3x_weekly', label: '3 times a week' },
-      { value: '2x_weekly', label: '2 times a week' },
-      { value: 'weekly', label: '1 time a week' }
+      ...PROTOCOL_TYPES.injection_pack.frequencies,
+      { value: 'daily', label: 'Daily' }
     ]
   },
   iv_therapy: {
     frequencies: [{ value: 'as_scheduled', label: 'As scheduled' }],
-    sessions: [1, 5, 10, 20]
+    sessions: PROTOCOL_TYPES.iv_therapy.sessions
   },
   hbot: {
     frequencies: [{ value: 'as_scheduled', label: 'As scheduled' }],
-    sessions: [1, 5, 10, 20, 40]
+    sessions: [...PROTOCOL_TYPES.hbot.sessions, 40]
   },
   red_light: {
     frequencies: [{ value: 'as_scheduled', label: 'As scheduled' }],
-    sessions: [1, 5, 10, 20]
+    sessions: PROTOCOL_TYPES.red_light.sessions
   }
 };
 
@@ -203,6 +153,7 @@ export default function ServiceLogContent() {
     weight: '',
     quantity: 1,
     pickup_type: 'vial',
+    delivery_method: '', // From protocol-types deliveryMethods (prefilled_1..8 or vial)
     duration: 60,
     notes: ''
   });
@@ -363,6 +314,7 @@ export default function ServiceLogContent() {
       weight: '',
       quantity: 1,
       pickup_type: 'vial',
+      delivery_method: '',
       duration: 60,
       notes: ''
     });
@@ -536,10 +488,15 @@ export default function ServiceLogContent() {
           if (item.entryType === 'injection') {
             payload.dosage = item.formData.dosage === 'custom' ? item.formData.custom_dosage : item.formData.dosage;
           } else {
-            payload.supply_type = item.formData.pickup_type === 'vial' ? 'vial_10ml' :
-              item.formData.quantity === 8 ? 'prefilled_4week' : 'prefilled_2week';
-            payload.quantity = item.formData.quantity;
-            if (item.formData.pickup_type === 'vial') {
+            // Use delivery_method from shared config (prefilled_1..8 or vial)
+            const dm = item.formData.delivery_method || '';
+            const isVial = dm === 'vial';
+            const qty = isVial ? 1 : (dm.startsWith('prefilled_') ? parseInt(dm.replace('prefilled_', '')) : (item.formData.quantity || 1));
+            payload.supply_type = isVial ? 'vial_10ml' :
+              qty >= 8 ? 'prefilled_4week' : qty >= 4 ? 'prefilled_2week' : 'prefilled';
+            payload.quantity = qty;
+            payload.delivery_method = dm; // Store exact delivery method value
+            if (isVial) {
               const totalMg = item.formData.hrt_type === 'male' ? 2000 : 1000;
               const match = item.formData.dosage.match(/(\d+)mg/);
               let weeks = 12;
@@ -550,7 +507,7 @@ export default function ServiceLogContent() {
               }
               payload.dosage = `1 vial @ ${item.formData.dosage} (${weeks} weeks)`;
             } else {
-              payload.dosage = `${item.formData.quantity} prefilled @ ${item.formData.dosage}`;
+              payload.dosage = `${qty} prefilled @ ${item.formData.dosage}`;
             }
           }
         } else if (item.serviceType.id === 'weight_loss') {
@@ -1256,38 +1213,29 @@ export default function ServiceLogContent() {
                         </div>
 
                         {entryType === 'pickup' && (
-                          <>
-                            <div style={slcStyles.formGroup}>
-                              <label style={slcStyles.label}>Pickup Type</label>
-                              <select
-                                value={formData.pickup_type}
-                                onChange={(e) => setFormData(prev => ({
+                          <div style={slcStyles.formGroup}>
+                            <label style={slcStyles.label}>Dispensing</label>
+                            <select
+                              value={formData.delivery_method || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const isVial = val === 'vial';
+                                const qty = isVial ? 1 : (val.startsWith('prefilled_') ? parseInt(val.replace('prefilled_', '')) : 1);
+                                setFormData(prev => ({
                                   ...prev,
-                                  pickup_type: e.target.value,
-                                  quantity: e.target.value === 'vial' ? 1 : 4
-                                }))}
-                                style={slcStyles.select}
-                              >
-                                <option value="vial">Vial (10ml)</option>
-                                <option value="prefilled">Prefilled Syringes</option>
-                              </select>
-                            </div>
-
-                            {formData.pickup_type === 'prefilled' && (
-                              <div style={slcStyles.formGroup}>
-                                <label style={slcStyles.label}>Quantity</label>
-                                <select
-                                  value={formData.quantity}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                                  style={slcStyles.select}
-                                >
-                                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                                    <option key={n} value={n}>{n} syringe{n > 1 ? 's' : ''}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
-                          </>
+                                  delivery_method: val,
+                                  pickup_type: isVial ? 'vial' : 'prefilled',
+                                  quantity: qty
+                                }));
+                              }}
+                              style={slcStyles.select}
+                            >
+                              <option value="">Select...</option>
+                              {TESTOSTERONE_OPTIONS[formData.hrt_type].deliveryMethods.map(d => (
+                                <option key={d.value} value={d.value}>{d.label}</option>
+                              ))}
+                            </select>
+                          </div>
                         )}
 
                         {/* Protocol fields for HRT */}
@@ -1295,15 +1243,15 @@ export default function ServiceLogContent() {
                           <div style={slcStyles.protocolFields}>
                             <div style={slcStyles.protocolFieldsTitle}>Protocol Details</div>
                             <div style={slcStyles.formGroup}>
-                              <label style={slcStyles.label}>Supply Type</label>
+                              <label style={slcStyles.label}>Delivery Method</label>
                               <select
                                 value={protocolData.supplyType}
                                 onChange={(e) => setProtocolData(prev => ({ ...prev, supplyType: e.target.value }))}
                                 style={slcStyles.select}
                               >
                                 <option value="">Select...</option>
-                                {PROTOCOL_CONFIG.hrt.supplyTypes.map(s => (
-                                  <option key={s.value} value={s.value}>{s.label}</option>
+                                {PROTOCOL_CONFIG.hrt.deliveryMethods.map(d => (
+                                  <option key={d.value} value={d.value}>{d.label}</option>
                                 ))}
                               </select>
                             </div>

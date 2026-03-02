@@ -198,6 +198,7 @@ async function handlePost(req, res) {
     weight,
     quantity,
     supply_type,
+    delivery_method, // From protocol-types: prefilled_1..8 or vial
     duration,
     notes,
     protocol_id, // optional: link to a specific protocol (e.g. when patient has multiple vitamin protocols)
@@ -276,7 +277,7 @@ async function handlePost(req, res) {
 
     if (resolvedEntryType === 'pickup') {
       // For pickups, update last_refill_date and medication details on protocol
-      protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage);
+      protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage, delivery_method);
     } else if (resolvedEntryType === 'injection' || resolvedEntryType === 'session') {
       // For injections/sessions, increment session count and update medication details
       // Pass package info so incrementOrCreateProtocol can avoid double-incrementing sessions_used
@@ -551,7 +552,7 @@ async function checkAndDecrementPackage(patient_id, category, entry_type, protoc
 // PROTOCOL SYNCING
 // ============================================
 
-async function syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage) {
+async function syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage, delivery_method) {
   const programType = CATEGORY_TO_PROGRAM_TYPE[category];
   if (!programType) {
     return { updated: false, reason: 'Category not trackable' };
@@ -587,6 +588,10 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
 
     if (supply_type) {
       updateData.supply_type = supply_type;
+    }
+    // Update delivery_method on protocol (from protocol-types: prefilled_1..8 or vial)
+    if (delivery_method) {
+      updateData.delivery_method = delivery_method;
     }
     if (medication) {
       updateData.medication = medication;

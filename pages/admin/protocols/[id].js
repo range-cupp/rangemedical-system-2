@@ -8,7 +8,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
-import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType } from '../../../lib/protocol-types';
+import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
 
 // Normalize freetext frequency values to standard codes
 function normalizeFrequencyValue(freq) {
@@ -393,7 +393,8 @@ export default function ProtocolDetail() {
       ...prev,
       protocolType: type,
       frequency: typeConfig?.frequencies?.[0]?.value || 'daily',
-      deliveryMethod: (typeConfig?.sessions || typeConfig?.injections) ? 'in_clinic' : prev.deliveryMethod
+      deliveryMethod: typeConfig?.deliveryMethods?.[0]?.value ||
+        ((typeConfig?.sessions || typeConfig?.injections) ? 'in_clinic' : prev.deliveryMethod)
     }));
   };
 
@@ -650,6 +651,27 @@ export default function ProtocolDetail() {
                     month: 'long', day: 'numeric', year: 'numeric'
                   }) : 'N/A'}
                 </div>
+
+                {/* Delivery Method Badge */}
+                {protocol?.delivery_method && (
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '12px 16px',
+                    background: '#f0f9ff',
+                    borderRadius: '10px',
+                    border: '1px solid #bae6fd',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>
+                      {protocol.delivery_method === 'vial' ? '🧪' : '💉'}
+                    </span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#0369a1' }}>
+                      {getDeliveryLabel(protocol.delivery_method, form.protocolType)}
+                    </span>
+                  </div>
+                )}
 
                 {/* Status Badge */}
                 <div style={{ marginTop: '16px' }}>
@@ -1138,8 +1160,16 @@ export default function ProtocolDetail() {
                     <div style={styles.field}>
                       <label style={styles.label}>Delivery</label>
                       <select value={form.deliveryMethod} onChange={e => setForm({ ...form, deliveryMethod: e.target.value })} style={styles.select}>
-                        <option value="take_home">Take Home</option>
-                        <option value="in_clinic">In Clinic</option>
+                        {selectedType?.deliveryMethods ? (
+                          selectedType.deliveryMethods.map(d => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="take_home">Take Home</option>
+                            <option value="in_clinic">In Clinic</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div style={styles.field}>
@@ -1221,7 +1251,12 @@ export default function ProtocolDetail() {
                   </div>
                   <div style={styles.detailItem}>
                     <div style={styles.detailLabel}>Delivery</div>
-                    <div style={styles.detailValue}>{protocol?.injection_location === 'take_home' ? '🏠 Take Home' : '🏥 In Clinic'}</div>
+                    <div style={styles.detailValue}>
+                      {protocol?.delivery_method?.startsWith('prefilled_') ? '💉 ' :
+                       protocol?.delivery_method === 'vial' ? '🧪 ' :
+                       protocol?.delivery_method === 'take_home' ? '🏠 ' : '🏥 '}
+                      {getDeliveryLabel(protocol?.delivery_method, form.protocolType) || '—'}
+                    </div>
                   </div>
                   <div style={styles.detailItem}>
                     <div style={styles.detailLabel}>Start Date</div>

@@ -292,7 +292,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     dosage: '',
     dosageNotes: '',
     frequency: PROTOCOL_TYPES[initialType]?.frequencies?.[0]?.value || 'daily',
-    deliveryMethod: 'take_home',
+    deliveryMethod: PROTOCOL_TYPES[initialType]?.deliveryMethods?.[0]?.value || 'take_home',
     startDate: new Date().toISOString().split('T')[0],
     duration: PROTOCOL_TYPES[initialType]?.durations?.[0]?.value || 10,
     totalSessions: PROTOCOL_TYPES[initialType]?.sessions?.[0] || 1,
@@ -351,7 +351,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     // Handle both object {value, label} and plain number formats for injections
     const firstInjection = typeConfig?.injections?.[0];
     const injectionValue = typeof firstInjection === 'object' ? firstInjection.value : firstInjection;
-    
+
     setForm(prev => ({
       ...prev,
       protocolType: type,
@@ -359,6 +359,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       dosage: '',
       dosageNotes: '',
       frequency: typeConfig?.frequencies?.[0]?.value || 'daily',
+      deliveryMethod: typeConfig?.deliveryMethods?.[0]?.value || 'take_home',
       duration: typeConfig?.durations?.[0]?.value || 10,
       totalSessions: typeConfig?.sessions?.[0] || 1,
       totalInjections: injectionValue || 4
@@ -596,6 +597,25 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                   {selectedType?.frequencies?.map(f => (
                     <option key={f.value} value={f.value}>{f.label}</option>
                   ))}
+                </select>
+              </div>
+              <div style={modalStyles.field}>
+                <label style={modalStyles.label}>Delivery</label>
+                <select
+                  value={form.deliveryMethod}
+                  onChange={e => setForm({ ...form, deliveryMethod: e.target.value })}
+                  style={modalStyles.select}
+                >
+                  {selectedType?.deliveryMethods ? (
+                    selectedType.deliveryMethods.map(d => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="take_home">Take Home</option>
+                      <option value="in_clinic">In Clinic</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div style={modalStyles.field}>

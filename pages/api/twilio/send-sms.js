@@ -1,5 +1,6 @@
 // /pages/api/twilio/send-sms.js
-// Send SMS directly via Twilio (bypasses GHL)
+// Send SMS via GHL API (primary) or Twilio (future fallback)
+// GHL manages the business phone number until it's transferred to Twilio
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
@@ -10,6 +11,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const GHL_API_KEY = process.env.GHL_API_KEY;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -18,7 +21,7 @@ export default async function handler(req, res) {
   const {
     patient_id,
     patient_name,
-    to,           // phone number in E.164 format
+    to,           // phone number
     message,
     message_type, // optional: label for comms_log
   } = req.body;
@@ -33,152 +36,158 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid phone number' });
   }
 
+  // Primary: Send via GHL (manages the business phone number)
+  if (GHL_API_KEY && patient_id) {
+    try {
+      const result = await sendViaGHL({ patient_id, patient_name, to: normalizedTo, message, message_type });
+      if (result.success) {
+        return res.status(200).json(result);
+      }
+      // If GHL fails, log and continue to Twilio fallback
+      console.log('GHL SMS failed, trying Twilio fallback:', result.error);
+    } catch (err) {
+      console.error('GHL SMS error:', err.message);
+    }
+  }
+
+  // Fallback: Send via Twilio (for when number is transferred)
   const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
   const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
   const fromNumber = (process.env.TWILIO_PHONE_NUMBER || '').trim();
   const messagingServiceSid = (process.env.TWILIO_MESSAGING_SERVICE_SID || '').trim();
 
-  if (!accountSid || !authToken || (!fromNumber && !messagingServiceSid)) {
-    // Fall back to GHL if Twilio is not configured
-    return fallbackToGHL(req, res, { patient_id, to: normalizedTo, message, patient_name, message_type });
-  }
+  if (accountSid && authToken && (fromNumber || messagingServiceSid)) {
+    try {
+      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+      const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
 
-  try {
-    // Send via Twilio REST API (no SDK needed)
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+      const params = new URLSearchParams();
+      params.append('To', normalizedTo);
+      if (messagingServiceSid) {
+        params.append('MessagingServiceSid', messagingServiceSid);
+      } else {
+        params.append('From', fromNumber);
+      }
+      params.append('Body', message);
 
-    const params = new URLSearchParams();
-    params.append('To', normalizedTo);
+      const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com').replace(/\/$/, '');
+      params.append('StatusCallback', `${baseUrl}/api/twilio/status-callback`);
 
-    // Use Messaging Service SID for A2P compliance (carriers block direct number sends)
-    if (messagingServiceSid) {
-      params.append('MessagingServiceSid', messagingServiceSid);
-    } else {
-      params.append('From', fromNumber);
-    }
-    params.append('Body', message);
+      const twilioRes = await fetch(twilioUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
 
-    // Add delivery status callback so we can track actual delivery
-    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com').replace(/\/$/, '');
-    params.append('StatusCallback', `${baseUrl}/api/twilio/status-callback`);
+      const twilioData = await twilioRes.json();
 
-    const twilioRes = await fetch(twilioUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
-
-    const twilioData = await twilioRes.json();
-
-    if (!twilioRes.ok) {
-      console.error('Twilio error:', twilioData);
+      if (!twilioRes.ok) {
+        await logComm({
+          channel: 'sms',
+          messageType: message_type || 'direct_sms',
+          message,
+          source: 'send-sms(twilio)',
+          patientId: patient_id || null,
+          patientName: patient_name || null,
+          status: 'error',
+          errorMessage: twilioData.message || 'Twilio API error',
+        });
+        return res.status(500).json({ error: 'Failed to send SMS', details: twilioData.message });
+      }
 
       await logComm({
         channel: 'sms',
         messageType: message_type || 'direct_sms',
         message,
-        source: 'twilio/send-sms',
+        source: 'send-sms(twilio)',
         patientId: patient_id || null,
         patientName: patient_name || null,
-        status: 'error',
-        errorMessage: twilioData.message || 'Twilio API error',
+        recipient: normalizedTo,
+        twilioMessageSid: twilioData.sid || null,
       });
 
-      return res.status(500).json({
-        error: 'Failed to send SMS',
-        details: twilioData.message,
-      });
+      // Update direction for conversation view
+      await supabase
+        .from('comms_log')
+        .update({ direction: 'outbound' })
+        .eq('source', 'send-sms(twilio)')
+        .eq('patient_id', patient_id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      return res.status(200).json({ success: true, via: 'twilio', messageSid: twilioData.sid });
+    } catch (error) {
+      console.error('Twilio send error:', error);
+      return res.status(500).json({ error: error.message });
     }
-
-    // Log the sent message with Twilio message SID for delivery tracking
-    await logComm({
-      channel: 'sms',
-      messageType: message_type || 'direct_sms',
-      message,
-      source: 'twilio/send-sms',
-      patientId: patient_id || null,
-      patientName: patient_name || null,
-      recipient: normalizedTo,
-      twilioMessageSid: twilioData.sid || null,
-    });
-
-    // Also store in comms_log with direction for conversation view
-    await supabase
-      .from('comms_log')
-      .update({ direction: 'outbound', twilio_message_sid: twilioData.sid || null })
-      .eq('source', 'twilio/send-sms')
-      .eq('patient_id', patient_id)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    return res.status(200).json({
-      success: true,
-      messageSid: twilioData.sid,
-      status: twilioData.status,
-    });
-
-  } catch (error) {
-    console.error('Twilio send error:', error);
-    return res.status(500).json({ error: error.message });
   }
+
+  return res.status(400).json({ error: 'No SMS provider configured (GHL or Twilio)' });
 }
 
 /**
- * Fallback to GHL if Twilio is not configured
+ * Send SMS via GHL Conversations API
  */
-async function fallbackToGHL(req, res, { patient_id, to, message, patient_name, message_type }) {
-  // Try to find GHL contact ID from patient
-  if (!patient_id) {
-    return res.status(400).json({ error: 'Twilio not configured and no patient_id for GHL fallback' });
+async function sendViaGHL({ patient_id, patient_name, to, message, message_type }) {
+  // Look up GHL contact ID from patient
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('ghl_contact_id')
+    .eq('id', patient_id)
+    .single();
+
+  if (!patient?.ghl_contact_id) {
+    return { success: false, error: 'Patient has no GHL contact ID' };
   }
 
-  try {
-    const { data: patient } = await supabase
-      .from('patients')
-      .select('ghl_contact_id')
-      .eq('id', patient_id)
-      .single();
-
-    if (!patient?.ghl_contact_id) {
-      return res.status(400).json({ error: 'Twilio not configured and patient has no GHL contact ID' });
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
-    const ghlRes = await fetch(`${baseUrl}/api/ghl/send-sms`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contact_id: patient.ghl_contact_id,
-        message,
-        message_type,
-      }),
-    });
-
-    const ghlData = await ghlRes.json();
-
-    if (!ghlRes.ok) {
-      return res.status(500).json({ error: 'GHL fallback failed', details: ghlData });
-    }
-
-    await logComm({
-      channel: 'sms',
-      messageType: message_type || 'direct_sms',
+  const ghlRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GHL_API_KEY}`,
+      'Version': '2021-07-28',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      type: 'SMS',
+      contactId: patient.ghl_contact_id,
       message,
-      source: 'twilio/send-sms(ghl-fallback)',
-      patientId: patient_id,
-      patientName: patient_name,
-      ghlContactId: patient.ghl_contact_id,
-    });
+    }),
+  });
 
-    return res.status(200).json({ success: true, via: 'ghl', ...ghlData });
-
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  if (!ghlRes.ok) {
+    const errorText = await ghlRes.text();
+    console.error('GHL SMS error:', ghlRes.status, errorText);
+    return { success: false, error: `GHL error: ${errorText}` };
   }
+
+  const ghlData = await ghlRes.json();
+
+  // Log the sent message
+  await logComm({
+    channel: 'sms',
+    messageType: message_type || 'direct_sms',
+    message,
+    source: 'send-sms(ghl)',
+    patientId: patient_id,
+    patientName: patient_name,
+    recipient: to,
+    ghlContactId: patient.ghl_contact_id,
+  });
+
+  // Update direction for conversation view
+  await supabase
+    .from('comms_log')
+    .update({ direction: 'outbound' })
+    .eq('source', 'send-sms(ghl)')
+    .eq('patient_id', patient_id)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  return { success: true, via: 'ghl', messageId: ghlData.messageId || ghlData.id };
 }
 
 /**

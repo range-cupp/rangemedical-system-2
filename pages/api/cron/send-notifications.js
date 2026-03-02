@@ -24,15 +24,53 @@ function normalizePhone(phone) {
   return null;
 }
 
-// Send SMS via Twilio REST API
-async function sendSMS(to, message) {
+const GHL_API_KEY = process.env.GHL_API_KEY;
+
+// Send SMS — GHL primary, Twilio fallback
+async function sendSMS(to, message, patientId = null) {
+  // Primary: GHL (manages the business phone number)
+  if (GHL_API_KEY && patientId) {
+    try {
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('ghl_contact_id')
+        .eq('id', patientId)
+        .single();
+
+      if (patient?.ghl_contact_id) {
+        const ghlRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'SMS',
+            contactId: patient.ghl_contact_id,
+            message,
+          }),
+        });
+
+        if (ghlRes.ok) {
+          return { success: true, via: 'ghl' };
+        }
+        console.error('GHL SMS failed:', ghlRes.status, await ghlRes.text());
+      }
+    } catch (err) {
+      console.error('GHL SMS error:', err.message);
+    }
+  }
+
+  // Fallback: Twilio
   const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
   const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
   const fromNumber = (process.env.TWILIO_PHONE_NUMBER || '').trim();
   const messagingServiceSid = (process.env.TWILIO_MESSAGING_SERVICE_SID || '').trim();
 
   if (!accountSid || !authToken || (!fromNumber && !messagingServiceSid)) {
-    return { success: false, error: 'Twilio not configured' };
+    return { success: false, error: 'No SMS provider configured' };
   }
 
   const normalizedTo = normalizePhone(to);
@@ -45,8 +83,6 @@ async function sendSMS(to, message) {
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
     const params = new URLSearchParams();
     params.append('To', normalizedTo);
-
-    // Use Messaging Service SID for A2P compliance
     if (messagingServiceSid) {
       params.append('MessagingServiceSid', messagingServiceSid);
     } else {
@@ -54,7 +90,6 @@ async function sendSMS(to, message) {
     }
     params.append('Body', message);
 
-    // Track delivery status
     const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com').replace(/\/$/, '');
     params.append('StatusCallback', `${baseUrl}/api/twilio/status-callback`);
 
@@ -71,7 +106,7 @@ async function sendSMS(to, message) {
     if (!response.ok) {
       return { success: false, error: data.message || 'SMS send failed' };
     }
-    return { success: true, sid: data.sid };
+    return { success: true, via: 'twilio', sid: data.sid };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -125,8 +160,8 @@ export default async function handler(req, res) {
         let sendResult;
 
         if (notification.channel === 'sms') {
-          // Send SMS via Twilio
-          sendResult = await sendSMS(notification.recipient, notification.message);
+          // Send SMS via GHL (primary) or Twilio (fallback)
+          sendResult = await sendSMS(notification.recipient, notification.message, notification.patient_id);
         } else if (notification.channel === 'email') {
           // Send email via Resend
           try {

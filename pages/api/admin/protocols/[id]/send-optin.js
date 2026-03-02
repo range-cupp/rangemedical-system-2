@@ -5,7 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { logComm } from '../../../../../lib/comms-log';
-import { syncPatientContactToGHL } from '../../../../../lib/ghl-sync';
+import { syncPatientContactToGHL, resolveGHLContactId } from '../../../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -41,12 +41,24 @@ export default async function handler(req, res) {
       .eq('id', protocol.patient_id)
       .single();
 
-    const ghlContactId = protocol.ghl_contact_id || patient?.ghl_contact_id;
-    if (!ghlContactId) {
-      return res.status(400).json({ error: 'Patient has no GHL contact ID — cannot send SMS' });
+    const storedContactId = protocol.ghl_contact_id || patient?.ghl_contact_id;
+    if (!storedContactId && !patient?.phone) {
+      return res.status(400).json({ error: 'Patient has no GHL contact ID or phone — cannot send SMS' });
     }
 
     const firstName = patient?.first_name || (patient?.name ? patient.name.split(' ')[0] : 'there');
+
+    // Resolve GHL contact ID — validates stored ID and falls back to phone search if invalid
+    const ghlContactId = await resolveGHLContactId(storedContactId, {
+      phone: patient?.phone,
+      patientId: protocol.patient_id,
+      protocolId: id,
+      supabase
+    });
+
+    if (!ghlContactId) {
+      return res.status(400).json({ error: 'Could not find GHL contact — check patient phone number and GHL contact ID' });
+    }
 
     // Sync patient's current phone to GHL before sending (source of truth = patient profile)
     if (patient?.phone) {

@@ -126,11 +126,14 @@ export default async function handler(req, res) {
       }
     }
 
-    // Link purchase to protocol if provided
+    // Link purchase to protocol if provided — set BOTH protocol_id AND protocol_created
     if (purchase_id) {
       const { error: purchaseError } = await supabase
         .from('purchases')
-        .update({ protocol_id: protocol.id })
+        .update({
+          protocol_id: protocol.id,
+          protocol_created: true
+        })
         .eq('id', purchase_id);
 
       if (purchaseError) {

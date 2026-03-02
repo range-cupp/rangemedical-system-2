@@ -765,12 +765,13 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
 
       if (!res.ok) throw new Error('Failed to update protocol');
 
-      // Link purchase to protocol
+      // Link purchase to protocol — set BOTH protocol_id AND protocol_created
       const purchaseRes = await fetch(`/api/admin/purchases/${purchase.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          protocol_id: selectedProtocol.id
+          protocol_id: selectedProtocol.id,
+          protocol_created: true
         })
       });
 

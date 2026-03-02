@@ -256,7 +256,8 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('collection_date', { ascending: false });
 
-      // Get pending purchases
+      // Get pending purchases — a purchase is pending if no protocol has been linked
+      // Check BOTH protocol_created flag AND protocol_id (belt and suspenders)
       let pendingNotifications = [];
 
       const { data: purchasesByPatientId } = await supabase
@@ -264,6 +265,7 @@ export default async function handler(req, res) {
         .select('*')
         .eq('patient_id', id)
         .eq('protocol_created', false)
+        .is('protocol_id', null)
         .eq('dismissed', false)
         .order('purchase_date', { ascending: false });
 
@@ -275,6 +277,7 @@ export default async function handler(req, res) {
           .select('*')
           .eq('ghl_contact_id', patient.ghl_contact_id)
           .eq('protocol_created', false)
+          .is('protocol_id', null)
           .eq('dismissed', false)
           .order('purchase_date', { ascending: false });
 

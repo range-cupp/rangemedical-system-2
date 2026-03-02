@@ -17,12 +17,12 @@ export default async function handler(req, res) {
 
   // PATCH or PUT - Update purchase
   if (req.method === 'PATCH' || req.method === 'PUT') {
-    const { amount, category, item_name, quantity, protocol_id, session_logged } = req.body;
+    const { amount, category, item_name, quantity, protocol_id, protocol_created, session_logged } = req.body;
 
     try {
       // Build update object with only provided fields
       const updateData = {};
-      
+
       if (amount !== undefined) {
         updateData.amount = parseFloat(amount);
       }
@@ -37,6 +37,9 @@ export default async function handler(req, res) {
       }
       if (protocol_id !== undefined) {
         updateData.protocol_id = protocol_id;
+      }
+      if (protocol_created !== undefined) {
+        updateData.protocol_created = protocol_created;
       }
       if (session_logged !== undefined) {
         updateData.session_logged = session_logged;

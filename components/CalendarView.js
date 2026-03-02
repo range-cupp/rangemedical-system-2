@@ -56,8 +56,8 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [apptPatientInfo, setApptPatientInfo] = useState(null);
   const [loadingPatientInfo, setLoadingPatientInfo] = useState(false);
 
-  // Patient slide-out drawer
-  const [drawerPatient, setDrawerPatient] = useState(null);
+  // Patient slide-out drawer (stores full API response)
+  const [drawerData, setDrawerData] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
   // Fetch appointments
@@ -129,15 +129,17 @@ export default function CalendarView({ preselectedPatient = null }) {
   const openPatientDrawer = (patientId) => {
     if (!patientId) return;
     setDrawerLoading(true);
-    setDrawerPatient(null);
+    setDrawerData(null);
     fetch(`/api/patients/${patientId}`)
       .then(r => r.json())
       .then(data => {
-        setDrawerPatient(data.patient || data);
+        setDrawerData(data);
         setDrawerLoading(false);
       })
       .catch(() => setDrawerLoading(false));
   };
+
+  const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); };
 
   // Pre-fill wizard if patient is preselected
   useEffect(() => {
@@ -1042,135 +1044,264 @@ export default function CalendarView({ preselectedPatient = null }) {
       {renderDetailPopover()}
 
       {/* Patient slide-out drawer */}
-      {(drawerPatient || drawerLoading) && (
-        <>
-          <div onClick={() => setDrawerPatient(null)} style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 9998,
-            transition: 'opacity 0.2s', opacity: drawerPatient ? 1 : 0
-          }} />
-          <div style={{
-            position: 'fixed', top: 0, right: 0, bottom: 0, width: '420px', maxWidth: '90vw',
-            background: '#fff', zIndex: 9999, boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
-            display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            transform: drawerPatient ? 'translateX(0)' : 'translateX(100%)',
-            transition: 'transform 0.25s ease'
-          }}>
-            {/* Drawer header */}
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111' }}>Patient Info</h3>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <a href={drawerPatient ? `/patients/${drawerPatient.id}` : '#'}
-                  style={{ fontSize: '12px', color: '#1e40af', textDecoration: 'none', padding: '4px 10px', border: '1px solid #1e40af', borderRadius: '6px' }}>
-                  Full Profile →
-                </a>
-                <button onClick={() => setDrawerPatient(null)}
-                  style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#666', padding: '0 4px', lineHeight: 1 }}>
-                  ×
-                </button>
+      {(drawerData || drawerLoading) && (() => {
+        const pt = drawerData?.patient;
+        const activeProtos = drawerData?.activeProtocols || [];
+        const completedProtos = drawerData?.completedProtocols || [];
+        const logs = drawerData?.serviceLogs || [];
+        const appts = drawerData?.appointments || [];
+        const labs = drawerData?.labs || [];
+        const docs = drawerData?.medicalDocuments || [];
+        const consents = drawerData?.consents || [];
+        const notes = drawerData?.notes || [];
+        const stats = drawerData?.stats || {};
+        const upcomingAppts = appts.filter(a => new Date(a.start_time) >= new Date());
+        const pastAppts = appts.filter(a => new Date(a.start_time) < new Date());
+
+        const sectionHead = { margin: '0 0 10px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888' };
+        const card = { background: '#f9fafb', borderRadius: '10px', padding: '14px 16px', marginBottom: '16px' };
+
+        return (
+          <>
+            <div onClick={closeDrawer} style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 9998
+            }} />
+            <div style={{
+              position: 'fixed', top: 0, right: 0, bottom: 0, width: '440px', maxWidth: '92vw',
+              background: '#fff', zIndex: 9999, boxShadow: '-4px 0 24px rgba(0,0,0,0.18)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden'
+            }}>
+              {/* Header */}
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#000', flexShrink: 0 }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#fff' }}>
+                  {pt ? `${pt.first_name} ${pt.last_name}` : 'Patient'}
+                </h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {pt && (
+                    <a href={`/patients/${pt.id}`}
+                      style={{ fontSize: '12px', color: '#fff', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '6px' }}>
+                      Full Profile →
+                    </a>
+                  )}
+                  <button onClick={closeDrawer}
+                    style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#fff', padding: '0 4px', lineHeight: 1 }}>
+                    ×
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Drawer body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-              {drawerLoading && !drawerPatient ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>Loading patient...</div>
-              ) : drawerPatient ? (
-                <>
-                  {/* Name */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <h2 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: '700', color: '#111' }}>
-                      {drawerPatient.first_name} {drawerPatient.last_name}
-                    </h2>
-                    {drawerPatient.date_of_birth && (
-                      <span style={{ fontSize: '13px', color: '#888' }}>
-                        DOB: {new Date(drawerPatient.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        {drawerPatient.gender ? ` · ${drawerPatient.gender}` : ''}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Contact */}
-                  <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
-                    <h4 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>Contact</h4>
-                    {drawerPatient.phone ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '16px' }}>📱</span>
-                        <a href={`tel:${drawerPatient.phone}`} style={{ fontSize: '15px', color: '#111', textDecoration: 'none', fontWeight: '500' }}>
-                          {drawerPatient.phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')}
-                        </a>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '13px', color: '#999', marginBottom: '10px' }}>No phone on file</div>
-                    )}
-                    {drawerPatient.email ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '16px' }}>✉️</span>
-                        <a href={`mailto:${drawerPatient.email}`} style={{ fontSize: '14px', color: '#111', textDecoration: 'none' }}>
-                          {drawerPatient.email}
-                        </a>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '13px', color: '#999' }}>No email on file</div>
-                    )}
-                  </div>
-
-                  {/* Address */}
-                  {(drawerPatient.address || drawerPatient.city) && (
-                    <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
-                      <h4 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>Address</h4>
-                      <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}>
-                        {drawerPatient.address && <div>{drawerPatient.address}</div>}
-                        <div>{[drawerPatient.city, drawerPatient.state, drawerPatient.zip_code].filter(Boolean).join(', ')}</div>
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                {drawerLoading && !pt ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>Loading patient...</div>
+                ) : pt ? (
+                  <>
+                    {/* Demographics row */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
+                        {pt.date_of_birth && (
+                          <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '4px' }}>
+                            DOB: {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        )}
+                        {pt.gender && <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '4px' }}>{pt.gender}</span>}
+                        {pt.created_at && (
+                          <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '4px' }}>
+                            Since {new Date(pt.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  )}
 
-                  {/* Protocols */}
-                  {drawerPatient.protocols && drawerPatient.protocols.length > 0 && (
-                    <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
-                      <h4 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>Active Protocols</h4>
-                      {drawerPatient.protocols.filter(p => p.status === 'active').map((proto, i) => (
-                        <div key={i} style={{ padding: '8px 0', borderBottom: i < drawerPatient.protocols.filter(p => p.status === 'active').length - 1 ? '1px solid #e5e7eb' : 'none' }}>
-                          <div style={{ fontSize: '14px', fontWeight: '500', color: '#111' }}>{proto.program_name || proto.medication || 'Protocol'}</div>
-                          <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
-                            Started {new Date(proto.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            {proto.sessions_used != null ? ` · ${proto.sessions_used}/${proto.total_sessions || '?'} sessions` : ''}
+                    {/* Contact */}
+                    <div style={card}>
+                      <h4 style={sectionHead}>Contact</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {pt.phone ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>📱</span>
+                            <a href={`tel:${pt.phone}`} style={{ fontSize: '15px', color: '#111', textDecoration: 'none', fontWeight: '500' }}>
+                              {pt.phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')}
+                            </a>
                           </div>
-                        </div>
-                      ))}
-                      {drawerPatient.protocols.filter(p => p.status === 'active').length === 0 && (
-                        <div style={{ fontSize: '13px', color: '#999' }}>No active protocols</div>
-                      )}
+                        ) : <span style={{ fontSize: '13px', color: '#bbb' }}>No phone</span>}
+                        {pt.email ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>✉️</span>
+                            <a href={`mailto:${pt.email}`} style={{ fontSize: '14px', color: '#111', textDecoration: 'none' }}>{pt.email}</a>
+                          </div>
+                        ) : <span style={{ fontSize: '13px', color: '#bbb' }}>No email</span>}
+                        {(pt.address || pt.city) && (
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '2px' }}>
+                            <span>📍</span>
+                            <span style={{ fontSize: '13px', color: '#555' }}>
+                              {pt.address && <>{pt.address}<br/></>}
+                              {[pt.city, pt.state, pt.zip_code].filter(Boolean).join(', ')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
 
-                  {/* Recent visits */}
-                  {drawerPatient.serviceLogs && drawerPatient.serviceLogs.length > 0 && (
-                    <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
-                      <h4 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>Recent Visits</h4>
-                      {drawerPatient.serviceLogs.slice(0, 5).map((log, i) => (
-                        <div key={i} style={{ padding: '6px 0', borderBottom: i < Math.min(drawerPatient.serviceLogs.length, 5) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '13px', color: '#333' }}>{log.service_name || log.service_type || 'Visit'}</span>
-                          <span style={{ fontSize: '12px', color: '#888' }}>
-                            {new Date(log.service_date || log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {/* Active Protocols */}
+                    <div style={card}>
+                      <h4 style={sectionHead}>Active Protocols ({activeProtos.length})</h4>
+                      {activeProtos.length > 0 ? activeProtos.map((proto, i) => {
+                        const total = proto.total_sessions || proto.duration_days || 0;
+                        const used = proto.sessions_used || 0;
+                        const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+                        return (
+                          <div key={proto.id || i} style={{ padding: '10px 0', borderBottom: i < activeProtos.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>{proto.program_name || proto.medication || 'Protocol'}</div>
+                              <span style={{ fontSize: '12px', color: '#666' }}>{used}/{total}</span>
+                            </div>
+                            {proto.medication && proto.medication !== proto.program_name && (
+                              <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{proto.medication} {proto.dosage ? `· ${proto.dosage}` : ''}</div>
+                            )}
+                            {/* Progress bar */}
+                            {total > 0 && (
+                              <div style={{ marginTop: '6px', background: '#e5e7eb', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', background: pct >= 100 ? '#16a34a' : '#1e40af', borderRadius: '4px', transition: 'width 0.3s' }} />
+                              </div>
+                            )}
+                            <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>
+                              Started {new Date(proto.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              {proto.frequency ? ` · ${proto.frequency}` : ''}
+                            </div>
+                          </div>
+                        );
+                      }) : <span style={{ fontSize: '13px', color: '#bbb' }}>No active protocols</span>}
+                    </div>
+
+                    {/* Completed Protocols */}
+                    {completedProtos.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Completed Protocols ({completedProtos.length})</h4>
+                        {completedProtos.slice(0, 5).map((proto, i) => (
+                          <div key={proto.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(completedProtos.length, 5) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '13px', color: '#555' }}>{proto.program_name || proto.medication || 'Protocol'}</span>
+                            <span style={{ fontSize: '12px', color: '#16a34a' }}>✓ Done</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Upcoming Appointments */}
+                    {upcomingAppts.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Upcoming Appointments ({upcomingAppts.length})</h4>
+                        {upcomingAppts.slice(0, 4).map((apt, i) => (
+                          <div key={apt.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(upcomingAppts.length, 4) - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '500', color: '#111' }}>{apt.service_name || apt.title || 'Appointment'}</span>
+                              <span style={{ fontSize: '12px', padding: '1px 6px', borderRadius: '4px', background: STATUS_LABELS[apt.status]?.bg || '#f3f4f6', color: STATUS_LABELS[apt.status]?.text || '#333' }}>
+                                {STATUS_LABELS[apt.status]?.label || apt.status}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                              {new Date(apt.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(apt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                              {apt.provider ? ` · ${apt.provider}` : ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Recent Visits / Service Logs */}
+                    <div style={card}>
+                      <h4 style={sectionHead}>Recent Visits ({logs.length})</h4>
+                      {logs.length > 0 ? logs.slice(0, 8).map((log, i) => (
+                        <div key={log.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(logs.length, 8) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontSize: '13px', color: '#333' }}>
+                              {log.category ? log.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Visit'}
+                            </div>
+                            {log.medication && <div style={{ fontSize: '11px', color: '#888' }}>{log.medication} {log.dosage || ''}</div>}
+                          </div>
+                          <span style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap' }}>
+                            {new Date(log.entry_date || log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
-                      ))}
+                      )) : <span style={{ fontSize: '13px', color: '#bbb' }}>No visits recorded</span>}
                     </div>
-                  )}
 
-                  {/* Patient since */}
-                  {drawerPatient.created_at && (
-                    <div style={{ fontSize: '12px', color: '#aaa', textAlign: 'center', marginTop: '16px' }}>
-                      Patient since {new Date(drawerPatient.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </div>
-                  )}
-                </>
-              ) : null}
+                    {/* Labs */}
+                    {labs.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Labs ({labs.length})</h4>
+                        {labs.slice(0, 5).map((lab, i) => (
+                          <div key={lab.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(labs.length, 5) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '13px', color: '#333' }}>{lab.lab_type || 'Lab'} — {lab.lab_panel || ''}</span>
+                            <span style={{ fontSize: '12px', color: lab.status === 'completed' ? '#16a34a' : '#f59e0b' }}>
+                              {lab.status === 'completed' ? '✓ Done' : lab.status || 'Pending'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Past Appointments */}
+                    {pastAppts.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Past Appointments ({pastAppts.length})</h4>
+                        {pastAppts.slice(0, 6).map((apt, i) => (
+                          <div key={apt.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(pastAppts.length, 6) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
+                            <div>
+                              <span style={{ fontSize: '13px', color: '#555' }}>{apt.service_name || apt.title || 'Appointment'}</span>
+                              {apt.provider && <span style={{ fontSize: '11px', color: '#aaa' }}> · {apt.provider}</span>}
+                            </div>
+                            <span style={{ fontSize: '12px', color: '#888' }}>
+                              {new Date(apt.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Documents & Consents */}
+                    {(docs.length > 0 || consents.length > 0) && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Documents ({docs.length + consents.length})</h4>
+                        {consents.slice(0, 4).map((c, i) => (
+                          <div key={c.id || i} style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0' }}>
+                            <span style={{ fontSize: '13px', color: '#333' }}>{c.form_type || 'Consent'}</span>
+                            <span style={{ fontSize: '11px', color: c.status === 'signed' ? '#16a34a' : '#f59e0b' }}>{c.status || '—'}</span>
+                          </div>
+                        ))}
+                        {docs.slice(0, 4).map((d, i) => (
+                          <div key={d.id || i} style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0' }}>
+                            <span style={{ fontSize: '13px', color: '#333' }}>{d.document_name || d.document_type || 'Document'}</span>
+                            <span style={{ fontSize: '11px', color: '#888' }}>{d.document_type}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {notes.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Notes ({notes.length})</h4>
+                        {notes.slice(0, 3).map((note, i) => (
+                          <div key={note.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(notes.length, 3) - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ fontSize: '12px', color: '#888', marginBottom: '3px' }}>
+                              {new Date(note.note_date || note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {note.source && <> · {note.source}</>}
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden' }}>
+                              {note.body}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        );
+      })()}
     </div>
   );
 }

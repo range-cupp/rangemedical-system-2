@@ -52,6 +52,10 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
 
+  // Patient contact info for appointment detail
+  const [apptPatientInfo, setApptPatientInfo] = useState(null);
+  const [loadingPatientInfo, setLoadingPatientInfo] = useState(false);
+
   // Fetch appointments
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -96,6 +100,26 @@ export default function CalendarView({ preselectedPatient = null }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Fetch patient contact info when appointment detail opens
+  useEffect(() => {
+    if (!selectedAppt?.patient_id) {
+      setApptPatientInfo(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingPatientInfo(true);
+    fetch(`/api/patients/${selectedAppt.patient_id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!cancelled) {
+          setApptPatientInfo(data.patient || data);
+          setLoadingPatientInfo(false);
+        }
+      })
+      .catch(() => { if (!cancelled) setLoadingPatientInfo(false); });
+    return () => { cancelled = true; };
+  }, [selectedAppt?.patient_id]);
 
   // Pre-fill wizard if patient is preselected
   useEffect(() => {
@@ -533,8 +557,46 @@ export default function CalendarView({ preselectedPatient = null }) {
           <div style={styles.popoverBody}>
             <div style={styles.popoverRow}>
               <span style={styles.popoverLabel}>Patient</span>
-              <span style={styles.popoverValue}>{appt.patient_name}</span>
+              <span style={styles.popoverValue}>
+                {appt.patient_id ? (
+                  <a href={`/patients/${appt.patient_id}`} style={{ color: '#1e40af', textDecoration: 'none', fontWeight: '600' }}
+                     onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                     onMouseLeave={e => e.target.style.textDecoration = 'none'}>
+                    {appt.patient_name}
+                  </a>
+                ) : appt.patient_name}
+              </span>
             </div>
+            {/* Patient contact info */}
+            {appt.patient_id && (
+              <div style={{ padding: '8px 0 4px', borderBottom: '1px solid #f0f0f0', marginBottom: '4px' }}>
+                {loadingPatientInfo ? (
+                  <span style={{ fontSize: '12px', color: '#999' }}>Loading contact info...</span>
+                ) : apptPatientInfo ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {apptPatientInfo.phone && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '13px', color: '#888' }}>📱</span>
+                        <a href={`tel:${apptPatientInfo.phone}`} style={{ fontSize: '13px', color: '#374151', textDecoration: 'none' }}>
+                          {apptPatientInfo.phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')}
+                        </a>
+                      </div>
+                    )}
+                    {apptPatientInfo.email && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '13px', color: '#888' }}>✉️</span>
+                        <a href={`mailto:${apptPatientInfo.email}`} style={{ fontSize: '13px', color: '#374151', textDecoration: 'none' }}>
+                          {apptPatientInfo.email}
+                        </a>
+                      </div>
+                    )}
+                    {!apptPatientInfo.phone && !apptPatientInfo.email && (
+                      <span style={{ fontSize: '12px', color: '#999', fontStyle: 'italic' }}>No contact info on file</span>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
             <div style={styles.popoverRow}>
               <span style={styles.popoverLabel}>Service</span>
               <span style={styles.popoverValue}>{appt.service_name}</span>

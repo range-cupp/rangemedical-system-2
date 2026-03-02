@@ -56,6 +56,10 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [apptPatientInfo, setApptPatientInfo] = useState(null);
   const [loadingPatientInfo, setLoadingPatientInfo] = useState(false);
 
+  // Patient slide-out drawer
+  const [drawerPatient, setDrawerPatient] = useState(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+
   // Fetch appointments
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -120,6 +124,20 @@ export default function CalendarView({ preselectedPatient = null }) {
       .catch(() => { if (!cancelled) setLoadingPatientInfo(false); });
     return () => { cancelled = true; };
   }, [selectedAppt?.patient_id]);
+
+  // Open patient drawer from appointment detail
+  const openPatientDrawer = (patientId) => {
+    if (!patientId) return;
+    setDrawerLoading(true);
+    setDrawerPatient(null);
+    fetch(`/api/patients/${patientId}`)
+      .then(r => r.json())
+      .then(data => {
+        setDrawerPatient(data.patient || data);
+        setDrawerLoading(false);
+      })
+      .catch(() => setDrawerLoading(false));
+  };
 
   // Pre-fill wizard if patient is preselected
   useEffect(() => {
@@ -559,11 +577,12 @@ export default function CalendarView({ preselectedPatient = null }) {
               <span style={styles.popoverLabel}>Patient</span>
               <span style={styles.popoverValue}>
                 {appt.patient_id ? (
-                  <a href={`/patients/${appt.patient_id}`} style={{ color: '#1e40af', textDecoration: 'none', fontWeight: '600' }}
-                     onMouseEnter={e => e.target.style.textDecoration = 'underline'}
-                     onMouseLeave={e => e.target.style.textDecoration = 'none'}>
+                  <button onClick={() => openPatientDrawer(appt.patient_id)}
+                    style={{ background: 'none', border: 'none', padding: 0, color: '#1e40af', fontWeight: '600', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', textDecoration: 'none' }}
+                    onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                    onMouseLeave={e => e.target.style.textDecoration = 'none'}>
                     {appt.patient_name}
-                  </a>
+                  </button>
                 ) : appt.patient_name}
               </span>
             </div>
@@ -1021,6 +1040,137 @@ export default function CalendarView({ preselectedPatient = null }) {
 
       {/* Detail popover */}
       {renderDetailPopover()}
+
+      {/* Patient slide-out drawer */}
+      {(drawerPatient || drawerLoading) && (
+        <>
+          <div onClick={() => setDrawerPatient(null)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 9998,
+            transition: 'opacity 0.2s', opacity: drawerPatient ? 1 : 0
+          }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: '420px', maxWidth: '90vw',
+            background: '#fff', zIndex: 9999, boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            transform: drawerPatient ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.25s ease'
+          }}>
+            {/* Drawer header */}
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111' }}>Patient Info</h3>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <a href={drawerPatient ? `/patients/${drawerPatient.id}` : '#'}
+                  style={{ fontSize: '12px', color: '#1e40af', textDecoration: 'none', padding: '4px 10px', border: '1px solid #1e40af', borderRadius: '6px' }}>
+                  Full Profile →
+                </a>
+                <button onClick={() => setDrawerPatient(null)}
+                  style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#666', padding: '0 4px', lineHeight: 1 }}>
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Drawer body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+              {drawerLoading && !drawerPatient ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>Loading patient...</div>
+              ) : drawerPatient ? (
+                <>
+                  {/* Name */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h2 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: '700', color: '#111' }}>
+                      {drawerPatient.first_name} {drawerPatient.last_name}
+                    </h2>
+                    {drawerPatient.date_of_birth && (
+                      <span style={{ fontSize: '13px', color: '#888' }}>
+                        DOB: {new Date(drawerPatient.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {drawerPatient.gender ? ` · ${drawerPatient.gender}` : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Contact */}
+                  <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+                    <h4 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>Contact</h4>
+                    {drawerPatient.phone ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '16px' }}>📱</span>
+                        <a href={`tel:${drawerPatient.phone}`} style={{ fontSize: '15px', color: '#111', textDecoration: 'none', fontWeight: '500' }}>
+                          {drawerPatient.phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')}
+                        </a>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '13px', color: '#999', marginBottom: '10px' }}>No phone on file</div>
+                    )}
+                    {drawerPatient.email ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '16px' }}>✉️</span>
+                        <a href={`mailto:${drawerPatient.email}`} style={{ fontSize: '14px', color: '#111', textDecoration: 'none' }}>
+                          {drawerPatient.email}
+                        </a>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '13px', color: '#999' }}>No email on file</div>
+                    )}
+                  </div>
+
+                  {/* Address */}
+                  {(drawerPatient.address || drawerPatient.city) && (
+                    <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+                      <h4 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>Address</h4>
+                      <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}>
+                        {drawerPatient.address && <div>{drawerPatient.address}</div>}
+                        <div>{[drawerPatient.city, drawerPatient.state, drawerPatient.zip_code].filter(Boolean).join(', ')}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Protocols */}
+                  {drawerPatient.protocols && drawerPatient.protocols.length > 0 && (
+                    <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+                      <h4 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>Active Protocols</h4>
+                      {drawerPatient.protocols.filter(p => p.status === 'active').map((proto, i) => (
+                        <div key={i} style={{ padding: '8px 0', borderBottom: i < drawerPatient.protocols.filter(p => p.status === 'active').length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '500', color: '#111' }}>{proto.program_name || proto.medication || 'Protocol'}</div>
+                          <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                            Started {new Date(proto.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {proto.sessions_used != null ? ` · ${proto.sessions_used}/${proto.total_sessions || '?'} sessions` : ''}
+                          </div>
+                        </div>
+                      ))}
+                      {drawerPatient.protocols.filter(p => p.status === 'active').length === 0 && (
+                        <div style={{ fontSize: '13px', color: '#999' }}>No active protocols</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Recent visits */}
+                  {drawerPatient.serviceLogs && drawerPatient.serviceLogs.length > 0 && (
+                    <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+                      <h4 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>Recent Visits</h4>
+                      {drawerPatient.serviceLogs.slice(0, 5).map((log, i) => (
+                        <div key={i} style={{ padding: '6px 0', borderBottom: i < Math.min(drawerPatient.serviceLogs.length, 5) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '13px', color: '#333' }}>{log.service_name || log.service_type || 'Visit'}</span>
+                          <span style={{ fontSize: '12px', color: '#888' }}>
+                            {new Date(log.service_date || log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Patient since */}
+                  {drawerPatient.created_at && (
+                    <div style={{ fontSize: '12px', color: '#aaa', textAlign: 'center', marginTop: '16px' }}>
+                      Patient since {new Date(drawerPatient.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

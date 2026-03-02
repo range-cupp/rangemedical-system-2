@@ -29,8 +29,9 @@ async function sendSMS(to, message) {
   const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
   const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
   const fromNumber = (process.env.TWILIO_PHONE_NUMBER || '').trim();
+  const messagingServiceSid = (process.env.TWILIO_MESSAGING_SERVICE_SID || '').trim();
 
-  if (!accountSid || !authToken || !fromNumber) {
+  if (!accountSid || !authToken || (!fromNumber && !messagingServiceSid)) {
     return { success: false, error: 'Twilio not configured' };
   }
 
@@ -44,7 +45,13 @@ async function sendSMS(to, message) {
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
     const params = new URLSearchParams();
     params.append('To', normalizedTo);
-    params.append('From', fromNumber);
+
+    // Use Messaging Service SID for A2P compliance
+    if (messagingServiceSid) {
+      params.append('MessagingServiceSid', messagingServiceSid);
+    } else {
+      params.append('From', fromNumber);
+    }
     params.append('Body', message);
 
     // Track delivery status

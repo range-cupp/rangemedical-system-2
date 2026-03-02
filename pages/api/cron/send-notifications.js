@@ -26,41 +26,55 @@ function normalizePhone(phone) {
 
 const GHL_API_KEY = process.env.GHL_API_KEY;
 
-// Send SMS — GHL primary, Twilio fallback
+// Send SMS — GHL primary, Twilio fallback (only for patients without GHL contact)
 async function sendSMS(to, message, patientId = null) {
-  // Primary: GHL (manages the business phone number)
+  // Primary: GHL (manages the business phone number 949-997-3988)
   if (GHL_API_KEY && patientId) {
-    try {
-      const { data: patient } = await supabase
-        .from('patients')
-        .select('ghl_contact_id')
-        .eq('id', patientId)
-        .single();
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('ghl_contact_id')
+      .eq('id', patientId)
+      .single();
 
-      if (patient?.ghl_contact_id) {
-        const ghlRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-07-28',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: patient.ghl_contact_id,
-            message,
-          }),
-        });
+    if (patient?.ghl_contact_id) {
+      // Try GHL with one retry
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const ghlRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GHL_API_KEY}`,
+              'Version': '2021-07-28',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'SMS',
+              contactId: patient.ghl_contact_id,
+              message,
+            }),
+          });
 
-        if (ghlRes.ok) {
-          return { success: true, via: 'ghl' };
+          if (ghlRes.ok) {
+            return { success: true, via: 'ghl' };
+          }
+          console.error(`GHL SMS attempt ${attempt + 1} failed:`, ghlRes.status, await ghlRes.text());
+          if (attempt === 0) {
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          return { success: false, error: 'GHL send failed after retries' };
+        } catch (err) {
+          console.error(`GHL SMS attempt ${attempt + 1} error:`, err.message);
+          if (attempt === 0) {
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          return { success: false, error: `GHL error: ${err.message}` };
         }
-        console.error('GHL SMS failed:', ghlRes.status, await ghlRes.text());
       }
-    } catch (err) {
-      console.error('GHL SMS error:', err.message);
     }
+    // Patient has no GHL contact ID — fall through to Twilio
   }
 
   // Fallback: Twilio

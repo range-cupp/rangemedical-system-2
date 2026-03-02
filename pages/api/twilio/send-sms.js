@@ -1,6 +1,6 @@
 // /pages/api/twilio/send-sms.js
-// Send SMS via GHL API (primary) or Twilio (future fallback)
-// GHL manages the business phone number until it's transferred to Twilio
+// Send SMS via GHL API (primary) or Twilio (fallback for patients without GHL contact)
+// GHL manages the business phone number (949-997-3988)
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
@@ -38,19 +38,38 @@ export default async function handler(req, res) {
 
   // Primary: Send via GHL (manages the business phone number)
   if (GHL_API_KEY && patient_id) {
-    try {
-      const result = await sendViaGHL({ patient_id, patient_name, to: normalizedTo, message, message_type });
-      if (result.success) {
-        return res.status(200).json(result);
-      }
-      // If GHL fails, log and continue to Twilio fallback
-      console.log('GHL SMS failed, trying Twilio fallback:', result.error);
-    } catch (err) {
-      console.error('GHL SMS error:', err.message);
+    const result = await sendViaGHL({ patient_id, patient_name, to: normalizedTo, message, message_type });
+    if (result.success) {
+      return res.status(200).json(result);
     }
+
+    // If GHL failed because patient has no contact ID, fall through to Twilio
+    // If GHL failed for another reason (API error), do NOT silently fall through —
+    // Twilio has carrier blocking issues (error 30034), so it's better to return
+    // the GHL error than to send via Twilio and have it blocked
+    if (result.error !== 'Patient has no GHL contact ID') {
+      console.error('GHL SMS failed (not falling back to Twilio):', result.error);
+      // Log the failure
+      await logComm({
+        channel: 'sms',
+        messageType: message_type || 'direct_sms',
+        message,
+        source: 'send-sms(ghl)',
+        patientId: patient_id,
+        patientName: patient_name,
+        recipient: normalizedTo,
+        status: 'error',
+        errorMessage: result.error,
+        direction: 'outbound',
+      });
+      return res.status(500).json({ error: 'Failed to send SMS via GHL', details: result.error });
+    }
+
+    // Patient has no GHL contact ID — fall through to Twilio
+    console.log('Patient has no GHL contact ID, trying Twilio fallback');
   }
 
-  // Fallback: Send via Twilio (for when number is transferred)
+  // Fallback: Send via Twilio (for patients without GHL contact)
   const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
   const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
   const fromNumber = (process.env.TWILIO_PHONE_NUMBER || '').trim();
@@ -94,6 +113,7 @@ export default async function handler(req, res) {
           patientName: patient_name || null,
           status: 'error',
           errorMessage: twilioData.message || 'Twilio API error',
+          direction: 'outbound',
         });
         return res.status(500).json({ error: 'Failed to send SMS', details: twilioData.message });
       }
@@ -107,16 +127,8 @@ export default async function handler(req, res) {
         patientName: patient_name || null,
         recipient: normalizedTo,
         twilioMessageSid: twilioData.sid || null,
+        direction: 'outbound',
       });
-
-      // Update direction for conversation view
-      await supabase
-        .from('comms_log')
-        .update({ direction: 'outbound' })
-        .eq('source', 'send-sms(twilio)')
-        .eq('patient_id', patient_id)
-        .order('created_at', { ascending: false })
-        .limit(1);
 
       return res.status(200).json({ success: true, via: 'twilio', messageSid: twilioData.sid });
     } catch (error) {
@@ -130,64 +142,82 @@ export default async function handler(req, res) {
 
 /**
  * Send SMS via GHL Conversations API
+ * Includes retry logic for transient failures
  */
 async function sendViaGHL({ patient_id, patient_name, to, message, message_type }) {
   // Look up GHL contact ID from patient
-  const { data: patient } = await supabase
+  const { data: patient, error: lookupErr } = await supabase
     .from('patients')
     .select('ghl_contact_id')
     .eq('id', patient_id)
     .single();
 
+  if (lookupErr) {
+    console.error('Patient lookup error:', lookupErr.message);
+    return { success: false, error: `Patient lookup failed: ${lookupErr.message}` };
+  }
+
   if (!patient?.ghl_contact_id) {
     return { success: false, error: 'Patient has no GHL contact ID' };
   }
 
-  const ghlRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GHL_API_KEY}`,
-      'Version': '2021-07-28',
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      type: 'SMS',
-      contactId: patient.ghl_contact_id,
-      message,
-    }),
-  });
+  // Try sending via GHL with one retry on failure
+  let lastError = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const ghlRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GHL_API_KEY}`,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'SMS',
+          contactId: patient.ghl_contact_id,
+          message,
+        }),
+      });
 
-  if (!ghlRes.ok) {
-    const errorText = await ghlRes.text();
-    console.error('GHL SMS error:', ghlRes.status, errorText);
-    return { success: false, error: `GHL error: ${errorText}` };
+      if (!ghlRes.ok) {
+        const errorText = await ghlRes.text();
+        lastError = `GHL ${ghlRes.status}: ${errorText}`;
+        console.error(`GHL SMS attempt ${attempt + 1} failed:`, lastError);
+        if (attempt === 0) {
+          await new Promise(r => setTimeout(r, 1000)); // Wait 1s before retry
+          continue;
+        }
+        return { success: false, error: lastError };
+      }
+
+      const ghlData = await ghlRes.json();
+
+      // Log the sent message
+      await logComm({
+        channel: 'sms',
+        messageType: message_type || 'direct_sms',
+        message,
+        source: 'send-sms(ghl)',
+        patientId: patient_id,
+        patientName: patient_name,
+        recipient: to,
+        ghlContactId: patient.ghl_contact_id,
+        direction: 'outbound',
+      });
+
+      return { success: true, via: 'ghl', messageId: ghlData.messageId || ghlData.id };
+    } catch (err) {
+      lastError = err.message;
+      console.error(`GHL SMS attempt ${attempt + 1} error:`, err.message);
+      if (attempt === 0) {
+        await new Promise(r => setTimeout(r, 1000)); // Wait 1s before retry
+        continue;
+      }
+    }
   }
 
-  const ghlData = await ghlRes.json();
-
-  // Log the sent message
-  await logComm({
-    channel: 'sms',
-    messageType: message_type || 'direct_sms',
-    message,
-    source: 'send-sms(ghl)',
-    patientId: patient_id,
-    patientName: patient_name,
-    recipient: to,
-    ghlContactId: patient.ghl_contact_id,
-  });
-
-  // Update direction for conversation view
-  await supabase
-    .from('comms_log')
-    .update({ direction: 'outbound' })
-    .eq('source', 'send-sms(ghl)')
-    .eq('patient_id', patient_id)
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  return { success: true, via: 'ghl', messageId: ghlData.messageId || ghlData.id };
+  return { success: false, error: lastError || 'GHL send failed after retries' };
 }
 
 /**

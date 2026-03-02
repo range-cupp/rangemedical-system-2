@@ -60,41 +60,30 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     setGhlLoading(true);
 
     try {
-      const res = await fetch(`/api/ghl/conversations?contact_id=${ghlContactId}`);
-      const data = await res.json();
-      const ghlMessages = data.messages || [];
-
-      if (ghlMessages.length === 0) {
-        setGhlLoaded(true);
-        setGhlLoading(false);
-        return;
-      }
-
-      // Merge: dedupe by checking for messages within 60 seconds with similar content
-      const existingTimes = new Set(
-        localMessages.map(m => {
-          const t = new Date(m.created_at).getTime();
-          return `${Math.floor(t / 60000)}_${(m.message || '').substring(0, 30).toLowerCase()}`;
-        })
-      );
-
-      const newMessages = ghlMessages.filter(gm => {
-        const t = new Date(gm.created_at).getTime();
-        const key = `${Math.floor(t / 60000)}_${(gm.message || '').substring(0, 30).toLowerCase()}`;
-        return !existingTimes.has(key);
+      // Sync GHL messages to comms_log (persists inbound + outbound to our DB)
+      const syncRes = await fetch('/api/ghl/sync-messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_id: ghlContactId,
+          patient_id: patientId,
+        }),
       });
 
-      if (newMessages.length > 0) {
-        setMessages(prev => {
-          const merged = [...prev, ...newMessages];
-          merged.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-          return merged;
-        });
+      const syncData = await syncRes.json();
+
+      // If new messages were synced, re-fetch from comms_log to get the full updated list
+      if (syncData.synced > 0) {
+        const refreshRes = await fetch(`/api/patients/${patientId}/comms?limit=200`);
+        const refreshData = await refreshRes.json();
+        const refreshedLogs = refreshData.comms || [];
+        const sorted = refreshedLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setMessages(sorted);
       }
 
       setGhlLoaded(true);
     } catch (err) {
-      console.error('Error fetching GHL messages:', err);
+      console.error('Error syncing GHL messages:', err);
     } finally {
       setGhlLoading(false);
     }
@@ -292,7 +281,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       {/* GHL sync indicator */}
       {ghlLoading && (
         <div style={styles.syncBanner}>
-          Syncing messages from Go High Level...
+          Syncing messages...
         </div>
       )}
 

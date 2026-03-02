@@ -6,6 +6,9 @@
 const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_API_BASE = 'https://services.leadconnectorhq.com';
 
+// GHL message types (numeric)
+const GHL_TYPE_SMS = 2;
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -47,44 +50,60 @@ export default async function handler(req, res) {
       return res.status(200).json({ messages: [] });
     }
 
-    // Step 2: Fetch messages from each conversation (typically just one per contact)
+    // Step 2: Fetch messages from each conversation
     const allMessages = [];
 
     for (const conv of conversations.slice(0, 3)) {
       try {
-        const msgRes = await fetch(
-          `${GHL_API_BASE}/conversations/${conv.id}/messages`,
-          {
+        // Paginate to get all messages (GHL returns ~20 per page)
+        let lastMessageId = null;
+        let pages = 0;
+
+        while (pages < 10) { // max 10 pages = ~200 messages
+          let url = `${GHL_API_BASE}/conversations/${conv.id}/messages`;
+          if (lastMessageId) url += `?lastMessageId=${lastMessageId}`;
+
+          const msgRes = await fetch(url, {
             headers: {
               'Authorization': `Bearer ${GHL_API_KEY}`,
               'Version': '2021-07-28',
               'Accept': 'application/json',
             },
-          }
-        );
-
-        if (!msgRes.ok) {
-          console.error('GHL messages fetch error for conversation', conv.id);
-          continue;
-        }
-
-        const msgData = await msgRes.json();
-        const messages = msgData.messages || [];
-
-        for (const msg of messages) {
-          // Only include SMS messages
-          if (msg.type !== 'SMS' && msg.messageType !== 'SMS') continue;
-
-          allMessages.push({
-            id: `ghl_${msg.id}`,
-            channel: 'sms',
-            message_type: msg.direction === 1 ? 'inbound_sms' : 'ghl_sms',
-            message: msg.body || msg.message || '',
-            status: msg.status === 'delivered' ? 'sent' : (msg.status || 'sent'),
-            direction: msg.direction === 1 ? 'inbound' : 'outbound',
-            source: 'ghl',
-            created_at: msg.dateAdded || msg.createdAt || msg.date,
           });
+
+          if (!msgRes.ok) break;
+
+          const msgData = await msgRes.json();
+
+          // GHL returns nested: { messages: { lastMessageId, nextPage, messages: [...] } }
+          const wrapper = msgData.messages || {};
+          const messages = Array.isArray(wrapper) ? wrapper : (wrapper.messages || []);
+          const nextPage = wrapper.nextPage || false;
+
+          for (const msg of messages) {
+            // GHL uses numeric types: 2 = SMS
+            // Also accept string 'SMS' for compatibility
+            const isSMS = msg.type === GHL_TYPE_SMS
+              || msg.type === 'SMS'
+              || msg.messageType === 'SMS';
+
+            if (!isSMS) continue;
+
+            allMessages.push({
+              id: `ghl_${msg.id}`,
+              channel: 'sms',
+              message_type: msg.direction === 'inbound' ? 'inbound_sms' : 'ghl_sms',
+              message: msg.body || msg.message || '',
+              status: msg.status === 'delivered' ? 'sent' : (msg.status || 'sent'),
+              direction: msg.direction === 'inbound' ? 'inbound' : 'outbound',
+              source: 'ghl',
+              created_at: msg.dateAdded || msg.createdAt || msg.date,
+            });
+          }
+
+          if (!nextPage || messages.length === 0) break;
+          lastMessageId = wrapper.lastMessageId;
+          pages++;
         }
       } catch (msgErr) {
         console.error('Error fetching GHL messages:', msgErr.message);

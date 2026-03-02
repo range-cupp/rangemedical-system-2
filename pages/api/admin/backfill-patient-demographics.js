@@ -25,13 +25,22 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Get all patients
-    const { data: patients, error: pErr } = await supabase
-      .from('patients')
-      .select('id, email, phone, first_name, last_name, date_of_birth, gender, address, city, state, zip_code')
-      .order('created_at', { ascending: true });
-
-    if (pErr) throw pErr;
+    // Get ALL patients (paginate to overcome 1000-row default limit)
+    let patients = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: batch, error: pErr } = await supabase
+        .from('patients')
+        .select('id, email, phone, first_name, last_name, date_of_birth, gender, address, city, state, zip_code')
+        .order('created_at', { ascending: true })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      if (pErr) throw pErr;
+      if (!batch || batch.length === 0) break;
+      patients = patients.concat(batch);
+      if (batch.length < pageSize) break;
+      page++;
+    }
 
     // Get all assessment leads with medical history
     const { data: leads } = await supabase
@@ -91,7 +100,16 @@ export default async function handler(req, res) {
         if (mh?.personalInfo) {
           const pi = mh.personalInfo;
           if (!patient.date_of_birth && pi.dob) {
-            updates.date_of_birth = pi.dob;
+            // Convert date formats: "11/13/1993" → "1993-11-13"
+            let parsedDob = pi.dob;
+            if (typeof pi.dob === 'string' && pi.dob.includes('/')) {
+              const parts = pi.dob.split('/');
+              if (parts.length === 3) {
+                const [m, d, y] = parts;
+                parsedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+              }
+            }
+            updates.date_of_birth = parsedDob;
           }
           if (!patient.gender && pi.gender) {
             updates.gender = pi.gender;

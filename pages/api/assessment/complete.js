@@ -190,24 +190,45 @@ export default async function handler(req, res) {
         if (patientMatch) {
           const demographicUpdates = {};
 
+          // Extract demographics from intakeData — data is nested under personalInfo
+          const pi = intakeData.personalInfo || intakeData || {};
+          const addr = pi.address || {};
+
+          // Support multiple field name formats
+          const dob = pi.dob || pi.date_of_birth || pi.dateOfBirth || intakeData.dob;
+          const gender = pi.gender || pi.sex || intakeData.gender;
+          const street = addr.street || addr.streetAddress || pi.streetAddress || intakeData.streetAddress;
+          const city = addr.city || pi.city || intakeData.city;
+          const state = addr.state || pi.state || intakeData.state;
+          const zip = addr.postalCode || addr.zip || addr.zipCode || pi.postalCode || intakeData.postalCode;
+
           // Only update fields that are empty on the patient — don't overwrite existing data
-          if (!patientMatch.date_of_birth && intakeData.dob) {
-            demographicUpdates.date_of_birth = intakeData.dob;
+          if (!patientMatch.date_of_birth && dob) {
+            // Convert date formats: "11/13/1993" → "1993-11-13"
+            let parsedDob = dob;
+            if (typeof dob === 'string' && dob.includes('/')) {
+              const parts = dob.split('/');
+              if (parts.length === 3) {
+                const [m, d, y] = parts;
+                parsedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+              }
+            }
+            demographicUpdates.date_of_birth = parsedDob;
           }
-          if (!patientMatch.gender && intakeData.gender) {
-            demographicUpdates.gender = intakeData.gender;
+          if (!patientMatch.gender && gender) {
+            demographicUpdates.gender = gender;
           }
-          if (!patientMatch.address && intakeData.streetAddress) {
-            demographicUpdates.address = intakeData.streetAddress;
+          if (!patientMatch.address && street) {
+            demographicUpdates.address = street;
           }
-          if (!patientMatch.city && intakeData.city) {
-            demographicUpdates.city = intakeData.city;
+          if (!patientMatch.city && city) {
+            demographicUpdates.city = city;
           }
-          if (!patientMatch.state && intakeData.state) {
-            demographicUpdates.state = intakeData.state;
+          if (!patientMatch.state && state) {
+            demographicUpdates.state = state;
           }
-          if (!patientMatch.zip_code && intakeData.postalCode) {
-            demographicUpdates.zip_code = intakeData.postalCode;
+          if (!patientMatch.zip_code && zip) {
+            demographicUpdates.zip_code = zip;
           }
 
           if (Object.keys(demographicUpdates).length > 0) {

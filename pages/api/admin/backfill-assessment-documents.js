@@ -27,6 +27,7 @@ export default async function handler(req, res) {
     let linked = 0;
     let alreadyLinked = 0;
     let noPatient = 0;
+    const details = [];
     const errors = [];
 
     for (const lead of leads) {
@@ -34,28 +35,32 @@ export default async function handler(req, res) {
 
       const normalizedEmail = lead.email.toLowerCase().trim();
 
-      // Find patient by email
-      const { data: patient } = await supabase
+      // Find patient by email (use ilike + limit to handle duplicates gracefully)
+      const { data: patients } = await supabase
         .from('patients')
         .select('id')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+        .ilike('email', normalizedEmail)
+        .limit(1);
+
+      const patient = patients?.[0];
 
       if (!patient) {
         noPatient++;
+        details.push({ lead: `${lead.first_name} ${lead.last_name}`, email: lead.email, status: 'no_patient' });
         continue;
       }
 
       // Check if this assessment PDF is already linked as a medical document
-      const { data: existingDoc } = await supabase
+      const { data: existingDocs } = await supabase
         .from('medical_documents')
         .select('id')
         .eq('patient_id', patient.id)
         .eq('document_url', lead.pdf_url)
-        .maybeSingle();
+        .limit(1);
 
-      if (existingDoc) {
+      if (existingDocs && existingDocs.length > 0) {
         alreadyLinked++;
+        details.push({ lead: `${lead.first_name} ${lead.last_name}`, patientId: patient.id, status: 'already_linked' });
         continue;
       }
 
@@ -71,13 +76,16 @@ export default async function handler(req, res) {
           document_url: lead.pdf_url,
           document_type: 'Assessment',
           notes: `Completed ${pathLabel} assessment`,
-          uploaded_by: 'System'
+          uploaded_by: 'System',
+          uploaded_at: lead.created_at
         });
 
       if (insertError) {
         errors.push({ leadId: lead.id, name: `${lead.first_name} ${lead.last_name}`, error: insertError.message });
+        details.push({ lead: `${lead.first_name} ${lead.last_name}`, patientId: patient.id, status: 'error', error: insertError.message });
       } else {
         linked++;
+        details.push({ lead: `${lead.first_name} ${lead.last_name}`, patientId: patient.id, status: 'linked' });
         console.log(`Linked assessment PDF for ${lead.first_name} ${lead.last_name} → patient ${patient.id}`);
       }
     }
@@ -88,6 +96,7 @@ export default async function handler(req, res) {
       linked,
       alreadyLinked,
       noPatient,
+      details,
       errors: errors.length > 0 ? errors : undefined
     });
 

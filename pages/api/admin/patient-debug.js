@@ -45,13 +45,13 @@ export default async function handler(req, res) {
     }
 
     // 3. Find medical documents
-    const { data: docs } = await supabase
+    const { data: docs, error: docsError } = await supabase
       .from('medical_documents')
       .select('*')
-      .eq('patient_id', patient.id)
-      .order('created_at', { ascending: false });
+      .eq('patient_id', patient.id);
 
     result.medicalDocuments = docs || [];
+    if (docsError) result.medicalDocumentsError = docsError.message;
 
     // 4. Find intakes
     const { data: intakes } = await supabase
@@ -79,14 +79,16 @@ export default async function handler(req, res) {
     if (result.assessmentLeads.length > 0) {
       const lead = result.assessmentLeads[0];
       const mh = lead.medical_history || {};
+      const pi = mh.personalInfo || {};
+      const addr = pi.address || {};
       result.availableDemographics = {
         fromMedicalHistory: {
-          dob: mh.dob || mh.date_of_birth || mh.dateOfBirth || 'NOT IN DATA',
-          gender: mh.gender || mh.sex || 'NOT IN DATA',
-          address: mh.address || mh.streetAddress || 'NOT IN DATA',
-          city: mh.city || 'NOT IN DATA',
-          state: mh.state || 'NOT IN DATA',
-          zip: mh.zip || mh.zipCode || mh.zip_code || 'NOT IN DATA',
+          dob: pi.dob || mh.dob || mh.date_of_birth || 'NOT IN DATA',
+          gender: pi.gender || mh.gender || mh.sex || 'NOT IN DATA',
+          address: addr.street || pi.streetAddress || mh.streetAddress || 'NOT IN DATA',
+          city: addr.city || pi.city || mh.city || 'NOT IN DATA',
+          state: addr.state || pi.state || mh.state || 'NOT IN DATA',
+          zip: addr.postalCode || pi.postalCode || mh.zip || 'NOT IN DATA',
         },
         intakeStatus: lead.intake_status,
         hasPdfUrl: !!lead.pdf_url,

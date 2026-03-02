@@ -128,6 +128,8 @@ export default function ProtocolDetail() {
   const [logModal, setLogModal] = useState(null); // { injectionNum, date, isCompleted }
   const [logForm, setLogForm] = useState({ weight: '', dose: '', notes: '' });
   const [logSaving, setLogSaving] = useState(false);
+  const [sendingOptin, setSendingOptin] = useState(false);
+  const [sendingGuide, setSendingGuide] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -1352,6 +1354,55 @@ export default function ProtocolDetail() {
                     <a href={`tel:${protocol.patient_phone}`} style={styles.actionBtnSecondary}>📞 Call</a>
                     <a href={`sms:${protocol.patient_phone}`} style={styles.actionBtnSecondary}>💬 Text</a>
                   </>
+                )}
+                {isRecoveryPeptide(protocol?.medication) && (
+                  <button
+                    onClick={async () => {
+                      setSendingOptin(true);
+                      setError('');
+                      try {
+                        const res = await fetch(`/api/admin/protocols/${id}/send-optin`, { method: 'POST' });
+                        const data = await res.json();
+                        if (res.ok) {
+                          setSuccess('Opt-in SMS sent!');
+                        } else {
+                          setError(data.error || 'Failed to send opt-in');
+                        }
+                      } catch (e) {
+                        setError('Failed to send opt-in SMS');
+                      }
+                      setSendingOptin(false);
+                    }}
+                    disabled={sendingOptin}
+                    style={{ ...styles.actionBtnSecondary, border: 'none', cursor: sendingOptin ? 'not-allowed' : 'pointer', opacity: sendingOptin ? 0.6 : 1 }}
+                  >
+                    {sendingOptin ? 'Sending...' : '📱 Send Check-in Opt-in'}
+                  </button>
+                )}
+                {isRecoveryPeptide(protocol?.medication) && !protocol?.peptide_guide_sent && (
+                  <button
+                    onClick={async () => {
+                      setSendingGuide(true);
+                      setError('');
+                      try {
+                        const res = await fetch(`/api/admin/protocols/${id}/send-guide`, { method: 'POST' });
+                        const data = await res.json();
+                        if (res.ok) {
+                          setSuccess('Peptide guide SMS sent!');
+                          setProtocol(prev => ({ ...prev, peptide_guide_sent: true }));
+                        } else {
+                          setError(data.error || 'Failed to send guide');
+                        }
+                      } catch (e) {
+                        setError('Failed to send peptide guide SMS');
+                      }
+                      setSendingGuide(false);
+                    }}
+                    disabled={sendingGuide}
+                    style={{ ...styles.actionBtnSecondary, border: 'none', cursor: sendingGuide ? 'not-allowed' : 'pointer', opacity: sendingGuide ? 0.6 : 1 }}
+                  >
+                    {sendingGuide ? 'Sending...' : '📖 Send Peptide Guide'}
+                  </button>
                 )}
               </div>
             </div>

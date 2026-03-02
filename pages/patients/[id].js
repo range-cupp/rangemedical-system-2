@@ -963,14 +963,21 @@ export default function PatientProfile() {
                   <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add</button>
                 </div>
 
-                {/* 90-Day Recovery Peptide Cycle Tracker */}
-                {cycleInfo?.hasCycle && (
+                {/* Recovery Peptide Cycle Tracker — uses actual protocol duration as source of truth */}
+                {cycleInfo?.hasCycle && (() => {
+                  const planned = cycleInfo.totalPlannedDays || cycleInfo.maxDays;
+                  const used = cycleInfo.cycleDaysUsed;
+                  const remaining = cycleInfo.daysRemaining;
+                  const approachingMax = used > 60 || planned > 60;
+                  const isWarning = remaining <= 5 && remaining > 0;
+                  const isComplete = remaining === 0 || cycleInfo.cycleExhausted;
+                  return (
                   <div style={{
                     margin: '0 16px 12px',
                     padding: '12px 16px',
                     borderRadius: '8px',
-                    background: cycleInfo.cycleExhausted ? '#fef2f2' : cycleInfo.daysRemaining <= 20 ? '#fffbeb' : '#f0fdf4',
-                    border: `1px solid ${cycleInfo.cycleExhausted ? '#fecaca' : cycleInfo.daysRemaining <= 20 ? '#fde68a' : '#bbf7d0'}`
+                    background: isComplete ? '#fef2f2' : isWarning ? '#fffbeb' : '#f0fdf4',
+                    border: `1px solid ${isComplete ? '#fecaca' : isWarning ? '#fde68a' : '#bbf7d0'}`
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <span style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#6b7280' }}>
@@ -979,17 +986,17 @@ export default function PatientProfile() {
                       <span style={{
                         fontSize: '13px',
                         fontWeight: '700',
-                        color: cycleInfo.cycleExhausted ? '#dc2626' : cycleInfo.daysRemaining <= 20 ? '#d97706' : '#16a34a'
+                        color: isComplete ? '#dc2626' : isWarning ? '#d97706' : '#16a34a'
                       }}>
-                        {cycleInfo.cycleDaysUsed} / {cycleInfo.maxDays} days
+                        {used} / {planned} days
                       </span>
                     </div>
                     <div style={{ background: '#e5e7eb', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
                       <div style={{
                         height: '100%',
                         borderRadius: '4px',
-                        width: `${Math.min(100, Math.round((cycleInfo.cycleDaysUsed / cycleInfo.maxDays) * 100))}%`,
-                        background: cycleInfo.cycleExhausted ? '#dc2626' : cycleInfo.daysRemaining <= 20 ? '#f59e0b' : '#22c55e',
+                        width: `${Math.min(100, planned > 0 ? Math.round((used / planned) * 100) : 0)}%`,
+                        background: isComplete ? '#dc2626' : isWarning ? '#f59e0b' : '#22c55e',
                         transition: 'width 0.3s ease'
                       }} />
                     </div>
@@ -1000,16 +1007,22 @@ export default function PatientProfile() {
                           {cycleInfo.offPeriodEnds && ` (ends ${new Date(cycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`}
                         </span>
                       ) : (
-                        <span><strong>{cycleInfo.daysRemaining}</strong> days remaining before mandatory off period</span>
+                        <span><strong>{remaining}</strong> days remaining on protocol</span>
                       )}
                     </div>
+                    {approachingMax && !cycleInfo.cycleExhausted && (
+                      <div style={{ fontSize: '11px', color: '#d97706', marginTop: '4px' }}>
+                        ⚠️ {cycleInfo.cycleDaysRemaining} of {cycleInfo.maxDays}-day max cycle remaining — mandatory off period after
+                      </div>
+                    )}
                     {cycleInfo.subProtocols?.length > 1 && (
                       <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
                         {cycleInfo.subProtocols.length} protocols in this cycle
                       </div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {activeProtocols.length === 0 ? (
                   <div className="empty">No active protocols</div>
@@ -1018,15 +1031,15 @@ export default function PatientProfile() {
                     {activeProtocols.slice(0, 5).map(protocol => {
                       const cat = getCategoryStyle(protocol.category);
                       return (
-                        <div key={protocol.id} className="protocol-row">
+                        <div key={protocol.id} className="protocol-row" style={{ cursor: 'pointer' }} onClick={() => window.open(`/admin/protocols/${protocol.id}`, '_blank')}>
                           <div className="protocol-main">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                            <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
                             {protocol.selected_dose && <span className="protocol-dose">{protocol.selected_dose}</span>}
                           </div>
                           <div className="protocol-status">
                             <span className="status-text">{protocol.status_text}</span>
-                            <button onClick={() => openEditModal(protocol)} className="btn-text">Edit</button>
+                            <button onClick={(e) => { e.stopPropagation(); openEditModal(protocol); }} className="btn-text">Edit</button>
                           </div>
                         </div>
                       );

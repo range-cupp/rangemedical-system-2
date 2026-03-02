@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     // Fetch ALL peptide protocols for this patient (not just those with cycle_start_date)
     const { data: protocols, error } = await supabase
       .from('protocols')
-      .select('id, medication, start_date, end_date, status, cycle_start_date, program_type, program_name')
+      .select('id, medication, start_date, end_date, status, cycle_start_date, program_type, program_name, total_sessions')
       .eq('patient_id', patientId)
       .not('status', 'in', '("cancelled","merged")')
       .order('start_date', { ascending: true });
@@ -72,35 +72,71 @@ export default async function handler(req, res) {
       });
     }
 
-    // Try to group by cycle_start_date first
-    const withCycle = matchingProtocols.filter(p => p.cycle_start_date);
-    let cycleProtocols;
-    let latestCycleDate;
+    // Group protocols into cycles based on proximity
+    // Two protocols are in the same cycle if the gap between one ending and
+    // the next starting is <= off period (14 days). Otherwise they're separate cycles.
+    // We always show the most recent cycle (which contains the latest protocol).
+    const gapThreshold = offDays + 7; // off period + 1 week buffer
 
-    if (withCycle.length > 0) {
-      // Group by cycle_start_date
-      const cycleGroups = {};
-      for (const p of withCycle) {
-        const key = p.cycle_start_date;
-        if (!cycleGroups[key]) cycleGroups[key] = [];
-        cycleGroups[key].push(p);
+    // Build cycles by walking protocols chronologically and splitting on gaps
+    const cycles = [];
+    let currentCycle = [matchingProtocols[0]];
+
+    for (let i = 1; i < matchingProtocols.length; i++) {
+      const prev = matchingProtocols[i - 1];
+      const curr = matchingProtocols[i];
+      const prevEnd = prev.end_date ? new Date(prev.end_date + 'T12:00:00') : new Date();
+      const currStart = new Date(curr.start_date + 'T12:00:00');
+      const gapDays = Math.round((currStart - prevEnd) / (1000 * 60 * 60 * 24));
+
+      if (gapDays > gapThreshold) {
+        // Big gap — start a new cycle
+        cycles.push(currentCycle);
+        currentCycle = [curr];
+      } else {
+        currentCycle.push(curr);
       }
-      latestCycleDate = Object.keys(cycleGroups).sort().pop();
-      cycleProtocols = cycleGroups[latestCycleDate];
-    } else {
-      // Fallback: group all consecutive protocols as one cycle
-      // Use the earliest start_date as the cycle start
-      latestCycleDate = matchingProtocols[0].start_date;
-      cycleProtocols = matchingProtocols;
     }
+    cycles.push(currentCycle);
 
-    // Calculate total days used in this cycle
+    // Use the most recent cycle (last one, since protocols are sorted by start_date)
+    const cycleProtocols = cycles[cycles.length - 1];
+    const latestCycleDate = cycleProtocols[0].cycle_start_date || cycleProtocols[0].start_date;
+
+    // Calculate total days used and total planned days in this cycle
     let cycleDaysUsed = 0;
+    let totalPlannedDays = 0;
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+
     const subProtocols = cycleProtocols.map(p => {
       const start = new Date(p.start_date + 'T12:00:00');
-      const end = p.end_date ? new Date(p.end_date + 'T12:00:00') : new Date();
-      const days = Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+      // For active protocols, count days elapsed so far (up to today)
+      // For completed protocols, count full duration (start to end)
+      const isActive = p.status === 'active';
+      const endForUsed = isActive ? today : (p.end_date ? new Date(p.end_date + 'T12:00:00') : today);
+      const days = Math.max(0, Math.round((endForUsed - start) / (1000 * 60 * 60 * 24)));
       cycleDaysUsed += days;
+
+      // Calculate planned duration — source of truth from the protocol itself
+      // Prefer total_sessions (matches protocol detail page) over date math
+      let plannedDuration = 0;
+      if (p.total_sessions) {
+        // Best source: explicit day/session count (same as protocol detail page)
+        plannedDuration = p.total_sessions;
+      } else if (p.end_date) {
+        // Fallback: calculate from dates (inclusive)
+        const plannedEnd = new Date(p.end_date + 'T12:00:00');
+        plannedDuration = Math.max(0, Math.round((plannedEnd - start) / (1000 * 60 * 60 * 24)) + 1);
+      } else if (p.program_name) {
+        // Last resort: parse from program_name (e.g., "30-Day Recovery Protocol")
+        const match = p.program_name.match(/(\d+)\s*[-\s]?day/i);
+        if (match) plannedDuration = parseInt(match[1]);
+      }
+      // If we still have nothing, use days elapsed as fallback
+      if (!plannedDuration) plannedDuration = days;
+      totalPlannedDays += plannedDuration;
+
       return {
         id: p.id,
         medication: p.medication,
@@ -111,7 +147,10 @@ export default async function handler(req, res) {
       };
     });
 
-    const daysRemaining = Math.max(0, maxDays - cycleDaysUsed);
+    // Days remaining on the actual planned protocols (source of truth)
+    const protocolDaysRemaining = Math.max(0, totalPlannedDays - cycleDaysUsed);
+    // Days remaining before hitting the 90-day safety max
+    const cycleDaysRemaining = Math.max(0, maxDays - cycleDaysUsed);
     const cycleExhausted = cycleDaysUsed >= maxDays;
 
     // Calculate off period end date if cycle is exhausted
@@ -135,8 +174,10 @@ export default async function handler(req, res) {
       cycleType,
       maxDays,
       offDays,
+      totalPlannedDays,
       cycleDaysUsed,
-      daysRemaining,
+      daysRemaining: protocolDaysRemaining,
+      cycleDaysRemaining,
       cycleStartDate: latestCycleDate,
       cycleExhausted,
       offPeriodEnds,

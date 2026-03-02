@@ -800,6 +800,12 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
     }
   };
 
+  // Detect if selected protocol is HRT (ongoing membership, not session-based)
+  const isHRT = selectedProtocol && (
+    (selectedProtocol.program_type || '').toLowerCase().includes('hrt') ||
+    (selectedProtocol.program_name || '').toLowerCase().includes('hrt')
+  );
+
   const handleSubmit = async () => {
     if (!selectedProtocol) {
       setError('Please select a protocol');
@@ -810,18 +816,28 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
     setError(null);
 
     try {
-      // Update the protocol to add sessions
-      const newTotalSessions = (selectedProtocol.total_sessions || 0) + sessionsToAdd;
-      
-      const res = await fetch(`/api/admin/protocols/${selectedProtocol.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          total_sessions: newTotalSessions
-        })
-      });
-
-      if (!res.ok) throw new Error('Failed to update protocol');
+      if (isHRT) {
+        // HRT: Just update last_payment_date (adds 1 month of membership)
+        const res = await fetch(`/api/admin/protocols/${selectedProtocol.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            last_payment_date: new Date().toISOString().split('T')[0]
+          })
+        });
+        if (!res.ok) throw new Error('Failed to update protocol');
+      } else {
+        // Non-HRT: Add sessions to the protocol
+        const newTotalSessions = (selectedProtocol.total_sessions || 0) + sessionsToAdd;
+        const res = await fetch(`/api/admin/protocols/${selectedProtocol.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            total_sessions: newTotalSessions
+          })
+        });
+        if (!res.ok) throw new Error('Failed to update protocol');
+      }
 
       // Link purchase to protocol — set BOTH protocol_id AND protocol_created
       const purchaseRes = await fetch(`/api/admin/purchases/${purchase.id}`, {
@@ -870,32 +886,42 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
               <p style={{ color: '#666' }}>No active protocols found for this patient. Create a new protocol instead.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {protocols.map(protocol => (
-                  <button
-                    key={protocol.id}
-                    onClick={() => setSelectedProtocol(protocol)}
-                    style={{
-                      padding: '12px 16px',
-                      border: selectedProtocol?.id === protocol.id ? '2px solid #000' : '1px solid #e5e5e5',
-                      borderRadius: '8px',
-                      background: selectedProtocol?.id === protocol.id ? '#f5f5f5' : '#fff',
-                      textAlign: 'left',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>
-                      {protocol.program_name || protocol.program_type}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>
-                      {protocol.total_sessions || 0} sessions • Started {new Date(protocol.start_date).toLocaleDateString()}
-                    </div>
-                  </button>
-                ))}
+                {protocols.map(protocol => {
+                  const isProtoHRT = (protocol.program_type || '').toLowerCase().includes('hrt') ||
+                                     (protocol.program_name || '').toLowerCase().includes('hrt');
+                  return (
+                    <button
+                      key={protocol.id}
+                      onClick={() => setSelectedProtocol(protocol)}
+                      style={{
+                        padding: '12px 16px',
+                        border: selectedProtocol?.id === protocol.id ? '2px solid #000' : '1px solid #e5e5e5',
+                        borderRadius: '8px',
+                        background: selectedProtocol?.id === protocol.id ? '#f5f5f5' : '#fff',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                        {protocol.program_name || protocol.program_type}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>
+                        {isProtoHRT ? (
+                          <>Ongoing membership • Started {new Date(protocol.start_date).toLocaleDateString()}
+                            {protocol.last_payment_date && <> • Last paid {new Date(protocol.last_payment_date + 'T12:00:00').toLocaleDateString()}</>}
+                          </>
+                        ) : (
+                          <>{protocol.total_sessions || 0} sessions • Started {new Date(protocol.start_date).toLocaleDateString()}</>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {selectedProtocol && (
+          {selectedProtocol && !isHRT && (
             <div style={modalStyles.section}>
               <h3 style={modalStyles.sectionTitle}>Sessions to Add</h3>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -922,19 +948,34 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
               </p>
             </div>
           )}
+
+          {selectedProtocol && isHRT && (
+            <div style={modalStyles.section}>
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                fontSize: '13px',
+                color: '#166534'
+              }}>
+                <strong>+ 1 Month</strong> — This payment will be linked to the existing HRT protocol and the last payment date will be updated to today.
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={modalStyles.footer}>
           <button onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
-          <button 
-            onClick={handleSubmit} 
-            disabled={saving || !selectedProtocol || protocols.length === 0} 
+          <button
+            onClick={handleSubmit}
+            disabled={saving || !selectedProtocol || protocols.length === 0}
             style={{
               ...modalStyles.submitBtn,
               opacity: (!selectedProtocol || protocols.length === 0) ? 0.5 : 1
             }}
           >
-            {saving ? 'Adding...' : `Add ${sessionsToAdd} Session${sessionsToAdd > 1 ? 's' : ''}`}
+            {saving ? 'Adding...' : isHRT ? 'Add 1 Month' : `Add ${sessionsToAdd} Session${sessionsToAdd > 1 ? 's' : ''}`}
           </button>
         </div>
       </div>

@@ -94,6 +94,9 @@ export default function PatientProfile() {
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChargeModal, setShowChargeModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePreview, setDeletePreview] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -610,6 +613,48 @@ export default function PatientProfile() {
   const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
   const isInjectionTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('injection');
 
+  // Delete patient handler
+  const handleDeletePatient = async () => {
+    // First call: get preview (count of related records)
+    if (!deletePreview) {
+      try {
+        const res = await fetch('/api/patients/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patient_id: id }),
+        });
+        const data = await res.json();
+        if (data.preview) {
+          setDeletePreview(data);
+          setShowDeleteConfirm(true);
+        }
+      } catch (err) {
+        alert('Error loading delete preview: ' + err.message);
+      }
+      return;
+    }
+
+    // Second call: confirmed delete
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/patients/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: id, confirm: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        router.push('/patients');
+      } else {
+        alert('Delete failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error deleting patient: ' + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Patient edit handlers
   const startEditingPatient = () => {
     setPatientEditForm({
@@ -700,6 +745,7 @@ export default function PatientProfile() {
               )}
               <button onClick={() => setShowBookingModal(true)} className="action-btn action-btn-primary">📅 Book Appointment</button>
               <button onClick={() => setShowChargeModal(true)} className="action-btn action-btn-charge">💳 Charge</button>
+              <button onClick={handleDeletePatient} className="action-btn action-btn-delete">🗑️ Delete</button>
             </div>
           </div>
 
@@ -2275,6 +2321,52 @@ export default function PatientProfile() {
           stripePromise={stripePromise}
         />
 
+        {/* Delete Patient Confirmation Modal */}
+        {showDeleteConfirm && deletePreview && (
+          <>
+            <div className="modal-overlay" onClick={() => { setShowDeleteConfirm(false); setDeletePreview(null); }} />
+            <div className="modal delete-modal">
+              <h3>Delete Patient</h3>
+              <p style={{ margin: '12px 0', color: '#dc2626', fontWeight: 600 }}>
+                Are you sure you want to permanently delete <strong>{deletePreview.patient?.name}</strong>?
+              </p>
+              {deletePreview.totalRecords > 0 && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', margin: '12px 0' }}>
+                  <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: 14 }}>
+                    This will also delete {deletePreview.totalRecords} related record{deletePreview.totalRecords !== 1 ? 's' : ''}:
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#666' }}>
+                    {Object.entries(deletePreview.relatedRecords).map(([table, count]) => (
+                      <li key={table}>{table.replace(/_/g, ' ')}: {count}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p style={{ margin: '12px 0', fontSize: 13, color: '#888' }}>This action cannot be undone.</p>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeletePreview(null); }}
+                  className="action-btn"
+                  style={{ padding: '8px 20px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeletePatient}
+                  disabled={deleting}
+                  style={{
+                    padding: '8px 20px', background: '#dc2626', color: '#fff',
+                    border: 'none', borderRadius: 6, cursor: deleting ? 'wait' : 'pointer',
+                    fontWeight: 600, opacity: deleting ? 0.6 : 1,
+                  }}
+                >
+                  {deleting ? 'Deleting...' : 'Delete Permanently'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* PDF Slide-Out Viewer */}
         {pdfSlideOut.open && (
           <>
@@ -2362,6 +2454,25 @@ export default function PatientProfile() {
           border-color: #16a34a;
         }
         .action-btn-charge:hover { background: #15803d; border-color: #15803d; }
+        .action-btn-delete {
+          background: transparent;
+          color: #dc2626;
+          border-color: #fca5a5;
+        }
+        .action-btn-delete:hover { background: #fef2f2; border-color: #dc2626; }
+        .delete-modal {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: #fff;
+          padding: 24px;
+          border-radius: 12px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          z-index: 10001;
+          max-width: 480px;
+          width: 90%;
+        }
         .header-main h1 {
           font-size: 28px;
           font-weight: 600;

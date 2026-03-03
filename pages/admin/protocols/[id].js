@@ -131,6 +131,8 @@ export default function ProtocolDetail() {
   const [sendingOptin, setSendingOptin] = useState(false);
   const [optinSent, setOptinSent] = useState(false);
   const [sendingGuide, setSendingGuide] = useState(false);
+  const [wlCheckinDay, setWlCheckinDay] = useState('Monday');
+  const [enablingWlCheckin, setEnablingWlCheckin] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -1441,6 +1443,84 @@ export default function ProtocolDetail() {
                     {sendingGuide ? 'Sending...' : '📖 Send Peptide Guide'}
                   </button>
                 )}
+                {protocol?.program_type === 'weight_loss' && (() => {
+                  const checkinEnabled = protocol?.checkin_reminder_enabled === true;
+                  const injDay = protocol?.injection_day;
+
+                  if (checkinEnabled && injDay) {
+                    return (
+                      <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
+                        ✅ Weekly Check-ins Enabled
+                        <div style={{ fontSize: '12px', fontWeight: '400', color: '#15803D', marginTop: '4px' }}>
+                          {injDay}s at 9:00 AM
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/admin/protocols/${id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ checkin_reminder_enabled: false })
+                              });
+                              if (res.ok) {
+                                setProtocol(prev => ({ ...prev, checkin_reminder_enabled: false }));
+                                setSuccess('Weekly check-ins disabled');
+                              }
+                            } catch (e) {
+                              setError('Failed to disable check-ins');
+                            }
+                          }}
+                          style={{ fontSize: '11px', color: '#666', background: 'none', border: 'none', cursor: 'pointer', marginTop: '4px', textDecoration: 'underline' }}
+                        >
+                          Disable
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ fontSize: '13px', color: '#666', whiteSpace: 'nowrap' }}>Injection Day:</label>
+                        <select
+                          value={wlCheckinDay}
+                          onChange={e => setWlCheckinDay(e.target.value)}
+                          style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '13px' }}
+                        >
+                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                            <option key={day} value={day}>{day}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          setEnablingWlCheckin(true);
+                          setError('');
+                          try {
+                            const res = await fetch(`/api/admin/protocols/${id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ checkin_reminder_enabled: true, injection_day: wlCheckinDay })
+                            });
+                            if (res.ok) {
+                              setProtocol(prev => ({ ...prev, checkin_reminder_enabled: true, injection_day: wlCheckinDay }));
+                              setSuccess('Weekly check-in texts enabled!');
+                            } else {
+                              setError('Failed to enable check-ins');
+                            }
+                          } catch (e) {
+                            setError('Failed to enable check-ins');
+                          }
+                          setEnablingWlCheckin(false);
+                        }}
+                        disabled={enablingWlCheckin}
+                        style={{ ...styles.actionBtnSecondary, border: 'none', cursor: enablingWlCheckin ? 'not-allowed' : 'pointer', opacity: enablingWlCheckin ? 0.6 : 1 }}
+                      >
+                        {enablingWlCheckin ? 'Enabling...' : '📱 Enable Weekly Check-in Texts'}
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

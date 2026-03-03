@@ -94,6 +94,9 @@ export default async function handler(req, res) {
       if (b.total_sessions !== undefined) updateData.total_sessions = b.total_sessions;
       if (b.status !== undefined) updateData.status = b.status;
       if (b.notes !== undefined) updateData.notes = b.notes;
+      if (b.checkin_reminder_enabled !== undefined) updateData.checkin_reminder_enabled = b.checkin_reminder_enabled;
+      if (b.injection_day !== undefined) updateData.injection_day = b.injection_day;
+      if (b.last_payment_date !== undefined) updateData.last_payment_date = b.last_payment_date;
 
       // Map old field names → actual DB columns (accept either)
       const med = b.medication ?? b.primary_peptide;

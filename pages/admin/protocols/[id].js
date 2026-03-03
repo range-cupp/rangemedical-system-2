@@ -779,14 +779,14 @@ export default function ProtocolDetail() {
                     return (
                       <div
                         key={num}
-                        onClick={() => !isCompleted && !isFuture && handleCalendarDayClick(num, weeklyDate)}
+                        onClick={() => !isCompleted && handleCalendarDayClick(wlSessionsUsed + 1, weeklyDate)}
                         style={{
                           ...styles.calendarDay,
                           background: isCompleted ? '#22c55e' : isNext ? '#000' : '#fff',
                           color: isCompleted || isNext ? '#fff' : '#000',
                           borderColor: isCompleted ? '#22c55e' : isNext ? '#000' : '#e5e5e5',
                           opacity: isFuture ? 0.5 : 1,
-                          cursor: !isCompleted && !isFuture ? 'pointer' : 'default',
+                          cursor: !isCompleted ? 'pointer' : 'default',
                         }}
                       >
                         <div style={styles.dayNumber}>{num}</div>

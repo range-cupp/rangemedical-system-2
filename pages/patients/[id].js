@@ -1092,66 +1092,71 @@ export default function PatientProfile() {
                 )}
               </section>
 
-              {/* HRT Blood Draw Schedule — Overview */}
+              {/* HRT Blood Draw Schedule — Overview (show only the most recent active HRT protocol) */}
               {Object.keys(hrtLabSchedules).length > 0 && (() => {
-                // Gather all HRT protocols that have lab schedules
+                // Pick the most recent active HRT protocol (prefer active over completed)
                 const hrtProtos = [...activeProtocols, ...completedProtocols].filter(
                   p => isHRTProtocol(p.program_type) && hrtLabSchedules[p.id]?.length > 0
                 );
                 if (hrtProtos.length === 0) return null;
-                return hrtProtos.map(protocol => {
-                  const schedule = hrtLabSchedules[protocol.id];
-                  const completedCount = schedule.filter(d => d.status === 'completed').length;
-                  const total = schedule.length;
-                  const nextDraw = schedule.find(d => d.status === 'overdue' || d.status === 'upcoming');
-                  return (
-                    <section key={'hrt-labs-' + protocol.id} className="card">
-                      <div className="card-header">
-                        <h3>🩸 Blood Draw Schedule — {protocol.program_name || protocol.medication}</h3>
-                        <span style={{ fontSize: '13px', color: '#6b7280' }}>{completedCount} of {total} complete</span>
-                      </div>
-                      {nextDraw && (
-                        <div style={{ padding: '0 16px 8px', fontSize: '13px', color: nextDraw.status === 'overdue' ? '#dc2626' : '#6b7280', fontWeight: nextDraw.status === 'overdue' ? 600 : 400 }}>
-                          {nextDraw.status === 'overdue' ? '⚠️ Overdue: ' : 'Next: '}{nextDraw.label} — {nextDraw.weekLabel}
-                        </div>
-                      )}
-                      <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        {schedule.map(draw => {
-                          const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
-                          return (
-                            <div
-                              key={draw.label}
-                              onClick={() => handleBloodDrawClick(draw, protocol.id)}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px',
-                                cursor: 'pointer', padding: '6px 8px', borderRadius: '6px', transition: 'background 0.15s'
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            >
-                              <span style={{
-                                width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0,
-                                border: draw.status === 'completed' ? 'none' : `2px solid ${color}`,
-                                boxSizing: 'border-box'
-                              }} />
-                              <span style={{ fontWeight: '500', color: '#374151', minWidth: '110px' }}>{draw.label}</span>
-                              <span style={{ color: '#6b7280', flex: 1 }}>{draw.weekLabel}</span>
-                              {draw.completedDate && (
-                                <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 500 }}>✓ {formatShortDate(draw.completedDate)}</span>
-                              )}
-                              {draw.status === 'overdue' && !draw.completedDate && (
-                                <span style={{ color: '#dc2626', fontSize: '12px', fontWeight: 500 }}>Overdue</span>
-                              )}
-                              {draw.status === 'upcoming' && !draw.completedDate && (
-                                <span style={{ color: '#9ca3af', fontSize: '12px' }}>Upcoming</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  );
+                // Sort: active first, then by most recent start_date
+                hrtProtos.sort((a, b) => {
+                  if (a.status === 'active' && b.status !== 'active') return -1;
+                  if (b.status === 'active' && a.status !== 'active') return 1;
+                  return new Date(b.start_date || 0) - new Date(a.start_date || 0);
                 });
+                const protocol = hrtProtos[0];
+                const schedule = hrtLabSchedules[protocol.id];
+                const completedCount = schedule.filter(d => d.status === 'completed').length;
+                const total = schedule.length;
+                const nextDraw = schedule.find(d => d.status === 'overdue' || d.status === 'upcoming');
+                return (
+                  <section className="card">
+                    <div className="card-header">
+                      <h3>🩸 Blood Draw Schedule</h3>
+                      <span style={{ fontSize: '13px', color: '#6b7280' }}>{completedCount} of {total} complete</span>
+                    </div>
+                    {nextDraw && (
+                      <div style={{ padding: '0 16px 8px', fontSize: '13px', color: nextDraw.status === 'overdue' ? '#dc2626' : '#6b7280', fontWeight: nextDraw.status === 'overdue' ? 600 : 400 }}>
+                        {nextDraw.status === 'overdue' ? '⚠️ Overdue: ' : 'Next: '}{nextDraw.label} — {nextDraw.weekLabel}
+                      </div>
+                    )}
+                    <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      {schedule.map(draw => {
+                        const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
+                        return (
+                          <div
+                            key={draw.label}
+                            onClick={() => handleBloodDrawClick(draw, protocol.id)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px',
+                              cursor: 'pointer', padding: '6px 8px', borderRadius: '6px', transition: 'background 0.15s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{
+                              width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0,
+                              border: draw.status === 'completed' ? 'none' : `2px solid ${color}`,
+                              boxSizing: 'border-box'
+                            }} />
+                            <span style={{ fontWeight: '500', color: '#374151', minWidth: '110px' }}>{draw.label}</span>
+                            <span style={{ color: '#6b7280', flex: 1 }}>{draw.weekLabel}</span>
+                            {draw.completedDate && (
+                              <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 500 }}>✓ {formatShortDate(draw.completedDate)}</span>
+                            )}
+                            {draw.status === 'overdue' && !draw.completedDate && (
+                              <span style={{ color: '#dc2626', fontSize: '12px', fontWeight: 500 }}>Overdue</span>
+                            )}
+                            {draw.status === 'upcoming' && !draw.completedDate && (
+                              <span style={{ color: '#9ca3af', fontSize: '12px' }}>Upcoming</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
               })()}
 
               {/* Recent Documents (Intakes + Consents) */}

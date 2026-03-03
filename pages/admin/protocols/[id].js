@@ -772,7 +772,33 @@ export default function ProtocolDetail() {
             )}
 
             {/* Injection Calendar for Weight Loss (weekly intervals, sessions_used as truth) */}
-            {!isEditing && isWeightLoss && (
+            {!isEditing && isWeightLoss && (() => {
+              // Precompute date for each injection number
+              const getInjectionDate = (injNum) => {
+                if (!protocol?.start_date) return null;
+                const parts = protocol.start_date.split('-');
+                const startD = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                const injDay = protocol.injection_day;
+                if (injDay) {
+                  const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+                  const targetDay = dayMap[injDay];
+                  if (targetDay !== undefined) {
+                    const currentDay = startD.getDay();
+                    const daysUntil = (targetDay - currentDay + 7) % 7;
+                    const firstInjDate = new Date(startD);
+                    firstInjDate.setDate(firstInjDate.getDate() + daysUntil);
+                    firstInjDate.setDate(firstInjDate.getDate() + (injNum - 1) * 7);
+                    return firstInjDate;
+                  }
+                }
+                const d = new Date(startD);
+                d.setDate(d.getDate() + (injNum - 1) * 7);
+                return d;
+              };
+              // Date for the NEXT injection to log (used when clicking any box)
+              const nextInjDate = getInjectionDate(wlSessionsUsed + 1);
+
+              return (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>Injection Calendar</h2>
                 <div style={styles.calendarGrid}>
@@ -781,34 +807,12 @@ export default function ProtocolDetail() {
                     const isCompleted = num <= wlSessionsUsed;
                     const isNext = num === wlSessionsUsed + 1;
                     const isFuture = num > wlSessionsUsed + 1;
-                    // Weekly intervals: use injection_day to find the right weekday
-                    const weeklyDate = protocol?.start_date ? (() => {
-                      const parts = protocol.start_date.split('-');
-                      const startD = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                      // If injection_day is set, find first occurrence of that day on or after start
-                      const injDay = protocol.injection_day;
-                      if (injDay) {
-                        const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
-                        const targetDay = dayMap[injDay];
-                        if (targetDay !== undefined) {
-                          const currentDay = startD.getDay();
-                          const daysUntil = (targetDay - currentDay + 7) % 7;
-                          const firstInjDate = new Date(startD);
-                          firstInjDate.setDate(firstInjDate.getDate() + daysUntil);
-                          firstInjDate.setDate(firstInjDate.getDate() + (num - 1) * 7);
-                          return firstInjDate;
-                        }
-                      }
-                      // Fallback: weekly from start_date
-                      const d = new Date(startD);
-                      d.setDate(d.getDate() + (num - 1) * 7);
-                      return d;
-                    })() : null;
+                    const weeklyDate = getInjectionDate(num);
 
                     return (
                       <div
                         key={num}
-                        onClick={() => !isCompleted && handleCalendarDayClick(wlSessionsUsed + 1, weeklyDate)}
+                        onClick={() => !isCompleted && handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate)}
                         style={{
                           ...styles.calendarDay,
                           background: isCompleted ? '#22c55e' : isNext ? '#000' : '#fff',
@@ -840,7 +844,8 @@ export default function ProtocolDetail() {
                   <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Upcoming</span>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Weight Progress Card (weight loss only) */}
             {!isEditing && isWeightLoss && weightProgress && (

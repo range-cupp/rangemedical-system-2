@@ -274,9 +274,9 @@ export default function ProtocolDetail() {
     try {
       const res = await fetch(`/api/protocols/${protocolId}`);
       const data = await res.json();
-      // Combine weightCheckins + activityLogs (injections) into a single timeline
+      // Combine weightCheckins + activityLogs (injections + checkins) into a single timeline
       const checkins = data.weightCheckins || [];
-      const activity = (data.activityLogs || []).filter(l => l.log_type === 'injection');
+      const activity = (data.activityLogs || []).filter(l => l.log_type === 'injection' || l.log_type === 'checkin');
       // Merge and deduplicate by id
       const allEntries = [...checkins, ...activity];
       const seen = new Set();
@@ -289,6 +289,18 @@ export default function ProtocolDetail() {
       unique.sort((a, b) => new Date(b.log_date) - new Date(a.log_date));
       setInjectionLogs(unique);
       setWeightProgress(data.weightProgress || null);
+
+      // Reconcile sessions_used with actual injection log count
+      const injectionCount = unique.length;
+      if (protocol && injectionCount > (protocol.sessions_used || 0)) {
+        setProtocol(prev => ({ ...prev, sessions_used: injectionCount }));
+        // Also fix in DB
+        fetch(`/api/protocols/${protocolId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessions_used: injectionCount })
+        }).catch(() => {});
+      }
     } catch (err) {
       console.error('Error fetching injection logs:', err);
       setInjectionLogs([]);

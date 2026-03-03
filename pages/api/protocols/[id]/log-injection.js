@@ -54,24 +54,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // Increment sessions_used
-    const newSessionsUsed = (protocol.sessions_used || 0) + 1;
     const totalSessions = protocol.total_sessions || 4;
-    const sessionsRemaining = totalSessions - newSessionsUsed;
-
-    // Update protocol
-    const { error: updateError } = await supabase
-      .from('protocols')
-      .update({ 
-        sessions_used: newSessionsUsed,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id);
-
-    if (updateError) {
-      console.error('Update protocol error:', updateError);
-      return res.status(500).json({ error: 'Failed to update protocol' });
-    }
 
     // Build log notes
     let logNotes = '';
@@ -90,14 +73,14 @@ export default async function handler(req, res) {
     // Determine log type based on delivery method
     const logType = delivery_method === 'in_clinic' ? 'injection' : 'checkin';
 
-    // Create log entry
+    // Insert log entry FIRST
     const logEntry = {
       protocol_id: id,
       patient_id: protocol.patient_id,
       log_type: logType,
       log_date: log_date,
       weight: weight || null,
-      notes: logNotes || `Injection #${newSessionsUsed}`
+      notes: logNotes || null  // Will be set after counting
     };
 
     const { data: insertedLog, error: logError } = await supabase
@@ -108,7 +91,38 @@ export default async function handler(req, res) {
 
     if (logError) {
       console.error('Log insert error:', logError);
-      // Continue anyway - protocol was updated
+    }
+
+    // Count actual injection/checkin logs for this protocol (race-condition-safe)
+    const { count: logCount } = await supabase
+      .from('protocol_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('protocol_id', id)
+      .in('log_type', ['checkin', 'injection']);
+
+    const newSessionsUsed = logCount || ((protocol.sessions_used || 0) + 1);
+    const sessionsRemaining = totalSessions - newSessionsUsed;
+
+    // Update log notes with correct injection number
+    if (insertedLog && !logNotes) {
+      await supabase
+        .from('protocol_logs')
+        .update({ notes: `Injection #${newSessionsUsed}` })
+        .eq('id', insertedLog.id);
+    }
+
+    // Update protocol sessions_used based on actual count
+    const { error: updateError } = await supabase
+      .from('protocols')
+      .update({
+        sessions_used: newSessionsUsed,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('Update protocol error:', updateError);
+      return res.status(500).json({ error: 'Failed to update protocol' });
     }
 
     // Calculate weight change if we have both weights

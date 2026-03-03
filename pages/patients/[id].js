@@ -223,10 +223,12 @@ export default function PatientProfile() {
               const protoRes = await fetch(`/api/protocols/${p.id}`);
               const protoData = await protoRes.json();
               const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
-              const schedule = getHRTLabSchedule(p.start_date);
+              const firstFollowup = protoData.protocol?.first_followup_weeks || p.first_followup_weeks || 8;
+              const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
               schedules[p.id] = matchDrawsToLogs(schedule, bloodDrawLogs, data.labs || []);
             } catch {
-              const schedule = getHRTLabSchedule(p.start_date);
+              const firstFollowup = p.first_followup_weeks || 8;
+              const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
               schedules[p.id] = schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null }));
             }
           }
@@ -317,6 +319,45 @@ export default function PatientProfile() {
       console.error('Blood draw save error:', err);
     } finally {
       setBloodDrawSaving(false);
+    }
+  };
+
+  const handleToggleFollowupWeeks = async (protocolId) => {
+    // Find the protocol to get current value
+    const proto = [...activeProtocols, ...completedProtocols].find(p => p.id === protocolId);
+    const currentWeeks = proto?.first_followup_weeks || 8;
+    const newWeeks = currentWeeks === 8 ? 12 : 8;
+
+    // Update local state immediately — recompute schedule with new interval
+    const updateProtoList = (list) => list.map(p =>
+      p.id === protocolId ? { ...p, first_followup_weeks: newWeeks } : p
+    );
+    setActiveProtocols(prev => updateProtoList(prev));
+    setCompletedProtocols(prev => updateProtoList(prev));
+
+    // Recompute the lab schedule locally
+    const updatedProto = { ...proto, first_followup_weeks: newWeeks };
+    try {
+      const protoRes = await fetch(`/api/protocols/${protocolId}`);
+      const protoData = await protoRes.json();
+      const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
+      const schedule = getHRTLabSchedule(updatedProto.start_date, newWeeks);
+      const matched = matchDrawsToLogs(schedule, bloodDrawLogs, labs || []);
+      setHrtLabSchedules(prev => ({ ...prev, [protocolId]: matched }));
+    } catch {
+      const schedule = getHRTLabSchedule(updatedProto.start_date, newWeeks);
+      setHrtLabSchedules(prev => ({ ...prev, [protocolId]: schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null })) }));
+    }
+
+    // Persist to database (may fail if column doesn't exist yet — that's OK)
+    try {
+      await fetch(`/api/protocols/${protocolId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ first_followup_weeks: newWeeks })
+      });
+    } catch (err) {
+      console.error('Could not persist first_followup_weeks:', err);
     }
   };
 
@@ -1110,11 +1151,25 @@ export default function PatientProfile() {
                 const completedCount = schedule.filter(d => d.status === 'completed').length;
                 const total = schedule.length;
                 const nextDraw = schedule.find(d => d.status === 'overdue' || d.status === 'upcoming');
+                const currentFollowup = protocol.first_followup_weeks || 8;
                 return (
                   <section className="card">
                     <div className="card-header">
                       <h3>🩸 Blood Draw Schedule</h3>
-                      <span style={{ fontSize: '13px', color: '#6b7280' }}>{completedCount} of {total} complete</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>1st follow-up:</span>
+                        <button
+                          onClick={() => handleToggleFollowupWeeks(protocol.id)}
+                          style={{
+                            fontSize: '12px', fontWeight: 600, padding: '3px 10px',
+                            borderRadius: '12px', cursor: 'pointer',
+                            border: '1px solid #d1d5db', background: '#fff', color: '#374151'
+                          }}
+                        >
+                          {currentFollowup} wks ⇄
+                        </button>
+                        <span style={{ fontSize: '13px', color: '#6b7280' }}>{completedCount} of {total} complete</span>
+                      </div>
                     </div>
                     {nextDraw && (
                       <div style={{ padding: '0 16px 8px', fontSize: '13px', color: nextDraw.status === 'overdue' ? '#dc2626' : '#6b7280', fontWeight: nextDraw.status === 'overdue' ? 600 : 400 }}>

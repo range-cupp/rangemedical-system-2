@@ -183,7 +183,9 @@ async function updateProtocol(id, updates, res) {
     'cycle_start_date',
     // HRT take-home injection reminders
     'hrt_reminders_enabled',
-    'hrt_reminder_schedule'
+    'hrt_reminder_schedule',
+    // HRT blood draw schedule
+    'first_followup_weeks'
   ];
 
   // Date fields that need special handling (convert empty string to null)

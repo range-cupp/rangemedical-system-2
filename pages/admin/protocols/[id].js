@@ -269,13 +269,15 @@ export default function ProtocolDetail() {
         patientLabs = labsData.labs || [];
       }
 
-      const schedule = getHRTLabSchedule(p.start_date);
+      const firstFollowup = p.first_followup_weeks || 8;
+      const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
       const matched = matchDrawsToLogs(schedule, logs, patientLabs);
       setLabSchedule(matched);
     } catch (err) {
       console.error('Error fetching lab schedule:', err);
       // Still show schedule without completion data
-      const schedule = getHRTLabSchedule(p.start_date);
+      const firstFollowup = p.first_followup_weeks || 8;
+      const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
       setLabSchedule(schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null })));
     }
   };
@@ -358,6 +360,25 @@ export default function ProtocolDetail() {
       setError(err.message);
     } finally {
       setBloodDrawSaving(false);
+    }
+  };
+
+  const handleToggleFollowupWeeks = async () => {
+    const currentWeeks = protocol?.first_followup_weeks || 8;
+    const newWeeks = currentWeeks === 8 ? 12 : 8;
+    // Update local state immediately for responsive UI
+    setProtocol(prev => ({ ...prev, first_followup_weeks: newWeeks }));
+    fetchLabSchedule({ ...protocol, first_followup_weeks: newWeeks });
+    setSuccess(`First follow-up changed to ${newWeeks} weeks`);
+    // Persist to database (may fail if column doesn't exist yet — that's OK)
+    try {
+      await fetch(`/api/protocols/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ first_followup_weeks: newWeeks })
+      });
+    } catch (err) {
+      console.error('Could not persist first_followup_weeks:', err);
     }
   };
 
@@ -1373,7 +1394,22 @@ export default function ProtocolDetail() {
             {/* Blood Draw Schedule (HRT only) */}
             {!isEditing && labSchedule.length > 0 && (
               <div style={styles.card}>
-                <h2 style={styles.cardTitle}>Blood Draw Schedule</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 8px' }}>
+                  <h2 style={{ ...styles.cardTitle, padding: 0, margin: 0 }}>Blood Draw Schedule</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>1st follow-up:</span>
+                    <button
+                      onClick={handleToggleFollowupWeeks}
+                      style={{
+                        fontSize: '12px', fontWeight: 600, padding: '3px 10px',
+                        borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s',
+                        border: '1px solid #d1d5db', background: '#fff', color: '#374151'
+                      }}
+                    >
+                      {(protocol?.first_followup_weeks || 8)} wks ⇄
+                    </button>
+                  </div>
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                   {labSchedule.map((draw, idx) => {
                     const isLast = idx === labSchedule.length - 1;

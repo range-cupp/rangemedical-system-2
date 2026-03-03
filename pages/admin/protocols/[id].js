@@ -475,8 +475,11 @@ export default function ProtocolDetail() {
         };
       }
 
+      const weekNum = day / 7;
+      const injectionNum = weekNum + 1;
       checkins.push({
-        label: `Week ${day / 7} Check-in`,
+        label: `Week ${weekNum} Check-in`,
+        sublabel: `Injection #${injectionNum}`,
         date: checkinDateStr,
         dayNumber: day,
         status: matchedLog ? 'completed' : isToday ? 'today' : isPast ? 'overdue' : 'upcoming',
@@ -1128,6 +1131,9 @@ export default function ProtocolDetail() {
                         <div style={{ flex: 1, paddingBottom: isLast ? '0' : '12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                             <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{checkin.label}</span>
+                            {checkin.sublabel && (
+                              <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500' }}>({checkin.sublabel})</span>
+                            )}
                             <span style={{
                               fontSize: '11px', fontWeight: '600', padding: '2px 8px',
                               borderRadius: '10px', background: statusBg, color: statusColor,

@@ -170,10 +170,11 @@ export default async function handler(req, res) {
       allergies: formData.allergies || null,
       allergy_reactions: formData.allergyReactions || null,
       
-      // How heard about us
-      how_heard: formData.howHeardAboutUs || null,
+      // How heard about us (combine friend name into how_heard for display)
+      how_heard: formData.howHeardAboutUs === 'Friend or Family Member' && formData.howHeardFriend
+        ? `Friend/Family: ${formData.howHeardFriend}`
+        : formData.howHeardAboutUs || null,
       how_heard_other: formData.howHeardOther || null,
-      how_heard_friend: formData.howHeardFriend || null,
       
       // Primary care physician
       has_pcp: toBool(formData.hasPCP),
@@ -222,6 +223,7 @@ export default async function handler(req, res) {
     console.log('✅ Signature saved:', data.signature_url ? 'YES' : 'NO');
 
     // Push demographics to patient profile (single source of truth)
+    // Also creates patient if one doesn't exist
     if (intakeRecord.email) {
       try {
         const normalizedEmail = intakeRecord.email.toLowerCase().trim();
@@ -241,10 +243,46 @@ export default async function handler(req, res) {
           if (!patientMatch.zip_code && intakeRecord.postal_code) demoUpdates.zip_code = intakeRecord.postal_code;
 
           if (Object.keys(demoUpdates).length > 0) {
-            // Also link intake to patient
-            await supabase.from('intakes').update({ patient_id: patientMatch.id }).eq('id', data.id);
             await supabase.from('patients').update(demoUpdates).eq('id', patientMatch.id);
             console.log(`Updated patient ${patientMatch.id} demographics from intake:`, Object.keys(demoUpdates).join(', '));
+          }
+          // Link intake to patient
+          await supabase.from('intakes').update({ patient_id: patientMatch.id }).eq('id', data.id);
+        } else {
+          // No patient record exists — create one
+          const capFirst = intakeRecord.first_name
+            ? intakeRecord.first_name.charAt(0).toUpperCase() + intakeRecord.first_name.slice(1).toLowerCase()
+            : '';
+          const capLast = intakeRecord.last_name
+            ? intakeRecord.last_name.charAt(0).toUpperCase() + intakeRecord.last_name.slice(1).toLowerCase()
+            : '';
+
+          const newPatientData = {
+            first_name: capFirst,
+            last_name: capLast,
+            name: `${capFirst} ${capLast}`.trim(),
+            email: normalizedEmail,
+            phone: intakeRecord.phone || null,
+            date_of_birth: intakeRecord.date_of_birth || null,
+            gender: intakeRecord.gender || null,
+            address: intakeRecord.street_address || null,
+            city: intakeRecord.city || null,
+            state: intakeRecord.state || null,
+            zip_code: intakeRecord.postal_code || null,
+          };
+
+          const { data: newPatient, error: createErr } = await supabase
+            .from('patients')
+            .insert(newPatientData)
+            .select('id')
+            .single();
+
+          if (createErr) {
+            console.error('Patient creation from intake error:', createErr);
+          } else {
+            // Link intake to new patient
+            await supabase.from('intakes').update({ patient_id: newPatient.id }).eq('id', data.id);
+            console.log(`Intake: created new patient ${newPatient.id} for ${capFirst} ${capLast} (${normalizedEmail})`);
           }
         }
       } catch (demoErr) {

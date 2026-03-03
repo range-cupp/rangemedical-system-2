@@ -143,6 +143,8 @@ export default function ProtocolDetail() {
   const [sendingGuide, setSendingGuide] = useState(false);
   const [wlCheckinDay, setWlCheckinDay] = useState('Monday');
   const [enablingWlCheckin, setEnablingWlCheckin] = useState(false);
+  const [dripLogs, setDripLogs] = useState([]);
+  const [startingDrip, setStartingDrip] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -244,9 +246,16 @@ export default function ProtocolDetail() {
         ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => pn.includes(m) || (enrichedProtocol.primary_peptide || '').toLowerCase().includes(m));
       if (wl) {
         fetchInjectionLogs(id);
+        // Fetch drip email logs for email sequence UI
+        try {
+          const dripRes = await fetch(`/api/protocols/${id}`);
+          const dripData = await dripRes.json();
+          setDripLogs((dripData.activityLogs || []).filter(l => l.log_type === 'drip_email'));
+        } catch { setDripLogs([]); }
       } else {
         setInjectionLogs([]);
         setWeightProgress(null);
+        setDripLogs([]);
       }
     } catch (err) {
       setError(err.message);
@@ -1562,7 +1571,78 @@ export default function ProtocolDetail() {
                     {sendingGuide ? 'Sending...' : '📖 Send Peptide Guide'}
                   </button>
                 )}
-                {protocol?.program_type === 'weight_loss' && (() => {
+                {/* Email Sequence (weight loss) */}
+                {isWeightLoss && (() => {
+                  const emailSequence = [
+                    { num: 1, subject: 'Your Weight Loss Journey Starts Here' },
+                    { num: 2, subject: 'Fuel Your Weight Loss: What to Eat' },
+                    { num: 3, subject: "Feeling Nauseous? Here's What Helps" },
+                    { num: 4, subject: 'The Final Piece: Exercise & Supplements' }
+                  ];
+                  const hasStarted = dripLogs.length > 0;
+                  return (
+                    <div style={{ padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>📧 Email Sequence</span>
+                        {!hasStarted && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Start the 4-day email sequence? Email 1 will send immediately.')) return;
+                              setStartingDrip(true);
+                              try {
+                                const resp = await fetch('/api/protocols/start-drip', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ protocolId: id })
+                                });
+                                const data = await resp.json();
+                                if (data.success) {
+                                  setSuccess(`Email 1 sent! Emails 2-4 follow over next 3 days.`);
+                                  // Refresh drip logs
+                                  const dripRes = await fetch(`/api/protocols/${id}`);
+                                  const dripData = await dripRes.json();
+                                  setDripLogs((dripData.activityLogs || []).filter(l => l.log_type === 'drip_email'));
+                                } else {
+                                  setError(data.error || 'Failed to start sequence');
+                                }
+                              } catch (err) {
+                                setError(err.message);
+                              }
+                              setStartingDrip(false);
+                            }}
+                            disabled={startingDrip}
+                            style={{
+                              fontSize: '11px', fontWeight: 600, padding: '4px 10px',
+                              background: '#000', color: '#fff', border: 'none', borderRadius: '4px',
+                              cursor: startingDrip ? 'wait' : 'pointer', opacity: startingDrip ? 0.6 : 1
+                            }}
+                          >
+                            {startingDrip ? 'Sending...' : 'Start Sequence'}
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {emailSequence.map(email => {
+                          const sent = dripLogs.find(l => l.notes && l.notes.includes(`Drip email ${email.num}:`));
+                          return (
+                            <div key={email.num} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                              <span style={{
+                                width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+                                background: sent ? '#22c55e' : '#d1d5db'
+                              }} />
+                              <span style={{ color: sent ? '#374151' : '#9ca3af' }}>
+                                Email {email.num}: {email.subject}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Weekly Check-in Texts (weight loss) */}
+                {isWeightLoss && (() => {
                   const checkinEnabled = protocol?.checkin_reminder_enabled === true;
                   const injDay = protocol?.injection_day;
 

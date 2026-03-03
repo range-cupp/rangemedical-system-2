@@ -19,32 +19,62 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
 
+// Helper: check if a program_type is any weight loss variant
+function isWeightLossType(pt) {
+  if (!pt) return false;
+  const t = pt.toLowerCase();
+  return t.includes('weight_loss') || t === 'weight_loss_program' ||
+    t.includes('semaglutide') || t.includes('tirzepatide') || t.includes('retatrutide');
+}
+
 // ============================================
 // CONSTANTS
 // ============================================
 
 const CATEGORY_COLORS = {
   weight_loss: '#FF8C00',
+  weight_loss_program: '#FF8C00',
+  weight_loss_semaglutide: '#FF8C00',
+  weight_loss_tirzepatide: '#FF8C00',
+  weight_loss_retatrutide: '#FF8C00',
   hrt: '#4488FF',
+  hrt_male_membership: '#4488FF',
+  hrt_female_membership: '#4488FF',
   peptide: '#00CC66',
   iv: '#9966FF',
+  iv_therapy: '#9966FF',
   hbot: '#FFCC00',
+  hbot_sessions: '#FFCC00',
   rlt: '#FF6666',
+  red_light_sessions: '#FF6666',
   combo_membership: '#9333EA',
   injection: '#A0A0A0',
+  single_injection: '#A0A0A0',
+  injection_pack: '#A0A0A0',
   labs: '#66CCCC',
   other: '#888888',
 };
 
 const CATEGORY_LABELS = {
   weight_loss: 'Weight Loss',
+  weight_loss_program: 'Weight Loss',
+  weight_loss_semaglutide: 'Weight Loss',
+  weight_loss_tirzepatide: 'Weight Loss',
+  weight_loss_retatrutide: 'Weight Loss',
   hrt: 'HRT',
+  hrt_male_membership: 'HRT',
+  hrt_female_membership: 'HRT',
   peptide: 'Peptide',
   iv: 'IV Therapy',
+  iv_therapy: 'IV Therapy',
   hbot: 'HBOT',
+  hbot_sessions: 'HBOT',
   rlt: 'Red Light',
+  red_light_sessions: 'Red Light',
   combo_membership: 'Combo Membership',
   injection: 'Injection',
+  single_injection: 'Injection',
+  injection_pack: 'Injection Pack',
   labs: 'Labs',
 };
 
@@ -2205,7 +2235,7 @@ export default function CommandCenter() {
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {protocolDetailPanel.protocol.program_type === 'weight_loss' && (
+                {isWeightLossType(protocolDetailPanel.protocol.program_type) && (
                   <button
                     style={{ padding: '6px 16px', background: '#FEE2E2', color: '#DC2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
                     onClick={() => { openMissedModal(protocolDetailPanel.protocol); }}
@@ -2633,7 +2663,7 @@ export default function CommandCenter() {
                   )}
 
                   {/* Injection Reminders (take-home weight loss) */}
-                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.protocol.delivery_method === 'take_home' && (
+                  {isWeightLossType(protocolDetailPanel.protocol.program_type) && protocolDetailPanel.protocol.delivery_method === 'take_home' && (
                     <div style={styles.protocolDetailSection}>
                       <h4 style={styles.protocolDetailSectionTitle}>Injection Reminders</h4>
                       <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -2676,7 +2706,7 @@ export default function CommandCenter() {
                   )}
 
                   {/* Weight Progress Section (for weight loss protocols) */}
-                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && (
+                  {isWeightLossType(protocolDetailPanel.protocol.program_type) && (
                     <div style={styles.protocolDetailSection}>
                       <h4 style={styles.protocolDetailSectionTitle}>Weight Progress</h4>
                       {protocolDetailPanel.weightProgress ? (
@@ -2739,7 +2769,7 @@ export default function CommandCenter() {
                   )}
 
                   {/* Weight Check-in History (for weight loss protocols) */}
-                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && protocolDetailPanel.weightCheckins.length > 0 && (() => {
+                  {isWeightLossType(protocolDetailPanel.protocol.program_type) && protocolDetailPanel.weightCheckins.length > 0 && (() => {
                     // Build checkins list with missed week indicators
                     const checkins = [...protocolDetailPanel.weightCheckins].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
                     const displayItems = [];
@@ -2819,7 +2849,7 @@ export default function CommandCenter() {
                   })()}
 
                   {/* Email Sequence (weight loss only) */}
-                  {protocolDetailPanel.protocol.program_type === 'weight_loss' && (() => {
+                  {isWeightLossType(protocolDetailPanel.protocol.program_type) && (() => {
                     const dripLogs = protocolDetailPanel.activityLogs.filter(l => l.log_type === 'drip_email');
                     const emailSequence = [
                       { num: 1, subject: 'Your Weight Loss Journey Starts Here' },
@@ -4595,7 +4625,7 @@ export default function CommandCenter() {
 
                   <div style={styles.modalFormGroup}>
                     <label style={styles.formLabel}>
-                      {['weight_loss', 'hrt', 'peptide'].includes(editingProtocol.program_type) ? 'Injections Used' : 'Sessions Used'}
+                      {(isWeightLossType(editingProtocol.program_type) || ['hrt', 'peptide'].includes(editingProtocol.program_type)) ? 'Injections Used' : 'Sessions Used'}
                     </label>
                     <input
                       type="number"

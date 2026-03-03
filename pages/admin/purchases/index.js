@@ -812,10 +812,14 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
     }
   };
 
-  // Detect if selected protocol is HRT (ongoing membership, not session-based)
+  // Detect protocol type for smart behavior
   const isHRT = selectedProtocol && (
     (selectedProtocol.program_type || '').toLowerCase().includes('hrt') ||
     (selectedProtocol.program_name || '').toLowerCase().includes('hrt')
+  );
+  const isWeightLoss = selectedProtocol && (
+    (selectedProtocol.program_type || '').toLowerCase() === 'weight_loss' ||
+    (selectedProtocol.program_name || '').toLowerCase().includes('weight loss')
   );
 
   const handleSubmit = async () => {
@@ -838,8 +842,20 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
           })
         });
         if (!res.ok) throw new Error('Failed to update protocol');
+      } else if (isWeightLoss) {
+        // Weight Loss: Add 4 injections (1 month) and update last_payment_date
+        const newTotalSessions = (selectedProtocol.total_sessions || 0) + 4;
+        const res = await fetch(`/api/admin/protocols/${selectedProtocol.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            total_sessions: newTotalSessions,
+            last_payment_date: new Date().toISOString().split('T')[0]
+          })
+        });
+        if (!res.ok) throw new Error('Failed to update protocol');
       } else {
-        // Non-HRT: Add sessions to the protocol
+        // Other: Add sessions to the protocol
         const newTotalSessions = (selectedProtocol.total_sessions || 0) + sessionsToAdd;
         const res = await fetch(`/api/admin/protocols/${selectedProtocol.id}`, {
           method: 'PUT',
@@ -933,7 +949,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
             )}
           </div>
 
-          {selectedProtocol && !isHRT && (
+          {selectedProtocol && !isHRT && !isWeightLoss && (
             <div style={modalStyles.section}>
               <h3 style={modalStyles.sectionTitle}>Sessions to Add</h3>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -958,6 +974,24 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
               <p style={{ marginTop: '12px', fontSize: '13px', color: '#666' }}>
                 New total: {(selectedProtocol.total_sessions || 0) + sessionsToAdd} sessions
               </p>
+            </div>
+          )}
+
+          {selectedProtocol && isWeightLoss && (
+            <div style={modalStyles.section}>
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                fontSize: '13px',
+                color: '#166534'
+              }}>
+                <strong>+ 4 Injections (1 Month)</strong> — Adds 4 weekly injections to the existing weight loss protocol.
+                <div style={{ marginTop: '6px', color: '#15803D' }}>
+                  New total: {(selectedProtocol.total_sessions || 0) + 4} injections
+                </div>
+              </div>
             </div>
           )}
 
@@ -987,7 +1021,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
               opacity: (!selectedProtocol || protocols.length === 0) ? 0.5 : 1
             }}
           >
-            {saving ? 'Adding...' : isHRT ? 'Add 1 Month' : `Add ${sessionsToAdd} Session${sessionsToAdd > 1 ? 's' : ''}`}
+            {saving ? 'Adding...' : isHRT ? 'Add 1 Month' : isWeightLoss ? 'Add 4 Injections' : `Add ${sessionsToAdd} Session${sessionsToAdd > 1 ? 's' : ''}`}
           </button>
         </div>
       </div>

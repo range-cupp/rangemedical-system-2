@@ -178,6 +178,7 @@ export default async function handler(req, res) {
     }
 
     // 1b. Push demographics to patient profile (single source of truth)
+    // Also creates patient if one doesn't exist (safety net for submit failures)
     if (supabase && email) {
       try {
         const normalizedEmail = email.toLowerCase().trim();
@@ -187,32 +188,31 @@ export default async function handler(req, res) {
           .eq('email', normalizedEmail)
           .maybeSingle();
 
+        // Extract demographics from intakeData
+        const pi = intakeData.personalInfo || intakeData || {};
+        const addr = pi.address || {};
+        const dob = pi.dob || pi.date_of_birth || pi.dateOfBirth || intakeData.dob;
+        const gender = pi.gender || pi.sex || intakeData.gender;
+        const street = addr.street || addr.streetAddress || pi.streetAddress || intakeData.streetAddress;
+        const city = addr.city || pi.city || intakeData.city;
+        const state = addr.state || pi.state || intakeData.state;
+        const zip = addr.postalCode || addr.zip || addr.zipCode || pi.postalCode || intakeData.postalCode;
+
+        // Parse DOB format
+        let parsedDob = dob || null;
+        if (typeof dob === 'string' && dob.includes('/')) {
+          const parts = dob.split('/');
+          if (parts.length === 3) {
+            const [m, d, y] = parts;
+            parsedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+          }
+        }
+
         if (patientMatch) {
           const demographicUpdates = {};
 
-          // Extract demographics from intakeData — data is nested under personalInfo
-          const pi = intakeData.personalInfo || intakeData || {};
-          const addr = pi.address || {};
-
-          // Support multiple field name formats
-          const dob = pi.dob || pi.date_of_birth || pi.dateOfBirth || intakeData.dob;
-          const gender = pi.gender || pi.sex || intakeData.gender;
-          const street = addr.street || addr.streetAddress || pi.streetAddress || intakeData.streetAddress;
-          const city = addr.city || pi.city || intakeData.city;
-          const state = addr.state || pi.state || intakeData.state;
-          const zip = addr.postalCode || addr.zip || addr.zipCode || pi.postalCode || intakeData.postalCode;
-
           // Only update fields that are empty on the patient — don't overwrite existing data
-          if (!patientMatch.date_of_birth && dob) {
-            // Convert date formats: "11/13/1993" → "1993-11-13"
-            let parsedDob = dob;
-            if (typeof dob === 'string' && dob.includes('/')) {
-              const parts = dob.split('/');
-              if (parts.length === 3) {
-                const [m, d, y] = parts;
-                parsedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-              }
-            }
+          if (!patientMatch.date_of_birth && parsedDob) {
             demographicUpdates.date_of_birth = parsedDob;
           }
           if (!patientMatch.gender && gender) {
@@ -241,6 +241,51 @@ export default async function handler(req, res) {
             } else {
               console.log(`Updated patient ${patientMatch.id} demographics from assessment:`, Object.keys(demographicUpdates).join(', '));
             }
+          }
+        } else {
+          // No patient record exists — create one as safety net
+          const capFirst = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase() : '';
+          const capLast = lastName ? lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase() : '';
+
+          const insertData = {
+            first_name: capFirst,
+            last_name: capLast,
+            name: `${capFirst} ${capLast}`.trim(),
+            email: normalizedEmail,
+            phone: phone || null,
+            date_of_birth: parsedDob,
+            gender: gender || null,
+            address: street || null,
+            city: city || null,
+            state: state || null,
+            zip_code: zip || null,
+            tags: ['assessment-lead', `assessment-${assessmentPath}`],
+          };
+
+          const { data: newPatient, error: createError } = await supabase
+            .from('patients')
+            .insert(insertData)
+            .select('id')
+            .single();
+
+          if (createError) {
+            console.error('Patient creation from complete error:', createError);
+            // Retry without tags column if it doesn't exist
+            if (createError.message?.includes('tags')) {
+              delete insertData.tags;
+              const { error: retryError } = await supabase
+                .from('patients')
+                .insert(insertData)
+                .select('id')
+                .single();
+              if (retryError) {
+                console.error('Patient creation retry error:', retryError);
+              } else {
+                console.log(`Assessment complete: created new patient for ${capFirst} ${capLast} (${normalizedEmail})`);
+              }
+            }
+          } else {
+            console.log(`Assessment complete: created new patient ${newPatient.id} for ${capFirst} ${capLast} (${normalizedEmail})`);
           }
         }
       } catch (demoErr) {

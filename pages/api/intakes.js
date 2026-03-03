@@ -173,6 +173,7 @@ export default async function handler(req, res) {
       // How heard about us
       how_heard: formData.howHeardAboutUs || null,
       how_heard_other: formData.howHeardOther || null,
+      how_heard_friend: formData.howHeardFriend || null,
       
       // Primary care physician
       has_pcp: toBool(formData.hasPCP),

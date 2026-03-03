@@ -30,19 +30,26 @@ function normalizeFrequencyValue(freq) {
 function normalizeProtocol(p) {
   if (!p) return p;
 
-  // Calculate duration - check multiple sources
-  let durationDays = p.duration_days || p.total_days || p.total_sessions;
-  if (!durationDays && p.start_date && p.end_date) {
+  // Calculate duration - prefer dates as source of truth
+  let durationDays = p.duration_days || p.total_days;
+
+  // Calculate from start/end dates first (most accurate)
+  if (p.start_date && p.end_date) {
     const start = new Date(p.start_date);
     const end = new Date(p.end_date);
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
-    // +1 because both start and end are inclusive
-    durationDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
-    if (durationDays < 1) durationDays = null;
+    const calculated = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    if (calculated > 0) durationDays = calculated;
   }
 
-  // Parse duration from program_name if still missing (e.g., "Peptide Therapy - 30 Day")
+  // Fallback to total_sessions for non-weight-loss protocols (where sessions = days)
+  const pType = (p.program_type || '').toLowerCase();
+  if (!durationDays && !pType.includes('weight_loss')) {
+    durationDays = p.total_sessions;
+  }
+
+  // Parse duration from program_name as last resort (e.g., "Peptide Therapy - 30 Day")
   if (!durationDays && p.program_name) {
     const match = p.program_name.match(/(\d+)\s*day/i);
     if (match) durationDays = parseInt(match[1]);
@@ -441,24 +448,34 @@ export default function ProtocolDetail() {
         endDate = start.toISOString().split('T')[0];
       }
 
+      // For weight loss, don't overwrite total_sessions with calendar days
+      // total_sessions = injection count for weight loss, duration_days for others
+      const isWL = (protocol?.program_type || '').toLowerCase().includes('weight_loss');
+      const saveData = {
+        patient_name: form.patientName,
+        patient_phone: form.patientPhone,
+        patient_email: form.patientEmail,
+        program_type: getDBProgramType(form.protocolType, form.duration),
+        medication: form.medication,
+        selected_dose: form.dosage,
+        frequency: form.frequency,
+        delivery_method: form.deliveryMethod,
+        start_date: form.startDate,
+        end_date: endDate,
+        status: form.status,
+        notes: form.notes
+      };
+
+      // Only set total_sessions for non-weight-loss protocols
+      if (!isWL) {
+        saveData.total_sessions = parseInt(form.duration);
+      }
+
       const res = await fetch(`/api/admin/protocols/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patient_name: form.patientName,
-          patient_phone: form.patientPhone,
-          patient_email: form.patientEmail,
-          program_type: getDBProgramType(form.protocolType, form.duration),
-          // Use actual DB column names (single source of truth)
-          medication: form.medication,
-          selected_dose: form.dosage,
-          frequency: form.frequency,
-          delivery_method: form.deliveryMethod,
-          start_date: form.startDate,
-          end_date: endDate,
-          total_sessions: parseInt(form.duration),
-          status: form.status,
-          notes: form.notes
+          ...saveData
         })
       });
 

@@ -749,7 +749,13 @@ export default function PatientProfile() {
         {/* Header */}
         <header className="profile-header">
           <div className="header-top">
-            <button onClick={() => router.back()} className="back-btn">← Back</button>
+            <button onClick={() => {
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/admin/patients');
+              }
+            }} className="back-btn">← Back</button>
             <div className="header-actions">
               {patient.phone && (
                 <>

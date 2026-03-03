@@ -1447,12 +1447,36 @@ export default function ProtocolDetail() {
                   const checkinEnabled = protocol?.checkin_reminder_enabled === true;
                   const injDay = protocol?.injection_day;
 
-                  if (checkinEnabled && injDay) {
+                  if (checkinEnabled) {
                     return (
                       <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
                         ✅ Weekly Check-ins Enabled
-                        <div style={{ fontSize: '12px', fontWeight: '400', color: '#15803D', marginTop: '4px' }}>
-                          {injDay}s at 9:00 AM
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '6px' }}>
+                          <select
+                            value={injDay || wlCheckinDay}
+                            onChange={async (e) => {
+                              const newDay = e.target.value;
+                              try {
+                                const res = await fetch(`/api/admin/protocols/${id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ injection_day: newDay })
+                                });
+                                if (res.ok) {
+                                  setProtocol(prev => ({ ...prev, injection_day: newDay }));
+                                  setSuccess(`Injection day changed to ${newDay}`);
+                                }
+                              } catch (e) {
+                                setError('Failed to update injection day');
+                              }
+                            }}
+                            style={{ padding: '4px 6px', border: '1px solid #BBF7D0', borderRadius: '4px', fontSize: '12px', color: '#15803D', background: '#F0FDF4', cursor: 'pointer' }}
+                          >
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                              <option key={day} value={day}>{day}</option>
+                            ))}
+                          </select>
+                          <span style={{ fontSize: '12px', fontWeight: '400', color: '#15803D' }}>at 9:00 AM</span>
                         </div>
                         <button
                           onClick={async () => {

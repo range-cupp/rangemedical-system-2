@@ -763,17 +763,36 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
   const fetchPatientProtocols = async () => {
     try {
       let patientProtocols = [];
+      const seen = new Set();
 
-      // Strategy 1: Search by ghl_contact_id (most reliable identifier)
+      const addResults = (results) => {
+        for (const p of results) {
+          if (!seen.has(p.id)) {
+            patientProtocols.push(p);
+            seen.add(p.id);
+          }
+        }
+      };
+
+      // Strategy 1: Search by patient_id (most reliable — single source of truth)
+      if (purchase.patient_id) {
+        const res = await fetch(`/api/admin/protocols?patient_id=${encodeURIComponent(purchase.patient_id)}&status=active`);
+        if (res.ok) {
+          const data = await res.json();
+          addResults(data.protocols || data || []);
+        }
+      }
+
+      // Strategy 2: Search by ghl_contact_id (catches protocols linked by CRM)
       if (purchase.ghl_contact_id) {
         const res = await fetch(`/api/admin/protocols?ghl_contact_id=${encodeURIComponent(purchase.ghl_contact_id)}&status=active`);
         if (res.ok) {
           const data = await res.json();
-          patientProtocols = data.protocols || data || [];
+          addResults(data.protocols || data || []);
         }
       }
 
-      // Strategy 2: Also search by patient name (catches protocols with different ghl_contact_id)
+      // Strategy 3: Search by patient name (fallback for edge cases)
       if (purchase.patient_name) {
         const res = await fetch(`/api/admin/protocols?search=${encodeURIComponent(purchase.patient_name)}&status=active`);
         if (res.ok) {
@@ -781,14 +800,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
           const nameResults = (data.protocols || data || []).filter(p =>
             (p.patient_name || '').toLowerCase() === (purchase.patient_name || '').toLowerCase()
           );
-          // Merge and deduplicate by id
-          const seen = new Set(patientProtocols.map(p => p.id));
-          for (const p of nameResults) {
-            if (!seen.has(p.id)) {
-              patientProtocols.push(p);
-              seen.add(p.id);
-            }
-          }
+          addResults(nameResults);
         }
       }
 

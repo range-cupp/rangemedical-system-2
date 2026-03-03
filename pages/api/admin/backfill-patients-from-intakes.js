@@ -23,11 +23,20 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Get all intakes
-    const { data: intakes, error: intakesError } = await supabase
+    // Support date filtering via query param (?days=30)
+    const daysBack = parseInt(req.query?.days) || 0;
+    let intakeQuery = supabase
       .from('intakes')
       .select('*')
       .order('submitted_at', { ascending: true });
+
+    if (daysBack > 0) {
+      const since = new Date();
+      since.setDate(since.getDate() - daysBack);
+      intakeQuery = intakeQuery.gte('submitted_at', since.toISOString());
+    }
+
+    const { data: intakes, error: intakesError } = await intakeQuery;
 
     if (intakesError) throw intakesError;
 
@@ -108,15 +117,26 @@ export default async function handler(req, res) {
         }
       } else {
         // Create new patient from intake (only columns that exist in patients table)
+        const capFirst = intake.first_name
+          ? intake.first_name.charAt(0).toUpperCase() + intake.first_name.slice(1).toLowerCase()
+          : intake.first_name;
+        const capLast = intake.last_name
+          ? intake.last_name.charAt(0).toUpperCase() + intake.last_name.slice(1).toLowerCase()
+          : intake.last_name;
+
         const newPatient = {
           ghl_contact_id: intake.ghl_contact_id || null,
-          first_name: intake.first_name,
-          last_name: intake.last_name,
-          name: `${intake.first_name || ''} ${intake.last_name || ''}`.trim() || null,
+          first_name: capFirst,
+          last_name: capLast,
+          name: `${capFirst || ''} ${capLast || ''}`.trim() || null,
           email: intake.email,
           phone: intake.phone,
           date_of_birth: intake.date_of_birth,
           gender: intake.gender,
+          address: intake.street_address || null,
+          city: intake.city || null,
+          state: intake.state || null,
+          zip_code: intake.postal_code || null,
           created_at: intake.submitted_at || new Date().toISOString()
         };
 
@@ -127,12 +147,25 @@ export default async function handler(req, res) {
           .single();
 
         if (createError) {
-          console.error(`Failed to create patient from intake ${intake.id}:`, createError.message);
-          results.errors.push({
-            intakeId: intake.id,
-            name: `${intake.first_name} ${intake.last_name}`,
-            error: createError.message
-          });
+          // If duplicate email, find the existing patient and link instead
+          if (createError.message?.includes('duplicate key') || createError.message?.includes('unique constraint')) {
+            const { data: dupeMatch } = await supabase
+              .from('patients')
+              .select('id')
+              .ilike('email', intake.email?.trim() || '')
+              .maybeSingle();
+
+            if (dupeMatch) {
+              await supabase.from('intakes').update({ patient_id: dupeMatch.id }).eq('id', intake.id);
+              results.patientsLinked++;
+              console.log(`Linked intake ${intake.id} to existing patient ${dupeMatch.id} (duplicate resolved)`);
+            } else {
+              results.errors.push({ intakeId: intake.id, name: `${intake.first_name} ${intake.last_name}`, error: createError.message });
+            }
+          } else {
+            console.error(`Failed to create patient from intake ${intake.id}:`, createError.message);
+            results.errors.push({ intakeId: intake.id, name: `${intake.first_name} ${intake.last_name}`, error: createError.message });
+          }
         } else {
           // Link intake to new patient
           await supabase
@@ -160,10 +193,18 @@ export default async function handler(req, res) {
     let leadsLinked = 0;
     let leadsAlreadyLinked = 0;
 
-    const { data: leads, error: leadsError } = await supabase
+    let leadsQuery = supabase
       .from('assessment_leads')
       .select('id, first_name, last_name, email, phone, ghl_contact_id')
       .order('created_at', { ascending: true });
+
+    if (daysBack > 0) {
+      const since = new Date();
+      since.setDate(since.getDate() - daysBack);
+      leadsQuery = leadsQuery.gte('created_at', since.toISOString());
+    }
+
+    const { data: leads, error: leadsError } = await leadsQuery;
 
     if (!leadsError && leads) {
       // Refresh patient lookup maps (new patients may have been created above)

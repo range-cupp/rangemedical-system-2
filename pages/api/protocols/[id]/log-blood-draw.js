@@ -1,0 +1,116 @@
+// /pages/api/protocols/[id]/log-blood-draw.js
+// Log or update a blood draw for an HRT protocol
+// Range Medical
+
+import { createClient } from '@supabase/supabase-js';
+import { addGHLNote } from '../../../../lib/ghl-sync';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { id } = req.query;
+  const { drawLabel, completedDate, action } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Protocol ID required' });
+  }
+
+  if (!drawLabel) {
+    return res.status(400).json({ error: 'Draw label required (e.g. "Initial Labs", "8-Week Labs")' });
+  }
+
+  try {
+    // Get protocol with patient info
+    const { data: protocol, error: fetchError } = await supabase
+      .from('protocols')
+      .select('*, patients(id, name, ghl_contact_id)')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !protocol) {
+      return res.status(404).json({ error: 'Protocol not found' });
+    }
+
+    const patientName = protocol.patients?.name || 'Unknown Patient';
+    const ghlContactId = protocol.patients?.ghl_contact_id;
+
+    // Check for existing blood_draw log with this label
+    const { data: existingLogs } = await supabase
+      .from('protocol_logs')
+      .select('*')
+      .eq('protocol_id', id)
+      .eq('log_type', 'blood_draw')
+      .eq('notes', drawLabel);
+
+    if (action === 'undo') {
+      // Remove the blood draw log
+      if (existingLogs && existingLogs.length > 0) {
+        await supabase
+          .from('protocol_logs')
+          .delete()
+          .eq('id', existingLogs[0].id);
+
+        console.log(`✓ Blood draw undone: ${drawLabel} for ${patientName}`);
+
+        return res.status(200).json({
+          success: true,
+          message: `${drawLabel} marked as not completed`,
+          action: 'undone'
+        });
+      }
+      return res.status(200).json({ success: true, message: 'No log found to undo' });
+    }
+
+    // Mark as completed
+    const logDate = completedDate || new Date().toISOString().split('T')[0];
+
+    if (existingLogs && existingLogs.length > 0) {
+      // Update existing log date
+      await supabase
+        .from('protocol_logs')
+        .update({ log_date: logDate })
+        .eq('id', existingLogs[0].id);
+    } else {
+      // Create new blood draw log
+      await supabase
+        .from('protocol_logs')
+        .insert({
+          protocol_id: id,
+          patient_id: protocol.patient_id,
+          log_type: 'blood_draw',
+          log_date: logDate,
+          notes: drawLabel
+        });
+    }
+
+    // Add note to GHL
+    if (ghlContactId) {
+      const ghlNote = `🩸 BLOOD DRAW COMPLETED\n\nPatient: ${patientName}\nDraw: ${drawLabel}\nDate: ${logDate}`;
+      try {
+        await addGHLNote(ghlContactId, ghlNote);
+      } catch (ghlError) {
+        console.error('GHL note error (non-fatal):', ghlError);
+      }
+    }
+
+    console.log(`✓ Blood draw logged: ${drawLabel} for ${patientName} on ${logDate}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `${drawLabel} marked as completed`,
+      logDate,
+      action: 'completed'
+    });
+
+  } catch (error) {
+    console.error('Error logging blood draw:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}

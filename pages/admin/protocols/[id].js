@@ -137,6 +137,9 @@ export default function ProtocolDetail() {
   const [logSaving, setLogSaving] = useState(false);
   const [sendingOptin, setSendingOptin] = useState(false);
   const [optinSent, setOptinSent] = useState(false);
+  const [bloodDrawModal, setBloodDrawModal] = useState(null); // { label, status, completedDate, protocolId }
+  const [bloodDrawDate, setBloodDrawDate] = useState('');
+  const [bloodDrawSaving, setBloodDrawSaving] = useState(false);
   const [sendingGuide, setSendingGuide] = useState(false);
   const [wlCheckinDay, setWlCheckinDay] = useState('Monday');
   const [enablingWlCheckin, setEnablingWlCheckin] = useState(false);
@@ -321,6 +324,41 @@ export default function ProtocolDetail() {
       injectionNum,
       date: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     });
+  };
+
+  // Blood draw handlers
+  const handleBloodDrawClick = (draw) => {
+    setBloodDrawDate(draw.completedDate || new Date().toISOString().split('T')[0]);
+    setBloodDrawModal({ ...draw, protocolId: protocol?.id });
+  };
+
+  const handleBloodDrawSave = async (action = 'complete') => {
+    if (!bloodDrawModal) return;
+    setBloodDrawSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${bloodDrawModal.protocolId}/log-blood-draw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          drawLabel: bloodDrawModal.label,
+          completedDate: action === 'undo' ? null : bloodDrawDate,
+          action: action === 'undo' ? 'undo' : 'complete'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccess(data.message);
+        setBloodDrawModal(null);
+        // Refresh lab schedule
+        if (protocol) fetchLabSchedule(protocol);
+      } else {
+        setError(data.error || 'Failed to update blood draw');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBloodDrawSaving(false);
+    }
   };
 
   const handleLogInjection = async () => {
@@ -1342,7 +1380,13 @@ export default function ProtocolDetail() {
                     const statusColor = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
                     const statusBg = draw.status === 'completed' ? '#dcfce7' : draw.status === 'overdue' ? '#fee2e2' : '#f3f4f6';
                     return (
-                      <div key={draw.label} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                      <div
+                        key={draw.label}
+                        onClick={() => handleBloodDrawClick(draw)}
+                        style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', cursor: 'pointer', padding: '4px 6px', borderRadius: '8px', transition: 'background 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
                         {/* Timeline line + dot */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
                           <div style={{
@@ -1375,6 +1419,11 @@ export default function ProtocolDetail() {
                             {draw.completedDate && (
                               <span style={{ color: '#22c55e', marginLeft: '8px' }}>
                                 — Completed {formatDate(draw.completedDate)}
+                              </span>
+                            )}
+                            {!draw.completedDate && (
+                              <span style={{ color: '#3b82f6', marginLeft: '8px', fontSize: '12px' }}>
+                                Click to mark complete
                               </span>
                             )}
                           </div>
@@ -1662,6 +1711,61 @@ export default function ProtocolDetail() {
                 background: '#000', color: '#fff', cursor: logSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: logSaving ? 0.6 : 1
               }}>{logSaving ? 'Saving...' : 'Log Injection'}</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Blood Draw Modal */}
+      {bloodDrawModal && (
+        <>
+          <div onClick={() => setBloodDrawModal(null)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            width: '90%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
+              🩸 {bloodDrawModal.label}
+            </h3>
+            <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
+              Scheduled: {bloodDrawModal.weekLabel}
+              {bloodDrawModal.status === 'completed' && (
+                <span style={{ color: '#22c55e', fontWeight: 600 }}> — Completed</span>
+              )}
+            </p>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                {bloodDrawModal.status === 'completed' ? 'Completed Date' : 'Completion Date'}
+              </label>
+              <input
+                type="date"
+                value={bloodDrawDate}
+                onChange={e => setBloodDrawDate(e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              {bloodDrawModal.status === 'completed' && (
+                <button onClick={() => handleBloodDrawSave('undo')} disabled={bloodDrawSaving} style={{
+                  padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 6,
+                  background: '#fff', color: '#dc2626', cursor: bloodDrawSaving ? 'wait' : 'pointer',
+                  fontSize: 13, fontWeight: 600, marginRight: 'auto'
+                }}>Undo</button>
+              )}
+              <button onClick={() => setBloodDrawModal(null)} style={{
+                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                background: '#fff', cursor: 'pointer', fontSize: 14
+              }}>Cancel</button>
+              <button onClick={() => handleBloodDrawSave('complete')} disabled={bloodDrawSaving} style={{
+                padding: '8px 20px', border: 'none', borderRadius: 6,
+                background: '#000', color: '#fff', cursor: bloodDrawSaving ? 'wait' : 'pointer',
+                fontSize: 14, fontWeight: 600, opacity: bloodDrawSaving ? 0.6 : 1
+              }}>{bloodDrawSaving ? 'Saving...' : bloodDrawModal.status === 'completed' ? 'Update Date' : 'Mark Complete'}</button>
             </div>
           </div>
         </>

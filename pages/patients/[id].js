@@ -99,6 +99,9 @@ export default function PatientProfile() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePreview, setDeletePreview] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [bloodDrawModal, setBloodDrawModal] = useState(null);
+  const [bloodDrawDate, setBloodDrawDate] = useState('');
+  const [bloodDrawSaving, setBloodDrawSaving] = useState(false);
 
   // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -282,6 +285,38 @@ export default function PatientProfile() {
       console.error('Error fetching timeline:', error);
     } finally {
       setTimelineLoading(false);
+    }
+  };
+
+  // Blood draw handlers
+  const handleBloodDrawClick = (draw, protocolId) => {
+    setBloodDrawDate(draw.completedDate || new Date().toISOString().split('T')[0]);
+    setBloodDrawModal({ ...draw, protocolId });
+  };
+
+  const handleBloodDrawSave = async (action = 'complete') => {
+    if (!bloodDrawModal) return;
+    setBloodDrawSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${bloodDrawModal.protocolId}/log-blood-draw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          drawLabel: bloodDrawModal.label,
+          completedDate: action === 'undo' ? null : bloodDrawDate,
+          action: action === 'undo' ? 'undo' : 'complete'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBloodDrawModal(null);
+        // Refresh patient data to update the schedule
+        fetchPatient();
+      }
+    } catch (err) {
+      console.error('Blood draw save error:', err);
+    } finally {
+      setBloodDrawSaving(false);
     }
   };
 
@@ -1057,6 +1092,68 @@ export default function PatientProfile() {
                 )}
               </section>
 
+              {/* HRT Blood Draw Schedule — Overview */}
+              {Object.keys(hrtLabSchedules).length > 0 && (() => {
+                // Gather all HRT protocols that have lab schedules
+                const hrtProtos = [...activeProtocols, ...completedProtocols].filter(
+                  p => isHRTProtocol(p.program_type) && hrtLabSchedules[p.id]?.length > 0
+                );
+                if (hrtProtos.length === 0) return null;
+                return hrtProtos.map(protocol => {
+                  const schedule = hrtLabSchedules[protocol.id];
+                  const completedCount = schedule.filter(d => d.status === 'completed').length;
+                  const total = schedule.length;
+                  const nextDraw = schedule.find(d => d.status === 'overdue' || d.status === 'upcoming');
+                  return (
+                    <section key={'hrt-labs-' + protocol.id} className="card">
+                      <div className="card-header">
+                        <h3>🩸 Blood Draw Schedule — {protocol.program_name || protocol.medication}</h3>
+                        <span style={{ fontSize: '13px', color: '#6b7280' }}>{completedCount} of {total} complete</span>
+                      </div>
+                      {nextDraw && (
+                        <div style={{ padding: '0 16px 8px', fontSize: '13px', color: nextDraw.status === 'overdue' ? '#dc2626' : '#6b7280', fontWeight: nextDraw.status === 'overdue' ? 600 : 400 }}>
+                          {nextDraw.status === 'overdue' ? '⚠️ Overdue: ' : 'Next: '}{nextDraw.label} — {nextDraw.weekLabel}
+                        </div>
+                      )}
+                      <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        {schedule.map(draw => {
+                          const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
+                          return (
+                            <div
+                              key={draw.label}
+                              onClick={() => handleBloodDrawClick(draw, protocol.id)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px',
+                                cursor: 'pointer', padding: '6px 8px', borderRadius: '6px', transition: 'background 0.15s'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <span style={{
+                                width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0,
+                                border: draw.status === 'completed' ? 'none' : `2px solid ${color}`,
+                                boxSizing: 'border-box'
+                              }} />
+                              <span style={{ fontWeight: '500', color: '#374151', minWidth: '110px' }}>{draw.label}</span>
+                              <span style={{ color: '#6b7280', flex: 1 }}>{draw.weekLabel}</span>
+                              {draw.completedDate && (
+                                <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 500 }}>✓ {formatShortDate(draw.completedDate)}</span>
+                              )}
+                              {draw.status === 'overdue' && !draw.completedDate && (
+                                <span style={{ color: '#dc2626', fontSize: '12px', fontWeight: 500 }}>Overdue</span>
+                              )}
+                              {draw.status === 'upcoming' && !draw.completedDate && (
+                                <span style={{ color: '#9ca3af', fontSize: '12px' }}>Upcoming</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                });
+              })()}
+
               {/* Recent Documents (Intakes + Consents) */}
               {(intakes.length > 0 || consents.length > 0) && (
                 <section className="card">
@@ -1165,7 +1262,7 @@ export default function PatientProfile() {
                               <div style={{ marginTop: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-                                    Lab Schedule: {completed} of {total} draws completed
+                                    🩸 Lab Schedule: {completed} of {total} draws completed
                                   </div>
                                   <button
                                     onClick={() => setExpandedProtocols(prev => ({ ...prev, ['lab_' + protocol.id]: !prev['lab_' + protocol.id] }))}
@@ -1180,11 +1277,20 @@ export default function PatientProfile() {
                                   </div>
                                 )}
                                 {isLabExpanded && (
-                                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     {schedule.map(draw => {
                                       const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
                                       return (
-                                        <div key={draw.label} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                                        <div
+                                          key={draw.label}
+                                          onClick={() => handleBloodDrawClick(draw, protocol.id)}
+                                          style={{
+                                            display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px',
+                                            cursor: 'pointer', padding: '4px 6px', borderRadius: '6px', transition: 'background 0.15s'
+                                          }}
+                                          onMouseEnter={e => e.currentTarget.style.background = '#eef2ff'}
+                                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                        >
                                           <span style={{
                                             width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0
                                           }} />
@@ -1195,6 +1301,9 @@ export default function PatientProfile() {
                                           )}
                                           {draw.status === 'overdue' && !draw.completedDate && (
                                             <span style={{ color: '#dc2626', marginLeft: 'auto', fontSize: '12px' }}>Overdue</span>
+                                          )}
+                                          {draw.status === 'upcoming' && !draw.completedDate && (
+                                            <span style={{ color: '#3b82f6', marginLeft: 'auto', fontSize: '11px' }}>Mark complete</span>
                                           )}
                                         </div>
                                       );
@@ -2470,6 +2579,61 @@ export default function PatientProfile() {
                   title={pdfSlideOut.title}
                   className="slideout-iframe"
                 />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Blood Draw Modal */}
+        {bloodDrawModal && (
+          <>
+            <div onClick={() => setBloodDrawModal(null)} style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+            }} />
+            <div style={{
+              position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+              width: '90%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
+                🩸 {bloodDrawModal.label}
+              </h3>
+              <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
+                Scheduled: {bloodDrawModal.weekLabel}
+                {bloodDrawModal.status === 'completed' && (
+                  <span style={{ color: '#22c55e', fontWeight: 600 }}> — Completed</span>
+                )}
+              </p>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                  {bloodDrawModal.status === 'completed' ? 'Completed Date' : 'Completion Date'}
+                </label>
+                <input
+                  type="date"
+                  value={bloodDrawDate}
+                  onChange={e => setBloodDrawDate(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                {bloodDrawModal.status === 'completed' && (
+                  <button onClick={() => handleBloodDrawSave('undo')} disabled={bloodDrawSaving} style={{
+                    padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 6,
+                    background: '#fff', color: '#dc2626', cursor: bloodDrawSaving ? 'wait' : 'pointer',
+                    fontSize: 13, fontWeight: 600, marginRight: 'auto'
+                  }}>Undo</button>
+                )}
+                <button onClick={() => setBloodDrawModal(null)} style={{
+                  padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                  background: '#fff', cursor: 'pointer', fontSize: 14
+                }}>Cancel</button>
+                <button onClick={() => handleBloodDrawSave('complete')} disabled={bloodDrawSaving} style={{
+                  padding: '8px 20px', border: 'none', borderRadius: 6,
+                  background: '#000', color: '#fff', cursor: bloodDrawSaving ? 'wait' : 'pointer',
+                  fontSize: 14, fontWeight: 600, opacity: bloodDrawSaving ? 0.6 : 1
+                }}>{bloodDrawSaving ? 'Saving...' : bloodDrawModal.status === 'completed' ? 'Update Date' : 'Mark Complete'}</button>
               </div>
             </div>
           </>

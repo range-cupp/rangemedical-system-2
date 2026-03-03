@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../../lib/comms-log';
+import { isWeightLossType, isHRTType } from '../../../../lib/protocol-config';
 import crypto from 'crypto';
 
 const supabase = createClient(
@@ -113,7 +114,7 @@ export default async function handler(req, res) {
 
     // Calculate followup labs due date
     let followupLabsDue = null;
-    if (protocolType === 'hrt' || protocolType === 'weight_loss') {
+    if (isHRTType(protocolType) || isWeightLossType(protocolType)) {
       const followup = new Date(startDate);
       followup.setDate(followup.getDate() + (config.followupLabsWeeks || 6) * 7);
       followupLabsDue = followup.toISOString().split('T')[0];
@@ -123,9 +124,9 @@ export default async function handler(req, res) {
     let protocolName = '';
     if (protocolType === 'peptide') {
       protocolName = `${duration || 10}-Day Recovery Protocol`;
-    } else if (protocolType === 'hrt') {
+    } else if (isHRTType(protocolType)) {
       protocolName = 'HRT Protocol';
-    } else if (protocolType === 'weight_loss') {
+    } else if (isWeightLossType(protocolType)) {
       protocolName = `Weight Loss - ${medication}`;
     } else if (protocolType === 'red_light') {
       protocolName = `Red Light Therapy (${totalSessions} sessions)`;
@@ -223,7 +224,7 @@ export default async function handler(req, res) {
     }
 
     // Create staff alert for baseline labs (HRT/Weight Loss)
-    if ((protocolType === 'hrt' || protocolType === 'weight_loss') && !baselineLabsDate) {
+    if ((isHRTType(protocolType) || isWeightLossType(protocolType)) && !baselineLabsDate) {
       await supabase.from('staff_alerts').insert({
         patient_id: patient_id || null,
         protocol_id: protocol.id,

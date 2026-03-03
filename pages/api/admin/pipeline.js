@@ -28,9 +28,9 @@ function _legacyGetProtocolTracking(protocol) {
   const selectedDose = (protocol.selected_dose || '').toLowerCase();
   
   const isTakeHome = deliveryMethod === 'take_home' || deliveryMethod.includes('take');
-  const isWeightLoss = programType === 'weight_loss' || programName.includes('weight') || 
+  const isWeightLoss = programType.includes('weight_loss') || programName.includes('weight') ||
     medication.includes('semaglutide') || medication.includes('tirzepatide') || medication.includes('retatrutide');
-  const isHRT = programType === 'hrt' || programName.includes('hrt') || 
+  const isHRT = programType.includes('hrt') || programName.includes('hrt') ||
     medication.includes('testosterone') || medication.includes('nandrolone');
   const isPeptide = programType === 'peptide' || programName.includes('peptide');
   const isSessionBased = ['iv', 'hbot', 'rlt', 'injection'].includes(programType);

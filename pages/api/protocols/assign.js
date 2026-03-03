@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { syncProtocolToGHL } from '../../../lib/ghl-sync';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
-import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, getCycleConfig } from '../../../lib/protocol-config';
+import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, getCycleConfig, isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
 import { calculateNextExpectedDate } from '../../../lib/auto-protocol';
 
@@ -23,10 +23,10 @@ function getGuideUrl(programType, programName, medicationName, patientGender) {
   const med = (medicationName || '').toLowerCase();
 
   // HRT
-  if (programType === 'hrt') return '/hrt-guide';
+  if (isHRTType(programType)) return '/hrt-guide';
 
   // Weight Loss — medication-specific
-  if (programType === 'weight_loss') {
+  if (isWeightLossType(programType)) {
     if (med.includes('tirzepatide')) return '/tirzepatide-guide';
     if (med.includes('retatrutide')) return '/retatrutide-guide';
     return null; // semaglutide has no guide yet
@@ -265,7 +265,7 @@ export default async function handler(req, res) {
       }
 
       // For weight loss templates, override end_date with pickupFrequencyDays
-      if (programType === 'weight_loss' && pickupFrequencyDays && startDate) {
+      if (isWeightLossType(programType) && pickupFrequencyDays && startDate) {
         const start = new Date(startDate);
         start.setDate(start.getDate() + pickupFrequencyDays);
         endDate = start.toISOString().split('T')[0];
@@ -301,7 +301,7 @@ export default async function handler(req, res) {
     }
 
     // For weight loss from template, also use wlMedication
-    if (programType === 'weight_loss' && wlMedication) {
+    if (isWeightLossType(programType) && wlMedication) {
       medicationName = wlMedication;
     }
 
@@ -635,7 +635,7 @@ export default async function handler(req, res) {
     // SEND FIRST DRIP EMAIL (weight loss only)
     // ============================================
     let dripEmailSent = false;
-    if (programType === 'weight_loss') {
+    if (isWeightLossType(programType)) {
       try {
         // Check if this patient has EVER received drip emails from any WL protocol
         const { data: previousDrips } = await supabase

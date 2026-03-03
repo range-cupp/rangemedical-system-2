@@ -5,6 +5,7 @@
 // GET = preview, POST = sync
 
 import { createClient } from '@supabase/supabase-js';
+import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
         )
       `)
       .eq('delivery_method', 'in_clinic')
-      .in('program_type', ['hrt', 'weight_loss'])
+      .or('program_type.ilike.weight_loss%,program_type.ilike.hrt%')
       .in('status', ['active', 'pending']);
 
     if (protocolsError) {
@@ -66,7 +67,7 @@ export default async function handler(req, res) {
 
       try {
         // Determine which calendar names to look for
-        const calendarNames = protocol.program_type === 'hrt'
+        const calendarNames = isHRTType(protocol.program_type)
           ? ['Injection - Testosterone']
           : ['Injection - Weight Loss'];
 
@@ -164,7 +165,7 @@ export default async function handler(req, res) {
           } else if (lastVisit && updatingLastVisit) {
             // Calculate next expected based on visit frequency
             const visitFrequency = protocol.visit_frequency ||
-              (protocol.program_type === 'weight_loss' ? 'weekly' : 'twice_weekly');
+              (isWeightLossType(protocol.program_type) ? 'weekly' : 'twice_weekly');
 
             const lastDate = new Date(lastVisit.appointment_date + 'T12:00:00');
             if (visitFrequency === 'weekly') {

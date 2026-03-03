@@ -40,7 +40,8 @@ export default async function handler(req, res) {
       .from('protocols')
       .select('id, program_name, program_type, end_date, patient_id')
       .eq('status', 'active')
-      .not('program_type', 'in', '("weight_loss","hrt")')
+      .not('program_type', 'like', 'weight_loss%')
+      .not('program_type', 'like', 'hrt%')
       .lte('end_date', yesterdayStr);
 
     if (fetchError) {

@@ -10,6 +10,7 @@
 // 4. Returns feedback about what happened
 
 import { createClient } from '@supabase/supabase-js';
+import { isWeightLossType } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -597,7 +598,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       updateData.medication = medication;
       updateData.program_name = medication;
     }
-    if (dosage && category !== 'weight_loss') {
+    if (dosage && !isWeightLossType(category)) {
       updateData.selected_dose = dosage;
     }
 
@@ -621,7 +622,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       const pickupDate = new Date(logDate + 'T00:00:00');
       let daysUntilNext = 14; // default 2 weeks
 
-      if (category === 'weight_loss' && quantity) {
+      if (isWeightLossType(category) && quantity) {
         // Weight loss pickups: quantity = weeks of supply (1-4)
         daysUntilNext = quantity * 7;
       } else if (supply_type === 'prefilled_4week' || quantity === 8) {
@@ -837,7 +838,7 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
     const pickupDate = new Date(logDate + 'T00:00:00');
     let daysUntilNext = 14; // default 2 weeks
 
-    if (category === 'weight_loss' && quantity) {
+    if (isWeightLossType(category) && quantity) {
       // Weight loss pickups: quantity = weeks of supply (1-4)
       daysUntilNext = quantity * 7;
     } else if (supply_type === 'prefilled_4week' || quantity === 8) {

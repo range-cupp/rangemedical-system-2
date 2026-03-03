@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getHRTLabSchedule, matchDrawsToLogs } from '../../../lib/hrt-lab-schedule';
+import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -323,7 +324,7 @@ export default async function handler(req, res) {
     // Weekly Pickups - Take-home weight loss patients expected this week
     const takeHomeWLProtocols = activeProtocols.filter(p =>
       p.delivery_method === 'take_home' &&
-      p.program_type === 'weight_loss'
+      isWeightLossType(p.program_type)
     );
 
     const weeklyPickups = {
@@ -435,11 +436,11 @@ function calculateProtocolUrgency(protocol, now) {
 
   if (end_date) {
     endDateObj = new Date(end_date);
-  } else if (program_type === 'weight_loss' && start_date && total_sessions) {
+  } else if (isWeightLossType(program_type) && start_date && total_sessions) {
     // Weight loss take-home: start_date + (sessions * 7 days)
     endDateObj = new Date(start_date);
     endDateObj.setDate(endDateObj.getDate() + (total_sessions * 7));
-  } else if (program_type === 'hrt' && last_refill_date) {
+  } else if (isHRTType(program_type) && last_refill_date) {
     // HRT: estimate based on last refill
     endDateObj = new Date(last_refill_date);
     endDateObj.setDate(endDateObj.getDate() + 30); // Approximate 30 days

@@ -49,7 +49,7 @@ export default async function handler(req, res) {
           ghl_contact_id
         )
       `)
-      .eq('program_type', 'weight_loss')
+      .ilike('program_type', 'weight_loss%')
       .order('created_at', { ascending: false });
 
     if (error) {

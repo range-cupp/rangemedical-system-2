@@ -3,6 +3,7 @@
 // Range Medical - 2026-01-17
 
 import { createClient } from '@supabase/supabase-js';
+import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -67,12 +68,12 @@ export default async function handler(req, res) {
     }
 
     // Weight loss defaults to 4 weeks if not specified
-    if (program_type === 'weight_loss' && !duration_days) {
+    if (isWeightLossType(program_type) && !duration_days) {
       duration_days = 28;
     }
 
     // HRT has no end date (ongoing)
-    if (program_type === 'hrt') {
+    if (isHRTType(program_type)) {
       duration_days = null;
     }
 

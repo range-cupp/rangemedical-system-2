@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const { data: protocols, error: protocolError } = await supabase
       .from('protocols')
       .select('id, patient_id, program_type, created_at, patients(id, name, first_name, last_name, email)')
-      .eq('program_type', 'weight_loss')
+      .ilike('program_type', 'weight_loss%')
       .eq('status', 'active');
 
     if (protocolError) {

@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       .from('protocols')
       .select('*')
       .eq('patient_id', patientId)
-      .eq('program_type', 'weight_loss')
+      .ilike('program_type', 'weight_loss%')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

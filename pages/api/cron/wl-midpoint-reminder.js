@@ -82,7 +82,7 @@ export default async function handler(req, res) {
     const { data: protocols, error } = await supabase
       .from('protocols')
       .select('*, patients(id, name, ghl_contact_id)')
-      .eq('program_type', 'weight_loss')
+      .ilike('program_type', 'weight_loss%')
       .eq('delivery_method', 'take_home')
       .eq('pickup_frequency', '28')
       .eq('status', 'active')

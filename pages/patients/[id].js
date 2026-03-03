@@ -1282,9 +1282,9 @@ export default function PatientProfile() {
 
                       return (
                         <div key={protocol.id} className="protocol-card">
-                          <div className="protocol-card-header">
+                          <div className="protocol-card-header" style={{ cursor: 'pointer' }} onClick={() => window.open(`/admin/protocols/${protocol.id}`, '_blank')}>
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                            <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                           </div>
                           <div className="protocol-details">
@@ -1495,9 +1495,9 @@ export default function PatientProfile() {
                       const cat = getCategoryStyle(protocol.category);
                       return (
                         <div key={protocol.id} className="protocol-card completed">
-                          <div className="protocol-card-header">
+                          <div className="protocol-card-header" style={{ cursor: 'pointer' }} onClick={() => window.open(`/admin/protocols/${protocol.id}`, '_blank')}>
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                            <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
                           </div>
                           <div className="protocol-dates">{formatShortDate(protocol.start_date)} → {formatShortDate(protocol.end_date)}</div>
                           <div className="protocol-footer">

@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { isWeightLossType } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,7 +12,7 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   const { id } = req.query;
-  
+
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID is required' });
   }
@@ -72,7 +73,7 @@ async function getProtocol(id, res) {
   const activityLogs = allLogs.filter(log => log.log_type !== 'checkin' || !log.weight);
 
   // For weight loss protocols, fetch from both service_logs and injection_logs
-  if (data.program_type === 'weight_loss' && data.patient_id) {
+  if (isWeightLossType(data.program_type) && data.patient_id) {
     const [{ data: serviceLogs }, { data: injectionLogs }] = await Promise.all([
       supabase
         .from('service_logs')
@@ -125,7 +126,7 @@ async function getProtocol(id, res) {
 
   // Calculate weight progress for weight loss protocols
   let weightProgress = null;
-  if (data.program_type === 'weight_loss' && weightCheckins.length > 0) {
+  if (isWeightLossType(data.program_type) && weightCheckins.length > 0) {
     const checkinsWithWeight = [...weightCheckins].filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
     const startingWeight = data.starting_weight || checkinsWithWeight[0]?.weight;
     const currentWeight = checkinsWithWeight[checkinsWithWeight.length - 1]?.weight;

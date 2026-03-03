@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
+import { isWeightLossType } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    if (protocol.program_type !== 'weight_loss') {
+    if (!isWeightLossType(protocol.program_type)) {
       return res.status(400).json({ error: 'Drip emails are only for weight loss protocols' });
     }
 

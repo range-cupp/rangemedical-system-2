@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         status,
         notes
       `)
-      .eq('program_type', 'weight_loss')
+      .ilike('program_type', 'weight_loss%')
       .eq('status', 'active')
       .order('patient_name', { ascending: true });
 

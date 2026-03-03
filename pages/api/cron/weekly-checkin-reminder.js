@@ -135,7 +135,7 @@ export default async function handler(req, res) {
         )
       `)
       .eq('status', 'active')
-      .eq('program_type', 'weight_loss')
+      .ilike('program_type', 'weight_loss%')
       .eq('checkin_reminder_enabled', true)
       .eq('injection_day', todayPacific)
       .not('patients.ghl_contact_id', 'is', null);

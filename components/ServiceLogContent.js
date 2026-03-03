@@ -258,7 +258,7 @@ export default function ServiceLogContent() {
     setLoadingProtocols(false);
   };
 
-  // Patient search filtering
+  // Patient search filtering — client-side first, then server-side fallback
   useEffect(() => {
     if (patientSearch.length >= 1 && patients.length > 0) {
       const term = patientSearch.toLowerCase();
@@ -269,8 +269,37 @@ export default function ServiceLogContent() {
         const email = (p.email || '').toLowerCase();
         return fullName.includes(term) || nameField.includes(term) || phone.includes(term) || email.includes(term);
       }).slice(0, 10);
-      setFilteredPatients(filtered);
-      setShowPatientDropdown(filtered.length > 0 && !selectedPatient);
+
+      if (filtered.length > 0) {
+        setFilteredPatients(filtered);
+        setShowPatientDropdown(!selectedPatient);
+      } else if (patientSearch.length >= 2) {
+        // No local results — try server-side search as fallback
+        fetch(`/api/patients?search=${encodeURIComponent(patientSearch)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.patients && data.patients.length > 0) {
+              setFilteredPatients(data.patients.slice(0, 10));
+              setShowPatientDropdown(!selectedPatient);
+              // Merge into local patient list so future searches find them
+              setPatients(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                const newPatients = data.patients.filter(p => !existingIds.has(p.id));
+                return [...newPatients, ...prev];
+              });
+            } else {
+              setFilteredPatients([]);
+              setShowPatientDropdown(false);
+            }
+          })
+          .catch(() => {
+            setFilteredPatients([]);
+            setShowPatientDropdown(false);
+          });
+      } else {
+        setFilteredPatients([]);
+        setShowPatientDropdown(false);
+      }
     } else {
       setFilteredPatients([]);
       setShowPatientDropdown(false);

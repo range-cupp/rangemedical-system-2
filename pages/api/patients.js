@@ -17,16 +17,14 @@ export default async function handler(req, res) {
   try {
     const { search } = req.query;
 
-    // Fetch ALL patients with ghl_contact_id (these are the ones that can be matched to purchases)
-    // Supabase has a default limit, so we explicitly set it high
+    // Fetch ALL patients — no GHL filter so every patient in the system is searchable
     let query = supabase
       .from('patients')
       .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
-      .not('ghl_contact_id', 'is', null)  // Only patients with GHL ID
       .order('created_at', { ascending: false })
       .limit(5000);
 
-    // If search term provided, filter
+    // If search term provided, add server-side filter for faster results
     if (search && search.length >= 2) {
       query = supabase
         .from('patients')

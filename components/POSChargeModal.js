@@ -575,13 +575,17 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
     if (!stripe || !elements) return;
 
+    // IMPORTANT: Grab the CardElement reference BEFORE changing step to 'processing',
+    // because switching step unmounts the CardElement from the DOM
+    const cardElement = selectedCard === 'new' ? elements.getElement(CardElement) : null;
+
     setStep('processing');
 
     try {
       // For recurring items, create a subscription
       if (isRecurring()) {
         if (selectedCard === 'new') {
-          const saveResult = await saveCardFirst();
+          const saveResult = await saveCardFirst(cardElement);
           if (!saveResult) return;
         }
 
@@ -613,11 +617,11 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       // One-time charge
       if (selectedCard === 'new') {
         if (saveNewCard) {
-          const saved = await saveCardFirst();
+          const saved = await saveCardFirst(cardElement);
           if (!saved) return;
           await chargeWithSavedCard(saved, amount, description);
         } else {
-          await chargeWithNewCard(amount, description);
+          await chargeWithNewCard(cardElement, amount, description);
         }
       } else {
         await chargeWithSavedCard(selectedCard, amount, description);
@@ -631,7 +635,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
   }
 
-  async function saveCardFirst() {
+  async function saveCardFirst(cardElement) {
     const setupRes = await fetch('/api/stripe/saved-cards', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -641,7 +645,6 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     const setupData = await setupRes.json();
     if (!setupRes.ok) throw new Error(setupData.error);
 
-    const cardElement = elements.getElement(CardElement);
     const { error, setupIntent } = await stripe.confirmCardSetup(setupData.client_secret, {
       payment_method: { card: cardElement },
     });
@@ -656,7 +659,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     return setupIntent.payment_method;
   }
 
-  async function chargeWithNewCard(amount, description) {
+  async function chargeWithNewCard(cardElement, amount, description) {
     const piRes = await fetch('/api/stripe/payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -670,7 +673,6 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     const piData = await piRes.json();
     if (!piRes.ok) throw new Error(piData.error);
 
-    const cardElement = elements.getElement(CardElement);
     const { error, paymentIntent } = await stripe.confirmCardPayment(piData.client_secret, {
       payment_method: { card: cardElement },
     });

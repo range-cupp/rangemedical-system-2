@@ -1,5 +1,4 @@
 import Layout from '../components/Layout';
-import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 
@@ -61,6 +60,18 @@ export default function LabPanels() {
 
   const toggleMarker = (markerId) => {
     setExpandedMarker(expandedMarker === markerId ? null : markerId);
+  };
+
+  // Stripe Payment Links (gender-specific)
+  const stripeLinks = {
+    essential: {
+      men: 'https://buy.stripe.com/aFa14mgtm83SdNLd7H08g0d',
+      women: 'https://buy.stripe.com/eVqaEWa4YdoceRPebL08g0e',
+    },
+    elite: {
+      men: 'https://buy.stripe.com/28E14m1ys97WeRPebL08g0f',
+      women: 'https://buy.stripe.com/dRmbJ00uo83SgZX5Ff08g0g',
+    },
   };
 
   // Biomarker descriptions - what we're looking for and why
@@ -458,7 +469,7 @@ export default function LabPanels() {
                   <div className="lab-chart-marker-col"></div>
                   <div className="lab-chart-panel-col">
                     <a
-                      href="https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7"
+                      href={stripeLinks.essential[activeTab]}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="lab-btn-secondary-sm"
@@ -467,7 +478,14 @@ export default function LabPanels() {
                     </a>
                   </div>
                   <div className="lab-chart-panel-col lab-chart-panel-featured">
-                    <Link href="/range-assessment?path=energy" className="lab-btn-primary-sm">Take Assessment</Link>
+                    <a
+                      href={stripeLinks.elite[activeTab]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="lab-btn-primary-sm"
+                    >
+                      Book Elite
+                    </a>
                   </div>
                 </div>
               </div>
@@ -483,7 +501,12 @@ export default function LabPanels() {
 
             <div className="lab-compare-grid">
               <div className="lab-compare-card">
-                <h4>Choose Essential If:</h4>
+                <div className="lab-compare-card-header">
+                  <h4>Essential Panel</h4>
+                  <div className="lab-compare-price">$350</div>
+                  <div className="lab-compare-includes">Includes provider review visit</div>
+                </div>
+                <p className="lab-compare-desc">A great first step to understand your health — hormones, thyroid, blood sugar, and more.</p>
                 <ul>
                   <li>You want a solid baseline of key health markers</li>
                   <li>You're checking in after lifestyle changes</li>
@@ -491,9 +514,23 @@ export default function LabPanels() {
                   <li>You want to track hormones and metabolic health</li>
                   <li>You're monitoring HRT</li>
                 </ul>
+                <a
+                  href={stripeLinks.essential[activeTab]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="lab-btn-secondary"
+                >
+                  Book Essential — $350
+                </a>
               </div>
               <div className="lab-compare-card lab-compare-featured">
-                <h4>Choose Elite If:</h4>
+                <div className="lab-compare-badge">Most Complete</div>
+                <div className="lab-compare-card-header">
+                  <h4>Elite Panel</h4>
+                  <div className="lab-compare-price">$750</div>
+                  <div className="lab-compare-includes">Includes provider review visit</div>
+                </div>
+                <p className="lab-compare-desc">The full picture — heart health, inflammation, vitamins, and advanced markers that basic tests miss.</p>
                 <ul>
                   <li>You want the full picture of your health</li>
                   <li>You're focused on longevity and optimization</li>
@@ -501,8 +538,22 @@ export default function LabPanels() {
                   <li>You want advanced cardiovascular markers</li>
                   <li>You're serious about prevention</li>
                 </ul>
+                <a
+                  href={stripeLinks.elite[activeTab]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="lab-btn-primary-card"
+                >
+                  Book Elite — $750
+                </a>
               </div>
             </div>
+            <p className="lab-compare-note">
+              Viewing {activeTab === 'men' ? "Men's" : "Women's"} panels.{' '}
+              <button className="lab-compare-switch" onClick={() => setActiveTab(activeTab === 'men' ? 'women' : 'men')}>
+                Switch to {activeTab === 'men' ? "Women's" : "Men's"}
+              </button>
+            </p>
           </div>
         </section>
 
@@ -570,10 +621,25 @@ export default function LabPanels() {
             <span className="lab-section-label-light">Get Started</span>
             <h2>Ready to See What's Really Going On?</h2>
             <p className="lab-cta-text">
-              Take an Assessment to discuss which panel is right for you and get the most value from your lab work.
+              Book your panel below and we'll get you scheduled for your blood draw. Results in 3–5 business days.
             </p>
             <div className="lab-cta-buttons">
-              <Link href="/range-assessment?path=energy" className="lab-btn-white">Take Assessment</Link>
+              <a
+                href={stripeLinks.essential[activeTab]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lab-btn-white"
+              >
+                Essential — $350
+              </a>
+              <a
+                href={stripeLinks.elite[activeTab]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lab-btn-white-outline"
+              >
+                Elite — $750
+              </a>
             </div>
             <p className="lab-cta-phone">
               Or call <a href="tel:9499973988">(949) 997-3988</a> to schedule labs directly
@@ -1201,17 +1267,88 @@ export default function LabPanels() {
             border: 1px solid #e5e5e5;
             border-radius: 12px;
             padding: 2rem;
+            display: flex;
+            flex-direction: column;
           }
 
-          .lab-compare-featured {
-            border: 2px solid #000000;
+          .lab-compare-card-header {
+            text-align: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid #e5e5e5;
+          }
+
+          .lab-compare-featured .lab-compare-card-header {
+            border-bottom-color: #d4d4d4;
           }
 
           .lab-compare-card h4 {
             font-size: 1.125rem;
             font-weight: 700;
             color: #171717;
-            margin-bottom: 1.25rem;
+            margin-bottom: 0.5rem;
+          }
+
+          .lab-compare-price {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 0.25rem;
+          }
+
+          .lab-compare-includes {
+            font-size: 0.8125rem;
+            color: #737373;
+          }
+
+          .lab-compare-desc {
+            font-size: 0.9375rem;
+            color: #525252;
+            line-height: 1.6;
+            margin: 0 0 1.25rem;
+          }
+
+          .lab-compare-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000000;
+            color: #ffffff;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.375rem 1rem;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+          }
+
+          .lab-compare-featured {
+            position: relative;
+            padding-top: 2.5rem;
+          }
+
+          .lab-compare-note {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #737373;
+            margin-top: 1.5rem;
+          }
+
+          .lab-compare-switch {
+            background: none;
+            border: none;
+            color: #000000;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            text-decoration: underline;
+            font-family: inherit;
+          }
+
+          .lab-compare-switch:hover {
+            color: #525252;
           }
 
           .lab-compare-card ul {
@@ -1235,6 +1372,11 @@ export default function LabPanels() {
             left: 0;
             color: #22c55e;
             font-weight: 700;
+          }
+
+          .lab-compare-card ul {
+            flex: 1;
+            margin-bottom: 1.5rem;
           }
 
           /* Process Grid */
@@ -1349,6 +1491,10 @@ export default function LabPanels() {
           }
 
           .lab-cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
             margin-bottom: 1rem;
           }
 
@@ -1371,6 +1517,26 @@ export default function LabPanels() {
             background: #f0f0f0 !important;
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4);
+          }
+
+          :global(.lab-btn-white-outline) {
+            display: inline-block;
+            background: transparent !important;
+            color: #ffffff !important;
+            padding: 1rem 2.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            transition: all 0.2s ease;
+            cursor: pointer;
+          }
+
+          :global(.lab-btn-white-outline:hover) {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-color: rgba(255, 255, 255, 0.7);
+            transform: translateY(-2px);
           }
 
           .lab-cta-phone {

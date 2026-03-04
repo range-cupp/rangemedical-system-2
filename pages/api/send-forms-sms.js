@@ -35,8 +35,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'At least one form must be selected' });
     }
 
-    // Validate form IDs
-    const validFormIds = formIds.filter(id => FORM_DEFINITIONS[id]);
+    // Validate and sort form IDs — intake first, hipaa second, then rest
+    const PRIORITY_ORDER = ['intake', 'hipaa'];
+    const validFormIds = formIds
+      .filter(id => FORM_DEFINITIONS[id])
+      .sort((a, b) => {
+        const aIdx = PRIORITY_ORDER.indexOf(a);
+        const bIdx = PRIORITY_ORDER.indexOf(b);
+        if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+        if (aIdx !== -1) return -1;
+        if (bIdx !== -1) return 1;
+        return 0;
+      });
     if (validFormIds.length === 0) {
       return res.status(400).json({ error: 'No valid forms selected' });
     }

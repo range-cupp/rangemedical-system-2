@@ -110,6 +110,19 @@ export default function SendFormsPage() {
     setSelectedForms(forms);
   };
 
+  // Sort forms so intake is always first, hipaa second, then rest
+  const sortForms = (formIds) => {
+    const PRIORITY_ORDER = ['intake', 'hipaa'];
+    return [...formIds].sort((a, b) => {
+      const aIdx = PRIORITY_ORDER.indexOf(a);
+      const bIdx = PRIORITY_ORDER.indexOf(b);
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+      if (aIdx !== -1) return -1;
+      if (bIdx !== -1) return 1;
+      return 0;
+    });
+  };
+
   const getRecipient = () => {
     if (mode === 'search' && selectedPatient) {
       return deliveryMethod === 'sms' ? selectedPatient.phone : selectedPatient.email;
@@ -139,6 +152,7 @@ export default function SendFormsPage() {
 
     const firstName = getFirstName();
     const patient = mode === 'search' ? selectedPatient : null;
+    const sortedForms = sortForms(selectedForms);
 
     try {
       if (deliveryMethod === 'email') {
@@ -149,7 +163,7 @@ export default function SendFormsPage() {
           body: JSON.stringify({
             email,
             firstName: firstName || null,
-            formIds: selectedForms,
+            formIds: sortedForms,
             patientId: patient?.id || null,
             patientName: patient?.name || manualName || null,
             ghlContactId: patient?.ghl_contact_id || null,
@@ -169,7 +183,7 @@ export default function SendFormsPage() {
           body: JSON.stringify({
             phone: digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits,
             firstName: firstName || null,
-            formIds: selectedForms,
+            formIds: sortedForms,
             patientId: patient?.id || null,
             patientName: patient?.name || manualName || null,
             ghlContactId: patient?.ghl_contact_id || null,
@@ -324,7 +338,7 @@ export default function SendFormsPage() {
                   onClick={() => applyQuickSelect(qs.forms)}
                   style={{
                     ...styles.quickBtn,
-                    ...(JSON.stringify(selectedForms.sort()) === JSON.stringify([...qs.forms].sort())
+                    ...(JSON.stringify([...selectedForms].sort()) === JSON.stringify([...qs.forms].sort())
                       ? styles.quickBtnActive : {}),
                   }}
                 >
@@ -333,9 +347,37 @@ export default function SendFormsPage() {
               ))}
             </div>
 
-            {/* Form checkboxes */}
+            {/* Required forms — always first */}
+            <div style={styles.groupLabel}>Required</div>
             <div style={styles.formGrid}>
-              {AVAILABLE_FORMS.map(form => {
+              {AVAILABLE_FORMS.filter(f => f.required).map(form => {
+                const isChecked = selectedForms.includes(form.id);
+                return (
+                  <label
+                    key={form.id}
+                    style={{
+                      ...styles.formItem,
+                      ...(isChecked ? styles.formItemChecked : {}),
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleForm(form.id)}
+                      style={styles.checkbox}
+                    />
+                    <span style={styles.formIcon}>{form.icon}</span>
+                    <span style={styles.formName}>{form.name}</span>
+                    <span style={styles.formTime}>{form.time}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Consent forms */}
+            <div style={{ ...styles.groupLabel, marginTop: '14px' }}>Consent Forms</div>
+            <div style={styles.formGrid}>
+              {AVAILABLE_FORMS.filter(f => !f.required).map(form => {
                 const isChecked = selectedForms.includes(form.id);
                 return (
                   <label
@@ -612,7 +654,15 @@ const styles = {
     color: '#fff',
     borderColor: '#000',
   },
-  // Form grid
+  // Form groups
+  groupLabel: {
+    fontSize: '11px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    color: '#999',
+    letterSpacing: '0.5px',
+    marginBottom: '8px',
+  },
   formGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',

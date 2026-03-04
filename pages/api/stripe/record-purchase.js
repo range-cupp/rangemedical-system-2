@@ -71,7 +71,7 @@ async function sendReceiptEmail(purchase) {
         month: 'long',
         day: 'numeric',
       }),
-      description: purchase.description,
+      description: purchase.item_name,
       originalAmountCents: purchase.original_amount ? Math.round(purchase.original_amount * 100) : Math.round(purchase.amount * 100),
       discountLabel,
       amountPaidCents: Math.round(purchase.amount * 100),
@@ -158,7 +158,6 @@ export default async function handler(req, res) {
       amount: amount / 100, // Convert cents to dollars for DB
       category: service_category || 'Other',
       quantity: 1,
-      description: description || 'Stripe charge',
       stripe_payment_intent_id: stripe_payment_intent_id || null,
       stripe_subscription_id: stripe_subscription_id || null,
       payment_method: payment_method || 'stripe',

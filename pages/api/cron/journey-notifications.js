@@ -146,7 +146,7 @@ export default async function handler(req, res) {
       if (patient.ghl_contact_id && notification.sms) {
         try {
           const message = notification.sms(firstName);
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
 
           await fetch(`${baseUrl}/api/ghl/send-sms`, {
             method: 'POST',

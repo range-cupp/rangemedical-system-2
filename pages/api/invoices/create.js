@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
     const payment_url = `${baseUrl}/invoice/${invoice.id}`;
 
     return res.status(200).json({ invoice, payment_url });

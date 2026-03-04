@@ -122,7 +122,7 @@ async function sendRescheduleSMS(oldAppt, newAppt) {
   const message = `Hi ${firstName}, your ${newAppt.service_name} appointment has been rescheduled to ${newDate} at ${newTime}. See you at Range Medical!`;
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
     await fetch(`${baseUrl}/api/ghl/send-sms`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

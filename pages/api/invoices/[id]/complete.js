@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
     // Record each item as a purchase via the existing record-purchase flow
     if (invoice.patient_id && invoice.items?.length > 0) {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
 
       const hasDiscount = invoice.discount_cents > 0;
       const subtotalCents = invoice.subtotal_cents || 0;

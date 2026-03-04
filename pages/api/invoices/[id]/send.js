@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
     const paymentUrl = `${baseUrl}/invoice/${invoice.id}`;
     const total = `$${(invoice.total_cents / 100).toFixed(2)}`;
     const firstName = (invoice.patient_name || '').split(' ')[0] || 'there';

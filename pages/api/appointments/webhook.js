@@ -31,7 +31,7 @@ async function sendConfirmationSMS(appointment, event) {
 
   const message = `Hi ${firstName}! Your appointment for ${appointment.service_name} has been scheduled for ${apptDate} at ${apptTime}. See you at Range Medical!`;
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
   await fetch(`${baseUrl}/api/ghl/send-sms`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -67,7 +67,7 @@ async function sendCancellationSMS(appointment, event) {
 
   const message = `Hi ${firstName}, your ${appointment.service_name} appointment on ${apptDate} has been cancelled. Please call (949) 997-3988 to reschedule.`;
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
   await fetch(`${baseUrl}/api/ghl/send-sms`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -106,7 +106,7 @@ async function sendRescheduleSMS(appointment, event) {
 
   const message = `Hi ${firstName}, your ${appointment.service_name} appointment has been rescheduled to ${newDate} at ${newTime}. See you at Range Medical!`;
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
   await fetch(`${baseUrl}/api/ghl/send-sms`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

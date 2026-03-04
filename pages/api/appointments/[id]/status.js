@@ -108,7 +108,7 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
       const message = `Hi ${firstName}, your ${appointment.service_name} appointment on ${apptDate} has been cancelled. Please call (949) 997-3988 to reschedule.`;
 
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.rangemedical.com';
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
         await fetch(`${baseUrl}/api/ghl/send-sms`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

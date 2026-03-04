@@ -466,7 +466,7 @@ export default function RedLightTherapy() {
                 <div className="rlt-pricing-membership-note">
                   Best value if you plan to use Red Light regularly and want ongoing support instead of a one-time program.
                 </div>
-                <Link href="/range-assessment" className="rlt-pricing-btn-dark">Get Started</Link>
+                <a href="https://buy.stripe.com/6oU28qcd683SfVT1oZ08g09" target="_blank" rel="noopener noreferrer" className="rlt-pricing-btn-dark">Get Started</a>
               </div>
 
               {/* Right: Session Packs */}
@@ -478,7 +478,10 @@ export default function RedLightTherapy() {
                     <div className="rlt-pricing-pack-name">Single Session</div>
                     <div className="rlt-pricing-pack-desc">20-minute full-body treatment</div>
                   </div>
-                  <div className="rlt-pricing-pack-price">$85</div>
+                  <div className="rlt-pricing-pack-right">
+                    <div className="rlt-pricing-pack-price">$85</div>
+                    <a href="https://buy.stripe.com/8x214m3GAdoc5hfffP08g0a" target="_blank" rel="noopener noreferrer" className="rlt-pricing-btn-outline-sm">Book Now</a>
+                  </div>
                 </div>
 
                 <div className="rlt-pricing-pack-divider"></div>
@@ -491,6 +494,7 @@ export default function RedLightTherapy() {
                   <div className="rlt-pricing-pack-right">
                     <div className="rlt-pricing-pack-price">$375</div>
                     <div className="rlt-pricing-pack-per">$75 / session</div>
+                    <a href="https://buy.stripe.com/4gMcN46SM0BqcJHebL08g0b" target="_blank" rel="noopener noreferrer" className="rlt-pricing-btn-outline-sm">Buy Pack</a>
                   </div>
                 </div>
 
@@ -504,6 +508,7 @@ export default function RedLightTherapy() {
                   <div className="rlt-pricing-pack-right">
                     <div className="rlt-pricing-pack-price">$600</div>
                     <div className="rlt-pricing-pack-per">$60 / session</div>
+                    <a href="https://buy.stripe.com/6oU7sK2Cw3NCcJH0kV08g0c" target="_blank" rel="noopener noreferrer" className="rlt-pricing-btn-outline-sm">Buy Pack</a>
                   </div>
                 </div>
 
@@ -1221,6 +1226,26 @@ export default function RedLightTherapy() {
         .rlt-pricing-btn-dark:hover {
           background: #333333;
           transform: translateY(-1px);
+        }
+
+        .rlt-pricing-btn-outline-sm {
+          display: inline-block;
+          margin-top: 8px;
+          padding: 6px 16px;
+          background: transparent;
+          color: #111111;
+          border: 1px solid #cccccc;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          cursor: pointer;
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .rlt-pricing-btn-outline-sm:hover {
+          background: #f5f5f5;
+          border-color: #999999;
         }
 
         /* Session Packs */

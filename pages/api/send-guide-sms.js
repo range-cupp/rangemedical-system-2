@@ -1,5 +1,9 @@
 // pages/api/send-guide-sms.js
-// Sends a guide link via SMS using GoHighLevel API
+// Sends guide links via SMS using Twilio
+// Range Medical
+
+import { sendTwilioSMS, normalizePhone } from '../../lib/twilio-sms';
+import { logComm } from '../../lib/comms-log';
 
 const GUIDE_DEFINITIONS = {
   'hrt-guide': { name: 'HRT Guide', path: '/hrt-guide' },
@@ -34,158 +38,132 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const GHL_API_KEY = process.env.GHL_API_KEY;
-  const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
-
-  if (!GHL_API_KEY || !GHL_LOCATION_ID) {
-    console.error('Missing GHL credentials');
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
-
   try {
-    const { phone, firstName, guideId } = req.body;
+    const { phone, firstName, guideIds, guideId, patientId, patientName, ghlContactId } = req.body;
 
-    if (!phone || phone.length !== 10) {
-      return res.status(400).json({ error: 'Valid 10-digit phone number required' });
+    // Support both single guideId (legacy) and multiple guideIds (new)
+    const ids = guideIds || (guideId ? [guideId] : []);
+
+    if (!phone || phone.replace(/\D/g, '').length < 10) {
+      return res.status(400).json({ error: 'Valid phone number required' });
     }
 
-    if (!guideId || !GUIDE_DEFINITIONS[guideId]) {
-      return res.status(400).json({ error: 'Valid guide selection required' });
+    if (ids.length === 0) {
+      return res.status(400).json({ error: 'At least one guide must be selected' });
     }
 
-    const guide = GUIDE_DEFINITIONS[guideId];
-    const formattedPhone = '+1' + phone;
+    // Validate guide IDs
+    const validGuideIds = ids.filter(id => GUIDE_DEFINITIONS[id]);
+    if (validGuideIds.length === 0) {
+      return res.status(400).json({ error: 'No valid guides selected' });
+    }
+
+    // Normalize phone
+    const digits = phone.replace(/\D/g, '');
+    const normalizedPhone = normalizePhone(digits.length === 10 ? digits : phone);
+    if (!normalizedPhone) {
+      return res.status(400).json({ error: 'Invalid phone number format' });
+    }
+
+    // Build the base URL — guides are on the marketing site
     const baseUrl = 'https://www.range-medical.com';
 
-    // Step 1: Find or create contact in GHL
-    let contactId = null;
+    // Build SMS message
+    const greeting = firstName ? `Hi ${firstName}! ` : '';
 
-    const searchParams = new URLSearchParams({
-      locationId: GHL_LOCATION_ID,
-      query: formattedPhone
+    let messageBody;
+    if (validGuideIds.length === 1) {
+      const guide = GUIDE_DEFINITIONS[validGuideIds[0]];
+      messageBody = `${greeting}Range Medical here. Here's your ${guide.name}:\n\n${baseUrl}${guide.path}\n\nQuestions? (949) 997-3988`;
+    } else {
+      const guideLinks = validGuideIds.map(id => {
+        const guide = GUIDE_DEFINITIONS[id];
+        return `${guide.name}: ${baseUrl}${guide.path}`;
+      }).join('\n');
+
+      messageBody = `${greeting}Range Medical here. Here are your treatment guides:\n\n${guideLinks}\n\nQuestions? (949) 997-3988`;
+    }
+
+    // Send via Twilio
+    const result = await sendTwilioSMS({ to: normalizedPhone, message: messageBody });
+
+    if (!result.success) {
+      console.error('Twilio SMS error:', result.error);
+      return res.status(500).json({ error: 'Failed to send SMS', details: result.error });
+    }
+
+    // Log to comms_log
+    const guideNames = validGuideIds.map(id => GUIDE_DEFINITIONS[id].name).join(', ');
+    await logComm({
+      channel: 'sms',
+      messageType: 'guide_links',
+      message: messageBody,
+      source: 'send-guide-sms(twilio)',
+      patientId: patientId || null,
+      patientName: patientName || firstName || null,
+      ghlContactId: ghlContactId || null,
+      recipient: normalizedPhone,
+      twilioMessageSid: result.messageSid,
+      direction: 'outbound',
     });
 
-    const searchResponse = await fetch(
-      `https://services.leadconnectorhq.com/contacts/?${searchParams}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28',
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    console.log(`Guide SMS sent to ${normalizedPhone}: ${guideNames}`);
 
-    if (searchResponse.ok) {
-      const searchData = await searchResponse.json();
-      if (searchData.contacts && searchData.contacts.length > 0) {
-        contactId = searchData.contacts[0].id;
-        console.log('Found existing contact:', contactId);
-      }
-    }
-
-    // If no contact found, create one
-    if (!contactId) {
-      const createPayload = {
-        firstName: firstName || 'New',
-        lastName: 'Patient',
-        phone: formattedPhone,
-        locationId: GHL_LOCATION_ID,
-        tags: ['guide-sent']
-      };
-
-      const createResponse = await fetch(
-        'https://services.leadconnectorhq.com/contacts/',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-07-28',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(createPayload)
-        }
-      );
-
-      if (createResponse.ok) {
-        const createData = await createResponse.json();
-        contactId = createData.contact?.id;
-        console.log('Created new contact:', contactId);
-      } else {
-        const errorData = await createResponse.json();
-        console.error('Failed to create contact:', errorData);
-        return res.status(500).json({ error: 'Failed to create contact in system' });
-      }
-    }
-
-    // Step 2: Build and send SMS
-    const greeting = firstName ? `Hi ${firstName}! ` : '';
-    const messageBody = `${greeting}Here's your guide: ${baseUrl}${guide.path} - Range Medical`;
-
-    const smsResponse = await fetch(
-      'https://services.leadconnectorhq.com/conversations/messages',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          type: 'SMS',
-          contactId: contactId,
-          message: messageBody
-        })
-      }
-    );
-
-    if (!smsResponse.ok) {
-      const smsError = await smsResponse.json();
-      console.error('SMS send failed:', JSON.stringify(smsError));
-
-      const ghlMsg = smsError.message || smsError.msg || JSON.stringify(smsError);
-
-      if (ghlMsg.includes('opt') || ghlMsg.includes('consent')) {
-        return res.status(400).json({
-          error: 'Patient has opted out of SMS or consent required'
-        });
-      }
-
-      return res.status(500).json({
-        error: `Failed to send SMS: ${ghlMsg}`
+    // Also tag GHL contact in background (non-blocking)
+    if (ghlContactId || phone) {
+      tagGHLContact(phone, firstName, validGuideIds, ghlContactId).catch(err => {
+        console.error('GHL tagging error (non-critical):', err.message);
       });
     }
 
-    console.log('Guide SMS sent successfully');
-
-    // Step 3: Add note to contact
-    await fetch(
-      `https://services.leadconnectorhq.com/contacts/${contactId}/notes`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          body: `Guide sent via SMS: ${guide.name} on ${new Date().toLocaleString()}`,
-          userId: null
-        })
-      }
-    );
-
     return res.status(200).json({
       success: true,
-      contactId,
-      message: 'Guide sent successfully'
+      guidesSent: validGuideIds.length,
+      messageSid: result.messageSid,
+      message: 'Guides sent successfully',
     });
 
   } catch (error) {
     console.error('Send guide SMS error:', error);
-    return res.status(500).json({
-      error: 'Server error. Please try again.'
-    });
+    return res.status(500).json({ error: 'Server error. Please try again.' });
   }
+}
+
+// Background GHL tagging — non-blocking, best-effort
+async function tagGHLContact(phone, firstName, guideIds, existingContactId) {
+  const GHL_API_KEY = process.env.GHL_API_KEY;
+  const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
+  if (!GHL_API_KEY || !GHL_LOCATION_ID) return;
+
+  const headers = {
+    'Authorization': `Bearer ${GHL_API_KEY}`,
+    'Version': '2021-07-28',
+    'Content-Type': 'application/json',
+  };
+
+  let contactId = existingContactId;
+
+  // Find contact if no ID provided
+  if (!contactId) {
+    const digits = phone.replace(/\D/g, '');
+    const formattedPhone = '+1' + (digits.length === 10 ? digits : digits.slice(-10));
+    const searchParams = new URLSearchParams({ locationId: GHL_LOCATION_ID, query: formattedPhone });
+    const searchRes = await fetch(`https://services.leadconnectorhq.com/contacts/?${searchParams}`, {
+      method: 'GET', headers
+    });
+    if (searchRes.ok) {
+      const data = await searchRes.json();
+      contactId = data.contacts?.[0]?.id;
+    }
+  }
+
+  if (!contactId) return;
+
+  // Tag contact
+  const guideTags = guideIds.map(id => `guide-${id}-sent`);
+  await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ tags: ['guide-sent', ...guideTags] }),
+  });
 }

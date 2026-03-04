@@ -1,5 +1,5 @@
 // /pages/admin/send-forms.js
-// Standalone Send Forms page — send consent/form links via SMS or Email
+// Standalone Send Forms & Guides page — send consent/form/guide links via SMS or Email
 // Range Medical System V2
 
 import { useState, useRef } from 'react';
@@ -31,7 +31,50 @@ const QUICK_SELECTIONS = [
   { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
 ];
 
+const AVAILABLE_GUIDES = [
+  { id: 'hrt-guide', name: 'HRT Guide', icon: '💊', category: 'hrt' },
+  { id: 'tirzepatide-guide', name: 'Tirzepatide Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'retatrutide-guide', name: 'Retatrutide Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'weight-loss-medication-guide-page', name: 'WL Medication Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'bpc-tb4-guide', name: 'BPC/TB4 Guide', icon: '🧬', category: 'peptide' },
+  { id: 'glow-guide', name: 'GLOW Guide', icon: '✨', category: 'peptide' },
+  { id: 'ghk-cu-guide', name: 'GHK-Cu Guide', icon: '🧬', category: 'peptide' },
+  { id: '3x-blend-guide', name: '3x Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'nad-guide', name: 'NAD+ Guide', icon: '💧', category: 'iv' },
+  { id: 'methylene-blue-iv-guide', name: 'Methylene Blue Guide', icon: '💧', category: 'iv' },
+  { id: 'methylene-blue-combo-iv-guide', name: 'MB+VitC Combo Guide', icon: '💧', category: 'iv' },
+  { id: 'glutathione-iv-guide', name: 'Glutathione Guide', icon: '💧', category: 'iv' },
+  { id: 'vitamin-c-iv-guide', name: 'Vitamin C Guide', icon: '💧', category: 'iv' },
+  { id: 'range-iv-guide', name: 'Range IV Guide', icon: '💧', category: 'iv' },
+  { id: 'cellular-reset-guide', name: 'Cellular Reset Guide', icon: '💧', category: 'iv' },
+  { id: 'hbot-guide', name: 'HBOT Guide', icon: '🫁', category: 'hbot' },
+  { id: 'red-light-guide', name: 'Red Light Guide', icon: '🔴', category: 'rlt' },
+  { id: 'combo-membership-guide', name: 'Combo Membership', icon: '🏷️', category: 'membership' },
+  { id: 'hbot-membership-guide', name: 'HBOT Membership', icon: '🏷️', category: 'membership' },
+  { id: 'rlt-membership-guide', name: 'RLT Membership', icon: '🏷️', category: 'membership' },
+  { id: 'essential-panel-male-guide', name: 'Essential Male Panel', icon: '🧪', category: 'labs' },
+  { id: 'essential-panel-female-guide', name: 'Essential Female Panel', icon: '🧪', category: 'labs' },
+  { id: 'elite-panel-male-guide', name: 'Elite Male Panel', icon: '🧪', category: 'labs' },
+  { id: 'elite-panel-female-guide', name: 'Elite Female Panel', icon: '🧪', category: 'labs' },
+  { id: 'the-blu-guide', name: 'The Blu', icon: '💎', category: 'other' },
+];
+
+const GUIDE_CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'hrt', label: 'HRT' },
+  { id: 'weight_loss', label: 'Weight Loss' },
+  { id: 'peptide', label: 'Peptides' },
+  { id: 'iv', label: 'IV Therapy' },
+  { id: 'hbot', label: 'HBOT' },
+  { id: 'rlt', label: 'Red Light' },
+  { id: 'membership', label: 'Memberships' },
+  { id: 'labs', label: 'Labs' },
+];
+
 export default function SendFormsPage() {
+  // Page mode: forms or guides
+  const [pageMode, setPageMode] = useState('forms'); // 'forms' | 'guides'
+
   // Patient selection
   const [mode, setMode] = useState('search'); // 'search' | 'manual'
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,6 +87,10 @@ export default function SendFormsPage() {
 
   // Form selection
   const [selectedForms, setSelectedForms] = useState([]);
+
+  // Guide selection
+  const [selectedGuides, setSelectedGuides] = useState([]);
+  const [guideCategory, setGuideCategory] = useState('all');
 
   // Delivery method
   const [deliveryMethod, setDeliveryMethod] = useState('email'); // 'sms' | 'email'
@@ -74,7 +121,6 @@ export default function SendFormsPage() {
   };
 
   const selectPatient = async (patient) => {
-    // Fetch full patient details to get phone and email
     try {
       const res = await fetch(`/api/patients/${patient.id}`);
       const data = await res.json();
@@ -103,6 +149,12 @@ export default function SendFormsPage() {
   const toggleForm = (formId) => {
     setSelectedForms(prev =>
       prev.includes(formId) ? prev.filter(id => id !== formId) : [...prev, formId]
+    );
+  };
+
+  const toggleGuide = (guideId) => {
+    setSelectedGuides(prev =>
+      prev.includes(guideId) ? prev.filter(id => id !== guideId) : [...prev, guideId]
     );
   };
 
@@ -135,8 +187,12 @@ export default function SendFormsPage() {
     return manualName.split(' ')[0] || '';
   };
 
+  const getSelectedCount = () => {
+    return pageMode === 'forms' ? selectedForms.length : selectedGuides.length;
+  };
+
   const canSend = () => {
-    if (selectedForms.length === 0) return false;
+    if (getSelectedCount() === 0) return false;
     const recipient = getRecipient();
     if (!recipient) return false;
     if (deliveryMethod === 'sms') {
@@ -152,52 +208,13 @@ export default function SendFormsPage() {
 
     const firstName = getFirstName();
     const patient = mode === 'search' ? selectedPatient : null;
-    const sortedForms = sortForms(selectedForms);
 
     try {
-      if (deliveryMethod === 'email') {
-        const email = mode === 'search' ? selectedPatient.email : manualEmail;
-        const res = await fetch('/api/admin/send-forms-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            firstName: firstName || null,
-            formIds: sortedForms,
-            patientId: patient?.id || null,
-            patientName: patient?.name || manualName || null,
-            ghlContactId: patient?.ghl_contact_id || null,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to send email');
-
-        setResult({ success: true, message: `${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} sent via email` });
-        addRecentSend(patient?.name || manualName || email, 'email', selectedForms.length);
+      if (pageMode === 'forms') {
+        await sendForms(firstName, patient);
       } else {
-        const phone = mode === 'search' ? selectedPatient.phone : manualPhone;
-        const digits = phone.replace(/\D/g, '');
-        const res = await fetch('/api/send-forms-sms', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits,
-            firstName: firstName || null,
-            formIds: sortedForms,
-            patientId: patient?.id || null,
-            patientName: patient?.name || manualName || null,
-            ghlContactId: patient?.ghl_contact_id || null,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
-
-        setResult({ success: true, message: `${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} sent via SMS` });
-        addRecentSend(patient?.name || manualName || phone, 'sms', selectedForms.length);
+        await sendGuides(firstName, patient);
       }
-
-      // Reset form selection after success
-      setSelectedForms([]);
     } catch (err) {
       setResult({ success: false, message: err.message });
     } finally {
@@ -205,9 +222,101 @@ export default function SendFormsPage() {
     }
   };
 
-  const addRecentSend = (name, method, count) => {
+  const sendForms = async (firstName, patient) => {
+    const sortedForms = sortForms(selectedForms);
+
+    if (deliveryMethod === 'email') {
+      const email = mode === 'search' ? selectedPatient.email : manualEmail;
+      const res = await fetch('/api/admin/send-forms-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          firstName: firstName || null,
+          formIds: sortedForms,
+          patientId: patient?.id || null,
+          patientName: patient?.name || manualName || null,
+          ghlContactId: patient?.ghl_contact_id || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send email');
+
+      setResult({ success: true, message: `${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} sent via email` });
+      addRecentSend(patient?.name || manualName || email, 'email', selectedForms.length, 'forms');
+    } else {
+      const phone = mode === 'search' ? selectedPatient.phone : manualPhone;
+      const digits = phone.replace(/\D/g, '');
+      const res = await fetch('/api/send-forms-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits,
+          firstName: firstName || null,
+          formIds: sortedForms,
+          patientId: patient?.id || null,
+          patientName: patient?.name || manualName || null,
+          ghlContactId: patient?.ghl_contact_id || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
+
+      setResult({ success: true, message: `${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} sent via SMS` });
+      addRecentSend(patient?.name || manualName || phone, 'sms', selectedForms.length, 'forms');
+    }
+
+    setSelectedForms([]);
+  };
+
+  const sendGuides = async (firstName, patient) => {
+    if (deliveryMethod === 'email') {
+      const email = mode === 'search' ? selectedPatient.email : manualEmail;
+      const res = await fetch('/api/admin/send-guides-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          firstName: firstName || null,
+          guideIds: selectedGuides,
+          patientId: patient?.id || null,
+          patientName: patient?.name || manualName || null,
+          ghlContactId: patient?.ghl_contact_id || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send email');
+
+      setResult({ success: true, message: `${selectedGuides.length} guide${selectedGuides.length > 1 ? 's' : ''} sent via email` });
+      addRecentSend(patient?.name || manualName || email, 'email', selectedGuides.length, 'guides');
+    } else {
+      const phone = mode === 'search' ? selectedPatient.phone : manualPhone;
+      const digits = phone.replace(/\D/g, '');
+      const res = await fetch('/api/send-guide-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits,
+          firstName: firstName || null,
+          guideIds: selectedGuides,
+          patientId: patient?.id || null,
+          patientName: patient?.name || manualName || null,
+          ghlContactId: patient?.ghl_contact_id || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
+
+      setResult({ success: true, message: `${selectedGuides.length} guide${selectedGuides.length > 1 ? 's' : ''} sent via SMS` });
+      addRecentSend(patient?.name || manualName || phone, 'sms', selectedGuides.length, 'guides');
+    }
+
+    setSelectedGuides([]);
+  };
+
+  const addRecentSend = (name, method, count, type) => {
     setRecentSends(prev => [
-      { name, method, count, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) },
+      { name, method, count, type, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) },
       ...prev.slice(0, 9),
     ]);
   };
@@ -219,11 +328,42 @@ export default function SendFormsPage() {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
   };
 
+  // Filtered guides by category
+  const filteredGuides = guideCategory === 'all'
+    ? AVAILABLE_GUIDES
+    : AVAILABLE_GUIDES.filter(g => g.category === guideCategory);
+
+  const itemLabel = pageMode === 'forms' ? 'Form' : 'Guide';
+  const itemLabelPlural = pageMode === 'forms' ? 'Forms' : 'Guides';
+  const selectedCount = getSelectedCount();
+
   return (
     <AdminLayout title="Send Forms">
       <div style={styles.layout}>
         {/* Main form area */}
         <div style={styles.mainCard}>
+
+          {/* Page mode toggle: Forms / Guides */}
+          <div style={styles.pageModeBar}>
+            <button
+              onClick={() => { setPageMode('forms'); setResult(null); }}
+              style={{
+                ...styles.pageModeBtn,
+                ...(pageMode === 'forms' ? styles.pageModeBtnActive : {}),
+              }}
+            >
+              📋 Forms
+            </button>
+            <button
+              onClick={() => { setPageMode('guides'); setResult(null); }}
+              style={{
+                ...styles.pageModeBtn,
+                ...(pageMode === 'guides' ? styles.pageModeBtnActive : {}),
+              }}
+            >
+              📖 Guides
+            </button>
+          </div>
 
           {/* Step 1: Patient */}
           <div style={styles.section}>
@@ -323,83 +463,155 @@ export default function SendFormsPage() {
             )}
           </div>
 
-          {/* Step 2: Select Forms */}
+          {/* Step 2: Select Forms or Guides */}
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
               <span style={styles.stepBadge}>2</span>
-              <h3 style={styles.sectionTitle}>Select Forms</h3>
+              <h3 style={styles.sectionTitle}>Select {itemLabelPlural}</h3>
             </div>
 
-            {/* Quick selections */}
-            <div style={styles.quickRow}>
-              {QUICK_SELECTIONS.map(qs => (
-                <button
-                  key={qs.label}
-                  onClick={() => applyQuickSelect(qs.forms)}
-                  style={{
-                    ...styles.quickBtn,
-                    ...(JSON.stringify([...selectedForms].sort()) === JSON.stringify([...qs.forms].sort())
-                      ? styles.quickBtnActive : {}),
-                  }}
-                >
-                  {qs.label}
-                </button>
-              ))}
-            </div>
+            {pageMode === 'forms' ? (
+              <>
+                {/* Quick selections */}
+                <div style={styles.quickRow}>
+                  {QUICK_SELECTIONS.map(qs => (
+                    <button
+                      key={qs.label}
+                      onClick={() => applyQuickSelect(qs.forms)}
+                      style={{
+                        ...styles.quickBtn,
+                        ...(JSON.stringify([...selectedForms].sort()) === JSON.stringify([...qs.forms].sort())
+                          ? styles.quickBtnActive : {}),
+                      }}
+                    >
+                      {qs.label}
+                    </button>
+                  ))}
+                </div>
 
-            {/* Required forms — always first */}
-            <div style={styles.groupLabel}>Required</div>
-            <div style={styles.formGrid}>
-              {AVAILABLE_FORMS.filter(f => f.required).map(form => {
-                const isChecked = selectedForms.includes(form.id);
-                return (
-                  <label
-                    key={form.id}
-                    style={{
-                      ...styles.formItem,
-                      ...(isChecked ? styles.formItemChecked : {}),
+                {/* Required forms — always first */}
+                <div style={styles.groupLabel}>Required</div>
+                <div style={styles.formGrid}>
+                  {AVAILABLE_FORMS.filter(f => f.required).map(form => {
+                    const isChecked = selectedForms.includes(form.id);
+                    return (
+                      <label
+                        key={form.id}
+                        style={{
+                          ...styles.formItem,
+                          ...(isChecked ? styles.formItemChecked : {}),
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleForm(form.id)}
+                          style={styles.checkbox}
+                        />
+                        <span style={styles.formIcon}>{form.icon}</span>
+                        <span style={styles.formName}>{form.name}</span>
+                        <span style={styles.formTime}>{form.time}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {/* Consent forms */}
+                <div style={{ ...styles.groupLabel, marginTop: '14px' }}>Consent Forms</div>
+                <div style={styles.formGrid}>
+                  {AVAILABLE_FORMS.filter(f => !f.required).map(form => {
+                    const isChecked = selectedForms.includes(form.id);
+                    return (
+                      <label
+                        key={form.id}
+                        style={{
+                          ...styles.formItem,
+                          ...(isChecked ? styles.formItemChecked : {}),
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleForm(form.id)}
+                          style={styles.checkbox}
+                        />
+                        <span style={styles.formIcon}>{form.icon}</span>
+                        <span style={styles.formName}>{form.name}</span>
+                        <span style={styles.formTime}>{form.time}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Guide category filter */}
+                <div style={styles.quickRow}>
+                  {GUIDE_CATEGORIES.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setGuideCategory(cat.id)}
+                      style={{
+                        ...styles.quickBtn,
+                        ...(guideCategory === cat.id ? styles.quickBtnActive : {}),
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Select all / clear */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                  <button
+                    onClick={() => {
+                      const ids = filteredGuides.map(g => g.id);
+                      setSelectedGuides(prev => {
+                        const newSet = new Set(prev);
+                        ids.forEach(id => newSet.add(id));
+                        return [...newSet];
+                      });
                     }}
+                    style={styles.selectAllBtn}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => toggleForm(form.id)}
-                      style={styles.checkbox}
-                    />
-                    <span style={styles.formIcon}>{form.icon}</span>
-                    <span style={styles.formName}>{form.name}</span>
-                    <span style={styles.formTime}>{form.time}</span>
-                  </label>
-                );
-              })}
-            </div>
+                    Select All ({filteredGuides.length})
+                  </button>
+                  {selectedGuides.length > 0 && (
+                    <button
+                      onClick={() => setSelectedGuides([])}
+                      style={styles.selectAllBtn}
+                    >
+                      Clear ({selectedGuides.length})
+                    </button>
+                  )}
+                </div>
 
-            {/* Consent forms */}
-            <div style={{ ...styles.groupLabel, marginTop: '14px' }}>Consent Forms</div>
-            <div style={styles.formGrid}>
-              {AVAILABLE_FORMS.filter(f => !f.required).map(form => {
-                const isChecked = selectedForms.includes(form.id);
-                return (
-                  <label
-                    key={form.id}
-                    style={{
-                      ...styles.formItem,
-                      ...(isChecked ? styles.formItemChecked : {}),
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => toggleForm(form.id)}
-                      style={styles.checkbox}
-                    />
-                    <span style={styles.formIcon}>{form.icon}</span>
-                    <span style={styles.formName}>{form.name}</span>
-                    <span style={styles.formTime}>{form.time}</span>
-                  </label>
-                );
-              })}
-            </div>
+                {/* Guide grid */}
+                <div style={styles.formGrid}>
+                  {filteredGuides.map(guide => {
+                    const isChecked = selectedGuides.includes(guide.id);
+                    return (
+                      <label
+                        key={guide.id}
+                        style={{
+                          ...styles.formItem,
+                          ...(isChecked ? styles.formItemChecked : {}),
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleGuide(guide.id)}
+                          style={styles.checkbox}
+                        />
+                        <span style={styles.formIcon}>{guide.icon}</span>
+                        <span style={styles.formName}>{guide.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Step 3: Delivery Method */}
@@ -456,7 +668,10 @@ export default function SendFormsPage() {
                 opacity: !canSend() || sending ? 0.5 : 1,
               }}
             >
-              {sending ? 'Sending...' : `Send ${selectedForms.length} Form${selectedForms.length !== 1 ? 's' : ''} via ${deliveryMethod === 'email' ? 'Email' : 'SMS'}`}
+              {sending
+                ? 'Sending...'
+                : `Send ${selectedCount} ${selectedCount !== 1 ? itemLabelPlural : itemLabel} via ${deliveryMethod === 'email' ? 'Email' : 'SMS'}`
+              }
             </button>
 
             {/* Result message */}
@@ -482,7 +697,7 @@ export default function SendFormsPage() {
               <div key={i} style={styles.recentItem}>
                 <div style={styles.recentName}>{send.name}</div>
                 <div style={styles.recentMeta}>
-                  {send.method === 'email' ? '📧' : '💬'} {send.count} form{send.count > 1 ? 's' : ''} · {send.time}
+                  {send.method === 'email' ? '📧' : '💬'} {send.count} {send.type === 'guides' ? 'guide' : 'form'}{send.count > 1 ? 's' : ''} · {send.time}
                 </div>
               </div>
             ))
@@ -505,6 +720,29 @@ const styles = {
     borderRadius: '12px',
     border: '1px solid #e5e5e5',
     overflow: 'hidden',
+  },
+  // Page mode bar (Forms / Guides toggle)
+  pageModeBar: {
+    display: 'flex',
+    borderBottom: '1px solid #e5e5e5',
+  },
+  pageModeBtn: {
+    flex: 1,
+    padding: '14px',
+    border: 'none',
+    background: '#fafafa',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    color: '#999',
+    fontFamily: 'inherit',
+    borderBottom: '2px solid transparent',
+    transition: 'all 0.15s',
+  },
+  pageModeBtnActive: {
+    background: '#fff',
+    color: '#000',
+    borderBottom: '2px solid #000',
   },
   section: {
     padding: '24px',
@@ -631,7 +869,7 @@ const styles = {
     color: '#666',
     fontFamily: 'inherit',
   },
-  // Quick selections
+  // Quick selections / category filter
   quickRow: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -653,6 +891,17 @@ const styles = {
     background: '#000',
     color: '#fff',
     borderColor: '#000',
+  },
+  // Select all btn
+  selectAllBtn: {
+    padding: '4px 10px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    background: '#fff',
+    fontSize: '11px',
+    cursor: 'pointer',
+    color: '#666',
+    fontFamily: 'inherit',
   },
   // Form groups
   groupLabel: {

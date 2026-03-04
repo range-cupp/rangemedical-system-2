@@ -138,15 +138,32 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'patient_id and amount are required' });
     }
 
+    // Look up patient info for required purchase fields
+    const { data: patient, error: patientError } = await supabase
+      .from('patients')
+      .select('name, email, phone')
+      .eq('id', patient_id)
+      .single();
+
+    if (patientError) {
+      console.error('Patient lookup error:', patientError);
+    }
+
     const insertData = {
       patient_id,
+      patient_name: patient?.name || 'Unknown',
+      patient_email: patient?.email || null,
+      patient_phone: patient?.phone || null,
+      item_name: description || 'Stripe charge',
       amount: amount / 100, // Convert cents to dollars for DB
+      category: service_category || 'Other',
+      quantity: 1,
       description: description || 'Stripe charge',
       stripe_payment_intent_id: stripe_payment_intent_id || null,
       stripe_subscription_id: stripe_subscription_id || null,
       payment_method: payment_method || 'stripe',
       source: 'stripe_pos',
-      purchase_date: new Date().toISOString(),
+      purchase_date: new Date().toISOString().split('T')[0],
     };
 
     // Add discount fields if present

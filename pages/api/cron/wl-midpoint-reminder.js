@@ -5,49 +5,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
+import { sendTwilioSMS } from '../../../lib/twilio-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const GHL_API_KEY = process.env.GHL_API_KEY;
-const NOTIFY_CONTACT_ID = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
-
-// Send SMS to clinic
-async function sendClinicSMS(message) {
-  if (!GHL_API_KEY) {
-    console.log('Missing GHL_API_KEY');
-    return { success: false };
-  }
-
-  try {
-    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: NOTIFY_CONTACT_ID,
-        message: message
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('SMS error:', error);
-      return { success: false, error };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('SMS error:', error);
-    return { success: false, error: error.message };
-  }
-}
+const OWNER_PHONE = '+19496900339';
 
 export default async function handler(req, res) {
   // Verify cron authorization
@@ -108,7 +73,8 @@ export default async function handler(req, res) {
 
       const message = `📅 WL Mid-Point Check\n\n${patientName} is 2 weeks into their monthly ${medication} ${dose} supply.\n\n${daysRemaining} days until next pickup (${protocol.end_date}).\n\nConsider checking in with patient.`;
 
-      const result = await sendClinicSMS(message);
+      // Send to clinic owner via Twilio
+      const result = await sendTwilioSMS({ to: OWNER_PHONE, message });
 
       await logComm({
         channel: 'sms',
@@ -119,8 +85,11 @@ export default async function handler(req, res) {
         protocolId: protocol.id,
         ghlContactId: protocol.patients?.ghl_contact_id,
         patientName,
+        recipient: OWNER_PHONE,
         status: result.success ? 'sent' : 'error',
         errorMessage: result.error || null,
+        twilioMessageSid: result.messageSid || null,
+        direction: 'outbound',
       });
 
       reminders.push({

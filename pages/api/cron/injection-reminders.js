@@ -7,13 +7,12 @@
 // Only sends between 9am-6pm PST
 
 import { createClient } from '@supabase/supabase-js';
+import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const GHL_API_KEY = process.env.GHL_API_KEY;
 
 // Check if current time is within allowed window (9am-6pm PST)
 function isWithinAllowedHours() {
@@ -64,30 +63,20 @@ function isInjectionDay(startDate, frequency) {
   return true;
 }
 
-// Send SMS via GHL
-async function sendSMS(contactId, message) {
-  if (!GHL_API_KEY || !contactId) return false;
+// Send SMS via Twilio — looks up patient phone by protocol
+async function sendSMSForProtocol(protocol, message) {
+  // Get patient phone from patients table
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('phone')
+    .eq('id', protocol.patient_id)
+    .single();
 
-  try {
-    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: contactId,
-        message: message
-      })
-    });
+  const phone = normalizePhone(patient?.phone);
+  if (!phone) return { sent: false, error: 'No phone number' };
 
-    return response.ok;
-  } catch (error) {
-    console.error('SMS error:', error);
-    return false;
-  }
+  const result = await sendTwilioSMS({ to: phone, message });
+  return { sent: result.success, error: result.error, messageSid: result.messageSid };
 }
 
 function getFirstName(fullName) {
@@ -136,7 +125,7 @@ export default async function handler(req, res) {
       .eq('injection_location', 'take_home')
       .lte('start_date', todayStr)
       .gte('end_date', todayStr)
-      .not('ghl_contact_id', 'is', null);
+      .not('patient_id', 'is', null);
 
     if (protocolsError) {
       throw new Error(`Protocols query error: ${protocolsError.message}`);
@@ -192,12 +181,12 @@ export default async function handler(req, res) {
         message = `Hi ${firstName}! Quick reminder - Day ${dayNumber} injection done? Tap to log: ${trackerUrl} - Range Medical`;
       }
 
-      const sent = await sendSMS(protocol.ghl_contact_id, message);
-      
-      if (sent) {
+      const smsResult = await sendSMSForProtocol(protocol, message);
+
+      if (smsResult.sent) {
         results.sent.push({ patient: protocol.patient_name, day: dayNumber });
       } else {
-        results.errors.push({ patient: protocol.patient_name, error: 'SMS failed' });
+        results.errors.push({ patient: protocol.patient_name, error: smsResult.error || 'SMS failed' });
       }
     }
 

@@ -7,13 +7,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
+import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const GHL_API_KEY = process.env.GHL_API_KEY;
 
 function getTodayDateStr() {
   const now = new Date();
@@ -24,31 +23,6 @@ function getTodayDateStr() {
 function getFirstName(fullName) {
   if (!fullName) return 'there';
   return fullName.split(' ')[0];
-}
-
-async function sendSMS(contactId, message) {
-  if (!GHL_API_KEY || !contactId) return false;
-
-  try {
-    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: contactId,
-        message: message
-      })
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.error('SMS error:', error);
-    return false;
-  }
 }
 
 export default async function handler(req, res) {
@@ -78,11 +52,11 @@ export default async function handler(req, res) {
     // Get active HRT protocols with a recent payment
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
-      .select('id, patient_id, patient_name, ghl_contact_id, last_payment_date')
+      .select('id, patient_id, patient_name, ghl_contact_id, last_payment_date, patients!inner(phone)')
       .eq('status', 'active')
       .eq('program_type', 'hrt')
       .gte('last_payment_date', thirtyDaysAgoStr)
-      .not('ghl_contact_id', 'is', null);
+      .not('patients.phone', 'is', null);
 
     if (protocolsError) {
       throw new Error(`Protocols query error: ${protocolsError.message}`);
@@ -131,13 +105,19 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Send reminder
+      // Send reminder via Twilio
       const firstName = getFirstName(protocol.patient_name);
       const message = `Hi ${firstName}! Your Range IV is included with your HRT membership this month. Call or text us to schedule! — Range Medical`;
 
-      const sent = await sendSMS(protocol.ghl_contact_id, message);
+      const phone = normalizePhone(protocol.patients?.phone);
+      if (!phone) {
+        results.skipped.push({ patient: protocol.patient_name, reason: 'No phone number' });
+        continue;
+      }
 
-      if (sent) {
+      const smsResult = await sendTwilioSMS({ to: phone, message });
+
+      if (smsResult.success) {
         await supabase.from('protocol_logs').insert({
           protocol_id: protocol.id,
           patient_id: protocol.patient_id,
@@ -154,12 +134,14 @@ export default async function handler(req, res) {
           patientId: protocol.patient_id,
           protocolId: protocol.id,
           ghlContactId: protocol.ghl_contact_id,
-          patientName: protocol.patient_name
+          patientName: protocol.patient_name,
+          recipient: phone,
+          twilioMessageSid: smsResult.messageSid,
         });
 
         results.sent.push({ patient: protocol.patient_name });
       } else {
-        results.errors.push({ patient: protocol.patient_name, error: 'SMS failed' });
+        results.errors.push({ patient: protocol.patient_name, error: smsResult.error || 'SMS failed' });
       }
     }
 

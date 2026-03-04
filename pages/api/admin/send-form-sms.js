@@ -1,18 +1,24 @@
 // /pages/api/admin/send-form-sms.js
-// Send consent/form links to patients via GHL SMS
+// Send consent/form links to patients via Twilio SMS
 // Range Medical
+
+import { createClient } from '@supabase/supabase-js';
+import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { logComm } from '../../../lib/comms-log';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { ghlContactId, patientName, formType, formUrl } = req.body;
+  const { ghlContactId, patientName, patientPhone, patientId, formType, formUrl } = req.body;
 
   // Validate required fields
-  if (!ghlContactId) {
-    return res.status(400).json({ error: 'Missing GHL contact ID' });
-  }
   if (!formType || !formUrl) {
     return res.status(400).json({ error: 'Missing form type or URL' });
   }
@@ -21,47 +27,59 @@ export default async function handler(req, res) {
   const firstName = patientName || 'there';
   const message = `Hi ${firstName}! Please complete your ${formType} for Range Medical: ${formUrl}`;
 
-  try {
-    // Send SMS via GHL Conversations API
-    const response = await fetch(
-      'https://services.leadconnectorhq.com/conversations/messages',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-04-15'
-        },
-        body: JSON.stringify({
-          type: 'SMS',
-          contactId: ghlContactId,
-          message: message
-        })
-      }
-    );
+  // Get phone number — either from request body or look up from patient/GHL contact
+  let phone = patientPhone ? normalizePhone(patientPhone) : null;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('GHL SMS error:', response.status, errorData);
-      
-      // Provide helpful error message
-      if (response.status === 401) {
-        return res.status(500).json({ error: 'GHL API key invalid or expired' });
-      }
-      if (response.status === 400) {
-        return res.status(400).json({ error: 'Invalid contact ID or phone number' });
-      }
-      
-      return res.status(500).json({ error: 'Failed to send SMS via GHL' });
+  if (!phone && patientId) {
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('phone')
+      .eq('id', patientId)
+      .single();
+    phone = normalizePhone(patient?.phone);
+  }
+
+  if (!phone && ghlContactId) {
+    // Look up patient by GHL contact ID
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('phone')
+      .eq('ghl_contact_id', ghlContactId)
+      .single();
+    phone = normalizePhone(patient?.phone);
+  }
+
+  if (!phone) {
+    return res.status(400).json({ error: 'No phone number available. Please provide patientPhone, patientId, or ghlContactId.' });
+  }
+
+  try {
+    // Send via Twilio
+    const result = await sendTwilioSMS({ to: phone, message });
+
+    if (!result.success) {
+      console.error('Twilio SMS error:', result.error);
+      return res.status(500).json({ error: 'Failed to send SMS', details: result.error });
     }
 
-    const result = await response.json();
-    
-    console.log(`SMS sent to contact ${ghlContactId}: ${formType}`);
-    
-    return res.status(200).json({ 
-      success: true, 
-      messageId: result.messageId,
+    await logComm({
+      channel: 'sms',
+      messageType: `form_link_${formType}`,
+      message,
+      source: 'send-form-sms(twilio)',
+      patientId: patientId || null,
+      patientName: patientName || null,
+      ghlContactId: ghlContactId || null,
+      recipient: phone,
+      twilioMessageSid: result.messageSid,
+      direction: 'outbound',
+    });
+
+    console.log(`SMS sent to ${phone}: ${formType}`);
+
+    return res.status(200).json({
+      success: true,
+      messageSid: result.messageSid,
       message: `Sent ${formType} link to patient`
     });
 

@@ -1,17 +1,16 @@
 // /pages/api/cron/weekly-checkin-reminder.js
-// Daily cron to send weekly weight loss check-in SMS reminders
+// Daily cron to send weekly weight loss check-in SMS reminders via Twilio
 // Runs at 9:00 AM PST - sends reminder to patients on their injection day
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
+import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const GHL_API_KEY = process.env.GHL_API_KEY;
 
 // Get current day of week in Pacific Time
 function getPacificDayOfWeek() {
@@ -26,42 +25,6 @@ function isWithinAllowedHours() {
   const now = new Date();
   const pstHour = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours();
   return pstHour >= 8 && pstHour <= 10;
-}
-
-// Send SMS via GHL
-async function sendSMS(contactId, message) {
-  if (!GHL_API_KEY || !contactId) {
-    console.log('Missing GHL_API_KEY or contactId');
-    return { success: false, error: 'Missing API key or contact ID' };
-  }
-
-  try {
-    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: contactId,
-        message: message
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('GHL SMS error:', data);
-      return { success: false, error: data.message || 'SMS failed' };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('SMS error:', error);
-    return { success: false, error: error.message };
-  }
 }
 
 // Log the reminder
@@ -114,10 +77,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get active weight loss protocols where:
-    // - checkin_reminder_enabled = true
-    // - injection_day = today's day of week
-    // - patient has ghl_contact_id
+    // Get active weight loss protocols — join patients to get phone number
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select(`
@@ -131,14 +91,14 @@ export default async function handler(req, res) {
           id,
           name,
           first_name,
+          phone,
           ghl_contact_id
         )
       `)
       .eq('status', 'active')
       .ilike('program_type', 'weight_loss%')
       .eq('checkin_reminder_enabled', true)
-      .eq('injection_day', todayPacific)
-      .not('patients.ghl_contact_id', 'is', null);
+      .eq('injection_day', todayPacific);
 
     if (protocolsError) {
       // If columns don't exist yet, return helpful message
@@ -160,14 +120,24 @@ export default async function handler(req, res) {
       const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : 'there');
       const ghlContactId = patient.ghl_contact_id;
 
+      // Need a phone number for Twilio
+      const phone = normalizePhone(patient.phone);
+      if (!phone) {
+        results.skipped.push({
+          patient: patient.name,
+          reason: 'No phone number on file'
+        });
+        continue;
+      }
+
       // Build the check-in URL
-      const checkinUrl = 'https://app.range-medical.com/patient-checkin.html?contact_id=' + ghlContactId;
+      const checkinUrl = 'https://app.range-medical.com/patient-checkin.html?contact_id=' + (ghlContactId || patient.id);
 
       // Build the message
       const message = 'Hi ' + firstName + '! 📊\n\nTime for your weekly weight loss check-in. Takes 30 seconds:\n\n' + checkinUrl + '\n\n- Range Medical';
 
-      // Send the SMS
-      const smsResult = await sendSMS(ghlContactId, message);
+      // Send the SMS via Twilio
+      const smsResult = await sendTwilioSMS({ to: phone, message });
 
       if (smsResult.success) {
         results.sent.push({
@@ -183,7 +153,19 @@ export default async function handler(req, res) {
           null,
           message
         );
-        await logComm({ channel: 'sms', messageType: 'wl_weekly_checkin', message, source: 'weekly-checkin-reminder', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
+        await logComm({
+          channel: 'sms',
+          messageType: 'wl_weekly_checkin',
+          message,
+          source: 'weekly-checkin-reminder',
+          patientId: patient.id,
+          protocolId: protocol.id,
+          ghlContactId,
+          patientName: patient.name,
+          recipient: phone,
+          twilioMessageSid: smsResult.messageSid,
+          direction: 'outbound',
+        });
       } else {
         results.errors.push({
           patient: patient.name,
@@ -198,7 +180,20 @@ export default async function handler(req, res) {
           smsResult.error,
           message
         );
-        await logComm({ channel: 'sms', messageType: 'wl_weekly_checkin', message, source: 'weekly-checkin-reminder', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
+        await logComm({
+          channel: 'sms',
+          messageType: 'wl_weekly_checkin',
+          message,
+          source: 'weekly-checkin-reminder',
+          patientId: patient.id,
+          protocolId: protocol.id,
+          ghlContactId,
+          patientName: patient.name,
+          recipient: phone,
+          status: 'error',
+          errorMessage: smsResult.error,
+          direction: 'outbound',
+        });
       }
     }
 

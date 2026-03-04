@@ -8,55 +8,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { isRecoveryPeptide } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
+import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const GHL_API_KEY = process.env.GHL_API_KEY;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
 
 // Get today's date in Pacific Time
 function getPacificDate() {
   const now = new Date();
   return new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-}
-
-// Send SMS via GHL
-async function sendSMS(contactId, message) {
-  if (!GHL_API_KEY || !contactId) {
-    console.log('Missing GHL_API_KEY or contactId');
-    return { success: false, error: 'Missing API key or contact ID' };
-  }
-
-  try {
-    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: contactId,
-        message: message
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('GHL SMS error:', data);
-      return { success: false, error: data.message || 'SMS failed' };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('SMS error:', error);
-    return { success: false, error: error.message };
-  }
 }
 
 // Log a sent text to protocol_logs (prevents double-sends)
@@ -134,13 +98,14 @@ export default async function handler(req, res) {
           id,
           name,
           first_name,
+          phone,
           ghl_contact_id
         )
       `)
       .eq('status', 'active')
       .eq('program_type', 'peptide')
       .eq('peptide_reminders_enabled', true)
-      .not('patients.ghl_contact_id', 'is', null);
+      .not('patients.phone', 'is', null);
 
     if (protocolsError) {
       if (protocolsError.message.includes('column')) {
@@ -199,17 +164,22 @@ export default async function handler(req, res) {
             const logKey = `${protocol.id}:${logType}`;
 
             if (!logSet.has(logKey)) {
-              const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId}`;
+              const phone = normalizePhone(patient.phone);
+              if (!phone) {
+                results.skipped.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, reason: 'No phone number' });
+                break;
+              }
+              const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId || patient.id}`;
               const message = `Hi ${firstName}! Time for your recovery peptide check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
 
-              const smsResult = await sendSMS(ghlContactId, message);
+              const smsResult = await sendTwilioSMS({ to: phone, message });
               if (smsResult.success) {
                 await logSent(protocol.id, patient.id, logType, message);
-                await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name });
+                await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, recipient: phone, twilioMessageSid: smsResult.messageSid });
                 logSet.add(logKey);
                 results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}_of_${totalWeeks}` });
               } else {
-                await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, status: 'error', errorMessage: smsResult.error });
+                await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, recipient: phone, status: 'error', errorMessage: smsResult.error });
                 results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, error: smsResult.error });
               }
               sentThisRun = true;

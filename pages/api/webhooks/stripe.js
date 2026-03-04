@@ -5,6 +5,7 @@
 
 import Stripe from 'stripe';
 import { Resend } from 'resend';
+import { sendTwilioSMS } from '../../../lib/twilio-sms';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -32,46 +33,6 @@ async function getRawBody(req) {
 function formatAmount(cents) {
   if (!cents) return '$0.00';
   return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-// Send SMS via Twilio
-async function sendTwilioSMS(message) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-
-  if (!accountSid || !authToken || !fromNumber) {
-    console.error('Twilio credentials not configured');
-    return false;
-  }
-
-  try {
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        To: OWNER_PHONE,
-        From: fromNumber,
-        Body: message,
-      }).toString(),
-    });
-
-    if (!response.ok) {
-      const errBody = await response.text();
-      console.error('Twilio SMS error:', response.status, errBody);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error('Twilio SMS error:', err);
-    return false;
-  }
 }
 
 // Send purchase notification email
@@ -170,7 +131,8 @@ export default async function handler(req, res) {
 
       // Send SMS via Twilio
       const smsMessage = `💰 New Purchase!\n\n${customerName}\n${items.join(', ')}\n${amount}\n\nvia range-medical.com`;
-      const smsSent = await sendTwilioSMS(smsMessage);
+      const smsResult = await sendTwilioSMS({ to: OWNER_PHONE, message: smsMessage });
+      const smsSent = smsResult.success;
 
       // Also send email notification
       const emailSent = await sendNotificationEmail({ customerName, customerEmail, items, amount });

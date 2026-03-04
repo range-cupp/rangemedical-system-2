@@ -1,18 +1,18 @@
 // /pages/api/cron/hrt-injection-reminders.js
-// Daily cron to send HRT take-home injection reminders via GHL SMS
+// Daily cron to send HRT take-home injection reminders via Twilio SMS
 // Range Medical
 //
 // Runs at 5pm UTC (9 AM PST) — sends reminder on Mon/Thu or Tue/Fri
 // based on hrt_reminder_schedule field
 
 import { createClient } from '@supabase/supabase-js';
+import { logComm } from '../../../lib/comms-log';
+import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const GHL_API_KEY = process.env.GHL_API_KEY;
 
 // Check if current time is within allowed window (9am-6pm PST)
 function isWithinAllowedHours() {
@@ -41,32 +41,6 @@ function isScheduledDay(schedule) {
   if (schedule === 'mon_thu') return dayName === 'Monday' || dayName === 'Thursday';
   if (schedule === 'tue_fri') return dayName === 'Tuesday' || dayName === 'Friday';
   return false;
-}
-
-// Send SMS via GHL
-async function sendSMS(contactId, message) {
-  if (!GHL_API_KEY || !contactId) return false;
-
-  try {
-    const response = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: contactId,
-        message: message
-      })
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.error('SMS error:', error);
-    return false;
-  }
 }
 
 // Log a sent text to protocol_logs (prevents double-sends)
@@ -120,17 +94,15 @@ export default async function handler(req, res) {
     const todayStr = getTodayDateStr();
 
     // Get active HRT protocols with reminders enabled
-    // Note: delivery_method can be 'take_home', 'vial', or 'prefilled_X' — all are take-home
-    // HRT is ongoing so end_date may be null — include both null and future end dates
+    // Join patients table to get phone number for Twilio SMS
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
-      .select('*')
+      .select('*, patients!inner(id, name, first_name, phone, ghl_contact_id)')
       .eq('status', 'active')
       .eq('hrt_reminders_enabled', true)
       .eq('program_type', 'hrt')
       .lte('start_date', todayStr)
-      .or(`end_date.gte.${todayStr},end_date.is.null`)
-      .not('ghl_contact_id', 'is', null);
+      .or(`end_date.gte.${todayStr},end_date.is.null`);
 
     if (protocolsError) {
       throw new Error(`Protocols query error: ${protocolsError.message}`);
@@ -145,11 +117,23 @@ export default async function handler(req, res) {
     }
 
     for (const protocol of protocols) {
+      const patient = protocol.patients;
+
       // Check if today is a scheduled injection day
       if (!protocol.hrt_reminder_schedule || !isScheduledDay(protocol.hrt_reminder_schedule)) {
         results.skipped.push({
           patient: protocol.patient_name,
           reason: `Not a scheduled day (schedule: ${protocol.hrt_reminder_schedule || 'none'})`
+        });
+        continue;
+      }
+
+      // Need a phone number to send via Twilio
+      const phone = normalizePhone(patient?.phone);
+      if (!phone) {
+        results.skipped.push({
+          patient: protocol.patient_name,
+          reason: 'No phone number on file'
         });
         continue;
       }
@@ -171,17 +155,43 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Send reminder
+      // Send reminder via Twilio
       const firstName = getFirstName(protocol.patient_name);
       const message = `Hi ${firstName}! It's injection day — time for your testosterone injection. — Range Medical`;
 
-      const sent = await sendSMS(protocol.ghl_contact_id, message);
+      const smsResult = await sendTwilioSMS({ to: phone, message });
 
-      if (sent) {
+      if (smsResult.success) {
         await logSent(protocol.id, protocol.patient_id, 'hrt_injection_reminder', message);
+        await logComm({
+          channel: 'sms',
+          messageType: 'hrt_injection_reminder',
+          message,
+          source: 'hrt-injection-reminders',
+          patientId: patient.id,
+          protocolId: protocol.id,
+          ghlContactId: patient.ghl_contact_id,
+          patientName: protocol.patient_name,
+          recipient: phone,
+          twilioMessageSid: smsResult.messageSid,
+          direction: 'outbound',
+        });
         results.sent.push({ patient: protocol.patient_name });
       } else {
-        results.errors.push({ patient: protocol.patient_name, error: 'SMS failed' });
+        await logComm({
+          channel: 'sms',
+          messageType: 'hrt_injection_reminder',
+          message,
+          source: 'hrt-injection-reminders',
+          patientId: patient.id,
+          protocolId: protocol.id,
+          patientName: protocol.patient_name,
+          recipient: phone,
+          status: 'error',
+          errorMessage: smsResult.error,
+          direction: 'outbound',
+        });
+        results.errors.push({ patient: protocol.patient_name, error: smsResult.error });
       }
     }
 

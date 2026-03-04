@@ -1,16 +1,20 @@
 // /pages/api/admin/send-patient-text.js
-// Unified SMS API for Portal and Onboarding links
+// Unified SMS API for Portal and Onboarding links — sends via Twilio
 // Range Medical
+
+import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { logComm } from '../../../lib/comms-log';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { 
-    patient_name, 
-    patient_phone, 
-    access_token, 
+  const {
+    patient_name,
+    patient_phone,
+    patient_id,
+    access_token,
     ghl_contact_id,
     message_type = 'portal'
   } = req.body;
@@ -21,7 +25,7 @@ export default async function handler(req, res) {
 
   // Build the appropriate URL
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
-  
+
   let message;
   if (message_type === 'onboard') {
     const onboardUrl = `${baseUrl}/onboard/${access_token}`;
@@ -31,43 +35,38 @@ export default async function handler(req, res) {
     message = `Hi ${patient_name?.split(' ')[0] || 'there'}! Here's your Range portal to track your progress and log your treatments: ${portalUrl}`;
   }
 
-  // Try GHL API first
-  const ghlApiKey = process.env.GHL_API_KEY;
-  const ghlLocationId = process.env.GHL_LOCATION_ID;
-
-  if (ghlApiKey && ghlLocationId && ghl_contact_id) {
-    try {
-      const ghlRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ghlApiKey}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-04-15'
-        },
-        body: JSON.stringify({
-          type: 'SMS',
-          contactId: ghl_contact_id,
-          message: message
-        })
-      });
-
-      if (ghlRes.ok) {
-        const data = await ghlRes.json();
-        return res.status(200).json({ 
-          success: true, 
-          method: 'ghl',
-          messageId: data.messageId,
-          message_type
-        });
-      } else {
-        console.error('GHL SMS failed:', await ghlRes.text());
-      }
-    } catch (err) {
-      console.error('GHL SMS error:', err);
-    }
+  // Normalize phone number
+  const phone = normalizePhone(patient_phone);
+  if (!phone) {
+    return res.status(400).json({ error: 'Invalid phone number' });
   }
 
-  // Fallback: return SMS link for manual sending
+  // Send via Twilio
+  const result = await sendTwilioSMS({ to: phone, message });
+
+  if (result.success) {
+    await logComm({
+      channel: 'sms',
+      messageType: message_type === 'onboard' ? 'onboard_link' : 'portal_link',
+      message,
+      source: 'send-patient-text(twilio)',
+      patientId: patient_id || null,
+      patientName: patient_name || null,
+      ghlContactId: ghl_contact_id || null,
+      recipient: phone,
+      twilioMessageSid: result.messageSid,
+      direction: 'outbound',
+    });
+
+    return res.status(200).json({
+      success: true,
+      method: 'twilio',
+      messageSid: result.messageSid,
+      message_type
+    });
+  }
+
+  // Twilio failed — return SMS link as fallback for manual sending
   const formattedPhone = patient_phone.replace(/\D/g, '');
   const smsLink = `sms:${formattedPhone}?body=${encodeURIComponent(message)}`;
 
@@ -77,6 +76,7 @@ export default async function handler(req, res) {
     sms_link: smsLink,
     message,
     message_type,
-    note: 'GHL not available, use SMS link'
+    note: 'Twilio send failed, use SMS link',
+    error: result.error,
   });
 }

@@ -107,7 +107,7 @@ async function sendReceiptEmail(purchase) {
       : `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}`;
     const amountLabel = purchase.amount === 0 ? 'Complimentary' : `$${purchase.amount.toFixed(2)}`;
     console.log(`Receipt email sent to ${patient.email} for purchase ${purchase.id}`);
-    await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt for ${amountLabel} — ${purchase.description}`, source: 'record-purchase', patientId: purchase.patient_id, patientName: patient.name, recipient: patient.email, subject: subjectLine });
+    await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt for ${amountLabel} — ${purchase.item_name}`, source: 'record-purchase', patientId: purchase.patient_id, patientName: patient.name, recipient: patient.email, subject: subjectLine });
   } catch (err) {
     console.error('Receipt email error:', err);
     await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt failed for purchase ${purchase.id}`, source: 'record-purchase', patientId: purchase.patient_id, status: 'error', errorMessage: err.message }).catch(() => {});
@@ -133,6 +133,7 @@ export default async function handler(req, res) {
       service_category,
       service_name,
       quantity,
+      skip_receipt,
     } = req.body;
 
     if (!patient_id || (amount === undefined || amount === null)) {
@@ -185,9 +186,12 @@ export default async function handler(req, res) {
     }
 
     // Send receipt email (with PDF attachment) after purchase
-    sendReceiptEmail(data).catch(err =>
-      console.error('Receipt email failed:', err)
-    );
+    // skip_receipt flag is used when POSChargeModal sends a consolidated receipt for multi-item carts
+    if (!skip_receipt) {
+      sendReceiptEmail(data).catch(err =>
+        console.error('Receipt email failed:', err)
+      );
+    }
 
     // Fire-and-forget auto-protocol creation/extension
     if (service_category && service_name) {

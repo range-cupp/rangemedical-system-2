@@ -472,7 +472,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   }
 
   async function recordPurchases(extraFields) {
-    // Custom charge — single record
+    // Custom charge — single record (receipt sent by record-purchase)
     if (activeCategory === 'custom') {
       const amount = getChargeAmount();
       const desc = getChargeDescription();
@@ -498,7 +498,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       return;
     }
 
-    // Cart items — one record per item with quantity and per-item discount
+    // Cart items — one record per item, one consolidated receipt for all
+    const purchaseIds = [];
     for (const item of cartItems) {
       const qty = item.quantity || 1;
       const itemBase = (item.price || 0) * qty; // total before discount
@@ -510,7 +511,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         ? `${item.itemDiscountValue}% off`
         : `$${item.itemDiscountValue} off`;
 
-      await fetch('/api/stripe/record-purchase', {
+      const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -521,6 +522,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_category: item.category,
           service_name: item.name,
           quantity: qty,
+          skip_receipt: true, // consolidated receipt sent below
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
             discount_amount: parseFloat(item.itemDiscountValue),
@@ -529,6 +531,17 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           ...extraFields,
         }),
       });
+      const data = await res.json();
+      if (data.purchase?.id) purchaseIds.push(data.purchase.id);
+    }
+
+    // Send one consolidated receipt for all items
+    if (purchaseIds.length > 0) {
+      fetch('/api/stripe/send-consolidated-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchase_ids: purchaseIds }),
+      }).catch(err => console.error('Consolidated receipt failed:', err));
     }
   }
 

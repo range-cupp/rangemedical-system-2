@@ -139,7 +139,6 @@ export default async function handler(req, res) {
     const { data, error } = await resend.emails.send({
       from: 'Range Medical <noreply@range-medical.com>',
       to: email,
-      bcc: 'info@range-medical.com',
       subject,
       html,
     });

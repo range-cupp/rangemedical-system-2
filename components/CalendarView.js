@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getCategoryStyle } from '../lib/protocol-config';
 import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS } from '../lib/appointment-services';
+import { getRenewalStatus } from '../lib/protocol-tracking';
 
 const STATUS_LABELS = {
   scheduled: { label: 'Scheduled', bg: '#dbeafe', text: '#1e40af' },
@@ -60,6 +61,9 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [drawerData, setDrawerData] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
+  // Renewal tracking for patients with appointments
+  const [renewalMap, setRenewalMap] = useState({}); // patient_id -> [renewals]
+
   // Fetch appointments
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -92,6 +96,25 @@ export default function CalendarView({ preselectedPatient = null }) {
   }, [viewMode, currentDate]);
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
+
+  // Fetch renewals for patients with appointments
+  useEffect(() => {
+    if (appointments.length === 0) { setRenewalMap({}); return; }
+    const patientIds = [...new Set(appointments.map(a => a.patient_id).filter(Boolean))];
+    if (patientIds.length === 0) return;
+
+    fetch(`/api/protocols/renewals?patient_ids=${patientIds.join(',')}`)
+      .then(r => r.json())
+      .then(data => {
+        const map = {};
+        (data.renewals || []).forEach(r => {
+          if (!map[r.patient_id]) map[r.patient_id] = [];
+          map[r.patient_id].push(r);
+        });
+        setRenewalMap(map);
+      })
+      .catch(err => console.error('Renewal fetch error:', err));
+  }, [appointments]);
 
   // Close popover on outside click
   useEffect(() => {
@@ -427,7 +450,15 @@ export default function CalendarView({ preselectedPatient = null }) {
                 width: `calc((100% - ${gridLeft + gridRight}px) * ${colWidthPercent / 100} - ${gapPx * 2}px)`,
               }}
             >
-              <div style={styles.apptBlockName}>{appt.patient_name}</div>
+              <div style={{ ...styles.apptBlockName, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {appt.patient_name}
+                {renewalMap[appt.patient_id]?.length > 0 && (
+                  <span style={{
+                    display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+                    background: renewalMap[appt.patient_id].some(r => r.renewal_status === 'renewal_due') ? '#dc2626' : '#f59e0b',
+                  }} />
+                )}
+              </div>
               {height >= 35 && <div style={styles.apptBlockService}>{appt.service_name}</div>}
               {height >= 50 && (
                 <div style={styles.apptBlockTime}>
@@ -482,7 +513,15 @@ export default function CalendarView({ preselectedPatient = null }) {
                     onClick={() => { setSelectedAppt(appt); setCurrentDate(day); }}
                     style={{ ...styles.weekApptCard, ...getApptStyle(appt) }}
                   >
-                    <div style={{ fontSize: '12px', fontWeight: '600' }}>{appt.patient_name}</div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {appt.patient_name}
+                      {renewalMap[appt.patient_id]?.length > 0 && (
+                        <span style={{
+                          display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+                          background: renewalMap[appt.patient_id].some(r => r.renewal_status === 'renewal_due') ? '#dc2626' : '#f59e0b',
+                        }} />
+                      )}
+                    </div>
                     <div style={{ fontSize: '11px', opacity: 0.8 }}>{appt.service_name}</div>
                     <div style={{ fontSize: '11px', opacity: 0.7 }}>{formatTime(appt.start_time)}</div>
                   </div>
@@ -646,6 +685,49 @@ export default function CalendarView({ preselectedPatient = null }) {
               <span style={styles.popoverLabel}>Status</span>
               <span>{getStatusBadge(appt.status)}</span>
             </div>
+            {/* Renewal alerts */}
+            {renewalMap[appt.patient_id]?.length > 0 && (
+              <div style={{
+                margin: '12px 0',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                background: '#fffbeb',
+                border: '1px solid #fef3c7'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: '#92400e', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Protocol Renewals
+                </div>
+                {renewalMap[appt.patient_id].map((renewal, i) => (
+                  <div key={i} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '4px 0',
+                    borderTop: i > 0 ? '1px solid #fef3c7' : 'none'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '500', color: '#1a1a1a' }}>
+                        {renewal.program_name || renewal.medication}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#888' }}>
+                        {renewal.tracking?.status_text}
+                      </div>
+                    </div>
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      background: renewal.renewal_urgency_color?.bg || '#fef3c7',
+                      color: renewal.renewal_urgency_color?.text || '#92400e'
+                    }}>
+                      {renewal.renewal_label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {appt.notes && (
               <div style={styles.popoverRow}>
                 <span style={styles.popoverLabel}>Notes</span>
@@ -1150,10 +1232,21 @@ export default function CalendarView({ preselectedPatient = null }) {
                         const total = proto.total_sessions || proto.duration_days || 0;
                         const used = proto.sessions_used || 0;
                         const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+                        const renewal = getRenewalStatus({ ...proto, status: 'active' });
                         return (
                           <div key={proto.id || i} style={{ padding: '10px 0', borderBottom: i < activeProtos.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>{proto.program_name || proto.medication || 'Protocol'}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>{proto.program_name || proto.medication || 'Protocol'}</div>
+                                {renewal.renewal_label && (
+                                  <span style={{
+                                    fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px',
+                                    background: renewal.renewal_urgency_color.bg, color: renewal.renewal_urgency_color.text
+                                  }}>
+                                    {renewal.renewal_label}
+                                  </span>
+                                )}
+                              </div>
                               <span style={{ fontSize: '12px', color: '#666' }}>{used}/{total}</span>
                             </div>
                             {proto.medication && proto.medication !== proto.program_name && (

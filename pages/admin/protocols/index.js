@@ -23,9 +23,12 @@ export default function ProtocolsPage() {
   const [statusFilter, setStatusFilter] = useState('active');
   const [deleteTarget, setDeleteTarget] = useState(null); // protocol to delete
   const [deleting, setDeleting] = useState(false);
+  const [renewals, setRenewals] = useState([]);
+  const [renewalsLoading, setRenewalsLoading] = useState(false);
 
   useEffect(() => {
     fetchProtocols();
+    fetchRenewals();
   }, []);
 
   const fetchProtocols = async () => {
@@ -39,6 +42,21 @@ export default function ProtocolsPage() {
       console.error('Error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRenewals = async () => {
+    setRenewalsLoading(true);
+    try {
+      const res = await fetch('/api/protocols/renewals');
+      if (res.ok) {
+        const data = await res.json();
+        setRenewals(data.renewals || []);
+      }
+    } catch (err) {
+      console.error('Error fetching renewals:', err);
+    } finally {
+      setRenewalsLoading(false);
     }
   };
 
@@ -63,26 +81,43 @@ export default function ProtocolsPage() {
     }
   };
 
+  // Build a map of protocol_id -> renewal info for badge display
+  const renewalMap = {};
+  renewals.forEach(r => { renewalMap[r.protocol_id] = r; });
+
   // Filter protocols
-  const filtered = protocols.filter(p => {
-    // Status filter
-    if (statusFilter === 'active' && p.status !== 'active') return false;
-    
-    // Search filter
-    if (search) {
-      const s = search.toLowerCase();
-      return (
-        (p.patient_name || '').toLowerCase().includes(s) ||
-        (p.program_name || '').toLowerCase().includes(s) ||
-        (p.medication || '').toLowerCase().includes(s) ||
-        (p.primary_peptide || '').toLowerCase().includes(s)
-      );
-    }
-    return true;
+  const filtered = statusFilter === 'renewals'
+    ? [] // renewals view uses its own data
+    : protocols.filter(p => {
+        // Status filter
+        if (statusFilter === 'active' && p.status !== 'active') return false;
+
+        // Search filter
+        if (search) {
+          const s = search.toLowerCase();
+          return (
+            (p.patient_name || '').toLowerCase().includes(s) ||
+            (p.program_name || '').toLowerCase().includes(s) ||
+            (p.medication || '').toLowerCase().includes(s) ||
+            (p.primary_peptide || '').toLowerCase().includes(s)
+          );
+        }
+        return true;
+      });
+
+  // For renewals view, filter renewals by search
+  const filteredRenewals = renewals.filter(r => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (r.patient_name || '').toLowerCase().includes(s) ||
+      (r.program_name || '').toLowerCase().includes(s) ||
+      (r.medication || '').toLowerCase().includes(s)
+    );
   });
 
-  // Sort by start date (newest first)
-  const sorted = [...filtered].sort((a, b) => 
+  // Sort by start date (newest first) for normal view
+  const sorted = [...filtered].sort((a, b) =>
     new Date(b.start_date || 0) - new Date(a.start_date || 0)
   );
 
@@ -121,13 +156,77 @@ export default function ProtocolsPage() {
               >
                 All
               </button>
+              <button
+                onClick={() => setStatusFilter('renewals')}
+                style={{
+                  ...styles.filterBtn,
+                  background: statusFilter === 'renewals' ? '#92400e' : '#fff',
+                  color: statusFilter === 'renewals' ? '#fff' : '#92400e',
+                  border: statusFilter === 'renewals' ? 'none' : '1px solid #fef3c7'
+                }}
+              >
+                Renewals{renewals.length > 0 ? ` (${renewals.length})` : ''}
+              </button>
             </div>
           </div>
 
           {/* Table */}
           <div style={styles.tableCard}>
-            {loading ? (
-              <div style={styles.loading}>Loading protocols...</div>
+            {(statusFilter === 'renewals' ? renewalsLoading : loading) ? (
+              <div style={styles.loading}>{statusFilter === 'renewals' ? 'Loading renewals...' : 'Loading protocols...'}</div>
+            ) : statusFilter === 'renewals' ? (
+              filteredRenewals.length === 0 ? (
+                <div style={styles.empty}>No protocols need renewal</div>
+              ) : (
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Patient</th>
+                      <th style={styles.th}>Program</th>
+                      <th style={styles.th}>Medication</th>
+                      <th style={styles.th}>Progress</th>
+                      <th style={styles.th}>Status</th>
+                      <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRenewals.map(r => (
+                      <tr key={r.protocol_id} style={styles.tr}>
+                        <td style={styles.td}>
+                          {r.patient_id ? (
+                            <Link href={`/admin/patients/${r.patient_id}`} style={styles.patientLink}>
+                              {r.patient_name || 'Unknown'}
+                            </Link>
+                          ) : (
+                            <div style={styles.patientName}>{r.patient_name || 'Unknown'}</div>
+                          )}
+                        </td>
+                        <td style={styles.td}>{r.program_name || r.program_type}</td>
+                        <td style={styles.td}>{r.medication || '—'}</td>
+                        <td style={styles.td}>
+                          <span style={{ fontSize: '13px', color: '#555' }}>
+                            {r.tracking?.status_text || '—'}
+                          </span>
+                        </td>
+                        <td style={styles.td}>
+                          <span style={{
+                            ...styles.statusBadge,
+                            background: r.renewal_urgency_color?.bg || '#fef3c7',
+                            color: r.renewal_urgency_color?.text || '#92400e'
+                          }}>
+                            {r.renewal_label}
+                          </span>
+                        </td>
+                        <td style={{ ...styles.td, textAlign: 'right' }}>
+                          <Link href={`/admin/protocols/${r.protocol_id}`} style={styles.viewBtn}>
+                            View
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
             ) : sorted.length === 0 ? (
               <div style={styles.empty}>No protocols found</div>
             ) : (
@@ -166,6 +265,7 @@ export default function ProtocolsPage() {
                       : current > total);
                     const isActive = protocol.status === 'active';
                     const progress = isOngoing ? 100 : Math.min(100, Math.round((current / total) * 100));
+                    const renewal = renewalMap[protocol.id];
 
                     return (
                       <tr key={protocol.id} style={styles.tr}>
@@ -217,13 +317,24 @@ export default function ProtocolsPage() {
                           </div>
                         </td>
                         <td style={styles.td}>
-                          <span style={{
-                            ...styles.statusBadge,
-                            background: isActive ? '#dcfce7' : '#f3f4f6',
-                            color: isActive ? '#166534' : '#666'
-                          }}>
-                            {protocol.status}
-                          </span>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{
+                              ...styles.statusBadge,
+                              background: isActive ? '#dcfce7' : '#f3f4f6',
+                              color: isActive ? '#166534' : '#666'
+                            }}>
+                              {protocol.status}
+                            </span>
+                            {renewal && (
+                              <span style={{
+                                ...styles.statusBadge,
+                                background: renewal.renewal_urgency_color?.bg || '#fef3c7',
+                                color: renewal.renewal_urgency_color?.text || '#92400e'
+                              }}>
+                                {renewal.renewal_label}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ ...styles.td, textAlign: 'right' }}>
                           <div style={styles.actionGroup}>

@@ -13,10 +13,30 @@ export default function SchedulePage() {
   const [tab, setTab] = useState('calendar');
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [renewalMap, setRenewalMap] = useState({}); // patient_id -> [renewals]
 
   useEffect(() => {
     fetchAppointments();
   }, []);
+
+  // Fetch renewals for patients with appointments
+  useEffect(() => {
+    if (appointments.length === 0) return;
+    const patientIds = [...new Set(appointments.map(a => a.patient_id).filter(Boolean))];
+    if (patientIds.length === 0) return;
+
+    fetch(`/api/protocols/renewals?patient_ids=${patientIds.join(',')}`)
+      .then(r => r.json())
+      .then(data => {
+        const map = {};
+        (data.renewals || []).forEach(r => {
+          if (!map[r.patient_id]) map[r.patient_id] = [];
+          map[r.patient_id].push(r);
+        });
+        setRenewalMap(map);
+      })
+      .catch(err => console.error('Renewal fetch error:', err));
+  }, [appointments]);
 
   const fetchAppointments = async () => {
     try {
@@ -109,13 +129,28 @@ export default function SchedulePage() {
                   </td>
                   <td style={styles.td}>{apt.service_name || apt.title || '-'}</td>
                   <td style={styles.td}>
-                    <span style={{
-                      ...styles.badge,
-                      background: ss.bg,
-                      color: ss.color
-                    }}>
-                      {(apt.status || 'scheduled').replace(/_/g, ' ')}
-                    </span>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{
+                        ...styles.badge,
+                        background: ss.bg,
+                        color: ss.color
+                      }}>
+                        {(apt.status || 'scheduled').replace(/_/g, ' ')}
+                      </span>
+                      {renewalMap[apt.patient_id]?.length > 0 && (() => {
+                        const patientRenewals = renewalMap[apt.patient_id];
+                        const hasDue = patientRenewals.some(r => r.renewal_status === 'renewal_due');
+                        return (
+                          <span style={{
+                            ...styles.badge,
+                            background: hasDue ? '#fee2e2' : '#fef3c7',
+                            color: hasDue ? '#dc2626' : '#92400e'
+                          }}>
+                            {hasDue ? 'Renewal Due' : 'Renewal Soon'}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </td>
                 </tr>
               );

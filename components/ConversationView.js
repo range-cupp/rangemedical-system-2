@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import TemplateMessages from './TemplateMessages';
 
-export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId }) {
+export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
@@ -16,19 +16,34 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [filter, setFilter] = useState('all'); // 'all' | 'sms' | 'email'
   const [ghlLoading, setGhlLoading] = useState(false);
   const [ghlLoaded, setGhlLoaded] = useState(false);
-  const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const shouldScrollRef = useRef(false);
 
   useEffect(() => {
-    if (patientId) fetchMessages();
+    if (patientId) {
+      shouldScrollRef.current = true;
+      fetchMessages();
+    }
   }, [patientId]);
 
+  // Scroll to bottom after messages have rendered in the DOM
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, filter]);
+    if (messages.length > 0 && !loading) {
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    }
+  }, [messages, loading, filter]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      const savedScrollY = window.scrollY;
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      // Prevent the page itself from scrolling when we scroll the messages container
+      if (window.scrollY !== savedScrollY) {
+        window.scrollTo(0, savedScrollY);
+      }
+    }
   };
 
   const fetchMessages = async () => {
@@ -232,8 +247,15 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerLeft}>
-          <div style={styles.headerName}>{patientName || 'Unknown'}</div>
-          <div style={styles.headerPhone}>{patientPhone || 'No phone on file'}</div>
+          {onBack && (
+            <button onClick={onBack} style={styles.backBtn} title="Back to list">
+              ←
+            </button>
+          )}
+          <div>
+            <div style={styles.headerName}>{patientName || 'Unknown'}</div>
+            <div style={styles.headerPhone}>{patientPhone || 'No phone on file'}</div>
+          </div>
         </div>
         <div style={styles.headerRight}>
           {/* Channel filter pills */}
@@ -373,7 +395,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             );
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Templates panel */}
@@ -432,10 +453,8 @@ const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    height: '600px',
+    height: '100%',
     background: '#fff',
-    borderRadius: '12px',
-    border: '1px solid #e5e5e5',
     overflow: 'hidden',
   },
   header: {
@@ -450,6 +469,20 @@ const styles = {
   },
   headerLeft: {
     flex: '0 0 auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  backBtn: {
+    background: 'none',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    padding: '6px 10px',
+    fontSize: '18px',
+    cursor: 'pointer',
+    color: '#333',
+    flexShrink: 0,
+    lineHeight: 1,
   },
   headerRight: {
     display: 'flex',
@@ -537,7 +570,7 @@ const styles = {
     marginBottom: '8px',
   },
   bubble: {
-    maxWidth: '75%',
+    maxWidth: '600px',
     padding: '10px 14px',
     borderRadius: '16px',
     fontSize: '14px',

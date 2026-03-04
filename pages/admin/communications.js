@@ -1,5 +1,5 @@
 // /pages/admin/communications.js
-// Communications hub - SMS conversations and activity log
+// Communications hub - SMS conversations, call history, and activity log
 // Range Medical System V2
 
 import { useState, useEffect, useRef } from 'react';
@@ -17,12 +17,39 @@ export default function CommunicationsPage() {
   const [loading, setLoading] = useState(true);
   const [commsLoading, setCommsLoading] = useState(true);
   const [channelFilter, setChannelFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PATIENTS_PER_PAGE = 20;
   const searchTimeout = useRef(null);
 
+  // Call history state
+  const [calls, setCalls] = useState([]);
+  const [callsLoading, setCallsLoading] = useState(false);
+  const [callsPage, setCallsPage] = useState(0);
+  const [callsLoaded, setCallsLoaded] = useState(false);
+
   useEffect(() => {
-    fetchRecentPatients();
+    // Sync recent inbound messages from GHL first, then load patient list
+    syncRecentGHL().then(() => {
+      fetchRecentPatients();
+    });
     fetchComms();
   }, []);
+
+  // Fetch calls when Calls tab is first selected
+  useEffect(() => {
+    if (tab === 'calls' && !callsLoaded) {
+      fetchCalls(0);
+    }
+  }, [tab]);
+
+  // Sync recent inbound messages from GHL to catch anything the webhook missed
+  const syncRecentGHL = async () => {
+    try {
+      await fetch('/api/ghl/sync-recent-inbound', { method: 'POST' });
+    } catch (err) {
+      console.error('GHL sync error:', err);
+    }
+  };
 
   // Fetch patients who have recent SMS activity
   const fetchRecentPatients = async () => {
@@ -34,15 +61,19 @@ export default function CommunicationsPage() {
       // Group by patient, get most recent message per patient
       const patientMap = {};
       for (const log of logs) {
-        if (!log.patient_id) continue;
-        if (!patientMap[log.patient_id] || new Date(log.created_at) > new Date(patientMap[log.patient_id].lastMessage)) {
-          patientMap[log.patient_id] = {
-            id: log.patient_id,
-            name: log.patient_name || 'Unknown',
+        const key = log.patient_id || (log.ghl_contact_id ? `ghl_${log.ghl_contact_id}` : null);
+        if (!key) continue;
+
+        if (!patientMap[key] || new Date(log.created_at) > new Date(patientMap[key].lastMessage)) {
+          patientMap[key] = {
+            id: log.patient_id || null,
+            ghl_contact_id: log.ghl_contact_id || null,
+            name: log.patient_name || log.recipient || 'Unknown',
             lastMessage: log.created_at,
-            lastPreview: (log.message || '').substring(0, 60),
+            lastPreview: (log.message || '').substring(0, 80),
             direction: log.direction || (log.message_type === 'inbound_sms' ? 'inbound' : 'outbound'),
             unread: log.direction === 'inbound' || log.message_type === 'inbound_sms',
+            recipient: log.recipient || null,
           };
         }
       }
@@ -72,6 +103,22 @@ export default function CommunicationsPage() {
     }
   };
 
+  // Fetch call history from Twilio
+  const fetchCalls = async (page) => {
+    setCallsLoading(true);
+    try {
+      const res = await fetch(`/api/twilio/calls?page=${page}&limit=20`);
+      const data = await res.json();
+      setCalls(data.calls || []);
+      setCallsPage(page);
+      setCallsLoaded(true);
+    } catch (err) {
+      console.error('Error fetching calls:', err);
+    } finally {
+      setCallsLoading(false);
+    }
+  };
+
   // Search patients for new conversation
   const searchPatients = async (q) => {
     if (!q || q.length < 2) return;
@@ -80,7 +127,6 @@ export default function CommunicationsPage() {
       const data = await res.json();
       const results = data.patients || data || [];
 
-      // Merge with existing patient list, add any new ones at the top
       const existingIds = new Set(patients.map(p => p.id));
       const newPatients = results
         .filter(p => !existingIds.has(p.id))
@@ -103,30 +149,43 @@ export default function CommunicationsPage() {
 
   const handleSearchChange = (val) => {
     setPatientSearch(val);
+    setCurrentPage(1);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => searchPatients(val), 400);
   };
 
   const selectPatient = async (p) => {
-    // If we don't have phone yet, fetch patient details
-    if (!p.phone) {
+    const savedScrollY = window.scrollY;
+    const restoreScroll = () => {
+      if (window.scrollY !== savedScrollY) window.scrollTo(0, savedScrollY);
+    };
+
+    if (p.id) {
       try {
         const res = await fetch(`/api/patients/${p.id}`);
         const data = await res.json();
         const patient = data.patient || data;
         setSelectedPatient({
           ...p,
-          phone: patient.phone,
+          phone: patient.phone || p.phone,
+          ghl_contact_id: patient.ghl_contact_id || p.ghl_contact_id,
           name: patient.first_name && patient.last_name
             ? `${patient.first_name} ${patient.last_name}`
             : patient.name || p.name,
         });
+        requestAnimationFrame(restoreScroll);
       } catch (err) {
         setSelectedPatient(p);
+        requestAnimationFrame(restoreScroll);
       }
     } else {
       setSelectedPatient(p);
+      requestAnimationFrame(restoreScroll);
     }
+  };
+
+  const handleBack = () => {
+    setSelectedPatient(null);
   };
 
   const formatRelativeTime = (dateStr) => {
@@ -156,10 +215,41 @@ export default function CommunicationsPage() {
     });
   };
 
+  const formatDuration = (seconds) => {
+    if (!seconds || seconds === 0) return '0s';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins === 0) return `${secs}s`;
+    return `${mins}m ${secs}s`;
+  };
+
+  const getCallStatusStyle = (status) => {
+    switch (status) {
+      case 'completed':
+        return { background: '#dcfce7', color: '#166534' };
+      case 'no-answer':
+        return { background: '#fef9c3', color: '#854d0e' };
+      case 'busy':
+        return { background: '#ffedd5', color: '#9a3412' };
+      case 'failed':
+      case 'canceled':
+        return { background: '#fee2e2', color: '#dc2626' };
+      default:
+        return { background: '#f0f0f0', color: '#666' };
+    }
+  };
+
   // Filter patients by search
-  const filteredPatients = patientSearch
+  const allFilteredPatients = patientSearch
     ? patients.filter(p => (p.name || '').toLowerCase().includes(patientSearch.toLowerCase()))
     : patients;
+
+  // Paginate
+  const totalPages = Math.ceil(allFilteredPatients.length / PATIENTS_PER_PAGE);
+  const paginatedPatients = allFilteredPatients.slice(
+    (currentPage - 1) * PATIENTS_PER_PAGE,
+    currentPage * PATIENTS_PER_PAGE
+  );
 
   // Filter comms by channel
   const filteredComms = channelFilter === 'all'
@@ -172,11 +262,12 @@ export default function CommunicationsPage() {
       <div style={styles.tabBar}>
         {[
           { key: 'conversations', label: 'Conversations' },
+          { key: 'calls', label: 'Calls' },
           { key: 'activity', label: 'Activity Log' },
         ].map(t => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => { setTab(t.key); if (t.key !== 'conversations') setSelectedPatient(null); }}
             style={{
               ...styles.tab,
               ...(tab === t.key ? styles.tabActive : {}),
@@ -187,60 +278,181 @@ export default function CommunicationsPage() {
         ))}
       </div>
 
-      {tab === 'conversations' ? (
-        <div style={styles.splitView}>
-          {/* Patient list */}
-          <div style={styles.patientList}>
-            <div style={styles.searchWrap}>
-              <input
-                type="text"
-                value={patientSearch}
-                onChange={e => handleSearchChange(e.target.value)}
-                placeholder="Search patients..."
-                style={styles.searchInput}
-              />
-            </div>
-            <div style={styles.patientScroll}>
-              {loading ? (
-                <div style={styles.loadingSmall}>Loading...</div>
-              ) : filteredPatients.length === 0 ? (
-                <div style={styles.loadingSmall}>No conversations yet. Search for a patient to start.</div>
-              ) : (
-                filteredPatients.map(p => (
-                  <div
-                    key={p.id}
-                    onClick={() => selectPatient(p)}
-                    style={{
-                      ...styles.patientItem,
-                      background: selectedPatient?.id === p.id ? '#f3f4f6' : 'transparent',
-                    }}
-                  >
-                    <div style={styles.patientRow}>
-                      <span style={styles.patientItemName}>{p.name}</span>
-                      <span style={styles.patientTime}>{formatRelativeTime(p.lastMessage)}</span>
-                    </div>
-                    <div style={styles.patientPreview}>
-                      {p.direction === 'inbound' && <span style={styles.inboundDot}>● </span>}
-                      {p.lastPreview || 'No messages'}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Conversation view */}
-          <div style={styles.conversationPanel}>
-            <ConversationView
-              patientId={selectedPatient?.id}
-              patientName={selectedPatient?.name}
-              patientPhone={selectedPatient?.phone}
+      {/* === CONVERSATIONS TAB === */}
+      {tab === 'conversations' && !selectedPatient && (
+        <div style={styles.fullContainer}>
+          {/* Search bar */}
+          <div style={styles.searchBar}>
+            <input
+              type="text"
+              value={patientSearch}
+              onChange={e => handleSearchChange(e.target.value)}
+              placeholder="Search patients..."
+              style={styles.searchInput}
             />
           </div>
+
+          {/* Patient list — full width */}
+          <div style={styles.patientListScroll}>
+            {loading ? (
+              <div style={styles.loadingArea}>Loading conversations...</div>
+            ) : allFilteredPatients.length === 0 ? (
+              <div style={styles.emptyArea}>No conversations yet. Search for a patient to start.</div>
+            ) : (
+              <>
+                {paginatedPatients.map(p => {
+                  const key = p.id || (p.ghl_contact_id ? `ghl_${p.ghl_contact_id}` : p.name);
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => selectPatient(p)}
+                      style={styles.patientCard}
+                    >
+                      <div style={styles.patientCardTop}>
+                        <div style={styles.patientCardLeft}>
+                          <span style={styles.patientName}>{p.name}</span>
+                          {p.recipient && (
+                            <span style={styles.patientPhone}>{p.recipient}</span>
+                          )}
+                        </div>
+                        <span style={styles.patientTime}>{formatRelativeTime(p.lastMessage)}</span>
+                      </div>
+                      <div style={styles.patientPreview}>
+                        {p.direction === 'inbound' && <span style={styles.inboundDot}>● </span>}
+                        {p.lastPreview || 'No messages'}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div style={styles.paginationBar}>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        style={{
+                          ...styles.pageBtn,
+                          ...(currentPage === page ? styles.pageBtnActive : {}),
+                        }}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
-      ) : (
+      )}
+
+      {/* Conversation view — full width when patient selected */}
+      {tab === 'conversations' && selectedPatient && (
+        <div style={styles.conversationContainer}>
+          <ConversationView
+            patientId={selectedPatient?.id}
+            patientName={selectedPatient?.name}
+            patientPhone={selectedPatient?.phone}
+            ghlContactId={selectedPatient?.ghl_contact_id}
+            onBack={handleBack}
+          />
+        </div>
+      )}
+
+      {/* === CALLS TAB === */}
+      {tab === 'calls' && (
+        <div style={styles.card}>
+          {callsLoading ? (
+            <div style={styles.loadingArea}>Loading call history...</div>
+          ) : calls.length === 0 ? (
+            <div style={styles.emptyArea}>No calls found</div>
+          ) : (
+            <>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Date / Time</th>
+                    <th style={styles.th}>Direction</th>
+                    <th style={styles.th}>Patient</th>
+                    <th style={styles.th}>From</th>
+                    <th style={styles.th}>To</th>
+                    <th style={styles.th}>Duration</th>
+                    <th style={styles.th}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calls.map(call => (
+                    <tr key={call.sid} style={styles.tr}>
+                      <td style={styles.td}>{formatDate(call.startTime)}</td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.directionBadge,
+                          ...(call.direction === 'inbound'
+                            ? { background: '#dbeafe', color: '#1e40af' }
+                            : { background: '#e0e7ff', color: '#4338ca' }),
+                        }}>
+                          {call.direction === 'inbound' ? '↙ In' : '↗ Out'}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ fontWeight: '500' }}>
+                          {call.patientName || '-'}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={styles.phoneText}>{call.from}</span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={styles.phoneText}>{call.to}</span>
+                      </td>
+                      <td style={styles.td}>{formatDuration(call.duration)}</td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.badge,
+                          ...getCallStatusStyle(call.status),
+                        }}>
+                          {(call.status || 'unknown').replace('-', ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Call pagination */}
+              <div style={styles.callPagination}>
+                <button
+                  onClick={() => { if (callsPage > 0) fetchCalls(callsPage - 1); }}
+                  disabled={callsPage === 0}
+                  style={{
+                    ...styles.paginationBtn,
+                    opacity: callsPage === 0 ? 0.4 : 1,
+                  }}
+                >
+                  ← Previous
+                </button>
+                <span style={styles.pageInfo}>Page {callsPage + 1}</span>
+                <button
+                  onClick={() => { if (calls.length >= 20) fetchCalls(callsPage + 1); }}
+                  disabled={calls.length < 20}
+                  style={{
+                    ...styles.paginationBtn,
+                    opacity: calls.length < 20 ? 0.4 : 1,
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* === ACTIVITY LOG TAB === */}
+      {tab === 'activity' && (
         <>
-          {/* Activity log filters */}
           <div style={styles.filterRow}>
             {['all', 'sms', 'email'].map(ch => (
               <button
@@ -335,6 +547,7 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '400',
     color: '#666',
+    fontFamily: 'inherit',
   },
   tabActive: {
     background: '#000',
@@ -342,79 +555,112 @@ const styles = {
     border: '1px solid #000',
     fontWeight: '500',
   },
-  // Split view
-  splitView: {
-    display: 'grid',
-    gridTemplateColumns: '320px 1fr',
-    gap: '0',
-    border: '1px solid #e5e5e5',
-    borderRadius: '12px',
-    overflow: 'hidden',
+  // Full-width container for patient list
+  fullContainer: {
     background: '#fff',
-    minHeight: '600px',
+    borderRadius: '12px',
+    border: '1px solid #e5e5e5',
+    overflow: 'hidden',
   },
-  patientList: {
-    borderRight: '1px solid #e5e5e5',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  searchWrap: {
-    padding: '12px',
+  searchBar: {
+    padding: '16px',
     borderBottom: '1px solid #e5e5e5',
   },
   searchInput: {
     width: '100%',
-    padding: '8px 12px',
+    padding: '10px 14px',
     border: '1px solid #ddd',
     borderRadius: '8px',
-    fontSize: '13px',
+    fontSize: '14px',
     outline: 'none',
     fontFamily: 'inherit',
     boxSizing: 'border-box',
+    maxWidth: '400px',
   },
-  patientScroll: {
-    flex: 1,
+  patientListScroll: {
+    maxHeight: 'calc(100vh - 240px)',
     overflowY: 'auto',
   },
-  loadingSmall: {
-    padding: '20px',
-    textAlign: 'center',
-    color: '#999',
-    fontSize: '13px',
-  },
-  patientItem: {
-    padding: '12px 16px',
+  patientCard: {
+    padding: '14px 20px',
     borderBottom: '1px solid #f0f0f0',
     cursor: 'pointer',
+    transition: 'background 0.1s',
   },
-  patientRow: {
+  patientCardTop: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '2px',
+    marginBottom: '4px',
   },
-  patientItemName: {
+  patientCardLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  patientName: {
     fontWeight: '500',
-    fontSize: '14px',
+    fontSize: '15px',
+    color: '#111',
   },
-  patientTime: {
-    fontSize: '11px',
+  patientPhone: {
+    fontSize: '13px',
     color: '#999',
   },
-  patientPreview: {
+  patientTime: {
     fontSize: '12px',
+    color: '#999',
+    flexShrink: 0,
+  },
+  patientPreview: {
+    fontSize: '13px',
     color: '#999',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+    maxWidth: '600px',
   },
   inboundDot: {
     color: '#3b82f6',
     fontSize: '8px',
   },
-  conversationPanel: {
+  paginationBar: {
     display: 'flex',
-    flexDirection: 'column',
+    justifyContent: 'center',
+    gap: '4px',
+    padding: '12px',
+    borderTop: '1px solid #e5e5e5',
+    background: '#fafafa',
+  },
+  pageBtn: {
+    width: '28px',
+    height: '28px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    background: '#fff',
+    fontSize: '12px',
+    cursor: 'pointer',
+    color: '#666',
+    fontFamily: 'inherit',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageBtnActive: {
+    background: '#000',
+    color: '#fff',
+    borderColor: '#000',
+    fontWeight: '600',
+  },
+  // Conversation container — full width
+  conversationContainer: {
+    background: '#fff',
+    borderRadius: '12px',
+    border: '1px solid #e5e5e5',
+    overflow: 'hidden',
+    height: 'calc(100vh - 160px)',
+    minHeight: '500px',
+    maxHeight: '900px',
   },
   // Activity log
   filterRow: {
@@ -431,6 +677,7 @@ const styles = {
     cursor: 'pointer',
     color: '#666',
     fontWeight: '400',
+    fontFamily: 'inherit',
   },
   filterPillActive: {
     background: '#111',
@@ -481,5 +728,41 @@ const styles = {
     fontSize: '11px',
     fontWeight: '600',
     textTransform: 'uppercase',
+    display: 'inline-block',
+  },
+  directionBadge: {
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '600',
+    display: 'inline-block',
+  },
+  phoneText: {
+    fontSize: '13px',
+    color: '#666',
+    fontFamily: 'monospace',
+  },
+  callPagination: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '16px',
+    padding: '14px',
+    borderTop: '1px solid #e5e5e5',
+    background: '#fafafa',
+  },
+  paginationBtn: {
+    padding: '6px 14px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    background: '#fff',
+    fontSize: '13px',
+    cursor: 'pointer',
+    color: '#333',
+    fontFamily: 'inherit',
+  },
+  pageInfo: {
+    fontSize: '13px',
+    color: '#666',
   },
 };

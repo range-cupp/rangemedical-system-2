@@ -319,7 +319,43 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       setTimeout(() => setCartWarning(''), 3000);
       return;
     }
-    setCartItems([...cartItems, item]);
+    setCartItems([...cartItems, { ...item, quantity: 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
+  }
+
+  function updateItemQuantity(itemId, newQty) {
+    if (newQty < 1) {
+      setCartItems(cartItems.filter(i => i.id !== itemId));
+      return;
+    }
+    setCartItems(cartItems.map(i => i.id === itemId ? { ...i, quantity: newQty } : i));
+  }
+
+  function updateItemDiscount(itemId, field, value) {
+    setCartItems(cartItems.map(i => {
+      if (i.id !== itemId) return i;
+      if (field === 'type') {
+        return { ...i, itemDiscountType: value, itemDiscountValue: '' };
+      }
+      return { ...i, itemDiscountValue: value };
+    }));
+  }
+
+  function getItemLineCents(item) {
+    const base = (item.price || 0) * (item.quantity || 1);
+    const val = parseFloat(item.itemDiscountValue);
+    if (!val || val <= 0 || item.itemDiscountType === 'none') return base;
+    if (item.itemDiscountType === 'percent') {
+      return base - Math.round(base * (Math.min(val, 100) / 100));
+    }
+    if (item.itemDiscountType === 'dollar') {
+      return Math.max(base - Math.round(val * 100), 0);
+    }
+    return base;
+  }
+
+  function getItemDiscountCents(item) {
+    const base = (item.price || 0) * (item.quantity || 1);
+    return base - getItemLineCents(item);
   }
 
   function getBaseAmount() {
@@ -327,21 +363,19 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       const dollars = parseFloat(customAmount);
       return isNaN(dollars) ? 0 : Math.round(dollars * 100);
     }
-    return cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
+    return cartItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
   }
 
   function getDiscountCents() {
-    const base = getBaseAmount();
-    const val = parseFloat(discountValue);
-    if (!val || val <= 0 || discountType === 'none') return 0;
-
-    if (discountType === 'percent') {
-      return Math.round(base * (Math.min(val, 100) / 100));
+    if (activeCategory === 'custom') {
+      const base = getBaseAmount();
+      const val = parseFloat(discountValue);
+      if (!val || val <= 0 || discountType === 'none') return 0;
+      if (discountType === 'percent') return Math.round(base * (Math.min(val, 100) / 100));
+      if (discountType === 'dollar') return Math.min(Math.round(val * 100), base);
+      return 0;
     }
-    if (discountType === 'dollar') {
-      return Math.min(Math.round(val * 100), base);
-    }
-    return 0;
+    return cartItems.reduce((sum, item) => sum + getItemDiscountCents(item), 0);
   }
 
   function getChargeAmount() {
@@ -353,7 +387,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       return customDescription || 'Custom charge';
     }
     if (cartItems.length === 0) return '';
-    return cartItems.map(i => i.name).join(', ');
+    return cartItems.map(i => (i.quantity || 1) > 1 ? `${i.name} x${i.quantity}` : i.name).join(', ');
   }
 
   function isRecurring() {
@@ -370,10 +404,11 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   function getResultMessage(amount) {
     const hasPeptides = cartItems.some(i => i.category === 'peptide');
     const suffix = hasPeptides ? '\nProtocol created & journey started' : '';
-    if (activeCategory === 'custom' || cartItems.length <= 1) {
+    const totalItems = cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0);
+    if (activeCategory === 'custom' || totalItems <= 1) {
       return `Charged ${formatPrice(amount)} for ${getChargeDescription()}${suffix}`;
     }
-    return `Charged ${formatPrice(amount)} for ${cartItems.length} items${suffix}`;
+    return `Charged ${formatPrice(amount)} for ${totalItems} items${suffix}`;
   }
 
   function getDiscountData() {
@@ -393,7 +428,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         name: item.name,
         category: item.category,
         price_cents: item.price,
-        quantity: 1,
+        quantity: item.quantity || 1,
       }));
       const baseAmount = getBaseAmount();
       const discountCentsVal = getDiscountCents();
@@ -437,17 +472,14 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   }
 
   async function recordPurchases(extraFields) {
-    const baseTotal = getBaseAmount();
-    const discountTotal = getDiscountCents();
-    const discountSuffix = discountType === 'percent'
-      ? `${discountValue}% off`
-      : `$${discountValue} off`;
-
     // Custom charge — single record
     if (activeCategory === 'custom') {
       const amount = getChargeAmount();
       const desc = getChargeDescription();
       const discountData = getDiscountData();
+      const discountSuffix = discountType === 'percent'
+        ? `${discountValue}% off`
+        : `$${discountValue} off`;
       await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -458,6 +490,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           payment_method: 'stripe',
           service_category: activeCategory,
           service_name: customDescription,
+          quantity: 1,
           ...discountData,
           ...extraFields,
         }),
@@ -465,28 +498,32 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       return;
     }
 
-    // Cart items — one record per item with proportional discount
+    // Cart items — one record per item with quantity and per-item discount
     for (const item of cartItems) {
-      const itemBase = item.price || 0;
-      const itemDiscount = baseTotal > 0
-        ? Math.round(discountTotal * (itemBase / baseTotal))
-        : 0;
-      const itemAmount = Math.max(itemBase - itemDiscount, 0);
-      const itemName = item.name;
+      const qty = item.quantity || 1;
+      const itemBase = (item.price || 0) * qty; // total before discount
+      const itemDiscountAmt = getItemDiscountCents(item);
+      const itemFinal = itemBase - itemDiscountAmt;
+      const itemName = qty > 1 ? `${item.name} x${qty}` : item.name;
+
+      const discountSuffix = item.itemDiscountType === 'percent'
+        ? `${item.itemDiscountValue}% off`
+        : `$${item.itemDiscountValue} off`;
 
       await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patient_id: patient.id,
-          amount: itemAmount,
-          description: itemDiscount > 0 ? `${itemName} (${discountSuffix})` : itemName,
+          amount: itemFinal,
+          description: itemDiscountAmt > 0 ? `${itemName} (${discountSuffix})` : itemName,
           payment_method: 'stripe',
           service_category: item.category,
-          service_name: itemName,
-          ...(itemDiscount > 0 ? {
-            discount_type: discountType,
-            discount_amount: parseFloat(discountValue),
+          service_name: item.name,
+          quantity: qty,
+          ...(itemDiscountAmt > 0 ? {
+            discount_type: item.itemDiscountType,
+            discount_amount: parseFloat(item.itemDiscountValue),
             original_amount: itemBase,
           } : {}),
           ...extraFields,
@@ -1066,25 +1103,110 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                 {cartItems.length > 0 && activeCategory !== 'custom' && (
                   <div style={modalStyles.cartSection}>
                     <div style={modalStyles.discountLabel}>
-                      Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
+                      Cart ({cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0)} {cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0) === 1 ? 'item' : 'items'})
                     </div>
-                    {cartItems.map(item => (
-                      <div key={item.id} style={modalStyles.cartRow}>
-                        <span style={{ flex: 1, fontSize: '14px' }}>{item.name}</span>
-                        <span style={{ fontSize: '14px', fontWeight: 500, marginRight: '8px' }}>
-                          {formatPrice(item.price)}
-                        </span>
-                        <button
-                          style={modalStyles.cartRemoveBtn}
-                          onClick={() => setCartItems(prev => prev.filter(i => i.id !== item.id))}
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    ))}
+                    {cartItems.map(item => {
+                      const qty = item.quantity || 1;
+                      const lineBase = (item.price || 0) * qty;
+                      const lineDiscount = getItemDiscountCents(item);
+                      const lineTotal = lineBase - lineDiscount;
+                      return (
+                        <div key={item.id} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '10px', marginBottom: '10px' }}>
+                          {/* Item name + quantity + line total + remove */}
+                          <div style={modalStyles.cartRow}>
+                            <span style={{ flex: 1, fontSize: '14px' }}>{item.name}</span>
+                            <span style={{ fontSize: '13px', color: '#888', marginRight: '8px' }}>
+                              {formatPrice(item.price)} ea
+                            </span>
+                            <button
+                              style={modalStyles.cartRemoveBtn}
+                              onClick={() => setCartItems(prev => prev.filter(i => i.id !== item.id))}
+                            >
+                              &times;
+                            </button>
+                          </div>
+                          {/* Quantity controls */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                            <span style={{ fontSize: '12px', color: '#888', width: '30px' }}>Qty:</span>
+                            <button
+                              style={modalStyles.qtyBtn}
+                              onClick={() => updateItemQuantity(item.id, qty - 1)}
+                            >−</button>
+                            <span style={{ fontSize: '14px', fontWeight: 600, minWidth: '20px', textAlign: 'center' }}>{qty}</span>
+                            <button
+                              style={modalStyles.qtyBtn}
+                              onClick={() => updateItemQuantity(item.id, qty + 1)}
+                            >+</button>
+                            <span style={{ flex: 1 }} />
+                            {lineDiscount > 0 ? (
+                              <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                                <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '6px', fontSize: '12px' }}>
+                                  {formatPrice(lineBase)}
+                                </span>
+                                {formatPrice(lineTotal)}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '14px', fontWeight: 500 }}>{formatPrice(lineBase)}</span>
+                            )}
+                          </div>
+                          {/* Per-item discount */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                            <span style={{ fontSize: '12px', color: '#888', width: '55px' }}>Discount:</span>
+                            <div style={{ display: 'flex', gap: '3px' }}>
+                              {['none', 'percent', 'dollar'].map(type => (
+                                <button
+                                  key={type}
+                                  style={{
+                                    padding: '2px 8px',
+                                    fontSize: '11px',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '4px',
+                                    background: item.itemDiscountType === type ? '#000' : '#fff',
+                                    color: item.itemDiscountType === type ? '#fff' : '#555',
+                                    cursor: 'pointer',
+                                    fontWeight: 500,
+                                  }}
+                                  onClick={() => updateItemDiscount(item.id, 'type', type)}
+                                >
+                                  {type === 'none' ? 'None' : type === 'percent' ? '%' : '$'}
+                                </button>
+                              ))}
+                            </div>
+                            {item.itemDiscountType !== 'none' && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                {item.itemDiscountType === 'dollar' && <span style={{ fontSize: '12px', color: '#888' }}>$</span>}
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step={item.itemDiscountType === 'percent' ? '1' : '0.01'}
+                                  max={item.itemDiscountType === 'percent' ? '100' : undefined}
+                                  value={item.itemDiscountValue}
+                                  onChange={e => updateItemDiscount(item.id, 'value', e.target.value)}
+                                  placeholder={item.itemDiscountType === 'percent' ? '10' : '25'}
+                                  style={{ width: '60px', padding: '2px 6px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '4px', textAlign: 'center' }}
+                                />
+                                {item.itemDiscountType === 'percent' && <span style={{ fontSize: '12px', color: '#888' }}>%</span>}
+                                {lineDiscount > 0 && (
+                                  <span style={{ fontSize: '11px', color: '#16a34a', marginLeft: '4px' }}>
+                                    −{formatPrice(lineDiscount)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                     <div style={modalStyles.cartTotal}>
                       <span>Total</span>
-                      <span>{formatPrice(cartItems.reduce((sum, i) => sum + (i.price || 0), 0))}</span>
+                      <span>
+                        {getDiscountCents() > 0 && (
+                          <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px', fontSize: '13px' }}>
+                            {formatPrice(getBaseAmount())}
+                          </span>
+                        )}
+                        <strong>{formatPrice(getChargeAmount())}</strong>
+                      </span>
                     </div>
                   </div>
                 )}
@@ -1094,8 +1216,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                   <div style={modalStyles.cartWarning}>{cartWarning}</div>
                 )}
 
-                {/* Discount Section */}
-                {canProceedToPayment() && (
+                {/* Discount Section (Custom charges only — cart items have per-item discounts) */}
+                {canProceedToPayment() && activeCategory === 'custom' && (
                   <div style={modalStyles.discountSection}>
                     <div style={modalStyles.discountLabel}>Discount</div>
                     <div style={modalStyles.discountRow}>
@@ -1138,7 +1260,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
                 {/* Charge Summary + Next */}
                 <div style={modalStyles.footer}>
-                  {canProceedToPayment() && (
+                  {canProceedToPayment() && activeCategory === 'custom' && (
                     <div style={modalStyles.summaryLine}>
                       <div>{getChargeDescription()}</div>
                       {hasDiscount ? (
@@ -1270,18 +1392,31 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
               ...modalStyles.chargeSummary,
               ...(cartItems.length > 1 ? { flexDirection: 'column', gap: '4px' } : {}),
             }}>
-              {cartItems.length > 1 ? (
+              {cartItems.length > 0 && activeCategory !== 'custom' ? (
                 <>
-                  {cartItems.map(item => (
-                    <div key={item.id} style={modalStyles.summaryItemRow}>
-                      <span>{item.name}</span>
-                      <span>{formatPrice(item.price)}</span>
-                    </div>
-                  ))}
+                  {cartItems.map(item => {
+                    const qty = item.quantity || 1;
+                    const lineBase = (item.price || 0) * qty;
+                    const lineDisc = getItemDiscountCents(item);
+                    const lineTotal = lineBase - lineDisc;
+                    return (
+                      <div key={item.id} style={modalStyles.summaryItemRow}>
+                        <span>{qty > 1 ? `${item.name} x${qty}` : item.name}</span>
+                        <span>
+                          {lineDisc > 0 && (
+                            <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '6px', fontSize: '12px' }}>
+                              {formatPrice(lineBase)}
+                            </span>
+                          )}
+                          {formatPrice(lineTotal)}
+                        </span>
+                      </div>
+                    );
+                  })}
                   <div style={modalStyles.summaryTotalRow}>
                     <span>Total</span>
                     <div>
-                      {hasDiscount && (
+                      {discountCents > 0 && (
                         <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px', fontSize: '13px' }}>
                           {formatPrice(baseAmount)}
                         </span>
@@ -1925,6 +2060,20 @@ const modalStyles = {
     cursor: 'pointer',
     padding: '0 4px',
     lineHeight: 1,
+  },
+  qtyBtn: {
+    width: '26px',
+    height: '26px',
+    borderRadius: '6px',
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    fontSize: '16px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#333',
   },
   cartWarning: {
     background: '#fef3c7',

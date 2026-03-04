@@ -132,6 +132,7 @@ export default async function handler(req, res) {
       original_amount,
       service_category,
       service_name,
+      quantity,
     } = req.body;
 
     if (!patient_id || (amount === undefined || amount === null)) {
@@ -157,7 +158,7 @@ export default async function handler(req, res) {
       item_name: description || 'Stripe charge',
       amount: amount / 100, // Convert cents to dollars for DB
       category: service_category || 'Other',
-      quantity: 1,
+      quantity: quantity || 1,
       stripe_payment_intent_id: stripe_payment_intent_id || null,
       stripe_subscription_id: stripe_subscription_id || null,
       payment_method: payment_method || 'stripe',

@@ -1,5 +1,4 @@
 import Layout from '../components/Layout';
-import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 
@@ -429,18 +428,34 @@ export default function CellularEnergyReset() {
                 <h3>6-Week Cellular Energy Reset</h3>
                 <div className="cer-price">$3,999</div>
                 <ul className="cer-pricing-features">
-                  <li>All 36 sessions (18 HBOT + 18 Red Light)</li>
-                  <li>Initial and results consultations</li>
-                  <li>Weekly check-ins and tracking</li>
-                  <li><strong>Bonus:</strong> 2 extra Red Light sessions</li>
+                  <li>18 Hyperbaric Oxygen sessions (60 min each at 2.0 ATA)</li>
+                  <li>18 Red Light Therapy sessions (660–850nm full-body)</li>
+                  <li>Structured 6-week schedule — 3 sessions per week</li>
+                  <li>Weekly automated check-ins to track progress</li>
                 </ul>
+                <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="cer-btn-primary">Get Started — $3,999</a>
                 <p className="cer-pricing-note">Financing available through Affirm and Afterpay</p>
+                <div className="cer-guarantee">
+                  <div className="cer-guarantee-icon">✓</div>
+                  <div>
+                    <h4>Money-Back Guarantee</h4>
+                    <p>Complete the full 6-week protocol as prescribed. If you don't experience measurable improvement, we'll refund your investment.</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="cer-pricing-card cer-pricing-addon">
-                <h3>Optional: IV Upgrade</h3>
-                <div className="cer-price-addon">+$999</div>
-                <p>Add 6 weekly Energy IVs to accelerate results. Delivers B vitamins, amino acids, and minerals directly to cells.</p>
+              <div className="cer-pricing-card cer-pricing-value">
+                <h3>Why $3,999?</h3>
+                <p>If you tried to piece this together with individual packs, you'd be over four thousand dollars anyway — without the structure, the tracking, or the guarantee.</p>
+                <div className="cer-pricing-value-divider"></div>
+                <h4>Best For</h4>
+                <ul className="cer-bestfor-list">
+                  <li>Fastest, most aggressive change in energy</li>
+                  <li>Accelerated recovery from workouts or injuries</li>
+                  <li>Peak performance over a focused 6-week window</li>
+                  <li>Chronic fatigue or brain fog that won't go away</li>
+                  <li>You want a structured protocol, not guesswork</li>
+                </ul>
               </div>
             </div>
 
@@ -540,9 +555,11 @@ export default function CellularEnergyReset() {
             <span className="cer-section-label-light">First Step</span>
             <h2>Stop Guessing. Start Fixing.</h2>
             <p className="cer-cta-text">
-              Take the 2-minute assessment to see if the Cellular Energy Reset is right for you.
+              Book the 6-Week Cellular Energy Reset and we'll build your schedule.
             </p>
-            <Link href="/range-assessment" className="cer-btn-white">Take the Assessment</Link>
+            <div className="cer-cta-buttons">
+              <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="cer-btn-white">Get Started — $3,999</a>
+            </div>
             <p className="cer-cta-location">
               Range Medical • 1901 Westcliff Dr, Newport Beach<br />
               <a href="tel:9499973988">(949) 997-3988</a>
@@ -1032,9 +1049,132 @@ export default function CellularEnergyReset() {
           .cer-pricing-note {
             font-size: 0.875rem;
             color: #737373;
+            margin: 1rem 0 0;
+          }
+
+          .cer-btn-primary {
+            display: block;
+            text-align: center;
+            background: #000000;
+            color: #ffffff;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+          }
+
+          .cer-btn-primary:hover {
+            background: #171717;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+          }
+
+          .cer-guarantee {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+          }
+
+          .cer-guarantee-icon {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            background: #22c55e;
+            color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+          }
+
+          .cer-guarantee h4 {
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: #171717;
+            margin: 0 0 0.25rem;
+          }
+
+          .cer-guarantee p {
+            font-size: 0.8125rem;
+            color: #525252;
+            line-height: 1.5;
             margin: 0;
-            padding-top: 1rem;
-            border-top: 1px solid #e5e5e5;
+          }
+
+          .cer-pricing-value {
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+          }
+
+          .cer-pricing-value h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #171717;
+            margin: 0 0 0.75rem;
+          }
+
+          .cer-pricing-value > p {
+            font-size: 0.9375rem;
+            color: #525252;
+            line-height: 1.6;
+            font-style: italic;
+            margin: 0;
+          }
+
+          .cer-pricing-value-divider {
+            height: 1px;
+            background: #e5e5e5;
+            margin: 1.5rem 0;
+          }
+
+          .cer-pricing-value h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #737373;
+            margin: 0 0 0.75rem;
+          }
+
+          .cer-bestfor-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+          }
+
+          .cer-bestfor-list li {
+            font-size: 0.9375rem;
+            color: #404040;
+            padding: 0.5rem 0 0.5rem 1.5rem;
+            position: relative;
+            line-height: 1.5;
+            border-bottom: 1px solid #f0f0f0;
+          }
+
+          .cer-bestfor-list li:last-child {
+            border-bottom: none;
+          }
+
+          .cer-bestfor-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #737373;
+          }
+
+          .cer-cta-buttons {
+            margin-bottom: 1.5rem;
           }
 
           /* Maintenance Preview */

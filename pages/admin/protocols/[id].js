@@ -145,6 +145,8 @@ export default function ProtocolDetail() {
   const [enablingWlCheckin, setEnablingWlCheckin] = useState(false);
   const [dripLogs, setDripLogs] = useState([]);
   const [startingDrip, setStartingDrip] = useState(false);
+  const [hrtReminderSchedule, setHrtReminderSchedule] = useState('mon_thu');
+  const [enablingHrtReminders, setEnablingHrtReminders] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -211,11 +213,14 @@ export default function ProtocolDetail() {
         notes: enrichedProtocol.notes || ''
       });
 
-      // Build check-in schedule for take-home protocols
+      // Build check-in schedule for take-home protocols (NOT HRT — HRT has its own reminder system)
       // Use effective days (accounts for twice daily cutting duration in half)
       const effectiveDuration = getEffectiveDays(durationVal, freq);
       const delivery = enrichedProtocol.injection_location;
-      if (delivery === 'take_home' && enrichedProtocol.start_date && effectiveDuration > 7) {
+      const isOngoingType = isHRTProtocol(enrichedProtocol.program_type) ||
+        (enrichedProtocol.program_name || '').toLowerCase().includes('hrt') ||
+        (enrichedProtocol.program_name || '').toLowerCase().includes('testosterone');
+      if (!isOngoingType && delivery === 'take_home' && enrichedProtocol.start_date && effectiveDuration > 7) {
         buildCheckinSchedule(enrichedProtocol, effectiveDuration, id);
       } else {
         setCheckinSchedule([]);
@@ -1577,6 +1582,110 @@ export default function ProtocolDetail() {
                     {sendingGuide ? 'Sending...' : '📖 Send Peptide Guide'}
                   </button>
                 )}
+                {/* HRT Injection Reminders */}
+                {isOngoing && (() => {
+                  const remindersEnabled = protocol?.hrt_reminders_enabled === true;
+                  const currentSchedule = protocol?.hrt_reminder_schedule || 'mon_thu';
+                  const scheduleLabel = currentSchedule === 'tue_fri' ? 'Tue & Fri' : currentSchedule === 'daily' ? 'Daily' : 'Mon & Thu';
+
+                  if (remindersEnabled) {
+                    return (
+                      <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
+                        ✅ Injection Reminders On
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '6px' }}>
+                          <select
+                            value={currentSchedule}
+                            onChange={async (e) => {
+                              const newSchedule = e.target.value;
+                              try {
+                                const res = await fetch(`/api/admin/protocols/${id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ hrt_reminder_schedule: newSchedule })
+                                });
+                                if (res.ok) {
+                                  setProtocol(prev => ({ ...prev, hrt_reminder_schedule: newSchedule }));
+                                  const label = newSchedule === 'tue_fri' ? 'Tue & Fri' : newSchedule === 'daily' ? 'Daily' : 'Mon & Thu';
+                                  setSuccess(`Reminder schedule changed to ${label}`);
+                                }
+                              } catch (e) {
+                                setError('Failed to update schedule');
+                              }
+                            }}
+                            style={{ padding: '4px 6px', border: '1px solid #BBF7D0', borderRadius: '4px', fontSize: '12px', color: '#15803D', background: '#F0FDF4', cursor: 'pointer' }}
+                          >
+                            <option value="mon_thu">Mon & Thu</option>
+                            <option value="tue_fri">Tue & Fri</option>
+                          </select>
+                          <span style={{ fontSize: '12px', fontWeight: '400', color: '#15803D' }}>at 9:00 AM</span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/admin/protocols/${id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ hrt_reminders_enabled: false })
+                              });
+                              if (res.ok) {
+                                setProtocol(prev => ({ ...prev, hrt_reminders_enabled: false }));
+                                setSuccess('Injection reminders disabled');
+                              }
+                            } catch (e) {
+                              setError('Failed to disable reminders');
+                            }
+                          }}
+                          style={{ fontSize: '11px', color: '#666', background: 'none', border: 'none', cursor: 'pointer', marginTop: '4px', textDecoration: 'underline' }}
+                        >
+                          Disable
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ fontSize: '13px', color: '#666', whiteSpace: 'nowrap' }}>Schedule:</label>
+                        <select
+                          value={hrtReminderSchedule}
+                          onChange={e => setHrtReminderSchedule(e.target.value)}
+                          style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '13px' }}
+                        >
+                          <option value="mon_thu">Mon & Thu</option>
+                          <option value="tue_fri">Tue & Fri</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          setEnablingHrtReminders(true);
+                          setError('');
+                          try {
+                            const res = await fetch(`/api/admin/protocols/${id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ hrt_reminders_enabled: true, hrt_reminder_schedule: hrtReminderSchedule })
+                            });
+                            if (res.ok) {
+                              setProtocol(prev => ({ ...prev, hrt_reminders_enabled: true, hrt_reminder_schedule: hrtReminderSchedule }));
+                              setSuccess('Injection reminders enabled!');
+                            } else {
+                              setError('Failed to enable reminders');
+                            }
+                          } catch (e) {
+                            setError('Failed to enable reminders');
+                          }
+                          setEnablingHrtReminders(false);
+                        }}
+                        disabled={enablingHrtReminders}
+                        style={{ ...styles.actionBtnSecondary, border: 'none', cursor: enablingHrtReminders ? 'not-allowed' : 'pointer', opacity: enablingHrtReminders ? 0.6 : 1 }}
+                      >
+                        {enablingHrtReminders ? 'Enabling...' : '💉 Enable Injection Reminders'}
+                      </button>
+                    </div>
+                  );
+                })()}
+
                 {/* Email Sequence (weight loss) */}
                 {isWeightLoss && (() => {
                   const emailSequence = [

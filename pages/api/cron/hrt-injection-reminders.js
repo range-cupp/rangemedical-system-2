@@ -119,16 +119,17 @@ export default async function handler(req, res) {
   try {
     const todayStr = getTodayDateStr();
 
-    // Get active HRT take-home protocols with reminders enabled
+    // Get active HRT protocols with reminders enabled
+    // Note: delivery_method can be 'take_home', 'vial', or 'prefilled_X' — all are take-home
+    // HRT is ongoing so end_date may be null — include both null and future end dates
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select('*')
       .eq('status', 'active')
       .eq('hrt_reminders_enabled', true)
-      .eq('delivery_method', 'take_home')
       .eq('program_type', 'hrt')
       .lte('start_date', todayStr)
-      .gte('end_date', todayStr)
+      .or(`end_date.gte.${todayStr},end_date.is.null`)
       .not('ghl_contact_id', 'is', null);
 
     if (protocolsError) {

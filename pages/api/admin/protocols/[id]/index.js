@@ -97,6 +97,8 @@ export default async function handler(req, res) {
       if (b.checkin_reminder_enabled !== undefined) updateData.checkin_reminder_enabled = b.checkin_reminder_enabled;
       if (b.injection_day !== undefined) updateData.injection_day = b.injection_day;
       if (b.last_payment_date !== undefined) updateData.last_payment_date = b.last_payment_date;
+      if (b.hrt_reminders_enabled !== undefined) updateData.hrt_reminders_enabled = b.hrt_reminders_enabled;
+      if (b.hrt_reminder_schedule !== undefined) updateData.hrt_reminder_schedule = b.hrt_reminder_schedule;
 
       // Map old field names → actual DB columns (accept either)
       const med = b.medication ?? b.primary_peptide;

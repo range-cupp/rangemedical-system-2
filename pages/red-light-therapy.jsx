@@ -439,6 +439,108 @@ export default function RedLightTherapy() {
           </div>
         </section>
 
+        {/* Pricing */}
+        <section className="rlt-section" id="rlt-pricing">
+          <div className="rlt-container">
+            <div className="rlt-animate">
+              <div className="rlt-kicker">Pricing</div>
+              <h2>Simple, transparent pricing.</h2>
+              <div className="rlt-divider"></div>
+              <p className="rlt-body-text">
+                Whether you want to try a single session or commit to a membership for the best value — we keep it straightforward.
+              </p>
+            </div>
+
+            <div className="rlt-pricing-layout rlt-animate">
+              {/* Left: Membership (Featured) */}
+              <div className="rlt-pricing-membership">
+                <div className="rlt-pricing-best-badge">Best Value</div>
+                <h3 className="rlt-pricing-membership-title">Red Light Reset Membership</h3>
+                <div className="rlt-pricing-membership-price">$399</div>
+                <div className="rlt-pricing-membership-period">per month · auto-billing</div>
+                <ul className="rlt-pricing-membership-features">
+                  <li>Up to <strong>12 Red Light sessions</strong> per month</li>
+                  <li>Additional sessions just <strong>$50 each</strong> in the same month</li>
+                  <li><strong>3-month minimum</strong>, then month-to-month</li>
+                </ul>
+                <div className="rlt-pricing-membership-note">
+                  Best value if you plan to use Red Light regularly and want ongoing support instead of a one-time program.
+                </div>
+                <Link href="/range-assessment" className="rlt-pricing-btn-dark">Get Started</Link>
+              </div>
+
+              {/* Right: Session Packs */}
+              <div className="rlt-pricing-packs">
+                <div className="rlt-pricing-packs-header">Sessions &amp; Packs</div>
+
+                <div className="rlt-pricing-pack-item">
+                  <div className="rlt-pricing-pack-info">
+                    <div className="rlt-pricing-pack-name">Single Session</div>
+                    <div className="rlt-pricing-pack-desc">20-minute full-body treatment</div>
+                  </div>
+                  <div className="rlt-pricing-pack-price">$85</div>
+                </div>
+
+                <div className="rlt-pricing-pack-divider"></div>
+
+                <div className="rlt-pricing-pack-item">
+                  <div className="rlt-pricing-pack-info">
+                    <div className="rlt-pricing-pack-name">5-Session Pack</div>
+                    <div className="rlt-pricing-pack-desc">Save $50 — great way to get started</div>
+                  </div>
+                  <div className="rlt-pricing-pack-right">
+                    <div className="rlt-pricing-pack-price">$375</div>
+                    <div className="rlt-pricing-pack-per">$75 / session</div>
+                  </div>
+                </div>
+
+                <div className="rlt-pricing-pack-divider"></div>
+
+                <div className="rlt-pricing-pack-item">
+                  <div className="rlt-pricing-pack-info">
+                    <div className="rlt-pricing-pack-name">10-Session Pack</div>
+                    <div className="rlt-pricing-pack-desc">Save $250 — best pack value</div>
+                  </div>
+                  <div className="rlt-pricing-pack-right">
+                    <div className="rlt-pricing-pack-price">$600</div>
+                    <div className="rlt-pricing-pack-per">$60 / session</div>
+                  </div>
+                </div>
+
+                <div className="rlt-pricing-packs-quote">
+                  Great if you want to try Red Light or focus on one area like recovery, skin, or joint health.
+                </div>
+              </div>
+            </div>
+
+            {/* Per-Session Comparison */}
+            <div className="rlt-pricing-compare rlt-animate">
+              <div className="rlt-pricing-compare-title">Per-Session Cost Comparison</div>
+              <div className="rlt-pricing-compare-grid">
+                <div className="rlt-pricing-compare-item">
+                  <div className="rlt-pricing-compare-label">Single</div>
+                  <div className="rlt-pricing-compare-value">$85</div>
+                </div>
+                <div className="rlt-pricing-compare-item">
+                  <div className="rlt-pricing-compare-label">5-Pack</div>
+                  <div className="rlt-pricing-compare-value">$75</div>
+                  <div className="rlt-pricing-compare-save">Save 12%</div>
+                </div>
+                <div className="rlt-pricing-compare-item">
+                  <div className="rlt-pricing-compare-label">10-Pack</div>
+                  <div className="rlt-pricing-compare-value">$60</div>
+                  <div className="rlt-pricing-compare-save">Save 29%</div>
+                </div>
+                <div className="rlt-pricing-compare-item rlt-pricing-compare-best">
+                  <div className="rlt-pricing-compare-label">Membership</div>
+                  <div className="rlt-pricing-compare-value">$33</div>
+                  <div className="rlt-pricing-compare-save">Save 61%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="rlt-section-alt">
           <div className="rlt-container">
@@ -1006,6 +1108,262 @@ export default function RedLightTherapy() {
           color: #525252;
           line-height: 1.7;
           margin: 0;
+        }
+
+        /* ===== PRICING SECTION ===== */
+        .rlt-pricing-layout {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-top: 2.5rem;
+          align-items: start;
+        }
+
+        /* Membership Card (Featured) */
+        .rlt-pricing-membership {
+          background: #ffffff;
+          border: 2px solid #171717;
+          border-radius: 12px;
+          padding: 2.5rem 2rem;
+          position: relative;
+        }
+
+        .rlt-pricing-best-badge {
+          position: absolute;
+          top: -12px;
+          left: 2rem;
+          background: #171717;
+          color: #ffffff;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          padding: 0.375rem 1rem;
+          border-radius: 100px;
+        }
+
+        .rlt-pricing-membership-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.75rem;
+          margin-top: 0.5rem;
+        }
+
+        .rlt-pricing-membership-price {
+          font-size: 2.75rem;
+          font-weight: 800;
+          color: #171717;
+          letter-spacing: -0.02em;
+          line-height: 1;
+        }
+
+        .rlt-pricing-membership-period {
+          font-size: 0.875rem;
+          color: #737373;
+          margin-top: 0.375rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .rlt-pricing-membership-features {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 1.5rem;
+        }
+
+        .rlt-pricing-membership-features li {
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.6;
+          padding: 0.5rem 0;
+          border-bottom: 1px solid #f0f0f0;
+          padding-left: 1.25rem;
+          position: relative;
+        }
+
+        .rlt-pricing-membership-features li::before {
+          content: "→";
+          position: absolute;
+          left: 0;
+          color: #171717;
+          font-weight: 600;
+        }
+
+        .rlt-pricing-membership-features li:last-child {
+          border-bottom: none;
+        }
+
+        .rlt-pricing-membership-note {
+          font-size: 0.8125rem;
+          color: #737373;
+          line-height: 1.6;
+          font-style: italic;
+          padding: 1rem 0;
+          border-top: 1px solid #e5e5e5;
+          margin-bottom: 1.5rem;
+        }
+
+        .rlt-pricing-btn-dark {
+          display: inline-block;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 0.875rem 2rem;
+          background: #171717;
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          text-decoration: none;
+          transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .rlt-pricing-btn-dark:hover {
+          background: #333333;
+          transform: translateY(-1px);
+        }
+
+        /* Session Packs */
+        .rlt-pricing-packs {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 2rem;
+        }
+
+        .rlt-pricing-packs-header {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 1.5rem;
+        }
+
+        .rlt-pricing-pack-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem 0;
+        }
+
+        .rlt-pricing-pack-info {
+          flex: 1;
+        }
+
+        .rlt-pricing-pack-name {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #171717;
+        }
+
+        .rlt-pricing-pack-desc {
+          font-size: 0.8125rem;
+          color: #737373;
+          margin-top: 0.125rem;
+        }
+
+        .rlt-pricing-pack-right {
+          text-align: right;
+        }
+
+        .rlt-pricing-pack-price {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: #171717;
+          letter-spacing: -0.02em;
+        }
+
+        .rlt-pricing-pack-per {
+          font-size: 0.75rem;
+          color: #737373;
+          margin-top: 0.125rem;
+        }
+
+        .rlt-pricing-pack-divider {
+          height: 1px;
+          background: #e5e5e5;
+        }
+
+        .rlt-pricing-packs-quote {
+          font-size: 0.8125rem;
+          color: #737373;
+          line-height: 1.6;
+          font-style: italic;
+          padding-top: 1.25rem;
+          margin-top: 0.5rem;
+          border-top: 1px solid #e5e5e5;
+        }
+
+        /* Per-Session Comparison */
+        .rlt-pricing-compare {
+          margin-top: 2.5rem;
+          padding: 1.5rem 2rem;
+          background: #fafafa;
+          border-radius: 12px;
+          border: 1px solid #e5e5e5;
+        }
+
+        .rlt-pricing-compare-title {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 1.25rem;
+          text-align: center;
+        }
+
+        .rlt-pricing-compare-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+        }
+
+        .rlt-pricing-compare-item {
+          text-align: center;
+          padding: 1rem;
+          border-radius: 8px;
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+        }
+
+        .rlt-pricing-compare-best {
+          border: 2px solid #171717;
+        }
+
+        .rlt-pricing-compare-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #737373;
+          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .rlt-pricing-compare-value {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: #171717;
+          letter-spacing: -0.02em;
+        }
+
+        .rlt-pricing-compare-save {
+          font-size: 0.6875rem;
+          font-weight: 700;
+          color: #16a34a;
+          margin-top: 0.25rem;
+        }
+
+        /* Pricing Responsive */
+        @media (max-width: 768px) {
+          .rlt-pricing-layout {
+            grid-template-columns: 1fr;
+          }
+
+          .rlt-pricing-compare-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
         }
 
         /* CTA Section */

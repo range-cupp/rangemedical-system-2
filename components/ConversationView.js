@@ -23,6 +23,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     if (patientId) {
       shouldScrollRef.current = true;
       fetchMessages();
+
+      // Mark this patient's messages as read
+      fetch('/api/admin/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId }),
+      }).catch(() => {}); // non-blocking, best-effort
     }
   }, [patientId]);
 

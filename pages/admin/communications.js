@@ -59,10 +59,17 @@ export default function CommunicationsPage() {
       const logs = data.logs || data.comms || [];
 
       // Group by patient, get most recent message per patient
+      // Also track unread count per patient (inbound + read_at IS NULL)
       const patientMap = {};
+      const unreadCounts = {};
       for (const log of logs) {
         const key = log.patient_id || (log.ghl_contact_id ? `ghl_${log.ghl_contact_id}` : null);
         if (!key) continue;
+
+        // Count unread inbound messages per patient
+        if (log.direction === 'inbound' && !log.read_at) {
+          unreadCounts[key] = (unreadCounts[key] || 0) + 1;
+        }
 
         if (!patientMap[key] || new Date(log.created_at) > new Date(patientMap[key].lastMessage)) {
           patientMap[key] = {
@@ -72,15 +79,22 @@ export default function CommunicationsPage() {
             lastMessage: log.created_at,
             lastPreview: (log.message || '').substring(0, 80),
             direction: log.direction || (log.message_type === 'inbound_sms' ? 'inbound' : 'outbound'),
-            unread: log.direction === 'inbound' || log.message_type === 'inbound_sms',
             recipient: log.recipient || null,
           };
         }
       }
 
-      const sorted = Object.values(patientMap).sort((a, b) =>
-        new Date(b.lastMessage) - new Date(a.lastMessage)
-      );
+      // Add unread counts to patient objects
+      for (const key of Object.keys(patientMap)) {
+        patientMap[key].unreadCount = unreadCounts[key] || 0;
+      }
+
+      // Sort: patients with unread messages first, then by most recent
+      const sorted = Object.values(patientMap).sort((a, b) => {
+        if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+        if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+        return new Date(b.lastMessage) - new Date(a.lastMessage);
+      });
 
       setPatients(sorted);
     } catch (err) {
@@ -159,6 +173,20 @@ export default function CommunicationsPage() {
     const restoreScroll = () => {
       if (window.scrollY !== savedScrollY) window.scrollTo(0, savedScrollY);
     };
+
+    // Mark this patient's messages as read
+    if (p.id && p.unreadCount > 0) {
+      fetch('/api/admin/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: p.id }),
+      }).catch(() => {}); // non-blocking
+
+      // Update local state to clear unread indicator
+      setPatients(prev => prev.map(pt =>
+        pt.id === p.id ? { ...pt, unreadCount: 0 } : pt
+      ));
+    }
 
     if (p.id) {
       try {
@@ -281,15 +309,32 @@ export default function CommunicationsPage() {
       {/* === CONVERSATIONS TAB === */}
       {tab === 'conversations' && !selectedPatient && (
         <div style={styles.fullContainer}>
-          {/* Search bar */}
+          {/* Search bar + Mark All Read */}
           <div style={styles.searchBar}>
-            <input
-              type="text"
-              value={patientSearch}
-              onChange={e => handleSearchChange(e.target.value)}
-              placeholder="Search patients..."
-              style={styles.searchInput}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input
+                type="text"
+                value={patientSearch}
+                onChange={e => handleSearchChange(e.target.value)}
+                placeholder="Search patients..."
+                style={styles.searchInput}
+              />
+              {patients.some(p => p.unreadCount > 0) && (
+                <button
+                  onClick={async () => {
+                    await fetch('/api/admin/mark-read', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ all: true }),
+                    });
+                    setPatients(prev => prev.map(p => ({ ...p, unreadCount: 0 })));
+                  }}
+                  style={styles.markAllReadBtn}
+                >
+                  Mark All Read
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Patient list — full width */}
@@ -302,22 +347,39 @@ export default function CommunicationsPage() {
               <>
                 {paginatedPatients.map(p => {
                   const key = p.id || (p.ghl_contact_id ? `ghl_${p.ghl_contact_id}` : p.name);
+                  const hasUnread = p.unreadCount > 0;
                   return (
                     <div
                       key={key}
                       onClick={() => selectPatient(p)}
-                      style={styles.patientCard}
+                      style={{
+                        ...styles.patientCard,
+                        ...(hasUnread ? styles.patientCardUnread : {}),
+                      }}
                     >
                       <div style={styles.patientCardTop}>
                         <div style={styles.patientCardLeft}>
-                          <span style={styles.patientName}>{p.name}</span>
+                          {hasUnread && <span style={styles.unreadDot} />}
+                          <span style={{
+                            ...styles.patientName,
+                            fontWeight: hasUnread ? '700' : '500',
+                          }}>{p.name}</span>
                           {p.recipient && (
                             <span style={styles.patientPhone}>{p.recipient}</span>
                           )}
                         </div>
-                        <span style={styles.patientTime}>{formatRelativeTime(p.lastMessage)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {hasUnread && (
+                            <span style={styles.unreadCountBadge}>{p.unreadCount}</span>
+                          )}
+                          <span style={styles.patientTime}>{formatRelativeTime(p.lastMessage)}</span>
+                        </div>
                       </div>
-                      <div style={styles.patientPreview}>
+                      <div style={{
+                        ...styles.patientPreview,
+                        color: hasUnread ? '#111' : '#999',
+                        fontWeight: hasUnread ? '500' : '400',
+                      }}>
                         {p.direction === 'inbound' && <span style={styles.inboundDot}>● </span>}
                         {p.lastPreview || 'No messages'}
                       </div>
@@ -619,6 +681,42 @@ const styles = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     maxWidth: '600px',
+  },
+  patientCardUnread: {
+    background: '#f0f7ff',
+    borderLeft: '3px solid #3b82f6',
+  },
+  unreadDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: '#3b82f6',
+    flexShrink: 0,
+  },
+  unreadCountBadge: {
+    background: '#3b82f6',
+    color: '#fff',
+    fontSize: '11px',
+    fontWeight: '700',
+    minWidth: '20px',
+    height: '20px',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 6px',
+    lineHeight: 1,
+  },
+  markAllReadBtn: {
+    padding: '8px 14px',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    background: '#fff',
+    fontSize: '12px',
+    cursor: 'pointer',
+    color: '#666',
+    fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
   },
   inboundDot: {
     color: '#3b82f6',

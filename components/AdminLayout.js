@@ -2,10 +2,124 @@
 // Shared sidebar layout for all admin pages
 // Range Medical System V2
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+
+// Notification sound using Web Audio API
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Play two quick tones (pleasant "ding-ding")
+    [0, 0.15].forEach((delay) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = delay === 0 ? 880 : 1100; // A5 then C#6
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.3);
+    });
+    // Close context after sounds finish
+    setTimeout(() => ctx.close(), 1000);
+  } catch (e) {
+    // Audio not available — silent fail
+  }
+}
+
+// Hook for unread SMS polling + notifications
+function useUnreadNotifications(router) {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevCountRef = useRef(0);
+  const hasInteractedRef = useRef(false);
+  const notifPermissionRef = useRef('default');
+
+  // Track user interaction (needed for autoplay policy)
+  useEffect(() => {
+    const handleInteraction = () => {
+      hasInteractedRef.current = true;
+      // Request notification permission on first interaction
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission().then(p => {
+          notifPermissionRef.current = p;
+        });
+      }
+    };
+    window.addEventListener('click', handleInteraction, { once: true });
+    window.addEventListener('keydown', handleInteraction, { once: true });
+
+    // Check current notification permission
+    if (typeof Notification !== 'undefined') {
+      notifPermissionRef.current = Notification.permission;
+    }
+
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, []);
+
+  // Poll for unread messages
+  useEffect(() => {
+    let mounted = true;
+
+    const checkUnread = async () => {
+      try {
+        const res = await fetch('/api/admin/unread-sms');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+
+        const newCount = data.count || 0;
+        const prevCount = prevCountRef.current;
+
+        setUnreadCount(newCount);
+
+        // New message arrived — play sound + show notification
+        if (newCount > prevCount && prevCount >= 0 && hasInteractedRef.current) {
+          playNotificationSound();
+
+          // Browser notification
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && data.latest) {
+            const notif = new Notification('New SMS — Range Medical', {
+              body: `${data.latest.patientName}: ${data.latest.message}`,
+              icon: '/favicon.ico',
+              tag: 'range-sms', // prevents duplicate notifications
+            });
+            notif.onclick = () => {
+              window.focus();
+              router.push('/admin/communications');
+              notif.close();
+            };
+            // Auto-close after 8 seconds
+            setTimeout(() => notif.close(), 8000);
+          }
+        }
+
+        prevCountRef.current = newCount;
+      } catch (e) {
+        // Silent fail — don't disrupt the UI
+      }
+    };
+
+    // Initial check
+    checkUnread();
+
+    // Poll every 15 seconds
+    const interval = setInterval(checkUnread, 15000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [router]);
+
+  return unreadCount;
+}
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
@@ -94,11 +208,12 @@ export default function AdminLayout({ children, title = 'Admin', actions }) {
   const router = useRouter();
   const currentPath = router.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const unreadCount = useUnreadNotifications(router);
 
   return (
     <>
       <Head>
-        <title>{title} | Range Medical</title>
+        <title>{unreadCount > 0 ? `(${unreadCount}) ` : ''}{title} | Range Medical</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -126,6 +241,7 @@ export default function AdminLayout({ children, title = 'Admin', actions }) {
             {NAV_ITEMS.map(item => {
               const isActive = currentPath === item.href ||
                 (item.href !== '/admin' && currentPath.startsWith(item.href));
+              const showBadge = item.href === '/admin/communications' && unreadCount > 0;
               return (
                 <Link
                   key={item.href}
@@ -134,12 +250,18 @@ export default function AdminLayout({ children, title = 'Admin', actions }) {
                     ...styles.navLink,
                     background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
                     color: isActive ? '#fff' : 'rgba(255,255,255,0.65)',
-                    fontWeight: isActive ? '600' : '400'
+                    fontWeight: isActive ? '600' : '400',
+                    position: 'relative',
                   }}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <span style={styles.navIcon}>{icons[item.icon]}</span>
                   {item.label}
+                  {showBadge && (
+                    <span style={styles.unreadBadge}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -544,6 +666,22 @@ const styles = {
     width: '18px',
     flexShrink: 0
   },
+  unreadBadge: {
+    marginLeft: 'auto',
+    background: '#ef4444',
+    color: '#fff',
+    fontSize: '11px',
+    fontWeight: '700',
+    minWidth: '20px',
+    height: '20px',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 6px',
+    lineHeight: 1,
+    animation: 'pulse-badge 2s ease-in-out infinite',
+  },
   sidebarFooter: {
     padding: '12px 8px 16px',
     borderTop: '1px solid rgba(255,255,255,0.1)'
@@ -616,6 +754,10 @@ if (typeof document !== 'undefined') {
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
+      @keyframes pulse-badge {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.1); }
+      }
       @media (max-width: 768px) {
         [data-admin-sidebar] {
           transform: translateX(-100%);

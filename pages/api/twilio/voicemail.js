@@ -1,5 +1,5 @@
 // /pages/api/twilio/voicemail.js
-// Voicemail fallback — if Grandstream doesn't answer, forward to cell or take voicemail
+// Voicemail fallback — if Grandstream doesn't answer, play greeting and record message
 // Range Medical
 
 export default async function handler(req, res) {
@@ -13,13 +13,10 @@ export default async function handler(req, res) {
 <Response></Response>`);
   }
 
-  // SIP didn't answer — try forwarding to cell phone as backup
+  // SIP didn't answer — go straight to voicemail
   return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial timeout="20" callerId="+19499973988">
-    <Number>+19496900339</Number>
-  </Dial>
-  <Say voice="alice">You've reached Range Medical. Please leave a message after the tone.</Say>
-  <Record maxLength="120" transcribe="true" />
+  <Say voice="Polly.Joanna">Thank you for calling Range Medical. We're sorry we missed your call. Our office hours are Monday through Friday, 9 A.M. to 6 P.M., and Saturday, 9 A.M. to 2 P.M. Please leave your name, number, and a brief message, and we'll return your call as soon as possible. If this is a medical emergency, please call 9 1 1. Thank you.</Say>
+  <Record maxLength="120" transcribe="true" playBeep="true" />
 </Response>`);
 }

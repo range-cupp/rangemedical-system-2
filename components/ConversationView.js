@@ -16,6 +16,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [filter, setFilter] = useState('all'); // 'all' | 'sms' | 'email'
   const [ghlLoading, setGhlLoading] = useState(false);
   const [ghlLoaded, setGhlLoaded] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
 
@@ -346,7 +347,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             // Email messages get a special card style
             if (isEmail) {
               return (
-                <div key={item.id || idx} style={styles.emailCard}>
+                <div key={item.id || idx} style={styles.emailCard} onClick={() => setSelectedMessage(item)}>
                   <div style={styles.emailHeader}>
                     <span style={styles.emailIcon}>📧</span>
                     <span style={styles.emailSubject}>{item.subject || 'Email'}</span>
@@ -372,10 +373,14 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 ...styles.messageBubbleRow,
                 justifyContent: isOutbound ? 'flex-end' : 'flex-start',
               }}>
-                <div style={{
-                  ...styles.bubble,
-                  ...(isOutbound ? styles.outboundBubble : styles.inboundBubble),
-                }}>
+                <div
+                  onClick={() => setSelectedMessage(item)}
+                  style={{
+                    ...styles.bubble,
+                    ...(isOutbound ? styles.outboundBubble : styles.inboundBubble),
+                    cursor: 'pointer',
+                  }}
+                >
                   {msgLabel && (
                     <div style={{
                       ...styles.bubbleLabel,
@@ -403,6 +408,69 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           })
         )}
       </div>
+
+      {/* Message detail modal */}
+      {selectedMessage && (
+        <div style={styles.modalOverlay} onClick={() => setSelectedMessage(null)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <div style={styles.modalHeaderLeft}>
+                <span style={{ fontSize: '16px' }}>
+                  {selectedMessage.channel === 'email' ? '📧' : '💬'}
+                </span>
+                <span style={styles.modalTitle}>
+                  {selectedMessage.channel === 'email'
+                    ? (selectedMessage.subject || 'Email')
+                    : 'SMS Message'}
+                </span>
+              </div>
+              <button onClick={() => setSelectedMessage(null)} style={styles.modalClose}>✕</button>
+            </div>
+            <div style={styles.modalMeta}>
+              <div style={styles.modalMetaRow}>
+                <span style={styles.modalMetaLabel}>
+                  {selectedMessage.direction === 'inbound' || selectedMessage.message_type === 'inbound_sms' ? 'From' : 'To'}:
+                </span>
+                <span>{selectedMessage.recipient || patientPhone || '—'}</span>
+              </div>
+              <div style={styles.modalMetaRow}>
+                <span style={styles.modalMetaLabel}>Date:</span>
+                <span>
+                  {selectedMessage.created_at
+                    ? new Date(selectedMessage.created_at).toLocaleString('en-US', {
+                        timeZone: 'America/Los_Angeles',
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })
+                    : '—'}
+                </span>
+              </div>
+              <div style={styles.modalMetaRow}>
+                <span style={styles.modalMetaLabel}>Status:</span>
+                <span>{selectedMessage.status === 'sent' ? '✓ Sent' : selectedMessage.status === 'error' ? '✕ Error' : selectedMessage.status || '—'}</span>
+              </div>
+              {selectedMessage.source && (
+                <div style={styles.modalMetaRow}>
+                  <span style={styles.modalMetaLabel}>Source:</span>
+                  <span style={{ color: '#9ca3af' }}>{selectedMessage.source}</span>
+                </div>
+              )}
+            </div>
+            <div style={styles.modalBody}>
+              {selectedMessage.channel === 'email' ? (
+                <div
+                  style={styles.modalEmailContent}
+                  dangerouslySetInnerHTML={{ __html: selectedMessage.message || '' }}
+                />
+              ) : (
+                <div style={styles.modalSmsContent}>
+                  {selectedMessage.message || ''}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Templates panel */}
       {showTemplates && (
@@ -628,6 +696,8 @@ const styles = {
     borderRadius: '10px',
     padding: '12px 16px',
     marginBottom: '8px',
+    cursor: 'pointer',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
   },
   emailHeader: {
     display: 'flex',
@@ -741,5 +811,98 @@ const styles = {
   },
   emptyText: {
     fontSize: '15px',
+  },
+  // Message detail modal
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px',
+  },
+  modal: {
+    background: '#fff',
+    borderRadius: '14px',
+    width: '100%',
+    maxWidth: '600px',
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 20px',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  modalHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    flex: 1,
+    minWidth: 0,
+  },
+  modalTitle: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#111',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  modalClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    color: '#999',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: '6px',
+    flexShrink: 0,
+  },
+  modalMeta: {
+    padding: '12px 20px',
+    background: '#f9fafb',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  modalMetaRow: {
+    display: 'flex',
+    gap: '8px',
+    fontSize: '13px',
+    color: '#374151',
+  },
+  modalMetaLabel: {
+    color: '#9ca3af',
+    fontWeight: '500',
+    minWidth: '50px',
+  },
+  modalBody: {
+    flex: 1,
+    overflow: 'auto',
+    padding: '20px',
+  },
+  modalEmailContent: {
+    fontSize: '14px',
+    lineHeight: '1.6',
+    color: '#111827',
+    wordBreak: 'break-word',
+  },
+  modalSmsContent: {
+    fontSize: '15px',
+    lineHeight: '1.6',
+    color: '#111827',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
   },
 };

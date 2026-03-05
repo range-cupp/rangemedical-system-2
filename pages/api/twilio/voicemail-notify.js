@@ -37,8 +37,8 @@ export default async function handler(req, res) {
     const secs = duration % 60;
     const durationDisplay = `${mins}:${secs.toString().padStart(2, '0')}`;
 
-    // Recording URL with .mp3 extension for playback
-    const audioUrl = `${RecordingUrl}.mp3`;
+    // Use our proxy URL so the browser plays the audio inline (no download)
+    const audioUrl = `https://app.range-medical.com/api/twilio/recording/${RecordingSid}`;
 
     // Send email notification
     const { error } = await resend.emails.send({

@@ -96,27 +96,27 @@ export default function RetatrutideGuide() {
           <div className="dose-table">
             <div className="dose-row">
               <span className="dose-amount">2 mg</span>
-              <span className="dose-price">$500/mo</span>
+              <span className="dose-price">$499/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">4 mg</span>
-              <span className="dose-price">$600/mo</span>
+              <span className="dose-price">$599/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">6 mg</span>
-              <span className="dose-price">$700/mo</span>
+              <span className="dose-price">$699/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">8 mg</span>
-              <span className="dose-price">$750/mo</span>
+              <span className="dose-price">$749/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">10 mg</span>
-              <span className="dose-price">$800/mo</span>
+              <span className="dose-price">$799/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">12 mg</span>
-              <span className="dose-price">$850/mo</span>
+              <span className="dose-price">$859/mo</span>
             </div>
           </div>
 

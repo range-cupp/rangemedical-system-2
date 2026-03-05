@@ -103,6 +103,11 @@ export default function PatientProfile() {
   const [bloodDrawDate, setBloodDrawDate] = useState('');
   const [bloodDrawSaving, setBloodDrawSaving] = useState(false);
 
+  // Payments sub-tab state
+  const [paymentsSubTab, setPaymentsSubTab] = useState('invoices');
+  const [posServices, setPosServices] = useState([]);
+  const [posServicesLoading, setPosServicesLoading] = useState(false);
+
   // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
@@ -283,6 +288,22 @@ export default function PatientProfile() {
       console.error('Error fetching lab documents:', error);
     } finally {
       setLoadingDocs(false);
+    }
+  };
+
+  const fetchPosServices = async () => {
+    if (posServices.length > 0) return; // already loaded
+    try {
+      setPosServicesLoading(true);
+      const res = await fetch('/api/pos/services?active=true');
+      if (res.ok) {
+        const data = await res.json();
+        setPosServices(data.services || data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load POS services:', err);
+    } finally {
+      setPosServicesLoading(false);
     }
   };
 
@@ -2013,68 +2034,192 @@ export default function PatientProfile() {
           {/* Payments Tab */}
           {activeTab === 'payments' && (
             <>
-              <section className="card">
-                <div className="card-header">
-                  <h3>Invoices ({invoices.length})</h3>
-                </div>
-                {invoices.length === 0 ? (
-                  <div className="empty">No invoices found</div>
-                ) : (
-                  <div className="payments-list">
-                    {invoices.map(inv => {
-                      const statusColors = {
-                        paid: { bg: '#dcfce7', text: '#166534' },
-                        pending: { bg: '#fef3c7', text: '#92400e' },
-                        overdue: { bg: '#fee2e2', text: '#dc2626' },
-                        void: { bg: '#f3f4f6', text: '#6b7280' },
-                        draft: { bg: '#f3f4f6', text: '#6b7280' }
-                      };
-                      const invStatus = (inv.status || 'pending').toLowerCase();
-                      const invStyle = statusColors[invStatus] || statusColors.pending;
+              {/* Payments Sub-tabs */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                {[
+                  { key: 'invoices', label: 'Invoices' },
+                  { key: 'purchases', label: 'Purchases' },
+                  { key: 'catalog', label: 'Products & Services' },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => {
+                      setPaymentsSubTab(tab.key);
+                      if (tab.key === 'catalog') fetchPosServices();
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 20,
+                      border: paymentsSubTab === tab.key ? '2px solid #166534' : '1px solid #d1d5db',
+                      background: paymentsSubTab === tab.key ? '#dcfce7' : '#fff',
+                      color: paymentsSubTab === tab.key ? '#166534' : '#374151',
+                      fontWeight: paymentsSubTab === tab.key ? 600 : 400,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-                      return (
-                        <div key={inv.id} className="payment-row">
-                          <div className="payment-info">
-                            <strong>{inv.description || inv.line_items?.[0]?.description || 'Invoice'}</strong>
-                            <span className="payment-date">{formatDate(inv.created_at)}</span>
+              {/* Invoices Sub-tab */}
+              {paymentsSubTab === 'invoices' && (
+                <section className="card">
+                  <div className="card-header">
+                    <h3>Invoices ({invoices.length})</h3>
+                  </div>
+                  {invoices.length === 0 ? (
+                    <div className="empty">No invoices found</div>
+                  ) : (
+                    <div className="payments-list">
+                      {invoices.map(inv => {
+                        const statusColors = {
+                          paid: { bg: '#dcfce7', text: '#166534' },
+                          pending: { bg: '#fef3c7', text: '#92400e' },
+                          overdue: { bg: '#fee2e2', text: '#dc2626' },
+                          void: { bg: '#f3f4f6', text: '#6b7280' },
+                          draft: { bg: '#f3f4f6', text: '#6b7280' }
+                        };
+                        const invStatus = (inv.status || 'pending').toLowerCase();
+                        const invStyle = statusColors[invStatus] || statusColors.pending;
+
+                        return (
+                          <div key={inv.id} className="payment-row">
+                            <div className="payment-info">
+                              <strong>{inv.description || inv.line_items?.[0]?.description || 'Invoice'}</strong>
+                              <span className="payment-date">{formatDate(inv.created_at)}</span>
+                            </div>
+                            <div className="payment-amount">${(inv.total_amount || inv.amount || 0).toFixed(2)}</div>
+                            <span className="payment-status" style={{ background: invStyle.bg, color: invStyle.text }}>
+                              {invStatus}
+                            </span>
                           </div>
-                          <div className="payment-amount">${(inv.total_amount || inv.amount || 0).toFixed(2)}</div>
-                          <span className="payment-status" style={{ background: invStyle.bg, color: invStyle.text }}>
-                            {invStatus}
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Purchases Sub-tab */}
+              {paymentsSubTab === 'purchases' && (
+                <section className="card">
+                  <div className="card-header">
+                    <h3>Purchases ({allPurchases.length})</h3>
+                  </div>
+                  {allPurchases.length === 0 ? (
+                    <div className="empty">No purchases found</div>
+                  ) : (
+                    <div className="payments-list">
+                      {allPurchases.map(purchase => (
+                        <div key={purchase.id} className="payment-row">
+                          <div className="payment-info">
+                            <strong>{purchase.product_name || 'Purchase'}</strong>
+                            <span className="payment-date">{formatDate(purchase.purchased_at || purchase.created_at)}</span>
+                          </div>
+                          <div className="payment-amount">${(purchase.amount_paid || 0).toFixed(2)}</div>
+                          <span className="payment-status" style={{
+                            background: purchase.protocol_assigned ? '#dcfce7' : '#fef3c7',
+                            color: purchase.protocol_assigned ? '#166534' : '#92400e'
+                          }}>
+                            {purchase.protocol_assigned ? 'assigned' : 'pending'}
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
-              <section className="card">
-                <div className="card-header">
-                  <h3>Purchases ({allPurchases.length})</h3>
-                </div>
-                {allPurchases.length === 0 ? (
-                  <div className="empty">No purchases found</div>
-                ) : (
-                  <div className="payments-list">
-                    {allPurchases.map(purchase => (
-                      <div key={purchase.id} className="payment-row">
-                        <div className="payment-info">
-                          <strong>{purchase.product_name || 'Purchase'}</strong>
-                          <span className="payment-date">{formatDate(purchase.purchased_at || purchase.created_at)}</span>
+              {/* Products & Services Catalog Sub-tab */}
+              {paymentsSubTab === 'catalog' && (
+                <section>
+                  {posServicesLoading ? (
+                    <div className="empty">Loading products & services...</div>
+                  ) : posServices.length === 0 ? (
+                    <div className="empty">No products or services found</div>
+                  ) : (() => {
+                    const categoryOrder = [
+                      'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
+                      'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
+                      'nad_injection', 'injection_pack', 'peptide', 'labs', 'assessment'
+                    ];
+                    const categoryLabels = {
+                      programs: 'Programs',
+                      combo_membership: 'Combo Memberships',
+                      hbot: 'HBOT',
+                      red_light: 'Red Light Therapy',
+                      hrt: 'HRT',
+                      weight_loss: 'Weight Loss',
+                      iv_therapy: 'IV Therapy',
+                      specialty_iv: 'Specialty IV',
+                      injection_standard: 'Standard Injections',
+                      injection_premium: 'Premium Injections',
+                      nad_injection: 'NAD+ Injections',
+                      injection_pack: 'Injection Packs',
+                      peptide: 'Peptides',
+                      labs: 'Labs',
+                      assessment: 'Assessment',
+                    };
+                    // Group services by category
+                    const grouped = {};
+                    posServices.forEach(s => {
+                      const cat = s.category || 'other';
+                      if (!grouped[cat]) grouped[cat] = [];
+                      grouped[cat].push(s);
+                    });
+                    // Sort categories by defined order
+                    const sortedCats = categoryOrder.filter(c => grouped[c] && grouped[c].length > 0);
+                    // Add any remaining categories not in the order
+                    Object.keys(grouped).forEach(c => {
+                      if (!sortedCats.includes(c)) sortedCats.push(c);
+                    });
+
+                    return sortedCats.map(cat => (
+                      <div key={cat} className="card" style={{ marginBottom: 12 }}>
+                        <div className="card-header">
+                          <h3>{categoryLabels[cat] || cat} ({grouped[cat].length})</h3>
                         </div>
-                        <div className="payment-amount">${(purchase.amount_paid || 0).toFixed(2)}</div>
-                        <span className="payment-status" style={{
-                          background: purchase.protocol_assigned ? '#dcfce7' : '#fef3c7',
-                          color: purchase.protocol_assigned ? '#166534' : '#92400e'
-                        }}>
-                          {purchase.protocol_assigned ? 'assigned' : 'pending'}
-                        </span>
+                        <div style={{ padding: '0 16px 12px' }}>
+                          {grouped[cat]
+                            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                            .map(service => (
+                            <div key={service.id} style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '10px 0',
+                              borderBottom: '1px solid #f3f4f6',
+                            }}>
+                              <div style={{ flex: 1 }}>
+                                <span style={{ fontSize: 14, color: '#111827' }}>{service.name}</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: '#166534' }}>
+                                  ${(service.price / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                </span>
+                                {service.recurring && (
+                                  <span style={{
+                                    fontSize: 11,
+                                    background: '#eff6ff',
+                                    color: '#1d4ed8',
+                                    padding: '2px 8px',
+                                    borderRadius: 10,
+                                    fontWeight: 500,
+                                  }}>
+                                    /month
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </section>
+                    ));
+                  })()}
+                </section>
+              )}
             </>
           )}
 

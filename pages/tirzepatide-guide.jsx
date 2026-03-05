@@ -96,23 +96,23 @@ export default function TirzepatideGuide() {
           <div className="dose-table">
             <div className="dose-row">
               <span className="dose-amount">2.5 mg</span>
-              <span className="dose-price">$400/mo</span>
+              <span className="dose-price">$399/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">5.0 mg</span>
-              <span className="dose-price">$550/mo</span>
+              <span className="dose-price">$549/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">7.5 mg</span>
-              <span className="dose-price">$600/mo</span>
+              <span className="dose-price">$599/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">10.0 mg</span>
-              <span className="dose-price">$650/mo</span>
+              <span className="dose-price">$649/mo</span>
             </div>
             <div className="dose-row">
               <span className="dose-amount">12.5 mg</span>
-              <span className="dose-price">$700/mo</span>
+              <span className="dose-price">$699/mo</span>
             </div>
           </div>
 

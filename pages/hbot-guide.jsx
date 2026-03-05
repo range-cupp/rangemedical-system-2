@@ -102,12 +102,12 @@ export default function HBOTGuide() {
             <div className="protocol-card featured">
               <span className="protocol-badge">Most Popular</span>
               <div className="protocol-days">2x / Week</div>
-              <div className="protocol-price">$1,049<span className="price-period">/mo</span></div>
+              <div className="protocol-price">$999<span className="price-period">/mo</span></div>
               <p className="protocol-desc">8 sessions per month. Consistent progress and compounding benefits.</p>
             </div>
             <div className="protocol-card">
               <div className="protocol-days">3x / Week</div>
-              <div className="protocol-price">$1,499<span className="price-period">/mo</span></div>
+              <div className="protocol-price">$1,399<span className="price-period">/mo</span></div>
               <p className="protocol-desc">12 sessions per month. Maximum frequency for accelerated results.</p>
             </div>
           </div>

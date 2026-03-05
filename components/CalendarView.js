@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getCategoryStyle } from '../lib/protocol-config';
 import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS } from '../lib/appointment-services';
 import { getRenewalStatus } from '../lib/protocol-tracking';
+import { formatPhone } from '../lib/format-utils';
 
 const STATUS_LABELS = {
   scheduled: { label: 'Scheduled', bg: '#dbeafe', text: '#1e40af' },
@@ -638,7 +639,7 @@ export default function CalendarView({ preselectedPatient = null }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '13px', color: '#888' }}>📱</span>
                         <a href={`tel:${apptPatientInfo.phone}`} style={{ fontSize: '13px', color: '#374151', textDecoration: 'none' }}>
-                          {apptPatientInfo.phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')}
+                          {formatPhone(apptPatientInfo.phone)}
                         </a>
                       </div>
                     )}
@@ -1203,7 +1204,7 @@ export default function CalendarView({ preselectedPatient = null }) {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span>📱</span>
                             <a href={`tel:${pt.phone}`} style={{ fontSize: '15px', color: '#111', textDecoration: 'none', fontWeight: '500' }}>
-                              {pt.phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')}
+                              {formatPhone(pt.phone)}
                             </a>
                           </div>
                         ) : <span style={{ fontSize: '13px', color: '#bbb' }}>No phone</span>}

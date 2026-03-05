@@ -480,7 +480,7 @@ export default async function handler(req, res) {
       let patientNotes = null;
       const { data: notesData, error: notesErr } = await supabase
         .from('patient_notes')
-        .select('id, body, raw_input, note_date, source, created_by, created_at')
+        .select('id, body, raw_input, note_date, source, created_by, created_at, pinned')
         .eq('patient_id', id)
         .order('note_date', { ascending: false });
       if (notesErr) {

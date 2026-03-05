@@ -1,5 +1,5 @@
 // /pages/api/notes/[id].js
-// Delete a clinical note
+// Delete or update (pin/unpin) a clinical note
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -26,6 +26,49 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error('Note delete error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  if (req.method === 'PATCH') {
+    try {
+      const { pinned } = req.body;
+
+      if (typeof pinned !== 'boolean') {
+        return res.status(400).json({ error: 'pinned (boolean) is required' });
+      }
+
+      // Get the note to find its patient_id
+      const { data: note, error: fetchError } = await supabase
+        .from('patient_notes')
+        .select('id, patient_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !note) {
+        return res.status(404).json({ error: 'Note not found' });
+      }
+
+      if (pinned) {
+        // Unpin any currently pinned note for this patient
+        await supabase
+          .from('patient_notes')
+          .update({ pinned: false })
+          .eq('patient_id', note.patient_id)
+          .eq('pinned', true);
+      }
+
+      // Set the pin state on the target note
+      const { error: updateError } = await supabase
+        .from('patient_notes')
+        .update({ pinned })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      return res.status(200).json({ success: true, pinned });
+    } catch (error) {
+      console.error('Note pin toggle error:', error);
       return res.status(500).json({ error: error.message });
     }
   }

@@ -918,6 +918,26 @@ export default function PatientProfile() {
     }
   };
 
+  const handleTogglePin = async (noteId, currentlyPinned) => {
+    const newPinned = !currentlyPinned;
+    try {
+      const res = await fetch(`/api/notes/${noteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pinned: newPinned }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotes(prev => prev.map(n => ({
+          ...n,
+          pinned: n.id === noteId ? newPinned : false,
+        })));
+      }
+    } catch (error) {
+      console.error('Pin toggle error:', error);
+    }
+  };
+
   // Loading states
   if (!router.isReady) return <div className="loading">Loading...</div>;
   if (loading) return <div className="loading">Loading patient...</div>;
@@ -928,6 +948,7 @@ export default function PatientProfile() {
   const latestLabDoc = labDocuments?.[0];
   const hasBaselineLabs = latestLabs || latestLabDoc;
   const baselineSymptoms = symptomResponses?.[0];
+  const pinnedNote = notes.find(n => n.pinned);
 
   // Helper to open PDF in slide-out viewer
   const openPdfViewer = (url, title = 'Document') => {
@@ -1103,6 +1124,56 @@ export default function PatientProfile() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Pinned Note */}
+        {pinnedNote && (
+          <section style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: 8,
+            padding: '12px 16px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+          }}>
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>📌</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: '#92400e', fontWeight: 600, marginBottom: 4 }}>
+                PINNED NOTE
+                <span style={{ fontWeight: 400, marginLeft: 8 }}>
+                  {formatDate(pinnedNote.note_date || pinnedNote.created_at)}
+                  {pinnedNote.created_by && ` · ${pinnedNote.created_by}`}
+                </span>
+              </div>
+              <div style={{
+                fontSize: 14,
+                color: '#374151',
+                lineHeight: 1.5,
+                whiteSpace: 'pre-wrap',
+                maxHeight: 80,
+                overflow: 'hidden',
+              }}>
+                {pinnedNote.body}
+              </div>
+            </div>
+            <button
+              onClick={() => handleTogglePin(pinnedNote.id, true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#92400e',
+                cursor: 'pointer',
+                fontSize: 14,
+                padding: '2px 6px',
+                flexShrink: 0,
+              }}
+              title="Unpin note"
+            >
+              ✕
+            </button>
           </section>
         )}
 
@@ -1940,14 +2011,37 @@ export default function PatientProfile() {
                             }}>
                               {note.source === 'manual' ? 'Staff Note' : 'GHL Import'}
                             </span>
+                            {note.pinned && (
+                              <span style={{
+                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                background: '#fef3c7', color: '#92400e',
+                              }}>
+                                📌 Pinned
+                              </span>
+                            )}
                           </div>
-                          {note.source === 'manual' && (
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             <button
-                              onClick={() => handleDeleteNote(note.id)}
-                              style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
-                              title="Delete note"
-                            >×</button>
-                          )}
+                              onClick={() => handleTogglePin(note.id, note.pinned)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: note.pinned ? '#d97706' : '#999',
+                                cursor: 'pointer',
+                                fontSize: 16,
+                                padding: '0 4px',
+                                lineHeight: 1,
+                              }}
+                              title={note.pinned ? 'Unpin note' : 'Pin note'}
+                            >📌</button>
+                            {note.source === 'manual' && (
+                              <button
+                                onClick={() => handleDeleteNote(note.id)}
+                                style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
+                                title="Delete note"
+                              >×</button>
+                            )}
+                          </div>
                         </div>
                         <div
                           className="note-body"

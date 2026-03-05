@@ -17,6 +17,7 @@ export default function CommunicationsPage() {
   const [loading, setLoading] = useState(true);
   const [commsLoading, setCommsLoading] = useState(true);
   const [channelFilter, setChannelFilter] = useState('all');
+  const [selectedComm, setSelectedComm] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PATIENTS_PER_PAGE = 20;
   const searchTimeout = useRef(null);
@@ -549,7 +550,11 @@ export default function CommunicationsPage() {
                 </thead>
                 <tbody>
                   {filteredComms.map(comm => (
-                    <tr key={comm.id} style={styles.tr}>
+                    <tr
+                      key={comm.id}
+                      style={styles.trClickable}
+                      onClick={() => setSelectedComm(comm)}
+                    >
                       <td style={styles.td}>{formatDate(comm.created_at)}</td>
                       <td style={styles.td}>
                         <span style={{ fontWeight: '500' }}>{comm.patient_name || '-'}</span>
@@ -570,7 +575,7 @@ export default function CommunicationsPage() {
                       </td>
                       <td style={styles.td}>
                         <span style={{ fontSize: '13px', color: '#666' }}>
-                          {(comm.message || '').substring(0, 60)}{(comm.message || '').length > 60 ? '...' : ''}
+                          {(comm.message || '').replace(/<[^>]*>/g, '').substring(0, 80)}{(comm.message || '').length > 80 ? '...' : ''}
                         </span>
                       </td>
                       <td style={styles.td}>
@@ -588,6 +593,86 @@ export default function CommunicationsPage() {
               </table>
             )}
           </div>
+
+          {/* Message detail modal */}
+          {selectedComm && (
+            <div style={styles.modalOverlay} onClick={() => setSelectedComm(null)}>
+              <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                <div style={styles.modalHeader}>
+                  <div style={styles.modalHeaderLeft}>
+                    <span style={{ fontSize: '16px' }}>
+                      {selectedComm.channel === 'email' ? '📧' : '💬'}
+                    </span>
+                    <span style={styles.modalTitle}>
+                      {selectedComm.channel === 'email'
+                        ? (selectedComm.subject || 'Email')
+                        : 'SMS Message'}
+                    </span>
+                  </div>
+                  <button onClick={() => setSelectedComm(null)} style={styles.modalCloseBtn}>✕</button>
+                </div>
+                <div style={styles.modalMeta}>
+                  <div style={styles.modalMetaRow}>
+                    <span style={styles.modalMetaLabel}>Patient:</span>
+                    <span style={{ fontWeight: '500' }}>{selectedComm.patient_name || '—'}</span>
+                  </div>
+                  <div style={styles.modalMetaRow}>
+                    <span style={styles.modalMetaLabel}>
+                      {selectedComm.direction === 'inbound' ? 'From:' : 'To:'}
+                    </span>
+                    <span>{selectedComm.recipient || '—'}</span>
+                  </div>
+                  <div style={styles.modalMetaRow}>
+                    <span style={styles.modalMetaLabel}>Date:</span>
+                    <span>
+                      {selectedComm.created_at
+                        ? new Date(selectedComm.created_at).toLocaleString('en-US', {
+                            timeZone: 'America/Los_Angeles',
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })
+                        : '—'}
+                    </span>
+                  </div>
+                  <div style={styles.modalMetaRow}>
+                    <span style={styles.modalMetaLabel}>Type:</span>
+                    <span>{(selectedComm.message_type || '—').replace(/_/g, ' ')}</span>
+                  </div>
+                  <div style={styles.modalMetaRow}>
+                    <span style={styles.modalMetaLabel}>Status:</span>
+                    <span style={{
+                      color: selectedComm.status === 'sent' || selectedComm.status === 'received'
+                        ? '#166534'
+                        : selectedComm.status === 'error' ? '#dc2626' : '#666'
+                    }}>
+                      {selectedComm.status === 'sent' ? '✓ Sent'
+                        : selectedComm.status === 'received' ? '✓ Received'
+                        : selectedComm.status === 'error' ? '✕ Error'
+                        : selectedComm.status || '—'}
+                    </span>
+                  </div>
+                  {selectedComm.source && (
+                    <div style={styles.modalMetaRow}>
+                      <span style={styles.modalMetaLabel}>Source:</span>
+                      <span style={{ color: '#9ca3af' }}>{selectedComm.source}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={styles.modalBody}>
+                  {selectedComm.channel === 'email' ? (
+                    <div
+                      style={styles.modalEmailContent}
+                      dangerouslySetInnerHTML={{ __html: selectedComm.message || '' }}
+                    />
+                  ) : (
+                    <div style={styles.modalSmsContent}>
+                      {selectedComm.message || ''}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </AdminLayout>
@@ -816,6 +901,11 @@ const styles = {
   tr: {
     borderBottom: '1px solid #f0f0f0',
   },
+  trClickable: {
+    borderBottom: '1px solid #f0f0f0',
+    cursor: 'pointer',
+    transition: 'background 0.1s',
+  },
   td: {
     padding: '12px 16px',
     fontSize: '14px',
@@ -862,5 +952,99 @@ const styles = {
   pageInfo: {
     fontSize: '13px',
     color: '#666',
+  },
+  // Message detail modal
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px',
+  },
+  modal: {
+    background: '#fff',
+    borderRadius: '14px',
+    width: '100%',
+    maxWidth: '640px',
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 20px',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  modalHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    flex: 1,
+    minWidth: 0,
+  },
+  modalTitle: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#111',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  modalCloseBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    color: '#999',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: '6px',
+    flexShrink: 0,
+  },
+  modalMeta: {
+    padding: '14px 20px',
+    background: '#f9fafb',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  modalMetaRow: {
+    display: 'flex',
+    gap: '8px',
+    fontSize: '13px',
+    color: '#374151',
+  },
+  modalMetaLabel: {
+    color: '#9ca3af',
+    fontWeight: '500',
+    minWidth: '60px',
+    flexShrink: 0,
+  },
+  modalBody: {
+    flex: 1,
+    overflow: 'auto',
+    padding: '20px',
+  },
+  modalEmailContent: {
+    fontSize: '14px',
+    lineHeight: '1.6',
+    color: '#111827',
+    wordBreak: 'break-word',
+  },
+  modalSmsContent: {
+    fontSize: '15px',
+    lineHeight: '1.6',
+    color: '#111827',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
   },
 };

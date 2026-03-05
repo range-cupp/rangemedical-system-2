@@ -204,7 +204,7 @@ const icons = {
   )
 };
 
-export default function AdminLayout({ children, title = 'Admin', actions }) {
+export default function AdminLayout({ children, title = 'Admin', actions, hideHeader = false }) {
   const router = useRouter();
   const currentPath = router.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -240,7 +240,8 @@ export default function AdminLayout({ children, title = 'Admin', actions }) {
           <nav style={styles.nav}>
             {NAV_ITEMS.map(item => {
               const isActive = currentPath === item.href ||
-                (item.href !== '/admin' && currentPath.startsWith(item.href));
+                (item.href !== '/admin' && currentPath.startsWith(item.href)) ||
+                (item.href === '/admin/patients' && currentPath.startsWith('/patients'));
               const showBadge = item.href === '/admin/communications' && unreadCount > 0;
               return (
                 <Link
@@ -288,7 +289,7 @@ export default function AdminLayout({ children, title = 'Admin', actions }) {
           </header>
 
           {/* Page header */}
-          {(title !== 'Admin') && (
+          {(title !== 'Admin' && !hideHeader) && (
             <div style={styles.pageHeader}>
               <h1 style={styles.pageTitle}>{title}</h1>
               {actions && <div style={styles.pageActions}>{actions}</div>}

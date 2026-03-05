@@ -58,13 +58,14 @@ export default async function handler(req, res) {
       customer: customerId,
       description: description || 'Range Medical charge',
       metadata: { patient_id },
+      payment_method_types: ['card'],
     };
 
     // If a saved payment method is provided, attach it and confirm immediately
     if (payment_method_id) {
       intentParams.payment_method = payment_method_id;
       intentParams.confirm = true;
-      intentParams.return_url = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://rangemedical.com'}/admin/command-center`;
+      intentParams.return_url = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com'}/admin/payments`;
     }
 
     const paymentIntent = await stripe.paymentIntents.create(intentParams);

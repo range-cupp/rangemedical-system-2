@@ -7,6 +7,7 @@ import { formatPhone } from '../../lib/format-utils';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import AdminLayout from '../../components/AdminLayout';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -938,7 +939,7 @@ export default function PatientProfile() {
   };
 
   return (
-    <>
+    <AdminLayout title="Patient Profile" hideHeader>
       <Head>
         <title>{getPatientDisplayName()} | Range Medical</title>
       </Head>
@@ -4267,6 +4268,6 @@ export default function PatientProfile() {
           .slideout-panel { width: 100%; min-width: unset; }
         }
       `}</style>
-    </>
+    </AdminLayout>
   );
 }
